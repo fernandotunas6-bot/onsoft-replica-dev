@@ -78,7 +78,7 @@ const dotTone: Record<string, string> = {
 };
 
 const axis = {
-  stroke: "var(--color-muted-foreground)",
+  stroke: "var(--muted-foreground)",
   fontSize: 11,
 } as const;
 
@@ -175,19 +175,19 @@ function Dashboard() {
           <ChartCard title="Estudantes por classe" meta="7 estudantes" className="lg:col-span-2">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={studentsByClass}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--color-border)" />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="classe" tickLine={false} axisLine={false} {...axis} />
                 <YAxis allowDecimals={false} tickLine={false} axisLine={false} {...axis} />
                 <Tooltip
                   contentStyle={{
                     borderRadius: 12,
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-popover)",
-                    color: "var(--color-popover-foreground)",
+                    border: "1px solid var(--border)",
+                    background: "var(--popover)",
+                    color: "var(--popover-foreground)",
                     fontSize: 12,
                   }}
                 />
-                <Bar dataKey="alunos" fill="var(--color-chart-1)" radius={[8, 8, 0, 0]} maxBarSize={38} />
+                <Bar dataKey="alunos" fill="var(--chart-1)" radius={[8, 8, 0, 0]} maxBarSize={38} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -197,7 +197,7 @@ function Dashboard() {
               <PieChart>
                 <Pie data={genderSplit} dataKey="value" innerRadius={58} outerRadius={84} paddingAngle={3}>
                   {genderSplit.map((_, i) => (
-                    <Cell key={i} fill={`var(--color-chart-${i + 1})`} />
+                    <Cell key={i} fill={`var(--chart-${i + 1})`} />
                   ))}
                 </Pie>
               </PieChart>
@@ -207,7 +207,7 @@ function Dashboard() {
                 <li key={g.name} className="flex items-center gap-2">
                   <span
                     className="size-2.5 rounded-full"
-                    style={{ background: `var(--color-chart-${i + 1})` }}
+                    style={{ background: `var(--chart-${i + 1})` }}
                   />
                   <span className="text-muted-foreground">{g.name}</span>
                   <span className="ml-auto font-semibold">
@@ -225,26 +225,26 @@ function Dashboard() {
               <AreaChart data={enrollmentsByMonth}>
                 <defs>
                   <linearGradient id="enroll" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--color-border)" />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="mes" tickLine={false} axisLine={false} {...axis} interval={1} />
                 <YAxis allowDecimals={false} tickLine={false} axisLine={false} {...axis} />
                 <Tooltip
                   contentStyle={{
                     borderRadius: 12,
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-popover)",
-                    color: "var(--color-popover-foreground)",
+                    border: "1px solid var(--border)",
+                    background: "var(--popover)",
+                    color: "var(--popover-foreground)",
                     fontSize: 12,
                   }}
                 />
                 <Area
                   type="monotone"
                   dataKey="matriculas"
-                  stroke="var(--color-chart-1)"
+                  stroke="var(--chart-1)"
                   strokeWidth={2.5}
                   fill="url(#enroll)"
                 />
@@ -257,26 +257,26 @@ function Dashboard() {
               <AreaChart data={attendanceRate}>
                 <defs>
                   <linearGradient id="att" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-chart-3)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--color-chart-3)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--color-border)" />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="mes" tickLine={false} axisLine={false} {...axis} />
                 <YAxis domain={[80, 100]} tickLine={false} axisLine={false} {...axis} unit="%" />
                 <Tooltip
                   contentStyle={{
                     borderRadius: 12,
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-popover)",
-                    color: "var(--color-popover-foreground)",
+                    border: "1px solid var(--border)",
+                    background: "var(--popover)",
+                    color: "var(--popover-foreground)",
                     fontSize: 12,
                   }}
                 />
                 <Area
                   type="monotone"
                   dataKey="taxa"
-                  stroke="var(--color-chart-3)"
+                  stroke="var(--chart-3)"
                   strokeWidth={2.5}
                   fill="url(#att)"
                 />
@@ -289,10 +289,10 @@ function Dashboard() {
           <ChartCard title="Distribuição por idade" meta="7 com idade registada">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={ageDistribution}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--color-border)" />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="faixa" tickLine={false} axisLine={false} {...axis} />
                 <YAxis allowDecimals={false} tickLine={false} axisLine={false} {...axis} />
-                <Bar dataKey="alunos" fill="var(--color-chart-5)" radius={[8, 8, 0, 0]} maxBarSize={34} />
+                <Bar dataKey="alunos" fill="var(--chart-5)" radius={[8, 8, 0, 0]} maxBarSize={34} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
