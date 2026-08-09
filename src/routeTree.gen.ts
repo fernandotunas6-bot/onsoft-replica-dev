@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
+import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,30 +23,39 @@ const AlunosIndexRoute = AlunosIndexRouteImport.update({
   path: '/alunos/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AlunosStudentIdRoute = AlunosStudentIdRouteImport.update({
+  id: '/alunos/$studentId',
+  path: '/alunos/$studentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/alunos/$studentId': typeof AlunosStudentIdRoute
   '/alunos/': typeof AlunosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/alunos/$studentId': typeof AlunosStudentIdRoute
   '/alunos': typeof AlunosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/alunos/$studentId': typeof AlunosStudentIdRoute
   '/alunos/': typeof AlunosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/alunos/'
+  fullPaths: '/' | '/alunos/$studentId' | '/alunos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/alunos'
-  id: '__root__' | '/' | '/alunos/'
+  to: '/' | '/alunos/$studentId' | '/alunos'
+  id: '__root__' | '/' | '/alunos/$studentId' | '/alunos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AlunosStudentIdRoute: typeof AlunosStudentIdRoute
   AlunosIndexRoute: typeof AlunosIndexRoute
 }
 
@@ -65,11 +75,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlunosIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/alunos/$studentId': {
+      id: '/alunos/$studentId'
+      path: '/alunos/$studentId'
+      fullPath: '/alunos/$studentId'
+      preLoaderRoute: typeof AlunosStudentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AlunosStudentIdRoute: AlunosStudentIdRoute,
   AlunosIndexRoute: AlunosIndexRoute,
 }
 export const routeTree = rootRouteImport
