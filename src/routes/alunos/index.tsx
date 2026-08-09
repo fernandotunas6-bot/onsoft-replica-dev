@@ -96,7 +96,7 @@ function StudentsPage() {
               icon={<UserPlus className="size-5" />}
               size="lg"
               submitLabel="Criar matrícula"
-              note="A matrícula é criada na instituição activa e fica pendente de confirmação de pagamento."
+              note="A matrícula é criada e fica pendente de confirmação de pagamento."
               fields={[
                 { name: "nome", label: "Nome completo", placeholder: "Ex.: Ana Domingos", full: true },
                 { name: "nascimento", label: "Data de nascimento", type: "date" },
