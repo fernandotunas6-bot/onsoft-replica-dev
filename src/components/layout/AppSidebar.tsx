@@ -25,42 +25,42 @@ const groups: Group[] = [
     title: "Académico",
     items: [
       { label: "Dashboard", icon: LayoutGrid, to: "/" },
-      { label: "Área Pedagógica", icon: BookOpen, hasChildren: true },
+      { label: "Área Pedagógica", icon: BookOpen, to: "/pedagogica" },
     ],
   },
   {
     title: "Secretaria",
     items: [
       { label: "Gestão de Alunos", icon: Users, to: "/alunos" },
-      { label: "Documentos", icon: FileText, hasChildren: true },
+      { label: "Documentos", icon: FileText, to: "/documentos" },
     ],
   },
   {
     title: "Financeiro",
-    items: [{ label: "Caixa e Pagamentos", icon: CreditCard, hasChildren: true }],
+    items: [{ label: "Caixa e Pagamentos", icon: CreditCard, to: "/financeiro" }],
   },
   {
     title: "Relatórios",
     items: [
-      { label: "Relatórios Financeiros", icon: TrendingUp, hasChildren: true },
-      { label: "Relatórios Académicos", icon: PieChart, hasChildren: true },
-      { label: "Faturas", icon: Receipt, hasChildren: true },
+      { label: "Relatórios Financeiros", icon: TrendingUp, to: "/relatorios/financeiros" },
+      { label: "Relatórios Académicos", icon: PieChart, to: "/relatorios/academicos" },
+      { label: "Faturas", icon: Receipt, to: "/faturas" },
     ],
   },
   {
     title: "Gestão e Comunicação",
     items: [
-      { label: "Gestão de Acessos", icon: UserCog, hasChildren: true },
-      { label: "Comunicações", icon: Megaphone },
+      { label: "Gestão de Acessos", icon: UserCog, to: "/acessos" },
+      { label: "Comunicações", icon: Megaphone, to: "/comunicacoes" },
     ],
   },
   {
     title: "Config. do Sistema",
-    items: [{ label: "Configurações", icon: Settings, hasChildren: true }],
+    items: [{ label: "Configurações", icon: Settings, to: "/configuracoes" }],
   },
   {
     title: "Conta",
-    items: [{ label: "Alterar Senha", icon: Lock }],
+    items: [{ label: "Alterar Senha", icon: Lock, to: "/alterar-senha" }],
   },
 ];
 
@@ -108,7 +108,7 @@ export function AppSidebar({ className }: { className?: string }) {
                   <li key={item.label}>
                     {item.to ? (
                       <Link
-                        to={item.to}
+                        to={item.to as string}
                         activeOptions={{ exact: true }}
                         className={rowClass}
                         activeProps={{

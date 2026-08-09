@@ -10,12 +10,62 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcessosRouteImport } from './routes/acessos'
+import { Route as AlterarSenhaRouteImport } from './routes/alterar-senha'
+import { Route as ComunicacoesRouteImport } from './routes/comunicacoes'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as DocumentosRouteImport } from './routes/documentos'
+import { Route as FaturasRouteImport } from './routes/faturas'
+import { Route as FinanceiroRouteImport } from './routes/financeiro'
+import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
 import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
+import { Route as RelatoriosAcademicosRouteImport } from './routes/relatorios.academicos'
+import { Route as RelatoriosFinanceirosRouteImport } from './routes/relatorios.financeiros'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcessosRoute = AcessosRouteImport.update({
+  id: '/acessos',
+  path: '/acessos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlterarSenhaRoute = AlterarSenhaRouteImport.update({
+  id: '/alterar-senha',
+  path: '/alterar-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComunicacoesRoute = ComunicacoesRouteImport.update({
+  id: '/comunicacoes',
+  path: '/comunicacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentosRoute = DocumentosRouteImport.update({
+  id: '/documentos',
+  path: '/documentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaturasRoute = FaturasRouteImport.update({
+  id: '/faturas',
+  path: '/faturas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroRoute = FinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedagogicaRoute = PedagogicaRouteImport.update({
+  id: '/pedagogica',
+  path: '/pedagogica',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlunosIndexRoute = AlunosIndexRouteImport.update({
@@ -28,34 +78,124 @@ const AlunosStudentIdRoute = AlunosStudentIdRouteImport.update({
   path: '/alunos/$studentId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RelatoriosAcademicosRoute = RelatoriosAcademicosRouteImport.update({
+  id: '/relatorios/academicos',
+  path: '/relatorios/academicos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatoriosFinanceirosRoute = RelatoriosFinanceirosRouteImport.update({
+  id: '/relatorios/financeiros',
+  path: '/relatorios/financeiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acessos': typeof AcessosRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
+  '/comunicacoes': typeof ComunicacoesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/documentos': typeof DocumentosRoute
+  '/faturas': typeof FaturasRoute
+  '/financeiro': typeof FinanceiroRoute
+  '/pedagogica': typeof PedagogicaRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/relatorios/academicos': typeof RelatoriosAcademicosRoute
+  '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos/': typeof AlunosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acessos': typeof AcessosRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
+  '/comunicacoes': typeof ComunicacoesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/documentos': typeof DocumentosRoute
+  '/faturas': typeof FaturasRoute
+  '/financeiro': typeof FinanceiroRoute
+  '/pedagogica': typeof PedagogicaRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/relatorios/academicos': typeof RelatoriosAcademicosRoute
+  '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos': typeof AlunosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acessos': typeof AcessosRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
+  '/comunicacoes': typeof ComunicacoesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/documentos': typeof DocumentosRoute
+  '/faturas': typeof FaturasRoute
+  '/financeiro': typeof FinanceiroRoute
+  '/pedagogica': typeof PedagogicaRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/relatorios/academicos': typeof RelatoriosAcademicosRoute
+  '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos/': typeof AlunosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/alunos/$studentId' | '/alunos/'
+  fullPaths:
+    | '/'
+    | '/acessos'
+    | '/alterar-senha'
+    | '/comunicacoes'
+    | '/configuracoes'
+    | '/documentos'
+    | '/faturas'
+    | '/financeiro'
+    | '/pedagogica'
+    | '/alunos/$studentId'
+    | '/relatorios/academicos'
+    | '/relatorios/financeiros'
+    | '/alunos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/alunos/$studentId' | '/alunos'
-  id: '__root__' | '/' | '/alunos/$studentId' | '/alunos/'
+  to:
+    | '/'
+    | '/acessos'
+    | '/alterar-senha'
+    | '/comunicacoes'
+    | '/configuracoes'
+    | '/documentos'
+    | '/faturas'
+    | '/financeiro'
+    | '/pedagogica'
+    | '/alunos/$studentId'
+    | '/relatorios/academicos'
+    | '/relatorios/financeiros'
+    | '/alunos'
+  id:
+    | '__root__'
+    | '/'
+    | '/acessos'
+    | '/alterar-senha'
+    | '/comunicacoes'
+    | '/configuracoes'
+    | '/documentos'
+    | '/faturas'
+    | '/financeiro'
+    | '/pedagogica'
+    | '/alunos/$studentId'
+    | '/relatorios/academicos'
+    | '/relatorios/financeiros'
+    | '/alunos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcessosRoute: typeof AcessosRoute
+  AlterarSenhaRoute: typeof AlterarSenhaRoute
+  ComunicacoesRoute: typeof ComunicacoesRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  DocumentosRoute: typeof DocumentosRoute
+  FaturasRoute: typeof FaturasRoute
+  FinanceiroRoute: typeof FinanceiroRoute
+  PedagogicaRoute: typeof PedagogicaRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
+  RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
+  RelatoriosFinanceirosRoute: typeof RelatoriosFinanceirosRoute
   AlunosIndexRoute: typeof AlunosIndexRoute
 }
 
@@ -66,6 +206,62 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acessos': {
+      id: '/acessos'
+      path: '/acessos'
+      fullPath: '/acessos'
+      preLoaderRoute: typeof AcessosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alterar-senha': {
+      id: '/alterar-senha'
+      path: '/alterar-senha'
+      fullPath: '/alterar-senha'
+      preLoaderRoute: typeof AlterarSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comunicacoes': {
+      id: '/comunicacoes'
+      path: '/comunicacoes'
+      fullPath: '/comunicacoes'
+      preLoaderRoute: typeof ComunicacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documentos': {
+      id: '/documentos'
+      path: '/documentos'
+      fullPath: '/documentos'
+      preLoaderRoute: typeof DocumentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faturas': {
+      id: '/faturas'
+      path: '/faturas'
+      fullPath: '/faturas'
+      preLoaderRoute: typeof FaturasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financeiro': {
+      id: '/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof FinanceiroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica': {
+      id: '/pedagogica'
+      path: '/pedagogica'
+      fullPath: '/pedagogica'
+      preLoaderRoute: typeof PedagogicaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alunos/': {
@@ -82,12 +278,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlunosStudentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/relatorios/academicos': {
+      id: '/relatorios/academicos'
+      path: '/relatorios/academicos'
+      fullPath: '/relatorios/academicos'
+      preLoaderRoute: typeof RelatoriosAcademicosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorios/financeiros': {
+      id: '/relatorios/financeiros'
+      path: '/relatorios/financeiros'
+      fullPath: '/relatorios/financeiros'
+      preLoaderRoute: typeof RelatoriosFinanceirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcessosRoute: AcessosRoute,
+  AlterarSenhaRoute: AlterarSenhaRoute,
+  ComunicacoesRoute: ComunicacoesRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  DocumentosRoute: DocumentosRoute,
+  FaturasRoute: FaturasRoute,
+  FinanceiroRoute: FinanceiroRoute,
+  PedagogicaRoute: PedagogicaRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
+  RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,
+  RelatoriosFinanceirosRoute: RelatoriosFinanceirosRoute,
   AlunosIndexRoute: AlunosIndexRoute,
 }
 export const routeTree = rootRouteImport
