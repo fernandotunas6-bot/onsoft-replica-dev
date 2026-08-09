@@ -81,10 +81,18 @@ export const documentosQuery = () =>
     queryFn: async () => documentos,
   });
 
-export const warmQueries = [
-  dashboardQuery,
-  studentsQuery,
-  pedagogicaQuery,
-  financeiroQuery,
-  documentosQuery,
-];
+/** Pré-busca de todos os módulos mais usados. */
+export function warmQueries(queryClient: {
+  prefetchQuery: (options: never) => Promise<void>;
+}) {
+  const list = [
+    dashboardQuery(),
+    studentsQuery(),
+    pedagogicaQuery(),
+    financeiroQuery(),
+    documentosQuery(),
+  ];
+  for (const options of list) {
+    void queryClient.prefetchQuery(options as never);
+  }
+}

@@ -78,9 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     let cancelled = false;
     const run = () => {
       if (cancelled) return;
-      for (const q of warmQueries) {
-        void queryClient.prefetchQuery(q());
-      }
+      warmQueries(queryClient);
     };
     const ric = (window as unknown as {
       requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
