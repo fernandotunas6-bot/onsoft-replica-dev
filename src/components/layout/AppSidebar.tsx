@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
@@ -93,6 +93,8 @@ const groups: Group[] = [
   },
 ];
 
+const MENU_KEY = "siga:sidebar-open-menus";
+
 const rowClass =
   "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
@@ -107,17 +109,37 @@ export function AppSidebar({
   collapsed?: boolean;
 }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const [openMenus, setOpenMenus] = useState<string[]>(() =>
-    groups
-      .flatMap((g) => g.items)
-      .filter((i) => i.children?.some((c) => c.to === pathname))
-      .map((i) => i.label),
-  );
+  const parentsOfActive = groups
+    .flatMap((g) => g.items)
+    .filter((i) => i.children?.some((c) => c.to === pathname))
+    .map((i) => i.label);
+  const [openMenus, setOpenMenus] = useState<string[]>(parentsOfActive);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(MENU_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as string[];
+        setOpenMenus((prev) => Array.from(new Set([...parsed, ...prev])));
+      } catch {
+        /* ignore malformed value */
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    setOpenMenus((prev) => Array.from(new Set([...prev, ...parentsOfActive])));
+  }, [pathname]);
 
   const toggle = (label: string) =>
-    setOpenMenus((prev) =>
-      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label],
-    );
+    setOpenMenus((prev) => {
+      const next = prev.includes(label)
+        ? prev.filter((l) => l !== label)
+        : [...prev, label];
+      localStorage.setItem(MENU_KEY, JSON.stringify(next));
+      return next;
+    });
+
 
   return (
     <aside

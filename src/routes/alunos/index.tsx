@@ -1,6 +1,18 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, FileText, Pencil, Plus, Search, UserPlus, Users } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileText,
+  Pencil,
+  Search,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -55,24 +67,77 @@ const pagamentoTone: Record<string, string> = {
   "Em dívida": "bg-destructive/12 text-destructive",
 };
 
+type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
+
 function StudentsPage() {
   const [query, setQuery] = useState("");
   const [classe, setClasse] = useState("todas");
   const [estado, setEstado] = useState("todos");
+  const [sortKey, setSortKey] = useState<SortKey>("nome");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return students.filter((s) => {
+    const rows = students.filter((s) => {
       const matchQuery =
         !q ||
         s.nome.toLowerCase().includes(q) ||
         s.processo.toLowerCase().includes(q) ||
+        s.email.toLowerCase().includes(q) ||
         s.encarregado.toLowerCase().includes(q);
       const matchClass = classe === "todas" || s.classe === classe;
       const matchStatus = estado === "todos" || s.estado === estado;
       return matchQuery && matchClass && matchStatus;
     });
-  }, [query, classe, estado]);
+
+    return [...rows].sort((a, b) => {
+      const cmp = String(a[sortKey]).localeCompare(String(b[sortKey]), "pt", {
+        numeric: true,
+        sensitivity: "base",
+      });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [query, classe, estado, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const paged = filtered.slice(start, start + pageSize);
+
+  const changeSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+    setPage(1);
+  };
+
+  const sortIcon = (key: SortKey) =>
+    key !== sortKey ? (
+      <ArrowUpDown className="size-3 opacity-40" />
+    ) : sortDir === "asc" ? (
+      <ArrowUp className="size-3 text-primary" />
+    ) : (
+      <ArrowDown className="size-3 text-primary" />
+    );
+
+  const SortHead = ({ label, colKey }: { label: string; colKey: SortKey }) => (
+    <TableHead>
+      <button
+        type="button"
+        onClick={() => changeSort(colKey)}
+        className="inline-flex items-center gap-1.5 font-semibold transition-colors hover:text-foreground"
+      >
+        {label}
+        {sortIcon(colKey)}
+      </button>
+    </TableHead>
+  );
+
 
   return (
     <AppShell>
@@ -141,7 +206,7 @@ function StudentsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => { setQuery(e.target.value); setPage(1); }}
                 placeholder="Pesquisar por nome, email, número…"
                 className="pl-9"
                 aria-label="Pesquisar aluno"
@@ -152,7 +217,7 @@ function StudentsPage() {
 
             <select
               value={classe}
-              onChange={(e) => setClasse(e.target.value)}
+              onChange={(e) => { setClasse(e.target.value); setPage(1); }}
               aria-label="Filtrar por classe"
               className={selectClass}
             >
@@ -166,7 +231,7 @@ function StudentsPage() {
 
             <select
               value={estado}
-              onChange={(e) => setEstado(e.target.value)}
+              onChange={(e) => { setEstado(e.target.value); setPage(1); }}
               aria-label="Filtrar por estado"
               className={selectClass}
             >
@@ -188,6 +253,7 @@ function StudentsPage() {
                 setQuery("");
                 setClasse("todas");
                 setEstado("todos");
+                setPage(1);
               }}
             >
               Limpar filtros
@@ -197,35 +263,35 @@ function StudentsPage() {
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[880px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nº Estudante</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Ano Lectivo</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <SortHead label="Nº Estudante" colKey="processo" />
+                  <SortHead label="Nome" colKey="nome" />
+                  <SortHead label="Email" colKey="email" />
+                  <SortHead label="Telefone" colKey="telefone" />
+                  <TableHead className="hidden xl:table-cell">Ano Lectivo</TableHead>
+                  <SortHead label="Estado" colKey="estado" />
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((s) => (
+                {paged.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell className="font-mono text-xs font-semibold text-primary">
                       {s.processo}
                     </TableCell>
                     <TableCell>
-                      <p className="font-semibold">{s.nome}</p>
+                      <p className="whitespace-nowrap font-semibold">{s.nome}</p>
                       <p className="text-xs text-muted-foreground">
                         {s.classe} · Turma {s.turma}
                       </p>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{s.email}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{s.email}</TableCell>
                     <TableCell className="whitespace-nowrap text-sm">{s.telefone}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden xl:table-cell">
                       <span className="inline-flex rounded-lg bg-secondary px-2 py-1 font-mono text-[11px] text-secondary-foreground">
-                        {schoolYear}
+                        {schoolYear.replace("Ano Lectivo ", "")}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -233,15 +299,15 @@ function StudentsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        <Button asChild variant="outline" size="sm" className="gap-1.5">
+                        <Button asChild variant="outline" size="sm" className="h-8 gap-1 px-2 text-xs">
                           <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
                             <FileText className="size-3.5" /> Ficha
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" className="gap-1.5">
+                        <Button variant="outline" size="sm" className="h-8 gap-1 px-2 text-xs">
                           <Pencil className="size-3.5" /> Editar
                         </Button>
-                        <Button variant="outline" size="sm" className="gap-1.5">
+                        <Button variant="outline" size="sm" className="h-8 gap-1 px-2 text-xs">
                           <Users className="size-3.5" /> Turma
                         </Button>
                       </div>
@@ -259,14 +325,75 @@ function StudentsPage() {
             </Table>
           </div>
 
-          <div className="flex items-center justify-between border-t border-border p-4 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-xs text-muted-foreground">
             <span>
-              A mostrar {filtered.length} de {students.length} alunos
+              A mostrar {filtered.length === 0 ? 0 : start + 1}–
+              {Math.min(start + pageSize, filtered.length)} de {filtered.length} alunos
+              {filtered.length !== students.length ? ` (total ${students.length})` : ""}
             </span>
-            <Button variant="ghost" size="sm" className="gap-1">
-              <Plus className="size-3.5" /> Carregar mais
-            </Button>
+
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2">
+                <span>Por página</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="h-8 rounded-lg border border-input bg-background px-2 text-xs"
+                  aria-label="Registos por página"
+                >
+                  {[10, 25, 50].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage(currentPage - 1)}
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages)
+                  .map((p, idx, arr) => (
+                    <span key={p} className="flex items-center">
+                      {idx > 0 && p - (arr[idx - 1] ?? p) > 1 ? (
+                        <span className="px-1 opacity-60">…</span>
+                      ) : null}
+                      <Button
+                        variant={p === currentPage ? "default" : "outline"}
+                        size="icon"
+                        className="size-8 text-xs"
+                        onClick={() => setPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    </span>
+                  ))}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage(currentPage + 1)}
+                  aria-label="Página seguinte"
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </AppShell>
