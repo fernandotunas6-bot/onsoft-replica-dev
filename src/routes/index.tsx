@@ -26,7 +26,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useTenant } from "@/lib/tenant";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import {
@@ -106,19 +105,6 @@ function ChartCard({
 }
 
 function Dashboard() {
-  const { tenant } = useTenant();
-  const fem = Math.round(tenant.alunos * 0.48);
-  const tenantStats = stats.map((s, i) => {
-    const value =
-      i === 0
-        ? tenant.alunos.toLocaleString("pt-PT")
-        : i === 1
-          ? (tenant.alunos - fem).toLocaleString("pt-PT")
-          : i === 2
-            ? fem.toLocaleString("pt-PT")
-            : s.value;
-    return { ...s, value };
-  });
 
   return (
     <AppShell>
@@ -128,7 +114,7 @@ function Dashboard() {
             <p className="text-sm text-muted-foreground">Sábado, 8 de Agosto de 2026</p>
             <h1 className="mt-1 text-3xl font-extrabold md:text-4xl">Boa noite, usuario teste</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {tenant.nome} · Resumo do {schoolYear}
+              Resumo do {schoolYear}
             </p>
           </div>
           <Button variant="outline" className="gap-2">
@@ -154,7 +140,7 @@ function Dashboard() {
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {tenantStats.map((s) => {
+          {stats.map((s) => {
             const Icon = statIcons[s.icon as keyof typeof statIcons];
             return (
               <div key={s.label} className="surface-card p-5">
