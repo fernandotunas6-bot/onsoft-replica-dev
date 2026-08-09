@@ -268,7 +268,12 @@ export function AppSidebar({
                       className={cn(rowClass, collapsed && "justify-center px-0")}
                       activeProps={{ className: activeClass }}
                     >
-                      <Icon className="size-[18px] shrink-0" />
+                      <span
+                        data-chip
+                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/70 text-sidebar-foreground/90 transition-colors group-hover:bg-sidebar-accent"
+                      >
+                        <Icon className="size-[18px]" />
+                      </span>
                       {!collapsed ? <span className="truncate">{item.label}</span> : null}
                     </Link>
                   </li>
