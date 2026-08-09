@@ -3,6 +3,7 @@ import { KeyRound, ShieldCheck, UserPlus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -107,13 +108,7 @@ function AcessosPage() {
                   <TableRow key={u.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <span className="flex size-9 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-primary">
-                          {u.nome
-                            .split(" ")
-                            .slice(0, 2)
-                            .map((p) => p[0]?.toUpperCase())
-                            .join("")}
-                        </span>
+                        <MediaAvatar alt={u.nome} className="size-9 rounded-xl" />
                         <div className="leading-tight">
                           <p className="font-semibold">{u.nome}</p>
                           <p className="text-xs text-muted-foreground">{u.email}</p>
