@@ -1,14 +1,42 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { Bell, ChevronDown, Maximize2, Menu, Moon, Sun } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { schoolYear } from "@/lib/school-data";
 
+const COLLAPSE_KEY = "siga:sidebar-collapsed";
+const years = [schoolYear, "2023/2024", "2022/2023"];
+
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
+  const [year, setYear] = useState(schoolYear);
+
+  useEffect(() => {
+    if (localStorage.getItem(COLLAPSE_KEY) === "1") setCollapsed(true);
+  }, []);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  const toggleCollapsed = () =>
+    setCollapsed((c) => {
+      localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1");
+      return !c;
+    });
 
   const toggleTheme = () => {
     setDark((d) => {
@@ -43,19 +71,36 @@ export function AppShell({ children }: { children: ReactNode }) {
             variant="ghost"
             size="icon"
             className="hidden lg:inline-flex"
-            onClick={() => setCollapsed((c) => !c)}
-            aria-label="Recolher menu"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
           >
             <Menu className="size-5" />
           </Button>
 
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:border-primary/40"
-          >
-            <span className="whitespace-nowrap">{schoolYear} (Atual)</span>
-            <ChevronDown className="size-4 opacity-60" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:border-primary/40"
+              >
+                <span className="truncate whitespace-nowrap">
+                  Ano Lectivo {year}
+                  {year === schoolYear ? " (Atual)" : ""}
+                </span>
+                <ChevronDown className="size-4 shrink-0 opacity-60" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>Ano lectivo</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {years.map((y) => (
+                <DropdownMenuItem key={y} onClick={() => setYear(y)}>
+                  {y}
+                  {y === schoolYear ? " (Atual)" : ""}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className="ml-auto flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Alternar tema">
@@ -69,27 +114,43 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
 
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-lg px-1 py-1 transition-colors hover:bg-secondary"
-          >
-            <span className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-              U
-            </span>
-            <span className="hidden text-left leading-tight sm:block">
-              <span className="block text-sm font-semibold">usuario teste</span>
-              <span className="block text-xs text-muted-foreground">admin</span>
-            </span>
-            <ChevronDown className="hidden size-4 opacity-60 sm:block" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-3 rounded-lg px-1 py-1 transition-colors hover:bg-secondary"
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                  U
+                </span>
+                <span className="hidden text-left leading-tight sm:block">
+                  <span className="block text-sm font-semibold">usuario teste</span>
+                  <span className="block text-xs text-muted-foreground">admin</span>
+                </span>
+                <ChevronDown className="hidden size-4 opacity-60 sm:block" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>usuario teste</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Perfil</DropdownMenuItem>
+              <DropdownMenuItem>Alterar senha</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Terminar sessão</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6 md:py-8">{children}</main>
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-4 text-xs text-muted-foreground md:px-6">
           <div className="flex gap-4">
-            <span>Políticas</span>
-            <span>Termos de uso</span>
+            <a href="#politicas" className="transition-colors hover:text-foreground">
+              Políticas
+            </a>
+            <a href="#termos" className="transition-colors hover:text-foreground">
+              Termos de uso
+            </a>
           </div>
           <span>© SIGA — Sistema Integrado de Gestão Académica</span>
         </footer>
