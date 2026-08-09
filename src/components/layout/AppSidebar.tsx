@@ -93,6 +93,8 @@ const groups: Group[] = [
   },
 ];
 
+const MENU_KEY = "siga:sidebar-open-menus";
+
 const rowClass =
   "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
