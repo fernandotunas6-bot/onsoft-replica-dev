@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Child = { label: string; icon: React.ElementType; to: string };
+type Child = { label: string; icon: React.ElementType; to?: string };
 type Item = { label: string; icon: React.ElementType; to?: string; children?: Child[] };
 type Group = { title: string; items: Item[] };
 
@@ -34,7 +34,7 @@ const groups: Group[] = [
         icon: BookOpen,
         children: [
           { label: "Turmas e Disciplinas", icon: BookOpen, to: "/pedagogica" },
-          { label: "Notas e Avaliações", icon: PieChart, to: "/pedagogica" },
+          { label: "Notas e Avaliações", icon: PieChart },
         ],
       },
     ],
@@ -46,8 +46,8 @@ const groups: Group[] = [
         label: "Gestão de Alunos",
         icon: Users,
         children: [
-          { label: "Matricular Aluno", icon: UserPlus, to: "/alunos" },
-          { label: "Confirmar Matrícula", icon: UserCheck, to: "/alunos" },
+          { label: "Matricular Aluno", icon: UserPlus },
+          { label: "Confirmar Matrícula", icon: UserCheck },
           { label: "Estado do Aluno", icon: Users, to: "/alunos" },
         ],
       },
@@ -194,15 +194,25 @@ export function AppSidebar({
                             const ChildIcon = child.icon;
                             return (
                               <li key={child.label}>
-                                <Link
-                                  to={child.to}
-                                  className={cn(rowClass, "py-2 text-[13px]")}
-                                  activeOptions={{ exact: true }}
-                                  activeProps={{ className: activeClass }}
-                                >
-                                  <ChildIcon className="size-4 shrink-0" />
-                                  <span className="truncate">{child.label}</span>
-                                </Link>
+                                {child.to ? (
+                                  <Link
+                                    to={child.to}
+                                    className={cn(rowClass, "py-2 text-[13px]")}
+                                    activeOptions={{ exact: true }}
+                                    activeProps={{ className: activeClass }}
+                                  >
+                                    <ChildIcon className="size-4 shrink-0" />
+                                    <span className="truncate">{child.label}</span>
+                                  </Link>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className={cn(rowClass, "py-2 text-[13px]")}
+                                  >
+                                    <ChildIcon className="size-4 shrink-0" />
+                                    <span className="truncate">{child.label}</span>
+                                  </button>
+                                )}
                               </li>
                             );
                           })}
