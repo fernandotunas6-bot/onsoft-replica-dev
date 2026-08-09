@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcessosRouteImport } from './routes/acessos'
 import { Route as ComunicacoesRouteImport } from './routes/comunicacoes'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as FaturasRouteImport } from './routes/faturas'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
@@ -34,6 +35,11 @@ const AcessosRoute = AcessosRouteImport.update({
 const ComunicacoesRoute = ComunicacoesRouteImport.update({
   id: '/comunicacoes',
   path: '/comunicacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentosRoute = DocumentosRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
   '/comunicacoes': typeof ComunicacoesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
   '/comunicacoes': typeof ComunicacoesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
   '/comunicacoes': typeof ComunicacoesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/acessos'
     | '/comunicacoes'
+    | '/configuracoes'
     | '/documentos'
     | '/faturas'
     | '/financeiro'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/acessos'
     | '/comunicacoes'
+    | '/configuracoes'
     | '/documentos'
     | '/faturas'
     | '/financeiro'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/acessos'
     | '/comunicacoes'
+    | '/configuracoes'
     | '/documentos'
     | '/faturas'
     | '/financeiro'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcessosRoute: typeof AcessosRoute
   ComunicacoesRoute: typeof ComunicacoesRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
   DocumentosRoute: typeof DocumentosRoute
   FaturasRoute: typeof FaturasRoute
   FinanceiroRoute: typeof FinanceiroRoute
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/comunicacoes'
       fullPath: '/comunicacoes'
       preLoaderRoute: typeof ComunicacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documentos': {
@@ -259,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcessosRoute: AcessosRoute,
   ComunicacoesRoute: ComunicacoesRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
   DocumentosRoute: DocumentosRoute,
   FaturasRoute: FaturasRoute,
   FinanceiroRoute: FinanceiroRoute,
