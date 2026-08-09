@@ -25,7 +25,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { classOptions, statusOptions, students, studentSummary } from "@/lib/students-data";
+import {
+  classOptions,
+  courseOptions,
+  periodOptions,
+  roomOptions,
+  statusOptions,
+  students,
+  studentSummary,
+  turmaOptions,
+} from "@/lib/students-data";
 import { schoolYear } from "@/lib/school-data";
 import { cn } from "@/lib/utils";
 
@@ -56,9 +65,9 @@ const selectClass =
 const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
 
 const estadoTone: Record<string, string> = {
-  Activo: "bg-success/15 text-success",
+  Matriculado: "bg-primary text-primary-foreground",
   Inactivo: "bg-muted text-muted-foreground",
-  Transferido: "bg-info/10 text-info",
+  Transferido: "border border-destructive/30 bg-destructive/10 text-destructive",
 };
 
 const pagamentoTone: Record<string, string> = {
@@ -67,12 +76,17 @@ const pagamentoTone: Record<string, string> = {
   "Em dívida": "bg-destructive/12 text-destructive",
 };
 
+
 type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
 
 function StudentsPage() {
   const [query, setQuery] = useState("");
   const [classe, setClasse] = useState("todas");
   const [estado, setEstado] = useState("todos");
+  const [curso, setCurso] = useState("todos");
+  const [turma, setTurma] = useState("todas");
+  const [periodo, setPeriodo] = useState("todos");
+  const [sala, setSala] = useState("todas");
   const [sortKey, setSortKey] = useState<SortKey>("nome");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
@@ -89,7 +103,9 @@ function StudentsPage() {
         s.encarregado.toLowerCase().includes(q);
       const matchClass = classe === "todas" || s.classe === classe;
       const matchStatus = estado === "todos" || s.estado === estado;
-      return matchQuery && matchClass && matchStatus;
+      const matchCourse = curso === "todos" || s.curso === curso;
+      const matchTurma = turma === "todas" || s.turma === turma;
+      return matchQuery && matchClass && matchStatus && matchCourse && matchTurma;
     });
 
     return [...rows].sort((a, b) => {
@@ -99,7 +115,8 @@ function StudentsPage() {
       });
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [query, classe, estado, sortKey, sortDir]);
+  }, [query, classe, estado, curso, turma, sortKey, sortDir]);
+
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -144,14 +161,11 @@ function StudentsPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Secretaria
-            </p>
             <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
-              Gestão de Alunos
+              Gestão de Estudantes
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Consulte matrículas, situação financeira e desempenho de cada aluno.
+              Gerencie matrículas e informações dos estudantes
             </p>
           </div>
           <div className="flex gap-2">
@@ -159,9 +173,9 @@ function StudentsPage() {
               <Download className="size-4" /> Exportar
             </Button>
             <QuickFormModal
-              title="Matricular novo aluno"
+              title="Nova matrícula"
               eyebrow="Secretaria"
-              description="Preencha os dados do aluno e do encarregado de educação para gerar a matrícula."
+              description="Preencha os dados do estudante e do encarregado de educação para gerar a matrícula."
               icon={<UserPlus className="size-5" />}
               size="lg"
               submitLabel="Criar matrícula"
@@ -178,7 +192,7 @@ function StudentsPage() {
               ]}
               trigger={(open) => (
                 <Button className="gap-2" onClick={open}>
-                  <UserPlus className="size-4" /> Novo aluno
+                  <UserPlus className="size-4" /> Nova Matrícula
                 </Button>
               )}
             />
@@ -216,6 +230,18 @@ function StudentsPage() {
             <span className={selectClass}>{schoolYear}</span>
 
             <select
+              value={curso}
+              onChange={(e) => { setCurso(e.target.value); setPage(1); }}
+              aria-label="Filtrar por curso"
+              className={selectClass}
+            >
+              <option value="todos">Todos os Cursos</option>
+              {courseOptions.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            <select
               value={classe}
               onChange={(e) => { setClasse(e.target.value); setPage(1); }}
               aria-label="Filtrar por classe"
@@ -226,6 +252,42 @@ function StudentsPage() {
                 <option key={c} value={c}>
                   {c} Classe
                 </option>
+              ))}
+            </select>
+
+            <select
+              value={periodo}
+              onChange={(e) => { setPeriodo(e.target.value); setPage(1); }}
+              aria-label="Filtrar por período"
+              className={selectClass}
+            >
+              <option value="todos">Todos os Períodos</option>
+              {periodOptions.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+
+            <select
+              value={turma}
+              onChange={(e) => { setTurma(e.target.value); setPage(1); }}
+              aria-label="Filtrar por turma"
+              className={selectClass}
+            >
+              <option value="todas">Todas as Turmas</option>
+              {turmaOptions.map((t) => (
+                <option key={t} value={t}>Turma {t}</option>
+              ))}
+            </select>
+
+            <select
+              value={sala}
+              onChange={(e) => { setSala(e.target.value); setPage(1); }}
+              aria-label="Filtrar por sala"
+              className={selectClass}
+            >
+              <option value="todas">Todas as Salas</option>
+              {roomOptions.map((r) => (
+                <option key={r} value={r}>{r}</option>
               ))}
             </select>
 
@@ -253,6 +315,10 @@ function StudentsPage() {
                 setQuery("");
                 setClasse("todas");
                 setEstado("todos");
+                setCurso("todos");
+                setTurma("todas");
+                setPeriodo("todos");
+                setSala("todas");
                 setPage(1);
               }}
             >
@@ -260,6 +326,7 @@ function StudentsPage() {
             </Button>
           </div>
         </div>
+
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="overflow-x-auto">

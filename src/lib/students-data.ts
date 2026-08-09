@@ -1,4 +1,4 @@
-export type StudentStatus = "Activo" | "Inactivo" | "Transferido";
+export type StudentStatus = "Matriculado" | "Inactivo" | "Transferido";
 export type PaymentStatus = "Regularizado" | "Pendente" | "Em dívida";
 
 export type Student = {
@@ -35,7 +35,7 @@ export const students: Student[] = [
     telefone: "+244 923 111 222",
     email: "joao.baptista@escola.com",
     morada: "Rua da Liberdade, 42 · Luanda",
-    estado: "Activo",
+    estado: "Matriculado",
     pagamento: "Regularizado",
     mediaFinal: 15.4,
     presenca: 98,
@@ -54,7 +54,7 @@ export const students: Student[] = [
     telefone: "+244 921 334 908",
     email: "ana.cardoso@escola.com",
     morada: "Bairro Alvalade, 15 · Luanda",
-    estado: "Activo",
+    estado: "Matriculado",
     pagamento: "Pendente",
     mediaFinal: 16.8,
     presenca: 95,
@@ -73,7 +73,7 @@ export const students: Student[] = [
     telefone: "+244 927 552 010",
     email: "pedro.nzinga@escola.com",
     morada: "Rua 21 de Janeiro, 8 · Viana",
-    estado: "Activo",
+    estado: "Matriculado",
     pagamento: "Regularizado",
     mediaFinal: 13.2,
     presenca: 100,
@@ -92,7 +92,7 @@ export const students: Student[] = [
     telefone: "+244 923 887 441",
     email: "mateus.kial@escola.com",
     morada: "Bairro Cassenda, 77 · Luanda",
-    estado: "Activo",
+    estado: "Matriculado",
     pagamento: "Em dívida",
     mediaFinal: 12.6,
     presenca: 91,
@@ -130,7 +130,7 @@ export const students: Student[] = [
     telefone: "+244 924 776 129",
     email: "carlos.sebastiao@escola.com",
     morada: "Bairro Palanca, 21 · Luanda",
-    estado: "Activo",
+    estado: "Matriculado",
     pagamento: "Regularizado",
     mediaFinal: 14.1,
     presenca: 97,
@@ -158,13 +158,18 @@ export const students: Student[] = [
 ];
 
 export const classOptions = ["1ª", "3ª", "5ª", "7ª", "9ª", "11ª", "13ª"];
-export const statusOptions: StudentStatus[] = ["Activo", "Inactivo", "Transferido"];
+export const statusOptions: StudentStatus[] = ["Matriculado", "Inactivo", "Transferido"];
+export const courseOptions = Array.from(new Set(students.map((s) => s.curso))).sort();
+export const turmaOptions = Array.from(new Set(students.map((s) => s.turma))).sort();
+export const periodOptions = ["Manhã", "Tarde"];
+export const roomOptions = ["Sala 01", "Sala 02"];
+
 
 export const studentSummary = [
   { label: "Total de alunos", value: students.length.toString(), hint: "Ano lectivo actual" },
   {
-    label: "Activos",
-    value: students.filter((s) => s.estado === "Activo").length.toString(),
+    label: "Matriculados",
+    value: students.filter((s) => s.estado === "Matriculado").length.toString(),
     hint: "Matrícula confirmada",
   },
   {
