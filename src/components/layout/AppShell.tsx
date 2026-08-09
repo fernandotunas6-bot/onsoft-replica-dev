@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="header-icon-btn lg:hidden"
             onClick={() => setOpen(true)}
             aria-label="Abrir menu"
           >
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
-            className="hidden lg:inline-flex"
+            className="header-icon-btn hidden lg:inline-flex"
             onClick={toggleCollapsed}
             aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
           >
@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:border-primary/40"
+                className="flex min-w-0 items-center gap-2 rounded-full border border-border bg-secondary/70 px-3.5 py-1.5 text-sm font-medium text-secondary-foreground transition-colors hover:border-primary/40"
               >
                 <span className="truncate whitespace-nowrap">
                   {year}
@@ -103,13 +103,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </DropdownMenu>
 
           <div className="ml-auto flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Alternar tema">
+            <Button variant="ghost" size="icon" className="header-icon-btn" onClick={toggleTheme} aria-label="Alternar tema">
               {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </Button>
-            <Button variant="ghost" size="icon" aria-label="Notificações">
+            <Button variant="ghost" size="icon" className="header-icon-btn" aria-label="Notificações">
               <Bell className="size-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="hidden sm:inline-flex" aria-label="Ecrã inteiro">
+            <Button variant="ghost" size="icon" className="header-icon-btn hidden sm:inline-flex" aria-label="Ecrã inteiro">
               <Maximize2 className="size-5" />
             </Button>
           </div>
@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-3 rounded-lg px-1 py-1 transition-colors hover:bg-secondary"
+                className="flex items-center gap-3 rounded-full px-1.5 py-1 transition-colors hover:bg-secondary"
               >
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                   U
