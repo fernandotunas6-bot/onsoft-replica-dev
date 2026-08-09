@@ -55,24 +55,77 @@ const pagamentoTone: Record<string, string> = {
   "Em dívida": "bg-destructive/12 text-destructive",
 };
 
+type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
+
 function StudentsPage() {
   const [query, setQuery] = useState("");
   const [classe, setClasse] = useState("todas");
   const [estado, setEstado] = useState("todos");
+  const [sortKey, setSortKey] = useState<SortKey>("nome");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return students.filter((s) => {
+    const rows = students.filter((s) => {
       const matchQuery =
         !q ||
         s.nome.toLowerCase().includes(q) ||
         s.processo.toLowerCase().includes(q) ||
+        s.email.toLowerCase().includes(q) ||
         s.encarregado.toLowerCase().includes(q);
       const matchClass = classe === "todas" || s.classe === classe;
       const matchStatus = estado === "todos" || s.estado === estado;
       return matchQuery && matchClass && matchStatus;
     });
-  }, [query, classe, estado]);
+
+    return [...rows].sort((a, b) => {
+      const cmp = String(a[sortKey]).localeCompare(String(b[sortKey]), "pt", {
+        numeric: true,
+        sensitivity: "base",
+      });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [query, classe, estado, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const paged = filtered.slice(start, start + pageSize);
+
+  const changeSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+    setPage(1);
+  };
+
+  const sortIcon = (key: SortKey) =>
+    key !== sortKey ? (
+      <ArrowUpDown className="size-3 opacity-40" />
+    ) : sortDir === "asc" ? (
+      <ArrowUp className="size-3 text-primary" />
+    ) : (
+      <ArrowDown className="size-3 text-primary" />
+    );
+
+  const SortHead = ({ label, colKey }: { label: string; colKey: SortKey }) => (
+    <TableHead>
+      <button
+        type="button"
+        onClick={() => changeSort(colKey)}
+        className="inline-flex items-center gap-1.5 font-semibold transition-colors hover:text-foreground"
+      >
+        {label}
+        {sortIcon(colKey)}
+      </button>
+    </TableHead>
+  );
+
 
   return (
     <AppShell>
