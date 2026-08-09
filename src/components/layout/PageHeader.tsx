@@ -33,9 +33,15 @@ export function StatGrid({
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
-        <div key={item.label} className="rounded-xl border border-border bg-card p-5 shadow-soft">
+        <div
+          key={item.label}
+          className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+        >
+          <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/70 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
           <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
-          <p className="mt-2 font-display text-3xl font-extrabold tracking-tight">{item.value}</p>
+          <p className="mt-2 font-display text-3xl font-extrabold tracking-tight tabular-nums">
+            {item.value}
+          </p>
           {item.hint ? <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p> : null}
         </div>
       ))}
@@ -55,8 +61,8 @@ export function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card shadow-soft">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-soft transition-shadow hover:shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-gradient-to-r from-secondary/60 to-transparent px-5 py-4">
         <div>
           <h2 className="font-display text-base font-bold tracking-tight">{title}</h2>
           {description ? (
@@ -69,6 +75,7 @@ export function Panel({
     </section>
   );
 }
+
 
 export const badgeBase =
   "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
