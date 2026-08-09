@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcessosRouteImport } from './routes/acessos'
+import { Route as AlterarSenhaRouteImport } from './routes/alterar-senha'
 import { Route as ComunicacoesRouteImport } from './routes/comunicacoes'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as DocumentosRouteImport } from './routes/documentos'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const AcessosRoute = AcessosRouteImport.update({
   id: '/acessos',
   path: '/acessos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlterarSenhaRoute = AlterarSenhaRouteImport.update({
+  id: '/alterar-senha',
+  path: '/alterar-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComunicacoesRoute = ComunicacoesRouteImport.update({
@@ -86,6 +92,7 @@ const RelatoriosFinanceirosRoute = RelatoriosFinanceirosRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
+  '/alterar-senha': typeof AlterarSenhaRoute
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/acessos'
+    | '/alterar-senha'
     | '/comunicacoes'
     | '/configuracoes'
     | '/documentos'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/acessos'
+    | '/alterar-senha'
     | '/comunicacoes'
     | '/configuracoes'
     | '/documentos'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/acessos'
+    | '/alterar-senha'
     | '/comunicacoes'
     | '/configuracoes'
     | '/documentos'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcessosRoute: typeof AcessosRoute
+  AlterarSenhaRoute: typeof AlterarSenhaRoute
   ComunicacoesRoute: typeof ComunicacoesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   DocumentosRoute: typeof DocumentosRoute
@@ -200,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/acessos'
       fullPath: '/acessos'
       preLoaderRoute: typeof AcessosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alterar-senha': {
+      id: '/alterar-senha'
+      path: '/alterar-senha'
+      fullPath: '/alterar-senha'
+      preLoaderRoute: typeof AlterarSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comunicacoes': {
@@ -278,6 +298,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcessosRoute: AcessosRoute,
+  AlterarSenhaRoute: AlterarSenhaRoute,
   ComunicacoesRoute: ComunicacoesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   DocumentosRoute: DocumentosRoute,
