@@ -55,16 +55,47 @@ export function MediaFrame({
   );
 }
 
-/** Small rounded avatar/thumbnail with the same loading behaviour. */
+/**
+ * Small rounded avatar/thumbnail with the same loading behaviour.
+ * Without `src` it falls back to soft-tinted initials (Minimals style),
+ * using only existing design tokens.
+ */
 export function MediaAvatar({
   src,
   alt,
+  fallback,
   className,
+  textClassName,
 }: {
-  src: string;
+  src?: string | null;
   alt: string;
+  fallback?: string;
   className?: string;
+  textClassName?: string;
 }) {
+  const initials = (fallback ?? alt)
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+
+  if (!src) {
+    return (
+      <span
+        aria-label={alt}
+        role="img"
+        className={cn(
+          "inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft font-display text-xs font-extrabold text-primary",
+          className,
+          textClassName,
+        )}
+      >
+        {initials}
+      </span>
+    );
+  }
+
   return (
     <MediaFrame
       src={src}
@@ -75,3 +106,4 @@ export function MediaAvatar({
     />
   );
 }
+

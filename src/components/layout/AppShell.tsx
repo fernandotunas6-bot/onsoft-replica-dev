@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useRouter, useRouterState } from "@tanstack/react-router";
+
 import { Bell, ChevronDown, Maximize2, Menu, Moon, Sun } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ const years = [schoolYear, "Ano Lectivo 2023/2024", "Ano Lectivo 2022/2023"];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
@@ -31,6 +33,40 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  // Pré-carrega os módulos principais em tempo livre do browser: o toque
+  // seguinte abre sem espera, sem alterar o visual nem as cores.
+  useEffect(() => {
+    const routes = [
+      "/",
+      "/alunos",
+      "/pedagogica",
+      "/documentos",
+      "/financeiro",
+      "/faturas",
+      "/relatorios/academicos",
+      "/relatorios/financeiros",
+      "/comunicacoes",
+      "/acessos",
+      "/configuracoes",
+    ];
+    let cancelled = false;
+    const run = () => {
+      for (const to of routes) {
+        if (cancelled || to === pathname) continue;
+        void router.preloadRoute({ to }).catch(() => {});
+      }
+    };
+    const ric = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    const id = ric ? ric(run, { timeout: 2000 }) : window.setTimeout(run, 600);
+    return () => {
+      cancelled = true;
+      if (!ric) window.clearTimeout(id as number);
+    };
+  }, [router, pathname]);
+
 
   const toggleCollapsed = () =>
     setCollapsed((c) => {

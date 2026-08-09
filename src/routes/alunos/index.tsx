@@ -17,6 +17,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Input } from "@/components/ui/input";
+import { MediaAvatar } from "@/components/ui/media-frame";
+
 import {
   Table,
   TableBody,
@@ -349,11 +351,20 @@ function StudentsPage() {
                       {s.processo}
                     </TableCell>
                     <TableCell>
-                      <p className="whitespace-nowrap font-semibold">{s.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {s.classe} · Turma {s.turma}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <MediaAvatar
+                          alt={s.nome}
+                          className="size-9 rounded-xl"
+                        />
+                        <div className="min-w-0">
+                          <p className="whitespace-nowrap font-semibold">{s.nome}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {s.classe} · Turma {s.turma}
+                          </p>
+                        </div>
+                      </div>
                     </TableCell>
+
                     <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{s.email}</TableCell>
                     <TableCell className="whitespace-nowrap text-sm">{s.telefone}</TableCell>
                     <TableCell className="hidden xl:table-cell">
