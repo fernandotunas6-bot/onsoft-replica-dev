@@ -24,6 +24,8 @@ const years = [schoolYear, "Ano Lectivo 2023/2024", "Ano Lectivo 2022/2023"];
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const router = useRouter();
+  const queryClient = useQueryClient();
+
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
