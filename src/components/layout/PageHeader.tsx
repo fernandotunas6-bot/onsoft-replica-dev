@@ -31,23 +31,46 @@ export function PageHeader({
 export function StatGrid({
   items,
 }: {
-  items: { label: string; value: string; hint?: string }[];
+  items: {
+    label: string;
+    value: string;
+    hint?: string;
+    icon?: ElementType;
+    tone?: ChipTone;
+  }[];
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
-        >
-          <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/70 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
-          <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
-          <p className="mt-2 font-display text-3xl font-extrabold tracking-tight tabular-nums">
-            {item.value}
-          </p>
-          {item.hint ? <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p> : null}
-        </div>
-      ))}
+      {items.map((item) => {
+        const inferred = inferIcon(`${item.label} ${item.hint ?? ""}`);
+        const Icon = item.icon ?? inferred.icon;
+        const tone = item.tone ?? inferred.tone;
+        return (
+          <div
+            key={item.label}
+            className="group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+          >
+            <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/70 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
+                <p className="mt-2 font-display text-3xl font-extrabold tracking-tight tabular-nums">
+                  {item.value}
+                </p>
+                {item.hint ? (
+                  <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p>
+                ) : null}
+              </div>
+              <IconChip
+                icon={Icon}
+                tone={tone}
+                size="md"
+                className="transition-transform duration-200 group-hover:scale-105"
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -56,21 +79,31 @@ export function Panel({
   title,
   description,
   action,
+  icon,
+  tone,
   children,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
+  icon?: ElementType;
+  tone?: ChipTone;
   children: ReactNode;
 }) {
+  const inferred = inferIcon(`${title} ${description ?? ""}`);
+  const Icon = icon ?? inferred.icon;
+  const chipTone = tone ?? inferred.tone;
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card shadow-soft transition-shadow hover:shadow-md">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-gradient-to-r from-secondary/60 to-transparent px-5 py-4">
-        <div>
-          <h2 className="font-display text-base font-bold tracking-tight">{title}</h2>
-          {description ? (
-            <p className="text-xs text-muted-foreground">{description}</p>
-          ) : null}
+        <div className="flex min-w-0 items-center gap-3">
+          <IconChip icon={Icon} tone={chipTone} size="sm" />
+          <div className="min-w-0">
+            <h2 className="font-display text-base font-bold tracking-tight">{title}</h2>
+            {description ? (
+              <p className="text-xs text-muted-foreground">{description}</p>
+            ) : null}
+          </div>
         </div>
         {action}
       </div>
@@ -78,6 +111,7 @@ export function Panel({
     </section>
   );
 }
+
 
 
 export const badgeBase =
