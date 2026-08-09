@@ -56,19 +56,26 @@ export function AppShell({ children }: { children: ReactNode }) {
       "/configuracoes",
     ];
     let cancelled = false;
-    const run = () => {
-      for (const to of routes) {
-        if (cancelled || to === pathname) continue;
-        void router.preloadRoute({ to }).catch(() => {});
-      }
-    };
+    // Ajustado após medição de Web Vitals: os chunks são pré-carregados um a um
+    // em fatias de tempo livre, para não competir com o primeiro render (FCP).
+    const queue = routes.filter((to) => to !== pathname);
     const ric = (window as unknown as {
       requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
     }).requestIdleCallback;
-    const id = ric ? ric(run, { timeout: 2000 }) : window.setTimeout(run, 600);
+    let timer = 0;
+    const step = () => {
+      if (cancelled) return;
+      const to = queue.shift();
+      if (!to) return;
+      void router.preloadRoute({ to }).catch(() => {});
+      if (ric) ric(step, { timeout: 800 });
+      else timer = window.setTimeout(step, 120);
+    };
+    if (ric) ric(step, { timeout: 1200 });
+    else timer = window.setTimeout(step, 400);
     return () => {
       cancelled = true;
-      if (!ric) window.clearTimeout(id as number);
+      if (timer) window.clearTimeout(timer);
     };
   }, [router, pathname]);
 
