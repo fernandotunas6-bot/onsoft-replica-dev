@@ -1,5 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useRouterState } from "@tanstack/react-router";
+import { warmQueries } from "@/lib/queries";
+
 
 import { Bell, ChevronDown, Maximize2, Menu, Moon, Sun } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
@@ -66,6 +69,28 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (!ric) window.clearTimeout(id as number);
     };
   }, [router, pathname]);
+
+  // Pré-busca de dados (TanStack Query) dos módulos e filtros mais usados,
+  // para que ao tocar já esteja tudo em cache.
+  useEffect(() => {
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      for (const q of warmQueries) {
+        void queryClient.prefetchQuery(q());
+      }
+    };
+    const ric = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    const id = ric ? ric(run, { timeout: 2500 }) : window.setTimeout(run, 800);
+    return () => {
+      cancelled = true;
+      if (!ric) window.clearTimeout(id as number);
+    };
+  }, [queryClient]);
+
+
 
 
   const toggleCollapsed = () =>
