@@ -31,15 +31,20 @@ import { Button } from "@/components/ui/button";
 import {
   ageDistribution,
   attendanceRate,
+  enrollmentStatus,
   enrollmentsByMonth,
+  financeSummary,
   genderSplit,
   miniStats,
   recentActivity,
   schoolYear,
   stats,
   studentsByClass,
+  studentsByCourse,
+  topClasses,
   upcoming,
 } from "@/lib/school-data";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
