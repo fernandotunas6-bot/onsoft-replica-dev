@@ -241,7 +241,12 @@ export function AppSidebar({
                                     type="button"
                                     className={cn(rowClass, "py-2 text-[13px]")}
                                   >
-                                    <ChildIcon className="size-4 shrink-0" />
+                                    <span
+                                      data-chip
+                                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/60 text-sidebar-foreground/85"
+                                    >
+                                      <ChildIcon className="size-[15px]" />
+                                    </span>
                                     <span className="truncate">{child.label}</span>
                                   </button>
                                 )}
