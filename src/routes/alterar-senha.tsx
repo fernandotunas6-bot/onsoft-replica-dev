@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/alterar-senha")({
   head: () => ({
     meta: [
-      { title: "Alterar Senha · ONSCHOOL" },
+      { title: "Alterar Senha · SIGA" },
       {
         name: "description",
         content:
-          "Actualize a senha da sua conta ONSCHOOL e siga as recomendações de segurança da escola.",
+          "Actualize a senha da sua conta SIGA e siga as recomendações de segurança da escola.",
       },
-      { property: "og:title", content: "Alterar Senha · ONSCHOOL" },
+      { property: "og:title", content: "Alterar Senha · SIGA" },
       { property: "og:description", content: "Actualize com segurança a senha da sua conta." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

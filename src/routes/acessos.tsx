@@ -3,6 +3,7 @@ import { KeyRound, ShieldCheck, UserPlus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -18,13 +19,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/acessos")({
   head: () => ({
     meta: [
-      { title: "Gestão de Acessos · ONSCHOOL" },
+      { title: "Gestão de Acessos · SIGA" },
       {
         name: "description",
         content:
           "Utilizadores, perfis e permissões do sistema escolar: administradores, secretaria, tesouraria, professores e encarregados.",
       },
-      { property: "og:title", content: "Gestão de Acessos · ONSCHOOL" },
+      { property: "og:title", content: "Gestão de Acessos · SIGA" },
       {
         property: "og:description",
         content: "Controle quem acede a cada módulo do sistema e com que nível de permissão.",
@@ -53,9 +54,26 @@ function AcessosPage() {
           title="Gestão de Acessos"
           description="Utilizadores do sistema, perfis atribuídos e matriz de permissões por módulo."
           actions={
-            <Button className="gap-2">
-              <UserPlus className="size-4" /> Novo utilizador
-            </Button>
+            <QuickFormModal
+              title="Novo utilizador"
+              eyebrow="Gestão de acessos"
+              description="Crie a conta e defina o perfil de permissões dentro da instituição activa."
+              icon={<UserPlus className="size-5" />}
+              submitLabel="Criar utilizador"
+              note="O utilizador só terá acesso aos dados da instituição activa."
+              fields={[
+                { name: "nome", label: "Nome completo", placeholder: "Ex.: Paulo Neto", full: true },
+                { name: "email", label: "Email", placeholder: "nome@escola.ao" },
+                { name: "perfil", label: "Perfil", type: "select", options: ["Administrador", "Secretaria", "Financeiro", "Professor", "Consulta"] },
+                { name: "telefone", label: "Telefone", placeholder: "+244 9xx xxx xxx" },
+                { name: "estado", label: "Estado inicial", type: "select", options: ["Activo", "Inactivo"] },
+              ]}
+              trigger={(open) => (
+                <Button className="gap-2" onClick={open}>
+                  <UserPlus className="size-4" /> Novo utilizador
+                </Button>
+              )}
+            />
           }
         />
 

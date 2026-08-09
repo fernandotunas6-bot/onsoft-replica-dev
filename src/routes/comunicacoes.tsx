@@ -12,13 +12,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/comunicacoes")({
   head: () => ({
     meta: [
-      { title: "Comunicações · ONSCHOOL" },
+      { title: "Comunicações · SIGA" },
       {
         name: "description",
         content:
           "Envie comunicados por SMS, e-mail ou portal para encarregados, alunos e professores da escola.",
       },
-      { property: "og:title", content: "Comunicações · ONSCHOOL" },
+      { property: "og:title", content: "Comunicações · SIGA" },
       {
         property: "og:description",
         content: "Comunicados enviados, agendados e rascunhos num único painel.",

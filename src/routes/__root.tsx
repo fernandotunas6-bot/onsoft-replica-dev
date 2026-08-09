@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { TenantProvider } from "@/lib/tenant";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
@@ -79,12 +80,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ONSCHOOL — Gestão Escolar" },
+      { title: "SIGA — Gestão Escolar" },
       {
         name: "description",
         content: "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
       },
-      { property: "og:title", content: "ONSCHOOL — Gestão Escolar" },
+      { property: "og:title", content: "SIGA — Gestão Escolar" },
       {
         property: "og:description",
         content: "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
@@ -131,8 +132,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <TenantProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </TenantProvider>
       <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );

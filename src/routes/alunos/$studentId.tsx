@@ -8,13 +8,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/alunos/$studentId")({
   head: () => ({
     meta: [
-      { title: "Ficha do Aluno · ONSCHOOL" },
+      { title: "Ficha do Aluno · SIGA" },
       {
         name: "description",
         content:
           "Ficha completa do aluno: dados pessoais, encarregado de educação, matrícula, presença, média final e situação financeira.",
       },
-      { property: "og:title", content: "Ficha do Aluno · ONSCHOOL" },
+      { property: "og:title", content: "Ficha do Aluno · SIGA" },
       {
         property: "og:description",
         content: "Dados pessoais, matrícula, desempenho académico e situação financeira do aluno.",

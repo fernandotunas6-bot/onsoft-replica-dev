@@ -4,6 +4,7 @@ import { FileText, Plus, Printer, Search } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -19,13 +20,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/faturas")({
   head: () => ({
     meta: [
-      { title: "Faturas · ONSCHOOL" },
+      { title: "Faturas · SIGA" },
       {
         name: "description",
         content:
           "Emissão e controlo de faturas de mensalidades, matrículas e serviços, com estado de pagamento e vencimentos.",
       },
-      { property: "og:title", content: "Faturas · ONSCHOOL" },
+      { property: "og:title", content: "Faturas · SIGA" },
       {
         property: "og:description",
         content: "Consulte faturas pagas, pendentes e vencidas de cada aluno da escola.",
@@ -71,9 +72,26 @@ function FaturasPage() {
               <Button variant="outline" className="gap-2">
                 <Printer className="size-4" /> Imprimir
               </Button>
-              <Button className="gap-2">
-                <Plus className="size-4" /> Emitir factura
-              </Button>
+              <QuickFormModal
+                title="Emitir factura"
+                eyebrow="Financeiro"
+                description="Gere um documento de cobrança para o aluno seleccionado."
+                icon={<Plus className="size-5" />}
+                submitLabel="Emitir"
+                fields={[
+                  { name: "aluno", label: "Aluno", placeholder: "Pesquisar aluno", full: true },
+                  { name: "tipo", label: "Tipo", type: "select", options: ["Mensalidade", "Matrícula", "Documento", "Outro"] },
+                  { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "35000" },
+                  { name: "vencimento", label: "Vencimento", type: "date" },
+                  { name: "metodo", label: "Método previsto", type: "select", options: ["Multicaixa", "Transferência", "Dinheiro"] },
+                  { name: "desc", label: "Descrição", type: "textarea", full: true },
+                ]}
+                trigger={(open) => (
+                  <Button className="gap-2" onClick={open}>
+                    <Plus className="size-4" /> Emitir factura
+                  </Button>
+                )}
+              />
             </>
           }
         />

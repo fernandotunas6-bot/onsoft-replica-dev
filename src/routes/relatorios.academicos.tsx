@@ -29,13 +29,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/relatorios/academicos")({
   head: () => ({
     meta: [
-      { title: "Relatórios Académicos · ONSCHOOL" },
+      { title: "Relatórios Académicos · SIGA" },
       {
         name: "description",
         content:
           "Aproveitamento por classe, médias trimestrais, desempenho por turma e ranking de disciplinas.",
       },
-      { property: "og:title", content: "Relatórios Académicos · ONSCHOOL" },
+      { property: "og:title", content: "Relatórios Académicos · SIGA" },
       {
         property: "og:description",
         content: "Avalie aproveitamento, médias e desempenho pedagógico por turma e disciplina.",

@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { schoolYear } from "@/lib/school-data";
+import { TenantSwitcher } from "./TenantSwitcher";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -47,7 +48,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span>Pesquisar aluno, turma ou factura…</span>
           </div>
 
-          <span className="ml-auto hidden rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground sm:inline-flex">
+          <div className="ml-auto hidden md:block">
+            <TenantSwitcher />
+          </div>
+
+          <span className="hidden rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground sm:inline-flex">
             {schoolYear} (Atual)
           </span>
 

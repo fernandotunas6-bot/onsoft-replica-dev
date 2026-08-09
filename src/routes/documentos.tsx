@@ -4,6 +4,7 @@ import { FileCheck2, FilePlus2, Printer, Search } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -19,13 +20,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/documentos")({
   head: () => ({
     meta: [
-      { title: "Documentos e Declarações · ONSCHOOL" },
+      { title: "Documentos e Declarações · SIGA" },
       {
         name: "description",
         content:
           "Emissão e acompanhamento de declarações, certificados, boletins e pedidos de transferência dos alunos.",
       },
-      { property: "og:title", content: "Documentos e Declarações · ONSCHOOL" },
+      { property: "og:title", content: "Documentos e Declarações · SIGA" },
       {
         property: "og:description",
         content: "Acompanhe pedidos de documentos, prazos e taxas de emissão da secretaria.",
@@ -69,9 +70,26 @@ function DocumentosPage() {
               <Button variant="outline" className="gap-2">
                 <Printer className="size-4" /> Imprimir lote
               </Button>
-              <Button className="gap-2">
-                <FilePlus2 className="size-4" /> Novo pedido
-              </Button>
+              <QuickFormModal
+                title="Novo pedido de documento"
+                eyebrow="Secretaria"
+                description="Registe o pedido, o tipo de documento e a taxa associada."
+                icon={<FilePlus2 className="size-5" />}
+                submitLabel="Registar pedido"
+                fields={[
+                  { name: "aluno", label: "Aluno", placeholder: "Pesquisar aluno", full: true },
+                  { name: "tipo", label: "Tipo de documento", type: "select", options: ["Declaração de matrícula", "Certificado de habilitações", "Histórico escolar", "Transferência"] },
+                  { name: "taxa", label: "Taxa (Kz)", type: "number", placeholder: "2500" },
+                  { name: "prazo", label: "Prazo de entrega", type: "date" },
+                  { name: "urgencia", label: "Urgência", type: "select", options: ["Normal", "Urgente"] },
+                  { name: "notas", label: "Notas internas", type: "textarea", full: true },
+                ]}
+                trigger={(open) => (
+                  <Button className="gap-2" onClick={open}>
+                    <FilePlus2 className="size-4" /> Novo pedido
+                  </Button>
+                )}
+              />
             </>
           }
         />

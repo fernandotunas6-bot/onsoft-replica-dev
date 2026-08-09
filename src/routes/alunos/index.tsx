@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Download, Filter, Plus, Search, UserPlus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -18,13 +19,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/alunos/")({
   head: () => ({
     meta: [
-      { title: "Gestão de Alunos · ONSCHOOL" },
+      { title: "Gestão de Alunos · SIGA" },
       {
         name: "description",
         content:
           "Lista de alunos matriculados: pesquisa por nome ou processo, filtros por classe e estado, situação financeira e média final.",
       },
-      { property: "og:title", content: "Gestão de Alunos · ONSCHOOL" },
+      { property: "og:title", content: "Gestão de Alunos · SIGA" },
       {
         property: "og:description",
         content: "Pesquise, filtre e consulte a ficha completa de cada aluno da escola.",
@@ -88,9 +89,30 @@ function StudentsPage() {
             <Button variant="outline" className="gap-2">
               <Download className="size-4" /> Exportar
             </Button>
-            <Button className="gap-2">
-              <UserPlus className="size-4" /> Novo aluno
-            </Button>
+            <QuickFormModal
+              title="Matricular novo aluno"
+              eyebrow="Secretaria"
+              description="Preencha os dados do aluno e do encarregado de educação para gerar a matrícula."
+              icon={<UserPlus className="size-5" />}
+              size="lg"
+              submitLabel="Criar matrícula"
+              note="A matrícula é criada na instituição activa e fica pendente de confirmação de pagamento."
+              fields={[
+                { name: "nome", label: "Nome completo", placeholder: "Ex.: Ana Domingos", full: true },
+                { name: "nascimento", label: "Data de nascimento", type: "date" },
+                { name: "genero", label: "Género", type: "select", options: ["Feminino", "Masculino"] },
+                { name: "classe", label: "Classe", type: "select", options: ["7ª", "8ª", "9ª", "10ª", "11ª", "12ª"] },
+                { name: "turma", label: "Turma", type: "select", options: ["A", "B", "C"] },
+                { name: "encarregado", label: "Encarregado de educação", placeholder: "Nome do encarregado" },
+                { name: "telefone", label: "Telefone", placeholder: "+244 9xx xxx xxx" },
+                { name: "obs", label: "Observações", type: "textarea", full: true },
+              ]}
+              trigger={(open) => (
+                <Button className="gap-2" onClick={open}>
+                  <UserPlus className="size-4" /> Novo aluno
+                </Button>
+              )}
+            />
           </div>
         </div>
 

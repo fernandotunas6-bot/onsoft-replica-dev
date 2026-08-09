@@ -26,6 +26,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useTenant } from "@/lib/tenant";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,13 +45,13 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard · ONSCHOOL — Gestão Escolar" },
+      { title: "Dashboard · SIGA — Gestão Escolar" },
       {
         name: "description",
         content:
-          "Painel de gestão escolar ONSCHOOL: estudantes, turmas, matrículas, presenças e situação financeira do ano lectivo.",
+          "Painel de gestão escolar SIGA: estudantes, turmas, matrículas, presenças e situação financeira do ano lectivo.",
       },
-      { property: "og:title", content: "Dashboard · ONSCHOOL — Gestão Escolar" },
+      { property: "og:title", content: "Dashboard · SIGA — Gestão Escolar" },
       {
         property: "og:description",
         content: "Visão geral do ano lectivo: estudantes, turmas, matrículas e finanças.",
@@ -105,6 +106,20 @@ function ChartCard({
 }
 
 function Dashboard() {
+  const { tenant } = useTenant();
+  const fem = Math.round(tenant.alunos * 0.48);
+  const tenantStats = stats.map((s, i) => {
+    const value =
+      i === 0
+        ? tenant.alunos.toLocaleString("pt-PT")
+        : i === 1
+          ? (tenant.alunos - fem).toLocaleString("pt-PT")
+          : i === 2
+            ? fem.toLocaleString("pt-PT")
+            : s.value;
+    return { ...s, value };
+  });
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -112,7 +127,9 @@ function Dashboard() {
           <div>
             <p className="text-sm text-muted-foreground">Sábado, 8 de Agosto de 2026</p>
             <h1 className="mt-1 text-3xl font-extrabold md:text-4xl">Boa noite, usuario teste</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Resumo do {schoolYear}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {tenant.nome} · Resumo do {schoolYear}
+            </p>
           </div>
           <Button variant="outline" className="gap-2">
             <RefreshCw className="size-4" /> Actualizar
@@ -137,7 +154,7 @@ function Dashboard() {
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((s) => {
+          {tenantStats.map((s) => {
             const Icon = statIcons[s.icon as keyof typeof statIcons];
             return (
               <div key={s.label} className="surface-card p-5">

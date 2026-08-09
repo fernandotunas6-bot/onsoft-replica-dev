@@ -32,13 +32,13 @@ import { configuracaoEscola, parametrosFinanceiros } from "@/lib/modules-data";
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
     meta: [
-      { title: "Configurações do Sistema · ONSCHOOL" },
+      { title: "Configurações do Sistema · SIGA" },
       {
         name: "description",
         content:
           "Dados da instituição, ano lectivo, parâmetros financeiros, notificações, integrações e segurança do sistema escolar.",
       },
-      { property: "og:title", content: "Configurações do Sistema · ONSCHOOL" },
+      { property: "og:title", content: "Configurações do Sistema · SIGA" },
       {
         property: "og:description",
         content:
