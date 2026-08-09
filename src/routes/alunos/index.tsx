@@ -263,14 +263,14 @@ function StudentsPage() {
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="overflow-x-auto">
-            <Table className="min-w-[980px]">
+            <Table className="min-w-[880px]">
               <TableHeader>
                 <TableRow>
                   <SortHead label="Nº Estudante" colKey="processo" />
                   <SortHead label="Nome" colKey="nome" />
                   <SortHead label="Email" colKey="email" />
                   <SortHead label="Telefone" colKey="telefone" />
-                  <TableHead>Ano Lectivo</TableHead>
+                  <TableHead className="hidden xl:table-cell">Ano Lectivo</TableHead>
                   <SortHead label="Estado" colKey="estado" />
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -289,7 +289,7 @@ function StudentsPage() {
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{s.email}</TableCell>
                     <TableCell className="whitespace-nowrap text-sm">{s.telefone}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden xl:table-cell">
                       <span className="inline-flex rounded-lg bg-secondary px-2 py-1 font-mono text-[11px] text-secondary-foreground">
                         {schoolYear.replace("Ano Lectivo ", "")}
                       </span>
