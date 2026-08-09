@@ -110,22 +110,53 @@ function ChartCard({
 }
 
 function Dashboard() {
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const greeting = (() => {
+    const h = now?.getHours() ?? 20;
+    if (h < 12) return "Bom dia";
+    if (h < 19) return "Boa tarde";
+    return "Boa noite";
+  })();
 
   return (
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Sábado, 8 de Agosto de 2026</p>
-            <h1 className="mt-1 text-3xl font-extrabold md:text-4xl">Boa noite, usuario teste</h1>
+            <p className="text-sm capitalize text-muted-foreground">
+              {now
+                ? now.toLocaleDateString("pt-PT", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "\u00a0"}
+            </p>
+            <h1 className="mt-1 text-3xl font-extrabold md:text-4xl">
+              {greeting}, usuario teste 👋
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Resumo do {schoolYear}
             </p>
           </div>
-          <Button variant="outline" className="gap-2">
-            <RefreshCw className="size-4" /> Actualizar
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-sm text-muted-foreground">
+              {now ? now.toLocaleTimeString("pt-PT", { hour12: false }) : "--:--:--"}
+            </span>
+            <Button variant="outline" className="gap-2">
+              <RefreshCw className="size-4" /> Actualizar
+            </Button>
+          </div>
         </div>
+
 
         <section className="surface-card p-5">
           <div className="flex items-center justify-between gap-3">
