@@ -206,7 +206,7 @@ function StudentsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => { setQuery(e.target.value); setPage(1); }}
                 placeholder="Pesquisar por nome, email, número…"
                 className="pl-9"
                 aria-label="Pesquisar aluno"
@@ -217,7 +217,7 @@ function StudentsPage() {
 
             <select
               value={classe}
-              onChange={(e) => setClasse(e.target.value)}
+              onChange={(e) => { setClasse(e.target.value); setPage(1); }}
               aria-label="Filtrar por classe"
               className={selectClass}
             >
@@ -231,7 +231,7 @@ function StudentsPage() {
 
             <select
               value={estado}
-              onChange={(e) => setEstado(e.target.value)}
+              onChange={(e) => { setEstado(e.target.value); setPage(1); }}
               aria-label="Filtrar por estado"
               className={selectClass}
             >
@@ -253,6 +253,7 @@ function StudentsPage() {
                 setQuery("");
                 setClasse("todas");
                 setEstado("todos");
+                setPage(1);
               }}
             >
               Limpar filtros
