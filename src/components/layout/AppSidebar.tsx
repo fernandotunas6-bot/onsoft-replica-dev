@@ -31,7 +31,7 @@ const groups: Group[] = [
   {
     title: "Secretaria",
     items: [
-      { label: "Gestão de Alunos", icon: Users, hasChildren: true },
+      { label: "Gestão de Alunos", icon: Users, to: "/alunos" },
       { label: "Documentos", icon: FileText, hasChildren: true },
     ],
   },
