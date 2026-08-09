@@ -25,7 +25,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { classOptions, statusOptions, students, studentSummary } from "@/lib/students-data";
+import {
+  classOptions,
+  courseOptions,
+  periodOptions,
+  roomOptions,
+  statusOptions,
+  students,
+  studentSummary,
+  turmaOptions,
+} from "@/lib/students-data";
 import { schoolYear } from "@/lib/school-data";
 import { cn } from "@/lib/utils";
 
