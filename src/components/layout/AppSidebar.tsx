@@ -196,7 +196,12 @@ export function AppSidebar({
                           childActive && "bg-sidebar-accent text-sidebar-accent-foreground",
                         )}
                       >
-                        <Icon className="size-[18px] shrink-0" />
+                        <span
+                          data-chip
+                          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/70 text-sidebar-foreground/90 transition-colors group-hover:bg-sidebar-accent"
+                        >
+                          <Icon className="size-[18px]" />
+                        </span>
                         {!collapsed ? (
                           <>
                             <span className="truncate">{item.label}</span>
@@ -223,7 +228,12 @@ export function AppSidebar({
                                     activeOptions={{ exact: true }}
                                     activeProps={{ className: activeClass }}
                                   >
-                                    <ChildIcon className="size-4 shrink-0" />
+                                    <span
+                                      data-chip
+                                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/60 text-sidebar-foreground/85"
+                                    >
+                                      <ChildIcon className="size-[15px]" />
+                                    </span>
                                     <span className="truncate">{child.label}</span>
                                   </Link>
                                 ) : (
