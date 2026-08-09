@@ -263,7 +263,7 @@ function StudentsPage() {
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="overflow-x-auto">
-            <Table className="min-w-[1100px]">
+            <Table className="min-w-[980px]">
               <TableHeader>
                 <TableRow>
                   <SortHead label="Nº Estudante" colKey="processo" />
@@ -287,7 +287,7 @@ function StudentsPage() {
                         {s.classe} · Turma {s.turma}
                       </p>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{s.email}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{s.email}</TableCell>
                     <TableCell className="whitespace-nowrap text-sm">{s.telefone}</TableCell>
                     <TableCell>
                       <span className="inline-flex rounded-lg bg-secondary px-2 py-1 font-mono text-[11px] text-secondary-foreground">
@@ -299,15 +299,15 @@ function StudentsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        <Button asChild variant="outline" size="sm" className="gap-1.5">
+                        <Button asChild variant="outline" size="sm" className="h-8 gap-1 px-2 text-xs">
                           <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
                             <FileText className="size-3.5" /> Ficha
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" className="gap-1.5">
+                        <Button variant="outline" size="sm" className="h-8 gap-1 px-2 text-xs">
                           <Pencil className="size-3.5" /> Editar
                         </Button>
-                        <Button variant="outline" size="sm" className="gap-1.5">
+                        <Button variant="outline" size="sm" className="h-8 gap-1 px-2 text-xs">
                           <Users className="size-3.5" /> Turma
                         </Button>
                       </div>
