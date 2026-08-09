@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useTenant } from "@/lib/tenant";
 
 export type QuickField = {
   name: string;
@@ -18,7 +17,7 @@ export type QuickField = {
 
 /**
  * Modal premium de criação/edição rápida. Os dados ficam associados
- * à instituição activa (multi-tenant) e são apenas de demonstração.
+ * apenas de demonstração.
  */
 export function QuickFormModal({
   trigger,
@@ -43,7 +42,6 @@ export function QuickFormModal({
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { tenant } = useTenant();
 
   const submit = () => {
     setSaving(true);
@@ -51,7 +49,7 @@ export function QuickFormModal({
       setSaving(false);
       setOpen(false);
       toast.success(`${title} concluído`, {
-        description: `Registo associado a ${tenant.nome}.`,
+        description: "Registo guardado com sucesso.",
       });
     }, 550);
   };
@@ -62,7 +60,7 @@ export function QuickFormModal({
       <PremiumModal
         open={open}
         onOpenChange={setOpen}
-        eyebrow={eyebrow ?? tenant.nome}
+        eyebrow={eyebrow}
         title={title}
         description={description}
         icon={icon}

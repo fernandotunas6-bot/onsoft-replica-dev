@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Filter, Plus, Search, UserPlus } from "lucide-react";
+import { Download, FileText, Pencil, Plus, Search, UserPlus, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { classOptions, statusOptions, students, studentSummary } from "@/lib/students-data";
+import { schoolYear } from "@/lib/school-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/alunos/")({
@@ -36,6 +37,9 @@ export const Route = createFileRoute("/alunos/")({
   }),
   component: StudentsPage,
 });
+
+const selectClass =
+  "h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground";
 
 const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
 
@@ -96,7 +100,7 @@ function StudentsPage() {
               icon={<UserPlus className="size-5" />}
               size="lg"
               submitLabel="Criar matrícula"
-              note="A matrícula é criada na instituição activa e fica pendente de confirmação de pagamento."
+              note="A matrícula é criada e fica pendente de confirmação de pagamento."
               fields={[
                 { name: "nome", label: "Nome completo", placeholder: "Ex.: Ana Domingos", full: true },
                 { name: "nascimento", label: "Data de nascimento", type: "date" },
@@ -131,110 +135,122 @@ function StudentsPage() {
           ))}
         </div>
 
-        <div className="rounded-xl border border-border bg-card shadow-soft">
-          <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
+        <div className="rounded-xl border border-border bg-card p-4 shadow-soft">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="relative min-w-[240px] flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Pesquisar por nome, processo ou encarregado…"
+                placeholder="Pesquisar por nome, email, número…"
                 className="pl-9"
                 aria-label="Pesquisar aluno"
               />
             </div>
 
-            <div className="flex items-center gap-2 text-sm">
-              <Filter className="size-4 text-muted-foreground" />
-              <select
-                value={classe}
-                onChange={(e) => setClasse(e.target.value)}
-                aria-label="Filtrar por classe"
-                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-              >
-                <option value="todas">Todas as classes</option>
-                {classOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c} Classe
-                  </option>
-                ))}
-              </select>
-              <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-                aria-label="Filtrar por estado"
-                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-              >
-                <option value="todos">Todos os estados</option>
-                {statusOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+            <span className={selectClass}>{schoolYear}</span>
 
+            <select
+              value={classe}
+              onChange={(e) => setClasse(e.target.value)}
+              aria-label="Filtrar por classe"
+              className={selectClass}
+            >
+              <option value="todas">Todas as Classes</option>
+              {classOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c} Classe
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={estado}
+              onChange={(e) => setEstado(e.target.value)}
+              aria-label="Filtrar por estado"
+              className={selectClass}
+            >
+              <option value="todos">Todos</option>
+              {statusOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+
+            <Button variant="outline" size="sm">
+              Ano atual
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setQuery("");
+                setClasse("todas");
+                setEstado("todos");
+              }}
+            >
+              Limpar filtros
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Processo</TableHead>
-                  <TableHead>Aluno</TableHead>
-                  <TableHead>Classe / Turma</TableHead>
-                  <TableHead>Curso</TableHead>
+                  <TableHead>Nº Estudante</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>Ano Lectivo</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Financeiro</TableHead>
-                  <TableHead className="text-right">Média</TableHead>
-                  <TableHead className="text-right">Ficha</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
+                    <TableCell className="font-mono text-xs font-semibold text-primary">
                       {s.processo}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-primary">
-                          {s.nome
-                            .split(" ")
-                            .slice(0, 2)
-                            .map((p) => p[0])
-                            .join("")}
-                        </span>
-                        <div className="leading-tight">
-                          <p className="font-semibold">{s.nome}</p>
-                          <p className="text-xs text-muted-foreground">{s.encarregado}</p>
-                        </div>
-                      </div>
+                      <p className="font-semibold">{s.nome}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.classe} · Turma {s.turma}
+                      </p>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {s.classe} · Turma {s.turma}
+                    <TableCell className="text-sm text-muted-foreground">{s.email}</TableCell>
+                    <TableCell className="whitespace-nowrap text-sm">{s.telefone}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex rounded-lg bg-secondary px-2 py-1 font-mono text-[11px] text-secondary-foreground">
+                        {schoolYear}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{s.curso}</TableCell>
                     <TableCell>
                       <span className={cn(badge, estadoTone[s.estado])}>{s.estado}</span>
                     </TableCell>
                     <TableCell>
-                      <span className={cn(badge, pagamentoTone[s.pagamento])}>{s.pagamento}</span>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {s.mediaFinal.toFixed(1)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
-                          Ver
-                        </Link>
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button asChild variant="outline" size="sm" className="gap-1.5">
+                          <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
+                            <FileText className="size-3.5" /> Ficha
+                          </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1.5">
+                          <Pencil className="size-3.5" /> Editar
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1.5">
+                          <Users className="size-3.5" /> Turma
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                       Nenhum aluno encontrado com os filtros aplicados.
                     </TableCell>
                   </TableRow>

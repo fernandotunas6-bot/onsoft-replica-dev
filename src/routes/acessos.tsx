@@ -57,10 +57,10 @@ function AcessosPage() {
             <QuickFormModal
               title="Novo utilizador"
               eyebrow="Gestão de acessos"
-              description="Crie a conta e defina o perfil de permissões dentro da instituição activa."
+              description="Crie a conta e defina o perfil de permissões."
               icon={<UserPlus className="size-5" />}
               submitLabel="Criar utilizador"
-              note="O utilizador só terá acesso aos dados da instituição activa."
+              note="As permissões podem ser ajustadas depois na matriz de acessos."
               fields={[
                 { name: "nome", label: "Nome completo", placeholder: "Ex.: Paulo Neto", full: true },
                 { name: "email", label: "Email", placeholder: "nome@escola.ao" },
