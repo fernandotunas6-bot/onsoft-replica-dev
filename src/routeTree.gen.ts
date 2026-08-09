@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcessosRouteImport } from './routes/acessos'
+import { Route as ComunicacoesRouteImport } from './routes/comunicacoes'
 import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as FaturasRouteImport } from './routes/faturas'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
@@ -28,6 +29,11 @@ const IndexRoute = IndexRouteImport.update({
 const AcessosRoute = AcessosRouteImport.update({
   id: '/acessos',
   path: '/acessos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComunicacoesRoute = ComunicacoesRouteImport.update({
+  id: '/comunicacoes',
+  path: '/comunicacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentosRoute = DocumentosRouteImport.update({
@@ -74,6 +80,7 @@ const RelatoriosFinanceirosRoute = RelatoriosFinanceirosRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
+  '/comunicacoes': typeof ComunicacoesRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
+  '/comunicacoes': typeof ComunicacoesRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
+  '/comunicacoes': typeof ComunicacoesRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/acessos'
+    | '/comunicacoes'
     | '/documentos'
     | '/faturas'
     | '/financeiro'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/acessos'
+    | '/comunicacoes'
     | '/documentos'
     | '/faturas'
     | '/financeiro'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/acessos'
+    | '/comunicacoes'
     | '/documentos'
     | '/faturas'
     | '/financeiro'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcessosRoute: typeof AcessosRoute
+  ComunicacoesRoute: typeof ComunicacoesRoute
   DocumentosRoute: typeof DocumentosRoute
   FaturasRoute: typeof FaturasRoute
   FinanceiroRoute: typeof FinanceiroRoute
@@ -174,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/acessos'
       fullPath: '/acessos'
       preLoaderRoute: typeof AcessosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comunicacoes': {
+      id: '/comunicacoes'
+      path: '/comunicacoes'
+      fullPath: '/comunicacoes'
+      preLoaderRoute: typeof ComunicacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documentos': {
@@ -238,6 +258,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcessosRoute: AcessosRoute,
+  ComunicacoesRoute: ComunicacoesRoute,
   DocumentosRoute: DocumentosRoute,
   FaturasRoute: FaturasRoute,
   FinanceiroRoute: FinanceiroRoute,
