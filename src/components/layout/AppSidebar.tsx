@@ -96,10 +96,10 @@ const groups: Group[] = [
 const MENU_KEY = "siga:sidebar-open-menus";
 
 const rowClass =
-  "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+  "nav-row group text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 const activeClass =
-  "bg-sidebar-primary text-sidebar-primary-foreground shadow-float hover:bg-sidebar-primary hover:text-sidebar-primary-foreground";
+  "bg-primary/14 text-primary font-semibold shadow-nav-active hover:bg-primary/16 hover:text-primary [&_[data-chip]]:bg-primary/18 [&_[data-chip]]:text-primary";
 
 export function AppSidebar({
   className,
