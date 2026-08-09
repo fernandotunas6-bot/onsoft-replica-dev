@@ -1,4 +1,7 @@
-import type { ReactNode } from "react";
+import type { ElementType, ReactNode } from "react";
+import { IconChip, type ChipTone } from "@/components/ui/icon-chip";
+import { inferIcon } from "@/lib/auto-icon";
+
 
 export function PageHeader({
   group,
