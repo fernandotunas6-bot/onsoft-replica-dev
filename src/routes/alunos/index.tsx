@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Filter, Plus, Search, UserPlus } from "lucide-react";
+import { Download, FileText, Pencil, Plus, Search, UserPlus, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { classOptions, statusOptions, students, studentSummary } from "@/lib/students-data";
+import { schoolYear } from "@/lib/school-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/alunos/")({
@@ -36,6 +37,9 @@ export const Route = createFileRoute("/alunos/")({
   }),
   component: StudentsPage,
 });
+
+const selectClass =
+  "h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground";
 
 const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
 
