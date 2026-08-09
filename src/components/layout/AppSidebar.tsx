@@ -1,7 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
-  ChevronRight,
+  ChevronDown,
   CreditCard,
   FileText,
   GraduationCap,
@@ -12,13 +13,15 @@ import {
   Receipt,
   Settings,
   TrendingUp,
+  UserCheck,
   UserCog,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TenantSwitcher } from "./TenantSwitcher";
 
-type Item = { label: string; icon: React.ElementType; to?: string; hasChildren?: boolean };
+type Child = { label: string; icon: React.ElementType; to: string };
+type Item = { label: string; icon: React.ElementType; to?: string; children?: Child[] };
 type Group = { title: string; items: Item[] };
 
 const groups: Group[] = [
@@ -26,19 +29,44 @@ const groups: Group[] = [
     title: "Académico",
     items: [
       { label: "Dashboard", icon: LayoutGrid, to: "/" },
-      { label: "Área Pedagógica", icon: BookOpen, to: "/pedagogica" },
+      {
+        label: "Área Pedagógica",
+        icon: BookOpen,
+        children: [
+          { label: "Turmas e Disciplinas", icon: BookOpen, to: "/pedagogica" },
+          { label: "Notas e Avaliações", icon: PieChart, to: "/pedagogica" },
+        ],
+      },
     ],
   },
   {
     title: "Secretaria",
     items: [
-      { label: "Gestão de Alunos", icon: Users, to: "/alunos" },
-      { label: "Documentos", icon: FileText, to: "/documentos" },
+      {
+        label: "Gestão de Alunos",
+        icon: Users,
+        children: [
+          { label: "Matricular Aluno", icon: UserPlus, to: "/alunos" },
+          { label: "Confirmar Matrícula", icon: UserCheck, to: "/alunos" },
+          { label: "Estado do Aluno", icon: Users, to: "/alunos" },
+        ],
+      },
+      {
+        label: "Documentos",
+        icon: FileText,
+        children: [{ label: "Emissão de Documentos", icon: FileText, to: "/documentos" }],
+      },
     ],
   },
   {
     title: "Financeiro",
-    items: [{ label: "Caixa e Pagamentos", icon: CreditCard, to: "/financeiro" }],
+    items: [
+      {
+        label: "Caixa e Pagamentos",
+        icon: CreditCard,
+        children: [{ label: "Movimentos de Caixa", icon: CreditCard, to: "/financeiro" }],
+      },
+    ],
   },
   {
     title: "Relatórios",
@@ -68,66 +96,134 @@ const groups: Group[] = [
 const rowClass =
   "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
-export function AppSidebar({ className }: { className?: string }) {
+const activeClass =
+  "bg-sidebar-primary text-sidebar-primary-foreground shadow-float hover:bg-sidebar-primary hover:text-sidebar-primary-foreground";
+
+export function AppSidebar({
+  className,
+  collapsed = false,
+}: {
+  className?: string;
+  collapsed?: boolean;
+}) {
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const [openMenus, setOpenMenus] = useState<string[]>(() =>
+    groups
+      .flatMap((g) => g.items)
+      .filter((i) => i.children?.some((c) => c.to === pathname))
+      .map((i) => i.label),
+  );
+
+  const toggle = (label: string) =>
+    setOpenMenus((prev) =>
+      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label],
+    );
+
   return (
     <aside
       className={cn(
-        "flex h-full w-[270px] shrink-0 flex-col bg-sidebar text-sidebar-foreground",
+        "flex h-full shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+        collapsed ? "w-[76px]" : "w-[270px]",
         className,
       )}
     >
-      <div className="flex items-center gap-3 border-b border-sidebar-border px-6 py-5">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
+      <div
+        className={cn(
+          "flex items-center gap-3 border-b border-sidebar-border py-5",
+          collapsed ? "justify-center px-3" : "px-6",
+        )}
+      >
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
           <GraduationCap className="size-5" />
         </span>
-        <div className="leading-tight">
-          <p className="font-display text-base font-extrabold tracking-tight">SIGA</p>
-          <p className="text-[11px] text-sidebar-muted">Sistema Integrado de Gestão Académica</p>
-        </div>
-      </div>
-
-      <div className="px-3 pt-4 lg:hidden">
-        <TenantSwitcher compact />
+        {!collapsed ? (
+          <div className="leading-tight">
+            <p className="font-display text-base font-extrabold tracking-tight">SIGA</p>
+            <p className="text-[11px] text-sidebar-muted">Sistema Integrado de Gestão Académica</p>
+          </div>
+        ) : null}
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
         {groups.map((group) => (
           <div key={group.title}>
-            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted">
-              {group.title}
-            </p>
+            {!collapsed ? (
+              <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted">
+                {group.title}
+              </p>
+            ) : (
+              <div className="mx-3 mb-2 h-px bg-sidebar-border" />
+            )}
             <ul className="space-y-1">
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const content = (
-                  <>
-                    <Icon className="size-[18px] shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                    {item.hasChildren ? (
-                      <ChevronRight className="ml-auto size-4 opacity-50 transition-transform group-hover:translate-x-0.5" />
-                    ) : null}
-                  </>
-                );
+                const isOpen = openMenus.includes(item.label);
+                const childActive = item.children?.some((c) => c.to === pathname);
+
+                if (item.children) {
+                  return (
+                    <li key={item.label}>
+                      <button
+                        type="button"
+                        onClick={() => toggle(item.label)}
+                        aria-expanded={isOpen}
+                        title={collapsed ? item.label : undefined}
+                        className={cn(
+                          rowClass,
+                          collapsed && "justify-center px-0",
+                          childActive && "bg-sidebar-accent text-sidebar-accent-foreground",
+                        )}
+                      >
+                        <Icon className="size-[18px] shrink-0" />
+                        {!collapsed ? (
+                          <>
+                            <span className="truncate">{item.label}</span>
+                            <ChevronDown
+                              className={cn(
+                                "ml-auto size-4 opacity-60 transition-transform",
+                                isOpen && "rotate-180",
+                              )}
+                            />
+                          </>
+                        ) : null}
+                      </button>
+
+                      {isOpen && !collapsed ? (
+                        <ul className="mt-1 space-y-1 border-l border-sidebar-border pl-3">
+                          {item.children.map((child) => {
+                            const ChildIcon = child.icon;
+                            return (
+                              <li key={child.label}>
+                                <Link
+                                  to={child.to}
+                                  className={cn(rowClass, "py-2 text-[13px]")}
+                                  activeOptions={{ exact: true }}
+                                  activeProps={{ className: activeClass }}
+                                >
+                                  <ChildIcon className="size-4 shrink-0" />
+                                  <span className="truncate">{child.label}</span>
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
+                    </li>
+                  );
+                }
 
                 return (
                   <li key={item.label}>
-                    {item.to ? (
-                      <Link
-                        to={item.to as string}
-                        activeOptions={{ exact: true }}
-                        className={rowClass}
-                        activeProps={{
-                          className:
-                            "bg-sidebar-primary text-sidebar-primary-foreground shadow-float hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
-                        }}
-                      >
-                        {content}
-                      </Link>
-                    ) : (
-                      <button type="button" className={rowClass}>
-                        {content}
-                      </button>
-                    )}
+                    <Link
+                      to={item.to as string}
+                      activeOptions={{ exact: true }}
+                      title={collapsed ? item.label : undefined}
+                      className={cn(rowClass, collapsed && "justify-center px-0")}
+                      activeProps={{ className: activeClass }}
+                    >
+                      <Icon className="size-[18px] shrink-0" />
+                      {!collapsed ? <span className="truncate">{item.label}</span> : null}
+                    </Link>
                   </li>
                 );
               })}
@@ -136,9 +232,11 @@ export function AppSidebar({ className }: { className?: string }) {
         ))}
       </nav>
 
-      <div className="border-t border-sidebar-border px-6 py-4 text-[11px] text-sidebar-muted">
-        Ano Lectivo 2024/2025
-      </div>
+      {!collapsed ? (
+        <div className="border-t border-sidebar-border px-6 py-4 text-[11px] text-sidebar-muted">
+          Ano Lectivo 2024/2025
+        </div>
+      ) : null}
     </aside>
   );
 }
