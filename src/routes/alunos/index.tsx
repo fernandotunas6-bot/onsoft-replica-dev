@@ -161,14 +161,11 @@ function StudentsPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Secretaria
-            </p>
             <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
-              Gestão de Alunos
+              Gestão de Estudantes
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Consulte matrículas, situação financeira e desempenho de cada aluno.
+              Gerencie matrículas e informações dos estudantes
             </p>
           </div>
           <div className="flex gap-2">
@@ -176,9 +173,9 @@ function StudentsPage() {
               <Download className="size-4" /> Exportar
             </Button>
             <QuickFormModal
-              title="Matricular novo aluno"
+              title="Nova matrícula"
               eyebrow="Secretaria"
-              description="Preencha os dados do aluno e do encarregado de educação para gerar a matrícula."
+              description="Preencha os dados do estudante e do encarregado de educação para gerar a matrícula."
               icon={<UserPlus className="size-5" />}
               size="lg"
               submitLabel="Criar matrícula"
@@ -195,7 +192,7 @@ function StudentsPage() {
               ]}
               trigger={(open) => (
                 <Button className="gap-2" onClick={open}>
-                  <UserPlus className="size-4" /> Novo aluno
+                  <UserPlus className="size-4" /> Nova Matrícula
                 </Button>
               )}
             />
@@ -233,6 +230,18 @@ function StudentsPage() {
             <span className={selectClass}>{schoolYear}</span>
 
             <select
+              value={curso}
+              onChange={(e) => { setCurso(e.target.value); setPage(1); }}
+              aria-label="Filtrar por curso"
+              className={selectClass}
+            >
+              <option value="todos">Todos os Cursos</option>
+              {courseOptions.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            <select
               value={classe}
               onChange={(e) => { setClasse(e.target.value); setPage(1); }}
               aria-label="Filtrar por classe"
@@ -243,6 +252,42 @@ function StudentsPage() {
                 <option key={c} value={c}>
                   {c} Classe
                 </option>
+              ))}
+            </select>
+
+            <select
+              value={periodo}
+              onChange={(e) => { setPeriodo(e.target.value); setPage(1); }}
+              aria-label="Filtrar por período"
+              className={selectClass}
+            >
+              <option value="todos">Todos os Períodos</option>
+              {periodOptions.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+
+            <select
+              value={turma}
+              onChange={(e) => { setTurma(e.target.value); setPage(1); }}
+              aria-label="Filtrar por turma"
+              className={selectClass}
+            >
+              <option value="todas">Todas as Turmas</option>
+              {turmaOptions.map((t) => (
+                <option key={t} value={t}>Turma {t}</option>
+              ))}
+            </select>
+
+            <select
+              value={sala}
+              onChange={(e) => { setSala(e.target.value); setPage(1); }}
+              aria-label="Filtrar por sala"
+              className={selectClass}
+            >
+              <option value="todas">Todas as Salas</option>
+              {roomOptions.map((r) => (
+                <option key={r} value={r}>{r}</option>
               ))}
             </select>
 
@@ -270,6 +315,10 @@ function StudentsPage() {
                 setQuery("");
                 setClasse("todas");
                 setEstado("todos");
+                setCurso("todos");
+                setTurma("todas");
+                setPeriodo("todos");
+                setSala("todas");
                 setPage(1);
               }}
             >
@@ -277,6 +326,7 @@ function StudentsPage() {
             </Button>
           </div>
         </div>
+
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="overflow-x-auto">
