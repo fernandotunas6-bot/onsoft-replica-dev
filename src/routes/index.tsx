@@ -29,6 +29,9 @@ import {
 } from "recharts";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { IconChip } from "@/components/ui/icon-chip";
+import { LazyVisible } from "@/components/ui/lazy-visible";
+import { inferIcon } from "@/lib/auto-icon";
 import {
   ageDistribution,
   attendanceRate,
@@ -101,11 +104,14 @@ function ChartCard({
 }) {
   return (
     <section className={`surface-card p-5 ${className}`}>
-      <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h2 className="text-base font-semibold">{title}</h2>
-        {meta ? <span className="text-xs text-muted-foreground">{meta}</span> : null}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <IconChip {...inferIcon(title)} size="sm" />
+          <h2 className="truncate text-base font-semibold">{title}</h2>
+        </div>
+        {meta ? <span className="shrink-0 text-xs text-muted-foreground">{meta}</span> : null}
       </div>
-      {children}
+      <LazyVisible minHeight={200}>{children}</LazyVisible>
     </section>
   );
 }
@@ -183,9 +189,12 @@ function Dashboard() {
               <div key={s.label} className="surface-card p-5">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm text-muted-foreground">{s.label}</p>
-                  <span className={`flex size-10 items-center justify-center rounded-xl ${toneBg[s.tone]}`}>
-                    <Icon className="size-5" />
-                  </span>
+                  <IconChip
+                    icon={Icon}
+                    size="md"
+                    soft={false}
+                    className={`${toneBg[s.tone]} rounded-2xl`}
+                  />
                 </div>
                 <p className="mt-3 text-4xl font-extrabold tracking-tight">{s.value}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
@@ -199,9 +208,12 @@ function Dashboard() {
             const Icon = miniIcons[s.icon as keyof typeof miniIcons];
             return (
               <div key={s.label} className="surface-card flex items-center gap-4 p-4">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                  <Icon className="size-5" />
-                </span>
+                <IconChip
+                  icon={Icon}
+                  size="md"
+                  soft={false}
+                  className="rounded-2xl bg-primary-soft text-primary"
+                />
                 <div>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
                   <p className="text-xl font-bold">{s.value}</p>
@@ -338,7 +350,10 @@ function Dashboard() {
           </ChartCard>
 
           <section className="surface-card p-5">
-            <h2 className="mb-4 text-base font-semibold">Actividade recente</h2>
+            <div className="mb-4 flex items-center gap-2.5">
+              <IconChip {...inferIcon("Actividade recente")} size="sm" />
+              <h2 className="text-base font-semibold">Actividade recente</h2>
+            </div>
             <ul className="space-y-4">
               {recentActivity.map((a) => (
                 <li key={a.title} className="flex gap-3">
@@ -354,13 +369,19 @@ function Dashboard() {
           </section>
 
           <section className="surface-card p-5">
-            <h2 className="mb-4 text-base font-semibold">Próximos eventos</h2>
+            <div className="mb-4 flex items-center gap-2.5">
+              <IconChip {...inferIcon("Próximos eventos")} size="sm" />
+              <h2 className="text-base font-semibold">Próximos eventos</h2>
+            </div>
             <ul className="space-y-3">
               {upcoming.map((e) => (
                 <li key={e.title} className="flex items-center gap-3 rounded-xl bg-secondary p-3">
-                  <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                    <CalendarDays className="size-4" />
-                  </span>
+                  <IconChip
+                    icon={CalendarDays}
+                    size="sm"
+                    soft={false}
+                    className="rounded-xl bg-primary-soft text-primary"
+                  />
                   <p className="text-sm font-medium">{e.title}</p>
                   <span className="ml-auto text-xs font-semibold text-muted-foreground">{e.date}</span>
                 </li>
@@ -374,7 +395,10 @@ function Dashboard() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           <section className="surface-card p-5">
-            <h2 className="mb-4 text-base font-semibold">Estado das Matrículas</h2>
+            <div className="mb-4 flex items-center gap-2.5">
+              <IconChip {...inferIcon("Estado das Matrículas")} size="sm" />
+              <h2 className="text-base font-semibold">Estado das Matrículas</h2>
+            </div>
             <ul className="space-y-3">
               {enrollmentStatus.map((e) => (
                 <li key={e.estado} className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5">
@@ -386,7 +410,10 @@ function Dashboard() {
           </section>
 
           <section className="surface-card p-5">
-            <h2 className="mb-4 text-base font-semibold">Estado dos Pagamentos</h2>
+            <div className="mb-4 flex items-center gap-2.5">
+              <IconChip {...inferIcon("Estado dos Pagamentos")} size="sm" />
+              <h2 className="text-base font-semibold">Estado dos Pagamentos</h2>
+            </div>
             <ul className="space-y-3">
               {financeSummary.map((f) => (
                 <li key={f.estado} className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5">
@@ -403,7 +430,10 @@ function Dashboard() {
           </section>
 
           <section className="surface-card p-5">
-            <h2 className="mb-4 text-base font-semibold">Estudantes por Curso</h2>
+            <div className="mb-4 flex items-center gap-2.5">
+              <IconChip {...inferIcon("Estudantes por Curso")} size="sm" />
+              <h2 className="text-base font-semibold">Estudantes por Curso</h2>
+            </div>
             <ul className="space-y-3">
               {studentsByCourse.map((c) => (
                 <li key={c.curso}>
@@ -425,7 +455,10 @@ function Dashboard() {
 
         <section className="surface-card p-5">
           <div className="mb-4 flex items-baseline justify-between gap-3">
-            <h2 className="text-base font-semibold">Turmas com Mais Estudantes</h2>
+            <div className="flex items-center gap-2.5">
+              <IconChip {...inferIcon("Turmas com Mais Estudantes")} size="sm" />
+              <h2 className="text-base font-semibold">Turmas com Mais Estudantes</h2>
+            </div>
             <span className="text-xs font-semibold text-primary">Ver todas</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

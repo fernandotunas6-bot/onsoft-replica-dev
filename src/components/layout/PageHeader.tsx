@@ -1,5 +1,6 @@
 import type { ElementType, ReactNode } from "react";
 import { IconChip, type ChipTone } from "@/components/ui/icon-chip";
+import { LazyVisible } from "@/components/ui/lazy-visible";
 import { inferIcon } from "@/lib/auto-icon";
 
 
@@ -107,7 +108,11 @@ export function Panel({
         </div>
         {action}
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-5">
+        <LazyVisible minHeight={160} rootMargin="320px">
+          {children}
+        </LazyVisible>
+      </div>
     </section>
   );
 }

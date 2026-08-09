@@ -1,5 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useRouterState } from "@tanstack/react-router";
+import { warmQueries } from "@/lib/queries";
+
 
 import { Bell, ChevronDown, Maximize2, Menu, Moon, Sun } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
@@ -21,6 +24,8 @@ const years = [schoolYear, "Ano Lectivo 2023/2024", "Ano Lectivo 2022/2023"];
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const router = useRouter();
+  const queryClient = useQueryClient();
+
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
@@ -66,6 +71,26 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (!ric) window.clearTimeout(id as number);
     };
   }, [router, pathname]);
+
+  // Pré-busca de dados (TanStack Query) dos módulos e filtros mais usados,
+  // para que ao tocar já esteja tudo em cache.
+  useEffect(() => {
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      warmQueries(queryClient);
+    };
+    const ric = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    const id = ric ? ric(run, { timeout: 2500 }) : window.setTimeout(run, 800);
+    return () => {
+      cancelled = true;
+      if (!ric) window.clearTimeout(id as number);
+    };
+  }, [queryClient]);
+
+
 
 
   const toggleCollapsed = () =>
@@ -179,8 +204,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6 md:py-8">{children}</main>
 
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-4 text-xs text-muted-foreground md:px-6">
-          <div className="flex gap-4">
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/60 px-4 py-5 text-xs text-muted-foreground backdrop-blur md:px-6">
+          <div className="flex items-center gap-4">
+            <span className="inline-flex items-center gap-2 font-semibold text-foreground">
+              <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[10px] font-extrabold text-primary">
+                S
+              </span>
+              SIGA
+            </span>
+            <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <a href="#politicas" className="transition-colors hover:text-foreground">
               Políticas
             </a>
