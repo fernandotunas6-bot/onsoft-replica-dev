@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TenantSwitcher } from "./TenantSwitcher";
 
 type Item = { label: string; icon: React.ElementType; to?: string; hasChildren?: boolean };
 type Group = { title: string; items: Item[] };
@@ -81,8 +82,12 @@ export function AppSidebar({ className }: { className?: string }) {
         </span>
         <div className="leading-tight">
           <p className="font-display text-base font-extrabold tracking-tight">SIGA</p>
-          <p className="text-[11px] text-sidebar-muted">Gestão escolar</p>
+          <p className="text-[11px] text-sidebar-muted">Sistema Integrado de Gestão Académica</p>
         </div>
+      </div>
+
+      <div className="px-3 pt-4 lg:hidden">
+        <TenantSwitcher compact />
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
