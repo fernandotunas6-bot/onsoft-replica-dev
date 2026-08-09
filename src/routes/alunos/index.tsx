@@ -83,6 +83,10 @@ function StudentsPage() {
   const [query, setQuery] = useState("");
   const [classe, setClasse] = useState("todas");
   const [estado, setEstado] = useState("todos");
+  const [curso, setCurso] = useState("todos");
+  const [turma, setTurma] = useState("todas");
+  const [periodo, setPeriodo] = useState("todos");
+  const [sala, setSala] = useState("todas");
   const [sortKey, setSortKey] = useState<SortKey>("nome");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
@@ -99,7 +103,9 @@ function StudentsPage() {
         s.encarregado.toLowerCase().includes(q);
       const matchClass = classe === "todas" || s.classe === classe;
       const matchStatus = estado === "todos" || s.estado === estado;
-      return matchQuery && matchClass && matchStatus;
+      const matchCourse = curso === "todos" || s.curso === curso;
+      const matchTurma = turma === "todas" || s.turma === turma;
+      return matchQuery && matchClass && matchStatus && matchCourse && matchTurma;
     });
 
     return [...rows].sort((a, b) => {
@@ -109,7 +115,8 @@ function StudentsPage() {
       });
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [query, classe, estado, sortKey, sortDir]);
+  }, [query, classe, estado, curso, turma, sortKey, sortDir]);
+
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
