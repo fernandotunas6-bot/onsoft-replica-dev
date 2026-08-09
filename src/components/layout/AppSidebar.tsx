@@ -96,10 +96,10 @@ const groups: Group[] = [
 const MENU_KEY = "siga:sidebar-open-menus";
 
 const rowClass =
-  "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
+  "nav-row group text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 const activeClass =
-  "bg-sidebar-primary text-sidebar-primary-foreground shadow-float hover:bg-sidebar-primary hover:text-sidebar-primary-foreground";
+  "bg-primary/14 text-primary font-semibold shadow-nav-active hover:bg-primary/16 hover:text-primary [&_[data-chip]]:bg-primary/18 [&_[data-chip]]:text-primary";
 
 export function AppSidebar({
   className,
@@ -196,7 +196,12 @@ export function AppSidebar({
                           childActive && "bg-sidebar-accent text-sidebar-accent-foreground",
                         )}
                       >
-                        <Icon className="size-[18px] shrink-0" />
+                        <span
+                          data-chip
+                          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/70 text-sidebar-foreground/90 transition-colors group-hover:bg-sidebar-accent"
+                        >
+                          <Icon className="size-[18px]" />
+                        </span>
                         {!collapsed ? (
                           <>
                             <span className="truncate">{item.label}</span>
@@ -223,7 +228,12 @@ export function AppSidebar({
                                     activeOptions={{ exact: true }}
                                     activeProps={{ className: activeClass }}
                                   >
-                                    <ChildIcon className="size-4 shrink-0" />
+                                    <span
+                                      data-chip
+                                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/60 text-sidebar-foreground/85"
+                                    >
+                                      <ChildIcon className="size-[15px]" />
+                                    </span>
                                     <span className="truncate">{child.label}</span>
                                   </Link>
                                 ) : (
@@ -231,7 +241,12 @@ export function AppSidebar({
                                     type="button"
                                     className={cn(rowClass, "py-2 text-[13px]")}
                                   >
-                                    <ChildIcon className="size-4 shrink-0" />
+                                    <span
+                                      data-chip
+                                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/60 text-sidebar-foreground/85"
+                                    >
+                                      <ChildIcon className="size-[15px]" />
+                                    </span>
                                     <span className="truncate">{child.label}</span>
                                   </button>
                                 )}
@@ -253,7 +268,12 @@ export function AppSidebar({
                       className={cn(rowClass, collapsed && "justify-center px-0")}
                       activeProps={{ className: activeClass }}
                     >
-                      <Icon className="size-[18px] shrink-0" />
+                      <span
+                        data-chip
+                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/70 text-sidebar-foreground/90 transition-colors group-hover:bg-sidebar-accent"
+                      >
+                        <Icon className="size-[18px]" />
+                      </span>
                       {!collapsed ? <span className="truncate">{item.label}</span> : null}
                     </Link>
                   </li>

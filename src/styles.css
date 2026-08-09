@@ -195,3 +195,76 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
 }
+
+/* ---------------------------------------------------------------------------
+ * Minimals-inspired additions (icons, nav rows, header, media).
+ * Additive only — existing tokens and utilities are untouched.
+ * ------------------------------------------------------------------------- */
+
+@theme inline {
+  --shadow-soft: 0 0 2px oklch(0.2 0.04 285 / 8%), 0 12px 24px -4px oklch(0.2 0.04 285 / 8%);
+  --shadow-nav-active: inset 0 0 0 1px oklch(1 0 0 / 6%);
+}
+
+/* Nav row: soft tinted active pill, instant feedback on press. */
+@utility nav-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+/* Header icon button, circular like Minimals topbar. */
+@utility header-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+
+  &:hover {
+    background-color: var(--color-secondary);
+  }
+}
+
+/* Media/section surfaces */
+@utility surface-soft {
+  background-color: var(--color-card);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Faster perceived interaction: no lag on taps, GPU-friendly scrolling */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
