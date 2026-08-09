@@ -76,3 +76,22 @@ export const upcoming = [
   { title: "Reunião de encarregados", date: "18 Ago" },
   { title: "Início das matrículas 2025/2026", date: "01 Set" },
 ];
+
+export const enrollmentStatus = [
+  { estado: "Matriculado", total: 5 },
+  { estado: "Transferido", total: 1 },
+  { estado: "Inactivo", total: 1 },
+];
+
+export const topClasses = [
+  { classe: "1ª Classe", curso: "Sem Curso", turma: "AM", sala: "Sala 01", alunos: 3 },
+  { classe: "2ª Classe", curso: "Sem Curso", turma: "AM", sala: "Sala 01", alunos: 0 },
+  { classe: "3ª Classe", curso: "Sem Curso", turma: "AM", sala: "Sala 01", alunos: 0 },
+  { classe: "4ª Classe", curso: "Sem Curso", turma: "AM", sala: "Sala 01", alunos: 0 },
+];
+
+export const studentsByCourse = [
+  { curso: "Ciências Económicas e Jurídicas", alunos: 2 },
+  { curso: "Ensino Geral", alunos: 2 },
+  { curso: "Ensino Primário", alunos: 3 },
+];
