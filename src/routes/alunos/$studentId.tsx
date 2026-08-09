@@ -2,6 +2,8 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, Mail, MapPin, Phone, Pencil } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { MediaAvatar } from "@/components/ui/media-frame";
+
 import { getStudent } from "@/lib/students-data";
 import { cn } from "@/lib/utils";
 
@@ -83,9 +85,12 @@ function StudentDetail() {
         </Button>
 
         <div className="flex flex-wrap items-center gap-5 rounded-xl border border-border bg-card p-6 shadow-soft">
-          <span className="flex size-16 items-center justify-center rounded-2xl bg-primary-soft font-display text-xl font-extrabold text-primary">
-            {initials}
-          </span>
+          <MediaAvatar
+            alt={student.nome}
+            fallback={initials}
+            className="size-16 rounded-2xl text-xl"
+          />
+
           <div className="min-w-0">
             <h1 className="font-display text-2xl font-extrabold tracking-tight">{student.nome}</h1>
             <p className="text-sm text-muted-foreground">
