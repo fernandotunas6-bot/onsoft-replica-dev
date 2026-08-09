@@ -263,7 +263,7 @@ function StudentsPage() {
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[1100px]">
               <TableHeader>
                 <TableRow>
                   <SortHead label="Nº Estudante" colKey="processo" />
@@ -282,7 +282,7 @@ function StudentsPage() {
                       {s.processo}
                     </TableCell>
                     <TableCell>
-                      <p className="font-semibold">{s.nome}</p>
+                      <p className="whitespace-nowrap font-semibold">{s.nome}</p>
                       <p className="text-xs text-muted-foreground">
                         {s.classe} · Turma {s.turma}
                       </p>
@@ -291,7 +291,7 @@ function StudentsPage() {
                     <TableCell className="whitespace-nowrap text-sm">{s.telefone}</TableCell>
                     <TableCell>
                       <span className="inline-flex rounded-lg bg-secondary px-2 py-1 font-mono text-[11px] text-secondary-foreground">
-                        {schoolYear}
+                        {schoolYear.replace("Ano Lectivo ", "")}
                       </span>
                     </TableCell>
                     <TableCell>

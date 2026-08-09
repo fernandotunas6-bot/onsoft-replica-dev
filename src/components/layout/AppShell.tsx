@@ -15,7 +15,7 @@ import {
 import { schoolYear } from "@/lib/school-data";
 
 const COLLAPSE_KEY = "siga:sidebar-collapsed";
-const years = [schoolYear, "2023/2024", "2022/2023"];
+const years = [schoolYear, "Ano Lectivo 2023/2024", "Ano Lectivo 2022/2023"];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
@@ -84,7 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:border-primary/40"
               >
                 <span className="truncate whitespace-nowrap">
-                  Ano Lectivo {year}
+                  {year}
                   {year === schoolYear ? " (Atual)" : ""}
                 </span>
                 <ChevronDown className="size-4 shrink-0 opacity-60" />
