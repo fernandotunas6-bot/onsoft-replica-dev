@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocumentosRouteImport } from './routes/documentos'
+import { Route as FaturasRouteImport } from './routes/faturas'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
@@ -26,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const DocumentosRoute = DocumentosRouteImport.update({
   id: '/documentos',
   path: '/documentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaturasRoute = FaturasRouteImport.update({
+  id: '/faturas',
+  path: '/faturas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceiroRoute = FinanceiroRouteImport.update({
@@ -62,6 +68,7 @@ const RelatoriosFinanceirosRoute = RelatoriosFinanceirosRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/documentos': typeof DocumentosRoute
+  '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
   '/pedagogica': typeof PedagogicaRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/documentos': typeof DocumentosRoute
+  '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
   '/pedagogica': typeof PedagogicaRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/documentos': typeof DocumentosRoute
+  '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
   '/pedagogica': typeof PedagogicaRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/documentos'
+    | '/faturas'
     | '/financeiro'
     | '/pedagogica'
     | '/alunos/$studentId'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/documentos'
+    | '/faturas'
     | '/financeiro'
     | '/pedagogica'
     | '/alunos/$studentId'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/documentos'
+    | '/faturas'
     | '/financeiro'
     | '/pedagogica'
     | '/alunos/$studentId'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DocumentosRoute: typeof DocumentosRoute
+  FaturasRoute: typeof FaturasRoute
   FinanceiroRoute: typeof FinanceiroRoute
   PedagogicaRoute: typeof PedagogicaRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/documentos'
       fullPath: '/documentos'
       preLoaderRoute: typeof DocumentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faturas': {
+      id: '/faturas'
+      path: '/faturas'
+      fullPath: '/faturas'
+      preLoaderRoute: typeof FaturasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/financeiro': {
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DocumentosRoute: DocumentosRoute,
+  FaturasRoute: FaturasRoute,
   FinanceiroRoute: FinanceiroRoute,
   PedagogicaRoute: PedagogicaRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
