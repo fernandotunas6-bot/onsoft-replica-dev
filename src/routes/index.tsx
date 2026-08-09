@@ -371,6 +371,82 @@ function Dashboard() {
             </p>
           </section>
         </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <section className="surface-card p-5">
+            <h2 className="mb-4 text-base font-semibold">Estado das Matrículas</h2>
+            <ul className="space-y-3">
+              {enrollmentStatus.map((e) => (
+                <li key={e.estado} className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5">
+                  <span className="text-sm font-medium">{e.estado}</span>
+                  <span className="font-display text-lg font-bold">{e.total}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="surface-card p-5">
+            <h2 className="mb-4 text-base font-semibold">Estado dos Pagamentos</h2>
+            <ul className="space-y-3">
+              {financeSummary.map((f) => (
+                <li key={f.estado} className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5">
+                  <span className="text-sm font-medium">{f.estado}</span>
+                  <span className="font-mono text-sm font-semibold">
+                    {f.valor.toLocaleString("pt-PT")} Kz
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+              Sem facturas registadas para este ano lectivo.
+            </p>
+          </section>
+
+          <section className="surface-card p-5">
+            <h2 className="mb-4 text-base font-semibold">Estudantes por Curso</h2>
+            <ul className="space-y-3">
+              {studentsByCourse.map((c) => (
+                <li key={c.curso}>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate text-muted-foreground">{c.curso}</span>
+                    <span className="font-semibold">{c.alunos}</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${(c.alunos / 7) * 100}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+
+        <section className="surface-card p-5">
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <h2 className="text-base font-semibold">Turmas com Mais Estudantes</h2>
+            <span className="text-xs font-semibold text-primary">Ver todas</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {topClasses.map((t, i) => (
+              <div key={t.classe} className="rounded-xl border border-border p-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-primary-soft text-xs font-bold text-primary">
+                    {i + 1}
+                  </span>
+                  <p className="font-semibold">{t.classe}</p>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {t.curso} · Turma {t.turma} · {t.sala}
+                </p>
+                <p className="mt-3 font-display text-2xl font-extrabold">{t.alunos}</p>
+                <p className="text-xs text-muted-foreground">Alunos</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
       </div>
     </AppShell>
   );
