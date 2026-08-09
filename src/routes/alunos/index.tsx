@@ -366,7 +366,7 @@ function StudentsPage() {
                   .filter((p) => Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages)
                   .map((p, idx, arr) => (
                     <span key={p} className="flex items-center">
-                      {idx > 0 && p - arr[idx - 1] > 1 ? (
+                      {idx > 0 && p - (arr[idx - 1] ?? p) > 1 ? (
                         <span className="px-1 opacity-60">…</span>
                       ) : null}
                       <Button
