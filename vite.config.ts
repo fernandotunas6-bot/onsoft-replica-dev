@@ -7,6 +7,10 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Versão dos caches: subir esta constante invalida imagens/ícones/bundles antigos
+// sem quebrar a aparência (o conteúdo novo entra por stale-while-revalidate).
+const CACHE_VERSION = "v2";
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -34,9 +38,11 @@ export default defineConfig({
           icons: [{ src: "/favicon.ico", sizes: "48x48", type: "image/x-icon" }],
         },
         workbox: {
-          globPatterns: ["**/*.{js,css,woff,woff2}"],
-          navigateFallback: null,
+          globPatterns: ["**/*.{js,css,woff,woff2}", "offline.html"],
+          // Fallback offline: se a rede falhar e a página não estiver em cache.
+          navigateFallback: "/offline.html",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+          additionalManifestEntries: [{ url: "/offline.html", revision: CACHE_VERSION }],
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
@@ -46,7 +52,7 @@ export default defineConfig({
               urlPattern: ({ request }: { request: Request }) => request.mode === "navigate",
               handler: "NetworkFirst",
               options: {
-                cacheName: "siga-pages",
+                cacheName: `siga-pages-${CACHE_VERSION}`,
                 networkTimeoutSeconds: 4,
                 expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 },
               },
@@ -57,16 +63,16 @@ export default defineConfig({
                 sameOrigin && ["script", "style", "font"].includes(request.destination),
               handler: "CacheFirst",
               options: {
-                cacheName: "siga-assets",
+                cacheName: `siga-assets-${CACHE_VERSION}`,
                 expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
               },
             },
             {
               // Imagens e ícones.
               urlPattern: ({ request }: { request: Request }) => request.destination === "image",
-              handler: "CacheFirst",
+              handler: "StaleWhileRevalidate",
               options: {
-                cacheName: "siga-images",
+                cacheName: `siga-images-${CACHE_VERSION}`,
                 expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 30 },
               },
             },
@@ -75,7 +81,7 @@ export default defineConfig({
               urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
               handler: "StaleWhileRevalidate",
               options: {
-                cacheName: "siga-fonts",
+                cacheName: `siga-fonts-${CACHE_VERSION}`,
                 expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
               },
             },

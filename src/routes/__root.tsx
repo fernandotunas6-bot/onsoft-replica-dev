@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { registerServiceWorker } from "@/lib/pwa";
+import { measureVitals } from "@/lib/vitals";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
@@ -134,6 +135,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
+    measureVitals();
     registerServiceWorker();
   }, []);
 
