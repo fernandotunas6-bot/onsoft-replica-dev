@@ -56,9 +56,9 @@ const selectClass =
 const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
 
 const estadoTone: Record<string, string> = {
-  Activo: "bg-success/15 text-success",
+  Matriculado: "bg-primary text-primary-foreground",
   Inactivo: "bg-muted text-muted-foreground",
-  Transferido: "bg-info/10 text-info",
+  Transferido: "border border-destructive/30 bg-destructive/10 text-destructive",
 };
 
 const pagamentoTone: Record<string, string> = {
@@ -66,6 +66,7 @@ const pagamentoTone: Record<string, string> = {
   Pendente: "bg-warning/20 text-warning-foreground",
   "Em dívida": "bg-destructive/12 text-destructive",
 };
+
 
 type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
 
