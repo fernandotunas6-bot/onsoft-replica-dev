@@ -159,6 +159,11 @@ export const students: Student[] = [
 
 export const classOptions = ["1ª", "3ª", "5ª", "7ª", "9ª", "11ª", "13ª"];
 export const statusOptions: StudentStatus[] = ["Matriculado", "Inactivo", "Transferido"];
+export const courseOptions = Array.from(new Set(students.map((s) => s.curso))).sort();
+export const turmaOptions = Array.from(new Set(students.map((s) => s.turma))).sort();
+export const periodOptions = ["Manhã", "Tarde"];
+export const roomOptions = ["Sala 01", "Sala 02"];
+
 
 export const studentSummary = [
   { label: "Total de alunos", value: students.length.toString(), hint: "Ano lectivo actual" },
