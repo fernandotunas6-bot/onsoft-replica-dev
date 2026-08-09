@@ -17,6 +17,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Input } from "@/components/ui/input";
+import { MediaAvatar } from "@/components/ui/media-frame";
+
 import {
   Table,
   TableBody,
