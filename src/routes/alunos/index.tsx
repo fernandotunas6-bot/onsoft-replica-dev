@@ -265,17 +265,17 @@ function StudentsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nº Estudante</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
+                  <SortHead label="Nº Estudante" colKey="processo" />
+                  <SortHead label="Nome" colKey="nome" />
+                  <SortHead label="Email" colKey="email" />
+                  <SortHead label="Telefone" colKey="telefone" />
                   <TableHead>Ano Lectivo</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <SortHead label="Estado" colKey="estado" />
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((s) => (
+                {paged.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell className="font-mono text-xs font-semibold text-primary">
                       {s.processo}
@@ -324,14 +324,75 @@ function StudentsPage() {
             </Table>
           </div>
 
-          <div className="flex items-center justify-between border-t border-border p-4 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-xs text-muted-foreground">
             <span>
-              A mostrar {filtered.length} de {students.length} alunos
+              A mostrar {filtered.length === 0 ? 0 : start + 1}–
+              {Math.min(start + pageSize, filtered.length)} de {filtered.length} alunos
+              {filtered.length !== students.length ? ` (total ${students.length})` : ""}
             </span>
-            <Button variant="ghost" size="sm" className="gap-1">
-              <Plus className="size-3.5" /> Carregar mais
-            </Button>
+
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2">
+                <span>Por página</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="h-8 rounded-lg border border-input bg-background px-2 text-xs"
+                  aria-label="Registos por página"
+                >
+                  {[10, 25, 50].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage(currentPage - 1)}
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages)
+                  .map((p, idx, arr) => (
+                    <span key={p} className="flex items-center">
+                      {idx > 0 && p - arr[idx - 1] > 1 ? (
+                        <span className="px-1 opacity-60">…</span>
+                      ) : null}
+                      <Button
+                        variant={p === currentPage ? "default" : "outline"}
+                        size="icon"
+                        className="size-8 text-xs"
+                        onClick={() => setPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    </span>
+                  ))}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage(currentPage + 1)}
+                  aria-label="Página seguinte"
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </AppShell>
