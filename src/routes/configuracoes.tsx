@@ -403,7 +403,7 @@ function ConfiguracoesPage() {
                       <p className="text-xs text-muted-foreground">{p.description}</p>
                     </div>
                     <Switch
-                      checked={toggles[p.id]}
+                      checked={toggles[p.id] ?? false}
                       onCheckedChange={(v) => setToggles((prev) => ({ ...prev, [p.id]: v }))}
                       aria-label={p.label}
                     />
