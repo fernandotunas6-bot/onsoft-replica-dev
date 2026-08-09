@@ -19,13 +19,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/faturas")({
   head: () => ({
     meta: [
-      { title: "Faturas · ONSCHOOL" },
+      { title: "Faturas · SIGA" },
       {
         name: "description",
         content:
           "Emissão e controlo de faturas de mensalidades, matrículas e serviços, com estado de pagamento e vencimentos.",
       },
-      { property: "og:title", content: "Faturas · ONSCHOOL" },
+      { property: "og:title", content: "Faturas · SIGA" },
       {
         property: "og:description",
         content: "Consulte faturas pagas, pendentes e vencidas de cada aluno da escola.",

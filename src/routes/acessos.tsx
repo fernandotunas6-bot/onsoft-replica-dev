@@ -18,13 +18,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/acessos")({
   head: () => ({
     meta: [
-      { title: "Gestão de Acessos · ONSCHOOL" },
+      { title: "Gestão de Acessos · SIGA" },
       {
         name: "description",
         content:
           "Utilizadores, perfis e permissões do sistema escolar: administradores, secretaria, tesouraria, professores e encarregados.",
       },
-      { property: "og:title", content: "Gestão de Acessos · ONSCHOOL" },
+      { property: "og:title", content: "Gestão de Acessos · SIGA" },
       {
         property: "og:description",
         content: "Controle quem acede a cada módulo do sistema e com que nível de permissão.",

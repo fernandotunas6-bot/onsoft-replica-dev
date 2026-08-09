@@ -34,13 +34,13 @@ import {
 export const Route = createFileRoute("/relatorios/financeiros")({
   head: () => ({
     meta: [
-      { title: "Relatórios Financeiros · ONSCHOOL" },
+      { title: "Relatórios Financeiros · SIGA" },
       {
         name: "description",
         content:
           "Receitas por categoria, despesas, margem operacional e evolução da cobrança de mensalidades da escola.",
       },
-      { property: "og:title", content: "Relatórios Financeiros · ONSCHOOL" },
+      { property: "og:title", content: "Relatórios Financeiros · SIGA" },
       {
         property: "og:description",
         content: "Analise receitas, despesas e resultado do ano lectivo com gráficos claros.",

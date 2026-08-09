@@ -19,13 +19,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/documentos")({
   head: () => ({
     meta: [
-      { title: "Documentos e Declarações · ONSCHOOL" },
+      { title: "Documentos e Declarações · SIGA" },
       {
         name: "description",
         content:
           "Emissão e acompanhamento de declarações, certificados, boletins e pedidos de transferência dos alunos.",
       },
-      { property: "og:title", content: "Documentos e Declarações · ONSCHOOL" },
+      { property: "og:title", content: "Documentos e Declarações · SIGA" },
       {
         property: "og:description",
         content: "Acompanhe pedidos de documentos, prazos e taxas de emissão da secretaria.",

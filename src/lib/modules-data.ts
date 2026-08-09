@@ -1,4 +1,4 @@
-// Dados de demonstração para os módulos do sistema ONSCHOOL.
+// Dados de demonstração para os módulos do sistema SIGA.
 
 export const kwanza = (v: number) =>
   new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA", maximumFractionDigits: 0 })
@@ -248,7 +248,7 @@ export const comunicados: Comunicado[] = [
 /* ------------------------------ Configurações ----------------------------- */
 
 export const configuracaoEscola = {
-  nome: "Colégio ONSCHOOL",
+  nome: "Colégio SIGA",
   nif: "5417238190",
   diretor: "Dr. António Sebastião",
   telefone: "+244 923 000 111",

@@ -28,13 +28,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/financeiro")({
   head: () => ({
     meta: [
-      { title: "Caixa e Pagamentos · ONSCHOOL" },
+      { title: "Caixa e Pagamentos · SIGA" },
       {
         name: "description",
         content:
           "Movimentos de caixa, entradas de mensalidades, despesas e cobrança mensal da escola em kwanzas.",
       },
-      { property: "og:title", content: "Caixa e Pagamentos · ONSCHOOL" },
+      { property: "og:title", content: "Caixa e Pagamentos · SIGA" },
       {
         property: "og:description",
         content: "Controle entradas, saídas e saldo do caixa escolar em tempo real.",

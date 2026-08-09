@@ -37,13 +37,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/pedagogica")({
   head: () => ({
     meta: [
-      { title: "Área Pedagógica · ONSCHOOL" },
+      { title: "Área Pedagógica · SIGA" },
       {
         name: "description",
         content:
           "Turmas, disciplinas, lançamento de notas por trimestre e horários semanais da escola num só painel pedagógico.",
       },
-      { property: "og:title", content: "Área Pedagógica · ONSCHOOL" },
+      { property: "og:title", content: "Área Pedagógica · SIGA" },
       {
         property: "og:description",
         content: "Gestão de turmas, disciplinas, notas trimestrais e horários escolares.",

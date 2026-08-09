@@ -32,14 +32,14 @@ export function QuickFormModal({
   note,
 }: {
   trigger: (open: () => void) => ReactNode;
-  eyebrow?: string;
+  eyebrow?: string | undefined;
   title: string;
-  description?: string;
-  icon?: ReactNode;
+  description?: string | undefined;
+  icon?: ReactNode | undefined;
   fields: QuickField[];
   submitLabel?: string;
-  size?: "sm" | "md" | "lg";
-  note?: string;
+  size?: "sm" | "md" | "lg" | undefined;
+  note?: string | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);

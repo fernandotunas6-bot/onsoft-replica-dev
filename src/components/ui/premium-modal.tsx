@@ -19,13 +19,13 @@ export function PremiumModal({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  eyebrow?: string;
+  eyebrow?: string | undefined;
   title: string;
-  description?: string;
-  icon?: ReactNode;
-  footer?: ReactNode;
+  description?: string | undefined;
+  icon?: ReactNode | undefined;
+  footer?: ReactNode | undefined;
   children: ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | undefined;
 }) {
   const width = size === "lg" ? "sm:max-w-3xl" : size === "sm" ? "sm:max-w-md" : "sm:max-w-xl";
 

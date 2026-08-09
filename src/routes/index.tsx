@@ -44,13 +44,13 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard · ONSCHOOL — Gestão Escolar" },
+      { title: "Dashboard · SIGA — Gestão Escolar" },
       {
         name: "description",
         content:
-          "Painel de gestão escolar ONSCHOOL: estudantes, turmas, matrículas, presenças e situação financeira do ano lectivo.",
+          "Painel de gestão escolar SIGA: estudantes, turmas, matrículas, presenças e situação financeira do ano lectivo.",
       },
-      { property: "og:title", content: "Dashboard · ONSCHOOL — Gestão Escolar" },
+      { property: "og:title", content: "Dashboard · SIGA — Gestão Escolar" },
       {
         property: "og:description",
         content: "Visão geral do ano lectivo: estudantes, turmas, matrículas e finanças.",

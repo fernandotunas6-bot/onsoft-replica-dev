@@ -18,13 +18,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/alunos/")({
   head: () => ({
     meta: [
-      { title: "Gestão de Alunos · ONSCHOOL" },
+      { title: "Gestão de Alunos · SIGA" },
       {
         name: "description",
         content:
           "Lista de alunos matriculados: pesquisa por nome ou processo, filtros por classe e estado, situação financeira e média final.",
       },
-      { property: "og:title", content: "Gestão de Alunos · ONSCHOOL" },
+      { property: "og:title", content: "Gestão de Alunos · SIGA" },
       {
         property: "og:description",
         content: "Pesquise, filtre e consulte a ficha completa de cada aluno da escola.",

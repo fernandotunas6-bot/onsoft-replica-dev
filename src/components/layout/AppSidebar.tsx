@@ -80,7 +80,7 @@ export function AppSidebar({ className }: { className?: string }) {
           <GraduationCap className="size-5" />
         </span>
         <div className="leading-tight">
-          <p className="font-display text-base font-extrabold tracking-tight">ONSCHOOL</p>
+          <p className="font-display text-base font-extrabold tracking-tight">SIGA</p>
           <p className="text-[11px] text-sidebar-muted">Gestão escolar</p>
         </div>
       </div>

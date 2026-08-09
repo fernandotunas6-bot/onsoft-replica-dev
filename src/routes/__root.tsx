@@ -79,12 +79,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ONSCHOOL — Gestão Escolar" },
+      { title: "SIGA — Gestão Escolar" },
       {
         name: "description",
         content: "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
       },
-      { property: "og:title", content: "ONSCHOOL — Gestão Escolar" },
+      { property: "og:title", content: "SIGA — Gestão Escolar" },
       {
         property: "og:description",
         content: "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
