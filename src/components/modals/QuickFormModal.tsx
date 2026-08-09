@@ -60,7 +60,7 @@ export function QuickFormModal({
       <PremiumModal
         open={open}
         onOpenChange={setOpen}
-        eyebrow={eyebrow ?? tenant.nome}
+        eyebrow={eyebrow}
         title={title}
         description={description}
         icon={icon}
