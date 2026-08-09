@@ -73,11 +73,11 @@ export function Panel({
 export const badgeBase =
   "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
 
-export const toneClass: Record<string, string> = {
+export const toneClass = {
   success: "bg-success/15 text-success",
   warning: "bg-warning/20 text-warning-foreground",
   danger: "bg-destructive/12 text-destructive",
   info: "bg-info/10 text-info",
   muted: "bg-muted text-muted-foreground",
   primary: "bg-primary-soft text-primary",
-};
+} satisfies Record<string, string>;
