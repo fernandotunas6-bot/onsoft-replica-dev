@@ -204,8 +204,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6 md:py-8">{children}</main>
 
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-4 text-xs text-muted-foreground md:px-6">
-          <div className="flex gap-4">
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/60 px-4 py-5 text-xs text-muted-foreground backdrop-blur md:px-6">
+          <div className="flex items-center gap-4">
+            <span className="inline-flex items-center gap-2 font-semibold text-foreground">
+              <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[10px] font-extrabold text-primary">
+                S
+              </span>
+              SIGA
+            </span>
+            <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
             <a href="#politicas" className="transition-colors hover:text-foreground">
               Políticas
             </a>
