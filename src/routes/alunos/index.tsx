@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Input } from "@/components/ui/input";
 import { MediaAvatar } from "@/components/ui/media-frame";
+import { IconChip } from "@/components/ui/icon-chip";
+import { inferIcon } from "@/lib/auto-icon";
 
 import {
   Table,
@@ -162,13 +164,16 @@ function StudentsPage() {
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
+          <div className="flex items-center gap-3">
+            <IconChip {...inferIcon("Gestão de Estudantes")} size="lg" />
+            <div>
             <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
               Gestão de Estudantes
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Gerencie matrículas e informações dos estudantes
             </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2">

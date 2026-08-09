@@ -3,6 +3,8 @@ import { ArrowLeft, CalendarDays, Mail, MapPin, Phone, Pencil } from "lucide-rea
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { MediaAvatar } from "@/components/ui/media-frame";
+import { IconChip } from "@/components/ui/icon-chip";
+import { inferIcon } from "@/lib/auto-icon";
 
 import { getStudent } from "@/lib/students-data";
 import { cn } from "@/lib/utils";
@@ -129,7 +131,10 @@ function StudentDetail() {
 
         <div className="grid gap-4 lg:grid-cols-2">
           <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h2 className="font-display text-base font-bold">Dados pessoais</h2>
+            <div className="flex items-center gap-2.5">
+              <IconChip {...inferIcon("Dados pessoais")} size="sm" />
+              <h2 className="font-display text-base font-bold">Dados pessoais</h2>
+            </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <Field label="Nome completo" value={student.nome} />
               <Field label="Género" value={student.genero} />
@@ -142,7 +147,10 @@ function StudentDetail() {
           </section>
 
           <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h2 className="font-display text-base font-bold">Encarregado de educação</h2>
+            <div className="flex items-center gap-2.5">
+              <IconChip {...inferIcon("Encarregado de educação")} size="sm" />
+              <h2 className="font-display text-base font-bold">Encarregado de educação</h2>
+            </div>
             <div className="mt-4 space-y-3 text-sm">
               <Field label="Nome" value={student.encarregado} />
               <p className="flex items-center gap-2 text-muted-foreground">
@@ -158,7 +166,10 @@ function StudentDetail() {
           </section>
 
           <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
-            <h2 className="font-display text-base font-bold">Matrícula e situação</h2>
+            <div className="flex items-center gap-2.5">
+              <IconChip {...inferIcon("Matrícula e situação")} size="sm" />
+              <h2 className="font-display text-base font-bold">Matrícula e situação</h2>
+            </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Curso" value={student.curso} />
               <Field label="Classe" value={`${student.classe} Classe`} />
