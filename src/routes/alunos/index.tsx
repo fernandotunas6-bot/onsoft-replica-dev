@@ -1,6 +1,18 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, FileText, Pencil, Plus, Search, UserPlus, Users } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileText,
+  Pencil,
+  Search,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
