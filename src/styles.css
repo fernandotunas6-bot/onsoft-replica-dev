@@ -268,3 +268,36 @@
     }
   }
 }
+
+/* Acessibilidade: foco visível consistente + skip link (mesma paleta) */
+@layer base {
+  :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-ring, var(--color-primary));
+    outline-offset: 2px;
+    border-radius: var(--radius-md);
+  }
+
+  main:focus {
+    outline: none;
+  }
+}
+
+@utility skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 0.5rem;
+  z-index: 60;
+  transform: translateY(-200%);
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
