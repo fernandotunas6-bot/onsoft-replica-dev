@@ -160,6 +160,9 @@ jobs:
       - name: Comparar screenshots com as baselines
         run: python scripts/visual-regression.py
 
+      - name: Comparar sidebar e drawer (multi-viewport)
+        run: python scripts/visual-sidebar.py
+
       - name: Publicar diferenças
         if: failure()
         uses: actions/upload-artifact@v4
@@ -168,3 +171,5 @@ jobs:
           path: |
             tests/visual/current
             tests/visual/diff
+            tests/visual-sidebar/current
+            tests/visual-sidebar/diff
