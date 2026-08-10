@@ -172,7 +172,7 @@ FOCUS_ORDER_JS = """
 
 async def audit(page, tag: str, failures: list[str]) -> None:
     await page.goto(f"{BASE_URL}/", wait_until="domcontentloaded")
-    await page.wait_for_timeout(600)
+    await page.wait_for_timeout(1000)
 
     if page.viewport_size and page.viewport_size["width"] < 1024:
         trigger = page.get_by_label("Abrir menu").first
