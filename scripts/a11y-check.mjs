@@ -143,10 +143,50 @@ for (const file of files) {
 
 console.log(`Ficheiros analisados: ${checks}`);
 
-if (issues.length) {
+const unique = [...new Set(issues)];
+
+// Relatório HTML (para artefacto do CI): node scripts/a11y-check.mjs --html reports/a11y.html
+const htmlFlag = process.argv.indexOf("--html");
+if (htmlFlag !== -1) {
+  const out = process.argv[htmlFlag + 1] || "reports/a11y.html";
+  const rows = unique
+    .map((i) => {
+      const [file, ...rest] = i.split(": ");
+      const msg = rest.join(": ");
+      return `<tr><td><code>${file}</code></td><td>${msg.replace(/[<>]/g, (c) => (c === "<" ? "&lt;" : "&gt;"))}</td></tr>`;
+    })
+    .join("\n");
+  const html = `<!doctype html>
+<html lang="pt"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relatório de acessibilidade — SIGA</title>
+<style>
+  :root { color-scheme: light dark }
+  body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 60rem; padding: 0 1rem; }
+  h1 { font-size: 1.5rem; }
+  .badge { display:inline-block; border-radius:999px; padding:.25rem .75rem; font-weight:600; font-size:.8rem; }
+  .ok { background:#e8f6ee; color:#166534 } .bad { background:#fdeaea; color:#991b1b }
+  table { width:100%; border-collapse:collapse; margin-top:1.5rem; font-size:.9rem }
+  th,td { text-align:left; padding:.55rem .6rem; border-bottom:1px solid #e5e7eb; vertical-align:top }
+  code { font-size:.8rem }
+</style></head><body>
+<h1>Relatório de acessibilidade — SIGA</h1>
+<p><strong>Ficheiros analisados:</strong> ${checks} &middot; <strong>Problemas:</strong> ${unique.length}</p>
+<p class="badge ${unique.length ? "bad" : "ok"}">${unique.length ? `${unique.length} problema(s) encontrado(s)` : "Sem problemas de acessibilidade"}</p>
+<p>Verificações: contraste/paleta, foco visível, <code>alt</code>, botões só de ícone com <code>aria-label</code>, rótulos de campos e teclado em elementos não interativos.</p>
+${unique.length ? `<table><thead><tr><th>Ficheiro / rota</th><th>Elemento e problema</th></tr></thead><tbody>${rows}</tbody></table>` : ""}
+<p style="margin-top:2rem;color:#6b7280;font-size:.8rem">Gerado em ${new Date().toISOString()}</p>
+</body></html>`;
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, html, "utf8");
+  console.log(`Relatório HTML: ${out}`);
+}
+
+if (unique.length) {
   console.log("\nProblemas de acessibilidade:");
-  for (const i of [...new Set(issues)]) console.log(" - " + i);
+  for (const i of unique) console.log(" - " + i);
   process.exit(1);
 }
 
 console.log("OK — contraste, foco visível, labels e navegação por teclado validados.");
+
