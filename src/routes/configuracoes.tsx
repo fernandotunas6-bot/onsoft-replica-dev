@@ -22,7 +22,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -74,7 +80,12 @@ const institutionFields: {
   hint?: string;
   full?: boolean;
 }[] = [
-  { id: "nome", label: "Nome da instituição", hint: "Aparece em facturas e certificados", full: true },
+  {
+    id: "nome",
+    label: "Nome da instituição",
+    hint: "Aparece em facturas e certificados",
+    full: true,
+  },
   { id: "nif", label: "NIF" },
   { id: "diretor", label: "Director geral" },
   { id: "telefone", label: "Telefone" },
@@ -185,7 +196,12 @@ function ConfiguracoesPage() {
           description="Identidade da escola, ano lectivo, parâmetros financeiros, notificações, integrações e segurança."
           actions={
             <>
-              <Button variant="outline" className="gap-2" onClick={reset} disabled={!dirty || saving}>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={reset}
+                disabled={!dirty || saving}
+              >
                 <RotateCcw className="size-4" /> Descartar
               </Button>
               <Button className="gap-2" onClick={save} disabled={saving}>
@@ -213,7 +229,10 @@ function ConfiguracoesPage() {
 
           <TabsContent value="instituicao" className="mt-0 grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <Panel title="Dados da instituição" description="Aparecem em documentos, facturas e certificados">
+              <Panel
+                title="Dados da instituição"
+                description="Aparecem em documentos, facturas e certificados"
+              >
                 <form className="grid gap-5 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
                   {institutionFields.map((f) => (
                     <div key={f.id} className={`space-y-2 ${f.full ? "sm:col-span-2" : ""}`}>
@@ -240,7 +259,9 @@ function ConfiguracoesPage() {
 
             <Panel title="Pré-visualização" description="Como o cabeçalho aparece nos documentos">
               <div className="rounded-xl border border-border bg-secondary/50 p-5">
-                <p className="font-display text-lg font-extrabold tracking-tight">{institution.nome}</p>
+                <p className="font-display text-lg font-extrabold tracking-tight">
+                  {institution.nome}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">NIF {institution.nif}</p>
                 <Separator className="my-3" />
                 <dl className="space-y-1.5 text-xs">
@@ -442,8 +463,8 @@ function ConfiguracoesPage() {
                   </ul>
                   <div className="rounded-lg border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
                     Para ligar contas individuais é primeiro necessário activar as contas de
-                    utilizador do sistema (login próprio de cada funcionário). Enquanto isso, o botão
-                    fica inactivo.
+                    utilizador do sistema (login próprio de cada funcionário). Enquanto isso, o
+                    botão fica inactivo.
                   </div>
                   <Button disabled className="gap-2">
                     <Mail className="size-4" /> Ligar a minha conta Gmail
@@ -457,7 +478,11 @@ function ConfiguracoesPage() {
                 {[
                   { name: "SMS (operadora local)", state: "Activo", tone: "success" as const },
                   { name: "Portal do encarregado", state: "Activo", tone: "success" as const },
-                  { name: "Pagamentos por referência", state: "Em preparação", tone: "warning" as const },
+                  {
+                    name: "Pagamentos por referência",
+                    state: "Em preparação",
+                    tone: "warning" as const,
+                  },
                   { name: "Exportação contabilística", state: "Inactivo", tone: "muted" as const },
                 ].map((i) => (
                   <li key={i.name} className="flex items-center justify-between py-3 text-sm">
@@ -496,11 +521,18 @@ function ConfiguracoesPage() {
             <Panel title="Auditoria" description="Últimos eventos sensíveis">
               <ul className="space-y-3 text-sm">
                 {[
-                  { who: "usuario teste", what: "Alterou parâmetros financeiros", when: "Hoje, 09:14" },
+                  {
+                    who: "usuario teste",
+                    what: "Alterou parâmetros financeiros",
+                    when: "Hoje, 09:14",
+                  },
                   { who: "direcção", what: "Reabriu lançamento de notas", when: "Ontem, 16:02" },
                   { who: "secretaria", what: "Emitiu 12 declarações", when: "Ontem, 11:37" },
                 ].map((e) => (
-                  <li key={e.what} className="rounded-lg border border-border bg-secondary/40 px-4 py-3">
+                  <li
+                    key={e.what}
+                    className="rounded-lg border border-border bg-secondary/40 px-4 py-3"
+                  >
                     <p className="font-medium">{e.what}</p>
                     <p className="text-xs text-muted-foreground">
                       {e.who} · {e.when}

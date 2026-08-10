@@ -77,7 +77,11 @@ function RelatoriosFinanceiros() {
           items={[
             { label: "Receita total", value: kwanza(receita), hint: "Ano lectivo 2024/2025" },
             { label: "Despesa total", value: kwanza(despesa), hint: "Salários incluídos" },
-            { label: "Resultado", value: kwanza(resultado), hint: `Margem de ${Math.round((resultado / receita) * 100)}%` },
+            {
+              label: "Resultado",
+              value: kwanza(resultado),
+              hint: `Margem de ${Math.round((resultado / receita) * 100)}%`,
+            },
             { label: "Dívida acumulada", value: kwanza(4820000), hint: "Mensalidades em atraso" },
           ]}
         />
@@ -134,7 +138,12 @@ function RelatoriosFinanceiros() {
                       color: "var(--popover-foreground)",
                     }}
                   />
-                  <Bar dataKey="valor" fill="var(--chart-4)" radius={[0, 8, 8, 0]} maxBarSize={26} />
+                  <Bar
+                    dataKey="valor"
+                    fill="var(--chart-4)"
+                    radius={[0, 8, 8, 0]}
+                    maxBarSize={26}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -162,7 +171,9 @@ function RelatoriosFinanceiros() {
                       <TableCell className="font-semibold">{m.mes}</TableCell>
                       <TableCell className="text-right">{kwanza(m.cobrado)}</TableCell>
                       <TableCell className="text-right">{kwanza(m.recebido)}</TableCell>
-                      <TableCell className="text-right text-destructive">{kwanza(desvio)}</TableCell>
+                      <TableCell className="text-right text-destructive">
+                        {kwanza(desvio)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <span className="inline-flex items-center gap-1 font-semibold">
                           {eficiencia >= 90 ? (

@@ -105,14 +105,62 @@ function useSettingsPanels(): StackPanel[] {
         icon: Sliders,
         tone: "primary",
         rows: [
-          { label: "Conta e segurança", description: "Perfil, palavra-passe, sessões e 2FA", icon: User, tone: "primary", to: "conta" },
-          { label: "Escola e ano lectivo", description: "Identidade, períodos e calendário", icon: Building2, tone: "info", to: "escola" },
-          { label: "Académico", description: "Avaliação, pautas e critérios de aprovação", icon: GraduationCap, tone: "success", to: "academico" },
-          { label: "Financeiro", description: "Planos, faturação e métodos de pagamento", icon: CreditCard, tone: "warning", to: "financeiro" },
-          { label: "Comunicações", description: "E-mail, modelos e notificações", icon: MessageSquare, tone: "info", to: "comunicacoes" },
-          { label: "Integrações", description: "Gmail, backend, webhooks", icon: Plug, tone: "primary", to: "integracoes" },
-          { label: "Utilizadores e permissões", description: "Funções, convites e auditoria", icon: Users, tone: "destructive", to: "utilizadores" },
-          { label: "Aparência e desempenho", description: "Tema, idioma, pré-busca e modo offline", icon: Palette, tone: "muted", to: "sistema" },
+          {
+            label: "Conta e segurança",
+            description: "Perfil, palavra-passe, sessões e 2FA",
+            icon: User,
+            tone: "primary",
+            to: "conta",
+          },
+          {
+            label: "Escola e ano lectivo",
+            description: "Identidade, períodos e calendário",
+            icon: Building2,
+            tone: "info",
+            to: "escola",
+          },
+          {
+            label: "Académico",
+            description: "Avaliação, pautas e critérios de aprovação",
+            icon: GraduationCap,
+            tone: "success",
+            to: "academico",
+          },
+          {
+            label: "Financeiro",
+            description: "Planos, faturação e métodos de pagamento",
+            icon: CreditCard,
+            tone: "warning",
+            to: "financeiro",
+          },
+          {
+            label: "Comunicações",
+            description: "E-mail, modelos e notificações",
+            icon: MessageSquare,
+            tone: "info",
+            to: "comunicacoes",
+          },
+          {
+            label: "Integrações",
+            description: "Gmail, backend, webhooks",
+            icon: Plug,
+            tone: "primary",
+            to: "integracoes",
+          },
+          {
+            label: "Utilizadores e permissões",
+            description: "Funções, convites e auditoria",
+            icon: Users,
+            tone: "destructive",
+            to: "utilizadores",
+          },
+          {
+            label: "Aparência e desempenho",
+            description: "Tema, idioma, pré-busca e modo offline",
+            icon: Palette,
+            tone: "muted",
+            to: "sistema",
+          },
         ],
       },
 
@@ -124,10 +172,34 @@ function useSettingsPanels(): StackPanel[] {
         icon: User,
         tone: "primary",
         rows: [
-          { label: "Perfil", description: "Nome, e-mail e telefone", icon: UserCog, tone: "primary", to: "conta.perfil" },
-          { label: "Palavra-passe", description: "Alterar credenciais de acesso", icon: KeyRound, tone: "warning", to: "conta.senha" },
-          { label: "Autenticação em dois passos", description: "Aplicação autenticadora ou e-mail", icon: ShieldCheck, tone: "success", to: "conta.2fa" },
-          { label: "Notificações pessoais", description: "O que recebes e por onde", icon: Bell, tone: "info", to: "conta.notificacoes" },
+          {
+            label: "Perfil",
+            description: "Nome, e-mail e telefone",
+            icon: UserCog,
+            tone: "primary",
+            to: "conta.perfil",
+          },
+          {
+            label: "Palavra-passe",
+            description: "Alterar credenciais de acesso",
+            icon: KeyRound,
+            tone: "warning",
+            to: "conta.senha",
+          },
+          {
+            label: "Autenticação em dois passos",
+            description: "Aplicação autenticadora ou e-mail",
+            icon: ShieldCheck,
+            tone: "success",
+            to: "conta.2fa",
+          },
+          {
+            label: "Notificações pessoais",
+            description: "O que recebes e por onde",
+            icon: Bell,
+            tone: "info",
+            to: "conta.notificacoes",
+          },
         ],
       },
       {
@@ -167,9 +239,22 @@ function useSettingsPanels(): StackPanel[] {
         tone: "success",
         render: () => (
           <div className="space-y-3">
-            <Toggle id="set-2fa-app" label="Aplicação autenticadora" hint="Códigos temporários (TOTP)." defaultChecked />
-            <Toggle id="set-2fa-mail" label="Código por e-mail" hint="Alternativa quando não há acesso à aplicação." />
-            <Toggle id="set-2fa-force" label="Exigir a toda a equipa" hint="Aplica-se a todos os utilizadores administrativos." />
+            <Toggle
+              id="set-2fa-app"
+              label="Aplicação autenticadora"
+              hint="Códigos temporários (TOTP)."
+              defaultChecked
+            />
+            <Toggle
+              id="set-2fa-mail"
+              label="Código por e-mail"
+              hint="Alternativa quando não há acesso à aplicação."
+            />
+            <Toggle
+              id="set-2fa-force"
+              label="Exigir a toda a equipa"
+              hint="Aplica-se a todos os utilizadores administrativos."
+            />
           </div>
         ),
         footer: (nav) => saveFooter()({ back: nav.back }),
@@ -197,9 +282,27 @@ function useSettingsPanels(): StackPanel[] {
         icon: Building2,
         tone: "info",
         rows: [
-          { label: "Identidade da escola", description: "Nome, NIF, morada e logótipo", icon: Building2, tone: "info", to: "escola.identidade" },
-          { label: "Anos lectivos e períodos", description: "Trimestres, datas e estado", icon: CalendarDays, tone: "primary", to: "escola.anos" },
-          { label: "Documentos oficiais", description: "Cabeçalhos, numeração e assinaturas", icon: FileText, tone: "muted", to: "escola.documentos" },
+          {
+            label: "Identidade da escola",
+            description: "Nome, NIF, morada e logótipo",
+            icon: Building2,
+            tone: "info",
+            to: "escola.identidade",
+          },
+          {
+            label: "Anos lectivos e períodos",
+            description: "Trimestres, datas e estado",
+            icon: CalendarDays,
+            tone: "primary",
+            to: "escola.anos",
+          },
+          {
+            label: "Documentos oficiais",
+            description: "Cabeçalhos, numeração e assinaturas",
+            icon: FileText,
+            tone: "muted",
+            to: "escola.documentos",
+          },
         ],
       },
       {
@@ -233,8 +336,18 @@ function useSettingsPanels(): StackPanel[] {
               <Field id="set-ano-fim" label="Fim do ano" type="date" defaultValue="2026-07-10" />
             </div>
             <Separator />
-            <Toggle id="set-ano-tri" label="Três trimestres" hint="Alternativa: dois semestres." defaultChecked />
-            <Toggle id="set-ano-lock" label="Bloquear anos encerrados" hint="Impede edição retroactiva de notas." defaultChecked />
+            <Toggle
+              id="set-ano-tri"
+              label="Três trimestres"
+              hint="Alternativa: dois semestres."
+              defaultChecked
+            />
+            <Toggle
+              id="set-ano-lock"
+              label="Bloquear anos encerrados"
+              hint="Impede edição retroactiva de notas."
+              defaultChecked
+            />
           </div>
         ),
         footer: (nav) => saveFooter()({ back: nav.back }),
@@ -261,9 +374,27 @@ function useSettingsPanels(): StackPanel[] {
         icon: GraduationCap,
         tone: "success",
         rows: [
-          { label: "Escala de avaliação", description: "Notas, pesos e arredondamento", icon: Gauge, tone: "success", to: "academico.escala" },
-          { label: "Critérios de aprovação", description: "Média mínima e recursos", icon: ShieldCheck, tone: "warning", to: "academico.aprovacao" },
-          { label: "Pautas e boletins", description: "Formato de emissão e visibilidade", icon: FileText, tone: "muted", to: "escola.documentos" },
+          {
+            label: "Escala de avaliação",
+            description: "Notas, pesos e arredondamento",
+            icon: Gauge,
+            tone: "success",
+            to: "academico.escala",
+          },
+          {
+            label: "Critérios de aprovação",
+            description: "Média mínima e recursos",
+            icon: ShieldCheck,
+            tone: "warning",
+            to: "academico.aprovacao",
+          },
+          {
+            label: "Pautas e boletins",
+            description: "Formato de emissão e visibilidade",
+            icon: FileText,
+            tone: "muted",
+            to: "escola.documentos",
+          },
         ],
       },
       {
@@ -290,7 +421,12 @@ function useSettingsPanels(): StackPanel[] {
           <div className="space-y-3">
             <Field id="set-apr-media" label="Média mínima de aprovação" defaultValue="10" />
             <Toggle id="set-apr-rec" label="Permitir exame de recurso" defaultChecked />
-            <Toggle id="set-apr-falta" label="Reprovar por excesso de faltas" hint="Limite de 25% das aulas." defaultChecked />
+            <Toggle
+              id="set-apr-falta"
+              label="Reprovar por excesso de faltas"
+              hint="Limite de 25% das aulas."
+              defaultChecked
+            />
           </div>
         ),
         footer: (nav) => saveFooter()({ back: nav.back }),
@@ -303,9 +439,27 @@ function useSettingsPanels(): StackPanel[] {
         icon: CreditCard,
         tone: "warning",
         rows: [
-          { label: "Planos e mensalidades", description: "Valores, descontos e bolsas", icon: Receipt, tone: "warning", to: "financeiro.planos" },
-          { label: "Faturação", description: "Séries, IVA e vencimentos", icon: FileText, tone: "info", to: "financeiro.faturacao" },
-          { label: "Métodos de pagamento", description: "Multicaixa, transferência, numerário", icon: CreditCard, tone: "primary", to: "financeiro.metodos" },
+          {
+            label: "Planos e mensalidades",
+            description: "Valores, descontos e bolsas",
+            icon: Receipt,
+            tone: "warning",
+            to: "financeiro.planos",
+          },
+          {
+            label: "Faturação",
+            description: "Séries, IVA e vencimentos",
+            icon: FileText,
+            tone: "info",
+            to: "financeiro.faturacao",
+          },
+          {
+            label: "Métodos de pagamento",
+            description: "Multicaixa, transferência, numerário",
+            icon: CreditCard,
+            tone: "primary",
+            to: "financeiro.metodos",
+          },
         ],
       },
       {
@@ -334,8 +488,16 @@ function useSettingsPanels(): StackPanel[] {
               <Field id="set-fat-serie" label="Série" defaultValue="FT2025" />
               <Field id="set-fat-iva" label="IVA (%)" defaultValue="14" />
             </div>
-            <Toggle id="set-fat-auto" label="Emitir fatura automática na matrícula" defaultChecked />
-            <Toggle id="set-fat-mora" label="Aplicar juros de mora" hint="2% após 10 dias de atraso." />
+            <Toggle
+              id="set-fat-auto"
+              label="Emitir fatura automática na matrícula"
+              defaultChecked
+            />
+            <Toggle
+              id="set-fat-mora"
+              label="Aplicar juros de mora"
+              hint="2% após 10 dias de atraso."
+            />
           </div>
         ),
         footer: (nav) => saveFooter()({ back: nav.back }),
@@ -363,9 +525,27 @@ function useSettingsPanels(): StackPanel[] {
         icon: MessageSquare,
         tone: "info",
         rows: [
-          { label: "E-mail de envio", description: "Remetente, assinatura e domínio", icon: Mail, tone: "info", to: "comunicacoes.email" },
-          { label: "Modelos de mensagem", description: "Matrícula, pagamento, avisos", icon: FileText, tone: "muted", to: "comunicacoes.modelos" },
-          { label: "Notificações automáticas", description: "Gatilhos por evento", icon: Bell, tone: "primary", to: "comunicacoes.automaticas" },
+          {
+            label: "E-mail de envio",
+            description: "Remetente, assinatura e domínio",
+            icon: Mail,
+            tone: "info",
+            to: "comunicacoes.email",
+          },
+          {
+            label: "Modelos de mensagem",
+            description: "Matrícula, pagamento, avisos",
+            icon: FileText,
+            tone: "muted",
+            to: "comunicacoes.modelos",
+          },
+          {
+            label: "Notificações automáticas",
+            description: "Gatilhos por evento",
+            icon: Bell,
+            tone: "primary",
+            to: "comunicacoes.automaticas",
+          },
         ],
       },
       {
@@ -376,8 +556,17 @@ function useSettingsPanels(): StackPanel[] {
         render: () => (
           <div className="grid gap-4">
             <Field id="set-mail-from" label="Remetente" defaultValue="SIGA <geral@escola.com>" />
-            <Field id="set-mail-reply" label="Responder para" defaultValue="secretaria@escola.com" />
-            <Toggle id="set-mail-gmail" label="Usar Gmail do utilizador" hint="Cada utilizador liga a sua própria conta." defaultChecked />
+            <Field
+              id="set-mail-reply"
+              label="Responder para"
+              defaultValue="secretaria@escola.com"
+            />
+            <Toggle
+              id="set-mail-gmail"
+              label="Usar Gmail do utilizador"
+              hint="Cada utilizador liga a sua própria conta."
+              defaultChecked
+            />
           </div>
         ),
         footer: (nav) => saveFooter()({ back: nav.back }),
@@ -419,9 +608,27 @@ function useSettingsPanels(): StackPanel[] {
         icon: Plug,
         tone: "primary",
         rows: [
-          { label: "Gmail (por utilizador)", description: "Envio a partir da conta de cada utilizador", icon: Mail, tone: "destructive", to: "integracoes.gmail" },
-          { label: "Base de dados", description: "Backend, políticas e cópias", icon: Database, tone: "success", to: "integracoes.backend" },
-          { label: "Webhooks", description: "Eventos enviados para sistemas externos", icon: Webhook, tone: "info", to: "integracoes.webhooks" },
+          {
+            label: "Gmail (por utilizador)",
+            description: "Envio a partir da conta de cada utilizador",
+            icon: Mail,
+            tone: "destructive",
+            to: "integracoes.gmail",
+          },
+          {
+            label: "Base de dados",
+            description: "Backend, políticas e cópias",
+            icon: Database,
+            tone: "success",
+            to: "integracoes.backend",
+          },
+          {
+            label: "Webhooks",
+            description: "Eventos enviados para sistemas externos",
+            icon: Webhook,
+            tone: "info",
+            to: "integracoes.webhooks",
+          },
         ],
       },
       {
@@ -446,7 +653,12 @@ function useSettingsPanels(): StackPanel[] {
         tone: "success",
         render: () => (
           <div className="space-y-3">
-            <Toggle id="set-db-rls" label="Segurança por linha (RLS) activa" hint="Cada utilizador só acede aos seus dados." defaultChecked />
+            <Toggle
+              id="set-db-rls"
+              label="Segurança por linha (RLS) activa"
+              hint="Cada utilizador só acede aos seus dados."
+              defaultChecked
+            />
             <Toggle id="set-db-backup" label="Cópia de segurança diária" defaultChecked />
             <Field id="set-db-ret" label="Retenção de cópias (dias)" defaultValue="30" />
           </div>
@@ -476,9 +688,27 @@ function useSettingsPanels(): StackPanel[] {
         icon: Users,
         tone: "destructive",
         rows: [
-          { label: "Funções", description: "Administrador, secretaria, professor", icon: UserCog, tone: "primary", to: "utilizadores.funcoes" },
-          { label: "Convites", description: "Convidar equipa por e-mail", icon: Mail, tone: "info", to: "utilizadores.convites" },
-          { label: "Auditoria de acessos", description: "Sessões e registos de actividade", icon: ShieldCheck, tone: "warning", to: "utilizadores.auditoria" },
+          {
+            label: "Funções",
+            description: "Administrador, secretaria, professor",
+            icon: UserCog,
+            tone: "primary",
+            to: "utilizadores.funcoes",
+          },
+          {
+            label: "Convites",
+            description: "Convidar equipa por e-mail",
+            icon: Mail,
+            tone: "info",
+            to: "utilizadores.convites",
+          },
+          {
+            label: "Auditoria de acessos",
+            description: "Sessões e registos de actividade",
+            icon: ShieldCheck,
+            tone: "warning",
+            to: "utilizadores.auditoria",
+          },
         ],
       },
       {
@@ -517,9 +747,17 @@ function useSettingsPanels(): StackPanel[] {
         tone: "warning",
         render: () => (
           <div className="space-y-3">
-            <Toggle id="set-aud-log" label="Registar todas as acções administrativas" defaultChecked />
+            <Toggle
+              id="set-aud-log"
+              label="Registar todas as acções administrativas"
+              defaultChecked
+            />
             <Field id="set-aud-ret" label="Retenção de registos (dias)" defaultValue="180" />
-            <Toggle id="set-aud-alert" label="Alertar em acesso de novo dispositivo" defaultChecked />
+            <Toggle
+              id="set-aud-alert"
+              label="Alertar em acesso de novo dispositivo"
+              defaultChecked
+            />
           </div>
         ),
         footer: (nav) => saveFooter()({ back: nav.back }),
@@ -532,9 +770,27 @@ function useSettingsPanels(): StackPanel[] {
         icon: Palette,
         tone: "muted",
         rows: [
-          { label: "Tema e idioma", description: "Claro/escuro e localização", icon: Languages, tone: "primary", to: "sistema.tema" },
-          { label: "Velocidade", description: "Pré-busca de rotas e dados", icon: Gauge, tone: "success", to: "sistema.velocidade" },
-          { label: "Modo offline", description: "Cache de recursos críticos", icon: WifiOff, tone: "info", to: "sistema.offline" },
+          {
+            label: "Tema e idioma",
+            description: "Claro/escuro e localização",
+            icon: Languages,
+            tone: "primary",
+            to: "sistema.tema",
+          },
+          {
+            label: "Velocidade",
+            description: "Pré-busca de rotas e dados",
+            icon: Gauge,
+            tone: "success",
+            to: "sistema.velocidade",
+          },
+          {
+            label: "Modo offline",
+            description: "Cache de recursos críticos",
+            icon: WifiOff,
+            tone: "info",
+            to: "sistema.offline",
+          },
         ],
       },
       {
@@ -560,7 +816,11 @@ function useSettingsPanels(): StackPanel[] {
         render: () => (
           <div className="space-y-3">
             <Toggle id="set-perf-pre" label="Pré-carregar rotas em tempo livre" defaultChecked />
-            <Toggle id="set-perf-data" label="Pré-buscar dados dos módulos mais usados" defaultChecked />
+            <Toggle
+              id="set-perf-data"
+              label="Pré-buscar dados dos módulos mais usados"
+              defaultChecked
+            />
             <Toggle id="set-perf-img" label="Pré-carregar imagens acima da dobra" defaultChecked />
           </div>
         ),

@@ -63,8 +63,7 @@ export const Route = createFileRoute("/alunos/")({
   component: StudentsPage,
 });
 
-const selectClass =
-  "h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground";
+const selectClass = "h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground";
 
 const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
 
@@ -79,7 +78,6 @@ const pagamentoTone: Record<string, string> = {
   Pendente: "bg-warning/20 text-warning-foreground",
   "Em dívida": "bg-destructive/12 text-destructive",
 };
-
 
 type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
 
@@ -121,7 +119,6 @@ function StudentsPage() {
     });
   }, [query, classe, estado, curso, turma, sortKey, sortDir]);
 
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * pageSize;
@@ -159,7 +156,6 @@ function StudentsPage() {
     </TableHead>
   );
 
-
   return (
     <AppShell>
       <div className="space-y-6">
@@ -167,12 +163,12 @@ function StudentsPage() {
           <div className="flex items-center gap-3">
             <IconChip {...inferIcon("Gestão de Estudantes")} size="lg" />
             <div>
-            <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
-              Gestão de Estudantes
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Gerencie matrículas e informações dos estudantes
-            </p>
+              <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
+                Gestão de Estudantes
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Gerencie matrículas e informações dos estudantes
+              </p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -188,12 +184,31 @@ function StudentsPage() {
               submitLabel="Criar matrícula"
               note="A matrícula é criada e fica pendente de confirmação de pagamento."
               fields={[
-                { name: "nome", label: "Nome completo", placeholder: "Ex.: Ana Domingos", full: true },
+                {
+                  name: "nome",
+                  label: "Nome completo",
+                  placeholder: "Ex.: Ana Domingos",
+                  full: true,
+                },
                 { name: "nascimento", label: "Data de nascimento", type: "date" },
-                { name: "genero", label: "Género", type: "select", options: ["Feminino", "Masculino"] },
-                { name: "classe", label: "Classe", type: "select", options: ["7ª", "8ª", "9ª", "10ª", "11ª", "12ª"] },
+                {
+                  name: "genero",
+                  label: "Género",
+                  type: "select",
+                  options: ["Feminino", "Masculino"],
+                },
+                {
+                  name: "classe",
+                  label: "Classe",
+                  type: "select",
+                  options: ["7ª", "8ª", "9ª", "10ª", "11ª", "12ª"],
+                },
                 { name: "turma", label: "Turma", type: "select", options: ["A", "B", "C"] },
-                { name: "encarregado", label: "Encarregado de educação", placeholder: "Nome do encarregado" },
+                {
+                  name: "encarregado",
+                  label: "Encarregado de educação",
+                  placeholder: "Nome do encarregado",
+                },
                 { name: "telefone", label: "Telefone", placeholder: "+244 9xx xxx xxx" },
                 { name: "obs", label: "Observações", type: "textarea", full: true },
               ]}
@@ -227,7 +242,10 @@ function StudentsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Pesquisar por nome, email, número…"
                 className="pl-9"
                 aria-label="Pesquisar aluno"
@@ -238,19 +256,27 @@ function StudentsPage() {
 
             <select
               value={curso}
-              onChange={(e) => { setCurso(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setCurso(e.target.value);
+                setPage(1);
+              }}
               aria-label="Filtrar por curso"
               className={selectClass}
             >
               <option value="todos">Todos os Cursos</option>
               {courseOptions.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
 
             <select
               value={classe}
-              onChange={(e) => { setClasse(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setClasse(e.target.value);
+                setPage(1);
+              }}
               aria-label="Filtrar por classe"
               className={selectClass}
             >
@@ -264,43 +290,61 @@ function StudentsPage() {
 
             <select
               value={periodo}
-              onChange={(e) => { setPeriodo(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setPeriodo(e.target.value);
+                setPage(1);
+              }}
               aria-label="Filtrar por período"
               className={selectClass}
             >
               <option value="todos">Todos os Períodos</option>
               {periodOptions.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p} value={p}>
+                  {p}
+                </option>
               ))}
             </select>
 
             <select
               value={turma}
-              onChange={(e) => { setTurma(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setTurma(e.target.value);
+                setPage(1);
+              }}
               aria-label="Filtrar por turma"
               className={selectClass}
             >
               <option value="todas">Todas as Turmas</option>
               {turmaOptions.map((t) => (
-                <option key={t} value={t}>Turma {t}</option>
+                <option key={t} value={t}>
+                  Turma {t}
+                </option>
               ))}
             </select>
 
             <select
               value={sala}
-              onChange={(e) => { setSala(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSala(e.target.value);
+                setPage(1);
+              }}
               aria-label="Filtrar por sala"
               className={selectClass}
             >
               <option value="todas">Todas as Salas</option>
               {roomOptions.map((r) => (
-                <option key={r} value={r}>{r}</option>
+                <option key={r} value={r}>
+                  {r}
+                </option>
               ))}
             </select>
 
             <select
               value={estado}
-              onChange={(e) => { setEstado(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setEstado(e.target.value);
+                setPage(1);
+              }}
               aria-label="Filtrar por estado"
               className={selectClass}
             >
@@ -334,7 +378,6 @@ function StudentsPage() {
           </div>
         </div>
 
-
         <div className="rounded-xl border border-border bg-card shadow-soft">
           <div className="overflow-x-auto">
             <Table className="min-w-[880px]">
@@ -357,10 +400,7 @@ function StudentsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <MediaAvatar
-                          alt={s.nome}
-                          className="size-9 rounded-xl"
-                        />
+                        <MediaAvatar alt={s.nome} className="size-9 rounded-xl" />
                         <div className="min-w-0">
                           <p className="whitespace-nowrap font-semibold">{s.nome}</p>
                           <p className="text-xs text-muted-foreground">
@@ -370,7 +410,9 @@ function StudentsPage() {
                       </div>
                     </TableCell>
 
-                    <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{s.email}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                      {s.email}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap text-sm">{s.telefone}</TableCell>
                     <TableCell className="hidden xl:table-cell">
                       <span className="inline-flex rounded-lg bg-secondary px-2 py-1 font-mono text-[11px] text-secondary-foreground">
@@ -382,7 +424,12 @@ function StudentsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        <Button asChild variant="outline" size="sm" className="h-8 gap-1 px-2 text-xs">
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1 px-2 text-xs"
+                        >
                           <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
                             <FileText className="size-3.5" /> Ficha
                           </Link>
@@ -399,7 +446,10 @@ function StudentsPage() {
                 ))}
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell
+                      colSpan={7}
+                      className="py-10 text-center text-sm text-muted-foreground"
+                    >
                       Nenhum aluno encontrado com os filtros aplicados.
                     </TableCell>
                   </TableRow>
@@ -478,7 +528,6 @@ function StudentsPage() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </AppShell>

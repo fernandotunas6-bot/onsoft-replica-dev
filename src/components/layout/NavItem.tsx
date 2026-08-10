@@ -54,15 +54,13 @@ export function NavIcon({
   }
 
   return (
-    <span
-      aria-hidden
-      data-nav-icon=""
-      className="flex size-6 shrink-0 items-center justify-center"
-    >
+    <span aria-hidden data-nav-icon="" className="flex size-6 shrink-0 items-center justify-center">
       <Icon
         className={cn(
           "size-[22px] transition-colors duration-150",
-          active ? "text-sidebar-active" : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground",
+          active
+            ? "text-sidebar-active"
+            : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground",
         )}
         strokeWidth={active ? 2.1 : 1.8}
       />
@@ -124,9 +122,7 @@ export function NavLinkRow(props: BaseProps & { to: string }) {
   );
 }
 
-export function NavButtonRow(
-  props: BaseProps & { onClick?: () => void; expanded?: boolean },
-) {
+export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded?: boolean }) {
   const { onClick, expanded, ...rest } = props;
   return (
     <button
@@ -142,13 +138,7 @@ export function NavButtonRow(
   );
 }
 
-export function NavSubheader({
-  title,
-  collapsed = false,
-}: {
-  title: string;
-  collapsed?: boolean;
-}) {
+export function NavSubheader({ title, collapsed = false }: { title: string; collapsed?: boolean }) {
   if (collapsed) return <div className="mx-3 my-3 h-px bg-sidebar-border" />;
   return (
     <p className="px-3 pb-1 pt-4 text-[11px] font-bold uppercase leading-5 tracking-[0.5px] text-sidebar-muted">

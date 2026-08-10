@@ -3,7 +3,6 @@ import { IconChip, type ChipTone } from "@/components/ui/icon-chip";
 import { LazyVisible } from "@/components/ui/lazy-visible";
 import { inferIcon } from "@/lib/auto-icon";
 
-
 export function PageHeader({
   group,
   title,
@@ -101,9 +100,7 @@ export function Panel({
           <IconChip icon={Icon} tone={chipTone} size="sm" />
           <div className="min-w-0">
             <h2 className="font-display text-base font-bold tracking-tight">{title}</h2>
-            {description ? (
-              <p className="text-xs text-muted-foreground">{description}</p>
-            ) : null}
+            {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
           </div>
         </div>
         {action}
@@ -116,8 +113,6 @@ export function Panel({
     </section>
   );
 }
-
-
 
 export const badgeBase =
   "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";

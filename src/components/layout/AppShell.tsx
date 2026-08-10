@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { warmQueries } from "@/lib/queries";
 
-
 import { Bell, ChevronDown, Maximize2, Menu, Moon, Settings, Sun } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
@@ -63,9 +62,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     // Ajustado após medição de Web Vitals: os chunks são pré-carregados um a um
     // em fatias de tempo livre, para não competir com o primeiro render (FCP).
     const queue = routes.filter((to) => to !== pathname);
-    const ric = (window as unknown as {
-      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
-    }).requestIdleCallback;
+    const ric = (
+      window as unknown as {
+        requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      }
+    ).requestIdleCallback;
     let timer = 0;
     const step = () => {
       if (cancelled) return;
@@ -91,18 +92,17 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (cancelled) return;
       warmQueries(queryClient);
     };
-    const ric = (window as unknown as {
-      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
-    }).requestIdleCallback;
+    const ric = (
+      window as unknown as {
+        requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      }
+    ).requestIdleCallback;
     const id = ric ? ric(run, { timeout: 2500 }) : window.setTimeout(run, 800);
     return () => {
       cancelled = true;
       if (!ric) window.clearTimeout(id as number);
     };
   }, [queryClient]);
-
-
-
 
   const toggleCollapsed = () =>
     setCollapsed((c) => {
@@ -133,7 +133,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/85 px-4 py-3 backdrop-blur-xl md:px-6">
-
           <Button
             variant="ghost"
             size="icon"
@@ -190,13 +189,29 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Settings className="size-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="header-icon-btn" onClick={toggleTheme} aria-label="Alternar tema">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="header-icon-btn"
+              onClick={toggleTheme}
+              aria-label="Alternar tema"
+            >
               {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </Button>
-            <Button variant="ghost" size="icon" className="header-icon-btn" aria-label="Notificações">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="header-icon-btn"
+              aria-label="Notificações"
+            >
               <Bell className="size-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="header-icon-btn hidden sm:inline-flex" aria-label="Ecrã inteiro">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="header-icon-btn hidden sm:inline-flex"
+              aria-label="Ecrã inteiro"
+            >
               <Maximize2 className="size-5" />
             </Button>
           </div>
@@ -229,7 +244,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           />
 
           <SettingsCenter open={settingsOpen} onOpenChange={setSettingsOpen} />
-
         </header>
 
         <main
@@ -239,7 +253,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           {children}
         </main>
-
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/60 px-4 py-5 text-xs text-muted-foreground backdrop-blur md:px-6">
           <div className="flex items-center gap-4">

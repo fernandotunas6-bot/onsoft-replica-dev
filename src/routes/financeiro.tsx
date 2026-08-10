@@ -76,7 +76,11 @@ function FinanceiroPage() {
           items={[
             { label: "Saldo actual", value: kwanza(saldo), hint: "Caixa + banco" },
             { label: "Entradas do mês", value: kwanza(caixaResumo.entradas), hint: "Maio de 2025" },
-            { label: "Saídas do mês", value: kwanza(caixaResumo.saidas), hint: "Despesas e salários" },
+            {
+              label: "Saídas do mês",
+              value: kwanza(caixaResumo.saidas),
+              hint: "Despesas e salários",
+            },
             { label: "Taxa de cobrança", value: "71%", hint: "Mensalidades de Maio" },
           ]}
         />
@@ -102,8 +106,20 @@ function FinanceiroPage() {
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="cobrado" name="Cobrado" fill="var(--chart-2)" radius={[8, 8, 0, 0]} maxBarSize={26} />
-                <Bar dataKey="recebido" name="Recebido" fill="var(--chart-1)" radius={[8, 8, 0, 0]} maxBarSize={26} />
+                <Bar
+                  dataKey="cobrado"
+                  name="Cobrado"
+                  fill="var(--chart-2)"
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={26}
+                />
+                <Bar
+                  dataKey="recebido"
+                  name="Recebido"
+                  fill="var(--chart-1)"
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={26}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -145,9 +161,7 @@ function FinanceiroPage() {
                     </TableCell>
                     <TableCell>
                       <p className="font-semibold">{m.descricao}</p>
-                      {m.aluno ? (
-                        <p className="text-xs text-muted-foreground">{m.aluno}</p>
-                      ) : null}
+                      {m.aluno ? <p className="text-xs text-muted-foreground">{m.aluno}</p> : null}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{m.categoria}</TableCell>
                     <TableCell>
@@ -187,7 +201,8 @@ function FinanceiroPage() {
         <div className="flex items-center gap-3 rounded-xl border border-border bg-primary-soft/40 p-5">
           <Wallet className="size-5 text-primary" />
           <p className="text-sm text-muted-foreground">
-            Saldo inicial do período: <strong className="text-foreground">{kwanza(caixaResumo.saldoInicial)}</strong>
+            Saldo inicial do período:{" "}
+            <strong className="text-foreground">{kwanza(caixaResumo.saldoInicial)}</strong>
           </p>
         </div>
       </div>

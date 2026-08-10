@@ -45,11 +45,7 @@ export function LazyVisible({
       {visible ? (
         children
       ) : (
-        <div
-          aria-hidden
-          className="animate-pulse rounded-xl bg-muted/60"
-          style={{ minHeight }}
-        />
+        <div aria-hidden className="animate-pulse rounded-xl bg-muted/60" style={{ minHeight }} />
       )}
     </div>
   );

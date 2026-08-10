@@ -71,7 +71,10 @@ export function StackedModal({
 
   const byId = useMemo(() => new Map(panels.map((p) => [p.id, p])), [panels]);
 
-  const push = useCallback((id: string) => setStack((s) => (byId.has(id) ? [...s, id] : s)), [byId]);
+  const push = useCallback(
+    (id: string) => setStack((s) => (byId.has(id) ? [...s, id] : s)),
+    [byId],
+  );
   const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), []);
   const reset = useCallback(() => setStack([rootId]), [rootId]);
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
@@ -116,7 +119,10 @@ export function StackedModal({
               )}
 
               <div className="min-w-0 flex-1">
-                <nav aria-label="Percurso" className="flex flex-wrap items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+                <nav
+                  aria-label="Percurso"
+                  className="flex flex-wrap items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary"
+                >
                   {eyebrow && stack.length === 1 ? <span>{eyebrow}</span> : null}
                   {trail.slice(0, -1).map((t, i) => (
                     <span key={`${t}-${i}`} className="flex items-center gap-1">
@@ -175,7 +181,10 @@ export function StackedModal({
                         </span>
                       ) : null}
                       {row.to ? (
-                        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                        <ChevronRight
+                          className="size-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
                       ) : null}
                     </button>
                   </li>
@@ -184,7 +193,9 @@ export function StackedModal({
             ) : null}
 
             {current.render ? (
-              <div className={cn("px-2", current.rows?.length && "mt-4")}>{current.render(nav)}</div>
+              <div className={cn("px-2", current.rows?.length && "mt-4")}>
+                {current.render(nav)}
+              </div>
             ) : null}
           </div>
 

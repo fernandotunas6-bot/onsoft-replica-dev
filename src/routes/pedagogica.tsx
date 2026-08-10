@@ -85,8 +85,16 @@ function PedagogicaPage() {
 
         <StatGrid
           items={[
-            { label: "Turmas activas", value: String(turmas.length), hint: "3 turnos em funcionamento" },
-            { label: "Disciplinas", value: String(disciplinas.length), hint: "Corpo docente completo" },
+            {
+              label: "Turmas activas",
+              value: String(turmas.length),
+              hint: "3 turnos em funcionamento",
+            },
+            {
+              label: "Disciplinas",
+              value: String(disciplinas.length),
+              hint: "Corpo docente completo",
+            },
             {
               label: "Média geral",
               value: (turmas.reduce((s, t) => s + t.media, 0) / turmas.length).toFixed(1),
@@ -109,7 +117,10 @@ function PedagogicaPage() {
               {turmas.map((t) => {
                 const ocupacao = Math.round((t.alunos / t.capacidade) * 100);
                 return (
-                  <div key={t.id} className="rounded-xl border border-border bg-card p-5 shadow-soft">
+                  <div
+                    key={t.id}
+                    className="rounded-xl border border-border bg-card p-5 shadow-soft"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-display text-lg font-extrabold tracking-tight">
@@ -145,7 +156,10 @@ function PedagogicaPage() {
                         <span>{ocupacao}%</span>
                       </div>
                       <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${ocupacao}%` }} />
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${ocupacao}%` }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -155,7 +169,10 @@ function PedagogicaPage() {
           </TabsContent>
 
           <TabsContent value="disciplinas" className="mt-5">
-            <Panel title="Disciplinas e docentes" description="Carga horária e taxa de aprovação por disciplina">
+            <Panel
+              title="Disciplinas e docentes"
+              description="Carga horária e taxa de aprovação por disciplina"
+            >
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -176,7 +193,9 @@ function PedagogicaPage() {
                             {d.nome}
                           </span>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{d.professor}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {d.professor}
+                        </TableCell>
                         <TableCell>{d.classes}</TableCell>
                         <TableCell>{d.cargaHoraria}</TableCell>
                         <TableCell className="text-right">
@@ -224,14 +243,19 @@ function PedagogicaPage() {
                         <TableRow key={n.id}>
                           <TableCell className="font-semibold">{n.aluno}</TableCell>
                           <TableCell>{n.turma}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{n.disciplina}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {n.disciplina}
+                          </TableCell>
                           <TableCell className="text-right">{n.mac}</TableCell>
                           <TableCell className="text-right">{n.npp}</TableCell>
                           <TableCell className="text-right">{n.npt}</TableCell>
                           <TableCell className="text-right font-bold">{m.toFixed(1)}</TableCell>
                           <TableCell className="text-right">
                             <span
-                              className={cn(badgeBase, m >= 10 ? toneClass.success : toneClass.danger)}
+                              className={cn(
+                                badgeBase,
+                                m >= 10 ? toneClass.success : toneClass.danger,
+                              )}
                             >
                               {m >= 10 ? "Aprovado" : "Reprovado"}
                             </span>
@@ -249,7 +273,11 @@ function PedagogicaPage() {
                 <div className="h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={aproveitamentoPorClasse}>
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
+                      <CartesianGrid
+                        vertical={false}
+                        strokeDasharray="3 3"
+                        stroke="var(--border)"
+                      />
                       <XAxis dataKey="classe" {...axis} />
                       <YAxis {...axis} />
                       <Tooltip
@@ -260,8 +288,18 @@ function PedagogicaPage() {
                           color: "var(--popover-foreground)",
                         }}
                       />
-                      <Bar dataKey="aprovados" fill="var(--chart-1)" radius={[8, 8, 0, 0]} maxBarSize={34} />
-                      <Bar dataKey="reprovados" fill="var(--chart-4)" radius={[8, 8, 0, 0]} maxBarSize={34} />
+                      <Bar
+                        dataKey="aprovados"
+                        fill="var(--chart-1)"
+                        radius={[8, 8, 0, 0]}
+                        maxBarSize={34}
+                      />
+                      <Bar
+                        dataKey="reprovados"
+                        fill="var(--chart-4)"
+                        radius={[8, 8, 0, 0]}
+                        maxBarSize={34}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -271,7 +309,11 @@ function PedagogicaPage() {
                 <div className="h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={mediaPorTrimestre}>
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
+                      <CartesianGrid
+                        vertical={false}
+                        strokeDasharray="3 3"
+                        stroke="var(--border)"
+                      />
                       <XAxis dataKey="trimestre" {...axis} />
                       <YAxis domain={[10, 20]} {...axis} />
                       <Tooltip

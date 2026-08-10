@@ -164,7 +164,6 @@ export const turmaOptions = Array.from(new Set(students.map((s) => s.turma))).so
 export const periodOptions = ["Manhã", "Tarde"];
 export const roomOptions = ["Sala 01", "Sala 02"];
 
-
 export const studentSummary = [
   { label: "Total de alunos", value: students.length.toString(), hint: "Ano lectivo actual" },
   {

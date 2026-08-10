@@ -75,7 +75,6 @@ function tags(code, name) {
   return out;
 }
 
-
 for (const file of files) {
   const rel = relative(ROOT, file);
   const code = readFileSync(file, "utf8");
@@ -189,4 +188,3 @@ if (unique.length) {
 }
 
 console.log("OK — contraste, foco visível, labels e navegação por teclado validados.");
-

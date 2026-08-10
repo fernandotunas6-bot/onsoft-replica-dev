@@ -80,10 +80,20 @@ function FaturasPage() {
                 submitLabel="Emitir"
                 fields={[
                   { name: "aluno", label: "Aluno", placeholder: "Pesquisar aluno", full: true },
-                  { name: "tipo", label: "Tipo", type: "select", options: ["Mensalidade", "Matrícula", "Documento", "Outro"] },
+                  {
+                    name: "tipo",
+                    label: "Tipo",
+                    type: "select",
+                    options: ["Mensalidade", "Matrícula", "Documento", "Outro"],
+                  },
                   { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "35000" },
                   { name: "vencimento", label: "Vencimento", type: "date" },
-                  { name: "metodo", label: "Método previsto", type: "select", options: ["Multicaixa", "Transferência", "Dinheiro"] },
+                  {
+                    name: "metodo",
+                    label: "Método previsto",
+                    type: "select",
+                    options: ["Multicaixa", "Transferência", "Dinheiro"],
+                  },
                   { name: "desc", label: "Descrição", type: "textarea", full: true },
                 ]}
                 trigger={(open) => (

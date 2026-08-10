@@ -7,9 +7,11 @@ const warmed = new Set<string>();
 
 function onIdle(fn: () => void) {
   if (typeof window === "undefined") return;
-  const ric = (window as unknown as {
-    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-  }).requestIdleCallback;
+  const ric = (
+    window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    }
+  ).requestIdleCallback;
   if (ric) ric(fn, { timeout: 1200 });
   else window.setTimeout(fn, 200);
 }

@@ -101,21 +101,21 @@ export function AccountDrawer({
                   </button>
                 </li>
               ) : (
-              <li key={label}>
-                <Link
-                  to={to}
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground/85 transition-colors hover:bg-secondary hover:text-foreground"
-                >
-                  <IconChip icon={icon} tone={tone} size="sm" />
-                  <span className="min-w-0 flex-1 truncate">{label}</span>
-                  {badge ? (
-                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
-                      {badge}
-                    </span>
-                  ) : null}
-                </Link>
-              </li>
+                <li key={label}>
+                  <Link
+                    to={to}
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground/85 transition-colors hover:bg-secondary hover:text-foreground"
+                  >
+                    <IconChip icon={icon} tone={tone} size="sm" />
+                    <span className="min-w-0 flex-1 truncate">{label}</span>
+                    {badge ? (
+                      <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                        {badge}
+                      </span>
+                    ) : null}
+                  </Link>
+                </li>
               ),
             )}
           </ul>

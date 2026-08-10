@@ -1,10 +1,34 @@
 export const schoolYear = "Ano Lectivo 2024/2025";
 
 export const stats = [
-  { label: "Total de estudantes", value: "7", icon: "users", tone: "primary" as const, hint: "+2 este mês" },
-  { label: "Estudantes masculinos", value: "6", icon: "userCheck", tone: "info" as const, hint: "86% do total" },
-  { label: "Estudantes femininos", value: "1", icon: "userRound", tone: "pink" as const, hint: "14% do total" },
-  { label: "Documentos emitidos", value: "0", icon: "receipt", tone: "warning" as const, hint: "Nenhum este ano" },
+  {
+    label: "Total de estudantes",
+    value: "7",
+    icon: "users",
+    tone: "primary" as const,
+    hint: "+2 este mês",
+  },
+  {
+    label: "Estudantes masculinos",
+    value: "6",
+    icon: "userCheck",
+    tone: "info" as const,
+    hint: "86% do total",
+  },
+  {
+    label: "Estudantes femininos",
+    value: "1",
+    icon: "userRound",
+    tone: "pink" as const,
+    hint: "14% do total",
+  },
+  {
+    label: "Documentos emitidos",
+    value: "0",
+    icon: "receipt",
+    tone: "warning" as const,
+    hint: "Nenhum este ano",
+  },
 ];
 
 export const miniStats = [
@@ -65,10 +89,25 @@ export const ageDistribution = [
 ];
 
 export const recentActivity = [
-  { title: "Nova matrícula confirmada", detail: "João Baptista · 7ª Classe", time: "há 2 h", tone: "success" as const },
+  {
+    title: "Nova matrícula confirmada",
+    detail: "João Baptista · 7ª Classe",
+    time: "há 2 h",
+    tone: "success" as const,
+  },
   { title: "Turma criada", detail: "11ª Classe · Turma B", time: "há 5 h", tone: "info" as const },
-  { title: "Pagamento pendente", detail: "Ana Cardoso · Mensalidade Julho", time: "ontem", tone: "warning" as const },
-  { title: "Documento solicitado", detail: "Declaração com notas · 9ª Classe", time: "há 2 dias", tone: "primary" as const },
+  {
+    title: "Pagamento pendente",
+    detail: "Ana Cardoso · Mensalidade Julho",
+    time: "ontem",
+    tone: "warning" as const,
+  },
+  {
+    title: "Documento solicitado",
+    detail: "Declaração com notas · 9ª Classe",
+    time: "há 2 dias",
+    tone: "primary" as const,
+  },
 ];
 
 export const upcoming = [

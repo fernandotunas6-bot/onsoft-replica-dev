@@ -60,8 +60,7 @@ for (const file of files) {
     const hasStyleSystem =
       /IconChip|PageHeader|StatGrid|Panel\b/.test(code) || /AppShell/.test(code) === false;
     if (/IconChip|PageHeader|StatGrid|<Panel/.test(code)) styled += 1;
-    else if (!hasStyleSystem)
-      issues.push(`${rel}: rota sem IconChip/PageHeader/Panel/StatGrid`);
+    else if (!hasStyleSystem) issues.push(`${rel}: rota sem IconChip/PageHeader/Panel/StatGrid`);
     else issues.push(`${rel}: rota sem IconChip/PageHeader/Panel/StatGrid`);
   }
 

@@ -6,13 +6,7 @@ import { cn } from "@/lib/utils";
  * Tones map to existing design tokens only — no new colours are introduced.
  */
 export type ChipTone =
-  | "primary"
-  | "success"
-  | "warning"
-  | "info"
-  | "destructive"
-  | "muted"
-  | "sidebar";
+  "primary" | "success" | "warning" | "info" | "destructive" | "muted" | "sidebar";
 
 export type ChipSize = "xs" | "sm" | "md" | "lg";
 
@@ -78,10 +72,7 @@ export function IconChip({
         className,
       )}
     >
-      <Icon
-        className={cn("block shrink-0", glyphSize[size], glyphClassName)}
-        strokeWidth={1.8}
-      />
+      <Icon className={cn("block shrink-0", glyphSize[size], glyphClassName)} strokeWidth={1.8} />
     </span>
   );
 }
