@@ -73,8 +73,8 @@ const statIcons = { users: Users, userCheck: UserCheck, userRound: UserRound, re
 const miniIcons = { graduation: GraduationCap, building: Building2, door: DoorOpen, activity: Activity };
 
 const toneBg: Record<string, string> = {
-  primary: "bg-primary-soft text-primary",
-  info: "bg-info/10 text-info",
+  primary: "bg-primary-soft text-primary-strong",
+  info: "bg-info/10 text-info-strong",
   pink: "bg-chart-2/10 text-chart-2",
   warning: "bg-warning/15 text-warning-foreground",
 };
@@ -212,7 +212,7 @@ function Dashboard() {
                   icon={Icon}
                   size="md"
                   soft={false}
-                  className="rounded-2xl bg-primary-soft text-primary"
+                  className="rounded-2xl bg-primary-soft text-primary-strong"
                 />
                 <div>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
@@ -380,7 +380,7 @@ function Dashboard() {
                     icon={CalendarDays}
                     size="sm"
                     soft={false}
-                    className="rounded-xl bg-primary-soft text-primary"
+                    className="rounded-xl bg-primary-soft text-primary-strong"
                   />
                   <p className="text-sm font-medium">{e.title}</p>
                   <span className="ml-auto text-xs font-semibold text-muted-foreground">{e.date}</span>

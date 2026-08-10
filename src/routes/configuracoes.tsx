@@ -420,7 +420,7 @@ function ConfiguracoesPage() {
               action={<Badge variant="outline">Requer login</Badge>}
             >
               <div className="flex items-start gap-4">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-strong">
                   <Mail className="size-5" />
                 </span>
                 <div className="space-y-3 text-sm">

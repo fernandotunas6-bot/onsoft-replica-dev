@@ -30,7 +30,10 @@ BASELINE, CURRENT, DIFF = OUT / "baseline", OUT / "current", OUT / "diff"
 VIEWPORTS = [
     ("desktop-1440", 1440, 900),
     ("laptop-1280", 1280, 800),
+    ("laptop-1024", 1024, 768),
     ("tablet-834", 834, 1112),
+    ("tablet-768", 768, 1024),
+    ("mobile-412", 412, 915),
     ("mobile-390", 390, 844),
 ]
 

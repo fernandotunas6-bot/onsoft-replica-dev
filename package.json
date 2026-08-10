@@ -21,7 +21,8 @@
     "check:visual:update": "python3 scripts/visual-regression.py --update",
     "check": "npm run check:style && npm run check:a11y:report",
     "format": "prettier --write .",
-    "check:security": "bun audit --audit-level=high"
+    "check:security": "bun audit --audit-level=high",
+    "check:a11y:sidebar": "python3 scripts/a11y-sidebar.py"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

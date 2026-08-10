@@ -71,7 +71,7 @@ const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] f
 const estadoTone: Record<string, string> = {
   Matriculado: "bg-primary text-primary-foreground",
   Inactivo: "bg-muted text-muted-foreground",
-  Transferido: "border border-destructive/30 bg-destructive/10 text-destructive",
+  Transferido: "border border-destructive/30 bg-destructive/10 text-destructive-strong",
 };
 
 const pagamentoTone: Record<string, string> = {

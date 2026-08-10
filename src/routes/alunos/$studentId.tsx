@@ -100,7 +100,7 @@ function StudentDetail() {
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <span className={cn(badge, "bg-success/15 text-success")}>{student.estado}</span>
-              <span className={cn(badge, "bg-primary-soft text-primary")}>{student.curso}</span>
+              <span className={cn(badge, "bg-primary-soft text-primary-strong")}>{student.curso}</span>
               <span className={cn(badge, "bg-warning/20 text-warning-foreground")}>
                 {student.pagamento}
               </span>

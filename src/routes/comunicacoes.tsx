@@ -78,7 +78,7 @@ function ComunicacoesPage() {
                   <li key={c.id} className="rounded-xl border border-border p-4">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="flex items-start gap-3">
-                        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+                        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong">
                           <Icon className="size-4" />
                         </span>
                         <div>

@@ -126,7 +126,7 @@ export const toneClass = {
   success: "bg-success/15 text-success",
   warning: "bg-warning/20 text-warning-foreground",
   danger: "bg-destructive/12 text-destructive",
-  info: "bg-info/10 text-info",
+  info: "bg-info/10 text-info-strong",
   muted: "bg-muted text-muted-foreground",
-  primary: "bg-primary-soft text-primary",
+  primary: "bg-primary-soft text-primary-strong",
 } satisfies Record<string, string>;

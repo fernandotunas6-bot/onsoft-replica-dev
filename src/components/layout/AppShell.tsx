@@ -4,9 +4,10 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { warmQueries } from "@/lib/queries";
 
 
-import { Bell, ChevronDown, Maximize2, Menu, Moon, Sun } from "lucide-react";
+import { Bell, ChevronDown, Maximize2, Menu, Moon, Settings, Sun } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
+import { SettingsCenter } from "@/components/modals/SettingsCenter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
@@ -32,6 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [dark, setDark] = useState(false);
   const [year, setYear] = useState(schoolYear);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem(COLLAPSE_KEY) === "1") setCollapsed(true);
@@ -178,6 +180,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           </DropdownMenu>
 
           <div className="ml-auto flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="header-icon-btn"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Abrir configurações do sistema"
+              aria-haspopup="dialog"
+            >
+              <Settings className="size-5" />
+            </Button>
             <Button variant="ghost" size="icon" className="header-icon-btn" onClick={toggleTheme} aria-label="Alternar tema">
               {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </Button>
@@ -207,7 +219,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             <ChevronDown className="hidden size-4 opacity-60 sm:block" />
           </button>
 
-          <AccountDrawer open={accountOpen} onOpenChange={setAccountOpen} />
+          <AccountDrawer
+            open={accountOpen}
+            onOpenChange={setAccountOpen}
+            onOpenSettings={() => {
+              setAccountOpen(false);
+              setSettingsOpen(true);
+            }}
+          />
+
+          <SettingsCenter open={settingsOpen} onOpenChange={setSettingsOpen} />
 
         </header>
 
