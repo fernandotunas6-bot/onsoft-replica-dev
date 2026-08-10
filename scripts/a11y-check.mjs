@@ -51,7 +51,7 @@ const issues = [];
 let checks = 0;
 
 function tags(code, name) {
-  const re = new RegExp(`<${name}\\b(?:[^>]|=>)*?>`, "gs");
+  const re = new RegExp(`<${name}\\b(?:[^>]|=>)*?(?<!=)>`, "gs");
   return code.match(re) ?? [];
 }
 
