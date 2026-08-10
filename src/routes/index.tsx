@@ -75,7 +75,7 @@ const miniIcons = { graduation: GraduationCap, building: Building2, door: DoorOp
 const toneBg: Record<string, string> = {
   primary: "bg-primary-soft text-primary-strong",
   info: "bg-info/10 text-info-strong",
-  pink: "bg-chart-2/10 text-chart-2",
+  pink: "bg-chart-2/10 text-chart-2-strong",
   warning: "bg-warning/15 text-warning-foreground",
 };
 
