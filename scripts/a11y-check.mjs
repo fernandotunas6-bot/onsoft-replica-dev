@@ -50,10 +50,31 @@ const files = walk(SRC).filter((f) => !IGNORE.some((re) => re.test(f)));
 const issues = [];
 let checks = 0;
 
+/** Extrai a abertura de cada tag <name ...>, respeitando expressões {…} e strings. */
 function tags(code, name) {
-  const re = new RegExp(`<${name}\\b(?:[^>]|=>)*?(?<!=)>`, "gs");
-  return code.match(re) ?? [];
+  const out = [];
+  const start = new RegExp(`<${name}(?=[\\s/>])`, "g");
+  let m;
+  while ((m = start.exec(code))) {
+    let i = m.index + m[0].length;
+    let depth = 0;
+    let quote = null;
+    for (; i < code.length; i += 1) {
+      const c = code[i];
+      if (quote) {
+        if (c === quote) quote = null;
+        continue;
+      }
+      if (c === '"' || c === "'" || c === "`") quote = c;
+      else if (c === "{") depth += 1;
+      else if (c === "}") depth -= 1;
+      else if (c === ">" && depth === 0) break;
+    }
+    out.push(code.slice(m.index, i + 1));
+  }
+  return out;
 }
+
 
 for (const file of files) {
   const rel = relative(ROOT, file);
