@@ -30,6 +30,7 @@ export function MediaFrame({
 
   return (
     <div
+      data-media-frame=""
       className={cn("relative overflow-hidden bg-muted", rounded, className)}
       style={{ aspectRatio: ratio }}
     >
@@ -85,6 +86,7 @@ export function MediaAvatar({
       <span
         aria-label={alt}
         role="img"
+        data-media-frame=""
         className={cn(
           "inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft font-display text-xs font-extrabold text-primary",
           className,
