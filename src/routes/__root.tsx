@@ -15,6 +15,7 @@ import { measureVitals } from "@/lib/vitals";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { AppearanceProvider } from "@/lib/appearance";
 
 function NotFoundComponent() {
   return (
