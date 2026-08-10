@@ -111,6 +111,7 @@ CONTRAST_JS = """
       role: chip.getAttribute('role'),
       ariaLabel: chip.getAttribute('aria-label'),
       box: chip.getBoundingClientRect().width,
+      cls: chip.className.slice(0, 80),
     });
   }
   return out;
@@ -215,6 +216,7 @@ async def audit(page, tag: str, failures: list[str]) -> None:
         if chip["ratio"] < AA_LARGE:
             failures.append(
                 f"{tag}: IconChip tom '{chip['tone']}' com contraste {chip['ratio']:.2f} < {AA_LARGE}"
+                f" [{chip['cls']}]"
             )
 
     # 4. rótulos ARIA
