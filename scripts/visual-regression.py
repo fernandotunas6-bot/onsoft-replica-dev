@@ -84,7 +84,6 @@ async def main(update: bool) -> int:
             viewport={"width": 1280, "height": 1000}, device_scale_factor=1
         )
         page = await ctx.new_page()
-        await page.add_style_tag(content=FREEZE_CSS) if False else None
 
         for name, path in ROUTES:
             await page.goto(f"{BASE_URL}{path}", wait_until="domcontentloaded")
