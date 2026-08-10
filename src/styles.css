@@ -301,3 +301,14 @@
 .skip-link:focus-visible {
   transform: translateY(0);
 }
+
+/* Esconde a barra de navegação/scroll do sidebar mantendo o scroll funcional. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+}

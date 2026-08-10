@@ -11,9 +11,13 @@
     "lint": "eslint .",
     "check:style": "node scripts/style-checklist.mjs",
     "check:a11y": "node scripts/a11y-check.mjs",
+    "check:a11y:report": "node scripts/a11y-check.mjs --html reports/a11y.html",
+    "check:coverage": "python3 scripts/style-coverage.py",
+    "check:keyboard": "python3 scripts/keyboard-nav.py",
+    "check:lighthouse": "lhci autorun --config=lighthouserc.json",
     "check:visual": "python3 scripts/visual-regression.py",
     "check:visual:update": "python3 scripts/visual-regression.py --update",
-    "check": "npm run check:style && npm run check:a11y",
+    "check": "npm run check:style && npm run check:a11y:report",
     "format": "prettier --write ."
   },
   "dependencies": {

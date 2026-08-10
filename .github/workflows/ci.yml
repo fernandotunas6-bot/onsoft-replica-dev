@@ -23,13 +23,81 @@ jobs:
         run: bun run check:style
 
       - name: Verificação de acessibilidade (contraste, foco, labels)
-        run: bun run check:a11y
+        run: bun run check:a11y:report
+
+      - name: Publicar relatório HTML de acessibilidade
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-report
+          path: reports/a11y.html
 
       - name: Lint
         run: bun run lint
 
       - name: Build
         run: bun run build
+
+  coverage:
+    name: Cobertura IconChip / MediaFrame por rota
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          bun install --frozen-lockfile
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Arrancar servidor de desenvolvimento
+        run: |
+          bun run dev &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+
+      - name: Resumo de cobertura de estilo por rota
+        run: python scripts/style-coverage.py
+
+      - name: Navegação apenas por teclado (skip link, foco, aria-current)
+        run: python scripts/keyboard-nav.py
+
+  lighthouse:
+    name: Lighthouse CI (FCP / LCP / INP)
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Arrancar servidor de desenvolvimento
+        run: |
+          bun run dev &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+
+      - name: Correr Lighthouse CI
+        run: bunx --bun @lhci/cli@0.14.x autorun --config=lighthouserc.json
+
+      - name: Publicar relatórios Lighthouse
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: reports/lighthouse
 
   visual:
     name: Regressão visual (Minimals)
