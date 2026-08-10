@@ -138,15 +138,15 @@ export function AppSidebar({
       data-sidebar="siga"
       className={cn(
         "flex h-full shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-        collapsed ? "w-[88px]" : "w-[300px]",
+        collapsed ? "w-[72px]" : "w-[280px]",
         className,
       )}
     >
       <div
-        className={cn("flex items-center gap-3 py-6", collapsed ? "justify-center px-3" : "px-5")}
+        className={cn("flex items-center gap-3 py-5", collapsed ? "justify-center px-3" : "px-5")}
       >
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-          <GraduationCap className="size-[22px]" />
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
+          <GraduationCap className="size-5" />
         </span>
         {!collapsed ? (
           <div className="min-w-0 leading-tight">

@@ -126,13 +126,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <AppSidebar collapsed={collapsed} className="sticky top-0 hidden h-screen lg:flex" />
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-[270px] border-none p-0">
+        <SheetContent side="left" className="w-[260px] border-none p-0">
           <AppSidebar />
         </SheetContent>
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/85 px-4 py-3 backdrop-blur-xl md:px-6">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/85 px-4 py-3 backdrop-blur-xl md:px-6 lg:px-5 lg:py-2.5">
           <Button
             variant="ghost"
             size="icon"
@@ -249,12 +249,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main
           id="conteudo-principal"
           tabIndex={-1}
-          className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6 md:py-8"
+          className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6 md:py-8 lg:px-5 lg:py-6"
         >
           {children}
         </main>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/60 px-4 py-5 text-xs text-muted-foreground backdrop-blur md:px-6">
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/60 px-4 py-5 text-xs text-muted-foreground backdrop-blur md:px-6 lg:py-4">
           <div className="flex items-center gap-4">
             <span className="inline-flex items-center gap-2 font-semibold text-foreground">
               <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[10px] font-extrabold text-primary">

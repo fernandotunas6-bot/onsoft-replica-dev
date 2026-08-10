@@ -57,7 +57,7 @@ export function NavIcon({
     <span aria-hidden data-nav-icon="" className="flex size-6 shrink-0 items-center justify-center">
       <Icon
         className={cn(
-          "size-[22px] transition-colors duration-150",
+          "size-5 transition-colors duration-150",
           active
             ? "text-sidebar-active"
             : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground",

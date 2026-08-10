@@ -197,6 +197,16 @@
     border-color: var(--color-border);
   }
 
+  html {
+    font-size: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 87.5%;
+    }
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
