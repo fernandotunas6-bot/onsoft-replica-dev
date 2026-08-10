@@ -64,7 +64,7 @@ async def main() -> int:
 
         for name, path in ROUTES:
             await page.goto(f"{BASE_URL}{path}", wait_until="domcontentloaded")
-            await page.wait_for_timeout(500)
+            await page.wait_for_timeout(1200)
 
             # 1. skip link é o primeiro alvo tabulável
             await page.keyboard.press("Tab")
