@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import {
   FileText,
+  Home,
   Lock,
   LogOut,
   Megaphone,
+  Rocket,
   Settings,
   ShieldCheck,
   User,
@@ -12,15 +14,29 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
+import type { ChipTone } from "@/components/ui/icon-chip";
 
-const quickLinks: { label: string; to: string; icon: React.ElementType }[] = [
-  { label: "Dashboard", to: "/", icon: ShieldCheck },
-  { label: "Estudantes", to: "/alunos", icon: Users },
-  { label: "Documentos", to: "/documentos", icon: FileText },
-  { label: "Comunicações", to: "/comunicacoes", icon: Megaphone },
-  { label: "Configurações", to: "/configuracoes", icon: Settings },
-  { label: "Alterar senha", to: "/alterar-senha", icon: Lock },
+type Row = {
+  label: string;
+  to: string;
+  icon: React.ElementType;
+  tone: ChipTone;
+  badge?: string;
+};
+
+// Lista vertical no estilo Minimals: ícone em chip suave + rótulo + contador.
+const rows: Row[] = [
+  { label: "Início", to: "/", icon: Home, tone: "primary" },
+  { label: "Perfil", to: "/configuracoes", icon: User, tone: "info" },
+  { label: "Estudantes", to: "/alunos", icon: Users, tone: "info", badge: "3" },
+  { label: "Documentos", to: "/documentos", icon: FileText, tone: "muted" },
+  { label: "Comunicações", to: "/comunicacoes", icon: Megaphone, tone: "primary" },
+  { label: "Segurança", to: "/acessos", icon: ShieldCheck, tone: "warning" },
+  { label: "Alterar senha", to: "/alterar-senha", icon: Lock, tone: "muted" },
+  { label: "Configurações de conta", to: "/configuracoes", icon: Settings, tone: "muted" },
 ];
+
+const team = ["A", "M", "J"];
 
 export function AccountDrawer({
   open,
@@ -33,76 +49,89 @@ export function AccountDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-[320px] border-l border-border bg-card/95 p-0 backdrop-blur-xl sm:w-[340px]"
+        className="flex w-[320px] flex-col gap-0 border-l border-border bg-card/95 p-0 backdrop-blur-xl sm:w-[352px]"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Conta</SheetTitle>
         </SheetHeader>
 
-        <div className="flex h-full flex-col">
-          <div className="flex flex-col items-center gap-3 border-b border-border px-6 py-8">
-            <span className="flex size-20 items-center justify-center rounded-full bg-primary-soft text-2xl font-extrabold text-primary ring-4 ring-primary/15">
-              U
-            </span>
-            <div className="text-center leading-tight">
-              <p className="text-base font-semibold text-foreground">usuario teste</p>
-              <p className="text-xs text-muted-foreground">teste@escola.com</p>
-            </div>
-            <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-secondary-foreground">
-              admin
-            </span>
+        <div className="flex flex-col items-center gap-3 px-6 pt-10 pb-6">
+          <span className="flex size-[88px] items-center justify-center rounded-full bg-primary-soft text-3xl font-extrabold text-primary ring-1 ring-border ring-offset-4 ring-offset-card">
+            U
+          </span>
+          <div className="text-center leading-tight">
+            <p className="text-base font-semibold text-foreground">usuario teste</p>
+            <p className="text-sm text-muted-foreground">teste@escola.com</p>
           </div>
 
-          <div className="no-scrollbar flex-1 overflow-y-auto px-4 py-5">
-            <p className="px-2 pb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Atalhos
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {quickLinks.map(({ label, to, icon }) => (
+          <div className="mt-1 flex items-center gap-2">
+            {team.map((t) => (
+              <span
+                key={t}
+                className="flex size-9 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-2 ring-card"
+              >
+                {t}
+              </span>
+            ))}
+            <button
+              type="button"
+              aria-label="Adicionar utilizador"
+              className="flex size-9 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        <div className="no-scrollbar flex-1 overflow-y-auto px-3 pb-2">
+          <ul className="space-y-0.5">
+            {rows.map(({ label, to, icon, tone, badge }) => (
+              <li key={label}>
                 <Link
-                  key={label}
                   to={to}
                   onClick={() => onOpenChange(false)}
-                  className="flex flex-col items-start gap-2 rounded-2xl border border-border bg-background/60 p-3 text-[13px] font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-secondary"
+                  className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground/85 transition-colors hover:bg-secondary hover:text-foreground"
                 >
-                  <IconChip icon={icon} tone="primary" size="sm" />
-                  <span className="truncate">{label}</span>
+                  <IconChip icon={icon} tone={tone} size="sm" />
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  {badge ? (
+                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                      {badge}
+                    </span>
+                  ) : null}
                 </Link>
-              ))}
-            </div>
-
-            <p className="px-2 pt-6 pb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Conta
-            </p>
-            <ul className="space-y-1">
-              <li>
-                <button
-                  type="button"
-                  className="nav-row w-full text-foreground/80 hover:bg-secondary hover:text-foreground"
-                >
-                  <IconChip icon={User} tone="muted" size="sm" />
-                  <span>Perfil</span>
-                </button>
               </li>
-              <li>
+            ))}
+          </ul>
+
+          <div className="mt-4 overflow-hidden rounded-2xl bg-primary-soft p-4">
+            <div className="flex items-start gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-primary">Módulo Premium</p>
+                <p className="mt-0.5 text-xs text-primary/80">
+                  Relatórios avançados e automações da escola.
+                </p>
                 <Link
-                  to="/alterar-senha"
+                  to="/configuracoes"
                   onClick={() => onOpenChange(false)}
-                  className="nav-row w-full text-foreground/80 hover:bg-secondary hover:text-foreground"
+                  className="mt-3 inline-flex rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                 >
-                  <IconChip icon={Lock} tone="muted" size="sm" />
-                  <span>Alterar senha</span>
+                  Activar agora
                 </Link>
-              </li>
-            </ul>
+              </div>
+              <IconChip icon={Rocket} tone="primary" size="md" />
+            </div>
           </div>
+        </div>
 
-          <div className="border-t border-border px-4 py-4">
-            <Button variant="destructive" className="w-full gap-2">
-              <LogOut className="size-4" />
-              Terminar sessão
-            </Button>
-          </div>
+        <div className="px-4 pb-6 pt-3">
+          <Button
+            variant="ghost"
+            className="w-full justify-center gap-2 rounded-2xl bg-destructive/10 py-5 font-semibold text-destructive hover:bg-destructive/15 hover:text-destructive"
+          >
+            <LogOut className="size-4" />
+            Sair
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
