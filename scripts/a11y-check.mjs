@@ -13,8 +13,8 @@
  *
  * Uso: node scripts/a11y-check.mjs   (exit 1 quando há falhas)
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 
 const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
