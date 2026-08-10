@@ -166,8 +166,9 @@ export function AppSidebar({
         aria-label="Navegação principal"
         className={cn(
           "flex-1 pb-4",
-          collapsed ? "no-scrollbar overflow-y-auto overflow-x-visible px-2" : "no-scrollbar overflow-y-auto px-4",
+          collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
         )}
+
       >
         {groups.map((group) => (
           <div key={group.title}>
