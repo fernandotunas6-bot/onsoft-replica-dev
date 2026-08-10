@@ -30,9 +30,9 @@ export function NavIcon({
   depth = "root",
   active = false,
 }: {
-  icon?: ElementType;
-  depth?: NavDepth;
-  active?: boolean;
+  icon?: ElementType | undefined;
+  depth?: NavDepth | undefined;
+  active?: boolean | undefined;
 }) {
   if (depth === "sub" || !Icon) {
     return (
