@@ -51,14 +51,14 @@ export function AccountDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex w-[320px] flex-col gap-0 border-l border-border bg-card/95 p-0 backdrop-blur-xl sm:w-[352px]"
+        className="flex w-[280px] flex-col gap-0 border-l border-border bg-card/95 p-0 backdrop-blur-xl sm:w-[300px]"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Conta</SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-col items-center gap-3 px-6 pt-10 pb-6">
-          <span className="flex size-[88px] items-center justify-center rounded-full bg-primary-soft text-3xl font-extrabold text-primary ring-1 ring-border ring-offset-4 ring-offset-card">
+        <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-6">
+          <span className="flex size-16 items-center justify-center rounded-full bg-primary-soft text-2xl font-extrabold text-primary ring-1 ring-border ring-offset-4 ring-offset-card">
             U
           </span>
           <div className="text-center leading-tight">
@@ -70,7 +70,7 @@ export function AccountDrawer({
             {team.map((t) => (
               <span
                 key={t}
-                className="flex size-9 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-2 ring-card"
+                className="flex size-8 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-2 ring-card"
               >
                 {t}
               </span>
@@ -78,7 +78,7 @@ export function AccountDrawer({
             <button
               type="button"
               aria-label="Adicionar utilizador"
-              className="flex size-9 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+              className="flex size-8 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
             >
               +
             </button>
