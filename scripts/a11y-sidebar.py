@@ -111,7 +111,7 @@ CONTRAST_JS = """
       role: chip.getAttribute('role'),
       ariaLabel: chip.getAttribute('aria-label'),
       box: chip.getBoundingClientRect().width,
-      cls: chip.className.slice(0, 80),
+      cls: chip.className,
     });
   }
   return out;
