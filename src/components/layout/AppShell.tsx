@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { schoolYear } from "@/lib/school-data";
+import { useAppearance } from "@/lib/appearance";
 
 const COLLAPSE_KEY = "siga:sidebar-collapsed";
 const years = [schoolYear, "Ano Lectivo 2023/2024", "Ano Lectivo 2022/2023"];
@@ -29,8 +30,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [dark, setDark] = useState(false);
   const [year, setYear] = useState(schoolYear);
+  const { isDark, toggleDark } = useAppearance();
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -109,13 +110,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1");
       return !c;
     });
-
-  const toggleTheme = () => {
-    setDark((d) => {
-      document.documentElement.classList.toggle("dark", !d);
-      return !d;
-    });
-  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -199,10 +193,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               variant="ghost"
               size="icon"
               className="header-icon-btn"
-              onClick={toggleTheme}
+              onClick={toggleDark}
               aria-label="Alternar tema"
             >
-              {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+              {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </Button>
             <Button
               variant="ghost"
