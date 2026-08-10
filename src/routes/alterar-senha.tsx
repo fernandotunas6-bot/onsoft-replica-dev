@@ -38,7 +38,12 @@ function AlterarSenhaPage() {
           <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-2">
               <Label htmlFor="atual">Senha actual</Label>
-              <Input id="atual" type="password" placeholder="••••••••" autoComplete="current-password" />
+              <Input
+                id="atual"
+                type="password"
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="nova">Nova senha</Label>
@@ -46,7 +51,12 @@ function AlterarSenhaPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmar">Confirmar nova senha</Label>
-              <Input id="confirmar" type="password" placeholder="••••••••" autoComplete="new-password" />
+              <Input
+                id="confirmar"
+                type="password"
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
             </div>
             <Button type="submit" className="w-full gap-2">
               <Lock className="size-4" /> Actualizar senha

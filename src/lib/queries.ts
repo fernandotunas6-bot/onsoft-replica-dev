@@ -82,9 +82,7 @@ export const documentosQuery = () =>
   });
 
 /** Pré-busca de todos os módulos mais usados. */
-export function warmQueries(queryClient: {
-  prefetchQuery: (options: never) => Promise<void>;
-}) {
+export function warmQueries(queryClient: { prefetchQuery: (options: never) => Promise<void> }) {
   const list = [
     dashboardQuery(),
     studentsQuery(),

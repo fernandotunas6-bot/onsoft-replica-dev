@@ -100,7 +100,9 @@ function StudentDetail() {
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <span className={cn(badge, "bg-success/15 text-success")}>{student.estado}</span>
-              <span className={cn(badge, "bg-primary-soft text-primary")}>{student.curso}</span>
+              <span className={cn(badge, "bg-primary-soft text-primary-strong")}>
+                {student.curso}
+              </span>
               <span className={cn(badge, "bg-warning/20 text-warning-foreground")}>
                 {student.pagamento}
               </span>
@@ -114,16 +116,25 @@ function StudentDetail() {
         <div className="grid gap-4 sm:grid-cols-3">
           {[
             { label: "Média final", value: student.mediaFinal.toFixed(1), hint: "Escala 0-20" },
-            { label: "Taxa de presença", value: `${student.presenca}%`, hint: "Ano lectivo actual" },
+            {
+              label: "Taxa de presença",
+              value: `${student.presenca}%`,
+              hint: "Ano lectivo actual",
+            },
             {
               label: "Matriculado em",
               value: new Date(student.matriculadoEm).toLocaleDateString("pt-PT"),
               hint: "Data de confirmação",
             },
           ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-border bg-card p-5 shadow-soft">
+            <div
+              key={item.label}
+              className="rounded-xl border border-border bg-card p-5 shadow-soft"
+            >
               <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
-              <p className="mt-2 font-display text-3xl font-extrabold tracking-tight">{item.value}</p>
+              <p className="mt-2 font-display text-3xl font-extrabold tracking-tight">
+                {item.value}
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p>
             </div>
           ))}
@@ -177,8 +188,8 @@ function StudentDetail() {
               <Field label="Situação financeira" value={student.pagamento} />
             </div>
             <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-              <CalendarDays className="size-4" /> Dados de demonstração — serão ligados ao backend na
-              próxima fase.
+              <CalendarDays className="size-4" /> Dados de demonstração — serão ligados ao backend
+              na próxima fase.
             </p>
           </section>
         </div>

@@ -41,9 +41,11 @@ const team = ["A", "M", "J"];
 export function AccountDrawer({
   open,
   onOpenChange,
+  onOpenSettings,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onOpenSettings?: () => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -85,23 +87,37 @@ export function AccountDrawer({
 
         <div className="no-scrollbar flex-1 overflow-y-auto px-3 pb-2">
           <ul className="space-y-0.5">
-            {rows.map(({ label, to, icon, tone, badge }) => (
-              <li key={label}>
-                <Link
-                  to={to}
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground/85 transition-colors hover:bg-secondary hover:text-foreground"
-                >
-                  <IconChip icon={icon} tone={tone} size="sm" />
-                  <span className="min-w-0 flex-1 truncate">{label}</span>
-                  {badge ? (
-                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
-                      {badge}
-                    </span>
-                  ) : null}
-                </Link>
-              </li>
-            ))}
+            {rows.map(({ label, to, icon, tone, badge }) =>
+              label === "Configurações de conta" && onOpenSettings ? (
+                <li key={label}>
+                  <button
+                    type="button"
+                    onClick={onOpenSettings}
+                    aria-haspopup="dialog"
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground/85 outline-none transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60"
+                  >
+                    <IconChip icon={icon} tone={tone} size="sm" />
+                    <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+                  </button>
+                </li>
+              ) : (
+                <li key={label}>
+                  <Link
+                    to={to}
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground/85 transition-colors hover:bg-secondary hover:text-foreground"
+                  >
+                    <IconChip icon={icon} tone={tone} size="sm" />
+                    <span className="min-w-0 flex-1 truncate">{label}</span>
+                    {badge ? (
+                      <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                        {badge}
+                      </span>
+                    ) : null}
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
 
           <div className="mt-4 overflow-hidden rounded-2xl bg-primary-soft p-4">

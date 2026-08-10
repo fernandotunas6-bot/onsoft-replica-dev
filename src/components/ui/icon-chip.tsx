@@ -6,23 +6,17 @@ import { cn } from "@/lib/utils";
  * Tones map to existing design tokens only — no new colours are introduced.
  */
 export type ChipTone =
-  | "primary"
-  | "success"
-  | "warning"
-  | "info"
-  | "destructive"
-  | "muted"
-  | "sidebar";
+  "primary" | "success" | "warning" | "info" | "destructive" | "muted" | "sidebar";
 
 export type ChipSize = "xs" | "sm" | "md" | "lg";
 
 /* Tons Minimals: fundo suave a 12% + glifo na cor cheia do mesmo token. */
 const toneClass: Record<ChipTone, string> = {
-  primary: "bg-primary/12 text-primary",
-  success: "bg-success/12 text-success",
-  warning: "bg-warning/12 text-warning",
-  info: "bg-info/12 text-info",
-  destructive: "bg-destructive/12 text-destructive",
+  primary: "bg-primary/12 text-primary-strong",
+  success: "bg-success/14 text-success-strong",
+  warning: "bg-warning/16 text-warning-strong",
+  info: "bg-info/12 text-info-strong",
+  destructive: "bg-destructive/12 text-destructive-strong",
   muted: "bg-muted text-muted-foreground",
   sidebar: "bg-sidebar-accent text-sidebar-foreground",
 };
@@ -48,6 +42,7 @@ export function IconChip({
   tone = "primary",
   size = "sm",
   soft = true,
+  label,
   className,
   glyphClassName,
 }: {
@@ -55,13 +50,21 @@ export function IconChip({
   tone?: ChipTone;
   size?: ChipSize;
   soft?: boolean;
+  /** Quando o chip carrega significado próprio, passa um rótulo acessível. */
+  label?: string;
   className?: string;
   glyphClassName?: string;
 }) {
+  const a11y = label
+    ? ({ role: "img", "aria-label": label } as const)
+    : ({ "aria-hidden": true } as const);
+
   return (
     <span
-      aria-hidden
+      {...a11y}
       data-icon-chip=""
+      data-tone={tone}
+      data-size={size}
       className={cn(
         "inline-flex shrink-0 items-center justify-center leading-none transition-colors",
         boxSize[size],
@@ -69,10 +72,7 @@ export function IconChip({
         className,
       )}
     >
-      <Icon
-        className={cn("block shrink-0", glyphSize[size], glyphClassName)}
-        strokeWidth={1.8}
-      />
+      <Icon className={cn("block shrink-0", glyphSize[size], glyphClassName)} strokeWidth={1.8} />
     </span>
   );
 }

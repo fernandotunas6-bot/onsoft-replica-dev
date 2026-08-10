@@ -3,7 +3,6 @@ import { IconChip, type ChipTone } from "@/components/ui/icon-chip";
 import { LazyVisible } from "@/components/ui/lazy-visible";
 import { inferIcon } from "@/lib/auto-icon";
 
-
 export function PageHeader({
   group,
   title,
@@ -101,9 +100,7 @@ export function Panel({
           <IconChip icon={Icon} tone={chipTone} size="sm" />
           <div className="min-w-0">
             <h2 className="font-display text-base font-bold tracking-tight">{title}</h2>
-            {description ? (
-              <p className="text-xs text-muted-foreground">{description}</p>
-            ) : null}
+            {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
           </div>
         </div>
         {action}
@@ -117,8 +114,6 @@ export function Panel({
   );
 }
 
-
-
 export const badgeBase =
   "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
 
@@ -126,7 +121,7 @@ export const toneClass = {
   success: "bg-success/15 text-success",
   warning: "bg-warning/20 text-warning-foreground",
   danger: "bg-destructive/12 text-destructive",
-  info: "bg-info/10 text-info",
+  info: "bg-info/10 text-info-strong",
   muted: "bg-muted text-muted-foreground",
-  primary: "bg-primary-soft text-primary",
+  primary: "bg-primary-soft text-primary-strong",
 } satisfies Record<string, string>;

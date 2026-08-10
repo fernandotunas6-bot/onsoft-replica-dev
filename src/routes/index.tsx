@@ -49,7 +49,6 @@ import {
   upcoming,
 } from "@/lib/school-data";
 
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -70,12 +69,17 @@ export const Route = createFileRoute("/")({
 });
 
 const statIcons = { users: Users, userCheck: UserCheck, userRound: UserRound, receipt: Receipt };
-const miniIcons = { graduation: GraduationCap, building: Building2, door: DoorOpen, activity: Activity };
+const miniIcons = {
+  graduation: GraduationCap,
+  building: Building2,
+  door: DoorOpen,
+  activity: Activity,
+};
 
 const toneBg: Record<string, string> = {
-  primary: "bg-primary-soft text-primary",
-  info: "bg-info/10 text-info",
-  pink: "bg-chart-2/10 text-chart-2",
+  primary: "bg-primary-soft text-primary-strong",
+  info: "bg-info/10 text-info-strong",
+  pink: "bg-chart-2/10 text-chart-2-strong",
   warning: "bg-warning/15 text-warning-foreground",
 };
 
@@ -150,9 +154,7 @@ function Dashboard() {
             <h1 className="mt-1 text-3xl font-extrabold md:text-4xl">
               {greeting}, usuario teste 👋
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Resumo do {schoolYear}
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Resumo do {schoolYear}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm text-muted-foreground">
@@ -163,7 +165,6 @@ function Dashboard() {
             </Button>
           </div>
         </div>
-
 
         <section className="surface-card p-5">
           <div className="flex items-center justify-between gap-3">
@@ -212,7 +213,7 @@ function Dashboard() {
                   icon={Icon}
                   size="md"
                   soft={false}
-                  className="rounded-2xl bg-primary-soft text-primary"
+                  className="rounded-2xl bg-primary-soft text-primary-strong"
                 />
                 <div>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
@@ -247,7 +248,13 @@ function Dashboard() {
           <ChartCard title="Distribuição por género">
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={genderSplit} dataKey="value" innerRadius={58} outerRadius={84} paddingAngle={3}>
+                <Pie
+                  data={genderSplit}
+                  dataKey="value"
+                  innerRadius={58}
+                  outerRadius={84}
+                  paddingAngle={3}
+                >
                   {genderSplit.map((_, i) => (
                     <Cell key={i} fill={`var(--chart-${i + 1})`} />
                   ))}
@@ -380,10 +387,12 @@ function Dashboard() {
                     icon={CalendarDays}
                     size="sm"
                     soft={false}
-                    className="rounded-xl bg-primary-soft text-primary"
+                    className="rounded-xl bg-primary-soft text-primary-strong"
                   />
                   <p className="text-sm font-medium">{e.title}</p>
-                  <span className="ml-auto text-xs font-semibold text-muted-foreground">{e.date}</span>
+                  <span className="ml-auto text-xs font-semibold text-muted-foreground">
+                    {e.date}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -401,7 +410,10 @@ function Dashboard() {
             </div>
             <ul className="space-y-3">
               {enrollmentStatus.map((e) => (
-                <li key={e.estado} className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5">
+                <li
+                  key={e.estado}
+                  className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5"
+                >
                   <span className="text-sm font-medium">{e.estado}</span>
                   <span className="font-display text-lg font-bold">{e.total}</span>
                 </li>
@@ -416,7 +428,10 @@ function Dashboard() {
             </div>
             <ul className="space-y-3">
               {financeSummary.map((f) => (
-                <li key={f.estado} className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5">
+                <li
+                  key={f.estado}
+                  className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5"
+                >
                   <span className="text-sm font-medium">{f.estado}</span>
                   <span className="font-mono text-sm font-semibold">
                     {f.valor.toLocaleString("pt-PT")} Kz
@@ -479,7 +494,6 @@ function Dashboard() {
             ))}
           </div>
         </section>
-
       </div>
     </AppShell>
   );

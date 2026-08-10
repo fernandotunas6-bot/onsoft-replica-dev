@@ -101,6 +101,11 @@ jobs:
       - name: Navegação apenas por teclado (skip link, foco, aria-current)
         run: python scripts/keyboard-nav.py
 
+      - name: Acessibilidade da sidebar e IconChip (contraste, foco, tabulação, ARIA)
+        run: python scripts/a11y-sidebar.py
+
+
+
   lighthouse:
     name: Lighthouse CI (FCP / LCP / INP)
     runs-on: ubuntu-latest

@@ -12,13 +12,13 @@ import { cn } from "@/lib/utils";
 export type NavDepth = "root" | "sub";
 
 export const NAV_ROW_BASE =
-  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-colors duration-150";
+  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar";
 
 export const NAV_ROW_IDLE =
   "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 export const NAV_ROW_ACTIVE =
-  "bg-primary/10 font-semibold text-primary hover:bg-primary/14 hover:text-primary";
+  "bg-primary/16 font-semibold text-sidebar-active hover:bg-primary/20 hover:text-sidebar-active";
 
 const depthClass: Record<NavDepth, string> = {
   root: "min-h-11 px-3 text-sm",
@@ -45,7 +45,7 @@ export function NavIcon({
           className={cn(
             "block rounded-full transition-all duration-150",
             active
-              ? "size-1.5 bg-primary"
+              ? "size-1.5 bg-sidebar-active"
               : "size-1 bg-sidebar-foreground/40 group-hover:bg-sidebar-foreground/70",
           )}
         />
@@ -54,15 +54,13 @@ export function NavIcon({
   }
 
   return (
-    <span
-      aria-hidden
-      data-nav-icon=""
-      className="flex size-6 shrink-0 items-center justify-center"
-    >
+    <span aria-hidden data-nav-icon="" className="flex size-6 shrink-0 items-center justify-center">
       <Icon
         className={cn(
           "size-[22px] transition-colors duration-150",
-          active ? "text-primary" : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground",
+          active
+            ? "text-sidebar-active"
+            : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground",
         )}
         strokeWidth={active ? 2.1 : 1.8}
       />
@@ -115,7 +113,8 @@ export function NavLinkRow(props: BaseProps & { to: string }) {
       activeOptions={{ exact: true }}
       title={props.collapsed ? props.label : undefined}
       className={rowClass(rest)}
-      activeProps={{ className: NAV_ROW_ACTIVE }}
+      activeProps={{ className: NAV_ROW_ACTIVE, "aria-current": "page", "data-active": "true" }}
+      inactiveProps={{ "data-active": "false" }}
       data-nav-row=""
     >
       {content(rest)}
@@ -123,9 +122,7 @@ export function NavLinkRow(props: BaseProps & { to: string }) {
   );
 }
 
-export function NavButtonRow(
-  props: BaseProps & { onClick?: () => void; expanded?: boolean },
-) {
+export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded?: boolean }) {
   const { onClick, expanded, ...rest } = props;
   return (
     <button
@@ -141,13 +138,7 @@ export function NavButtonRow(
   );
 }
 
-export function NavSubheader({
-  title,
-  collapsed = false,
-}: {
-  title: string;
-  collapsed?: boolean;
-}) {
+export function NavSubheader({ title, collapsed = false }: { title: string; collapsed?: boolean }) {
   if (collapsed) return <div className="mx-3 my-3 h-px bg-sidebar-border" />;
   return (
     <p className="px-3 pb-1 pt-4 text-[11px] font-bold uppercase leading-5 tracking-[0.5px] text-sidebar-muted">

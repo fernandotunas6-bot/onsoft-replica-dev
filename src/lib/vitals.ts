@@ -18,8 +18,7 @@ export function measureVitals() {
   window.__sigaVitals = vitals;
 
   const nav = performance.getEntriesByType("navigation")[0] as
-    | PerformanceNavigationTiming
-    | undefined;
+    PerformanceNavigationTiming | undefined;
   if (nav) vitals["TTFB"] = Math.round(nav.responseStart);
 
   const observe = (type: string, cb: (entry: PerformanceEntry) => void) => {

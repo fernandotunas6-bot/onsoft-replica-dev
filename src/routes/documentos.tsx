@@ -78,10 +78,25 @@ function DocumentosPage() {
                 submitLabel="Registar pedido"
                 fields={[
                   { name: "aluno", label: "Aluno", placeholder: "Pesquisar aluno", full: true },
-                  { name: "tipo", label: "Tipo de documento", type: "select", options: ["Declaração de matrícula", "Certificado de habilitações", "Histórico escolar", "Transferência"] },
+                  {
+                    name: "tipo",
+                    label: "Tipo de documento",
+                    type: "select",
+                    options: [
+                      "Declaração de matrícula",
+                      "Certificado de habilitações",
+                      "Histórico escolar",
+                      "Transferência",
+                    ],
+                  },
                   { name: "taxa", label: "Taxa (Kz)", type: "number", placeholder: "2500" },
                   { name: "prazo", label: "Prazo de entrega", type: "date" },
-                  { name: "urgencia", label: "Urgência", type: "select", options: ["Normal", "Urgente"] },
+                  {
+                    name: "urgencia",
+                    label: "Urgência",
+                    type: "select",
+                    options: ["Normal", "Urgente"],
+                  },
                   { name: "notas", label: "Notas internas", type: "textarea", full: true },
                 ]}
                 trigger={(open) => (

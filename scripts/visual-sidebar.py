@@ -30,7 +30,10 @@ BASELINE, CURRENT, DIFF = OUT / "baseline", OUT / "current", OUT / "diff"
 VIEWPORTS = [
     ("desktop-1440", 1440, 900),
     ("laptop-1280", 1280, 800),
+    ("laptop-1024", 1024, 768),
     ("tablet-834", 834, 1112),
+    ("tablet-768", 768, 1024),
+    ("mobile-412", 412, 915),
     ("mobile-390", 390, 844),
 ]
 
@@ -79,14 +82,17 @@ async def shot(page, name: str, update: bool, failures: list[str]) -> None:
 async def scenarios(page, tag: str, mobile: bool, update: bool, failures: list[str]) -> None:
     await page.goto(f"{BASE_URL}/", wait_until="domcontentloaded")
     await page.add_style_tag(content=FREEZE_CSS)
-    await page.wait_for_timeout(700)
+    await page.wait_for_timeout(1100)
 
     if mobile:
         # em mobile a sidebar vive num painel deslizante
         trigger = page.get_by_label("Abrir menu").first
-        if await trigger.count():
-            await trigger.click()
-            await page.wait_for_timeout(400)
+        await trigger.wait_for(state="visible", timeout=15_000)
+        await trigger.click()
+        await page.locator("[role='dialog'] [data-sidebar='siga']").first.wait_for(
+            state="visible", timeout=15_000
+        )
+        await page.wait_for_timeout(400)
 
     side = page.locator("[data-sidebar='siga']:visible").first
     await side.wait_for(state="visible", timeout=10_000)

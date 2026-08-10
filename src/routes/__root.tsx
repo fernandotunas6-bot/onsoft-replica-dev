@@ -16,7 +16,6 @@ import { measureVitals } from "@/lib/vitals";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -85,12 +84,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "SIGA — Gestão Escolar" },
       {
         name: "description",
-        content: "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
+        content:
+          "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
       },
       { property: "og:title", content: "SIGA — Gestão Escolar" },
       {
         property: "og:description",
-        content: "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
+        content:
+          "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -110,7 +111,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png", sizes: "180x180" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
-
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -140,8 +140,6 @@ function RootComponent() {
     registerServiceWorker();
   }, []);
 
-
-
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
@@ -150,4 +148,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

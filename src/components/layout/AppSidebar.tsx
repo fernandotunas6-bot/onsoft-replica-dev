@@ -94,7 +94,6 @@ const groups: Group[] = [
   },
 ];
 
-
 const MENU_KEY = "siga:sidebar-open-menus";
 
 export function AppSidebar({
@@ -129,9 +128,7 @@ export function AppSidebar({
 
   const toggle = (label: string) =>
     setOpenMenus((prev) => {
-      const next = prev.includes(label)
-        ? prev.filter((l) => l !== label)
-        : [...prev, label];
+      const next = prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label];
       localStorage.setItem(MENU_KEY, JSON.stringify(next));
       return next;
     });
@@ -146,10 +143,7 @@ export function AppSidebar({
       )}
     >
       <div
-        className={cn(
-          "flex items-center gap-3 py-6",
-          collapsed ? "justify-center px-3" : "px-5",
-        )}
+        className={cn("flex items-center gap-3 py-6", collapsed ? "justify-center px-3" : "px-5")}
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
           <GraduationCap className="size-[22px]" />

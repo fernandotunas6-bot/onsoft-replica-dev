@@ -23,7 +23,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { aproveitamentoPorClasse, disciplinas, mediaPorTrimestre, turmas } from "@/lib/modules-data";
+import {
+  aproveitamentoPorClasse,
+  disciplinas,
+  mediaPorTrimestre,
+  turmas,
+} from "@/lib/modules-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/relatorios/academicos")({
@@ -92,8 +97,20 @@ function RelatoriosAcademicos() {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="aprovados" name="Aprovados" fill="var(--chart-1)" radius={[8, 8, 0, 0]} maxBarSize={30} />
-                  <Bar dataKey="reprovados" name="Reprovados" fill="var(--chart-4)" radius={[8, 8, 0, 0]} maxBarSize={30} />
+                  <Bar
+                    dataKey="aprovados"
+                    name="Aprovados"
+                    fill="var(--chart-1)"
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={30}
+                  />
+                  <Bar
+                    dataKey="reprovados"
+                    name="Reprovados"
+                    fill="var(--chart-4)"
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={30}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -114,7 +131,13 @@ function RelatoriosAcademicos() {
                       color: "var(--popover-foreground)",
                     }}
                   />
-                  <Line type="monotone" dataKey="media" stroke="var(--chart-3)" strokeWidth={3} dot={{ r: 5 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="media"
+                    stroke="var(--chart-3)"
+                    strokeWidth={3}
+                    dot={{ r: 5 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -153,7 +176,11 @@ function RelatoriosAcademicos() {
                         <span
                           className={cn(
                             badgeBase,
-                            t.media >= 15 ? toneClass.success : t.media >= 13 ? toneClass.info : toneClass.warning,
+                            t.media >= 15
+                              ? toneClass.success
+                              : t.media >= 13
+                                ? toneClass.info
+                                : toneClass.warning,
                           )}
                         >
                           {t.media >= 15 ? "Muito bom" : t.media >= 13 ? "Bom" : "Suficiente"}
@@ -166,7 +193,10 @@ function RelatoriosAcademicos() {
           </div>
         </Panel>
 
-        <Panel title="Taxa de aprovação por disciplina" description="Disciplinas com maior risco de reprovação">
+        <Panel
+          title="Taxa de aprovação por disciplina"
+          description="Disciplinas com maior risco de reprovação"
+        >
           <ul className="space-y-4">
             {[...disciplinas]
               .sort((a, b) => a.aprovacao - b.aprovacao)
@@ -180,7 +210,11 @@ function RelatoriosAcademicos() {
                     <div
                       className={cn(
                         "h-full rounded-full",
-                        d.aprovacao >= 85 ? "bg-success" : d.aprovacao >= 75 ? "bg-primary" : "bg-destructive",
+                        d.aprovacao >= 85
+                          ? "bg-success"
+                          : d.aprovacao >= 75
+                            ? "bg-primary"
+                            : "bg-destructive",
                       )}
                       style={{ width: `${d.aprovacao}%` }}
                     />

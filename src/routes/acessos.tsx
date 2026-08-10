@@ -63,11 +63,26 @@ function AcessosPage() {
               submitLabel="Criar utilizador"
               note="As permissões podem ser ajustadas depois na matriz de acessos."
               fields={[
-                { name: "nome", label: "Nome completo", placeholder: "Ex.: Paulo Neto", full: true },
+                {
+                  name: "nome",
+                  label: "Nome completo",
+                  placeholder: "Ex.: Paulo Neto",
+                  full: true,
+                },
                 { name: "email", label: "Email", placeholder: "nome@escola.ao" },
-                { name: "perfil", label: "Perfil", type: "select", options: ["Administrador", "Secretaria", "Financeiro", "Professor", "Consulta"] },
+                {
+                  name: "perfil",
+                  label: "Perfil",
+                  type: "select",
+                  options: ["Administrador", "Secretaria", "Financeiro", "Professor", "Consulta"],
+                },
                 { name: "telefone", label: "Telefone", placeholder: "+244 9xx xxx xxx" },
-                { name: "estado", label: "Estado inicial", type: "select", options: ["Activo", "Inactivo"] },
+                {
+                  name: "estado",
+                  label: "Estado inicial",
+                  type: "select",
+                  options: ["Activo", "Inactivo"],
+                },
               ]}
               trigger={(open) => (
                 <Button className="gap-2" onClick={open}>
@@ -80,13 +95,21 @@ function AcessosPage() {
 
         <StatGrid
           items={[
-            { label: "Utilizadores", value: String(utilizadores.length), hint: "Contas registadas" },
+            {
+              label: "Utilizadores",
+              value: String(utilizadores.length),
+              hint: "Contas registadas",
+            },
             {
               label: "Activos",
               value: String(utilizadores.filter((u) => u.estado === "Activo").length),
               hint: "Com acesso permitido",
             },
-            { label: "Perfis", value: String(perfisPermissoes.length), hint: "Níveis de permissão" },
+            {
+              label: "Perfis",
+              value: String(perfisPermissoes.length),
+              hint: "Níveis de permissão",
+            },
             { label: "Sessões hoje", value: "12", hint: "Últimas 24 horas" },
           ]}
         />
@@ -118,7 +141,9 @@ function AcessosPage() {
                     <TableCell>
                       <span className={cn(badgeBase, toneClass.primary)}>{u.perfil}</span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{u.ultimoAcesso}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {u.ultimoAcesso}
+                    </TableCell>
                     <TableCell>
                       <span
                         className={cn(
@@ -181,8 +206,8 @@ function AcessosPage() {
         <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-5 shadow-soft">
           <KeyRound className="size-5 text-primary" />
           <p className="text-sm text-muted-foreground">
-            As permissões são apenas demonstrativas até ligar o backend — depois passam a ser validadas
-            no servidor.
+            As permissões são apenas demonstrativas até ligar o backend — depois passam a ser
+            validadas no servidor.
           </p>
         </div>
       </div>
