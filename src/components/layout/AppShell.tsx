@@ -124,7 +124,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <a href="#conteudo-principal" className="skip-link">
+          Saltar para o conteúdo principal
+        </a>
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/85 px-4 py-3 backdrop-blur-xl md:px-6">
+
           <Button
             variant="ghost"
             size="icon"
@@ -209,7 +213,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </DropdownMenu>
         </header>
 
-        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6 md:py-8">{children}</main>
+        <main
+          id="conteudo-principal"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6 md:py-8"
+        >
+          {children}
+        </main>
+
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/60 px-4 py-5 text-xs text-muted-foreground backdrop-blur md:px-6">
           <div className="flex items-center gap-4">

@@ -9,6 +9,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "check:style": "node scripts/style-checklist.mjs",
+    "check:a11y": "node scripts/a11y-check.mjs",
+    "check:visual": "python3 scripts/visual-regression.py",
+    "check:visual:update": "python3 scripts/visual-regression.py --update",
+    "check": "npm run check:style && npm run check:a11y",
     "format": "prettier --write ."
   },
   "dependencies": {

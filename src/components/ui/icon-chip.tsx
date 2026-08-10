@@ -58,6 +58,7 @@ export function IconChip({
   return (
     <span
       aria-hidden
+      data-icon-chip=""
       className={cn(
         "inline-flex shrink-0 items-center justify-center transition-colors",
         boxSize[size],

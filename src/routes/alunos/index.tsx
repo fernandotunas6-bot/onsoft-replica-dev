@@ -457,6 +457,8 @@ function StudentsPage() {
                         variant={p === currentPage ? "default" : "outline"}
                         size="icon"
                         className="size-8 text-xs"
+                        aria-label={`Página ${p}`}
+                        aria-current={p === currentPage ? "page" : undefined}
                         onClick={() => setPage(p)}
                       >
                         {p}

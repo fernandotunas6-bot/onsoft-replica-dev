@@ -30,3 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# regressão visual (apenas baselines são versionadas)
+tests/visual/current/
+tests/visual/diff/
