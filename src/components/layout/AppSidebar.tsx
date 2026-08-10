@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
   ChevronDown,
@@ -19,6 +19,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
 
 type Child = { label: string; icon: React.ElementType; to?: string };
 type Item = { label: string; icon: React.ElementType; to?: string; children?: Child[] };
@@ -93,13 +94,8 @@ const groups: Group[] = [
   },
 ];
 
+
 const MENU_KEY = "siga:sidebar-open-menus";
-
-const rowClass =
-  "nav-row group text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
-
-const activeClass =
-  "bg-primary/14 text-primary font-semibold shadow-nav-active hover:bg-primary/16 hover:text-primary [&_[data-chip]]:bg-primary/18 [&_[data-chip]]:text-primary";
 
 export function AppSidebar({
   className,
@@ -140,119 +136,83 @@ export function AppSidebar({
       return next;
     });
 
-
   return (
     <aside
+      data-sidebar="siga"
       className={cn(
         "flex h-full shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-        collapsed ? "w-[76px]" : "w-[270px]",
+        collapsed ? "w-[88px]" : "w-[300px]",
         className,
       )}
     >
       <div
         className={cn(
-          "flex items-center gap-3 border-b border-sidebar-border py-5",
-          collapsed ? "justify-center px-3" : "px-6",
+          "flex items-center gap-3 py-6",
+          collapsed ? "justify-center px-3" : "px-5",
         )}
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-          <GraduationCap className="size-5" />
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
+          <GraduationCap className="size-[22px]" />
         </span>
         {!collapsed ? (
-          <div className="leading-tight">
+          <div className="min-w-0 leading-tight">
             <p className="font-display text-base font-extrabold tracking-tight">SIGA</p>
-            <p className="text-[11px] text-sidebar-muted">Sistema Integrado de Gestão Académica</p>
+            <p className="truncate text-[11px] text-sidebar-muted">
+              Sistema Integrado de Gestão Académica
+            </p>
           </div>
         ) : null}
       </div>
 
-      <nav className="no-scrollbar flex-1 space-y-6 overflow-y-auto px-3 py-5">
+      <nav
+        aria-label="Navegação principal"
+        className={cn("no-scrollbar flex-1 overflow-y-auto pb-4", collapsed ? "px-2" : "px-4")}
+      >
         {groups.map((group) => (
           <div key={group.title}>
-            {!collapsed ? (
-              <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted">
-                {group.title}
-              </p>
-            ) : (
-              <div className="mx-3 mb-2 h-px bg-sidebar-border" />
-            )}
-            <ul className="space-y-1">
+            <NavSubheader title={group.title} collapsed={collapsed} />
+            <ul className="space-y-0.5">
               {group.items.map((item) => {
-                const Icon = item.icon;
                 const isOpen = openMenus.includes(item.label);
-                const childActive = item.children?.some((c) => c.to === pathname);
+                const childActive = item.children?.some((c) => c.to === pathname) ?? false;
 
                 if (item.children) {
                   return (
                     <li key={item.label}>
-                      <button
-                        type="button"
+                      <NavButtonRow
+                        label={item.label}
+                        icon={item.icon}
+                        collapsed={collapsed}
+                        active={childActive}
+                        expanded={isOpen}
                         onClick={() => toggle(item.label)}
-                        aria-expanded={isOpen}
-                        title={collapsed ? item.label : undefined}
-                        className={cn(
-                          rowClass,
-                          collapsed && "justify-center px-0",
-                          childActive && "bg-sidebar-accent text-sidebar-accent-foreground",
-                        )}
-                      >
-                        <span
-                          data-chip
-                          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/70 text-sidebar-foreground/90 transition-colors group-hover:bg-sidebar-accent"
-                        >
-                          <Icon className="size-[18px]" />
-                        </span>
-                        {!collapsed ? (
-                          <>
-                            <span className="truncate">{item.label}</span>
-                            <ChevronDown
-                              className={cn(
-                                "ml-auto size-4 opacity-60 transition-transform",
-                                isOpen && "rotate-180",
-                              )}
-                            />
-                          </>
-                        ) : null}
-                      </button>
+                        trailing={
+                          <ChevronDown
+                            aria-hidden
+                            className={cn(
+                              "size-4 shrink-0 opacity-50 transition-transform duration-200",
+                              isOpen && "rotate-180",
+                            )}
+                          />
+                        }
+                      />
 
                       {isOpen && !collapsed ? (
-                        <ul className="mt-1 space-y-1 border-l border-sidebar-border pl-3">
-                          {item.children.map((child) => {
-                            const ChildIcon = child.icon;
-                            return (
-                              <li key={child.label}>
-                                {child.to ? (
-                                  <Link
-                                    to={child.to}
-                                    className={cn(rowClass, "py-2 text-[13px]")}
-                                    activeOptions={{ exact: true }}
-                                    activeProps={{ className: activeClass }}
-                                  >
-                                    <span
-                                      data-chip
-                                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/60 text-sidebar-foreground/85"
-                                    >
-                                      <ChildIcon className="size-[15px]" />
-                                    </span>
-                                    <span className="truncate">{child.label}</span>
-                                  </Link>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    className={cn(rowClass, "py-2 text-[13px]")}
-                                  >
-                                    <span
-                                      data-chip
-                                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/60 text-sidebar-foreground/85"
-                                    >
-                                      <ChildIcon className="size-[15px]" />
-                                    </span>
-                                    <span className="truncate">{child.label}</span>
-                                  </button>
-                                )}
-                              </li>
-                            );
-                          })}
+                        <ul className="mt-0.5 space-y-0.5 pl-4">
+                          {item.children.map((child) => (
+                            <li key={child.label}>
+                              {child.to ? (
+                                <NavLinkRow
+                                  to={child.to}
+                                  label={child.label}
+                                  depth="sub"
+                                  active={child.to === pathname}
+                                />
+                              ) : (
+                                <NavButtonRow label={child.label} depth="sub" />
+                              )}
+                            </li>
+                          ))}
                         </ul>
                       ) : null}
                     </li>
@@ -261,21 +221,13 @@ export function AppSidebar({
 
                 return (
                   <li key={item.label}>
-                    <Link
+                    <NavLinkRow
                       to={item.to as string}
-                      activeOptions={{ exact: true }}
-                      title={collapsed ? item.label : undefined}
-                      className={cn(rowClass, collapsed && "justify-center px-0")}
-                      activeProps={{ className: activeClass }}
-                    >
-                      <span
-                        data-chip
-                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent/70 text-sidebar-foreground/90 transition-colors group-hover:bg-sidebar-accent"
-                      >
-                        <Icon className="size-[18px]" />
-                      </span>
-                      {!collapsed ? <span className="truncate">{item.label}</span> : null}
-                    </Link>
+                      label={item.label}
+                      icon={item.icon}
+                      collapsed={collapsed}
+                      active={item.to === pathname}
+                    />
                   </li>
                 );
               })}
@@ -285,9 +237,7 @@ export function AppSidebar({
       </nav>
 
       {!collapsed ? (
-        <div className="border-t border-sidebar-border px-6 py-4 text-[11px] text-sidebar-muted">
-          Ano Lectivo 2024/2025
-        </div>
+        <div className="px-5 py-4 text-[11px] text-sidebar-muted">Ano Lectivo 2024/2025</div>
       ) : null}
     </aside>
   );

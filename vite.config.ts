@@ -35,10 +35,21 @@ export default defineConfig({
           display: "standalone",
           background_color: "#ffffff",
           theme_color: "#6a2ce0",
-          icons: [{ src: "/favicon.ico", sizes: "48x48", type: "image/x-icon" }],
+          icons: [
+            { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+            { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+            {
+              src: "/icons/icon-512.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
+            },
+          ],
+          orientation: "portrait",
+          categories: ["education", "productivity"],
         },
         workbox: {
-          globPatterns: ["**/*.{js,css,woff,woff2}", "offline.html"],
+          globPatterns: ["**/*.{js,css,woff,woff2,png,svg,ico,webmanifest}", "offline.html"],
           // Fallback offline: se a rede falhar e a página não estiver em cache.
           navigateFallback: "/offline.html",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
