@@ -124,7 +124,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <a href="#conteudo-principal" className="skip-link">
+          Saltar para o conteúdo principal
+        </a>
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/85 px-4 py-3 backdrop-blur-xl md:px-6">
+
           <Button
             variant="ghost"
             size="icon"
