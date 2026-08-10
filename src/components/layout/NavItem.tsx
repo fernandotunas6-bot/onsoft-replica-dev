@@ -46,7 +46,7 @@ export function NavIcon({
             "block rounded-full transition-all duration-150",
             active
               ? "size-1.5 bg-sidebar-active"
-              : "size-1 bg-sidebar-foreground/40 group-hover:bg-sidebar-foreground/70",
+              : "size-1 bg-sidebar-foreground/40 group-hover:size-1.5 group-hover:bg-sidebar-active",
           )}
         />
       </span>
@@ -60,13 +60,14 @@ export function NavIcon({
           "size-5 transition-colors duration-150",
           active
             ? "text-sidebar-active"
-            : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground",
+            : "text-sidebar-foreground/70 group-hover:text-sidebar-active",
         )}
         strokeWidth={active ? 2.1 : 1.8}
       />
     </span>
   );
 }
+
 
 type BaseProps = {
   label: string;

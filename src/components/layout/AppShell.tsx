@@ -123,16 +123,22 @@ export function AppShell({ children }: { children: ReactNode }) {
         Saltar para o conteúdo principal
       </a>
 
-      <AppSidebar collapsed={collapsed} className="sticky top-0 hidden h-screen lg:flex" />
+      <AppSidebar
+        collapsed={collapsed}
+        className="sticky top-0 z-40 hidden h-screen lg:flex"
+        accountOpen={accountOpen}
+        onOpenAccount={() => setAccountOpen(true)}
+      />
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[260px] border-none p-0">
-          <AppSidebar />
+          <AppSidebar accountOpen={accountOpen} onOpenAccount={() => setAccountOpen(true)} />
         </SheetContent>
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/85 px-4 py-3 backdrop-blur-xl md:px-6 lg:px-5 lg:py-2.5">
+        <header className="sticky top-0 z-30 flex items-center gap-3 bg-transparent px-4 py-3 backdrop-blur-xl md:px-6 lg:px-5 lg:py-2.5">
+
           <Button
             variant="ghost"
             size="icon"
@@ -216,23 +222,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setAccountOpen(true)}
-            data-account-trigger=""
-            aria-label="Abrir painel da conta"
-            aria-expanded={accountOpen}
-            className="flex items-center gap-3 rounded-full px-1.5 py-1 transition-colors hover:bg-secondary"
-          >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground ring-2 ring-primary/20">
-              U
-            </span>
-            <span className="hidden text-left leading-tight sm:block">
-              <span className="block text-sm font-semibold">usuario teste</span>
-              <span className="block text-xs text-muted-foreground">admin</span>
-            </span>
-            <ChevronDown className="hidden size-4 opacity-60 sm:block" />
-          </button>
+
+
 
           <AccountDrawer
             open={accountOpen}

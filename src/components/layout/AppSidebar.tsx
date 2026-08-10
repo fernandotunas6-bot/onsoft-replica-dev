@@ -99,9 +99,13 @@ const MENU_KEY = "siga:sidebar-open-menus";
 export function AppSidebar({
   className,
   collapsed = false,
+  onOpenAccount,
+  accountOpen = false,
 }: {
   className?: string;
   collapsed?: boolean;
+  onOpenAccount?: () => void;
+  accountOpen?: boolean;
 }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const parentsOfActive = groups
@@ -160,7 +164,11 @@ export function AppSidebar({
 
       <nav
         aria-label="Navegação principal"
-        className={cn("no-scrollbar flex-1 overflow-y-auto pb-4", collapsed ? "px-2" : "px-4")}
+        className={cn(
+          "flex-1 pb-4",
+          collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
+        )}
+
       >
         {groups.map((group) => (
           <div key={group.title}>
@@ -170,9 +178,39 @@ export function AppSidebar({
                 const isOpen = openMenus.includes(item.label);
                 const childActive = item.children?.some((c) => c.to === pathname) ?? false;
 
+                // Flyout: com a barra recolhida, o rato revela um painel lateral
+                // com o rótulo e os sub-itens do menu.
+                const flyout = collapsed ? (
+                  <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
+                    <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-2xl">
+                      <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-[0.5px] text-sidebar-muted">
+                        {item.label}
+                      </p>
+                      {item.children ? (
+                        <ul className="space-y-0.5">
+                          {item.children.map((child) => (
+                            <li key={child.label}>
+                              {child.to ? (
+                                <NavLinkRow
+                                  to={child.to}
+                                  label={child.label}
+                                  depth="sub"
+                                  active={child.to === pathname}
+                                />
+                              ) : (
+                                <NavButtonRow label={child.label} depth="sub" />
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null;
+
                 if (item.children) {
                   return (
-                    <li key={item.label}>
+                    <li key={item.label} className="group/fly relative">
                       <NavButtonRow
                         label={item.label}
                         icon={item.icon}
@@ -209,12 +247,13 @@ export function AppSidebar({
                           ))}
                         </ul>
                       ) : null}
+                      {flyout}
                     </li>
                   );
                 }
 
                 return (
-                  <li key={item.label}>
+                  <li key={item.label} className="group/fly relative">
                     <NavLinkRow
                       to={item.to as string}
                       label={item.label}
@@ -222,6 +261,7 @@ export function AppSidebar({
                       collapsed={collapsed}
                       active={item.to === pathname}
                     />
+                    {flyout}
                   </li>
                 );
               })}
@@ -230,9 +270,44 @@ export function AppSidebar({
         ))}
       </nav>
 
-      {!collapsed ? (
-        <div className="px-5 py-4 text-[11px] text-sidebar-muted">Ano Lectivo 2024/2025</div>
-      ) : null}
+      <div
+        className={cn(
+          "mt-auto border-t border-sidebar-border",
+          collapsed ? "px-2 py-3" : "px-3 py-3",
+        )}
+      >
+        <button
+          type="button"
+          onClick={onOpenAccount}
+          data-account-trigger=""
+          aria-label="Abrir painel da conta"
+          aria-haspopup="dialog"
+          aria-expanded={accountOpen}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-xl text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
+            collapsed ? "justify-center px-1 py-2" : "px-2 py-2",
+          )}
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
+            U
+          </span>
+          {!collapsed ? (
+            <>
+              <span className="min-w-0 flex-1 leading-tight">
+                <span className="block truncate text-sm font-semibold text-sidebar-foreground">
+                  usuario teste
+                </span>
+                <span className="block truncate text-[11px] text-sidebar-muted">admin</span>
+              </span>
+              <ChevronDown aria-hidden className="size-4 shrink-0 opacity-50" />
+            </>
+          ) : null}
+        </button>
+        {!collapsed ? (
+          <p className="px-2 pt-2 text-[11px] text-sidebar-muted">Ano Lectivo 2024/2025</p>
+        ) : null}
+      </div>
     </aside>
   );
 }
+
