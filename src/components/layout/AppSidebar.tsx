@@ -166,7 +166,7 @@ export function AppSidebar({
         ) : null}
       </div>
 
-      <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
+      <nav className="no-scrollbar flex-1 space-y-6 overflow-y-auto px-3 py-5">
         {groups.map((group) => (
           <div key={group.title}>
             {!collapsed ? (
