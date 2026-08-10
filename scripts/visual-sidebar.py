@@ -112,6 +112,11 @@ async def scenarios(page, tag: str, mobile: bool, update: bool, failures: list[s
             await page.get_by_label("Expandir menu").first.click()
             await page.wait_for_timeout(400)
 
+    # fecha o painel deslizante (mobile) antes de abrir o drawer da conta
+    if mobile:
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(400)
+
     # drawer de perfil
     avatar = page.locator("[data-account-trigger]").first
     if not await avatar.count():
