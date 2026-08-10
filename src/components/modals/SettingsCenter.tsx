@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { AppearanceColors } from "@/components/settings/AppearanceColors";
 
 /**
  * Centro de configurações do SIGA em profundidade (estilo Lovable):
@@ -771,6 +772,13 @@ function useSettingsPanels(): StackPanel[] {
         tone: "muted",
         rows: [
           {
+            label: "Cores e tema",
+            description: "Cor do sistema, fundo do sidebar e modo",
+            icon: Palette,
+            tone: "primary",
+            to: "sistema.cores",
+          },
+          {
             label: "Tema e idioma",
             description: "Claro/escuro e localização",
             icon: Languages,
@@ -792,6 +800,14 @@ function useSettingsPanels(): StackPanel[] {
             to: "sistema.offline",
           },
         ],
+      },
+      {
+        id: "sistema.cores",
+        title: "Cores e tema",
+        description: "Personalização visual guardada por utilizador.",
+        icon: Palette,
+        tone: "primary",
+        render: () => <AppearanceColors />,
       },
       {
         id: "sistema.tema",
