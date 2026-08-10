@@ -22,6 +22,7 @@ import os
 import sys
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageChops
 from playwright.async_api import async_playwright
 
@@ -65,8 +66,9 @@ def compare(baseline: Path, current: Path, diff: Path) -> float:
     if a.size != b.size:
         return 1.0
     delta = ImageChops.difference(a, b).convert("L")
-    changed = sum(1 for px in delta.getdata() if px > 24)
-    ratio = changed / (a.size[0] * a.size[1])
+    arr = np.asarray(delta)
+    changed = int((arr > 24).sum())
+    ratio = changed / arr.size
     if ratio > 0:
         diff.parent.mkdir(parents=True, exist_ok=True)
         delta.point(lambda p: 255 if p > 24 else 0).save(diff)

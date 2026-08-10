@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  quality:
+    name: Estilo, acessibilidade e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Checklist de estilo (IconChip / MediaFrame / paleta)
+        run: bun run check:style
+
+      - name: Verificação de acessibilidade (contraste, foco, labels)
+        run: bun run check:a11y
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Build
+        run: bun run build
+
+  visual:
+    name: Regressão visual (Minimals)
+    runs-on: ubuntu-latest
+    needs: quality
+    steps
+      - uses: actions/checkout@v4
