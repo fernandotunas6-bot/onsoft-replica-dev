@@ -83,7 +83,7 @@ async def scenarios(page, tag: str, mobile: bool, update: bool, failures: list[s
 
     if mobile:
         # em mobile a sidebar vive num painel deslizante
-        trigger = page.locator("button:has(svg.lucide-menu)").first
+        trigger = page.get_by_label("Abrir menu").first
         if await trigger.count():
             await trigger.click()
             await page.wait_for_timeout(400)
@@ -104,13 +104,13 @@ async def scenarios(page, tag: str, mobile: bool, update: bool, failures: list[s
 
     # colapsada (só no desktop, onde existe o botão de colapsar)
     if not mobile:
-        collapse = page.locator("button:has(svg.lucide-menu)").first
+        collapse = page.get_by_label("Recolher menu").first
         if await collapse.count():
             await collapse.click()
-            await page.wait_for_timeout(350)
+            await page.wait_for_timeout(400)
             await shot(side, f"{tag}-sidebar-collapsed", update, failures)
-            await collapse.click()
-            await page.wait_for_timeout(350)
+            await page.get_by_label("Expandir menu").first.click()
+            await page.wait_for_timeout(400)
 
     # drawer de perfil
     avatar = page.locator("[data-account-trigger]").first
