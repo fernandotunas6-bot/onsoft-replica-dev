@@ -146,7 +146,7 @@ export function AppSidebar({
         className={cn("flex items-center gap-3 py-5", collapsed ? "justify-center px-3" : "px-5")}
       >
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-          <GraduationCap className="size-[22px]" />
+          <GraduationCap className="size-5" />
         </span>
         {!collapsed ? (
           <div className="min-w-0 leading-tight">
