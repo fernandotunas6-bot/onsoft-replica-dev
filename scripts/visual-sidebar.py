@@ -88,7 +88,7 @@ async def scenarios(page, tag: str, mobile: bool, update: bool, failures: list[s
             await trigger.click()
             await page.wait_for_timeout(400)
 
-    side = page.locator("[data-sidebar='siga']").first
+    side = page.locator("[data-sidebar='siga']:visible").first
     await side.wait_for(state="visible", timeout=10_000)
     await shot(side, f"{tag}-sidebar-expanded", update, failures)
 
