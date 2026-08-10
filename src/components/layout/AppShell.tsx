@@ -222,23 +222,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setAccountOpen(true)}
-            data-account-trigger=""
-            aria-label="Abrir painel da conta"
-            aria-expanded={accountOpen}
-            className="flex items-center gap-3 rounded-full px-1.5 py-1 transition-colors hover:bg-secondary"
-          >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground ring-2 ring-primary/20">
-              U
-            </span>
-            <span className="hidden text-left leading-tight sm:block">
-              <span className="block text-sm font-semibold">usuario teste</span>
-              <span className="block text-xs text-muted-foreground">admin</span>
-            </span>
-            <ChevronDown className="hidden size-4 opacity-60 sm:block" />
-          </button>
+
+
 
           <AccountDrawer
             open={accountOpen}
