@@ -34,3 +34,4 @@ dist-ssr
 # regressão visual (apenas baselines são versionadas)
 tests/visual/current/
 tests/visual/diff/
+reports/
