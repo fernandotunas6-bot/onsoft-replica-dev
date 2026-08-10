@@ -34,7 +34,7 @@ DIFF = ROOT / "tests" / "visual" / "diff"
 ROUTES = [
     ("dashboard", "/"),
     ("alunos", "/alunos"),
-    ("aluno-ficha", "/alunos/2024-0001"),
+    ("aluno-ficha", "/alunos/1"),
     ("pedagogica", "/pedagogica"),
     ("documentos", "/documentos"),
     ("financeiro", "/financeiro"),
