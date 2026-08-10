@@ -123,16 +123,22 @@ export function AppShell({ children }: { children: ReactNode }) {
         Saltar para o conteúdo principal
       </a>
 
-      <AppSidebar collapsed={collapsed} className="sticky top-0 hidden h-screen lg:flex" />
+      <AppSidebar
+        collapsed={collapsed}
+        className="sticky top-0 z-40 hidden h-screen lg:flex"
+        accountOpen={accountOpen}
+        onOpenAccount={() => setAccountOpen(true)}
+      />
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[260px] border-none p-0">
-          <AppSidebar />
+          <AppSidebar accountOpen={accountOpen} onOpenAccount={() => setAccountOpen(true)} />
         </SheetContent>
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/85 px-4 py-3 backdrop-blur-xl md:px-6 lg:px-5 lg:py-2.5">
+        <header className="sticky top-0 z-30 flex items-center gap-3 bg-transparent px-4 py-3 backdrop-blur-xl md:px-6 lg:px-5 lg:py-2.5">
+
           <Button
             variant="ghost"
             size="icon"
