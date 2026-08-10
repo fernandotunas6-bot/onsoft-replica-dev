@@ -6,6 +6,7 @@ import { warmQueries } from "@/lib/queries";
 
 import { Bell, ChevronDown, Maximize2, Menu, Moon, Sun } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
+import { AccountDrawer } from "./AccountDrawer";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
@@ -30,6 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
   const [year, setYear] = useState(schoolYear);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem(COLLAPSE_KEY) === "1") setCollapsed(true);
