@@ -16,6 +16,8 @@
     "check:keyboard": "python3 scripts/keyboard-nav.py",
     "check:lighthouse": "lhci autorun --config=lighthouserc.json",
     "check:visual": "python3 scripts/visual-regression.py",
+    "check:visual:sidebar": "python3 scripts/visual-sidebar.py",
+    "check:visual:sidebar:update": "python3 scripts/visual-sidebar.py --update",
     "check:visual:update": "python3 scripts/visual-regression.py --update",
     "check": "npm run check:style && npm run check:a11y:report",
     "format": "prettier --write .",

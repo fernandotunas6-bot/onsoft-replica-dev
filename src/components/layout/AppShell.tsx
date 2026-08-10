@@ -192,6 +192,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setAccountOpen(true)}
+            data-account-trigger=""
             aria-label="Abrir painel da conta"
             aria-expanded={accountOpen}
             className="flex items-center gap-3 rounded-full px-1.5 py-1 transition-colors hover:bg-secondary"
