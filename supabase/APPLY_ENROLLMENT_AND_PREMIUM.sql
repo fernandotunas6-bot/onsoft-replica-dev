@@ -375,6 +375,48 @@ CREATE POLICY "Send school direct messages"
   FOR INSERT TO authenticated
   WITH CHECK (school_id = (SELECT public.current_school_id()) AND sender_id = auth.uid());
 
+-- Documentos por pessoa (BI/NIF e outros) — src/features/people/server.ts espera esta tabela.
+CREATE TABLE IF NOT EXISTS public.person_documents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  person_id uuid NOT NULL REFERENCES public.people(id) ON DELETE CASCADE,
+  document_type text NOT NULL,
+  document_number text NOT NULL,
+  issued_at date,
+  expires_at date,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id),
+  updated_at timestamptz,
+  updated_by uuid REFERENCES auth.users(id),
+  deleted_at timestamptz
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS person_documents_unique_active_idx
+  ON public.person_documents (school_id, person_id, document_type, document_number)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS person_documents_person_idx
+  ON public.person_documents (school_id, person_id)
+  WHERE deleted_at IS NULL;
+
+ALTER TABLE public.person_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.person_documents FORCE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.person_documents TO authenticated;
+GRANT ALL ON public.person_documents TO service_role;
+
+DROP POLICY IF EXISTS "Read school person documents" ON public.person_documents;
+CREATE POLICY "Read school person documents"
+  ON public.person_documents
+  FOR SELECT TO authenticated
+  USING (school_id = (SELECT public.current_school_id()));
+
+DROP POLICY IF EXISTS "Manage school person documents" ON public.person_documents;
+CREATE POLICY "Manage school person documents"
+  ON public.person_documents
+  FOR ALL TO authenticated
+  USING (school_id = (SELECT public.current_school_id()))
+  WITH CHECK (school_id = (SELECT public.current_school_id()));
+
 -- Referência opcional a ficheiro da biblioteca SIGA (sem FK para não bloquear SQL antigo)
 ALTER TABLE public.person_documents
   ADD COLUMN IF NOT EXISTS file_id uuid;
@@ -590,6 +632,7 @@ WHERE n.nspname = 'public'
     'siga_assessment_scores',
     'siga_direct_messages',
     'siga_files',
-    'siga_file_events'
+    'siga_file_events',
+    'person_documents'
   )
 ORDER BY 1;

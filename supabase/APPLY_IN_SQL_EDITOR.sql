@@ -59,14 +59,17 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('school-logos', 'school-logos', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "School logos are publicly accessible" ON storage.objects;
 CREATE POLICY "School logos are publicly accessible"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'school-logos');
 
+DROP POLICY IF EXISTS "Authenticated users can upload school logos" ON storage.objects;
 CREATE POLICY "Authenticated users can upload school logos"
   ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'school-logos');
 
+DROP POLICY IF EXISTS "Authenticated users can replace school logos" ON storage.objects;
 CREATE POLICY "Authenticated users can replace school logos"
   ON storage.objects FOR UPDATE TO authenticated
   USING (bucket_id = 'school-logos')
