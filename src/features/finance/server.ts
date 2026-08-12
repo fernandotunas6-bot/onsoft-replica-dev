@@ -629,11 +629,14 @@ export const cancelInvoice = createServerFn({ method: "POST" })
       .eq("id", data.invoiceId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
-    if (invoiceError) throw publicDatabaseError(invoiceError, "Não foi possível localizar a fatura.");
+    if (invoiceError)
+      throw publicDatabaseError(invoiceError, "Não foi possível localizar a fatura.");
     if (!invoice) throw new Error("Fatura não encontrada.");
     if (invoice.status === "cancelled") throw new Error("Esta fatura já está cancelada.");
     if (invoice.status === "paid") {
-      throw new Error("Não é possível cancelar uma fatura já liquidada. Anule os recibos primeiro.");
+      throw new Error(
+        "Não é possível cancelar uma fatura já liquidada. Anule os recibos primeiro.",
+      );
     }
 
     const { data: receipts, error: receiptsError } = await db
@@ -674,14 +677,15 @@ export const issueInvoice = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: student, error: studentError } = await db
+    const { data: studentCheck, error: studentCheckError } = await db
       .from("students")
       .select("id")
       .eq("id", data.studentId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
-    if (studentError) throw publicDatabaseError(studentError, "Não foi possível validar o aluno.");
-    if (!student) throw new Error("Aluno não encontrado nesta escola.");
+    if (studentCheckError)
+      throw publicDatabaseError(studentCheckError, "Não foi possível validar o aluno.");
+    if (!studentCheck) throw new Error("Aluno não encontrado nesta escola.");
 
     const { data: enrollment } = await db
       .from("enrollments")
