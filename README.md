@@ -1,101 +1,156 @@
-# SIGA — Sistema Integrado de Gestão Académica
+<div align="center">
 
-Aplicação de gestão escolar para estudantes, matrículas, área pedagógica, documentos,
-facturação, caixa, relatórios, comunicações e acessos.
+<img src="public/icons/icon-512.png" width="88" alt="SIGA" />
 
-This project was built with [Lovable](https://lovable.dev).
+# SIGA
+### Sistema Integrado de Gestão Académica
 
-**Live app**: https://onsoft-replica-dev.lovable.app
+**Plataforma completa de gestão escolar** — matrículas, área pedagógica, financeiro,
+documentos, comunicações, arquivos e acessos, num único painel.
 
-## Build with Lovable
+[![CI](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/workflows/ci.yml)
+![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
+![TanStack Start](https://img.shields.io/badge/TanStack%20Start-SSR-FF4154?logo=react-query&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4-38BDF8?logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3ECF8E?logo=supabase&logoColor=white)
+![Vitest](https://img.shields.io/badge/Tested%20with-Vitest-6E9F18?logo=vitest&logoColor=white)
+![License](https://img.shields.io/badge/license-Privado-lightgrey)
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/b42f51d7-4a07-403d-a7db-39d6d06f5cd6).
+</div>
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+<br />
 
-## Development
+## Visão geral
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+O SIGA cobre o ciclo completo de uma instituição de ensino em Angola — da candidatura
+pública à matrícula, passando por pauta, financeiro, biblioteca de arquivos e
+comunicação com encarregados — com segurança ao nível da linha (RLS) em cada tabela.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🎓 Académico
+- Turmas, disciplinas, horários e pauta
+- Centro de avaliação (MAC/NPP/NPT)
+- Boletins, históricos e certificados oficiais
+- Presença por matrícula
+
+### 👥 Pessoas & Acessos
+- Registo central de pessoas, professores e encarregados
+- Convites, papéis e *grants* granulares
+- 2FA (TOTP) e credenciais impressas
+
+### 💳 Financeiro
+- Facturação, caixa e planos de pagamento
+- Multicaixa Express / Unitel Money
+- Relatórios oficiais com IBAN e logótipo
+
+</td>
+<td width="50%" valign="top">
+
+### 📂 Arquivos
+- Biblioteca estilo Moodle (pastas, picker, auditoria)
+- Ligação a alunos, documentos e turmas
+- Metadados obrigatórios e organização automática
+
+### 📣 Comunicação
+- Mensagens internas em tempo quase real
+- Comunicados com WhatsApp / e-mail
+- Notificações e sino operacional
+
+### 🇦🇴 Identidade Angola
+- Validação de BI / NIF / IBAN
+- Telefone +244 (E.164)
+- Documentos e portal AGT
+
+</td>
+</tr>
+</table>
+
+<br />
+
+## Stack técnica
+
+| Camada | Tecnologia |
+| --- | --- |
+| Frontend | React 19 · TypeScript · TanStack Start (SSR) · TanStack Router |
+| UI | Tailwind CSS 4 · Radix UI · shadcn-style components |
+| Dados | Supabase (Postgres, Auth, Storage, RLS) |
+| Validação | Zod ponta-a-ponta (schemas partilhados cliente/servidor) |
+| Testes | Vitest · testes de segurança SQL (`supabase/tests`) |
+| Deploy | Cloudflare Workers (Wrangler) |
+| Qualidade | ESLint · Prettier · Lighthouse CI · auditoria de dependências semanal |
+
+<br />
+
+## Começar
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
+git clone https://github.com/fernandotunas6-bot/onsoft-replica-dev.git
+cd onsoft-replica-dev
 npm i
+cp .env.example .env   # preencher com as credenciais do Supabase
 npm run dev
 ```
 
+> Node **24** é obrigatório (Node 26 falha neste toolchain — `dyld libc++`).
+
+### Scripts úteis
+
+```sh
+npm test                 # Vitest
+npm run lint              # ESLint
+npm run check              # estilo + acessibilidade
+npm run siga:check         # inventário dos módulos SIGA
+npm run siga:sql           # lembra o SQL a aplicar no Supabase
+npm run siga:scaffold -- <modulo> [--route=/caminho] [--with-page]
+```
+
+<br />
+
 ## Supabase
 
-Copie `.env.example` para `.env` e preencha apenas as variáveis públicas usadas pelo browser:
+Copie `.env.example` para `.env` e preencha as variáveis públicas usadas pelo browser.
+Nunca coloque `sb_secret_...` / `service_role` numa variável `VITE_*` — essas ficam só
+no ambiente seguro do servidor/deploy.
 
-```sh
-cp .env.example .env
-```
+As migrações **não** são aplicadas via `supabase db push` neste projecto. Correr, por
+esta ordem, no **SQL Editor** do Supabase:
 
-- `VITE_SUPABASE_PUBLISHABLE_KEY` aceita `sb_publishable_...` ou a chave legada `anon`.
-- Nunca coloque `sb_secret_...` ou `service_role` numa variável `VITE_*`.
-- `SUPABASE_SECRET_KEY` ou `SUPABASE_SERVICE_ROLE_KEY` devem existir somente no ambiente
-  seguro do servidor/deploy (necessário para convites em `/acessos`).
+1. `supabase/APPLY_IN_SQL_EDITOR.sql`
+2. `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql`
 
-### Aplicar migrações
+Ver [supabase/DO_NOT_APPLY_TO_SGA.txt](supabase/DO_NOT_APPLY_TO_SGA.txt) para os
+ficheiros que **nunca** devem ser aplicados ao projecto activo, e
+[docs/SECURITY.md](docs/SECURITY.md) para o modelo de RLS e gestão de credenciais.
 
-Preferido (projecto ligado):
+<br />
 
-```sh
-supabase login
-supabase link --project-ref <project-ref>
-supabase db push
-```
+## Arquitectura de dados
 
-No projecto SGA (`xodgfmxiaunpamctfeea`) **não** corra `pending_feature_migrations.sql`,
-`all_migrations_combined.sql` nem as migrações `2026081114*` isoladas — dependem de
-`current_school_id()` do schema Lovable, que o SGA não tem.
+Tabelas normalizadas e reutilizáveis — `people`, `person_documents`, `person_roles`,
+`person_relationships`, `students`, `student_guardians`, `academic_years`, `courses`,
+`class_groups`, `enrollments`, `subjects`, `term_grades`, `class_schedule_slots`. A view
+`student_directory` serve a listagem pronta para a interface sem contornar as políticas
+RLS das tabelas de origem.
 
-No SQL Editor do SGA corra, por esta ordem:
+Operações compostas usam RPCs transacionais — `enroll_new_student` cria pessoa, papel e
+aluno numa única transação (qualquer falha reverte o conjunto). Actualizações de ficha
+usam a coluna `version` para detectar edições concorrentes.
 
-1. `supabase/APPLY_IN_SQL_EDITOR.sql` — colunas financeiras em falta
-2. `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql` — matrícula pública, WhatsApp da turma,
-   grants, feed ICS, integrações e planos de pagamento
+<br />
 
-O segundo script cria `current_school_id()` a partir de `school_memberships`.
+## Documentação para agentes
 
-Para validar as migrações e os invariantes de segurança com o Supabase local activo:
+Handoff e estado dos ciclos: [docs/agents/CONTINUE.md](docs/agents/CONTINUE.md).
+Skills por módulo em [`.cursor/skills/siga*/`](.cursor/skills/).
 
-```sh
-supabase db lint --local --fail-on error
-supabase test db --local supabase/tests/profiles_connections_security_test.sql
-supabase test db --local supabase/tests/people_module_security_test.sql
-supabase test db --local supabase/tests/school_announcements_security_test.sql
-supabase test db --local supabase/tests/subjects_term_grades_security_test.sql
-supabase test db --local supabase/tests/class_schedule_slots_security_test.sql
-```
+<br />
 
-O módulo académico usa tabelas normalizadas e reutilizáveis (`people`, `person_documents`,
-`person_roles`, `person_relationships`, `person_school_links`, `students`,
-`student_guardians`, `academic_years`, `courses`, `grade_levels`, `rooms`, `class_groups`,
-`enrollments`, `subjects`, `term_grades` e `class_schedule_slots`). A view `student_directory`
-entrega a listagem pronta para a interface sem ignorar as políticas RLS das tabelas de origem.
+<div align="center">
 
-As operações compostas usam RPCs transacionais. Por exemplo, `enroll_new_student` cria pessoa,
-papel e aluno numa única transação: qualquer falha reverte o conjunto inteiro. Actualizações de
-ficha usam a coluna `version` para detectar edições concorrentes antes de sobrescrever dados.
+Feito para escolas em Angola 🇦🇴
 
-Consulte [docs/SECURITY.md](docs/SECURITY.md) para o modelo de RLS, privilégios e gestão de
-credenciais.
-
-## Agentes e módulos
-
-Handoff: [docs/agents/CONTINUE.md](docs/agents/CONTINUE.md). Skills: `.cursor/skills/siga*/`.
-
-```sh
-npm run siga:check      # inventário dos módulos
-npm run siga:sql        # SQL a aplicar no SGA
-npm run siga:scaffold -- diario [--route=/diario] [--with-page]
-npm test                # Vitest (Node 24; inclui tests/integrations/*)
-```
-
-### Integrações (catalog-ready)
-
-Instalar no waffle ou em Definições → Integrações. Cada app grava `grantedCapabilities` em `school_integrations`; os botões aparecem via `InstalledModuleTools` / `hasCapability`. Sem chamadas HTTP a terceiros. Rotas públicas (`/matricula`, `/calendario/ics`) só expõem `installedProviders` e contactos filtrados (`publicSchoolPhone`, `publicSchoolEmail`). Ver skill `siga-integracoes` e checklist em [docs/agents/CONTINUE.md](docs/agents/CONTINUE.md).
+</div>
