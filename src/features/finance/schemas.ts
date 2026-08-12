@@ -1,0 +1,110 @@
+import { z } from "zod";
+
+export const financeListInputSchema = z.object({
+  limit: z.number().int().min(1).max(250).default(100),
+});
+
+export const recordInvoicePaymentInputSchema = z.object({
+  invoiceId: z.string().uuid(),
+  receiptNumber: z.string().trim().min(1).max(64),
+  amount: z.number().positive().max(999_999_999_999.99),
+  method: z.enum([
+    "cash",
+    "multicaixa",
+    "transfer",
+    "express",
+    "multicaixa_express",
+    "unitel_money",
+  ]),
+  reference: z.string().trim().max(160).optional(),
+  paidAt: z.string().datetime({ offset: true }).optional(),
+});
+
+export type RecordInvoicePaymentInput = z.infer<typeof recordInvoicePaymentInputSchema>;
+
+export const issueInvoiceInputSchema = z.object({
+  studentId: z.string().uuid(),
+  number: z.string().trim().min(1).max(64),
+  dueOn: z.string().date(),
+  issuedOn: z.string().date().optional(),
+  description: z.string().trim().max(500).optional(),
+  category: z.string().trim().min(1).max(80),
+  amount: z.number().positive().max(999_999_999_999.99),
+});
+
+export type IssueInvoiceInput = z.infer<typeof issueInvoiceInputSchema>;
+
+export const recordCashExpenseInputSchema = z.object({
+  documentNumber: z.string().trim().min(1).max(64),
+  description: z.string().trim().min(1).max(500),
+  category: z.string().trim().min(1).max(80),
+  amount: z.number().positive().max(999_999_999_999.99),
+  method: z.enum([
+    "cash",
+    "multicaixa",
+    "transfer",
+    "express",
+    "multicaixa_express",
+    "unitel_money",
+  ]),
+  reference: z.string().trim().max(160).optional(),
+  occurredAt: z.string().datetime({ offset: true }).optional(),
+});
+
+export type RecordCashExpenseInput = z.infer<typeof recordCashExpenseInputSchema>;
+
+export const reverseCashEntryInputSchema = z.object({
+  cashEntryId: z.string().uuid(),
+  reason: z.string().trim().min(3).max(500),
+});
+
+export type ReverseCashEntryInput = z.infer<typeof reverseCashEntryInputSchema>;
+
+export const cancelInvoiceInputSchema = z.object({
+  invoiceId: z.string().uuid(),
+  reason: z.string().trim().min(3).max(500).optional(),
+});
+export type CancelInvoiceInput = z.infer<typeof cancelInvoiceInputSchema>;
+
+export const cancelPaymentPlanInputSchema = z.object({
+  planId: z.string().uuid(),
+});
+export type CancelPaymentPlanInput = z.infer<typeof cancelPaymentPlanInputSchema>;
+
+export const createPaymentPlanInputSchema = z.object({
+  invoiceId: z.string().uuid().optional(),
+  studentId: z.string().uuid().optional(),
+  channel: z.enum([
+    "cash",
+    "multicaixa",
+    "transfer",
+    "express",
+    "multicaixa_express",
+    "unitel_money",
+  ]),
+  installments: z.number().int().min(1).max(24).default(1),
+  reference: z.string().trim().max(160).optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+export type CreatePaymentPlanInput = z.infer<typeof createPaymentPlanInputSchema>;
+
+export function officialReceiptBody(input: {
+  schoolName: string;
+  studentName: string;
+  invoiceNumber: string;
+  receiptNumber: string;
+  amountLabel: string;
+}) {
+  return `A tesouraria da ${input.schoolName} confirma o recebimento de ${input.amountLabel}, referente à fatura ${input.invoiceNumber} do(a) aluno(a) ${input.studentName}. Recibo n.º ${input.receiptNumber}.`;
+}
+
+export function paymentStatusFromInvoices(
+  invoices: Array<{ status: string; due_on?: string | null }>,
+  today = new Date().toISOString().slice(0, 10),
+): "settled" | "pending" | "overdue" | null {
+  if (invoices.length === 0) return null;
+  const open = invoices.filter((invoice) => invoice.status !== "paid" && invoice.status !== "void");
+  if (open.length === 0) return "settled";
+  if (open.some((invoice) => invoice.due_on && invoice.due_on < today)) return "overdue";
+  return "pending";
+}

@@ -1,0 +1,107 @@
+/*
+|--------------------------------------------------------------------------
+| SIGA  — Sistema Integrado de Gestão Escolar
+|--------------------------------------------------------------------------
+|
+| Plataforma académica e administrativa multi-escolas desenvolvida para
+| gestão institucional moderna, segura, inteligente e escalável.
+|
+| Desenvolvido por:
+| Valentino Canguele
+|
+| Contacto:
+| +244 921 428 367
+|
+| Tecnologias:
+| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
+|
+| Recursos:
+| Gestão Académica
+| Gestão Financeira
+| LMS
+| RH & Payroll
+| Biblioteca
+| Relatórios Inteligentes
+| Multi-Campus
+| Multi-Escolas
+| Inteligência Pedagógica
+|
+| Copyright © 2026 Valentino Canguele.
+| Todos os direitos reservados.
+|--------------------------------------------------------------------------
+*/
+
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8" />
+  <style>{{{css}}}</style>
+</head>
+<body>
+  <main class="document premium-document" data-watermark="{{document.watermarkText}}">
+    <section class="premium-hero">
+      {{#if school.emblemUrl}}
+      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
+      {{else}}
+      <img class="logo" src="{{school.logoUrl}}" alt="" />
+      {{/if}}
+      <div class="school-title">
+        <p class="republic">{{school.ministry}}</p>
+        <p class="republic">{{school.ministryLine}}</p>
+        <h1>{{school.name}}</h1>
+        <p>{{school.address}} | NIF {{school.nif}} | {{school.phone}}</p>
+      </div>
+      <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>
+    </section>
+
+    <div class="premium-title">Talão de Candidatura</div>
+
+    <section class="premium-grid">
+      <div class="premium-panel">
+        <h3>Dados da candidatura</h3>
+        <div class="premium-kv"><span>ID temporário</span><b>{{application.temporaryId}}</b></div>
+        <div class="premium-kv"><span>Estado</span><b>{{application.status}}</b></div>
+        <div class="premium-kv"><span>Classe pretendida</span><b>{{application.desiredClass}}</b></div>
+        <div class="premium-kv"><span>Curso</span><b>{{application.course}}</b></div>
+        <div class="premium-kv"><span>Submetida em</span><b>{{application.submittedAt}}</b></div>
+      </div>
+      <div class="premium-panel">
+        <h3>Candidato e encarregado</h3>
+        <div class="premium-kv"><span>Candidato</span><b>{{candidate.fullName}}</b></div>
+        <div class="premium-kv"><span>Documento</span><b>{{candidate.docNumber}}</b></div>
+        <div class="premium-kv"><span>Encarregado</span><b>{{guardian.fullName}}</b></div>
+        <div class="premium-kv"><span>Contacto</span><b>{{guardian.phone}}</b></div>
+        <div class="premium-kv"><span>E-mail</span><b>{{guardian.email}}</b></div>
+      </div>
+    </section>
+
+    <section class="premium-panel">
+      <h3>Próximos passos</h3>
+      <ol class="premium-list">
+        {{#each nextSteps}}<li>{{this}}</li>{{/each}}
+      </ol>
+    </section>
+
+    <section class="premium-panel">
+      <h3>Regras importantes</h3>
+      <ul class="premium-list">
+        {{#each restrictions}}<li>{{this}}</li>{{/each}}
+      </ul>
+      <p class="statement-text">{{document.legalBasis}}</p>
+    </section>
+
+    <section class="premium-signature-strip">
+      {{#each signatures}}<div class="premium-signature">{{label}}</div>{{/each}}
+    </section>
+
+    <section class="validation">
+      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+      <div>
+        UUID: {{document.uuid}} | Hash: {{document.hash}}<br />
+        QR para validação pública: {{document.qrCodeUrl}}<br />
+        Assinatura digital: {{document.signatureAlgorithm}} {{document.digitalSignature}}
+      </div>
+    </section>
+  </main>
+</body>
+</html>

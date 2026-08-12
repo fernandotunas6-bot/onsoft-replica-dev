@@ -1,0 +1,124 @@
+/*
+|--------------------------------------------------------------------------
+| SIGA  — Sistema Integrado de Gestão Escolar
+|--------------------------------------------------------------------------
+|
+| Plataforma académica e administrativa multi-escolas desenvolvida para
+| gestão institucional moderna, segura, inteligente e escalável.
+|
+| Desenvolvido por:
+| Valentino Canguele
+|
+| Contacto:
+| +244 921 428 367
+|
+| Tecnologias:
+| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
+|
+| Recursos:
+| Gestão Académica
+| Gestão Financeira
+| LMS
+| RH & Payroll
+| Biblioteca
+| Relatórios Inteligentes
+| Multi-Campus
+| Multi-Escolas
+| Inteligência Pedagógica
+|
+| Copyright © 2026 Valentino Canguele.
+| Todos os direitos reservados.
+|--------------------------------------------------------------------------
+*/
+
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8" />
+  <style>{{{css}}}</style>
+</head>
+<body>
+  <main class="document document-acta">
+    <section class="official-topline angola-official">
+      {{#if school.emblemUrl}}
+      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
+      {{else}}
+      <img class="logo" src="{{school.logoUrl}}" alt="" />
+      {{/if}}
+      <div class="school-title">
+        <p class="republic">{{school.ministry}}</p>
+        <p class="republic">{{school.ministryLine}}</p>
+        <h1>{{school.name}}</h1>
+        <p>{{school.address}} | NIF {{school.nif}}</p>
+      </div>
+      <div class="official-right">
+        {{#if school.logoUrl}}
+        <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+        {{else}}
+        {{#if school.flagUrl}}
+        <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+        {{/if}}
+        {{/if}}
+        <div class="document-box">Nº {{document.number}}</div>
+      </div>
+    </section>
+
+    <div class="doc-title">Acta do Conselho de Notas</div>
+
+    <section class="meta-grid">
+      <div class="meta-box"><b>Turma:</b> {{classGroup.name}}</div>
+      <div class="meta-box"><b>Classe/Curso:</b> {{classGroup.level}}</div>
+      <div class="meta-box"><b>Ano lectivo:</b> {{academicYear.name}}</div>
+      <div class="meta-box"><b>Período:</b> {{period.name}}</div>
+      <div class="meta-box"><b>Data:</b> {{meeting.date}}</div>
+      <div class="meta-box"><b>Director de turma:</b> {{teacher.fullName}}</div>
+    </section>
+
+    <p class="statement-text">{{meeting.summary}}</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Nº</th>
+          <th class="text-left">Aluno</th>
+          <th>Média</th>
+          <th>Decisão</th>
+          <th class="text-left">Observação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each decisions}}
+        <tr>
+          <td>{{inc @index}}</td>
+          <td class="text-left">{{student}}</td>
+          <td><b>{{average}}</b></td>
+          <td>{{decision}}</td>
+          <td class="text-left">{{observation}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+
+    <section class="summary-panel">
+      <div><span>Total</span><strong>{{summary.total}}</strong></div>
+      <div><span>Aprovados</span><strong>{{summary.approved}}</strong></div>
+      <div><span>Reprovados</span><strong>{{summary.failed}}</strong></div>
+      <div><span>Taxa</span><strong>{{summary.approvalRate}}%</strong></div>
+    </section>
+
+    <section class="footer">
+      {{#each signatures}}
+      <div class="signature">{{label}}</div>
+      {{/each}}
+    </section>
+
+    <section class="validation">
+      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+      <div>
+        Acta derivada das notas oficiais armazenadas no SIGE. As classificações permanentes permanecem no Histórico Académico Individual.<br />
+        Nº {{document.number}} | Hash {{document.hash}} | Emitido em {{document.issuedAtLabel}} por {{document.issuedBy}}.
+      </div>
+    </section>
+  </main>
+</body>
+</html>

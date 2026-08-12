@@ -3,7 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
-  useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -13,25 +13,30 @@ import appCss from "../styles.css?url";
 import { registerServiceWorker } from "@/lib/pwa";
 import { measureVitals } from "@/lib/vitals";
 
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { AppearanceProvider } from "@/lib/appearance";
+import { AuthGate } from "@/components/auth/AuthGate";
+import { RouteAccessGate } from "@/components/auth/RouteAccessGate";
+import { SchoolYearProvider } from "@/features/auth/use-school-settings";
+import { isPublicAppPath } from "@/lib/public-paths";
+import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Página não encontrada</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          A página que procura não existe ou foi movida.
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            Ir para o início
           </Link>
         </div>
       </div>
@@ -40,41 +45,7 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
-  const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
-      </div>
-    </div>
-  );
+  return <RouteErrorScreen error={error} reset={reset} fullPage />;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -135,17 +106,38 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isPublic = isPublicAppPath(pathname);
 
   useEffect(() => {
-    measureVitals();
+    let slowNotified = false;
+    measureVitals((inpMs) => {
+      if (slowNotified || inpMs < 200) return;
+      slowNotified = true;
+      if (import.meta.env.DEV) {
+        toast.message("Toque lento detectado", {
+          description: `${inpMs} ms — abra Definições → Desempenho para detalhes.`,
+        });
+      }
+    });
     registerServiceWorker();
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AppearanceProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        {isPublic ? (
+          <Outlet />
+        ) : (
+          <AuthGate>
+            <SchoolYearProvider>
+              <RouteAccessGate>
+                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                <Outlet />
+              </RouteAccessGate>
+            </SchoolYearProvider>
+          </AuthGate>
+        )}
         <Toaster position="top-right" richColors />
       </AppearanceProvider>
     </QueryClientProvider>

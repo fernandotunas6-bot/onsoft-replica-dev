@@ -1,11 +1,14 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText, Plus, Printer, Search } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, Award, Download, FileDown, FileText, Plus, Wallet, X } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -14,8 +17,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { faturas, kwanza } from "@/lib/modules-data";
+import {
+  getFinanceReporting,
+  getFinanceSchemaStatus,
+  cancelInvoice,
+  issueInvoice,
+  listFinanceStudents,
+  listInvoices,
+  recordInvoicePayment,
+} from "@/features/finance/server";
+import { officialReceiptBody } from "@/features/finance/schemas";
+import { documentValidationCode } from "@/features/academic/assessment-views";
+import { paymentReference, whatsappHref } from "@/features/integrations/actions";
+import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
+import { AppMark } from "@/features/integrations/app-marks";
+import { kwanza } from "@/lib/currency";
+import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf";
+import { overlayServico } from "@/features/documents/print-overlays";
+import { issuePrintDocument } from "@/features/documents/print-issue-loader";
+import { buildFinancePrintSchool } from "@/lib/finance-print";
 import { cn } from "@/lib/utils";
+import { exportCsv } from "@/lib/export-csv";
+import { exportPdfTable } from "@/lib/export-pdf";
+import { ListFilterBar } from "@/components/filters/ListFilterBar";
+import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
+
+const faturasFilterDefaults = {
+  q: "",
+  estado: "todos",
+  de: "",
+  ate: "",
+};
 
 export const Route = createFileRoute("/faturas")({
   head: () => ({
@@ -45,20 +79,236 @@ const estadoTone = {
 } as const;
 
 function FaturasPage() {
-  const [query, setQuery] = useState("");
-  const [estado, setEstado] = useState("todos");
+  const queryClient = useQueryClient();
+  const { school, selectedYearLabel } = useSchoolSettings();
+  const installed = useInstalledIntegrations();
+  const resendInvoices = installed.hasCapability("resend.invoices");
+  const whatsappOn = installed.hasCapability("whatsapp.notices");
+  const receiveMethods = [
+    "Numerário",
+    "Transferência",
+    ...(installed.isInstalled("multicaixa_express") ? ["Multicaixa Express"] : []),
+    ...(installed.isInstalled("unitel_money") ? ["Unitel Money"] : []),
+  ];
+  const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
+    "faturas",
+    faturasFilterDefaults,
+  );
+  const query = filters.q;
+  const estado = filters.estado;
+  const de = filters.de;
+  const ate = filters.ate;
+
+  const invoicesQuery = useQuery({
+    queryKey: ["finance", "invoices"],
+    queryFn: () => listInvoices({ data: { limit: 250 } }),
+  });
+  const financeStudentsQuery = useQuery({
+    queryKey: ["finance", "students"],
+    queryFn: () => listFinanceStudents({ data: { limit: 250 } }),
+  });
+  const reportingQuery = useQuery({
+    queryKey: ["finance", "reporting"],
+    queryFn: () => getFinanceReporting(),
+  });
+  const schemaQuery = useQuery({
+    queryKey: ["finance", "schema-status"],
+    queryFn: () => getFinanceSchemaStatus(),
+    staleTime: 60_000,
+  });
+  const financeStudents = financeStudentsQuery.data ?? [];
+  const missingPenalty = Boolean(schemaQuery.data?.missingPenaltyAmount);
+  const missingPrefs = Boolean(schemaQuery.data?.missingNotificationPreferences);
+  const schemaBlocked = missingPenalty || missingPrefs;
+  const studentOptions = financeStudents.map(
+    (student) => `${student.registration_number} · ${student.full_name}`,
+  );
+  const faturas = useMemo(
+    () =>
+      (invoicesQuery.data ?? []).map((invoice) => ({
+        id: invoice.id,
+        numero: invoice.number,
+        aluno: invoice.student_name,
+        processo: invoice.registration_number,
+        descricao: invoice.description ?? "Fatura escolar",
+        emitida: invoice.issued_on,
+        vencimento: invoice.due_on,
+        valor: Number(invoice.total_amount),
+        recebido: Number(invoice.amount_paid),
+        estado:
+          invoice.status === "paid"
+            ? ("Paga" as const)
+            : invoice.due_on < new Date().toISOString().slice(0, 10)
+              ? ("Vencida" as const)
+              : ("Pendente" as const),
+      })),
+    [invoicesQuery.data],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return faturas.filter(
       (f) =>
         (estado === "todos" || f.estado === estado) &&
-        (!q || f.aluno.toLowerCase().includes(q) || f.numero.toLowerCase().includes(q)),
+        dateInRange(f.emitida, de, ate) &&
+        (!q ||
+          f.aluno.toLowerCase().includes(q) ||
+          f.numero.toLowerCase().includes(q) ||
+          f.descricao.toLowerCase().includes(q)),
     );
-  }, [query, estado]);
+  }, [ate, de, estado, faturas, query]);
 
-  const total = faturas.reduce((s, f) => s + f.valor, 0);
-  const pago = faturas.filter((f) => f.estado === "Paga").reduce((s, f) => s + f.valor, 0);
+  const summary = reportingQuery.data?.summary;
+  const total = Number(summary?.billed ?? 0);
+  const pago = Number(summary?.received ?? 0);
+  const totalEmAberto = Number(summary?.outstanding ?? 0);
+  const invoiceCount = Number(summary?.invoice_count ?? 0);
+  const ticketMedio = invoiceCount ? Math.round(total / invoiceCount) : 0;
+  const faturaColumns = [
+    { label: "Número", value: (row: Record<string, unknown>) => row.numero },
+    { label: "Aluno", value: (row: Record<string, unknown>) => row.aluno },
+    { label: "Processo", value: (row: Record<string, unknown>) => row.processo },
+    { label: "Descrição", value: (row: Record<string, unknown>) => row.descricao },
+    { label: "Emissão", value: (row: Record<string, unknown>) => row.emitida },
+    { label: "Vencimento", value: (row: Record<string, unknown>) => row.vencimento },
+    { label: "Valor (Kz)", value: (row: Record<string, unknown>) => row.valor },
+    { label: "Estado", value: (row: Record<string, unknown>) => row.estado },
+  ];
+  const exportRows = filtered.map((fatura) => ({ ...fatura, processo: fatura.processo }));
+  const exportarFaturasCsv = () => exportCsv("faturas-filtradas", faturaColumns, exportRows);
+  const exportarFaturasPdf = () =>
+    exportPdfTable(
+      "faturas-filtradas",
+      "Faturas",
+      faturaColumns,
+      exportRows,
+      `Filtros activos: ${activeCount || "nenhum"}`,
+    );
+  const academicYear =
+    selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "";
+  const financeSchool = buildFinancePrintSchool(school, academicYear);
+  const schoolBanking = school?.banking;
+
+  const exportarFaturasOficial = () => {
+    void issuePrintDocument({
+      tipo: "Lista de faturas",
+      school: financeSchool,
+      overlay: overlayServico({
+        name: "Lista de faturas",
+        areaLabel: "Tesouraria",
+        reference: `FT-${exportRows.length}`,
+        status: "Oficial",
+        parties: [{ label: "Escola", value: school?.name ?? "Escola" }],
+        sections: [
+          {
+            title: "Faturas",
+            rows: exportRows.map((row) => ({
+              label: `${row.numero} · ${row.aluno}`,
+              value: `${row.estado} · ${Number(row.valor).toLocaleString("pt-PT")} Kz`,
+              note: `${row.emitida} → ${row.vencimento}`,
+            })),
+          },
+        ],
+        banking: schoolBanking,
+      }),
+      fallback: () =>
+        exportOfficialPautaPdf(
+          "faturas-oficial",
+          "Lista de faturas",
+          {
+            schoolName: school?.name ?? "Escola",
+            academicYear,
+            directorName: school?.director_name ?? undefined,
+            issuedOn: new Date().toLocaleDateString("pt-AO"),
+            validationCode: documentValidationCode([
+              school?.name,
+              academicYear,
+              String(exportRows.length),
+            ]),
+          },
+          faturaColumns,
+          exportRows,
+        ),
+    });
+  };
+  const year = new Date().getFullYear();
+  const suggestedInvoiceNumber = `FT-${year}/${String(invoiceCount + 1).padStart(4, "0")}`;
+
+  const downloadReceipt = async (
+    fatura: {
+      numero: string;
+      aluno: string;
+      processo: string;
+      valor: number;
+      recebido: number;
+      descricao?: string;
+    },
+    receiptNumber: string,
+    amount: number,
+    kind: "recibo" | "fatura" = "recibo",
+  ) => {
+    const validationCode = documentValidationCode([fatura.numero, receiptNumber, fatura.processo]);
+    await issuePrintDocument({
+      tipo: kind === "fatura" ? "Fatura escolar" : "Recibo de pagamento",
+      school: financeSchool,
+      student: {
+        fullName: fatura.aluno,
+        academicNumber: fatura.processo,
+        documentTitle: kind === "fatura" ? fatura.numero : receiptNumber,
+        validationCode,
+      },
+      overlay: overlayServico({
+        name: kind === "fatura" ? "Fatura escolar" : "Recibo de pagamento",
+        reference: kind === "fatura" ? fatura.numero : receiptNumber,
+        status: kind === "fatura" ? "Emitida" : "Pago",
+        parties: [
+          { label: "Aluno", value: fatura.aluno },
+          { label: "Processo", value: fatura.processo },
+          { label: "Escola", value: school?.name ?? "Escola" },
+        ],
+        sections: [
+          {
+            title: kind === "fatura" ? "Cobrança" : "Quitação",
+            rows: [
+              { label: "Fatura", value: fatura.numero, note: fatura.descricao || "" },
+              { label: "Valor", value: kwanza(kind === "fatura" ? fatura.valor : amount) },
+              { label: "Já recebido", value: kwanza(fatura.recebido) },
+              { label: "Documento", value: receiptNumber },
+            ],
+          },
+        ],
+        term: officialReceiptBody({
+          schoolName: school?.name ?? "Escola",
+          studentName: fatura.aluno,
+          invoiceNumber: fatura.numero,
+          receiptNumber,
+          amountLabel: kwanza(amount),
+        }),
+        banking: schoolBanking,
+      }),
+      fallback: () =>
+        exportOfficialDeclarationPdf(
+          `${kind}-${receiptNumber}`,
+          kind === "fatura" ? "Fatura escolar" : "Recibo de pagamento",
+          {
+            schoolName: school?.name ?? "Escola",
+            academicYear,
+            directorName: school?.director_name ?? undefined,
+            issuedOn: new Date().toLocaleDateString("pt-AO"),
+            validationCode,
+            studentName: fatura.aluno,
+            registrationNumber: fatura.processo,
+            body: officialReceiptBody({
+              schoolName: school?.name ?? "Escola",
+              studentName: fatura.aluno,
+              invoiceNumber: fatura.numero,
+              receiptNumber,
+              amountLabel: kwanza(amount),
+            }),
+          },
+        ),
+    });
+  };
 
   return (
     <AppShell>
@@ -69,36 +319,87 @@ function FaturasPage() {
           description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação."
           actions={
             <>
-              <Button variant="outline" className="gap-2">
-                <Printer className="size-4" /> Imprimir
+              <Button variant="outline" className="gap-2" onClick={exportarFaturasCsv}>
+                <Download className="size-4" /> CSV
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={exportarFaturasPdf}>
+                <FileDown className="size-4" /> PDF
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={exportarFaturasOficial}>
+                <Award className="size-4" /> Oficial
               </Button>
               <QuickFormModal
-                title="Emitir factura"
+                title="Emitir fatura"
                 eyebrow="Financeiro"
-                description="Gere um documento de cobrança para o aluno seleccionado."
+                description="Crie a fatura e o respetivo item numa única transação."
                 icon={<Plus className="size-5" />}
                 submitLabel="Emitir"
                 fields={[
-                  { name: "aluno", label: "Aluno", placeholder: "Pesquisar aluno", full: true },
                   {
-                    name: "tipo",
-                    label: "Tipo",
+                    name: "aluno",
+                    label: "Aluno",
+                    type: "select",
+                    options: studentOptions,
+                    full: true,
+                  },
+                  {
+                    name: "numero",
+                    label: "Número",
+                    placeholder: "FT 2026/0001",
+                    defaultValue: suggestedInvoiceNumber,
+                  },
+                  {
+                    name: "categoria",
+                    label: "Categoria",
                     type: "select",
                     options: ["Mensalidade", "Matrícula", "Documento", "Outro"],
                   },
-                  { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "35000" },
+                  { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "45000" },
                   { name: "vencimento", label: "Vencimento", type: "date" },
                   {
-                    name: "metodo",
-                    label: "Método previsto",
-                    type: "select",
-                    options: ["Multicaixa", "Transferência", "Dinheiro"],
+                    name: "descricao",
+                    label: "Descrição",
+                    type: "textarea",
+                    full: true,
+                    required: false,
                   },
-                  { name: "desc", label: "Descrição", type: "textarea", full: true },
                 ]}
+                onSubmit={async (values) => {
+                  const student = financeStudents[studentOptions.indexOf(values.aluno ?? "")];
+                  if (!student) throw new Error("Selecione um aluno válido.");
+                  await issueInvoice({
+                    data: {
+                      studentId: student.student_id,
+                      number: values.numero,
+                      dueOn: values.vencimento,
+                      category: values.categoria,
+                      amount: Number(values.valor),
+                      description: values.descricao || undefined,
+                    },
+                  });
+                  await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+                  await queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+                  await downloadReceipt(
+                    {
+                      numero: values.numero,
+                      aluno: student.full_name,
+                      processo: student.registration_number,
+                      valor: Number(values.valor),
+                      recebido: 0,
+                      descricao: values.descricao || values.categoria,
+                    },
+                    values.numero,
+                    Number(values.valor),
+                    "fatura",
+                  );
+                }}
                 trigger={(open) => (
-                  <Button className="gap-2" onClick={open}>
-                    <Plus className="size-4" /> Emitir factura
+                  <Button
+                    className="gap-2"
+                    onClick={open}
+                    disabled={!financeStudents.length || schemaBlocked}
+                  >
+                    <Plus className="size-4" /> Emitir fatura
                   </Button>
                 )}
               />
@@ -106,15 +407,85 @@ function FaturasPage() {
           }
         />
 
+        <div className="space-y-3">
+          <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3">
+            <AppMark id="agt" className="size-9 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">AGT · faturação electrónica</p>
+              <p className="text-xs text-muted-foreground">
+                {school?.nif
+                  ? `NIF da escola ${school.nif}. Instale a AGT no lançador para activar faturação electrónica neste módulo.`
+                  : "Defina o NIF da escola nas definições e instale a AGT para alinhar as faturas."}
+              </p>
+            </div>
+          </div>
+          <InstalledModuleTools module="financeiro" />
+          <InstalledModuleTools module="faturas" />
+        </div>
+
+        {schemaBlocked ? (
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertTitle>Schema SGA incompleto para faturas</AlertTitle>
+            <AlertDescription>
+              Execute <code>supabase/APPLY_IN_SQL_EDITOR.sql</code> no SQL Editor do projecto{" "}
+              <strong>xodgfmxiaunpamctfeea</strong>
+              {missingPenalty ? (
+                <>
+                  {" "}
+                  (falta <code>finance_invoices.penalty_amount</code>)
+                </>
+              ) : null}
+              {missingPrefs ? (
+                <>
+                  {" "}
+                  (faltam colunas em <code>notification_preferences</code>, ex.{" "}
+                  <code>in_app_enabled</code>)
+                </>
+              ) : null}
+              .
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         <StatGrid
           items={[
-            { label: "Facturado", value: kwanza(total), hint: `${faturas.length} documentos` },
+            { label: "Facturado", value: kwanza(total), hint: `${invoiceCount} documentos` },
             { label: "Liquidado", value: kwanza(pago), hint: "Recebido em caixa" },
-            { label: "Em aberto", value: kwanza(total - pago), hint: "Pendente + vencido" },
+            {
+              label: "Em aberto",
+              value: kwanza(totalEmAberto),
+              hint: `${Number(summary?.open_invoice_count ?? 0)} facturas pendentes ou vencidas`,
+            },
             {
               label: "Vencidas",
-              value: String(faturas.filter((f) => f.estado === "Vencida").length),
-              hint: "Necessitam cobrança",
+              value: String(Number(summary?.overdue_invoice_count ?? 0)),
+              hint: `${kwanza(Number(summary?.overdue ?? 0))} em risco`,
+            },
+          ]}
+        />
+
+        <StatGrid
+          items={[
+            {
+              label: "Taxa de liquidação",
+              value: `${total ? Math.round((pago / total) * 100) : 0}%`,
+              hint: "Valor recebido sobre o total facturado",
+            },
+            {
+              label: "Ticket médio",
+              value: kwanza(ticketMedio),
+              hint: "Valor médio por documento emitido",
+            },
+            {
+              label: "Cobranças imediatas",
+              value: String(Number(summary?.overdue_invoice_count ?? 0)),
+              hint: "Prioridade da tesouraria",
+            },
+            {
+              label: "Alunos com facturas",
+              value: String(Number(summary?.billed_student_count ?? 0)),
+              hint: "Clientes activos neste lote",
             },
           ]}
         />
@@ -123,29 +494,34 @@ function FaturasPage() {
           title="Documentos emitidos"
           description="Facturas de mensalidades e serviços"
           action={
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-full min-w-[200px] sm:w-64">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Pesquisar número ou aluno…"
-                  className="pl-9"
-                  aria-label="Pesquisar factura"
-                />
-              </div>
-              <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-                aria-label="Filtrar por estado da factura"
-                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-              >
-                <option value="todos">Todos os estados</option>
-                <option value="Paga">Pagas</option>
-                <option value="Pendente">Pendentes</option>
-                <option value="Vencida">Vencidas</option>
-              </select>
-            </div>
+            <ListFilterBar
+              className="border-0 bg-transparent p-0 shadow-none"
+              values={filters}
+              activeCount={activeCount}
+              onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
+              onReset={resetFilters}
+              fields={[
+                {
+                  name: "q",
+                  placeholder: "Pesquisar número ou aluno…",
+                  "aria-label": "Pesquisar factura",
+                },
+                {
+                  name: "estado",
+                  type: "select",
+                  label: "Estado",
+                  emptyValue: "todos",
+                  options: [
+                    { value: "todos", label: "Todos os estados" },
+                    { value: "Paga", label: "Pagas" },
+                    { value: "Pendente", label: "Pendentes" },
+                    { value: "Vencida", label: "Vencidas" },
+                  ],
+                },
+                { name: "de", type: "date", label: "De" },
+                { name: "ate", type: "date", label: "Até" },
+              ]}
+            />
           }
         >
           <div className="overflow-x-auto">
@@ -154,11 +530,13 @@ function FaturasPage() {
                 <TableRow>
                   <TableHead>Número</TableHead>
                   <TableHead>Aluno</TableHead>
+                  <TableHead>Processo</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Emitida</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="text-right">Estado</TableHead>
+                  <TableHead className="text-right">Acção</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -171,6 +549,9 @@ function FaturasPage() {
                       </span>
                     </TableCell>
                     <TableCell className="font-semibold">{f.aluno}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {f.processo}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{f.descricao}</TableCell>
                     <TableCell>{new Date(f.emitida).toLocaleDateString("pt-PT")}</TableCell>
                     <TableCell>{new Date(f.vencimento).toLocaleDateString("pt-PT")}</TableCell>
@@ -178,8 +559,190 @@ function FaturasPage() {
                     <TableCell className="text-right">
                       <span className={cn(badgeBase, estadoTone[f.estado])}>{f.estado}</span>
                     </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void downloadReceipt(f, f.numero, f.valor, "fatura")}
+                        >
+                          <FileDown className="size-3.5" /> Fatura
+                        </Button>
+                        {f.estado !== "Paga" ? (
+                          <QuickFormModal
+                            eyebrow={f.numero}
+                            title={`Receber ${f.aluno}`}
+                            description="Liquida esta fatura e lança o recibo no caixa."
+                            icon={<Wallet className="size-5" />}
+                            submitLabel="Confirmar pagamento"
+                            successDescription="Pagamento registado."
+                            fields={[
+                              {
+                                name: "valor",
+                                label: "Valor (Kz)",
+                                type: "number",
+                                defaultValue: String(Math.max(f.valor - f.recebido, 0) || f.valor),
+                              },
+                              {
+                                name: "recibo",
+                                label: "Número do recibo",
+                                defaultValue: `RC-${f.numero.replace(/^FT-?/i, "")}`,
+                              },
+                              { name: "data", label: "Data", type: "date", required: false },
+                              {
+                                name: "metodo",
+                                label: "Método",
+                                type: "select",
+                                options: receiveMethods,
+                              },
+                              {
+                                name: "referencia",
+                                label: "Referência",
+                                required: false,
+                                full: true,
+                                placeholder: installed.isInstalled("multicaixa_express")
+                                  ? "Vazio gera referência EMIS"
+                                  : undefined,
+                              },
+                            ]}
+                            onSubmit={async (values) => {
+                              const amount = Number(values.valor);
+                              const methodMap = {
+                                Numerário: "cash",
+                                Transferência: "transfer",
+                                "Multicaixa Express": "multicaixa_express",
+                                "Unitel Money": "unitel_money",
+                              } as const;
+                              const method =
+                                methodMap[(values.metodo as keyof typeof methodMap) ?? "Numerário"] ??
+                                "cash";
+                              const reference =
+                                values.referencia ||
+                                (method === "multicaixa_express"
+                                  ? paymentReference("EMIS")
+                                  : method === "unitel_money"
+                                    ? paymentReference("UML")
+                                    : undefined);
+                              const paid = await recordInvoicePayment({
+                                data: {
+                                  invoiceId: f.id,
+                                  receiptNumber: values.recibo,
+                                  amount,
+                                  method,
+                                  reference,
+                                  paidAt: values.data
+                                    ? new Date(`${values.data}T12:00:00Z`).toISOString()
+                                    : undefined,
+                                },
+                              });
+                              await Promise.all([
+                                queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
+                                queryClient.invalidateQueries({
+                                  queryKey: ["finance", "reporting"],
+                                }),
+                                queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
+                              ]);
+                              await downloadReceipt(f, values.recibo, amount);
+                              if (paid?.library_document_code) {
+                                toast.success(`Recibo arquivado · ${paid.library_document_code}`);
+                              }
+                            }}
+                            trigger={(open) => (
+                              <Button size="sm" variant="outline" onClick={open}>
+                                <Wallet className="size-3.5" /> Receber
+                              </Button>
+                            )}
+                          />
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              void downloadReceipt(
+                                f,
+                                `RC-${f.numero.replace(/^FT-?/i, "")}`,
+                                f.recebido || f.valor,
+                              )
+                            }
+                          >
+                            <FileDown className="size-3.5" /> Recibo
+                          </Button>
+                        )}
+                        {resendInvoices ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(
+                                `${f.numero} · ${f.aluno} · ${kwanza(f.valor)} · ${f.estado}`,
+                              );
+                              toast.success("Texto da fatura copiado para e-mail Resend");
+                            }}
+                          >
+                            E-mail
+                          </Button>
+                        ) : null}
+                        {whatsappOn ? (
+                          <Button size="sm" variant="ghost" asChild>
+                            <a
+                              href={whatsappHref(
+                                "",
+                                `Fatura ${f.numero} de ${f.aluno}: ${kwanza(f.valor)} (${f.estado})`,
+                              )}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              WhatsApp
+                            </a>
+                          </Button>
+                        ) : null}
+                        {f.estado !== "Paga" && f.recebido === 0 ? (
+                          <ConfirmActionModal
+                            title="Cancelar fatura"
+                            description={`A fatura ${f.numero} de ${f.aluno} sai da lista de cobrança. Recibos existentes impedem esta operação.`}
+                            confirmLabel="Cancelar fatura"
+                            onConfirm={async () => {
+                              await cancelInvoice({ data: { invoiceId: f.id } });
+                              await Promise.all([
+                                queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
+                                queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
+                                queryClient.invalidateQueries({
+                                  queryKey: ["dashboard", "overview"],
+                                }),
+                              ]);
+                            }}
+                            trigger={(open) => (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive"
+                                onClick={open}
+                              >
+                                <X className="size-3.5" /> Anular
+                              </Button>
+                            )}
+                          />
+                        ) : null}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
+                {invoicesQuery.isError ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="py-8 text-center text-sm text-destructive">
+                      Não foi possível carregar as faturas.
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={9}
+                      className="py-8 text-center text-sm text-muted-foreground"
+                    >
+                      Nenhuma factura encontrada para os filtros aplicados.
+                    </TableCell>
+                  </TableRow>
+                ) : null}
               </TableBody>
             </Table>
           </div>

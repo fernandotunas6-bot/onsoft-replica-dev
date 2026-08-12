@@ -1,0 +1,144 @@
+/*
+|--------------------------------------------------------------------------
+| SIGA  — Sistema Integrado de Gestão Escolar
+|--------------------------------------------------------------------------
+|
+| Plataforma académica e administrativa multi-escolas desenvolvida para
+| gestão institucional moderna, segura, inteligente e escalável.
+|
+| Desenvolvido por:
+| Valentino Canguele
+|
+| Contacto:
+| +244 921 428 367
+|
+| Tecnologias:
+| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
+|
+| Recursos:
+| Gestão Académica
+| Gestão Financeira
+| LMS
+| RH & Payroll
+| Biblioteca
+| Relatórios Inteligentes
+| Multi-Campus
+| Multi-Escolas
+| Inteligência Pedagógica
+|
+| Copyright © 2026 Valentino Canguele.
+| Todos os direitos reservados.
+|--------------------------------------------------------------------------
+*/
+
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8" />
+  <style>{{{css}}}</style>
+</head>
+<body>
+  <main class="document document-historico">
+    <section class="official-topline">
+      {{#if school.emblemUrl}}
+      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
+      {{else}}
+      <img class="logo" src="{{school.logoUrl}}" alt="" />
+      {{/if}}
+      <div class="school-title">
+        <p class="republic">{{school.ministry}}</p>
+        <p class="republic">{{school.ministryLine}}</p>
+        <h1>{{school.name}}</h1>
+        <p>NIF: {{school.nif}} | Código institucional: {{school.code}}</p>
+        <p>{{school.address}} | {{school.phone}} | {{school.email}}</p>
+      </div>
+      <div class="document-box">
+        Nº {{document.number}}<br />
+        <small>{{document.issuedAtLabel}}</small>
+      </div>
+    </section>
+
+    <div class="doc-title">Histórico Académico</div>
+
+    <section class="meta-grid">
+      <div class="meta-box"><b>Aluno:</b> {{student.fullName}}</div>
+      <div class="meta-box"><b>Nº Académico:</b> {{student.academicNumber}}</div>
+      <div class="meta-box"><b>Documento:</b> {{student.docType}} {{student.docNumber}}</div>
+      <div class="meta-box"><b>Classe/Curso:</b> {{program.name}}</div>
+      <div class="meta-box"><b>Ano lectivo:</b> {{academicYear.name}}</div>
+      <div class="meta-box"><b>Turma:</b> {{classGroup.name}} | {{classGroup.shift}}</div>
+      <div class="meta-box"><b>Nacionalidade:</b> {{student.nationality}}</div>
+      <div class="meta-box"><b>Escala:</b> {{angola.gradingScale}}</div>
+      <div class="meta-box"><b>Estado:</b> {{record.status}}</div>
+    </section>
+
+    <section class="two-col">
+      {{#each periods}}
+      <article class="period-card">
+        <h3 class="period-title">{{this.name}}</h3>
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th class="text-left">Disciplina</th>
+              <th>Tipo</th>
+              <th>CH</th>
+              <th>MAC</th>
+              <th>NPP</th>
+              <th>PT</th>
+              <th>MT</th>
+              <th>Exame</th>
+              <th>MF</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each this.subjects}}
+            <tr>
+              <td class="text-left">{{name}}</td>
+              <td>{{type}}</td>
+              <td>{{workload}}</td>
+              <td>{{mac}}</td>
+              <td>{{npp}}</td>
+              <td>{{pt}}</td>
+              <td>{{mt}}</td>
+              <td>{{exam}}</td>
+              <td><b>{{finalGrade}}</b></td>
+              <td data-status="{{status}}">{{status}}</td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+        <div class="summary-line">
+          <span><b>Média:</b> {{this.average}}</span>
+          <span><b>Situação:</b> {{this.status}}</span>
+        </div>
+      </article>
+      {{/each}}
+    </section>
+
+    <section class="summary-panel">
+      <div><span>Média global</span><strong>{{record.globalAverage}}</strong></div>
+      <div><span>Disciplinas</span><strong>{{record.totalSubjects}}</strong></div>
+      <div><span>Reprovações</span><strong>{{record.failedSubjects}}</strong></div>
+      <div><span>Resultado</span><strong>{{record.finalStatus}}</strong></div>
+    </section>
+
+    <p><b>Nota institucional:</b> {{angola.legalNote}} Este histórico é a fonte oficial e permanente das classificações do estudante; pautas, boletins e certificados são documentos derivados.</p>
+
+    <section class="footer">
+      {{#each signatures}}
+      <div class="signature">{{label}}</div>
+      {{/each}}
+    </section>
+
+    <section class="validation">
+      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+      <div>
+        <b>Validação digital</b> {{document.hash}}<br />
+        Documento nº {{document.number}}, emitido em {{document.issuedAtLabel}} por {{document.issuedBy}}.<br />
+        {{document.sourceNote}}
+      </div>
+    </section>
+  </main>
+</body>
+</html>

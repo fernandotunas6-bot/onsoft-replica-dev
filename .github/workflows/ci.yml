@@ -66,6 +66,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Testes (Vitest)
+        run: bun run test
+
       - name: Build
         run: bun run build
 
@@ -103,8 +106,6 @@ jobs:
 
       - name: Acessibilidade da sidebar e IconChip (contraste, foco, tabulação, ARIA)
         run: python scripts/a11y-sidebar.py
-
-
 
   lighthouse:
     name: Lighthouse CI (FCP / LCP / INP)

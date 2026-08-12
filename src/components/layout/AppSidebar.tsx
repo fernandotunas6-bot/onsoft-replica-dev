@@ -1,28 +1,56 @@
-import { useEffect, useState } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
+  CalendarDays,
   ChevronDown,
   CreditCard,
   FileText,
   GraduationCap,
   LayoutGrid,
   Lock,
+  LogOut,
   Megaphone,
   PieChart,
   Receipt,
   Settings,
   TrendingUp,
+  User,
   UserCheck,
   UserCog,
   UserPlus,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useSignOut } from "@/features/auth/use-sign-out";
+import { canAccessPath } from "@/features/auth/access-policy";
+import { AcademicNavTree } from "./AcademicNavTree";
 import { NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
 
-type Child = { label: string; icon: React.ElementType; to?: string };
-type Item = { label: string; icon: React.ElementType; to?: string; children?: Child[] };
+type Child = {
+  label: string;
+  icon: React.ElementType;
+  to: string;
+  search?: Record<string, string | undefined>;
+};
+type Item = {
+  label: string;
+  icon: React.ElementType;
+  to?: string;
+  search?: Record<string, string | undefined>;
+  children?: Child[];
+};
 type Group = { title: string; items: Item[] };
 
 const groups: Group[] = [
@@ -34,8 +62,29 @@ const groups: Group[] = [
         label: "Área Pedagógica",
         icon: BookOpen,
         children: [
-          { label: "Turmas e Disciplinas", icon: BookOpen, to: "/pedagogica" },
-          { label: "Notas e Avaliações", icon: PieChart },
+          {
+            label: "Turmas e Disciplinas",
+            icon: BookOpen,
+            to: "/pedagogica",
+            search: { tab: "turmas" },
+          },
+          {
+            label: "Notas e Avaliações",
+            icon: PieChart,
+            to: "/pedagogica",
+            search: { tab: "notas" },
+          },
+          {
+            label: "Horários",
+            icon: CalendarDays,
+            to: "/pedagogica",
+            search: { tab: "horarios" },
+          },
+          {
+            label: "Calendário Lectivo",
+            icon: CalendarDays,
+            to: "/calendario",
+          },
         ],
       },
     ],
@@ -43,13 +92,29 @@ const groups: Group[] = [
   {
     title: "Secretaria",
     items: [
+      { label: "Pessoas", icon: UserCog, to: "/pessoas" },
       {
         label: "Gestão de Alunos",
         icon: Users,
         children: [
-          { label: "Matricular Aluno", icon: UserPlus },
-          { label: "Confirmar Matrícula", icon: UserCheck },
-          { label: "Estado do Aluno", icon: Users, to: "/alunos" },
+          {
+            label: "Matricular Aluno",
+            icon: UserPlus,
+            to: "/alunos",
+            search: { action: "matricular" },
+          },
+          {
+            label: "Confirmar Matrícula",
+            icon: UserCheck,
+            to: "/alunos",
+            search: { action: "confirmar" },
+          },
+          {
+            label: "Estado do Aluno",
+            icon: Users,
+            to: "/alunos",
+            search: { action: "estado" },
+          },
         ],
       },
       {
@@ -85,10 +150,6 @@ const groups: Group[] = [
     ],
   },
   {
-    title: "Config. do Sistema",
-    items: [{ label: "Configurações", icon: Settings, to: "/configuracoes" }],
-  },
-  {
     title: "Conta",
     items: [{ label: "Alterar Senha", icon: Lock, to: "/alterar-senha" }],
   },
@@ -99,16 +160,40 @@ const MENU_KEY = "siga:sidebar-open-menus";
 export function AppSidebar({
   className,
   collapsed = false,
-  onOpenAccount,
-  accountOpen = false,
+  onOpenSettings,
+  onOpenProfile,
 }: {
   className?: string;
   collapsed?: boolean;
-  onOpenAccount?: () => void;
-  accountOpen?: boolean;
+  onOpenSettings?: () => void;
+  onOpenProfile?: () => void;
 }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const parentsOfActive = groups
+  const currentUser = useCurrentAccount();
+  const { activeYearLabel } = useSchoolSettings();
+  const { signOut, signingOut } = useSignOut();
+  const visibleGroups = useMemo(
+    () =>
+      groups
+        .map((group) => ({
+          ...group,
+          items: group.items
+            .map((item) => ({
+              ...item,
+              children: item.children?.filter((child) =>
+                canAccessPath(child.to, currentUser.role, currentUser.grants),
+              ),
+            }))
+            .filter(
+              (item) =>
+                (item.to ? canAccessPath(item.to, currentUser.role, currentUser.grants) : false) ||
+                Boolean(item.children?.length),
+            ),
+        }))
+        .filter((group) => group.items.length > 0),
+    [currentUser.role, currentUser.grants],
+  );
+  const parentsOfActive = visibleGroups
     .flatMap((g) => g.items)
     .filter((i) => i.children?.some((c) => c.to === pathname))
     .map((i) => i.label);
@@ -168,9 +253,11 @@ export function AppSidebar({
           "flex-1 pb-4",
           collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
         )}
-
       >
-        {groups.map((group) => (
+        {canAccessPath("/pedagogica", currentUser.role, currentUser.grants) ? (
+          <AcademicNavTree collapsed={collapsed} />
+        ) : null}
+        {visibleGroups.map((group) => (
           <div key={group.title}>
             <NavSubheader title={group.title} collapsed={collapsed} />
             <ul className="space-y-0.5">
@@ -193,6 +280,7 @@ export function AppSidebar({
                               {child.to ? (
                                 <NavLinkRow
                                   to={child.to}
+                                  search={child.search}
                                   label={child.label}
                                   depth="sub"
                                   active={child.to === pathname}
@@ -236,6 +324,7 @@ export function AppSidebar({
                               {child.to ? (
                                 <NavLinkRow
                                   to={child.to}
+                                  search={child.search}
                                   label={child.label}
                                   depth="sub"
                                   active={child.to === pathname}
@@ -276,38 +365,76 @@ export function AppSidebar({
           collapsed ? "px-2 py-3" : "px-3 py-3",
         )}
       >
-        <button
-          type="button"
-          onClick={onOpenAccount}
-          data-account-trigger=""
-          aria-label="Abrir painel da conta"
-          aria-haspopup="dialog"
-          aria-expanded={accountOpen}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-xl text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
-            collapsed ? "justify-center px-1 py-2" : "px-2 py-2",
-          )}
-        >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
-            U
-          </span>
-          {!collapsed ? (
-            <>
-              <span className="min-w-0 flex-1 leading-tight">
-                <span className="block truncate text-sm font-semibold text-sidebar-foreground">
-                  usuario teste
-                </span>
-                <span className="block truncate text-[11px] text-sidebar-muted">admin</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              data-account-trigger=""
+              aria-label="Abrir menu da conta"
+              className={cn(
+                "flex w-full items-center gap-3 rounded-xl text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
+                collapsed ? "justify-center px-1 py-2" : "px-2 py-2",
+              )}
+            >
+              <UserAvatar
+                url={currentUser.avatarUrl}
+                initials={currentUser.initials}
+                className="size-9 bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground"
+              />
+              {!collapsed ? (
+                <>
+                  <span className="min-w-0 flex-1 leading-tight">
+                    <span className="block truncate text-sm font-semibold text-sidebar-foreground">
+                      {currentUser.name}
+                    </span>
+                    <span className="block truncate text-[11px] text-sidebar-muted">
+                      {currentUser.role}
+                    </span>
+                  </span>
+                  <ChevronDown aria-hidden className="size-4 shrink-0 opacity-50" />
+                </>
+              ) : null}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" side="top" className="w-64">
+            <DropdownMenuLabel className="font-normal">
+              <span className="block truncate text-sm font-semibold text-foreground">
+                {currentUser.name}
               </span>
-              <ChevronDown aria-hidden className="size-4 shrink-0 opacity-50" />
-            </>
-          ) : null}
-        </button>
+              <span className="block truncate text-xs font-normal text-muted-foreground">
+                {currentUser.email}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onOpenProfile?.()}>
+              <User className="size-4" /> Perfil
+            </DropdownMenuItem>
+            {canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
+              <DropdownMenuItem onClick={() => onOpenSettings?.()}>
+                <Settings className="size-4" /> Configurações
+              </DropdownMenuItem>
+            ) : null}
+            {canAccessPath("/alterar-senha", currentUser.role) ? (
+              <DropdownMenuItem asChild>
+                <Link to="/alterar-senha">
+                  <Lock className="size-4" /> Alterar senha
+                </Link>
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => void signOut()}
+              disabled={signingOut}
+              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+            >
+              <LogOut className="size-4" /> {signingOut ? "A sair…" : "Sair"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         {!collapsed ? (
-          <p className="px-2 pt-2 text-[11px] text-sidebar-muted">Ano Lectivo 2024/2025</p>
+          <p className="px-2 pt-2 text-[11px] text-sidebar-muted">{activeYearLabel}</p>
         ) : null}
       </div>
     </aside>
   );
 }
-

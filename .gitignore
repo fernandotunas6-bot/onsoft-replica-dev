@@ -12,13 +12,21 @@ dist
 dist-ssr
 .output
 .vinxi
+.vite
+node_modules/.vite
 .tanstack/**
 .nitro
 *.local
+.env
+.env.*
+!.env.example
 
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
+
+# Local Supabase CLI cache
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*
@@ -35,3 +43,6 @@ dist-ssr
 tests/visual/current/
 tests/visual/diff/
 reports/
+
+# Arquivos de referência grandes que não devem entrar no repo (>100MB, rejeitados pelo GitHub)
+public/turmas/*.zip

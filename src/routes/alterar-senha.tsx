@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Lock, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { PasswordChangeForm } from "@/features/auth/PasswordChangeForm";
 
 export const Route = createFileRoute("/alterar-senha")({
   head: () => ({
@@ -34,42 +32,25 @@ function AlterarSenhaPage() {
           description="Mantenha a sua conta segura actualizando periodicamente a senha de acesso."
         />
 
-        <Panel title="Nova senha" description="Mínimo de 8 caracteres, com letras e números">
-          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-            <div className="space-y-2">
-              <Label htmlFor="atual">Senha actual</Label>
-              <Input
-                id="atual"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nova">Nova senha</Label>
-              <Input id="nova" type="password" placeholder="••••••••" autoComplete="new-password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmar">Confirmar nova senha</Label>
-              <Input
-                id="confirmar"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="new-password"
-              />
-            </div>
-            <Button type="submit" className="w-full gap-2">
-              <Lock className="size-4" /> Actualizar senha
-            </Button>
-          </form>
+        <Panel
+          title="Nova senha"
+          description="Mínimo de 10 caracteres, com letra, número e símbolo"
+        >
+          <PasswordChangeForm />
         </Panel>
 
         <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-soft">
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" />
-          <p>
-            Não partilhe a sua senha. A alteração efectiva será aplicada quando o backend de
-            autenticação estiver ligado.
-          </p>
+          <div className="space-y-2">
+            <p>
+              Não partilhe a sua senha. A sessão é revalidada com a senha actual antes da alteração.
+            </p>
+            <p className="text-xs">
+              Para activar autenticação de dois factores (2FA), um administrador pode configurar a
+              política em Definições → Segurança. Depois de activo, o SIGA pede o código TOTP no
+              próximo login.
+            </p>
+          </div>
         </div>
       </div>
     </AppShell>

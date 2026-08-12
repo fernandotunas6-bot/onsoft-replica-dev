@@ -25,16 +25,25 @@ export function PremiumModal({
   icon?: ReactNode | undefined;
   footer?: ReactNode | undefined;
   children: ReactNode;
-  size?: "sm" | "md" | "lg" | undefined;
+  size?: "sm" | "md" | "lg" | "xl" | "full" | undefined;
 }) {
-  const width = size === "lg" ? "sm:max-w-3xl" : size === "sm" ? "sm:max-w-md" : "sm:max-w-xl";
+  const width =
+    size === "full"
+      ? "h-[96vh] w-[98vw] max-w-[98vw] sm:max-w-[98vw]"
+      : size === "xl"
+        ? "sm:max-w-6xl"
+        : size === "lg"
+          ? "sm:max-w-3xl"
+          : size === "sm"
+            ? "sm:max-w-md"
+            : "sm:max-w-xl";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn("overflow-hidden border-border/70 p-0 shadow-2xl sm:rounded-2xl", width)}
       >
-        <div className="relative overflow-hidden border-b border-border/70 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-6 py-5">
+        <div className="relative overflow-hidden border-b border-border/70 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent bg-background/75 px-6 py-5 backdrop-blur-xl">
           <span className="pointer-events-none absolute -right-10 -top-16 size-40 rounded-full bg-primary/15 blur-3xl" />
           <div className="relative flex items-start gap-4">
             {icon ? (
@@ -58,7 +67,14 @@ export function PremiumModal({
           </div>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto px-6 py-5">{children}</div>
+        <div
+          className={cn(
+            "overflow-y-auto px-6 py-5",
+            size === "full" ? "max-h-[calc(96vh-10rem)]" : size === "xl" ? "max-h-[78vh]" : "max-h-[60vh]",
+          )}
+        >
+          {children}
+        </div>
 
         {footer ? (
           <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/70 bg-secondary/40 px-6 py-4">

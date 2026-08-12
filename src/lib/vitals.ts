@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-export function measureVitals() {
+export function measureVitals(onSlowInteraction?: (inpMs: number) => void) {
   if (typeof window === "undefined" || typeof PerformanceObserver === "undefined") return;
   if (window.__sigaVitals) return;
   const vitals: Vitals = {};
@@ -44,5 +44,6 @@ export function measureVitals() {
   observe("event", (e) => {
     const dur = Math.round(e.duration);
     if (dur > (vitals["INP"] ?? 0)) vitals["INP"] = dur;
+    if (dur >= 200) onSlowInteraction?.(dur);
   });
 }

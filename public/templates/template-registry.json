@@ -1,0 +1,19 @@
+{
+  "templates": [
+    { "key": "talao-candidatura", "type": "admissions_receipt", "sourceOfTruth": false },
+    { "key": "talao-matricula", "type": "enrollment_receipt", "sourceOfTruth": false },
+    { "key": "folha-credenciais", "type": "portal_credentials", "sourceOfTruth": false },
+    { "key": "dossie-academico", "type": "academic_dossier", "sourceOfTruth": false },
+    { "key": "service-document", "type": "institutional_service_document", "sourceOfTruth": false },
+    { "key": "historico-academico-individual", "type": "permanent_record", "sourceOfTruth": true },
+    { "key": "pauta-disciplinar", "type": "subject_grade_sheet", "sourceOfTruth": false },
+    { "key": "pauta-geral-turma", "type": "class_master_sheet", "sourceOfTruth": false },
+    { "key": "boletim-escolar", "type": "report_card", "sourceOfTruth": false },
+    { "key": "certificado-habilitacoes", "type": "certificate", "sourceOfTruth": false },
+    { "key": "diario-pedagogico-professor", "type": "teacher_pedagogic_log", "sourceOfTruth": false },
+    { "key": "acta-conselho-notas", "type": "academic_council_minutes", "sourceOfTruth": false },
+    { "key": "declaracao-notas-simples", "type": "simple_grade_statement", "sourceOfTruth": false },
+    { "key": "relatorio-validacao-notas", "type": "grade_validation_report", "sourceOfTruth": false },
+    { "key": "mapa-estatistico-aproveitamento", "type": "academic_statistics", "sourceOfTruth": false }
+  ]
+}

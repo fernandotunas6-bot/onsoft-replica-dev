@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcessosRouteImport } from './routes/acessos'
 import { Route as AlterarSenhaRouteImport } from './routes/alterar-senha'
+import { Route as ArquivosRouteImport } from './routes/arquivos'
+import { Route as CalendarioRouteImport } from './routes/calendario'
 import { Route as ComunicacoesRouteImport } from './routes/comunicacoes'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as DocumentosRouteImport } from './routes/documentos'
@@ -20,6 +22,10 @@ import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
 import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
+import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
+import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
+import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
+import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
 import { Route as RelatoriosAcademicosRouteImport } from './routes/relatorios.academicos'
 import { Route as RelatoriosFinanceirosRouteImport } from './routes/relatorios.financeiros'
 
@@ -36,6 +42,16 @@ const AcessosRoute = AcessosRouteImport.update({
 const AlterarSenhaRoute = AlterarSenhaRouteImport.update({
   id: '/alterar-senha',
   path: '/alterar-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArquivosRoute = ArquivosRouteImport.update({
+  id: '/arquivos',
+  path: '/arquivos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarioRoute = CalendarioRouteImport.update({
+  id: '/calendario',
+  path: '/calendario',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComunicacoesRoute = ComunicacoesRouteImport.update({
@@ -78,6 +94,26 @@ const AlunosStudentIdRoute = AlunosStudentIdRouteImport.update({
   path: '/alunos/$studentId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
+  id: '/ics',
+  path: '/ics',
+  getParentRoute: () => CalendarioRoute,
+} as any)
+const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
+  id: '/matricula/$slug',
+  path: '/matricula/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasIndexRoute = PessoasIndexRouteImport.update({
+  id: '/pessoas/',
+  path: '/pessoas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfessoresTeacherIdRoute = ProfessoresTeacherIdRouteImport.update({
+  id: '/professores/$teacherId',
+  path: '/professores/$teacherId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RelatoriosAcademicosRoute = RelatoriosAcademicosRouteImport.update({
   id: '/relatorios/academicos',
   path: '/relatorios/academicos',
@@ -93,6 +129,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
   '/alterar-senha': typeof AlterarSenhaRoute
+  '/arquivos': typeof ArquivosRoute
+  '/calendario': typeof CalendarioRouteWithChildren
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
@@ -100,14 +138,20 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof FinanceiroRoute
   '/pedagogica': typeof PedagogicaRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/calendario/ics': typeof CalendarioIcsRoute
+  '/matricula/$slug': typeof MatriculaSlugRoute
+  '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos/': typeof AlunosIndexRoute
+  '/pessoas/': typeof PessoasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
   '/alterar-senha': typeof AlterarSenhaRoute
+  '/arquivos': typeof ArquivosRoute
+  '/calendario': typeof CalendarioRouteWithChildren
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
@@ -115,15 +159,21 @@ export interface FileRoutesByTo {
   '/financeiro': typeof FinanceiroRoute
   '/pedagogica': typeof PedagogicaRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/calendario/ics': typeof CalendarioIcsRoute
+  '/matricula/$slug': typeof MatriculaSlugRoute
+  '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos': typeof AlunosIndexRoute
+  '/pessoas': typeof PessoasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
   '/alterar-senha': typeof AlterarSenhaRoute
+  '/arquivos': typeof ArquivosRoute
+  '/calendario': typeof CalendarioRouteWithChildren
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
@@ -131,9 +181,13 @@ export interface FileRoutesById {
   '/financeiro': typeof FinanceiroRoute
   '/pedagogica': typeof PedagogicaRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/calendario/ics': typeof CalendarioIcsRoute
+  '/matricula/$slug': typeof MatriculaSlugRoute
+  '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos/': typeof AlunosIndexRoute
+  '/pessoas/': typeof PessoasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +195,8 @@ export interface FileRouteTypes {
     | '/'
     | '/acessos'
     | '/alterar-senha'
+    | '/arquivos'
+    | '/calendario'
     | '/comunicacoes'
     | '/configuracoes'
     | '/documentos'
@@ -148,14 +204,20 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/pedagogica'
     | '/alunos/$studentId'
+    | '/calendario/ics'
+    | '/matricula/$slug'
+    | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
     | '/alunos/'
+    | '/pessoas/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/acessos'
     | '/alterar-senha'
+    | '/arquivos'
+    | '/calendario'
     | '/comunicacoes'
     | '/configuracoes'
     | '/documentos'
@@ -163,14 +225,20 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/pedagogica'
     | '/alunos/$studentId'
+    | '/calendario/ics'
+    | '/matricula/$slug'
+    | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
     | '/alunos'
+    | '/pessoas'
   id:
     | '__root__'
     | '/'
     | '/acessos'
     | '/alterar-senha'
+    | '/arquivos'
+    | '/calendario'
     | '/comunicacoes'
     | '/configuracoes'
     | '/documentos'
@@ -178,15 +246,21 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/pedagogica'
     | '/alunos/$studentId'
+    | '/calendario/ics'
+    | '/matricula/$slug'
+    | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
     | '/alunos/'
+    | '/pessoas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcessosRoute: typeof AcessosRoute
   AlterarSenhaRoute: typeof AlterarSenhaRoute
+  ArquivosRoute: typeof ArquivosRoute
+  CalendarioRoute: typeof CalendarioRouteWithChildren
   ComunicacoesRoute: typeof ComunicacoesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   DocumentosRoute: typeof DocumentosRoute
@@ -194,9 +268,12 @@ export interface RootRouteChildren {
   FinanceiroRoute: typeof FinanceiroRoute
   PedagogicaRoute: typeof PedagogicaRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
+  MatriculaSlugRoute: typeof MatriculaSlugRoute
+  ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
   RelatoriosFinanceirosRoute: typeof RelatoriosFinanceirosRoute
   AlunosIndexRoute: typeof AlunosIndexRoute
+  PessoasIndexRoute: typeof PessoasIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -220,6 +297,20 @@ declare module '@tanstack/react-router' {
       path: '/alterar-senha'
       fullPath: '/alterar-senha'
       preLoaderRoute: typeof AlterarSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/arquivos': {
+      id: '/arquivos'
+      path: '/arquivos'
+      fullPath: '/arquivos'
+      preLoaderRoute: typeof ArquivosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendario': {
+      id: '/calendario'
+      path: '/calendario'
+      fullPath: '/calendario'
+      preLoaderRoute: typeof CalendarioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comunicacoes': {
@@ -278,6 +369,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlunosStudentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/calendario/ics': {
+      id: '/calendario/ics'
+      path: '/ics'
+      fullPath: '/calendario/ics'
+      preLoaderRoute: typeof CalendarioIcsRouteImport
+      parentRoute: typeof CalendarioRoute
+    }
+    '/matricula/$slug': {
+      id: '/matricula/$slug'
+      path: '/matricula/$slug'
+      fullPath: '/matricula/$slug'
+      preLoaderRoute: typeof MatriculaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/': {
+      id: '/pessoas/'
+      path: '/pessoas'
+      fullPath: '/pessoas/'
+      preLoaderRoute: typeof PessoasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/professores/$teacherId': {
+      id: '/professores/$teacherId'
+      path: '/professores/$teacherId'
+      fullPath: '/professores/$teacherId'
+      preLoaderRoute: typeof ProfessoresTeacherIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/relatorios/academicos': {
       id: '/relatorios/academicos'
       path: '/relatorios/academicos'
@@ -295,10 +414,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface CalendarioRouteChildren {
+  CalendarioIcsRoute: typeof CalendarioIcsRoute
+}
+
+const CalendarioRouteChildren: CalendarioRouteChildren = {
+  CalendarioIcsRoute: CalendarioIcsRoute,
+}
+
+const CalendarioRouteWithChildren = CalendarioRoute._addFileChildren(
+  CalendarioRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcessosRoute: AcessosRoute,
   AlterarSenhaRoute: AlterarSenhaRoute,
+  ArquivosRoute: ArquivosRoute,
+  CalendarioRoute: CalendarioRouteWithChildren,
   ComunicacoesRoute: ComunicacoesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   DocumentosRoute: DocumentosRoute,
@@ -306,10 +439,23 @@ const rootRouteChildren: RootRouteChildren = {
   FinanceiroRoute: FinanceiroRoute,
   PedagogicaRoute: PedagogicaRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
+  MatriculaSlugRoute: MatriculaSlugRoute,
+  ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,
   RelatoriosFinanceirosRoute: RelatoriosFinanceirosRoute,
   AlunosIndexRoute: AlunosIndexRoute,
+  PessoasIndexRoute: PessoasIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -1,0 +1,10 @@
+As migrações nesta pasta (e all_migrations_combined.sql / pending_feature_migrations.sql)
+foram geradas para um schema Lovable antigo e NÃO devem ser aplicadas ao projecto SGA
+xodgfmxiaunpamctfeea.
+
+Schema oficial: memberships/roles/programs/campuses/... já existente no SGA.
+Hotfix pontuais da UI: APPLY_IN_SQL_EDITOR.sql (SQL Editor).
+Matrícula pública + ciclos premium: APPLY_ENROLLMENT_AND_PREMIUM.sql
+(não correr 2026081114* isolados — dependiam de current_school_id() Lovable).
+Para limpar tabelas ops não usadas: cleanup_unused_sga_tables.sql
+(não remove notification_preferences nem assessment_rule_sets).

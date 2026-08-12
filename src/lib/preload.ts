@@ -5,7 +5,7 @@
 
 const warmed = new Set<string>();
 
-function onIdle(fn: () => void) {
+export function onIdle(fn: () => void) {
   if (typeof window === "undefined") return;
   const ric = (
     window as unknown as {

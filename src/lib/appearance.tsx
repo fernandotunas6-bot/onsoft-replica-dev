@@ -28,10 +28,22 @@ export type AccentPreset = {
 };
 
 export const accentPresets: AccentPreset[] = [
-  { id: "violeta", label: "Violeta", hue: 292.5, chroma: 0.235, swatch: "oklch(0.556 0.235 292.5)" },
+  {
+    id: "violeta",
+    label: "Violeta",
+    hue: 292.5,
+    chroma: 0.235,
+    swatch: "oklch(0.556 0.235 292.5)",
+  },
   { id: "indigo", label: "Índigo", hue: 268, chroma: 0.208, swatch: "oklch(0.556 0.208 268)" },
   { id: "oceano", label: "Oceano", hue: 240, chroma: 0.16, swatch: "oklch(0.566 0.16 240)" },
-  { id: "esmeralda", label: "Esmeralda", hue: 162, chroma: 0.145, swatch: "oklch(0.566 0.145 162)" },
+  {
+    id: "esmeralda",
+    label: "Esmeralda",
+    hue: 162,
+    chroma: 0.145,
+    swatch: "oklch(0.566 0.145 162)",
+  },
   { id: "ambar", label: "Âmbar", hue: 71, chroma: 0.155, swatch: "oklch(0.646 0.155 71)" },
   { id: "coral", label: "Coral", hue: 25, chroma: 0.185, swatch: "oklch(0.606 0.185 25)" },
   { id: "rosa", label: "Rosa", hue: 340, chroma: 0.19, swatch: "oklch(0.586 0.19 340)" },

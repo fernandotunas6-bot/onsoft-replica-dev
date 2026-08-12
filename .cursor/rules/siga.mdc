@@ -1,0 +1,15 @@
+---
+description: SIGA school-management conventions, module skills, and SGA SQL rules
+alwaysApply: true
+---
+
+# SIGA
+
+Antes de alterar código: ler `docs/agents/CONTINUE.md` e o skill do módulo em `.cursor/skills/siga-<modulo>/SKILL.md`. Visão geral: skill `siga`.
+
+- Estender, não reescrever `schemas.ts` / `server.ts` / páginas existentes.
+- Listas: `usePersistedListFilters` + `ListFilterBar`.
+- Escrita SGA: `loadSgaAdminClient` + `requireSgaWriter`.
+- SQL no projecto SGA: só `supabase/APPLY_IN_SQL_EDITOR.sql` e `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql`. Nunca `all_migrations_combined.sql` nem `pending_feature_migrations.sql`.
+- Node 24. Não commitar `.env`. Não reescrever histórico git (Lovable).
+- Novo módulo: `npm run siga:scaffold -- <id>`. Inventário: `npm run siga:check`.

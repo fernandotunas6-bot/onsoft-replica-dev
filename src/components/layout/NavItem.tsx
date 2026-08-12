@@ -1,6 +1,8 @@
 import type { ElementType, ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { prefetchRouteData } from "@/lib/route-data-prefetch";
 
 /**
  * Componente de navegação unificado (regras de layout do Minimals):
@@ -12,7 +14,7 @@ import { cn } from "@/lib/utils";
 export type NavDepth = "root" | "sub";
 
 export const NAV_ROW_BASE =
-  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar";
+  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-[color,background-color,transform] duration-75 ease-out active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:active:scale-100 motion-reduce:transition-none";
 
 export const NAV_ROW_IDLE =
   "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
@@ -68,7 +70,6 @@ export function NavIcon({
   );
 }
 
-
 type BaseProps = {
   label: string;
   icon?: ElementType;
@@ -106,17 +107,28 @@ const rowClass = (p: BaseProps) =>
     p.className,
   );
 
-export function NavLinkRow(props: BaseProps & { to: string }) {
-  const { to, ...rest } = props;
+export function NavLinkRow(
+  props: BaseProps & { to: string; search?: Record<string, string | undefined> },
+) {
+  const { to, search, ...rest } = props;
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const warmRoute = () => {
+    void router.preloadRoute({ to, search }).catch(() => {});
+    prefetchRouteData(queryClient, to);
+  };
   return (
     <Link
       to={to}
-      activeOptions={{ exact: true }}
+      search={search}
+      activeOptions={{ exact: !search }}
       title={props.collapsed ? props.label : undefined}
       className={rowClass(rest)}
       activeProps={{ className: NAV_ROW_ACTIVE, "aria-current": "page", "data-active": "true" }}
       inactiveProps={{ "data-active": "false" }}
       data-nav-row=""
+      onMouseEnter={warmRoute}
+      onFocus={warmRoute}
     >
       {content(rest)}
     </Link>

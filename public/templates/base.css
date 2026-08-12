@@ -1,0 +1,623 @@
+/*
+|--------------------------------------------------------------------------
+| SIGA  — Sistema Integrado de Gestão Escolar
+|--------------------------------------------------------------------------
+|
+| Plataforma académica e administrativa multi-escolas desenvolvida para
+| gestão institucional moderna, segura, inteligente e escalável.
+|
+| Desenvolvido por:
+| Valentino Canguele
+|
+| Contacto:
+| +244 921 428 367
+|
+| Tecnologias:
+| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
+|
+| Recursos:
+| Gestão Académica
+| Gestão Financeira
+| LMS
+| RH & Payroll
+| Biblioteca
+| Relatórios Inteligentes
+| Multi-Campus
+| Multi-Escolas
+| Inteligência Pedagógica
+|
+| Copyright © 2026 Valentino Canguele.
+| Todos os direitos reservados.
+|--------------------------------------------------------------------------
+*/
+
+:root {
+  --ink: #111827;
+  --muted: #4b5563;
+  --line: #1f2937;
+  --soft-line: #d1d5db;
+  --panel: #f8fafc;
+  --brand: #1d4ed8;
+  --brand-strong: #1e3a8a;
+  --success: #047857;
+  --danger: #b91c1c;
+  --warning: #b45309;
+}
+
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10.5px;
+  line-height: 1.28;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+.document {
+  width: 100%;
+}
+
+.premium-document {
+  position: relative;
+  min-height: 277mm;
+  overflow: hidden;
+}
+
+.premium-document::before,
+body[data-watermark]::before {
+  content: attr(data-watermark);
+  position: fixed;
+  top: 46%;
+  left: 50%;
+  z-index: 0;
+  transform: translate(-50%, -50%) rotate(-28deg);
+  color: rgba(29, 78, 216, .055);
+  font-size: 70px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.premium-document > * {
+  position: relative;
+  z-index: 1;
+}
+
+.premium-hero {
+  display: grid;
+  grid-template-columns: 82px 1fr 188px;
+  gap: 14px;
+  align-items: stretch;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1.5px solid #0f172a;
+  border-top: 7px solid var(--brand);
+  background: linear-gradient(135deg, #ffffff 0%, #eef6ff 100%);
+}
+
+.premium-hero .document-box {
+  border: 0;
+  background: #0f172a;
+  color: #fff;
+  align-content: center;
+}
+
+.premium-title {
+  margin: 10px 0 12px;
+  padding: 8px 10px;
+  border-left: 6px solid var(--brand);
+  background: #f8fafc;
+  font-size: 17px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.premium-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.premium-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.premium-panel {
+  margin-bottom: 10px;
+  border: 1px solid var(--soft-line);
+  background: rgba(248, 250, 252, .92);
+  padding: 9px;
+  break-inside: avoid;
+}
+
+.premium-panel h3 {
+  margin: 0 0 7px;
+  color: #0f172a;
+  font-size: 10px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+}
+
+.premium-kv {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 4px;
+  margin-bottom: 4px;
+  font-size: 9.4px;
+}
+
+.premium-kv span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.premium-badge {
+  display: inline-block;
+  padding: 3px 7px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 8.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.premium-governance-band {
+  display: grid;
+  grid-template-columns: 92px 120px 1fr;
+  gap: 8px;
+  margin: 8px 0 10px;
+  padding: 8px 10px;
+  border: 1px solid #dbe7ef;
+  background: #f8fafc;
+}
+
+.premium-governance-band div {
+  display: grid;
+  gap: 2px;
+}
+
+.premium-governance-band span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.premium-governance-band b {
+  color: #0f172a;
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+.premium-list {
+  margin: 0;
+  padding-left: 14px;
+}
+
+.premium-list li {
+  margin-bottom: 3px;
+}
+
+.credential-code {
+  padding: 9px;
+  border: 1.5px dashed var(--brand);
+  background: #eff6ff;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: .5px;
+  text-align: center;
+}
+
+.premium-signature-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.premium-signature {
+  border-top: 1px solid var(--line);
+  padding-top: 5px;
+  text-align: center;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.official-topline {
+  display: grid;
+  grid-template-columns: 80px 1fr 156px;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 7px;
+  margin-bottom: 8px;
+}
+
+.official-topline.angola-official,
+.premium-hero.angola-official {
+  border-bottom-color: #009a5a;
+}
+
+.official-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.official-right .logo.school-mark,
+.official-right .logo.flag {
+  width: 56px;
+  height: 56px;
+}
+
+.logo {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+}
+
+.logo.emblem {
+  width: 72px;
+  height: 72px;
+}
+
+.school-title {
+  text-align: center;
+}
+
+.school-title .republic {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  text-transform: uppercase;
+}
+
+.school-title h1 {
+  margin: 2px 0;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.school-title p {
+  margin: 1px 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.document-box {
+  border: 2px solid var(--line);
+  padding: 6px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.doc-title {
+  margin: 7px 0 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .2px;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin: 7px 0 9px;
+}
+
+.meta-box {
+  min-height: 24px;
+  border: 1px solid var(--soft-line);
+  background: #fff;
+  padding: 4px 6px;
+}
+
+.meta-box b {
+  color: var(--ink);
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.period-card {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: 9px;
+}
+
+.period-title {
+  margin: 0;
+  border-top: 1.5px solid var(--line);
+  border-bottom: 1px solid var(--soft-line);
+  padding: 4px 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid var(--soft-line);
+  padding: 3px 4px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+th {
+  background: #f3f4f6;
+  color: var(--ink);
+  font-size: 8.7px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+td {
+  font-size: 9px;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.statement-text {
+  margin: 9px 0 11px;
+  font-size: 11px;
+  line-height: 1.55;
+  text-align: justify;
+}
+
+.student-name {
+  min-width: 176px;
+  text-align: left;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 2px 3px;
+  font-size: 8.4px;
+}
+
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--soft-line);
+  padding: 3px 0;
+  color: var(--muted);
+}
+
+.summary-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 12px 0;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--soft-line);
+}
+
+.summary-panel strong {
+  display: block;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.footer {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 34px;
+  margin-top: 34px;
+  page-break-inside: avoid;
+}
+
+.signature {
+  border-top: 1px solid var(--line);
+  padding-top: 5px;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.validation {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--soft-line);
+  color: var(--muted);
+  font-size: 8.5px;
+  page-break-inside: avoid;
+}
+
+.qr {
+  width: 66px;
+  height: 66px;
+  object-fit: contain;
+}
+
+.status-aprovado,
+td[data-status="Aprovado"] {
+  color: var(--success);
+  font-weight: 800;
+}
+
+.status-reprovado,
+td[data-status="Reprovado"],
+td[data-status="Pendente"] {
+  color: var(--danger);
+  font-weight: 800;
+}
+
+td[data-validation="OK"] {
+  color: var(--success);
+}
+
+td[data-validation="PENDENTE"] {
+  color: var(--warning);
+}
+
+td[data-validation="BLOQUEANTE"] {
+  color: var(--danger);
+}
+
+.official-sheet {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 13px;
+}
+
+.sheet-sidebar {
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+.sheet-sidebar .logo {
+  display: block;
+  width: 86px;
+  height: 86px;
+  margin: 0 auto 10px;
+}
+
+.sheet-main-header {
+  display: grid;
+  grid-template-columns: 1fr 205px;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sheet-number {
+  border: 3px double var(--line);
+  padding: 5px 8px;
+  text-align: right;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.sheet-label {
+  border: 2px solid var(--line);
+  padding: 6px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.sheet-info {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  max-width: 370px;
+  margin-bottom: 1px;
+}
+
+.sheet-info b,
+.sheet-info span {
+  border: 1px solid var(--line);
+  padding: 3px 5px;
+}
+
+.sheet-observations {
+  border: 3px double var(--line);
+  padding: 8px;
+  text-align: center;
+  min-height: 88px;
+}
+
+.teacher-line {
+  border-top: 1px solid var(--line);
+  margin: 12px auto 0;
+  padding-top: 3px;
+  width: 76%;
+}
+
+.document-pauta-disciplina {
+  font-size: 9.5px;
+}
+
+.discipline-band {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  background: #4f46e5;
+  color: #fff;
+  padding: 12px 16px;
+  margin: -10mm -10mm 18px;
+}
+
+.discipline-band h1 {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+}
+
+.discipline-band span {
+  font-size: 9px;
+}
+
+.discipline-title h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.discipline-title p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.discipline-table th {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #6d65f0;
+}
+
+.discipline-table tbody tr:nth-child(odd) td {
+  background: #f6f7ff;
+}
+
+.page-footer {
+  margin-top: 18px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 8.5px;
+}

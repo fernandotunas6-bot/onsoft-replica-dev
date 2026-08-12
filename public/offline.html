@@ -26,7 +26,9 @@
           --border: #2a2833;
         }
       }
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
         min-height: 100vh;
@@ -35,7 +37,12 @@
         padding: 24px;
         background: var(--bg);
         color: var(--fg);
-        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
       }
       .card {
         width: 100%;
@@ -57,8 +64,16 @@
         background: var(--primary-soft);
         color: var(--primary);
       }
-      h1 { font-size: 1.25rem; margin: 0 0 8px; }
-      p { margin: 0 0 20px; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
       button {
         border: 0;
         cursor: pointer;
@@ -69,13 +84,25 @@
         font-weight: 600;
         font-size: 0.9rem;
       }
-      .hint { margin-top: 16px; font-size: 0.75rem; color: var(--muted); }
+      .hint {
+        margin-top: 16px;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
     </style>
   </head>
   <body>
     <main class="card">
       <div class="chip" aria-hidden="true">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <svg
+          width="26"
+          height="26"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
           <path d="M2 2l20 20" />
           <path d="M8.5 16.5a5 5 0 017 0" />
           <path d="M5 12.9a10 10 0 015.2-2.8" />
@@ -87,8 +114,8 @@
       </div>
       <h1>Sem ligação à internet</h1>
       <p>
-        O SIGA continua disponível: as páginas e recursos já visitados abrem a partir do
-        cache. Assim que a ligação voltar, tudo é actualizado automaticamente.
+        O SIGA continua disponível: as páginas e recursos já visitados abrem a partir do cache.
+        Assim que a ligação voltar, tudo é actualizado automaticamente.
       </p>
       <button type="button" onclick="location.reload()">Tentar novamente</button>
       <p class="hint">Esta página faz parte do modo offline do SIGA.</p>

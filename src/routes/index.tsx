@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Activity,
   Building2,
   CalendarDays,
   DoorOpen,
   GraduationCap,
+  Megaphone,
   Receipt,
   RefreshCw,
   TrendingUp,
@@ -13,41 +16,41 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { AppShell } from "@/components/layout/AppShell";
+import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
+import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { getDashboardOverview } from "@/features/dashboard/server";
+import { overlayServico } from "@/features/documents/print-overlays";
+import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
-import { LazyVisible } from "@/components/ui/lazy-visible";
 import { inferIcon } from "@/lib/auto-icon";
-import {
-  ageDistribution,
-  attendanceRate,
-  enrollmentStatus,
-  enrollmentsByMonth,
-  financeSummary,
-  genderSplit,
-  miniStats,
-  recentActivity,
-  schoolYear,
-  stats,
-  studentsByClass,
-  studentsByCourse,
-  topClasses,
-  upcoming,
-} from "@/lib/school-data";
+import { kwanza } from "@/lib/currency";
+import { warmDashboardCharts } from "@/lib/warm-charts";
+import { schoolYear as fallbackSchoolYear } from "@/lib/school-config";
+import { canAccessPath } from "@/features/auth/access-policy";
+import { TeacherWorkspaceHint } from "@/features/academic/TeacherWorkspacePanel";
+import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardCharts";
+import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
+import { openSettingsPanel } from "@/lib/settings-deep-link";
+
+const DashboardCharts = lazy(() =>
+  import("@/features/dashboard/DashboardCharts").then((module) => ({
+    default: module.DashboardCharts,
+  })),
+);
+const DashboardAgeChart = lazy(() =>
+  import("@/features/dashboard/DashboardCharts").then((module) => ({
+    default: module.DashboardAgeChart,
+  })),
+);
+const TeacherWorkspacePanel = lazy(() =>
+  import("@/features/academic/TeacherWorkspacePanel").then((module) => ({
+    default: module.TeacherWorkspacePanel,
+  })),
+);
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -68,20 +71,12 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-const statIcons = { users: Users, userCheck: UserCheck, userRound: UserRound, receipt: Receipt };
-const miniIcons = {
-  graduation: GraduationCap,
-  building: Building2,
-  door: DoorOpen,
-  activity: Activity,
-};
-
-const toneBg: Record<string, string> = {
+const toneBg = {
   primary: "bg-primary-soft text-primary-strong",
   info: "bg-info/10 text-info-strong",
   pink: "bg-chart-2/10 text-chart-2-strong",
   warning: "bg-warning/15 text-warning-foreground",
-};
+} as const;
 
 const dotTone: Record<string, string> = {
   success: "bg-success",
@@ -90,43 +85,52 @@ const dotTone: Record<string, string> = {
   primary: "bg-primary",
 };
 
-const axis = {
-  stroke: "var(--muted-foreground)",
-  fontSize: 11,
-} as const;
-
-function ChartCard({
-  title,
-  meta,
-  children,
-  className = "",
-}: {
-  title: string;
-  meta?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
+function DashboardGreeting({ greeting }: { greeting: string }) {
+  const currentUser = useCurrentAccount();
   return (
-    <section className={`surface-card p-5 ${className}`}>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <IconChip {...inferIcon(title)} size="sm" />
-          <h2 className="truncate text-base font-semibold">{title}</h2>
-        </div>
-        {meta ? <span className="shrink-0 text-xs text-muted-foreground">{meta}</span> : null}
-      </div>
-      <LazyVisible minHeight={200}>{children}</LazyVisible>
-    </section>
+    <>
+      {greeting}, {currentUser.name.split(" ")[0]}
+    </>
   );
 }
 
 function Dashboard() {
+  const queryClient = useQueryClient();
+  const currentUser = useCurrentAccount();
+  const { school, selectedYearLabel } = useSchoolSettings();
+  const installed = useInstalledIntegrations();
+  const whatsappNotices = installed.hasCapability("whatsapp.notices");
+  const resendOn = installed.hasCapability("resend.send");
   const [now, setNow] = useState<Date | null>(null);
+  const overviewQuery = useQuery({
+    queryKey: ["dashboard", "overview"],
+    queryFn: () => getDashboardOverview(),
+  });
 
   useEffect(() => {
+    let timer = 0;
+    const tick = () => {
+      setNow(new Date());
+      if (document.visibilityState === "visible") {
+        timer = window.setTimeout(tick, 1000);
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        setNow(new Date());
+        tick();
+      } else {
+        window.clearTimeout(timer);
+      }
+    };
     setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
+    warmDashboardCharts();
+    tick();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const greeting = (() => {
@@ -135,6 +139,152 @@ function Dashboard() {
     if (h < 19) return "Boa tarde";
     return "Boa noite";
   })();
+
+  const data = overviewQuery.data;
+  const yearName = data?.academicYear?.name ?? fallbackSchoolYear;
+  const totalStudents = data?.totals.students ?? 0;
+  const capabilities = data?.capabilities ?? {
+    students: false,
+    finance: false,
+    documents: false,
+    audit: false,
+  };
+
+  const stats = [
+    {
+      label: "Total de estudantes",
+      value: capabilities.students ? String(totalStudents) : "—",
+      icon: Users,
+      tone: "primary" as const,
+      hint: capabilities.students
+        ? `${data?.totals.activeStudents ?? 0} com matrícula activa${
+            data?.totals.applicants
+              ? ` · ${data.totals.applicants} candidato(s) — confirmar matrícula`
+              : ""
+          }`
+        : "Sem permissão de leitura académica",
+      href:
+        capabilities.students && (data?.totals.applicants ?? 0) > 0
+          ? ("/alunos" as const)
+          : undefined,
+      search:
+        capabilities.students && (data?.totals.applicants ?? 0) > 0
+          ? { action: "confirmar" as const }
+          : undefined,
+    },
+    {
+      label: "Estudantes masculinos",
+      value: capabilities.students ? String(data?.totals.male ?? 0) : "—",
+      icon: UserCheck,
+      tone: "info" as const,
+      hint:
+        capabilities.students && totalStudents
+          ? `${Math.round(((data?.totals.male ?? 0) / totalStudents) * 100)}% do total`
+          : "Aguardando dados",
+    },
+    {
+      label: "Estudantes femininos",
+      value: capabilities.students ? String(data?.totals.female ?? 0) : "—",
+      icon: UserRound,
+      tone: "pink" as const,
+      hint:
+        capabilities.students && totalStudents
+          ? `${Math.round(((data?.totals.female ?? 0) / totalStudents) * 100)}% do total`
+          : "Aguardando dados",
+    },
+    {
+      label: capabilities.documents ? "Documentos emitidos" : "Saldo de caixa",
+      value: capabilities.documents
+        ? String(data?.totals.documentIssued ?? 0)
+        : capabilities.finance
+          ? kwanza(data?.finance?.cash_balance ?? 0)
+          : "—",
+      icon: Receipt,
+      tone: "warning" as const,
+      hint: capabilities.documents
+        ? `${data?.totals.documentTotal ?? 0} pedidos registados${
+            data?.totals.documentPending ? ` · ${data.totals.documentPending} pendente(s)` : ""
+          }`
+        : capabilities.finance
+          ? `${data?.finance?.open_invoice_count ?? 0} faturas em aberto`
+          : "Sem dados financeiros",
+      href:
+        capabilities.documents && (data?.totals.documentPending ?? 0) > 0
+          ? ("/documentos" as const)
+          : undefined,
+    },
+  ];
+
+  const miniStats = [
+    {
+      label: "Cursos",
+      value: capabilities.students ? String(data?.totals.courses ?? 0) : "—",
+      icon: GraduationCap,
+    },
+    {
+      label: "Turmas activas",
+      value: capabilities.students ? String(data?.totals.classGroups ?? 0) : "—",
+      icon: Building2,
+    },
+    {
+      label: "Salas",
+      value: capabilities.students ? String(data?.totals.rooms ?? 0) : "—",
+      icon: DoorOpen,
+    },
+    {
+      label: "Taxa de presença",
+      value:
+        capabilities.students && data?.totals.attendanceAverage != null
+          ? `${data.totals.attendanceAverage}%`
+          : "—",
+      icon: Activity,
+    },
+  ];
+
+  const refresh = async () => {
+    setNow(new Date());
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+      toast.success("Dashboard actualizado", {
+        description: "Indicadores recalculados a partir da base de dados.",
+      });
+    } catch (error) {
+      toast.error("Não foi possível actualizar", {
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
+    }
+  };
+
+  const printSchool = {
+    name: school?.name ?? "Escola",
+    nif: school?.nif,
+    phone: school?.phone,
+    email: school?.email,
+    address: school?.address,
+    directorName: school?.director_name,
+    academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
+  };
+
+  const printAnnouncement = (item: { title: string; body?: string | null }) => {
+    void issuePrintDocument({
+      tipo: "Comunicado escolar",
+      school: printSchool,
+      overlay: overlayServico({
+        name: item.title || "Comunicado",
+        areaLabel: "Comunicações",
+        reference: item.title || "COM",
+        status: "Publicado",
+        parties: [{ label: "Escola", value: school?.name ?? "Escola" }],
+        sections: [{ title: "Mensagem", text: String(item.body ?? "Sem texto.") }],
+        permissions: ["Secretaria", "Direcção"],
+        term: "Comunicado institucional emitido pela secretaria da escola.",
+      }),
+    }).catch((error) =>
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível imprimir o comunicado.",
+      ),
+    );
+  };
 
   return (
     <AppShell>
@@ -152,46 +302,98 @@ function Dashboard() {
                 : "\u00a0"}
             </p>
             <h1 className="mt-1 text-3xl font-extrabold md:text-4xl">
-              {greeting}, usuario teste 👋
+              <DashboardGreeting greeting={greeting} />
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">Resumo do {schoolYear}</p>
+            <p className="mt-1 text-sm text-muted-foreground">Resumo do {yearName}</p>
+            {currentUser.role === "Professor" ? (
+              <div className="mt-2">
+                <TeacherWorkspaceHint />
+              </div>
+            ) : null}
+            <SpotlightRail
+              surface="home"
+              className="mt-4 max-w-xl"
+              role={currentUser.role}
+              grants={currentUser.grants}
+              onNavigate={() => undefined}
+              onOpenSettings={openSettingsPanel}
+            />
           </div>
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm text-muted-foreground">
               {now ? now.toLocaleTimeString("pt-PT", { hour12: false }) : "--:--:--"}
             </span>
-            <Button variant="outline" className="gap-2">
-              <RefreshCw className="size-4" /> Actualizar
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={refresh}
+              disabled={overviewQuery.isFetching}
+            >
+              <RefreshCw className={`size-4 ${overviewQuery.isFetching ? "animate-spin" : ""}`} />
+              Actualizar
             </Button>
           </div>
         </div>
+
+        <InstalledModuleTools module="comunicacoes" />
+
+        {overviewQuery.isError ? (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {overviewQuery.error instanceof Error
+              ? overviewQuery.error.message
+              : "Não foi possível carregar o dashboard."}
+            {/unauthorized/i.test(
+              overviewQuery.error instanceof Error ? overviewQuery.error.message : "",
+            )
+              ? " Termine a sessão e volte a entrar para renovar o token."
+              : ""}
+          </div>
+        ) : null}
+
+        {currentUser.role === "Professor" ? (
+          <Suspense fallback={<div className="surface-card h-40 animate-pulse bg-muted/40" />}>
+            <TeacherWorkspacePanel />
+          </Suspense>
+        ) : null}
 
         <section className="surface-card p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <TrendingUp className="size-4 text-primary" />
-              Progresso do {schoolYear}
+              Progresso do {yearName}
             </div>
-            <span className="text-sm font-bold text-primary">100%</span>
+            <span className="text-sm font-bold text-primary">
+              {data?.academicYear ? `${data.yearProgress}%` : "—"}
+            </span>
           </div>
           <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
-            <div className="h-full w-full rounded-full bg-primary" />
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${data?.academicYear ? data.yearProgress : 0}%` }}
+            />
           </div>
           <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-            <span>08/2024</span>
-            <span>07/2025</span>
+            <span>
+              {data?.academicYear
+                ? new Date(`${data.academicYear.starts_on}T00:00:00`).toLocaleDateString("pt-PT")
+                : "Sem ano lectivo activo"}
+            </span>
+            <span>
+              {data?.academicYear
+                ? new Date(`${data.academicYear.ends_on}T00:00:00`).toLocaleDateString("pt-PT")
+                : "—"}
+            </span>
           </div>
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((s) => {
-            const Icon = statIcons[s.icon as keyof typeof statIcons];
-            return (
-              <div key={s.label} className="surface-card p-5">
+            const card = (
+              <>
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm text-muted-foreground">{s.label}</p>
                   <IconChip
-                    icon={Icon}
+                    icon={s.icon}
                     size="md"
                     soft={false}
                     className={`${toneBg[s.tone]} rounded-2xl`}
@@ -199,207 +401,231 @@ function Dashboard() {
                 </div>
                 <p className="mt-3 text-4xl font-extrabold tracking-tight">{s.value}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
+              </>
+            );
+            return s.href ? (
+              <Link
+                key={s.label}
+                to={s.href}
+                search={s.search}
+                className="surface-card block p-5 transition-colors hover:border-primary/40"
+              >
+                {card}
+              </Link>
+            ) : (
+              <div key={s.label} className="surface-card p-5">
+                {card}
               </div>
             );
           })}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {miniStats.map((s) => {
-            const Icon = miniIcons[s.icon as keyof typeof miniIcons];
-            return (
-              <div key={s.label} className="surface-card flex items-center gap-4 p-4">
-                <IconChip
-                  icon={Icon}
-                  size="md"
-                  soft={false}
-                  className="rounded-2xl bg-primary-soft text-primary-strong"
-                />
-                <div>
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
-                  <p className="text-xl font-bold">{s.value}</p>
-                </div>
+          {miniStats.map((s) => (
+            <div key={s.label} className="surface-card flex items-center gap-4 p-4">
+              <IconChip
+                icon={s.icon}
+                size="md"
+                soft={false}
+                className="rounded-2xl bg-primary-soft text-primary-strong"
+              />
+              <div>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+                <p className="text-xl font-bold">{s.value}</p>
               </div>
-            );
-          })}
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          <ChartCard title="Estudantes por classe" meta="7 estudantes" className="lg:col-span-2">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={studentsByClass}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="classe" tickLine={false} axisLine={false} {...axis} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} {...axis} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: "1px solid var(--border)",
-                    background: "var(--popover)",
-                    color: "var(--popover-foreground)",
-                    fontSize: 12,
-                  }}
-                />
-                <Bar dataKey="alunos" fill="var(--chart-1)" radius={[8, 8, 0, 0]} maxBarSize={38} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard title="Distribuição por género">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={genderSplit}
-                  dataKey="value"
-                  innerRadius={58}
-                  outerRadius={84}
-                  paddingAngle={3}
-                >
-                  {genderSplit.map((_, i) => (
-                    <Cell key={i} fill={`var(--chart-${i + 1})`} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <ul className="mt-2 space-y-2 text-sm">
-              {genderSplit.map((g, i) => (
-                <li key={g.name} className="flex items-center gap-2">
-                  <span
-                    className="size-2.5 rounded-full"
-                    style={{ background: `var(--chart-${i + 1})` }}
-                  />
-                  <span className="text-muted-foreground">{g.name}</span>
-                  <span className="ml-auto font-semibold">
-                    {g.value} ({Math.round((g.value / 7) * 100)}%)
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </ChartCard>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ChartCard title="Matrículas por mês" meta="7 no total">
-            <ResponsiveContainer width="100%" height={230}>
-              <AreaChart data={enrollmentsByMonth}>
-                <defs>
-                  <linearGradient id="enroll" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="mes" tickLine={false} axisLine={false} {...axis} interval={1} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} {...axis} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: "1px solid var(--border)",
-                    background: "var(--popover)",
-                    color: "var(--popover-foreground)",
-                    fontSize: 12,
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="matriculas"
-                  stroke="var(--chart-1)"
-                  strokeWidth={2.5}
-                  fill="url(#enroll)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard title="Taxa de presença mensal" meta="Média: 97%">
-            <ResponsiveContainer width="100%" height={230}>
-              <AreaChart data={attendanceRate}>
-                <defs>
-                  <linearGradient id="att" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="mes" tickLine={false} axisLine={false} {...axis} />
-                <YAxis domain={[80, 100]} tickLine={false} axisLine={false} {...axis} unit="%" />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: "1px solid var(--border)",
-                    background: "var(--popover)",
-                    color: "var(--popover-foreground)",
-                    fontSize: 12,
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="taxa"
-                  stroke="var(--chart-3)"
-                  strokeWidth={2.5}
-                  fill="url(#att)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          <ChartCard title="Distribuição por idade" meta="7 com idade registada">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={ageDistribution}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="faixa" tickLine={false} axisLine={false} {...axis} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} {...axis} />
-                <Bar dataKey="alunos" fill="var(--chart-5)" radius={[8, 8, 0, 0]} maxBarSize={34} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <section className="surface-card p-5">
-            <div className="mb-4 flex items-center gap-2.5">
-              <IconChip {...inferIcon("Actividade recente")} size="sm" />
-              <h2 className="text-base font-semibold">Actividade recente</h2>
             </div>
-            <ul className="space-y-4">
-              {recentActivity.map((a) => (
-                <li key={a.title} className="flex gap-3">
-                  <span className={`mt-1.5 size-2 shrink-0 rounded-full ${dotTone[a.tone]}`} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{a.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{a.detail}</p>
-                  </div>
-                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">{a.time}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          ))}
+        </div>
 
+        {(data?.announcements?.length ?? 0) > 0 ? (
           <section className="surface-card p-5">
-            <div className="mb-4 flex items-center gap-2.5">
-              <IconChip {...inferIcon("Próximos eventos")} size="sm" />
-              <h2 className="text-base font-semibold">Próximos eventos</h2>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <IconChip icon={Megaphone} size="sm" />
+                <h2 className="text-base font-semibold">Comunicados</h2>
+              </div>
+              {canAccessPath("/comunicacoes", currentUser.role) ? (
+                <Button asChild size="sm" variant="ghost">
+                  <Link to="/comunicacoes">Ver todos</Link>
+                </Button>
+              ) : null}
             </div>
             <ul className="space-y-3">
-              {upcoming.map((e) => (
-                <li key={e.title} className="flex items-center gap-3 rounded-xl bg-secondary p-3">
-                  <IconChip
-                    icon={CalendarDays}
-                    size="sm"
-                    soft={false}
-                    className="rounded-xl bg-primary-soft text-primary-strong"
-                  />
-                  <p className="text-sm font-medium">{e.title}</p>
-                  <span className="ml-auto text-xs font-semibold text-muted-foreground">
-                    {e.date}
-                  </span>
+              {data?.announcements.map((item) => (
+                <li key={item.id} className="rounded-xl bg-secondary p-3">
+                  <p className="text-sm font-semibold">{item.title}</p>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
+                  {item.published_at ? (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {new Date(item.published_at).toLocaleDateString("pt-PT")}
+                    </p>
+                  ) : null}
+                  {whatsappNotices || resendOn ? (
+                    <div className="mt-2 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        className="text-[11px] font-semibold text-primary hover:underline"
+                        onClick={() => printAnnouncement(item)}
+                      >
+                        Imprimir
+                      </button>
+                      {whatsappNotices ? (
+                        <button
+                          type="button"
+                          className="text-[11px] font-semibold text-primary hover:underline"
+                          onClick={() => {
+                            const text = `${item.title}\n\n${item.body}`;
+                            window.open(
+                              `https://wa.me/?text=${encodeURIComponent(text)}`,
+                              "_blank",
+                              "noopener,noreferrer",
+                            );
+                          }}
+                        >
+                          Enviar no WhatsApp
+                        </button>
+                      ) : null}
+                      {resendOn ? (
+                        <button
+                          type="button"
+                          className="text-[11px] font-semibold text-primary hover:underline"
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(`${item.title}\n\n${item.body}`);
+                            toast.success("Texto copiado para envio Resend");
+                          }}
+                        >
+                          E-mail Resend
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        className="text-[11px] font-semibold text-primary hover:underline"
+                        onClick={() => printAnnouncement(item)}
+                      >
+                        Imprimir
+                      </button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
-            <p className="mt-4 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
-              Sem facturas registadas para este ano lectivo.
-            </p>
           </section>
+        ) : null}
+
+        <div className="space-y-4">
+          <Suspense fallback={<DashboardChartsSkeleton />}>
+            <DashboardCharts
+              loading={overviewQuery.isLoading}
+              totalStudents={totalStudents}
+              capabilities={{
+                students: capabilities.students,
+                finance: capabilities.finance,
+              }}
+              studentsByClass={data?.studentsByClass ?? []}
+              genderSplit={data?.genderSplit ?? []}
+              enrollmentsByMonth={data?.enrollmentsByMonth ?? []}
+              financeMonthly={data?.financeMonthly ?? []}
+              finance={data?.finance}
+              attendanceAverage={data?.totals.attendanceAverage}
+            />
+          </Suspense>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Suspense
+              fallback={
+                <div className="surface-card h-[300px] animate-pulse bg-muted/40 rounded-2xl" />
+              }
+            >
+              <DashboardAgeChart
+                capabilities={{ students: capabilities.students }}
+                ageDistribution={data?.ageDistribution ?? []}
+              />
+            </Suspense>
+
+            <section className="surface-card p-5">
+              <div className="mb-4 flex items-center gap-2.5">
+                <IconChip {...inferIcon("Actividade recente")} size="sm" />
+                <h2 className="text-base font-semibold">Actividade recente</h2>
+              </div>
+              {(data?.recentActivity?.length ?? 0) > 0 ? (
+                <ul className="space-y-4">
+                  {data?.recentActivity.map((a) => (
+                    <li key={a.id} className="flex gap-3">
+                      <span className={`mt-1.5 size-2 shrink-0 rounded-full ${dotTone[a.tone]}`} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{a.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">{a.detail}</p>
+                      </div>
+                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                        {a.time}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {capabilities.audit
+                    ? "Ainda não há eventos de auditoria."
+                    : "A auditoria só está disponível para Administrador."}
+                </p>
+              )}
+            </section>
+
+            <section className="surface-card p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <IconChip {...inferIcon("Marcos do calendário lectivo")} size="sm" />
+                  <h2 className="text-base font-semibold">Marcos do calendário lectivo</h2>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {canAccessPath("/calendario", currentUser.role) ? (
+                    <Button asChild size="sm" variant="ghost">
+                      <Link to="/calendario">Ver todos</Link>
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+              {(data?.upcomingEvents?.length ?? 0) > 0 ? (
+                <ul className="space-y-3">
+                  {data?.upcomingEvents.map((e) => (
+                    <li key={e.id} className="flex items-center gap-3 rounded-xl bg-secondary p-3">
+                      <IconChip
+                        icon={CalendarDays}
+                        size="sm"
+                        soft={false}
+                        className="rounded-xl bg-primary-soft text-primary-strong"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{e.title}</p>
+                        {e.description ? (
+                          <p className="truncate text-xs text-muted-foreground">{e.description}</p>
+                        ) : null}
+                      </div>
+                      <span className="ml-auto shrink-0 text-xs font-semibold text-muted-foreground">
+                        {new Date(`${e.event_date}T00:00:00`).toLocaleDateString("pt-PT", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Sem períodos futuros em <code className="font-mono">terms</code>.
+                </p>
+              )}
+              <p className="mt-4 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+                No SGA o calendário reflecte os períodos lectivos (
+                <code className="font-mono">terms</code>
+                ), não eventos livres.
+              </p>
+            </section>
+          </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
@@ -408,17 +634,21 @@ function Dashboard() {
               <IconChip {...inferIcon("Estado das Matrículas")} size="sm" />
               <h2 className="text-base font-semibold">Estado das Matrículas</h2>
             </div>
-            <ul className="space-y-3">
-              {enrollmentStatus.map((e) => (
-                <li
-                  key={e.estado}
-                  className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5"
-                >
-                  <span className="text-sm font-medium">{e.estado}</span>
-                  <span className="font-display text-lg font-bold">{e.total}</span>
-                </li>
-              ))}
-            </ul>
+            {(data?.enrollmentStatus?.length ?? 0) > 0 ? (
+              <ul className="space-y-3">
+                {data?.enrollmentStatus.map((e) => (
+                  <li
+                    key={e.estado}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5"
+                  >
+                    <span className="text-sm font-medium capitalize">{e.estado}</span>
+                    <span className="font-display text-lg font-bold">{e.total}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sem matrículas para resumir.</p>
+            )}
           </section>
 
           <section className="surface-card p-5">
@@ -426,22 +656,35 @@ function Dashboard() {
               <IconChip {...inferIcon("Estado dos Pagamentos")} size="sm" />
               <h2 className="text-base font-semibold">Estado dos Pagamentos</h2>
             </div>
-            <ul className="space-y-3">
-              {financeSummary.map((f) => (
-                <li
-                  key={f.estado}
-                  className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5"
-                >
-                  <span className="text-sm font-medium">{f.estado}</span>
-                  <span className="font-mono text-sm font-semibold">
-                    {f.valor.toLocaleString("pt-PT")} Kz
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-4 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
-              Sem facturas registadas para este ano lectivo.
-            </p>
+            {capabilities.finance && data?.finance ? (
+              <ul className="space-y-3">
+                {[
+                  { estado: "Recebido", valor: data.finance.received },
+                  { estado: "Em aberto", valor: data.finance.outstanding },
+                  { estado: "Em atraso", valor: data.finance.overdue },
+                  { estado: "Facturado", valor: data.finance.billed },
+                ].map((f) => (
+                  <li
+                    key={f.estado}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-3 py-2.5"
+                  >
+                    <span className="text-sm font-medium">{f.estado}</span>
+                    <span className="font-mono text-sm font-semibold">{kwanza(f.valor)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {capabilities.finance
+                  ? "Sem resumo financeiro."
+                  : "Financeiro disponível para Tesouraria/Admin."}
+              </p>
+            )}
+            {capabilities.finance ? (
+              <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+                <Link to="/relatorios/financeiros">Abrir relatórios financeiros</Link>
+              </Button>
+            ) : null}
           </section>
 
           <section className="surface-card p-5">
@@ -449,22 +692,28 @@ function Dashboard() {
               <IconChip {...inferIcon("Estudantes por Curso")} size="sm" />
               <h2 className="text-base font-semibold">Estudantes por Curso</h2>
             </div>
-            <ul className="space-y-3">
-              {studentsByCourse.map((c) => (
-                <li key={c.curso}>
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="truncate text-muted-foreground">{c.curso}</span>
-                    <span className="font-semibold">{c.alunos}</span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${(c.alunos / 7) * 100}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {(data?.studentsByCourse?.length ?? 0) > 0 ? (
+              <ul className="space-y-3">
+                {data?.studentsByCourse?.map((c) => (
+                  <li key={c.curso}>
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="truncate text-muted-foreground">{c.curso}</span>
+                      <span className="font-semibold">{c.alunos}</span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{
+                          width: `${totalStudents ? (c.alunos / totalStudents) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sem distribuição por curso.</p>
+            )}
           </section>
         </div>
 
@@ -474,25 +723,37 @@ function Dashboard() {
               <IconChip {...inferIcon("Turmas com Mais Estudantes")} size="sm" />
               <h2 className="text-base font-semibold">Turmas com Mais Estudantes</h2>
             </div>
-            <span className="text-xs font-semibold text-primary">Ver todas</span>
+            <Link
+              to="/pedagogica"
+              search={{ tab: "turmas" }}
+              className="text-xs font-semibold text-primary transition-colors hover:text-primary/80"
+            >
+              Ver todas
+            </Link>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {topClasses.map((t, i) => (
-              <div key={t.classe} className="rounded-xl border border-border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-primary-soft text-xs font-bold text-primary">
-                    {i + 1}
-                  </span>
-                  <p className="font-semibold">{t.classe}</p>
+          {(data?.topClasses?.length ?? 0) > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {data?.topClasses?.map((t, i) => (
+                <div key={t.classe} className="rounded-xl border border-border p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-7 items-center justify-center rounded-lg bg-primary-soft text-xs font-bold text-primary">
+                      {i + 1}
+                    </span>
+                    <p className="font-semibold">{t.classe}</p>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {t.curso} · Turma {t.turma}
+                  </p>
+                  <p className="mt-3 font-display text-2xl font-extrabold">{t.alunos}</p>
+                  <p className="text-xs text-muted-foreground">Alunos</p>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {t.curso} · Turma {t.turma} · {t.sala}
-                </p>
-                <p className="mt-3 font-display text-2xl font-extrabold">{t.alunos}</p>
-                <p className="text-xs text-muted-foreground">Alunos</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Crie turmas e atribua alunos para ver o ranking.
+            </p>
+          )}
         </section>
       </div>
     </AppShell>

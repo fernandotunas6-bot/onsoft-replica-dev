@@ -1,10 +1,5 @@
 import { Check, Monitor, Moon, RotateCcw, Sun } from "lucide-react";
-import {
-  accentPresets,
-  sidebarPresets,
-  useAppearance,
-  type ThemeMode,
-} from "@/lib/appearance";
+import { accentPresets, sidebarPresets, useAppearance, type ThemeMode } from "@/lib/appearance";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -80,9 +75,7 @@ export function AppearanceColors() {
               )}
               style={{ backgroundColor: p.swatch }}
             >
-              {state.accent === p.id ? (
-                <Check className="size-4 text-primary-foreground" />
-              ) : null}
+              {state.accent === p.id ? <Check className="size-4 text-primary-foreground" /> : null}
             </button>
           ))}
         </div>

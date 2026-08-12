@@ -1,0 +1,223 @@
+{
+  "project": "SIGA",
+  "sgaRef": "xodgfmxiaunpamctfeea",
+  "node": "24",
+  "sqlApply": [
+    "supabase/APPLY_IN_SQL_EDITOR.sql",
+    "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+  ],
+  "sqlNeverApplyToSga": [
+    "all_migrations_combined.sql",
+    "supabase/pending_feature_migrations.sql",
+    "supabase/migrations/20260810122022_foundation_schema.sql"
+  ],
+  "modules": [
+    {
+      "id": "dashboard",
+      "skill": "siga-dashboard",
+      "label": "Dashboard",
+      "routes": [
+        "src/routes/index.tsx"
+      ],
+      "feature": [
+        "src/features/dashboard/server.ts",
+        "src/features/dashboard/alerts.ts",
+        "src/features/academic/TeacherWorkspacePanel.tsx",
+        "src/features/spotlight/catalog.ts",
+        "src/features/spotlight/schemas.ts",
+        "src/features/spotlight/server.ts"
+      ],
+      "tests": [
+        "tests/dashboard/alerts.test.ts",
+        "tests/spotlight/catalog.test.ts"
+      ],
+      "accessKey": "dashboard"
+    },
+    {
+      "id": "alunos",
+      "skill": "siga-alunos",
+      "label": "Alunos / matrículas internas",
+      "routes": [
+        "src/routes/alunos/index.tsx",
+        "src/routes/alunos/$studentId.tsx"
+      ],
+      "feature": [
+        "src/features/students/schemas.ts",
+        "src/features/students/server.ts",
+        "src/features/students/StudentEnrollmentSheet.tsx"
+      ],
+      "tests": [
+        "tests/students/schemas.test.ts"
+      ],
+      "accessKey": "pessoas"
+    },
+    {
+      "id": "pessoas",
+      "skill": "siga-pessoas",
+      "label": "Pessoas e professores",
+      "routes": [
+        "src/routes/pessoas/index.tsx",
+        "src/routes/professores/$teacherId.tsx"
+      ],
+      "feature": [
+        "src/features/people/schemas.ts",
+        "src/features/people/server.ts"
+      ],
+      "tests": [
+        "tests/people/schemas.test.ts"
+      ],
+      "accessKey": "pessoas"
+    },
+    {
+      "id": "pedagogica",
+      "skill": "siga-pedagogica",
+      "label": "Área pedagógica / turmas",
+      "routes": [
+        "src/routes/pedagogica.tsx",
+        "src/routes/relatorios.academicos.tsx"
+      ],
+      "feature": [
+        "src/features/academic/schemas.ts",
+        "src/features/academic/server.ts",
+        "src/features/academic/ClassGroupSheet.tsx",
+        "src/features/academic/sga-grades.ts"
+      ],
+      "tests": [
+        "tests/academic/schemas.test.ts"
+      ],
+      "accessKey": "pedagogica"
+    },
+    {
+      "id": "financeiro",
+      "skill": "siga-financeiro",
+      "label": "Tesouraria e faturas",
+      "routes": [
+        "src/routes/financeiro.tsx",
+        "src/routes/faturas.tsx",
+        "src/routes/relatorios.financeiros.tsx"
+      ],
+      "feature": [
+        "src/features/finance/schemas.ts",
+        "src/features/finance/server.ts"
+      ],
+      "accessKey": "financeiro"
+    },
+    {
+      "id": "documentos",
+      "skill": "siga-documentos",
+      "label": "Documentos",
+      "routes": [
+        "src/routes/documentos.tsx"
+      ],
+      "feature": [
+        "src/features/documents/schemas.ts",
+        "src/features/documents/server.ts"
+      ],
+      "accessKey": "pessoas"
+    },
+    {
+      "id": "calendario",
+      "skill": "siga-calendario",
+      "label": "Calendário e ICS",
+      "routes": [
+        "src/routes/calendario.tsx",
+        "src/routes/calendario.ics.tsx"
+      ],
+      "feature": [
+        "src/features/calendar/schemas.ts",
+        "src/features/calendar/server.ts",
+        "src/features/calendar/feed.ts"
+      ],
+      "tests": [
+        "tests/calendar/schemas.test.ts"
+      ],
+      "accessKey": "pedagogica"
+    },
+    {
+      "id": "comunicacoes",
+      "skill": "siga-comunicacoes",
+      "label": "Comunicações",
+      "routes": [
+        "src/routes/comunicacoes.tsx"
+      ],
+      "feature": [
+        "src/features/communications/schemas.ts",
+        "src/features/communications/server.ts",
+        "src/features/messages/schemas.ts",
+        "src/features/messages/server.ts"
+      ],
+      "tests": [
+        "tests/communications/schemas.test.ts",
+        "tests/messages/schemas.test.ts"
+      ],
+      "accessKey": "pedagogica"
+    },
+    {
+      "id": "acessos",
+      "skill": "siga-acessos",
+      "label": "Acessos, grants e 2FA",
+      "routes": [
+        "src/routes/acessos.tsx",
+        "src/routes/alterar-senha.tsx"
+      ],
+      "feature": [
+        "src/features/access/schemas.ts",
+        "src/features/access/server.ts",
+        "src/features/access/grants.ts",
+        "src/features/auth/access-policy.ts",
+        "src/components/auth/AuthGate.tsx"
+      ],
+      "tests": [
+        "tests/auth/access-policy.test.ts"
+      ],
+      "accessKey": "gestao"
+    },
+    {
+      "id": "matricula",
+      "skill": "siga-matricula",
+      "label": "Matrícula pública",
+      "routes": [
+        "src/routes/matricula/$slug.tsx"
+      ],
+      "feature": [
+        "src/features/enrollment/schemas.ts",
+        "src/features/enrollment/server.ts",
+        "src/features/enrollment/EnrollmentCampaignPanel.tsx"
+      ],
+      "tests": [
+        "tests/enrollment/schemas.test.ts"
+      ],
+      "publicPath": "/matricula",
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+    },
+    {
+      "id": "integracoes",
+      "skill": "siga-integracoes",
+      "label": "Integrações catalog-ready",
+      "routes": [],
+      "feature": [
+        "src/features/integrations/catalog.ts",
+        "src/features/integrations/server.ts",
+        "src/features/school/settings-panels.tsx"
+      ],
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+    },
+    {
+      "id": "arquivos",
+      "skill": "siga-arquivos",
+      "label": "Arquivos",
+      "routes": ["src/routes/arquivos.tsx"],
+      "feature": [
+        "src/features/arquivos/schemas.ts",
+        "src/features/arquivos/server.ts",
+        "src/features/arquivos/FileBrowser.tsx",
+        "src/features/arquivos/ClassMaterialsPanel.tsx",
+        "src/features/arquivos/FilePickerModal.tsx",
+        "src/features/arquivos/resolve-file.ts"
+      ],
+      "tests": ["tests/arquivos/schemas.test.ts"],
+      "accessKey": "arquivos",
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+    }
+  ]
+}

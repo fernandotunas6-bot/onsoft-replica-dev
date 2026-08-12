@@ -1,0 +1,60 @@
+import { describe, expect, it } from "vitest";
+import { canAccessPath, canReadModule, canWriteModule } from "@/features/auth/access-policy";
+
+describe("access policy", () => {
+  it("allows administrators into every protected area", () => {
+    for (const path of ["/", "/configuracoes", "/acessos", "/financeiro", "/alunos"]) {
+      expect(canAccessPath(path, "Administrador")).toBe(true);
+    }
+  });
+
+  it("keeps finance routes limited to finance roles", () => {
+    expect(canAccessPath("/financeiro", "Tesouraria")).toBe(true);
+    expect(canAccessPath("/relatorios/financeiros/2026", "Tesouraria")).toBe(true);
+    expect(canAccessPath("/financeiro", "Secretaria")).toBe(false);
+    expect(canAccessPath("/faturas", "Professor")).toBe(false);
+  });
+
+  it("keeps student records limited to administration and secretariat", () => {
+    expect(canAccessPath("/alunos/abc", "Secretaria")).toBe(true);
+    expect(canAccessPath("/pessoas", "Tesouraria")).toBe(false);
+    expect(canAccessPath("/documentos", "Professor")).toBe(false);
+  });
+
+  it("allows professors only into pedagogical and communication modules", () => {
+    expect(canAccessPath("/pedagogica", "Professor")).toBe(true);
+    expect(canAccessPath("/relatorios/academicos", "Professor")).toBe(true);
+    expect(canAccessPath("/comunicacoes", "Professor")).toBe(true);
+    expect(canAccessPath("/arquivos", "Professor")).toBe(true);
+    expect(canAccessPath("/arquivos", "Tesouraria")).toBe(true);
+    expect(canAccessPath("/arquivos", "Encarregado")).toBe(false);
+    expect(canAccessPath("/configuracoes", "Professor")).toBe(false);
+  });
+
+  it("keeps account maintenance available without exposing operational modules", () => {
+    expect(canAccessPath("/alterar-senha", "Utilizador")).toBe(true);
+    expect(canAccessPath("/", "Utilizador")).toBe(false);
+    expect(canAccessPath("/", "Encarregado")).toBe(false);
+    expect(canAccessPath("/alunos", "cargo-invalido")).toBe(false);
+    expect(canAccessPath("/modulo-futuro", "Administrador")).toBe(false);
+  });
+
+  it("honours per-user module grants over the role default", () => {
+    expect(canAccessPath("/financeiro", "Professor")).toBe(false);
+    expect(canAccessPath("/financeiro", "Professor", { financeiro: "Leitura" })).toBe(true);
+    expect(canAccessPath("/alunos", "Professor", { pessoas: "Nenhum" })).toBe(false);
+    expect(canAccessPath("/matricula/escola", "Utilizador")).toBe(true);
+    expect(canAccessPath("/calendario/ics", "Utilizador")).toBe(true);
+    expect(canAccessPath("/professores/abc", "Professor")).toBe(true);
+    expect(canAccessPath("/alunos", "Professor")).toBe(false);
+  });
+
+  it("distinguishes read vs write levels by role", () => {
+    expect(canReadModule("Professor", "pedagogica")).toBe(true);
+    expect(canWriteModule("Professor", "pedagogica")).toBe(false);
+    expect(canWriteModule("Secretaria", "pedagogica")).toBe(true);
+    expect(canWriteModule("Secretaria", "pessoas")).toBe(true);
+    expect(canWriteModule("Tesouraria", "financeiro")).toBe(true);
+    expect(canWriteModule("Tesouraria", "pessoas")).toBe(false);
+  });
+});

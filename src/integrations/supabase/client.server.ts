@@ -4,10 +4,7 @@
 // For user-authenticated queries (with RLS), use the auth middleware instead.
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
-
-function isNewSupabaseApiKey(value: string): boolean {
-  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
-}
+import { assertSecretSupabaseKey, isOpaqueSupabaseApiKey } from "./api-key";
 
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
   return (input, init) => {
@@ -21,7 +18,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
     // New Supabase API keys are opaque strings, not bearer JWTs.
     if (
-      isNewSupabaseApiKey(supabaseKey) &&
+      isOpaqueSupabaseApiKey(supabaseKey) &&
       headers.get("Authorization") === `Bearer ${supabaseKey}`
     ) {
       headers.delete("Authorization");
@@ -34,17 +31,24 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
 function createSupabaseAdminClient() {
   const SUPABASE_URL = process.env["SUPABASE_URL"];
-  const SUPABASE_SERVICE_ROLE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+  const secretKey = process.env["SUPABASE_SECRET_KEY"];
+  const legacyServiceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+  const SUPABASE_SERVICE_ROLE_KEY = secretKey || legacyServiceRoleKey;
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     const missing = [
       ...(!SUPABASE_URL ? ["SUPABASE_URL"] : []),
-      ...(!SUPABASE_SERVICE_ROLE_KEY ? ["SUPABASE_SERVICE_ROLE_KEY"] : []),
+      ...(!SUPABASE_SERVICE_ROLE_KEY ? ["SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY"] : []),
     ];
     const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Connect Supabase in Lovable Cloud.`;
     console.error(`[Supabase] ${message}`);
     throw new Error(message);
   }
+
+  assertSecretSupabaseKey(
+    SUPABASE_SERVICE_ROLE_KEY,
+    secretKey ? "SUPABASE_SECRET_KEY" : "SUPABASE_SERVICE_ROLE_KEY",
+  );
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     global: {
@@ -54,6 +58,7 @@ function createSupabaseAdminClient() {
       storage: undefined,
       persistSession: false,
       autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
   });
 }

@@ -1,14 +1,15 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { X } from "lucide-react";
 import type { ElementType } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { IconChip, type ChipTone } from "@/components/ui/icon-chip";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import type { ChipTone } from "@/components/ui/icon-chip";
 import { cn } from "@/lib/utils";
 
 /**
- * Modal em pilha (estilo Lovable "Configurações"): um único diálogo onde cada
- * função abre a função seguinte em profundidade, com histórico, migalhas de pão
- * e botão de voltar. Modular: os painéis são declarados como dados.
+ * Modal de configurações em duas colunas (estilo ChatGPT/macOS): a navegação
+ * de topo fica sempre visível à esquerda, o conteúdo actualiza-se à direita
+ * sem empilhar ecrãs. Painéis com sub-linhas mostram cada sub-secção em bloco,
+ * uma a seguir à outra, na coluna direita. Modular: declarado como dados.
  */
 
 export type StackPanel = {
@@ -30,10 +31,8 @@ export type StackRow = {
   description?: string;
   icon: ElementType;
   tone?: ChipTone;
-  badge?: string;
   /** Id do painel filho a abrir. */
   to?: string;
-  onSelect?: (ctx: StackNav) => void;
 };
 
 export type StackNav = {
@@ -59,6 +58,7 @@ export function StackedModal({
   rootId,
   eyebrow,
   size = "lg",
+  initialPanelId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -66,144 +66,159 @@ export function StackedModal({
   rootId: string;
   eyebrow?: string;
   size?: "md" | "lg" | "xl";
+  /** Categoria a mostrar já seleccionada quando o modal abre (id de um painel de topo ou de uma sub-secção). */
+  initialPanelId?: string | undefined;
 }) {
-  const [stack, setStack] = useState<string[]>([rootId]);
-
   const byId = useMemo(() => new Map(panels.map((p) => [p.id, p])), [panels]);
+  const root = byId.get(rootId);
+  const topRows = useMemo(() => root?.rows ?? [], [root]);
 
-  const push = useCallback(
-    (id: string) => setStack((s) => (byId.has(id) ? [...s, id] : s)),
-    [byId],
-  );
-  const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), []);
-  const reset = useCallback(() => setStack([rootId]), [rootId]);
-  const close = useCallback(() => onOpenChange(false), [onOpenChange]);
+  const resolveTopId = (targetId?: string) => {
+    if (targetId) {
+      if (topRows.some((row) => row.to === targetId)) return targetId;
+      const parent = topRows.find((row) => {
+        const panel = row.to ? byId.get(row.to) : undefined;
+        return panel?.rows?.some((sub) => sub.to === targetId);
+      });
+      if (parent?.to) return parent.to;
+    }
+    return topRows[0]?.to ?? rootId;
+  };
+
+  const [activeId, setActiveId] = useState(() => resolveTopId(initialPanelId));
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const topId = resolveTopId(initialPanelId);
+    setActiveId(topId);
+    if (!initialPanelId || initialPanelId === topId) return undefined;
+    const id = initialPanelId;
+    const timer = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ block: "start" });
+    }, 80);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só recalcular quando o modal (re)abre
+  }, [open, initialPanelId]);
+
+  const push = (id: string) => byId.has(id) && setActiveId(resolveTopId(id));
+  const close = () => onOpenChange(false);
 
   const nav: StackNav = useMemo(
-    () => ({ push, back, reset, close, depth: stack.length }),
-    [push, back, reset, close, stack.length],
+    () => ({ push, back: () => {}, reset: () => setActiveId(resolveTopId()), close, depth: 1 }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- push/close recriam-se por render, mas são estáveis o suficiente aqui
+    [byId, topRows],
   );
 
-  const current = byId.get(stack[stack.length - 1] ?? rootId) ?? byId.get(rootId);
-  if (!current) return null;
+  const active = byId.get(activeId) ?? root;
+  if (!active) return null;
 
-  const width = size === "xl" ? "sm:max-w-5xl" : size === "md" ? "sm:max-w-xl" : "sm:max-w-3xl";
-  const trail = stack.map((id) => byId.get(id)?.title ?? id);
+  const width = size === "xl" ? "sm:max-w-6xl" : size === "md" ? "sm:max-w-2xl" : "sm:max-w-4xl";
+
+  const renderLeaf = (panel: StackPanel) => (
+    <>
+      {panel.render ? panel.render(nav) : null}
+      {panel.footer ? (
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+          {panel.footer(nav)}
+        </div>
+      ) : null}
+    </>
+  );
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        onOpenChange(v);
-        if (!v) reset();
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn("overflow-hidden border-border/70 p-0 shadow-2xl sm:rounded-2xl", width)}
+        className={cn(
+          "flex h-[min(700px,85vh)] flex-col gap-0 overflow-hidden border-border/70 p-0 shadow-2xl sm:rounded-2xl",
+          width,
+        )}
       >
+        <DialogTitle className="sr-only">
+          {eyebrow ? `${eyebrow} — Configurações` : "Configurações"}
+        </DialogTitle>
+
         <NavContext.Provider value={nav}>
-          <header className="relative overflow-hidden border-b border-border/70 bg-gradient-to-br from-primary/12 via-primary/5 to-transparent px-5 py-4 md:px-6">
-            <span className="pointer-events-none absolute -right-12 -top-20 size-44 rounded-full bg-primary/15 blur-3xl" />
-            <div className="relative flex items-start gap-3">
-              {stack.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={back}
-                  aria-label="Voltar ao nível anterior"
-                  className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary/60"
-                >
-                  <ChevronLeft className="size-4" />
-                </button>
-              ) : (
-                <IconChip icon={current.icon} tone={current.tone ?? "primary"} size="md" />
-              )}
+          <div className="flex min-h-0 flex-1">
+            <nav
+              aria-label="Categorias de configurações"
+              className="no-scrollbar flex w-16 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-border/70 bg-secondary/20 py-4 sm:w-64 sm:items-stretch sm:p-3"
+            >
+              <p className="hidden px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:block">
+                {eyebrow ?? "Configurações"}
+              </p>
+              {topRows.map((row) => {
+                const isActive = row.to === activeId;
+                return (
+                  <button
+                    key={row.label}
+                    type="button"
+                    title={row.label}
+                    aria-current={isActive}
+                    onClick={() => row.to && setActiveId(row.to)}
+                    className={cn(
+                      "flex w-full items-center justify-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 sm:justify-start",
+                      isActive
+                        ? "bg-secondary text-foreground"
+                        : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                    )}
+                  >
+                    <row.icon className="size-4 shrink-0" aria-hidden />
+                    <span className="hidden truncate sm:inline">{row.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
 
-              <div className="min-w-0 flex-1">
-                <nav
-                  aria-label="Percurso"
-                  className="flex flex-wrap items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary"
-                >
-                  {eyebrow && stack.length === 1 ? <span>{eyebrow}</span> : null}
-                  {trail.slice(0, -1).map((t, i) => (
-                    <span key={`${t}-${i}`} className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setStack((s) => s.slice(0, i + 1))}
-                        className="rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-primary/60"
-                      >
-                        {t}
-                      </button>
-                      <ChevronRight className="size-3 opacity-70" aria-hidden />
-                    </span>
-                  ))}
-                </nav>
-                <DialogTitle className="font-display text-lg font-extrabold tracking-tight md:text-xl">
-                  {current.title}
-                </DialogTitle>
-                {current.description ? (
-                  <DialogDescription className="mt-0.5 text-sm">
-                    {current.description}
-                  </DialogDescription>
-                ) : null}
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <div className="sticky top-0 z-10 shrink-0 border-b border-border/70 bg-background/75 px-5 py-4 backdrop-blur-xl md:px-9">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                    <active.icon className="size-4.5" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="font-display text-lg font-extrabold tracking-tight md:text-xl">
+                      {active.title}
+                    </h3>
+                    {active.description ? (
+                      <p className="truncate text-xs text-muted-foreground md:text-sm">
+                        {active.description}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
               </div>
 
-              <span className="size-9 shrink-0" aria-hidden />
+              <div className="no-scrollbar flex-1 overflow-y-auto px-5 py-6 md:px-9 md:py-8">
+                <div className="space-y-8">
+                  {active.rows?.length
+                    ? active.rows.map((row) => {
+                        const leaf = row.to ? byId.get(row.to) : undefined;
+                        if (!leaf) return null;
+                        return (
+                          <section key={row.label} id={row.to} className="scroll-mt-4">
+                            <div className="flex items-center gap-2.5">
+                              <row.icon
+                                className="size-4 shrink-0 text-muted-foreground"
+                                aria-hidden
+                              />
+                              <h4 className="text-sm font-semibold text-foreground">{row.label}</h4>
+                            </div>
+                            {row.description ? (
+                              <p className="mt-0.5 pl-6 text-xs text-muted-foreground">
+                                {row.description}
+                              </p>
+                            ) : null}
+                            <div className="mt-3 border-t border-border/70 pl-6 pt-4">
+                              {renderLeaf(leaf)}
+                            </div>
+                          </section>
+                        );
+                      })
+                    : renderLeaf(active)}
+                </div>
+              </div>
             </div>
-          </header>
-
-          <div className="no-scrollbar max-h-[62vh] overflow-y-auto px-3 py-3 md:px-4 md:py-4">
-            {current.rows?.length ? (
-              <ul className="space-y-1">
-                {current.rows.map((row) => (
-                  <li key={row.label}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        row.onSelect?.(nav);
-                        if (row.to) push(row.to);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary/60"
-                    >
-                      <IconChip icon={row.icon} tone={row.tone ?? "muted"} size="sm" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-foreground">
-                          {row.label}
-                        </span>
-                        {row.description ? (
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {row.description}
-                          </span>
-                        ) : null}
-                      </span>
-                      {row.badge ? (
-                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
-                          {row.badge}
-                        </span>
-                      ) : null}
-                      {row.to ? (
-                        <ChevronRight
-                          className="size-4 shrink-0 text-muted-foreground"
-                          aria-hidden
-                        />
-                      ) : null}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            {current.render ? (
-              <div className={cn("px-2", current.rows?.length && "mt-4")}>
-                {current.render(nav)}
-              </div>
-            ) : null}
           </div>
-
-          {current.footer ? (
-            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/70 bg-secondary/40 px-5 py-3.5 md:px-6">
-              {current.footer(nav)}
-            </div>
-          ) : null}
         </NavContext.Provider>
       </DialogContent>
     </Dialog>
