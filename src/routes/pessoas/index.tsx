@@ -56,7 +56,7 @@ import {
 } from "@/features/people/server";
 import { personDocumentTypeOptions } from "@/features/people/schemas";
 import { exportCsv } from "@/lib/export-csv";
-import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf";
+import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { formatAngolaBi, isAngolaBiNif, validateAngolaNif } from "@/lib/angola-identity";

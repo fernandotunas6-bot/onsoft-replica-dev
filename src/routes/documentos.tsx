@@ -39,7 +39,7 @@ import {
   exportOfficialDeclarationPdf,
   exportOfficialPautaPdf,
   exportPdfTable,
-} from "@/lib/export-pdf";
+} from "@/lib/export-pdf-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
 

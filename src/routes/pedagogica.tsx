@@ -66,7 +66,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
-import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf";
+import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { toast } from "sonner";

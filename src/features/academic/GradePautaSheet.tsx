@@ -21,7 +21,7 @@ import { upsertTermGradesBatch } from "@/features/academic/server";
 import { overlayPauta, overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { setTermLock } from "@/features/school/server";
-import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf";
+import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import {
   angolaGradeScale,
   annualAverage,

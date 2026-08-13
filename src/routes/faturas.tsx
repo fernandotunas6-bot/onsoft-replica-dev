@@ -34,13 +34,13 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { AppMark } from "@/features/integrations/app-marks";
 import { kwanza } from "@/lib/currency";
-import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf";
+import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
 import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
-import { exportPdfTable } from "@/lib/export-pdf";
+import { exportPdfTable } from "@/lib/export-pdf-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
 

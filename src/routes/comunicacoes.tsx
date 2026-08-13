@@ -40,7 +40,7 @@ import {
   updateSchoolAnnouncementStatus,
 } from "@/features/communications/server";
 import { exportCsv } from "@/lib/export-csv";
-import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf";
+import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";

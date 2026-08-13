@@ -7,7 +7,7 @@ import {
   type PrintStudentContext,
 } from "@/features/documents/print-catalog";
 import { renderHandlebars } from "@/features/documents/render-hbs";
-import { printOfficialHtml } from "@/lib/export-pdf";
+import { printOfficialHtml } from "@/lib/print-html";
 
 export function mergePrintPayload(
   base: Record<string, unknown>,

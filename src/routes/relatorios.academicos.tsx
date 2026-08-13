@@ -25,7 +25,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { exportCsv, type CsvValue } from "@/lib/export-csv";
-import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf";
+import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";

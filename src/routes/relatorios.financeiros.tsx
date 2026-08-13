@@ -23,7 +23,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { getFinanceReporting } from "@/features/finance/server";
 import { kwanza } from "@/lib/currency";
 import { exportCsv, type CsvValue } from "@/lib/export-csv";
-import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf";
+import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { buildFinancePrintSchool } from "@/lib/finance-print";

@@ -6,7 +6,7 @@ import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { PremiumModal } from "@/components/ui/premium-modal";
 import { cn } from "@/lib/utils";
-import { printOfficialHtml } from "@/lib/export-pdf";
+import { printOfficialHtml } from "@/lib/print-html";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import {

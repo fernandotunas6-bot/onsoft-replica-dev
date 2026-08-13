@@ -39,7 +39,7 @@ import {
 import { setTermLock } from "@/features/school/server";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { exportCsv } from "@/lib/export-csv";
-import { exportOfficialPautaPdf } from "@/lib/export-pdf";
+import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
 import {
   overlayActa,
   overlayBoletim,

@@ -63,7 +63,7 @@ import { kwanza } from "@/lib/currency";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { formatScore } from "@/lib/angola-academic";
-import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf";
+import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/alunos/$studentId")({

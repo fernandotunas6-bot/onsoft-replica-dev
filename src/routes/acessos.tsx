@@ -32,7 +32,7 @@ import { overlayCredenciais, overlayServico } from "@/features/documents/print-o
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { exportCsv } from "@/lib/export-csv";
-import { exportOfficialPautaPdf } from "@/lib/export-pdf";
+import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
 import {
   inviteSystemUser,
   listSystemAccounts,
