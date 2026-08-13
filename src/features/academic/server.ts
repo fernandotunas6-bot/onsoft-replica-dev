@@ -121,13 +121,13 @@ async function loadPeopleLite(
     const { data, error } = await db.from("people").select(columns).in("id", personIds);
     if (error) continue;
     for (const row of data ?? []) {
-      const record = row as Record<string, unknown>;
-      map.set(String(record.id), {
-        id: String(record.id),
-        full_name: String(record.full_name ?? "—"),
+      const record = row as unknown as Record<string, unknown>;
+      map.set(String(record["id"]), {
+        id: String(record["id"]),
+        full_name: String(record["full_name"] ?? "—"),
         photo_url:
-          (typeof record.photo_url === "string" && record.photo_url) ||
-          (typeof record.avatar_url === "string" && record.avatar_url) ||
+          (typeof record["photo_url"] === "string" && record["photo_url"]) ||
+          (typeof record["avatar_url"] === "string" && record["avatar_url"]) ||
           null,
       });
     }
@@ -176,6 +176,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listPedagogicalWorkspaceInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }): Promise<PedagogicalWorkspace> => {
+    if (!context) throw new Error("Não autenticado.");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     // Leituras académicas via admin: várias tabelas SGA não têm GRANT/RLS para authenticated.
@@ -271,7 +272,9 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           .eq("status", "active")
       : { data: [] as Array<Record<string, unknown>> };
 
-    const classSubjectIds = (classSubjects ?? []).map((row: { id: string }) => row.id);
+    const classSubjectIds = (classSubjects ?? []).map((row: Record<string, unknown>) =>
+      String(row["id"]),
+    );
     const { data: timetableSlots, error: scheduleError } = classSubjectIds.length
       ? await db
           .from("timetable_slots")
@@ -336,27 +339,38 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       ]),
     );
     const classSubjectById = new Map(
-      (classSubjects ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
+      (classSubjects ?? []).map((row: Record<string, unknown>) => [
+        String(row["id"]),
+        row,
+      ]),
     );
 
-    const classGroups = (groups.data ?? []).map((group: Record<string, unknown>) => {
-      const grade = gradeById.get(String(group.grade_level_id));
-      const program = grade?.program_id ? programById.get(String(grade.program_id)) : null;
-      const campus = group.campus_id ? campusById.get(String(group.campus_id)) : null;
-      const year = yearById.get(String(group.academic_year_id));
-      const stats = enrollmentStats.get(String(group.id));
-      return {
-        ...group,
-        course_id: program?.id ?? null,
-        course_name: (program?.name as string) ?? "—",
-        grade_name: (grade?.name as string) ?? "—",
-        room_name: (campus?.name as string) ?? "—",
-        academic_year_name: (year?.name as string) ?? "—",
-        enrolled_count: stats?.count ?? 0,
-        average_score: null,
-        attendance_rate: averagePercent(stats?.rates ?? []),
-      };
-    });
+    const classGroups: ClassGroupSummary[] = (groups.data ?? []).map(
+      (group: Record<string, unknown>) => {
+        const grade = gradeById.get(String(group["grade_level_id"]));
+        const program = grade?.["program_id"]
+          ? programById.get(String(grade["program_id"]))
+          : null;
+        const campus = group["campus_id"]
+          ? campusById.get(String(group["campus_id"]))
+          : null;
+        const year = yearById.get(String(group["academic_year_id"]));
+        const stats = enrollmentStats.get(String(group["id"]));
+        return {
+          ...group,
+          id: String(group["id"]),
+          name: String(group["name"] ?? ""),
+          course_id: program ? String(program["id"] ?? "") : null,
+          course_name: (program?.["name"] as string) ?? "—",
+          grade_name: (grade?.["name"] as string) ?? "—",
+          room_name: (campus?.["name"] as string) ?? "—",
+          academic_year_name: (year?.["name"] as string) ?? "—",
+          enrolled_count: stats?.count ?? 0,
+          average_score: null,
+          attendance_rate: averagePercent(stats?.rates ?? []),
+        };
+      },
+    );
 
     const studentIds = [...new Set((enrollments.data ?? []).map((row) => String(row.student_id)))];
     const studentsById = new Map<
@@ -398,6 +412,8 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       ? []
       : ((subjects.data ?? []) as Array<Record<string, unknown>>).map((subject) => ({
           ...subject,
+          id: String(subject["id"] ?? ""),
+          name: String(subject["name"] ?? ""),
           teacher_name: null,
           weekly_hours: 0,
           grade_from: null,
@@ -412,43 +428,41 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       const student = studentsById.get(String(enrollment.student_id));
       return {
         id: String(enrollment.id),
-        label: `${student?.full_name ?? "Aluno"} · ${(group?.name as string) ?? "Turma"}`,
+        label: `${student?.full_name ?? "Aluno"} · ${(group?.["name"] as string) ?? "Turma"}`,
         student_id: student?.id ?? String(enrollment.student_id),
         student_name: student?.full_name ?? "—",
         student_photo_url: student?.photo_url ?? null,
         registration_number: student?.registration_number ?? null,
         class_group_id: enrollment.class_group_id ? String(enrollment.class_group_id) : null,
-        class_group_name: (group?.name as string) ?? "—",
+        class_group_name: (group?.["name"] as string) ?? "—",
       };
     });
 
-    const scheduleRows = scheduleMissing
+    const scheduleRows: ScheduleSlotSummary[] = scheduleMissing
       ? []
       : (timetableSlots ?? []).map((slot: Record<string, unknown>) => {
-          const classSubject = classSubjectById.get(String(slot.class_subject_id));
-          const subject = classSubject?.subject_id
-            ? subjectById.get(String(classSubject.subject_id))
-            : null;
-          const classGroup = classSubject?.class_group_id
-            ? groupById.get(String(classSubject.class_group_id))
-            : null;
+          const classSubject = classSubjectById.get(String(slot["class_subject_id"]));
+          const subjectIdRaw = classSubject?.["subject_id"];
+          const subject = subjectIdRaw ? subjectById.get(String(subjectIdRaw)) : null;
+          const classGroupIdRaw = classSubject?.["class_group_id"];
+          const classGroup = classGroupIdRaw ? groupById.get(String(classGroupIdRaw)) : null;
           return {
-            id: slot.id,
-            class_group_id: classSubject?.class_group_id ?? null,
-            weekday: slot.weekday,
-            starts_at: slot.starts_at,
-            ends_at: slot.ends_at,
-            subject_id: classSubject?.subject_id ?? null,
-            label: slot.room ?? null,
-            subject_name: (subject?.name as string | null) ?? null,
-            display_label: (subject?.name as string) ?? (slot.room as string) ?? "—",
-            class_group_name: (classGroup?.name as string) ?? "—",
+            id: slot["id"],
+            class_group_id: classGroupIdRaw ? String(classGroupIdRaw) : null,
+            weekday: slot["weekday"],
+            starts_at: slot["starts_at"],
+            ends_at: slot["ends_at"],
+            subject_id: subjectIdRaw ? String(subjectIdRaw) : null,
+            label: slot["room"] ?? null,
+            subject_name: (subject?.["name"] as string | null) ?? null,
+            display_label: (subject?.["name"] as string) ?? (slot["room"] as string) ?? "—",
+            class_group_name: (classGroup?.["name"] as string) ?? "—",
           };
         });
 
     const academicYears = (years.data ?? []).map((year: Record<string, unknown>) => ({
       ...year,
-      code: year.name,
+      code: year["name"],
     }));
 
     const subjectPassRates = new Map<string, { pass: number; total: number }>();
@@ -456,7 +470,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       ? []
       : termGradeRows.map((grade) => {
           const enrollment = (enrollments.data ?? []).find(
-            (row) => String(row.id) === grade.enrollment_id,
+            (row) => String(row["id"]) === grade.enrollment_id,
           );
           const group = enrollment
             ? groupById.get(String(enrollment.class_group_id))
@@ -488,8 +502,8 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
               : grade.class_group_id
                 ? String(grade.class_group_id)
                 : null,
-            class_group_name: (group?.name as string) ?? "—",
-            subject_name: (subject?.name as string) ?? "—",
+            class_group_name: (group?.["name"] as string) ?? "—",
+            subject_name: (subject?.["name"] as string) ?? "—",
             term_label: `${grade.term}º` as const,
             updated_at: grade.updated_at,
           };
@@ -506,12 +520,14 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
 
     const classSubjectNav: ClassSubjectNav[] = (classSubjects ?? []).map((row) => {
       const record = row as Record<string, unknown>;
-      const subject = record.subject_id ? subjectById.get(String(record.subject_id)) : null;
+      const subject = record["subject_id"]
+        ? subjectById.get(String(record["subject_id"]))
+        : null;
       return {
-        class_group_id: String(record.class_group_id ?? ""),
-        subject_id: String(record.subject_id ?? ""),
-        subject_name: String(subject?.name ?? "Disciplina"),
-        teacher_id: record.teacher_id ? String(record.teacher_id) : null,
+        class_group_id: String(record["class_group_id"] ?? ""),
+        subject_id: String(record["subject_id"] ?? ""),
+        subject_name: String(subject?.["name"] ?? "Disciplina"),
+        teacher_id: record["teacher_id"] ? String(record["teacher_id"]) : null,
       };
     });
 
@@ -536,6 +552,7 @@ export const createClassGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createClassGroupInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -576,6 +593,7 @@ export const updateClassGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateClassGroupInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
