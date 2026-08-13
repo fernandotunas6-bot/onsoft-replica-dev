@@ -1,0 +1,4 @@
+# Dependências dos validadores de browser em scripts/ e da CI.
+playwright==1.62.0
+pillow==12.1.1
+numpy==2.4.2

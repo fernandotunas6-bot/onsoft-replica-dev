@@ -90,7 +90,7 @@ jobs:
       - name: Instalar dependências
         run: |
           bun install --frozen-lockfile
-          pip install playwright
+          python -m pip install --requirement requirements-dev.txt
           python -m playwright install --with-deps chromium
 
       - name: Arrancar servidor de desenvolvimento
@@ -155,7 +155,7 @@ jobs:
         run: |
           bun install --frozen-lockfile
           python -m pip install --upgrade pip
-          pip install playwright pillow numpy
+          python -m pip install --requirement requirements-dev.txt
           python -m playwright install --with-deps chromium
 
       - name: Arrancar servidor de desenvolvimento
