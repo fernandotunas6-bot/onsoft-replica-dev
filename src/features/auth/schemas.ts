@@ -11,7 +11,9 @@ export const updateCurrentProfileInputSchema = z.object({
     .refine((value) => !value || validateAngolaPhone(value).ok, {
       message: "Telefone inválido. Use +244 9XX XXX XXX.",
     }),
-  expectedUpdatedAt: z.string().datetime(),
+  // O PostgREST devolve timestamptz com offset ("+00:00"), não com "Z" — sem
+  // { offset: true } o Zod rejeita sempre o updated_at real do Supabase.
+  expectedUpdatedAt: z.string().datetime({ offset: true }),
 });
 
 export type UpdateCurrentProfileInput = z.infer<typeof updateCurrentProfileInputSchema>;

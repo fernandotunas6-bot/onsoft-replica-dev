@@ -25,6 +25,15 @@ describe("updateCurrentProfileInputSchema", () => {
       }),
     ).toThrow();
   });
+
+  it("aceita o formato timestamptz real do PostgREST (offset +00:00, não Z)", () => {
+    expect(() =>
+      updateCurrentProfileInputSchema.parse({
+        fullName: "Ana Costa",
+        expectedUpdatedAt: "2026-08-13T13:45:00+00:00",
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe("profile avatars", () => {
