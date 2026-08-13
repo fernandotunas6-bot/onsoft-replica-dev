@@ -1715,7 +1715,7 @@ function PedagogicaPage() {
               }
               description={
                 !scheduleAvailable
-                  ? "Aplique a migração class_schedule_slots para activar este painel"
+                  ? "Não foi possível carregar os horários neste momento"
                   : "Slots Segunda–Sexta por turma"
               }
               action={
@@ -1843,8 +1843,8 @@ function PedagogicaPage() {
                 </p>
               ) : !scheduleAvailable ? (
                 <p className="text-sm text-muted-foreground">
-                  Execute <code className="font-mono">supabase db push</code> para criar{" "}
-                  <code className="font-mono">class_schedule_slots</code>.
+                  Não foi possível carregar os horários neste momento. Tente novamente ou
+                  contacte o suporte técnico se persistir.
                 </p>
               ) : classGroups.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
