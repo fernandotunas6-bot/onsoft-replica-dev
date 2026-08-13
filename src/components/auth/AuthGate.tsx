@@ -241,7 +241,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       const redirectTo =
         typeof window !== "undefined" ? `${window.location.origin}/alterar-senha` : undefined;
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo,
+        ...(redirectTo ? { redirectTo } : {}),
       });
       if (resetError) {
         setError(mapSignInError(resetError.message));

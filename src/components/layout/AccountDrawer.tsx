@@ -180,7 +180,7 @@ export function AccountDrawer({
                     <li key={label}>
                       <button
                         type="button"
-                        onClick={onOpenSettings}
+                        onClick={() => onOpenSettings()}
                         aria-haspopup="dialog"
                         className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground/85 outline-none transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60"
                       >

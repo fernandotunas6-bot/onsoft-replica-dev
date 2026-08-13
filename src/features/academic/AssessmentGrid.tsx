@@ -48,14 +48,13 @@ export function AssessmentGrid({
 }) {
   const tableRef = useRef<HTMLTableElement>(null);
   const editable = useMemo(
-    () => columns.map((column, index) => ({ column, index })).filter((item) => item.column.editable),
+    () =>
+      columns.map((column, index) => ({ column, index })).filter((item) => item.column.editable),
     [columns],
   );
 
   const focusCell = useCallback((row: number, col: number) => {
-    const input = tableRef.current?.querySelector<HTMLInputElement>(
-      `[data-grid="${row}-${col}"]`,
-    );
+    const input = tableRef.current?.querySelector<HTMLInputElement>(`[data-grid="${row}-${col}"]`);
     input?.focus();
     input?.select();
   }, []);
@@ -70,7 +69,9 @@ export function AssessmentGrid({
     if (event.key === "Tab") {
       event.preventDefault();
       const delta = event.shiftKey ? -1 : 1;
-      const next = editable.find((item) => item.index === col + delta) ?? editable[delta > 0 ? 0 : editable.length - 1];
+      const next =
+        editable.find((item) => item.index === col + delta) ??
+        editable[delta > 0 ? 0 : editable.length - 1];
       if (next) {
         const nextRow = next.index === col + delta ? row : delta > 0 ? row + 1 : row - 1;
         focusCell(Math.max(0, nextRow), next.index);
@@ -85,7 +86,10 @@ export function AssessmentGrid({
       event.preventDefault();
       focusCell(Math.max(0, row - 1), col);
     }
-    if (event.key === "ArrowRight" && event.currentTarget.selectionStart === event.currentTarget.value.length) {
+    if (
+      event.key === "ArrowRight" &&
+      event.currentTarget.selectionStart === event.currentTarget.value.length
+    ) {
       const next = editable.find((item) => item.index > col);
       if (next) {
         event.preventDefault();
@@ -111,7 +115,9 @@ export function AssessmentGrid({
                 <input
                   type="checkbox"
                   aria-label="Seleccionar todos"
-                  checked={students.length > 0 && students.every((student) => checkedIds?.has(student.id))}
+                  checked={
+                    students.length > 0 && students.every((student) => checkedIds?.has(student.id))
+                  }
                   onChange={() => onToggleAll?.()}
                 />
               </th>
@@ -172,7 +178,7 @@ export function AssessmentGrid({
                 <td className="border-b px-2 py-1.5">
                   <div className="flex items-center gap-2">
                     <UserAvatar
-                      url={student.student_photo_url}
+                      {...(student.student_photo_url ? { url: student.student_photo_url } : {})}
                       initials={initialsFromName(student.student_name)}
                       className="size-8 bg-primary-soft text-[10px] font-extrabold text-primary"
                     />

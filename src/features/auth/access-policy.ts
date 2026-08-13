@@ -69,9 +69,7 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
 
 export type AccessLevel = "Nenhum" | "Leitura" | "Escrita" | "Total";
 
-export type ModuleGrantMap = Partial<
-  Record<(typeof accessModules)[number]["key"], AccessLevel>
->;
+export type ModuleGrantMap = Partial<Record<(typeof accessModules)[number]["key"], AccessLevel>>;
 
 function moduleForPath(pathname: string) {
   const matches = accessModules.flatMap((item) =>
@@ -87,11 +85,7 @@ function moduleForPath(pathname: string) {
   return matches[0]?.item;
 }
 
-export function canAccessPath(
-  pathname: string,
-  role: string,
-  grants: ModuleGrantMap = {},
-) {
+export function canAccessPath(pathname: string, role: string, grants: ModuleGrantMap = {}) {
   if (
     pathname === "/alterar-senha" ||
     pathname.startsWith("/matricula") ||
@@ -103,7 +97,7 @@ export function canAccessPath(
   if (module) {
     const grant = grants[module.key];
     if (grant === "Nenhum") return false;
-    if (grant && grant !== "Nenhum") return true;
+    if (grant) return true;
   }
   const rule = accessRules.find(({ prefixes }) =>
     prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)),

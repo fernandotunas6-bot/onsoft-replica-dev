@@ -10,7 +10,10 @@ export const AGT_NIF_PORTAL_URL =
 export const ANGOLA_BI_PUBLIC_API_BASE = "https://angolaapi.herokuapp.com/api/v1/validate/bi";
 
 export function normalizeAngolaIdentity(value: string): string {
-  return value.trim().toUpperCase().replace(/[\s.-]/g, "");
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[\s.-]/g, "");
 }
 
 export function validateAngolaBi(value: string): {
@@ -43,7 +46,7 @@ export function validateAngolaNif(value: string): {
   const compact = normalizeAngolaIdentity(value);
   const bi = validateAngolaBi(compact);
   if (bi.ok) {
-    return { ok: true, compact: bi.compact, kind: "individual" };
+    return { ok: true, ...(bi.compact ? { compact: bi.compact } : {}), kind: "individual" };
   }
   if (ANGOLA_ENTITY_NIF_REGEX.test(compact)) {
     return { ok: true, compact, kind: "entity" };
@@ -63,7 +66,7 @@ export function validateSchoolNif(value: string): {
 } {
   const entity = validateAngolaNif(value);
   if (entity.ok && entity.kind === "entity") {
-    return { ok: true, compact: entity.compact };
+    return { ok: true, ...(entity.compact ? { compact: entity.compact } : {}) };
   }
   const compact = normalizeAngolaIdentity(value);
   if (/^[0-9A-Z]{6,20}$/.test(compact)) {

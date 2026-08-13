@@ -459,7 +459,8 @@ async function upsertScoresBatch(
     throw publicDatabaseError(insertResult.error, "Não foi possível lançar as notas.");
   }
   for (const result of updateResults) {
-    if (result.error) throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
+    if (result.error)
+      throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
   }
 }
 
@@ -596,12 +597,16 @@ export async function listSgaTermGrades(params: {
     : { data: [] as Array<Record<string, unknown>> };
 
   const termIds = [
-    ...new Set((gradebooks ?? []).map((row: { term_id: string }) => row.term_id).filter(Boolean)),
+    ...new Set(
+      ((gradebooks ?? []) as Array<Record<string, unknown>>)
+        .map((row) => String(row["term_id"] ?? ""))
+        .filter(Boolean),
+    ),
   ];
   const classSubjectIds = [
     ...new Set(
-      (gradebooks ?? [])
-        .map((row: { class_subject_id: string }) => row.class_subject_id)
+      ((gradebooks ?? []) as Array<Record<string, unknown>>)
+        .map((row) => String(row["class_subject_id"] ?? ""))
         .filter(Boolean),
     ),
   ];
@@ -615,18 +620,12 @@ export async function listSgaTermGrades(params: {
       : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
   ]);
 
-  const itemById = new Map(
-    (items ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
-  );
-  const gradebookById = new Map(
-    (gradebooks ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
-  );
-  const termById = new Map(
-    (terms ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
-  );
-  const classSubjectById = new Map(
-    (classSubjects ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
-  );
+  const toRecordMap = (rows: Array<Record<string, unknown>>) =>
+    new Map(rows.map((row) => [String(row["id"] ?? ""), row] as const));
+  const itemById = toRecordMap((items ?? []) as Array<Record<string, unknown>>);
+  const gradebookById = toRecordMap((gradebooks ?? []) as Array<Record<string, unknown>>);
+  const termById = toRecordMap((terms ?? []) as Array<Record<string, unknown>>);
+  const classSubjectById = toRecordMap((classSubjects ?? []) as Array<Record<string, unknown>>);
 
   type Acc = {
     enrollment_id: string;
@@ -644,18 +643,18 @@ export async function listSgaTermGrades(params: {
   for (const score of scores) {
     const item = itemById.get(score.grade_item_id);
     if (!item) continue;
-    const gradebook = gradebookById.get(String(item.gradebook_id));
+    const gradebook = gradebookById.get(String(item["gradebook_id"]));
     if (!gradebook) continue;
-    const classSubject = classSubjectById.get(String(gradebook.class_subject_id));
-    const term = termById.get(String(gradebook.term_id));
-    const subjectId = String(classSubject?.subject_id ?? "");
-    const termNumber = Number(term?.sequence ?? 0);
+    const classSubject = classSubjectById.get(String(gradebook["class_subject_id"]));
+    const term = termById.get(String(gradebook["term_id"]));
+    const subjectId = String(classSubject?.["subject_id"] ?? "");
+    const termNumber = Number(term?.["sequence"] ?? 0);
     if (!subjectId || !termNumber) continue;
     const key = `${score.enrollment_id}:${subjectId}:${termNumber}`;
     const current = grouped.get(key) ?? {
       enrollment_id: String(score.enrollment_id),
       subject_id: subjectId,
-      class_group_id: (gradebook.class_group_id as string | null) ?? null,
+      class_group_id: (gradebook["class_group_id"] as string | null) ?? null,
       term: termNumber,
       mac: 0,
       npp: 0,
@@ -663,7 +662,7 @@ export async function listSgaTermGrades(params: {
       updated_at: String(score.updated_at ?? ""),
       id: key,
     };
-    const code = String(item.code ?? "").toUpperCase();
+    const code = String(item["code"] ?? "").toUpperCase();
     const value = Number(score.score ?? 0);
     if (code === "MAC") current.mac = value;
     if (code === "NPP") current.npp = value;

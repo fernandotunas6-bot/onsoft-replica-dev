@@ -135,7 +135,7 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     return {
       templates: (templatesResult.data ?? []).map((template: Record<string, unknown>) => ({
         ...template,
-        active: template.status === "active",
+        active: template["status"] === "active",
         fee_amount: 0,
       })),
       students,

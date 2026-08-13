@@ -17,6 +17,31 @@ import {
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
+export type LessonPlanSummary = {
+  id: string;
+  class_group_id: string;
+  subject_id: string;
+  term: 1 | 2 | 3;
+  title: string;
+  content: string | null;
+  file_id: string | null;
+  file_name: string | null;
+  status: "draft" | "published";
+  updated_at: string;
+  created_by: string | null;
+  class_group_name: string;
+  subject_name: string;
+  components: Array<{
+    id: string;
+    kind: "avaliacao" | "prova";
+    name: string;
+    planned_count: number;
+    sequence: number;
+  }>;
+};
+
+export type LessonPlansResult = { available: boolean; plans: LessonPlanSummary[] };
+
 function isMissingRelation(error: { code?: string; message?: string } | null) {
   if (!error) return false;
   return (
@@ -183,7 +208,9 @@ async function saveComponents(
             .from("siga_assessment_scores")
             .select("item_id")
             .in("item_id", excessIds);
-          const scoredItemIds = new Set((scores ?? []).map((row: { item_id: string }) => row.item_id));
+          const scoredItemIds = new Set(
+            (scores ?? []).map((row: { item_id: string }) => row.item_id),
+          );
           const removable = excessIds.filter((id: string) => !scoredItemIds.has(id));
           if (removable.length) {
             await db.from("siga_assessment_items").delete().in("id", removable);
@@ -219,14 +246,16 @@ export const listLessonPlans = createServerFn({ method: "GET" })
       if (isMissingRelation(error)) return { available: false, plans: [] };
       throw publicDatabaseError(error, "Não foi possível carregar os planos de aula.");
     }
-    const rows = plans ?? [];
+    const rows = (plans ?? []) as Array<Record<string, unknown>>;
     const filtered = data.query
-      ? rows.filter((row: { title: string }) =>
-          row.title.toLowerCase().includes(data.query!.trim().toLowerCase()),
+      ? rows.filter((row) =>
+          String(row["title"] ?? "")
+            .toLowerCase()
+            .includes(data.query!.trim().toLowerCase()),
         )
       : rows;
 
-    const planIds = filtered.map((row: { id: string }) => row.id);
+    const planIds = filtered.map((row) => String(row["id"] ?? ""));
     const { data: components } = planIds.length
       ? await db
           .from("siga_lesson_plan_components")
@@ -235,8 +264,12 @@ export const listLessonPlans = createServerFn({ method: "GET" })
           .order("sequence", { ascending: true })
       : { data: [] as Array<Record<string, unknown>> };
 
-    const classGroupIds = [...new Set(filtered.map((row: { class_group_id: string }) => row.class_group_id))];
-    const subjectIds = [...new Set(filtered.map((row: { subject_id: string }) => row.subject_id))];
+    const classGroupIds = [
+      ...new Set(filtered.map((row) => String(row["class_group_id"] ?? "")).filter(Boolean)),
+    ];
+    const subjectIds = [
+      ...new Set(filtered.map((row) => String(row["subject_id"] ?? "")).filter(Boolean)),
+    ];
     const [{ data: classGroups }, { data: subjects }] = await Promise.all([
       classGroupIds.length
         ? db.from("class_groups").select("id, name").in("id", classGroupIds)
@@ -247,22 +280,43 @@ export const listLessonPlans = createServerFn({ method: "GET" })
     ]);
     const classGroupById = new Map((classGroups ?? []).map((row) => [row.id, row.name]));
     const subjectById = new Map((subjects ?? []).map((row) => [row.id, row.name]));
-    const componentsByPlan = new Map<string, Array<Record<string, unknown>>>();
-    for (const component of components ?? []) {
-      const list = componentsByPlan.get(String(component.lesson_plan_id)) ?? [];
-      list.push(component);
-      componentsByPlan.set(String(component.lesson_plan_id), list);
+    const componentsByPlan = new Map<string, LessonPlanSummary["components"]>();
+    for (const component of (components ?? []) as Array<Record<string, unknown>>) {
+      const planId = String(component["lesson_plan_id"] ?? "");
+      const list = componentsByPlan.get(planId) ?? [];
+      list.push({
+        id: String(component["id"] ?? ""),
+        kind: component["kind"] === "prova" ? "prova" : "avaliacao",
+        name: String(component["name"] ?? ""),
+        planned_count: Number(component["planned_count"] ?? 0),
+        sequence: Number(component["sequence"] ?? 0),
+      });
+      componentsByPlan.set(planId, list);
     }
 
     return {
       available: true,
-      plans: filtered.map((row: Record<string, unknown>) => ({
-        ...row,
-        class_group_name: classGroupById.get(String(row.class_group_id)) ?? "—",
-        subject_name: subjectById.get(String(row.subject_id)) ?? "—",
-        components: componentsByPlan.get(String(row.id)) ?? [],
-      })),
-    };
+      plans: filtered.map((row): LessonPlanSummary => {
+        const classGroupId = String(row["class_group_id"] ?? "");
+        const subjectId = String(row["subject_id"] ?? "");
+        return {
+          id: String(row["id"] ?? ""),
+          class_group_id: classGroupId,
+          subject_id: subjectId,
+          term: Number(row["term"] ?? 1) as 1 | 2 | 3,
+          title: String(row["title"] ?? ""),
+          content: (row["content"] as string | null) ?? null,
+          file_id: (row["file_id"] as string | null) ?? null,
+          file_name: (row["file_name"] as string | null) ?? null,
+          status: row["status"] === "published" ? "published" : "draft",
+          updated_at: String(row["updated_at"] ?? ""),
+          created_by: (row["created_by"] as string | null) ?? null,
+          class_group_name: classGroupById.get(classGroupId) ?? "—",
+          subject_name: subjectById.get(subjectId) ?? "—",
+          components: componentsByPlan.get(String(row["id"] ?? "")) ?? [],
+        };
+      }),
+    } satisfies LessonPlansResult;
   });
 
 export const getLessonPlan = createServerFn({ method: "GET" })

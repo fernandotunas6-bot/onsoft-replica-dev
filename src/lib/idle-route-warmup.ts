@@ -19,7 +19,7 @@ export function scheduleIdleRouteWarmup(
   const ric = globalWindow.requestIdleCallback;
 
   let cancelled = false;
-  let timer = 0;
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
   const step = () => {
     if (cancelled) return;
@@ -36,7 +36,7 @@ export function scheduleIdleRouteWarmup(
 
   return () => {
     cancelled = true;
-    if (timer) clearTimeout(timer);
+    if (timer !== null) clearTimeout(timer);
   };
 }
 

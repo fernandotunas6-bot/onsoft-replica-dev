@@ -1,7 +1,4 @@
-import {
-  getPrintTemplate,
-  listPrintTemplates,
-} from "@/features/documents/server";
+import { getPrintTemplate, listPrintTemplates } from "@/features/documents/server";
 import {
   buildIssuePayload,
   isPrintTemplateKey,
@@ -27,7 +24,10 @@ export function mergePrintPayload(
       typeof current === "object" &&
       !Array.isArray(current)
     ) {
-      next[key] = { ...(current as Record<string, unknown>), ...(value as Record<string, unknown>) };
+      next[key] = {
+        ...(current as Record<string, unknown>),
+        ...(value as Record<string, unknown>),
+      };
     } else {
       next[key] = value;
     }
@@ -45,7 +45,7 @@ export async function issuePrintDocument(input: {
   try {
     const catalog = await listPrintTemplates();
     const key = matchPrintTemplateKey(input.tipo, {
-      issue: catalog.issue ?? undefined,
+      ...(catalog.issue ? { issue: catalog.issue } : {}),
       byType: catalog.byType,
     });
     const template = await getPrintTemplate({ data: { key } });

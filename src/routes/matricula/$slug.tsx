@@ -87,7 +87,11 @@ function PublicEnrollmentPage() {
           guardianRelationship: String(data.get("guardian_relationship") || "") || undefined,
         },
       });
-      setReceipt({ fullName, guardianName, guardianPhone });
+      setReceipt({
+        fullName,
+        ...(guardianName ? { guardianName } : {}),
+        ...(guardianPhone ? { guardianPhone } : {}),
+      });
       setSent(true);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Não foi possível enviar.");
@@ -169,8 +173,10 @@ function PublicEnrollmentPage() {
                         overlay: overlayTalao({
                           kind: "candidatura",
                           fullName: receipt.fullName,
-                          guardianName: receipt.guardianName,
-                          guardianPhone: receipt.guardianPhone,
+                          ...(receipt.guardianName ? { guardianName: receipt.guardianName } : {}),
+                          ...(receipt.guardianPhone
+                            ? { guardianPhone: receipt.guardianPhone }
+                            : {}),
                         }),
                       }).catch((printError) =>
                         setError(

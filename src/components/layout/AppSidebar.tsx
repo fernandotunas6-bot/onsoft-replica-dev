@@ -286,7 +286,7 @@ export function AppSidebar({
                               {child.to ? (
                                 <NavLinkRow
                                   to={child.to}
-                                  search={child.search}
+                                  {...(child.search ? { search: child.search } : {})}
                                   label={child.label}
                                   depth="sub"
                                   active={child.to === pathname}
@@ -330,7 +330,7 @@ export function AppSidebar({
                               {child.to ? (
                                 <NavLinkRow
                                   to={child.to}
-                                  search={child.search}
+                                  {...(child.search ? { search: child.search } : {})}
                                   label={child.label}
                                   depth="sub"
                                   active={child.to === pathname}

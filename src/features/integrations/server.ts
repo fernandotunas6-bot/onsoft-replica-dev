@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import type { Json } from "@/integrations/supabase/types";
 import {
   loadSgaAdminClient,
   requireSgaWriter,
@@ -31,11 +32,18 @@ const revokeIntegrationInputSchema = z.object({
   provider: z.string().trim().min(2).max(80),
 });
 
+type IntegrationConfig = { [key: string]: Json | undefined };
+
+function readJsonObject(value: unknown): IntegrationConfig {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as IntegrationConfig;
+}
+
 function integrationPublicRow(
   item: (typeof academicIntegrationCatalog)[number],
   stored?: { status?: string | null; config?: unknown; updated_at?: string | null },
 ) {
-  const config = (stored?.config as Record<string, unknown> | null) ?? {};
+  const config = readJsonObject(stored?.config);
   return {
     ...item,
     status: stored?.status ?? "disconnected",
@@ -93,9 +101,7 @@ export const listInstalledCapabilities = createServerFn({ method: "GET" })
         return {
           id: item.id,
           status: stored?.status ?? "disconnected",
-          grantedCapabilities: parseGrantedCapabilities(
-            (stored?.config as Record<string, unknown> | null) ?? {},
-          ),
+          grantedCapabilities: parseGrantedCapabilities(readJsonObject(stored?.config)),
         };
       });
     } catch {
@@ -218,7 +224,7 @@ async function readIntegrationConfig(
       .eq("school_id", schoolId)
       .eq("provider", provider)
       .maybeSingle();
-    return ((data?.config as Record<string, unknown> | null) ?? {}) as Record<string, unknown>;
+    return readJsonObject(data?.config);
   } catch {
     return {};
   }

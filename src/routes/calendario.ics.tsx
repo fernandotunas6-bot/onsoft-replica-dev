@@ -6,12 +6,19 @@ import { getPublicCalendarFeed } from "@/features/calendar/feed";
 
 export const Route = createFileRoute("/calendario/ics")({
   validateSearch: (search: Record<string, unknown>) => ({
-    token: typeof search.token === "string" ? search.token : "",
+    token: typeof search["token"] === "string" ? search["token"] : "",
   }),
   component: CalendarFeedPage,
 });
 
-function toIcs(events: Array<{ title: string; description: string | null; event_date: string; ends_on: string | null }>) {
+function toIcs(
+  events: Array<{
+    title: string;
+    description: string | null;
+    event_date: string;
+    ends_on: string | null;
+  }>,
+) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -52,8 +59,8 @@ function CalendarFeedPage() {
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
       <h1 className="font-display text-2xl font-extrabold">Calendário móvel</h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        Adicione este endereço ao calendário do telemóvel ou do email. O token identifica o seu
-        feed pessoal da escola.
+        Adicione este endereço ao calendário do telemóvel ou do email. O token identifica o seu feed
+        pessoal da escola.
       </p>
       <p className="mt-4 break-all rounded-xl border border-border bg-card px-3 py-2 font-mono text-xs">
         {url}

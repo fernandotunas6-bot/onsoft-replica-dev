@@ -151,10 +151,10 @@ function TeacherProfilePage() {
                     await updateTeacher({
                       data: {
                         teacherId,
-                        fullName: values.nome,
-                        email: values.email || "",
-                        phone: values.telefone || undefined,
-                        status: values.estado === "Inactivo" ? "inactive" : "active",
+                        fullName: values["nome"] ?? teacher.full_name,
+                        email: values["email"] || "",
+                        phone: values["telefone"] || undefined,
+                        status: values["estado"] === "Inactivo" ? "inactive" : "active",
                       },
                     });
                     await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
@@ -192,10 +192,10 @@ function TeacherProfilePage() {
                   ]}
                   onSubmit={async (values) => {
                     const classGroupId = classGroups.find(
-                      (group) => optionLabel(group.id, group.name) === values.turma,
+                      (group) => optionLabel(group.id, group.name) === values["turma"],
                     )?.id;
                     const subjectId = subjects.find(
-                      (subject) => optionLabel(subject.id, subject.name) === values.disciplina,
+                      (subject) => optionLabel(subject.id, subject.name) === values["disciplina"],
                     )?.id;
                     if (!classGroupId || !subjectId) {
                       throw new Error("Seleccione turma e disciplina.");

@@ -93,7 +93,7 @@ export const personCoreFieldsObjectSchema = z.object({
   notes: optionalText,
 });
 
-function refinePersonNif<T extends { nif?: string }>(value: T, ctx: z.RefinementCtx) {
+function refinePersonNif<T extends { nif?: string | undefined }>(value: T, ctx: z.RefinementCtx) {
   if (!value.nif) return;
   const checked = validateAngolaNif(value.nif);
   if (!checked.ok) {
@@ -105,10 +105,9 @@ function refinePersonNif<T extends { nif?: string }>(value: T, ctx: z.Refinement
   }
 }
 
-function refinePersonPhone<T extends { phone_primary?: string; phone_alternative?: string }>(
-  value: T,
-  ctx: z.RefinementCtx,
-) {
+function refinePersonPhone<
+  T extends { phone_primary?: string | undefined; phone_alternative?: string | undefined },
+>(value: T, ctx: z.RefinementCtx) {
   if (value.phone_primary) {
     const checked = validateAngolaPhone(value.phone_primary);
     if (!checked.ok) {

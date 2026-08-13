@@ -70,12 +70,16 @@ export function SpotlightRail({
     >
       <SpotlightCard
         item={item}
-        href={href ?? undefined}
+        {...(href ? { href } : {})}
         onInternal={onNavigate}
         onSettings={(panel) => onOpenSettings?.(panel)}
       />
       {items.length > 1 ? (
-        <div className="mt-2 flex items-center justify-center gap-1.5" role="tablist" aria-label="Destaques">
+        <div
+          className="mt-2 flex items-center justify-center gap-1.5"
+          role="tablist"
+          aria-label="Destaques"
+        >
           {items.map((entry, position) => (
             <button
               key={entry.id}
@@ -84,7 +88,9 @@ export function SpotlightRail({
               aria-selected={position === index}
               aria-label={entry.title}
               className={`h-1.5 rounded-full transition-all ${
-                position === index ? "w-4 bg-primary" : "w-1.5 bg-border hover:bg-muted-foreground/40"
+                position === index
+                  ? "w-4 bg-primary"
+                  : "w-1.5 bg-border hover:bg-muted-foreground/40"
               }`}
               onClick={() => setIndex(position)}
             />

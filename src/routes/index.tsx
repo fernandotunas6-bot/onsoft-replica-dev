@@ -407,7 +407,7 @@ function Dashboard() {
               <Link
                 key={s.label}
                 to={s.href}
-                search={s.search}
+                {...(s.search ? { search: s.search } : {})}
                 className="surface-card block p-5 transition-colors hover:border-primary/40"
               >
                 {card}

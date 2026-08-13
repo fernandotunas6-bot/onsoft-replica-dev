@@ -2,22 +2,22 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  BookOpenCheck,
-  ClipboardCheck,
-  FileText,
-  Pencil,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { BookOpenCheck, ClipboardCheck, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
-import { listPedagogicalWorkspace } from "@/features/academic/server";
-import { deleteLessonPlan, listLessonPlans } from "@/features/lesson-plans/server";
-import { LessonPlanModal, type LessonPlanFormInitial } from "@/features/lesson-plans/LessonPlanModal";
+import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
+import {
+  deleteLessonPlan,
+  listLessonPlans,
+  type LessonPlansResult,
+} from "@/features/lesson-plans/server";
+import {
+  LessonPlanModal,
+  type LessonPlanFormInitial,
+} from "@/features/lesson-plans/LessonPlanModal";
 
 const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 
@@ -42,7 +42,11 @@ type LessonPlanRow = {
   components: Array<{ kind: "avaliacao" | "prova"; name: string; planned_count: number }>;
 };
 
-const termLabels: Record<number, string> = { 1: "1º Trimestre", 2: "2º Trimestre", 3: "3º Trimestre" };
+const termLabels: Record<number, string> = {
+  1: "1º Trimestre",
+  2: "2º Trimestre",
+  3: "3º Trimestre",
+};
 
 function LessonPlansPage() {
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
@@ -55,7 +59,7 @@ function LessonPlansPage() {
 
   const workspaceQuery = useQuery({
     queryKey: ["pedagogica", "workspace", "planos-aula"],
-    queryFn: () => listPedagogicalWorkspace({ data: {} }),
+    queryFn: () => listPedagogicalWorkspace({ data: {} }) as Promise<PedagogicalWorkspace>,
     staleTime: 60_000,
   });
   const classGroups = useMemo(
@@ -82,7 +86,7 @@ function LessonPlansPage() {
           term: filters.trimestre ? (Number(filters.trimestre) as 1 | 2 | 3) : undefined,
           limit: 200,
         },
-      }),
+      }) as Promise<LessonPlansResult>,
     staleTime: 15_000,
   });
 
@@ -124,7 +128,8 @@ function LessonPlansPage() {
   };
 
   const remove = async (plan: LessonPlanRow) => {
-    if (!window.confirm(`Remover o plano "${plan.title}"? As notas já lançadas são mantidas.`)) return;
+    if (!window.confirm(`Remover o plano "${plan.title}"? As notas já lançadas são mantidas.`))
+      return;
     try {
       await deleteLessonPlan({ data: { id: plan.id } });
       toast.success("Plano de aula removido");
@@ -284,9 +289,9 @@ function LessonPlansPage() {
         classGroups={classGroups}
         subjects={subjects}
         initial={editing}
-        defaultClassGroupId={filters.turma || undefined}
-        defaultSubjectId={filters.disciplina || undefined}
-        defaultTerm={filters.trimestre ? (Number(filters.trimestre) as 1 | 2 | 3) : undefined}
+        {...(filters.turma ? { defaultClassGroupId: filters.turma } : {})}
+        {...(filters.disciplina ? { defaultSubjectId: filters.disciplina } : {})}
+        {...(filters.trimestre ? { defaultTerm: Number(filters.trimestre) as 1 | 2 | 3 } : {})}
         onSaved={invalidate}
       />
     </AppShell>

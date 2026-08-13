@@ -96,7 +96,9 @@ const repoIcon = {
   publico: Users,
 } as const;
 
-function blankAudit(ownerName: string | null = null): Pick<
+function blankAudit(
+  ownerName: string | null = null,
+): Pick<
   SchoolFileRecord,
   | "title"
   | "description"
@@ -212,23 +214,23 @@ export function FileBrowser({
   const [moveOpen, setMoveOpen] = useState(false);
   const [organizeTarget, setOrganizeTarget] = useState<SchoolFileRecord | null>(null);
   const [needsOrganizeOnly, setNeedsOrganizeOnly] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<(typeof fileCategoryOptions)[number] | "all">(
-    "all",
-  );
+  const [categoryFilter, setCategoryFilter] = useState<
+    (typeof fileCategoryOptions)[number] | "all"
+  >("all");
   const [relatedUserFilter, setRelatedUserFilter] = useState<string>("all");
   const inputRef = useRef<HTMLInputElement>(null);
   const driveOn = installed.hasCapability("m365.onedrive");
   const canWrite = canWriteFileArea(account.role, area);
   const canUpload = writableAreas.length > 0;
-  const kindChoices = (acceptKinds?.length
-    ? fileKindOptions.filter((kind) => acceptKinds.includes(kind))
-    : [...fileKindOptions]
+  const kindChoices = (
+    acceptKinds?.length
+      ? fileKindOptions.filter((kind) => acceptKinds.includes(kind))
+      : [...fileKindOptions]
   ).filter((kind) => kind !== "folder");
   const uploadAccept = acceptKinds?.length
     ? acceptKinds.map((kind) => fileKindMeta[kind].accept).join(",")
     : fileAcceptAttr;
-  const activeClassId =
-    lockedClassId ?? (classFilter !== "all" ? classFilter : undefined);
+  const activeClassId = lockedClassId ?? (classFilter !== "all" ? classFilter : undefined);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query), 220);
@@ -335,12 +337,8 @@ export function FileBrowser({
       .filter((item) => !acceptKinds?.length || acceptKinds.includes(item.kind))
       .filter((item) => kindFilter === "all" || item.kind === kindFilter)
       .filter((item) => categoryFilter === "all" || item.category === categoryFilter)
-      .filter(
-        (item) => relatedUserFilter === "all" || item.relatedUserId === relatedUserFilter,
-      )
-      .filter(
-        (item) => !initialRelatedPersonId || item.relatedPersonId === initialRelatedPersonId,
-      )
+      .filter((item) => relatedUserFilter === "all" || item.relatedUserId === relatedUserFilter)
+      .filter((item) => !initialRelatedPersonId || item.relatedPersonId === initialRelatedPersonId)
       .filter((item) => !needsOrganizeOnly || fileNeedsOrganization(item));
     filtered.sort((a, b) => {
       if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1;
@@ -508,9 +506,7 @@ export function FileBrowser({
         data: { ids, parentId, area },
       });
       toast[result.localOnly ? "message" : "success"](
-        result.localOnly
-          ? "Movido neste dispositivo"
-          : `${ids.length} item(ns) movido(s)`,
+        result.localOnly ? "Movido neste dispositivo" : `${ids.length} item(ns) movido(s)`,
       );
       setSelectedIds(new Set());
       await refresh();
@@ -1243,7 +1239,9 @@ export function FileBrowser({
                       className="w-full text-left"
                     >
                       <FileCoverTile file={file} selected={file.id === selectedId} />
-                      <p className="mt-1 truncate px-1 text-xs font-medium">{file.title || file.name}</p>
+                      <p className="mt-1 truncate px-1 text-xs font-medium">
+                        {file.title || file.name}
+                      </p>
                       <p className="px-1 text-[10px] text-muted-foreground">
                         {file.referenceCode ? (
                           <span className="font-mono">{file.referenceCode}</span>
@@ -1336,9 +1334,7 @@ export function FileBrowser({
                           <span className="flex max-w-[10rem] items-center gap-2 truncate text-muted-foreground">
                             <UserAvatar
                               url={file.updatedByAvatarUrl ?? file.ownerAvatarUrl}
-                              initials={initialsFromName(
-                                file.updatedByName ?? file.ownerName,
-                              )}
+                              initials={initialsFromName(file.updatedByName ?? file.ownerName)}
                               className="size-6 bg-secondary text-[9px] font-bold"
                             />
                             <span className="truncate">
@@ -1359,9 +1355,7 @@ export function FileBrowser({
                           <span className="flex items-center gap-2 truncate">
                             <UserAvatar
                               url={file.lastActionByAvatarUrl ?? file.ownerAvatarUrl}
-                              initials={initialsFromName(
-                                file.lastActionByName ?? file.ownerName,
-                              )}
+                              initials={initialsFromName(file.lastActionByName ?? file.ownerName)}
                               className="size-5 bg-secondary text-[8px] font-bold"
                             />
                             <span className="truncate">
@@ -1392,11 +1386,23 @@ export function FileBrowser({
             <div className="flex flex-wrap gap-2">
               {selected && canWrite ? (
                 <>
-                  <Button type="button" variant="ghost" size="sm" className="gap-1" onClick={() => void renameSelected()}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => void renameSelected()}
+                  >
                     <Pencil className="size-4" />
                     Renomear
                   </Button>
-                  <Button type="button" variant="ghost" size="sm" className="gap-1" onClick={() => void removeSelected()}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => void removeSelected()}
+                  >
                     <Trash2 className="size-4" />
                     Apagar
                   </Button>
@@ -1420,7 +1426,9 @@ export function FileBrowser({
                     type="button"
                     variant={pickMode ? "outline" : "default"}
                     size="sm"
-                    onClick={() => void openRecord(selected).catch((error) => toast.error(error.message))}
+                    onClick={() =>
+                      void openRecord(selected).catch((error) => toast.error(error.message))
+                    }
                   >
                     Abrir
                   </Button>
@@ -1476,7 +1484,9 @@ export function FileBrowser({
                   </div>
                   <div>
                     <dt className="text-xs text-muted-foreground">O seu nível</dt>
-                    <dd className={cn("font-medium", myAccess ? fileMyAccessMeta[myAccess].tone : "")}>
+                    <dd
+                      className={cn("font-medium", myAccess ? fileMyAccessMeta[myAccess].tone : "")}
+                    >
                       {myAccess ? fileMyAccessMeta[myAccess].label : "—"}
                     </dd>
                   </div>
@@ -1515,9 +1525,7 @@ export function FileBrowser({
                     <dd className="mt-1 space-y-1 text-sm">
                       <p>
                         <span className="text-muted-foreground">Categoria: </span>
-                        {selected.category
-                          ? fileCategoryMeta[selected.category].label
-                          : "—"}
+                        {selected.category ? fileCategoryMeta[selected.category].label : "—"}
                       </p>
                       <p>
                         <span className="text-muted-foreground">ID do documento: </span>
@@ -1651,9 +1659,9 @@ export function FileBrowser({
         defaultVisibility={organizeTarget?.visibility ?? defaultVisibilityForArea(area)}
         defaultArea={organizeTarget?.area ?? area}
         writableAreas={writableAreas}
-        initial={
-          organizeTarget
-            ? {
+        {...(organizeTarget
+          ? {
+              initial: {
                 name: organizeTarget.name,
                 title: organizeTarget.title ?? organizeTarget.name,
                 description: organizeTarget.description ?? "",
@@ -1665,9 +1673,9 @@ export function FileBrowser({
                 visibility: organizeTarget.visibility,
                 area: organizeTarget.area,
                 applyAsProfilePhoto: organizeTarget.category === "foto",
-              }
-            : undefined
-        }
+              },
+            }
+          : {})}
         onCancel={() => setOrganizeTarget(null)}
         onConfirm={(meta) => void commitOrganize(meta)}
       />

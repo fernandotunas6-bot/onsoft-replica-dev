@@ -209,9 +209,7 @@ export function GradePautaSheet({
     if (mac == null || npp == null || npt == null) return [];
     const existing = termGrades.find(
       (grade) =>
-        grade.enrollment_id === student.id &&
-        grade.subject_id === subjectId &&
-        grade.term === term,
+        grade.enrollment_id === student.id && grade.subject_id === subjectId && grade.term === term,
     );
     if (existing && existing.mac === mac && existing.npp === npp && existing.npt === npt) {
       return [];
@@ -408,10 +406,12 @@ export function GradePautaSheet({
         tipo: "Pauta disciplinar",
         school: printSchool,
         overlay: overlayPauta({
-          subjectName: selectedSubject?.name,
+          ...(selectedSubject?.name ? { subjectName: selectedSubject.name } : {}),
           periodName: `${term}º trimestre`,
           className: turma,
-          courseName: selectedGroup?.course_name ?? selectedGroup?.grade_name,
+          ...((selectedGroup?.course_name ?? selectedGroup?.grade_name)
+            ? { courseName: selectedGroup?.course_name ?? selectedGroup?.grade_name }
+            : {}),
           students: rows.map((row) => ({
             fullName: row.aluno,
             academicNumber: row.proc,
@@ -450,8 +450,7 @@ export function GradePautaSheet({
             ]),
           ),
           mg: formatScore(mediaGeral),
-          situacao:
-            mediaGeral == null ? "Pendente" : situacaoPauta(mediaGeral, passingGrade).label,
+          situacao: mediaGeral == null ? "Pendente" : situacaoPauta(mediaGeral, passingGrade).label,
         };
       });
       const columns = [
@@ -470,11 +469,13 @@ export function GradePautaSheet({
         overlay: overlayPauta({
           periodName: `${term}º trimestre`,
           className: turma,
-          courseName: selectedGroup?.course_name ?? selectedGroup?.grade_name,
+          ...((selectedGroup?.course_name ?? selectedGroup?.grade_name)
+            ? { courseName: selectedGroup?.course_name ?? selectedGroup?.grade_name }
+            : {}),
           subjects: geralSubjects.map((subject) => ({
             name: subject.name,
             shortName: subjectShortCode(subject.name, subject.code),
-            code: subject.code,
+            ...(subject.code ? { code: subject.code } : {}),
           })),
           students: roster.map((student) => {
             const averages = geralSubjects.map((subject) =>
@@ -555,13 +556,7 @@ export function GradePautaSheet({
         ],
       }),
       fallback: () =>
-        exportOfficialPautaPdf(
-          `pauta-anual-${turma}`,
-          "Pauta anual",
-          officialMeta,
-          columns,
-          rows,
-        ),
+        exportOfficialPautaPdf(`pauta-anual-${turma}`, "Pauta anual", officialMeta, columns, rows),
     });
   };
 
@@ -671,7 +666,7 @@ export function GradePautaSheet({
             <a
               href={whatsappHref(
                 "",
-                `Pauta ${selectedGroup?.name ?? "turma"} · ${view === "disciplina" ? selectedSubject?.name ?? "disciplina" : view} · ${academicYear}`,
+                `Pauta ${selectedGroup?.name ?? "turma"} · ${view === "disciplina" ? (selectedSubject?.name ?? "disciplina") : view} · ${academicYear}`,
               )}
               target="_blank"
               rel="noreferrer"
@@ -686,7 +681,7 @@ export function GradePautaSheet({
             variant="outline"
             onClick={async () => {
               await navigator.clipboard.writeText(
-                `Pauta ${selectedGroup?.name ?? "turma"} · ${view === "disciplina" ? selectedSubject?.name ?? "disciplina" : view} · ${academicYear}\n${schoolName}`,
+                `Pauta ${selectedGroup?.name ?? "turma"} · ${view === "disciplina" ? (selectedSubject?.name ?? "disciplina") : view} · ${academicYear}\n${schoolName}`,
               );
               toast.success("Pauta copiada para e-mail Resend");
             }}
@@ -703,7 +698,7 @@ export function GradePautaSheet({
                 schoolName,
                 academicYear,
                 selectedGroup?.name ?? "turma",
-                view === "disciplina" ? selectedSubject?.name ?? "disciplina" : view,
+                view === "disciplina" ? (selectedSubject?.name ?? "disciplina") : view,
                 view === "anual" ? "anual" : `T${term}`,
                 `${roster.length} alunos`,
               ].join(" · ");
@@ -815,7 +810,7 @@ export function GradePautaSheet({
                     <TableCell>
                       <div className="flex items-center gap-2.5">
                         <UserAvatar
-                          url={student.student_photo_url}
+                          {...(student.student_photo_url ? { url: student.student_photo_url } : {})}
                           initials={initialsFromName(student.student_name)}
                           className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
                         />
@@ -827,7 +822,9 @@ export function GradePautaSheet({
                         {formatScore(average)}
                       </TableCell>
                     ))}
-                    <TableCell className="text-right font-bold">{formatScore(mediaGeral)}</TableCell>
+                    <TableCell className="text-right font-bold">
+                      {formatScore(mediaGeral)}
+                    </TableCell>
                     <TableCell className="text-right">
                       <span
                         className={cn(
@@ -882,7 +879,7 @@ export function GradePautaSheet({
                     <TableCell>
                       <div className="flex items-center gap-2.5">
                         <UserAvatar
-                          url={student.student_photo_url}
+                          {...(student.student_photo_url ? { url: student.student_photo_url } : {})}
                           initials={initialsFromName(student.student_name)}
                           className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
                         />
@@ -954,7 +951,7 @@ export function GradePautaSheet({
                     <TableCell>
                       <div className="flex items-center gap-2.5">
                         <UserAvatar
-                          url={student.student_photo_url}
+                          {...(student.student_photo_url ? { url: student.student_photo_url } : {})}
                           initials={initialsFromName(student.student_name)}
                           className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
                         />

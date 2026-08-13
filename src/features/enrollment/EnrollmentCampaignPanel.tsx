@@ -153,10 +153,7 @@ export function EnrollmentCampaignPanel() {
           {shareWhatsapp && publicUrl ? (
             <Button type="button" size="sm" variant="outline" className="gap-1" asChild>
               <a
-                href={whatsappHref(
-                  "",
-                  `Matrícula ${form?.title ?? "SIGA"}: ${publicUrl}`,
-                )}
+                href={whatsappHref("", `Matrícula ${form?.title ?? "SIGA"}: ${publicUrl}`)}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -306,8 +303,7 @@ function ApplicationRow({
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const resendOn = installed.hasCapability("resend.send");
   const selected = classGroups.find((group) => group.id === classGroupId);
-  const contactPhone =
-    row.payload?.guardianPhone || row.payload?.person?.phone_primary || "";
+  const contactPhone = row.payload?.guardianPhone || row.payload?.person?.phone_primary || "";
   const contactEmail = row.payload?.person?.email || "";
   const shareText = `Candidatura SIGA de ${row.full_name} (${row.status}).`;
 
@@ -334,10 +330,10 @@ function ApplicationRow({
         kind,
         fullName: payload.person?.full_name || row.full_name,
         process: row.id.slice(0, 8).toUpperCase(),
-        className: selected?.name,
-        guardianName: payload.guardianName,
-        guardianPhone: payload.guardianPhone,
-        guardianEmail: payload.person?.email,
+        ...(selected?.name ? { className: selected.name } : {}),
+        ...(payload.guardianName ? { guardianName: payload.guardianName } : {}),
+        ...(payload.guardianPhone ? { guardianPhone: payload.guardianPhone } : {}),
+        ...(payload.person?.email ? { guardianEmail: payload.person.email } : {}),
         ...(row.created_at
           ? { submittedAt: new Date(row.created_at).toLocaleDateString("pt-AO") }
           : {}),
@@ -483,7 +479,13 @@ function ApplicationRow({
               </option>
             ))}
           </select>
-          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void placeInClass()}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void placeInClass()}
+          >
             Colocar na turma
           </Button>
           <Button

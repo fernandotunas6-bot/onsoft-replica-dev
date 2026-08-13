@@ -1096,63 +1096,67 @@ function PeoplePage() {
                           document_number: string;
                           issued_at: string | null;
                           expires_at: string | null;
+                          file_id: string | null;
                           file_name: string | null;
                         }) => (
-                        <li
-                          key={document.id}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm"
-                        >
-                          <span className="min-w-0">
-                            <span className="block font-medium">
-                              {documentTypeLabels[document.document_type] ?? document.document_type}
-                            </span>
-                            <span className="font-mono text-xs">
-                              {document.document_type === "bi"
-                                ? formatAngolaBi(document.document_number)
-                                : document.document_number}
-                            </span>
-                            {document.file_name ? (
-                              <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                                {document.file_name}
+                          <li
+                            key={document.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm"
+                          >
+                            <span className="min-w-0">
+                              <span className="block font-medium">
+                                {documentTypeLabels[document.document_type] ??
+                                  document.document_type}
                               </span>
-                            ) : null}
-                          </span>
-                          {document.file_id ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1"
-                              onClick={() => {
-                                void (async () => {
-                                  try {
-                                    const signed = await signSchoolFile({
-                                      data: { id: String(document.file_id) },
-                                    });
-                                    if (signed.url) {
-                                      window.open(signed.url, "_blank", "noopener,noreferrer");
-                                      return;
+                              <span className="font-mono text-xs">
+                                {document.document_type === "bi"
+                                  ? formatAngolaBi(document.document_number)
+                                  : document.document_number}
+                              </span>
+                              {document.file_name ? (
+                                <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                                  {document.file_name}
+                                </span>
+                              ) : null}
+                            </span>
+                            {document.file_id ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1"
+                                onClick={() => {
+                                  void (async () => {
+                                    try {
+                                      const signed = await signSchoolFile({
+                                        data: { id: String(document.file_id) },
+                                      });
+                                      if (signed.url) {
+                                        window.open(signed.url, "_blank", "noopener,noreferrer");
+                                        return;
+                                      }
+                                      const stub = {
+                                        id: String(document.file_id),
+                                        storageBackend: "local",
+                                        kind: "pdf",
+                                      } as SchoolFileRecord;
+                                      const url = await resolveFileUrl(stub);
+                                      window.open(url, "_blank", "noopener,noreferrer");
+                                    } catch (error) {
+                                      toast.error("Não foi possível abrir o anexo", {
+                                        description:
+                                          error instanceof Error
+                                            ? error.message
+                                            : "Tente novamente.",
+                                      });
                                     }
-                                    const stub = {
-                                      id: String(document.file_id),
-                                      storageBackend: "local",
-                                      kind: "pdf",
-                                    } as SchoolFileRecord;
-                                    const url = await resolveFileUrl(stub);
-                                    window.open(url, "_blank", "noopener,noreferrer");
-                                  } catch (error) {
-                                    toast.error("Não foi possível abrir o anexo", {
-                                      description:
-                                        error instanceof Error ? error.message : "Tente novamente.",
-                                    });
-                                  }
-                                })();
-                              }}
-                            >
-                              <FolderOpen className="size-3.5" /> Abrir
-                            </Button>
-                          ) : null}
-                        </li>
+                                  })();
+                                }}
+                              >
+                                <FolderOpen className="size-3.5" /> Abrir
+                              </Button>
+                            ) : null}
+                          </li>
                         ),
                       )}
                     </ul>

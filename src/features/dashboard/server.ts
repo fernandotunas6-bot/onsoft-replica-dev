@@ -39,7 +39,13 @@ function ageBand(birthDate: string | null | undefined) {
 function emptyOverview(role = "Utilizador") {
   return {
     role,
-    academicYear: null,
+    academicYear: null as null | {
+      name: string;
+      code: string;
+      starts_on: string;
+      ends_on: string;
+      status: string;
+    },
     yearProgress: 0,
     capabilities: {
       students: false,
@@ -173,7 +179,14 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
             .limit(500),
         ]);
 
-      let enrollments = enrollmentsResult.data ?? [];
+      let enrollments: Array<{
+        id: string;
+        status: string;
+        class_group_id: string | null;
+        enrolled_on: string | null;
+        student_id: string;
+        attendance_rate: number | null;
+      }> = enrollmentsResult.data ?? [];
       if (
         enrollmentsResult.error &&
         /attendance_rate|42703|schema cache/i.test(enrollmentsResult.error.message)
@@ -183,7 +196,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           .select("id, status, class_group_id, enrolled_on, student_id")
           .eq("school_id", schoolId)
           .limit(500);
-        enrollments = retry.data ?? [];
+        enrollments = (retry.data ?? []).map((row) => ({ ...row, attendance_rate: null }));
       } else if (enrollmentsResult.error) {
         throw publicDatabaseError(enrollmentsResult.error, "Não foi possível carregar matrículas.");
       }
@@ -333,6 +346,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           ["submitted", "in_review", "queued", "processing"].includes(String(row.status)),
         ).length;
         overview.recentActivity = rows.slice(0, 6).map((row) => ({
+          id: String(row.id),
           title: String(row.request_type ?? "Documento"),
           detail: String(row.purpose ?? row.status ?? "Pedido"),
           time: new Date(String(row.created_at)).toLocaleDateString("pt-PT"),
@@ -415,7 +429,8 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       };
 
       if (!overview.recentActivity.length) {
-        overview.recentActivity = (receipts ?? []).slice(0, 5).map((row) => ({
+        overview.recentActivity = (receipts ?? []).slice(0, 5).map((row, index) => ({
+          id: `${row.invoice_id ?? "recibo"}-${row.paid_on ?? index}`,
           title: "Recebimento",
           detail: `${Number(row.amount ?? 0).toLocaleString("pt-PT")} Kz`,
           time: String(row.paid_on ?? "").slice(0, 10),

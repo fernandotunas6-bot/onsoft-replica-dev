@@ -118,7 +118,7 @@ export const updateCurrentProfile = createServerFn({ method: "POST" })
     };
     if (data.phone !== undefined) {
       const { normalizeAngolaPhone } = await import("@/lib/angola-phone");
-      updatePayload.phone = data.phone ? normalizeAngolaPhone(data.phone) || null : null;
+      updatePayload["phone"] = data.phone ? normalizeAngolaPhone(data.phone) || null : null;
     }
 
     let row: {

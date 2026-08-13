@@ -114,15 +114,15 @@ export function NavLinkRow(
   const router = useRouter();
   const queryClient = useQueryClient();
   const warmRoute = () => {
-    void router.preloadRoute({ to, search }).catch(() => {});
+    void router.preloadRoute({ to, ...(search ? { search } : {}) }).catch(() => {});
     prefetchRouteData(queryClient, to);
   };
   return (
     <Link
       to={to}
-      search={search}
+      {...(search ? { search } : {})}
       activeOptions={{ exact: !search }}
-      title={props.collapsed ? props.label : undefined}
+      {...(props.collapsed ? { title: props.label } : {})}
       className={rowClass(rest)}
       activeProps={{ className: NAV_ROW_ACTIVE, "aria-current": "page", "data-active": "true" }}
       inactiveProps={{ "data-active": "false" }}

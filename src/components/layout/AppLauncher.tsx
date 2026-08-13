@@ -5,12 +5,7 @@ import { ChevronRight, Search, Settings, SlidersHorizontal } from "lucide-react"
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -47,7 +42,15 @@ function WaffleIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" aria-hidden className={cn("size-5", className)}>
       {[4, 10.5, 17].flatMap((y, row) =>
         [4, 10.5, 17].map((x, col) => (
-          <rect key={`${row}-${col}`} x={x} y={y} width="3" height="3" rx="0.8" fill="currentColor" />
+          <rect
+            key={`${row}-${col}`}
+            x={x}
+            y={y}
+            width="3"
+            height="3"
+            rx="0.8"
+            fill="currentColor"
+          />
         )),
       )}
     </svg>
@@ -61,7 +64,7 @@ function CompactTile({
   onOpen,
 }: {
   app: LauncherApp;
-  status?: string;
+  status?: string | undefined;
   current?: boolean;
   onOpen: (app: LauncherApp) => void;
 }) {
@@ -103,7 +106,7 @@ function HubAppRow({
   onConfigure,
 }: {
   app: LauncherApp;
-  status?: string;
+  status?: string | undefined;
   canConfigure: boolean;
   onOpen: (app: LauncherApp) => void;
   onConfigure: (app: LauncherApp) => void;
@@ -151,11 +154,7 @@ function HubAppRow({
   );
 }
 
-export function AppLauncher({
-  onOpenSettings,
-}: {
-  onOpenSettings: (panelId?: string) => void;
-}) {
+export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: string) => void }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const search = useRouterState({
@@ -354,7 +353,10 @@ export function AppLauncher({
                 compactSections.map((section) => (
                   <section key={section.id} aria-labelledby={`launcher-${section.id}`}>
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 id={`launcher-${section.id}`} className="text-sm font-bold text-foreground">
+                      <h3
+                        id={`launcher-${section.id}`}
+                        className="text-sm font-bold text-foreground"
+                      >
                         {section.label}
                       </h3>
                       <button
@@ -370,7 +372,9 @@ export function AppLauncher({
                         <CompactTile
                           key={app.id}
                           app={app}
-                          status={app.catalogId ? statusByProvider.get(app.catalogId) : undefined}
+                          {...(app.catalogId && statusByProvider.get(app.catalogId)
+                            ? { status: statusByProvider.get(app.catalogId) }
+                            : {})}
                           current={isLauncherAppCurrent(app, pathname, search)}
                           onOpen={launch}
                         />
@@ -386,7 +390,10 @@ export function AppLauncher({
             </div>
           </ScrollArea>
           <div className="border-t border-border p-3">
-            <Button className="h-10 w-full rounded-xl text-sm font-semibold" onClick={() => openHub()}>
+            <Button
+              className="h-10 w-full rounded-xl text-sm font-semibold"
+              onClick={() => openHub()}
+            >
               Ver todos os aplicativos
             </Button>
           </div>
@@ -416,7 +423,9 @@ export function AppLauncher({
                       onClick={() => setHubSection(section.id)}
                       className={cn(
                         "flex min-w-max items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
-                        active ? "bg-primary-soft text-primary" : "text-foreground hover:bg-secondary",
+                        active
+                          ? "bg-primary-soft text-primary"
+                          : "text-foreground hover:bg-secondary",
                       )}
                     >
                       {section.label}
@@ -466,15 +475,19 @@ export function AppLauncher({
                       <HubAppRow
                         key={app.id}
                         app={app}
-                        status={app.catalogId ? statusByProvider.get(app.catalogId) : undefined}
+                        {...(app.catalogId && statusByProvider.get(app.catalogId)
+                          ? { status: statusByProvider.get(app.catalogId) }
+                          : {})}
                         canConfigure={canManage}
                         onOpen={launch}
-                        onConfigure={configure}
+                        onConfigure={(target) => configure(target)}
                       />
                     ))
                   ) : (
                     <p className="col-span-full rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-                      {searching ? "Nenhum aplicativo corresponde à pesquisa." : "Nenhum aplicativo neste grupo."}
+                      {searching
+                        ? "Nenhum aplicativo corresponde à pesquisa."
+                        : "Nenhum aplicativo neste grupo."}
                     </p>
                   )}
                 </div>

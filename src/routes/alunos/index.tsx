@@ -272,39 +272,31 @@ function StudentsPage() {
   const alunoExportColumns = [
     {
       label: "Processo",
-      value: (row: Record<string, unknown>) => String(row.registration_number ?? ""),
+      value: (row: StudentRow) => row.registration_number,
     },
-    { label: "Aluno", value: (row: Record<string, unknown>) => String(row.full_name ?? "") },
-    { label: "Classe", value: (row: Record<string, unknown>) => String(row.grade_name ?? "") },
-    { label: "Turma", value: (row: Record<string, unknown>) => String(row.class_name ?? "") },
+    { label: "Aluno", value: (row: StudentRow) => row.full_name },
+    { label: "Classe", value: (row: StudentRow) => row.grade_name ?? "" },
+    { label: "Turma", value: (row: StudentRow) => row.class_name ?? "" },
     {
       label: "Estado",
-      value: (row: Record<string, unknown>) =>
-        estadoLabels[String(row.student_status)] ?? String(row.student_status ?? ""),
+      value: (row: StudentRow) => estadoLabels[row.student_status] ?? row.student_status,
     },
     {
       label: "Pagamento",
-      value: (row: Record<string, unknown>) =>
-        row.payment_status
-          ? (pagamentoLabels[String(row.payment_status)] ?? String(row.payment_status))
-          : "",
+      value: (row: StudentRow) =>
+        row.payment_status ? (pagamentoLabels[row.payment_status] ?? row.payment_status) : "",
     },
-    { label: "Telefone", value: (row: Record<string, unknown>) => String(row.phone ?? "") },
-    { label: "Email", value: (row: Record<string, unknown>) => String(row.email ?? "") },
+    { label: "Telefone", value: (row: StudentRow) => row.phone ?? "" },
+    { label: "Email", value: (row: StudentRow) => row.email ?? "" },
   ];
 
-  const exportarAlunosCsv = () =>
-    exportCsv(
-      "alunos-filtrados",
-      alunoExportColumns,
-      filtered as unknown as Record<string, string | number | boolean | null | undefined>[],
-    );
+  const exportarAlunosCsv = () => exportCsv("alunos-filtrados", alunoExportColumns, filtered);
   const exportarAlunosPdf = () =>
     exportPdfTable(
       "alunos-filtrados",
       "Lista de alunos",
       alunoExportColumns,
-      filtered as unknown as Record<string, string | number | boolean | null | undefined>[],
+      filtered,
       `Filtros activos: ${activeCount || "nenhum"} · ${activeYearLabel}`,
     );
   const exportarAlunosOficial = () => {
@@ -356,7 +348,7 @@ function StudentsPage() {
             ]),
           },
           alunoExportColumns,
-          filtered as unknown as Record<string, string | number | boolean | null | undefined>[],
+          filtered,
         ),
     });
   };
@@ -733,7 +725,7 @@ function StudentsPage() {
                                 const group = classGroups.find(
                                   (item) =>
                                     `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                                    values.turma,
+                                    values["turma"],
                                 );
                                 const yearId = String(group?.academic_year_id ?? "");
                                 if (!group || !yearId) {
@@ -791,7 +783,7 @@ function StudentsPage() {
                                 const group = classGroups.find(
                                   (item) =>
                                     `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                                    values.turma,
+                                    values["turma"],
                                 );
                                 const yearId = String(group?.academic_year_id ?? "");
                                 if (!group || !yearId) {
@@ -861,12 +853,12 @@ function StudentsPage() {
                                   Transferido: "transferred",
                                   Concluído: "graduated",
                                 };
-                                const newStatus = statusMap[values.estado ?? ""] ?? "active";
+                                const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
                                 await changeStudentStatus({
                                   data: {
                                     studentId: s.id,
                                     newStatus,
-                                    reason: values.motivo || undefined,
+                                    reason: values["motivo"] || undefined,
                                   },
                                 });
                                 await Promise.all([

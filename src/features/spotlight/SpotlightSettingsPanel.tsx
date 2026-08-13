@@ -87,6 +87,7 @@ export function SpotlightSettingsPanel() {
     const swap = index + direction;
     if (index < 0 || swap < 0 || swap >= next.length) return;
     const [a, b] = [next[index], next[swap]];
+    if (!a || !b) return;
     next[index] = { ...b, order: a.order };
     next[swap] = { ...a, order: b.order };
     setDraft(next);
@@ -131,8 +132,8 @@ export function SpotlightSettingsPanel() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Cartões do painel da conta e do início. O botão pode abrir uma página do SIGA, um
-        sítio externo ou um painel de Definições.
+        Cartões do painel da conta e do início. O botão pode abrir uma página do SIGA, um sítio
+        externo ou um painel de Definições.
       </p>
       {configQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">A carregar destaques…</p>
@@ -225,7 +226,7 @@ export function SpotlightSettingsPanel() {
                     </p>
                     <SpotlightCard
                       item={item}
-                      href={item.link.type === "internal" ? item.link.to : undefined}
+                      {...(item.link.type === "internal" ? { href: item.link.to } : {})}
                     />
                   </div>
                 </div>
@@ -282,7 +283,9 @@ export function SpotlightSettingsPanel() {
           </Button>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">Apenas Administrador pode editar os destaques.</p>
+        <p className="text-xs text-muted-foreground">
+          Apenas Administrador pode editar os destaques.
+        </p>
       )}
     </div>
   );
@@ -369,9 +372,7 @@ function SpotlightLinkFields({
             value={item.link.to}
             disabled={disabled}
             placeholder="/alunos"
-            onChange={(event) =>
-              setLink({ type: "internal", to: event.target.value || "/" })
-            }
+            onChange={(event) => setLink({ type: "internal", to: event.target.value || "/" })}
             onBlur={(event) =>
               setLink({
                 type: "internal",
@@ -494,7 +495,9 @@ function SpotlightAudienceFields({
     <div className="space-y-2">
       <div className="space-y-1">
         <Label className="text-xs">Quem vê</Label>
-        <p className="text-[11px] text-muted-foreground">Sem selecção, todos os cargos da escola.</p>
+        <p className="text-[11px] text-muted-foreground">
+          Sem selecção, todos os cargos da escola.
+        </p>
         <div className="flex flex-wrap gap-1.5">
           {spotlightAudienceRoles.map((role) => (
             <Button

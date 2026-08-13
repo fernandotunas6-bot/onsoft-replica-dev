@@ -36,7 +36,10 @@ function ArquivosPage() {
           description="Biblioteca estilo OneDrive: lista com proprietário, nível de acesso e auditoria. Os bytes só abrem quando precisa."
         />
         <InstalledModuleTools module="arquivos" />
-        <FileBrowser initialClassGroupId={turma} initialRelatedPersonId={pessoa} />
+        <FileBrowser
+          {...(turma ? { initialClassGroupId: turma } : {})}
+          {...(pessoa ? { initialRelatedPersonId: pessoa } : {})}
+        />
       </div>
     </AppShell>
   );
