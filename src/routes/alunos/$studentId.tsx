@@ -120,6 +120,44 @@ const relationshipLabels: Record<string, string> = {
   responsavel_autorizado_buscar: "Autorizado a buscar",
 };
 
+type StudentProfile = {
+  id: string;
+  registration_number: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  student_status: string;
+  payment_status: string | null;
+  grade_name: string | null;
+  class_name: string | null;
+  course_name?: string | null;
+  academic_year: string | null;
+  person_id: string;
+  school_id: string;
+  person_version: number;
+  enrollment_id: string | null;
+  enrollment_status: string | null;
+  enrolled_on: string | null;
+  academic_year_id: string | null;
+  final_average: number | null;
+  attendance_rate: number | null;
+  gender: string | null;
+  birth_date: string | null;
+  photo_url: string | null;
+};
+
+type StudentGuardian = {
+  guardian_person_id: string;
+  relationship: string;
+  is_primary: boolean;
+  guardian: { full_name: string; phone_primary: string | null; email: string | null } | null;
+};
+
+type StudentDocumentWorkspace = {
+  templates: Array<{ id: string; name: string }>;
+  requests: Array<{ student_id: string; template_name: string; status: string }>;
+};
+
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -190,7 +228,10 @@ function StudentDetail() {
   });
   const documentsQuery = useQuery({
     queryKey: ["documents", "workspace"],
-    queryFn: () => listDocumentWorkspace({ data: { limit: 100 } }),
+    queryFn: () =>
+      listDocumentWorkspace({
+        data: { limit: 100 },
+      }) as unknown as Promise<StudentDocumentWorkspace>,
     enabled: canRequestDocument,
     retry: false,
   });
@@ -209,7 +250,10 @@ function StudentDetail() {
     return <NotFoundOrError title="Não foi possível carregar a ficha" />;
   }
 
-  const { student, guardians } = profileQuery.data!;
+  const { student, guardians } = profileQuery.data! as {
+    student: StudentProfile | null;
+    guardians: StudentGuardian[];
+  };
   if (!student) return <NotFoundOrError title="Aluno não encontrado" />;
 
   const studentInvoices = (invoicesQuery.data ?? []).filter(
@@ -266,7 +310,7 @@ function StudentDetail() {
           receiptNumber,
           amountLabel: kwanza(amount),
         }),
-        banking: school?.banking,
+        ...(school?.banking ? { banking: school.banking } : {}),
       }),
       fallback: () =>
         exportOfficialDeclarationPdf(`recibo-${receiptNumber}`, "Recibo de pagamento", {
@@ -293,9 +337,9 @@ function StudentDetail() {
       data: {
         personId: student.person_id,
         expectedVersion: student.person_version,
-        fullName: values.nome ?? "",
-        email: values.email || undefined,
-        phone: values.telefone || undefined,
+        fullName: values["nome"] ?? "",
+        email: values["email"] || undefined,
+        phone: values["telefone"] || undefined,
       },
     });
     await Promise.all([
@@ -312,12 +356,12 @@ function StudentDetail() {
       Transferido: "transferred",
       Concluído: "graduated",
     };
-    const newStatus = statusMap[values.estado ?? ""] ?? "active";
+    const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
     await changeStudentStatus({
       data: {
         studentId,
         newStatus,
-        reason: values.motivo || undefined,
+        reason: values["motivo"] || undefined,
       },
     });
     await Promise.all([
@@ -342,7 +386,7 @@ function StudentDetail() {
   };
 
   const handleAssignClass = async (values: Record<string, string>) => {
-    const index = turmaOptions.indexOf(values.turma ?? "");
+    const index = turmaOptions.indexOf(values["turma"] ?? "");
     const selected = index >= 0 ? classGroups[index] : undefined;
     if (!selected) throw new Error("Seleccione uma turma válida.");
     if (student.enrollment_id) {
@@ -354,11 +398,14 @@ function StudentDetail() {
         },
       });
     } else {
+      const academicYearId =
+        selected.academic_year_id ?? student.academic_year_id ?? selectedYearId;
+      if (!academicYearId) throw new Error("A turma seleccionada não tem ano lectivo associado.");
       await enrollStudentInClass({
         data: {
           studentId,
           classGroupId: selected.id,
-          academicYearId: selected.academic_year_id,
+          academicYearId,
         },
       });
     }
@@ -427,7 +474,7 @@ function StudentDetail() {
       },
       overlay: overlayBoletim({
         subjects: rows,
-        average: rows[0]?.mfa,
+        ...(rows[0]?.mfa ? { average: rows[0].mfa } : {}),
         attendance:
           student.attendance_rate != null ? `${Math.round(Number(student.attendance_rate))}%` : "—",
         status: rows.every((row) => !/reprov|não trans/i.test(row.status))
@@ -493,7 +540,7 @@ function StudentDetail() {
       overlay: overlayHistorico({
         subjects: rows,
         periodName: academicYear || "Ano lectivo",
-        average: rows[0]?.mfa,
+        ...(rows[0]?.mfa ? { average: rows[0].mfa } : {}),
         status: rows.every((row) => !/reprov|não trans/i.test(row.status)) ? "Apto" : "Pendente",
       }),
     });
@@ -582,7 +629,7 @@ function StudentDetail() {
       overlay: overlayHistorico({
         subjects: rows,
         periodName: academicYear || "Ano lectivo",
-        average: rows[0]?.mfa,
+        ...(rows[0]?.mfa ? { average: rows[0].mfa } : {}),
         status: rows.every((row) => !/reprov|não trans/i.test(row.status)) ? "Apto" : "Pendente",
       }),
     });
@@ -638,9 +685,11 @@ function StudentDetail() {
     .map(personOptionFor);
 
   const handleAssignGuardian = async (values: Record<string, string>) => {
-    const selected = (peopleQuery.data ?? []).find((row) => personOptionFor(row) === values.pessoa);
+    const selected = (peopleQuery.data ?? []).find(
+      (row) => personOptionFor(row) === values["pessoa"],
+    );
     const relationship = personRelationshipTypeOptions.find(
-      (option) => relationshipLabels[option] === values.parentesco,
+      (option) => relationshipLabels[option] === values["parentesco"],
     );
     if (!selected || !relationship) throw new Error("Seleccione a pessoa e o parentesco.");
     await assignGuardian({
@@ -648,7 +697,7 @@ function StudentDetail() {
         studentId,
         guardianPersonId: selected.id,
         relationship,
-        isPrimary: values.principal === "Sim",
+        isPrimary: values["principal"] === "Sim",
       },
     });
     await Promise.all([
@@ -882,11 +931,11 @@ function StudentDetail() {
                     },
                   ]}
                   onSubmit={async (values) => {
-                    if (values.modelo === "Certificado de habilitações") {
+                    if (values["modelo"] === "Certificado de habilitações") {
                       await downloadCertificado();
                       return;
                     }
-                    if (values.modelo === "Folha de credenciais") {
+                    if (values["modelo"] === "Folha de credenciais") {
                       await downloadCredenciais();
                       return;
                     }
@@ -913,11 +962,11 @@ function StudentDetail() {
                   await issueInvoice({
                     data: {
                       studentId,
-                      number: values.numero,
-                      dueOn: values.vencimento,
-                      category: values.categoria,
-                      amount: Number(values.valor),
-                      description: `${values.descricao || ""}${nifNote}`.trim() || undefined,
+                      number: values["numero"],
+                      dueOn: values["vencimento"],
+                      category: values["categoria"],
+                      amount: Number(values["valor"]),
+                      description: `${values["descricao"] || ""}${nifNote}`.trim() || undefined,
                     },
                   });
                   await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
@@ -960,16 +1009,16 @@ function StudentDetail() {
                 submitLabel="Registar pedido"
                 successDescription="Pedido de documento registado."
                 onSubmit={async (values) => {
-                  const template = templates[templateOptions.indexOf(values.modelo ?? "")];
+                  const template = templates[templateOptions.indexOf(values["modelo"] ?? "")];
                   if (!template) throw new Error("Seleccione um modelo válido.");
                   await createDocumentRequest({
                     data: {
                       studentId,
                       templateId: template.id,
-                      requestNumber: values.numero,
-                      priority: values.urgencia === "Urgente" ? "urgent" : "normal",
-                      dueOn: values.prazo || undefined,
-                      notes: values.notas || undefined,
+                      requestNumber: values["numero"],
+                      priority: values["urgencia"] === "Urgente" ? "urgent" : "normal",
+                      dueOn: values["prazo"] || undefined,
+                      notes: values["notas"] || undefined,
                     },
                   });
                   await queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
@@ -1137,7 +1186,7 @@ function StudentDetail() {
                       await updateEnrollmentAttendance({
                         data: {
                           enrollmentId: student.enrollment_id as string,
-                          attendanceRate: Number(values.presenca),
+                          attendanceRate: Number(values["presenca"]),
                         },
                       });
                       await queryClient.invalidateQueries({
@@ -1252,9 +1301,10 @@ function StudentDetail() {
                     name: "parentesco",
                     label: "Parentesco",
                     type: "select",
-                    options: personRelationshipTypeOptions.map(
-                      (option) => relationshipLabels[option],
-                    ),
+                    options: personRelationshipTypeOptions.flatMap((option) => {
+                      const label = relationshipLabels[option];
+                      return label ? [label] : [];
+                    }),
                   },
                   {
                     name: "principal",
@@ -1459,7 +1509,7 @@ function StudentDetail() {
                               },
                             ]}
                             onSubmit={async (values) => {
-                              const amount = Number(values.valor);
+                              const amount = Number(values["valor"]);
                               const methodMap = {
                                 Numerário: "cash",
                                 Transferência: "transfer",
@@ -1468,10 +1518,10 @@ function StudentDetail() {
                               } as const;
                               const method =
                                 methodMap[
-                                  (values.metodo as keyof typeof methodMap) ?? "Numerário"
+                                  (values["metodo"] as keyof typeof methodMap) ?? "Numerário"
                                 ] ?? "cash";
                               const reference =
-                                values.referencia ||
+                                values["referencia"] ||
                                 (method === "multicaixa_express"
                                   ? paymentReference("EMIS")
                                   : method === "unitel_money"
@@ -1480,7 +1530,7 @@ function StudentDetail() {
                               const paid = await recordInvoicePayment({
                                 data: {
                                   invoiceId: invoice.id,
-                                  receiptNumber: values.recibo,
+                                  receiptNumber: values["recibo"],
                                   amount,
                                   method,
                                   reference,

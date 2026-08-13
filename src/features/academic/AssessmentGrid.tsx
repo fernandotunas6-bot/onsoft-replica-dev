@@ -211,13 +211,14 @@ export function AssessmentGrid({
                     <td key={column.key} className="border-b p-0">
                       <input
                         data-grid={`${row}-${col}`}
+                        aria-label={`${column.label} de ${student.student_name}`}
                         inputMode="decimal"
                         value={value}
                         readOnly={readOnly}
                         onChange={(event) => onChange(student.id, column.key, event.target.value)}
                         onKeyDown={(event) => onKeyDown(event, row, col)}
                         className={cn(
-                          "h-9 w-full bg-transparent px-2 text-right outline-none focus:bg-primary/10",
+                          "h-9 w-full bg-transparent px-2 text-right outline-none focus:bg-primary/10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                           dirtyKeys.has(cellKey) && "bg-warning/20",
                           invalid && "bg-destructive/15 text-destructive",
                         )}

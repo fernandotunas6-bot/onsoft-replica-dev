@@ -2,7 +2,17 @@ import { useMemo, useRef, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Archive, Award, Download, FileDown, Mail, MessageSquare, Monitor, Pencil, Send } from "lucide-react";
+import {
+  Archive,
+  Award,
+  Download,
+  FileDown,
+  Mail,
+  MessageSquare,
+  Monitor,
+  Pencil,
+  Send,
+} from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -67,6 +77,14 @@ export const Route = createFileRoute("/comunicacoes")({
 type Audience = (typeof announcementAudienceOptions)[number];
 type Channel = (typeof announcementChannelOptions)[number];
 type Status = (typeof announcementStatusOptions)[number];
+type AnnouncementStatus = Status | "cancelled";
+type AnnouncementExportRow = {
+  titulo: string;
+  destino: string;
+  canal: string;
+  estado: string;
+  data: string;
+};
 
 const canalIcon = {
   sms: MessageSquare,
@@ -169,16 +187,9 @@ function ComunicacoesPage() {
   const enviados = items.filter((item) => item.status === "sent");
   const agendados = items.filter((item) => item.status === "scheduled");
   const rascunhos = items.filter((item) => item.status === "draft");
-  const columns = [
-    { label: "Título", value: (row: Record<string, unknown>) => row.titulo },
-    { label: "Destino", value: (row: Record<string, unknown>) => row.destino },
-    { label: "Canal", value: (row: Record<string, unknown>) => row.canal },
-    { label: "Estado", value: (row: Record<string, unknown>) => row.estado },
-    { label: "Data", value: (row: Record<string, unknown>) => row.data },
-  ];
-  const exportRows = filtered.map((item) => {
+  const exportRows: AnnouncementExportRow[] = filtered.map((item) => {
     const channel = item.channel as Channel;
-    const status = item.status as Status;
+    const status = item.status as AnnouncementStatus;
     const audience = item.audience as Audience;
     return {
       titulo: item.title,
@@ -191,6 +202,13 @@ function ComunicacoesPage() {
           : (item.published_at ?? item.created_at)?.slice(0, 10),
     };
   });
+  const columns = [
+    { label: "Título", value: (row: AnnouncementExportRow) => row.titulo },
+    { label: "Destino", value: (row: AnnouncementExportRow) => row.destino },
+    { label: "Canal", value: (row: AnnouncementExportRow) => row.canal },
+    { label: "Estado", value: (row: AnnouncementExportRow) => row.estado },
+    { label: "Data", value: (row: AnnouncementExportRow) => row.data },
+  ];
   const exportarCsv = () => exportCsv("comunicados-filtrados", columns, exportRows);
   const exportarPdf = () =>
     exportPdfTable(
@@ -226,7 +244,10 @@ function ComunicacoesPage() {
         reference: item.title || "COM",
         status: estadoLabel[(item.status as Status) ?? "draft"] ?? item.status ?? "Rascunho",
         parties: [
-          { label: "Audiência", value: audienceLabel[(item.audience as Audience) ?? "school"] ?? "Escola" },
+          {
+            label: "Audiência",
+            value: audienceLabel[(item.audience as Audience) ?? "school"] ?? "Escola",
+          },
           { label: "Canal", value: canalLabel[(item.channel as Channel) ?? "portal"] ?? "Portal" },
         ],
         sections: [{ title: "Mensagem", text: String(item.body ?? "Sem texto.") }],
@@ -386,7 +407,9 @@ function ComunicacoesPage() {
               <PickFileButton
                 area="escola"
                 onPick={(file) =>
-                  toast.success(file.name, { description: "Ficheiro da biblioteca para o comunicado." })
+                  toast.success(file.name, {
+                    description: "Ficheiro da biblioteca para o comunicado.",
+                  })
                 }
               />
               {canManage && !migrationMissing ? (
@@ -496,7 +519,7 @@ function ComunicacoesPage() {
               <ul className="space-y-4">
                 {filtered.map((c) => {
                   const channel = c.channel as Channel;
-                  const status = c.status as Status;
+                  const status = c.status as AnnouncementStatus;
                   const audience = c.audience as Audience;
                   const Icon = canalIcon[channel] ?? Monitor;
                   return (
@@ -545,7 +568,9 @@ function ComunicacoesPage() {
                                     size="sm"
                                     variant="outline"
                                     onClick={async () => {
-                                      await navigator.clipboard.writeText(`${c.title}\n\n${c.body}`);
+                                      await navigator.clipboard.writeText(
+                                        `${c.title}\n\n${c.body}`,
+                                      );
                                       toast.success("Texto copiado para envio Resend");
                                     }}
                                   >
@@ -586,7 +611,7 @@ function ComunicacoesPage() {
                             ) : null}
                             {canManage ? (
                               <div className="mt-3 flex flex-wrap gap-2">
-                                {status === "draft" ? (
+                                {status === "draft" || status === "scheduled" ? (
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -607,7 +632,7 @@ function ComunicacoesPage() {
                                       }
                                     }}
                                   >
-                                    Marcar enviado
+                                    {status === "scheduled" ? "Publicar agora" : "Marcar enviado"}
                                   </Button>
                                 ) : null}
                                 {status === "cancelled" ? (
@@ -654,8 +679,8 @@ function ComunicacoesPage() {
                                         await updateSchoolAnnouncement({
                                           data: {
                                             id: c.id,
-                                            title: values.titulo ?? "",
-                                            body: values.mensagem ?? "",
+                                            title: values["titulo"] ?? "",
+                                            body: values["mensagem"] ?? "",
                                           },
                                         });
                                         await invalidate();
@@ -676,7 +701,12 @@ function ComunicacoesPage() {
                                         },
                                       ]}
                                       trigger={(open) => (
-                                        <Button size="sm" variant="outline" className="gap-1.5" onClick={open}>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="gap-1.5"
+                                          onClick={open}
+                                        >
                                           <Pencil className="size-3.5" /> Editar
                                         </Button>
                                       )}
@@ -796,7 +826,8 @@ function ComunicacoesPage() {
                       size="sm"
                       onPick={(file) => {
                         const line = `\n\n[Arquivo SIGA] ${file.name}`;
-                        const textarea = formRef.current?.querySelector<HTMLTextAreaElement>("#mensagem");
+                        const textarea =
+                          formRef.current?.querySelector<HTMLTextAreaElement>("#mensagem");
                         if (textarea) {
                           const next = `${textarea.value.trimEnd()}${line}`.slice(0, 4000);
                           textarea.value = next;

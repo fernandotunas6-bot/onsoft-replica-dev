@@ -444,7 +444,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       .from("announcements")
       .select("id, title, body, published_at, status")
       .eq("school_id", schoolId)
-      .eq("status", "published")
+      .or(`status.eq.published,and(status.eq.scheduled,scheduled_for.lte.${fromDate})`)
       .order("published_at", { ascending: false })
       .limit(5);
     if (!announcementError) {

@@ -1,13 +1,13 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-type PdfValue = string | number | boolean | null | undefined;
+export type PdfValue = string | number | boolean | null | undefined;
 
-export function exportPdfTable(
+export function exportPdfTable<Row extends object>(
   filename: string,
   title: string,
-  columns: ReadonlyArray<{ label: string; value: (row: Record<string, PdfValue>) => PdfValue }>,
-  rows: ReadonlyArray<Record<string, PdfValue>>,
+  columns: ReadonlyArray<{ label: string; value: (row: Row) => PdfValue }>,
+  rows: ReadonlyArray<Row>,
   subtitle?: string,
 ) {
   const doc = new jsPDF({ orientation: columns.length > 6 ? "landscape" : "portrait" });
@@ -39,19 +39,23 @@ export function exportPdfTable(
 export type OfficialPautaMeta = {
   schoolName: string;
   academicYear: string;
-  gradeName?: string;
-  courseName?: string;
-  className?: string;
-  subjectName?: string;
-  termLabel?: string;
-  province?: string;
-  municipality?: string;
-  issuedOn?: string;
-  directorName?: string;
-  validationCode?: string;
+  gradeName?: string | undefined;
+  courseName?: string | undefined;
+  className?: string | undefined;
+  subjectName?: string | undefined;
+  termLabel?: string | undefined;
+  province?: string | undefined;
+  municipality?: string | undefined;
+  issuedOn?: string | undefined;
+  directorName?: string | undefined;
+  validationCode?: string | undefined;
 };
 
-function drawOfficialHeader(doc: InstanceType<typeof jsPDF>, meta: OfficialPautaMeta, title: string) {
+function drawOfficialHeader(
+  doc: InstanceType<typeof jsPDF>,
+  meta: OfficialPautaMeta,
+  title: string,
+) {
   const pageWidth = doc.internal.pageSize.getWidth();
   doc.setFillColor(206, 17, 38);
   doc.circle(pageWidth / 2, 18, 8, "F");
@@ -85,12 +89,12 @@ function drawOfficialHeader(doc: InstanceType<typeof jsPDF>, meta: OfficialPauta
   return 68;
 }
 
-export function exportOfficialPautaPdf(
+export function exportOfficialPautaPdf<Row extends object>(
   filename: string,
   title: string,
   meta: OfficialPautaMeta,
-  columns: ReadonlyArray<{ label: string; value: (row: Record<string, PdfValue>) => PdfValue }>,
-  rows: ReadonlyArray<Record<string, PdfValue>>,
+  columns: ReadonlyArray<{ label: string; value: (row: Row) => PdfValue }>,
+  rows: ReadonlyArray<Row>,
 ) {
   const doc = new jsPDF({ orientation: columns.length > 7 ? "landscape" : "portrait" });
   const startY = drawOfficialHeader(doc, meta, title);
@@ -106,7 +110,8 @@ export function exportOfficialPautaPdf(
     styles: { fontSize: 8, cellPadding: 2, font: "times" },
     headStyles: { fillColor: [206, 17, 38], textColor: 255 },
   });
-  const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 200;
+  const finalY =
+    (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 200;
   const pageHeight = doc.internal.pageSize.getHeight();
   const signaturesY = Math.min(finalY + 22, pageHeight - 24);
   doc.setFontSize(9);
@@ -126,7 +131,10 @@ export function exportOfficialPautaPdf(
     doc.setFillColor(20, 20, 20);
     for (let row = 0; row < 6; row += 1) {
       for (let col = 0; col < 6; col += 1) {
-        const on = (meta.validationCode.charCodeAt((row + col) % meta.validationCode.length) + row * col) % 3 === 0;
+        const on =
+          (meta.validationCode.charCodeAt((row + col) % meta.validationCode.length) + row * col) %
+            3 ===
+          0;
         if (on) doc.rect(boxX + 2 + col * 4, boxY + 2 + row * 4, 3.2, 3.2, "F");
       }
     }

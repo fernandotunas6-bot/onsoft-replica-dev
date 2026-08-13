@@ -33,6 +33,28 @@ function mapSex(sex: string | undefined) {
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
+type PersonDocumentSummary = {
+  id: string;
+  document_type: string;
+  document_number: string;
+  issued_at: string | null;
+  expires_at: string | null;
+  file_id: string | null;
+  file_name: string | null;
+};
+
+function toPersonDocumentSummary(row: Record<string, unknown>): PersonDocumentSummary {
+  return {
+    id: String(row["id"] ?? ""),
+    document_type: String(row["document_type"] ?? ""),
+    document_number: String(row["document_number"] ?? ""),
+    issued_at: (row["issued_at"] as string | null) ?? null,
+    expires_at: (row["expires_at"] as string | null) ?? null,
+    file_id: (row["file_id"] as string | null) ?? null,
+    file_name: (row["file_name"] as string | null) ?? null,
+  };
+}
+
 async function insertPersonDocuments(
   db: AdminDb,
   schoolId: string,
@@ -41,8 +63,8 @@ async function insertPersonDocuments(
   documents: Array<{
     document_type: string;
     document_number: string;
-    issued_at?: string;
-    expires_at?: string;
+    issued_at?: string | undefined;
+    expires_at?: string | undefined;
   }>,
 ) {
   for (const document of documents) {
@@ -120,14 +142,14 @@ export const searchPeople = createServerFn({ method: "GET" })
 
     const query = (data.query ?? "").trim().toLowerCase();
     const mapped = (people ?? []).map((person: Record<string, unknown>) => ({
-      id: person.id as string,
-      full_name: person.full_name as string,
-      email: (person.email as string | null) ?? null,
-      phone_primary: (person.phone as string | null) ?? null,
-      status: person.status as string,
-      birth_date: (person.date_of_birth as string | null) ?? null,
-      nif: (person.national_id as string | null) ?? null,
-      updated_at: person.updated_at as string,
+      id: person["id"] as string,
+      full_name: person["full_name"] as string,
+      email: (person["email"] as string | null) ?? null,
+      phone_primary: (person["phone"] as string | null) ?? null,
+      status: person["status"] as string,
+      birth_date: (person["date_of_birth"] as string | null) ?? null,
+      nif: (person["national_id"] as string | null) ?? null,
+      updated_at: person["updated_at"] as string,
       roles: [] as string[],
     }));
 
@@ -173,7 +195,7 @@ export const findPersonDuplicates = createServerFn({ method: "POST" })
       .map((person: Record<string, unknown>) => {
         let score = 0;
         const reasons: string[] = [];
-        const personName = String(person.full_name ?? "").toLowerCase();
+        const personName = String(person["full_name"] ?? "").toLowerCase();
         if (name && personName === name) {
           score += 0.7;
           reasons.push("nome exacto");
@@ -181,28 +203,28 @@ export const findPersonDuplicates = createServerFn({ method: "POST" })
           score += 0.45;
           reasons.push("nome semelhante");
         }
-        if (email && String(person.email ?? "").toLowerCase() === email) {
+        if (email && String(person["email"] ?? "").toLowerCase() === email) {
           score += 0.35;
           reasons.push("email");
         }
-        if (phone && normalizePhone(String(person.phone ?? "")) === phone) {
+        if (phone && normalizePhone(String(person["phone"] ?? "")) === phone) {
           score += 0.3;
           reasons.push("telefone");
         }
-        if (nif && String(person.national_id ?? "").toLowerCase() === nif) {
+        if (nif && String(person["national_id"] ?? "").toLowerCase() === nif) {
           score += 0.4;
           reasons.push("documento/NIF");
         }
-        if (birth && person.date_of_birth === birth) {
+        if (birth && person["date_of_birth"] === birth) {
           score += 0.2;
           reasons.push("data de nascimento");
         }
         return {
-          id: person.id as string,
-          full_name: person.full_name as string,
+          id: person["id"] as string,
+          full_name: person["full_name"] as string,
           score: Math.min(score, 1),
           match_reason: reasons.join(", ") || "semelhança parcial",
-          status: person.status as string,
+          status: person["status"] as string,
         };
       })
       .filter((row) => row.score >= 0.45)
@@ -233,10 +255,7 @@ export const getPerson = createServerFn({ method: "GET" })
       .eq("person_id", person.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: true });
-    if (
-      documentsError &&
-      /file_id|file_name|42703|schema cache/i.test(documentsError.message)
-    ) {
+    if (documentsError && /file_id|file_name|42703|schema cache/i.test(documentsError.message)) {
       const fallback = await db
         .from("person_documents")
         .select("id, document_type, document_number, issued_at, expires_at")
@@ -466,13 +485,13 @@ export const mergePeople = createServerFn({ method: "POST" })
     }
 
     const survivorPatch: Record<string, unknown> = { updated_by: context.userId };
-    if (!survivor.email && duplicate.email) survivorPatch.email = duplicate.email;
-    if (!survivor.phone && duplicate.phone) survivorPatch.phone = duplicate.phone;
-    if (!survivor.national_id && duplicate.national_id) {
-      survivorPatch.national_id = duplicate.national_id;
+    if (!survivor["email"] && duplicate["email"]) survivorPatch["email"] = duplicate["email"];
+    if (!survivor["phone"] && duplicate["phone"]) survivorPatch["phone"] = duplicate["phone"];
+    if (!survivor["national_id"] && duplicate["national_id"]) {
+      survivorPatch["national_id"] = duplicate["national_id"];
     }
-    if (!survivor.date_of_birth && duplicate.date_of_birth) {
-      survivorPatch.date_of_birth = duplicate.date_of_birth;
+    if (!survivor["date_of_birth"] && duplicate["date_of_birth"]) {
+      survivorPatch["date_of_birth"] = duplicate["date_of_birth"];
     }
 
     // Clear unique contact fields on the duplicate first so the survivor update
@@ -481,9 +500,9 @@ export const mergePeople = createServerFn({ method: "POST" })
       updated_by: context.userId,
       status: "inactive",
     };
-    if (survivorPatch.email) duplicateClear.email = null;
-    if (survivorPatch.phone) duplicateClear.phone = null;
-    if (survivorPatch.national_id) duplicateClear.national_id = null;
+    if (survivorPatch["email"]) duplicateClear["email"] = null;
+    if (survivorPatch["phone"]) duplicateClear["phone"] = null;
+    if (survivorPatch["national_id"]) duplicateClear["national_id"] = null;
 
     let duplicateError = (
       await db
@@ -543,11 +562,11 @@ export const listStaffDirectory = createServerFn({ method: "GET" })
       ? await db
           .from("people")
           .select("id, full_name, email, phone, status, updated_at")
+          .eq("school_id", membership.schoolId)
           .in("id", personIds)
       : { data: [] as Array<Record<string, unknown>> };
-    const peopleById = new Map(
-      (people ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
-    );
+    const peopleRows = (people ?? []) as Array<Record<string, unknown>>;
+    const peopleById = new Map(peopleRows.map((row) => [String(row["id"] ?? ""), row] as const));
 
     return (teachers ?? [])
       .map(
@@ -561,14 +580,14 @@ export const listStaffDirectory = createServerFn({ method: "GET" })
           const person = peopleById.get(teacher.person_id);
           if (!person) return null;
           return {
-            id: String(person.id),
+            id: String(person["id"]),
             teacher_id: teacher.id,
             employee_number: teacher.employee_number,
-            full_name: String(person.full_name),
-            email: (person.email as string | null) ?? null,
-            phone_primary: (person.phone as string | null) ?? null,
-            status: String(teacher.status ?? person.status),
-            updated_at: teacher.updated_at || String(person.updated_at ?? ""),
+            full_name: String(person["full_name"]),
+            email: (person["email"] as string | null) ?? null,
+            phone_primary: (person["phone"] as string | null) ?? null,
+            status: String(teacher.status ?? person["status"]),
+            updated_at: teacher.updated_at || String(person["updated_at"] ?? ""),
             roles: ["professor"],
             roleActive: teacher.status === "active",
           };
@@ -718,7 +737,8 @@ export const updateTeacher = createServerFn({ method: "POST" })
         phone: normalizePersonPhone(data.phone),
         updated_by: context.userId,
       })
-      .eq("id", teacher.person_id);
+      .eq("id", teacher.person_id)
+      .eq("school_id", membership.schoolId);
     if (personError) throw publicDatabaseError(personError, "Não foi possível actualizar a ficha.");
     return teacher;
   });
@@ -736,6 +756,7 @@ export const deleteTeacher = createServerFn({ method: "POST" })
     const { count, error: linkError } = await db
       .from("class_subjects")
       .select("id", { count: "exact", head: true })
+      .eq("school_id", membership.schoolId)
       .eq("teacher_id", data.teacherId)
       .eq("status", "active");
     if (linkError) {
@@ -832,6 +853,27 @@ export const addPersonDocument = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
+    const { data: person, error: personError } = await db
+      .from("people")
+      .select("id")
+      .eq("id", data.personId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (personError) throw publicDatabaseError(personError, "Não foi possível validar a pessoa.");
+    if (!person) throw new Error("Pessoa não encontrada nesta escola.");
+
+    if (data.document.file_id) {
+      const { data: file, error: fileError } = await db
+        .from("siga_files")
+        .select("id")
+        .eq("id", data.document.file_id)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (fileError && !/schema cache|does not exist|42P01|PGRST/i.test(fileError.message)) {
+        throw publicDatabaseError(fileError, "Não foi possível validar o anexo.");
+      }
+      if (!fileError && !file) throw new Error("O anexo não pertence a esta escola.");
+    }
     const documentNumber =
       data.document.document_type === "bi"
         ? (normalizePersonNif(data.document.document_number) ?? data.document.document_number)
@@ -882,7 +924,8 @@ export const addPersonDocument = createServerFn({ method: "POST" })
         .eq("id", data.personId)
         .eq("school_id", membership.schoolId);
     }
-    return row;
+    if (!row) throw new Error("Não foi possível adicionar o documento.");
+    return toPersonDocumentSummary(row);
   });
 
 export const updatePersonStatus = createServerFn({ method: "POST" })
@@ -890,7 +933,10 @@ export const updatePersonStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => updatePersonStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     const { data: person, error } = await db
       .from("people")
@@ -899,9 +945,11 @@ export const updatePersonStatus = createServerFn({ method: "POST" })
         updated_by: context.userId,
       })
       .eq("id", data.personId)
+      .eq("school_id", membership.schoolId)
       .select("id, status")
-      .single();
+      .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado.");
+    if (!person) throw new Error("Pessoa não encontrada nesta escola.");
     return person;
   });
 
@@ -983,7 +1031,8 @@ export async function ensureTeacherHrRecord(input: {
   const linked = await db
     .from("teachers")
     .update({ user_id: input.userId, updated_by: input.actorId })
-    .eq("id", teacherId);
+    .eq("id", teacherId)
+    .eq("school_id", input.schoolId);
   if (linked.error && !/user_id|42703|schema cache/i.test(linked.error.message)) {
     throw publicDatabaseError(linked.error, "Ficha criada, mas não ligou o login ao professor.");
   }

@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { getPublicCalendarFeed } from "@/features/calendar/feed";
 
+// style-check: route-exempt - endpoint público de subscrição, sem shell administrativo.
+
 export const Route = createFileRoute("/calendario/ics")({
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search.token === "string" ? search.token : "",

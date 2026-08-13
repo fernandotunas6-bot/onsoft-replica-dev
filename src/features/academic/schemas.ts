@@ -171,17 +171,10 @@ export const createScheduleSlotInputSchema = z
       .string()
       .trim()
       .regex(/^\d{2}:\d{2}$/),
-    subjectId: z.string().uuid().optional(),
+    subjectId: z.string().uuid(),
     label: optionalText,
   })
   .superRefine((value, ctx) => {
-    if (!value.subjectId && !value.label) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["label"],
-        message: "Indique uma disciplina ou um rótulo.",
-      });
-    }
     if (value.endsAt <= value.startsAt) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -196,6 +189,31 @@ export const deleteScheduleSlotInputSchema = z.object({
   slotId: z.string().uuid(),
 });
 export type DeleteScheduleSlotInput = z.infer<typeof deleteScheduleSlotInputSchema>;
+
+export const updateScheduleSlotInputSchema = z
+  .object({
+    slotId: z.string().uuid(),
+    weekday: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+    startsAt: z
+      .string()
+      .trim()
+      .regex(/^\d{2}:\d{2}$/),
+    endsAt: z
+      .string()
+      .trim()
+      .regex(/^\d{2}:\d{2}$/),
+    label: optionalText,
+  })
+  .superRefine((value, ctx) => {
+    if (value.endsAt <= value.startsAt) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endsAt"],
+        message: "A hora de fim deve ser posterior ao início.",
+      });
+    }
+  });
+export type UpdateScheduleSlotInput = z.infer<typeof updateScheduleSlotInputSchema>;
 
 export const getTeacherWorkspaceInputSchema = z.object({
   teacherId: z.string().uuid().optional(),

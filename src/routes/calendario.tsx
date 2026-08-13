@@ -1,7 +1,16 @@
 import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Award, CalendarDays, Download, FileDown, Pencil, Plus, Smartphone, Trash2 } from "lucide-react";
+import {
+  Award,
+  CalendarDays,
+  Download,
+  FileDown,
+  Pencil,
+  Plus,
+  Smartphone,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -24,6 +33,7 @@ import {
   createCalendarEvent,
   deleteCalendarEvent,
   listCalendarEvents,
+  type CalendarEventSummary,
   updateCalendarEvent,
 } from "@/features/calendar/server";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -40,6 +50,14 @@ import { cn } from "@/lib/utils";
 const calendarioFilterDefaults = {
   q: "",
   categoria: "todas",
+};
+
+type CalendarExportRow = {
+  titulo: string;
+  categoria: string;
+  inicio: string;
+  fim: string;
+  descricao: string;
 };
 
 export const Route = createFileRoute("/calendario")({
@@ -102,7 +120,7 @@ function CalendarioPage() {
 
   const eventsQuery = useQuery({
     queryKey: ["calendar", "events"],
-    queryFn: () => listCalendarEvents({ data: { limit: 50 } }),
+    queryFn: () => listCalendarEvents({ data: { limit: 50 } }) as Promise<CalendarEventSummary[]>,
     retry: false,
   });
 
@@ -131,13 +149,13 @@ function CalendarioPage() {
   }, [categoria, events, query]);
 
   const columns = [
-    { label: "Evento", value: (row: Record<string, unknown>) => row.titulo },
-    { label: "Categoria", value: (row: Record<string, unknown>) => row.categoria },
-    { label: "Início", value: (row: Record<string, unknown>) => row.inicio },
-    { label: "Fim", value: (row: Record<string, unknown>) => row.fim },
-    { label: "Descrição", value: (row: Record<string, unknown>) => row.descricao },
+    { label: "Evento", value: (row: CalendarExportRow) => row.titulo },
+    { label: "Categoria", value: (row: CalendarExportRow) => row.categoria },
+    { label: "Início", value: (row: CalendarExportRow) => row.inicio },
+    { label: "Fim", value: (row: CalendarExportRow) => row.fim },
+    { label: "Descrição", value: (row: CalendarExportRow) => row.descricao },
   ];
-  const exportRows = filtered.map((event) => ({
+  const exportRows: CalendarExportRow[] = filtered.map((event) => ({
     titulo: event.title,
     categoria: categoryLabels[event.category] ?? event.category,
     inicio: event.event_date,
@@ -327,9 +345,9 @@ function CalendarioPage() {
                   onSubmit={async (values) => {
                     await createCalendarEvent({
                       data: {
-                        title: values.nome ?? "",
-                        eventDate: values.inicio ?? "",
-                        endsOn: values.fim ?? "",
+                        title: values["nome"] ?? "",
+                        eventDate: values["inicio"] ?? "",
+                        endsOn: values["fim"] ?? "",
                         academicYearId: selectedYearId ?? undefined,
                         category: "academic",
                       },
@@ -461,110 +479,115 @@ function CalendarioPage() {
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                          <div className="inline-flex items-center justify-end gap-1">
-                            {whatsappOn ? (
-                              <Button size="sm" variant="ghost" asChild>
-                                <a
-                                  href={whatsappHref(
-                                    "",
-                                    `${event.title}: ${new Date(`${event.event_date}T00:00:00`).toLocaleDateString("pt-PT")}${event.ends_on ? ` a ${new Date(`${event.ends_on}T00:00:00`).toLocaleDateString("pt-PT")}` : ""}`,
-                                  )}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  WhatsApp
-                                </a>
-                              </Button>
-                            ) : null}
-                            {resendOn ? (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={async () => {
-                                  await navigator.clipboard.writeText(
-                                    `${event.title} · ${event.event_date}${event.ends_on ? ` a ${event.ends_on}` : ""}`,
-                                  );
-                                  toast.success("Período copiado para e-mail Resend");
-                                }}
+                        <div className="inline-flex items-center justify-end gap-1">
+                          {whatsappOn ? (
+                            <Button size="sm" variant="ghost" asChild>
+                              <a
+                                href={whatsappHref(
+                                  "",
+                                  `${event.title}: ${new Date(`${event.event_date}T00:00:00`).toLocaleDateString("pt-PT")}${event.ends_on ? ` a ${new Date(`${event.ends_on}T00:00:00`).toLocaleDateString("pt-PT")}` : ""}`,
+                                )}
+                                target="_blank"
+                                rel="noreferrer"
                               >
-                                E-mail
-                              </Button>
-                            ) : null}
+                                WhatsApp
+                              </a>
+                            </Button>
+                          ) : null}
+                          {resendOn ? (
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="gap-1.5"
-                              onClick={() => printPeriod(event)}
+                              onClick={async () => {
+                                await navigator.clipboard.writeText(
+                                  `${event.title} · ${event.event_date}${event.ends_on ? ` a ${event.ends_on}` : ""}`,
+                                );
+                                toast.success("Período copiado para e-mail Resend");
+                              }}
                             >
-                              <FileDown className="size-3.5" /> Imprimir
+                              E-mail
                             </Button>
-                            {canManage ? (
-                              <>
-                            <QuickFormModal
-                              title="Editar período"
-                              description="Actualiza o nome e as datas deste período lectivo."
-                              icon={<Pencil className="size-5" />}
-                              submitLabel="Guardar"
-                              successDescription="Período actualizado."
-                              onSubmit={async (values) => {
-                                await updateCalendarEvent({
-                                  data: {
-                                    id: String(event.id),
-                                    title: values.nome ?? "",
-                                    eventDate: values.inicio ?? "",
-                                    endsOn: values.fim ?? "",
+                          ) : null}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1.5"
+                            onClick={() => printPeriod(event)}
+                          >
+                            <FileDown className="size-3.5" /> Imprimir
+                          </Button>
+                          {canManage ? (
+                            <>
+                              <QuickFormModal
+                                title="Editar período"
+                                description="Actualiza o nome e as datas deste período lectivo."
+                                icon={<Pencil className="size-5" />}
+                                submitLabel="Guardar"
+                                successDescription="Período actualizado."
+                                onSubmit={async (values) => {
+                                  await updateCalendarEvent({
+                                    data: {
+                                      id: String(event.id),
+                                      title: values["nome"] ?? "",
+                                      eventDate: values["inicio"] ?? "",
+                                      endsOn: values["fim"] ?? "",
+                                    },
+                                  });
+                                  await refreshCalendar();
+                                }}
+                                fields={[
+                                  {
+                                    name: "nome",
+                                    label: "Nome",
+                                    defaultValue: event.title,
+                                    full: true,
                                   },
-                                });
-                                await refreshCalendar();
-                              }}
-                              fields={[
-                                {
-                                  name: "nome",
-                                  label: "Nome",
-                                  defaultValue: event.title,
-                                  full: true,
-                                },
-                                {
-                                  name: "inicio",
-                                  label: "Início",
-                                  type: "date",
-                                  defaultValue: String(event.event_date ?? ""),
-                                },
-                                {
-                                  name: "fim",
-                                  label: "Fim",
-                                  type: "date",
-                                  defaultValue: String(event.ends_on ?? ""),
-                                },
-                              ]}
-                              trigger={(open) => (
-                                <Button size="sm" variant="ghost" className="gap-1.5" onClick={open}>
-                                  <Pencil className="size-3.5" /> Editar
-                                </Button>
-                              )}
-                            />
-                            <ConfirmActionModal
-                              title="Apagar período"
-                              description={`O período «${event.title}» será removido do calendário. Notas ligadas a este período impedem a operação.`}
-                              confirmLabel="Apagar"
-                              onConfirm={async () => {
-                                await deleteCalendarEvent({ data: { id: String(event.id) } });
-                                await refreshCalendar();
-                              }}
-                              trigger={(open) => (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="gap-1.5 text-destructive"
-                                  onClick={open}
-                                >
-                                  <Trash2 className="size-3.5" /> Apagar
-                                </Button>
-                              )}
-                            />
-                              </>
-                            ) : null}
-                          </div>
+                                  {
+                                    name: "inicio",
+                                    label: "Início",
+                                    type: "date",
+                                    defaultValue: String(event.event_date ?? ""),
+                                  },
+                                  {
+                                    name: "fim",
+                                    label: "Fim",
+                                    type: "date",
+                                    defaultValue: String(event.ends_on ?? ""),
+                                  },
+                                ]}
+                                trigger={(open) => (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="gap-1.5"
+                                    onClick={open}
+                                  >
+                                    <Pencil className="size-3.5" /> Editar
+                                  </Button>
+                                )}
+                              />
+                              <ConfirmActionModal
+                                title="Apagar período"
+                                description={`O período «${event.title}» será removido do calendário. Notas ligadas a este período impedem a operação.`}
+                                confirmLabel="Apagar"
+                                onConfirm={async () => {
+                                  await deleteCalendarEvent({ data: { id: String(event.id) } });
+                                  await refreshCalendar();
+                                }}
+                                trigger={(open) => (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="gap-1.5 text-destructive"
+                                    onClick={open}
+                                  >
+                                    <Trash2 className="size-3.5" /> Apagar
+                                  </Button>
+                                )}
+                              />
+                            </>
+                          ) : null}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

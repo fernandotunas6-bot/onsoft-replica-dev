@@ -293,6 +293,7 @@ async function upsertSettingDomain(
         changed_by: userId,
       })
       .eq("id", existing.id)
+      .eq("school_id", schoolId)
       .select("id")
       .single();
     if (error) throw publicDatabaseError(error, `Não foi possível guardar settings:${domain}.`);

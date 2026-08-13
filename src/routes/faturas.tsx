@@ -51,6 +51,19 @@ const faturasFilterDefaults = {
   ate: "",
 };
 
+type InvoiceExportRow = {
+  id: string;
+  numero: string;
+  aluno: string;
+  processo: string;
+  descricao: string;
+  emitida: string;
+  vencimento: string;
+  valor: number;
+  recebido: number;
+  estado: "Paga" | "Pendente" | "Vencida";
+};
+
 export const Route = createFileRoute("/faturas")({
   head: () => ({
     meta: [
@@ -165,16 +178,19 @@ function FaturasPage() {
   const invoiceCount = Number(summary?.invoice_count ?? 0);
   const ticketMedio = invoiceCount ? Math.round(total / invoiceCount) : 0;
   const faturaColumns = [
-    { label: "Número", value: (row: Record<string, unknown>) => row.numero },
-    { label: "Aluno", value: (row: Record<string, unknown>) => row.aluno },
-    { label: "Processo", value: (row: Record<string, unknown>) => row.processo },
-    { label: "Descrição", value: (row: Record<string, unknown>) => row.descricao },
-    { label: "Emissão", value: (row: Record<string, unknown>) => row.emitida },
-    { label: "Vencimento", value: (row: Record<string, unknown>) => row.vencimento },
-    { label: "Valor (Kz)", value: (row: Record<string, unknown>) => row.valor },
-    { label: "Estado", value: (row: Record<string, unknown>) => row.estado },
+    { label: "Número", value: (row: InvoiceExportRow) => row.numero },
+    { label: "Aluno", value: (row: InvoiceExportRow) => row.aluno },
+    { label: "Processo", value: (row: InvoiceExportRow) => row.processo },
+    { label: "Descrição", value: (row: InvoiceExportRow) => row.descricao },
+    { label: "Emissão", value: (row: InvoiceExportRow) => row.emitida },
+    { label: "Vencimento", value: (row: InvoiceExportRow) => row.vencimento },
+    { label: "Valor (Kz)", value: (row: InvoiceExportRow) => row.valor },
+    { label: "Estado", value: (row: InvoiceExportRow) => row.estado },
   ];
-  const exportRows = filtered.map((fatura) => ({ ...fatura, processo: fatura.processo }));
+  const exportRows: InvoiceExportRow[] = filtered.map((fatura) => ({
+    ...fatura,
+    processo: fatura.processo,
+  }));
   const exportarFaturasCsv = () => exportCsv("faturas-filtradas", faturaColumns, exportRows);
   const exportarFaturasPdf = () =>
     exportPdfTable(
@@ -209,7 +225,7 @@ function FaturasPage() {
             })),
           },
         ],
-        banking: schoolBanking,
+        ...(schoolBanking ? { banking: schoolBanking } : {}),
       }),
       fallback: () =>
         exportOfficialPautaPdf(
@@ -284,7 +300,7 @@ function FaturasPage() {
           receiptNumber,
           amountLabel: kwanza(amount),
         }),
-        banking: schoolBanking,
+        ...(schoolBanking ? { banking: schoolBanking } : {}),
       }),
       fallback: () =>
         exportOfficialDeclarationPdf(
@@ -365,31 +381,31 @@ function FaturasPage() {
                   },
                 ]}
                 onSubmit={async (values) => {
-                  const student = financeStudents[studentOptions.indexOf(values.aluno ?? "")];
+                  const student = financeStudents[studentOptions.indexOf(values["aluno"] ?? "")];
                   if (!student) throw new Error("Selecione um aluno válido.");
                   await issueInvoice({
                     data: {
                       studentId: student.student_id,
-                      number: values.numero,
-                      dueOn: values.vencimento,
-                      category: values.categoria,
-                      amount: Number(values.valor),
-                      description: values.descricao || undefined,
+                      number: values["numero"] ?? "",
+                      dueOn: values["vencimento"] ?? "",
+                      category: values["categoria"] ?? "",
+                      amount: Number(values["valor"]),
+                      description: values["descricao"] || undefined,
                     },
                   });
                   await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
                   await queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
                   await downloadReceipt(
                     {
-                      numero: values.numero,
+                      numero: values["numero"] ?? "",
                       aluno: student.full_name,
                       processo: student.registration_number,
-                      valor: Number(values.valor),
+                      valor: Number(values["valor"]),
                       recebido: 0,
-                      descricao: values.descricao || values.categoria,
+                      descricao: values["descricao"] || values["categoria"] || "Fatura escolar",
                     },
-                    values.numero,
-                    Number(values.valor),
+                    values["numero"] ?? "",
+                    Number(values["valor"]),
                     "fatura",
                   );
                 }}
@@ -607,7 +623,7 @@ function FaturasPage() {
                               },
                             ]}
                             onSubmit={async (values) => {
-                              const amount = Number(values.valor);
+                              const amount = Number(values["valor"]);
                               const methodMap = {
                                 Numerário: "cash",
                                 Transferência: "transfer",
@@ -615,10 +631,11 @@ function FaturasPage() {
                                 "Unitel Money": "unitel_money",
                               } as const;
                               const method =
-                                methodMap[(values.metodo as keyof typeof methodMap) ?? "Numerário"] ??
-                                "cash";
+                                methodMap[
+                                  (values["metodo"] as keyof typeof methodMap) ?? "Numerário"
+                                ] ?? "cash";
                               const reference =
-                                values.referencia ||
+                                values["referencia"] ||
                                 (method === "multicaixa_express"
                                   ? paymentReference("EMIS")
                                   : method === "unitel_money"
@@ -627,17 +644,19 @@ function FaturasPage() {
                               const paid = await recordInvoicePayment({
                                 data: {
                                   invoiceId: f.id,
-                                  receiptNumber: values.recibo,
+                                  receiptNumber: values["recibo"],
                                   amount,
                                   method,
                                   reference,
-                                  paidAt: values.data
-                                    ? new Date(`${values.data}T12:00:00Z`).toISOString()
+                                  paidAt: values["data"]
+                                    ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
                                     : undefined,
                                 },
                               });
                               await Promise.all([
-                                queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
+                                queryClient.invalidateQueries({
+                                  queryKey: ["finance", "invoices"],
+                                }),
                                 queryClient.invalidateQueries({
                                   queryKey: ["finance", "reporting"],
                                 }),
@@ -707,8 +726,12 @@ function FaturasPage() {
                             onConfirm={async () => {
                               await cancelInvoice({ data: { invoiceId: f.id } });
                               await Promise.all([
-                                queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
-                                queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
+                                queryClient.invalidateQueries({
+                                  queryKey: ["finance", "invoices"],
+                                }),
+                                queryClient.invalidateQueries({
+                                  queryKey: ["finance", "reporting"],
+                                }),
                                 queryClient.invalidateQueries({
                                   queryKey: ["dashboard", "overview"],
                                 }),

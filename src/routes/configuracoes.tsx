@@ -5,6 +5,8 @@ import { z } from "zod";
 import { AppShell } from "@/components/layout/AppShell";
 import { requestSettingsOpen } from "@/lib/settings-deep-link";
 
+// style-check: route-exempt - encaminha para o painel modal de configurações.
+
 const configuracoesSearchSchema = z.object({
   painel: z.string().trim().min(1).max(80).optional(),
 });

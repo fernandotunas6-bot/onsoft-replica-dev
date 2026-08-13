@@ -18,7 +18,10 @@ import {
 import { normalizeAngolaIban } from "@/lib/angola-banking";
 import { validateSchoolNif } from "@/lib/angola-identity";
 
-type JsonMap = Record<string, unknown>;
+type JsonValue = string | number | boolean | null | JsonMap | JsonValue[];
+interface JsonMap {
+  [key: string]: JsonValue;
+}
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
 async function readSettingDomain(db: AdminDb, schoolId: string, domain: string) {
@@ -51,6 +54,7 @@ async function upsertSettingDomain(
         changed_by: userId,
       })
       .eq("id", existing.id)
+      .eq("school_id", schoolId)
       .select("id, domain, version, value")
       .single();
     if (error) throw publicDatabaseError(error, `Não foi possível guardar settings:${domain}.`);
@@ -93,21 +97,21 @@ async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
     bankingSettings,
     agtSettings,
   ] = await Promise.all([
-      db
-        .from("academic_years")
-        .select("name, status")
-        .eq("school_id", schoolId)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle(),
-      readSettingDomain(db, schoolId, "academic"),
-      readSettingDomain(db, schoolId, "preferences"),
-      readSettingDomain(db, schoolId, "billing"),
-      readSettingDomain(db, schoolId, "pedagogy"),
-      readSettingDomain(db, schoolId, "branding"),
-      readSettingDomain(db, schoolId, "banking"),
-      readSettingDomain(db, schoolId, "agt"),
-    ]);
+    db
+      .from("academic_years")
+      .select("name, status")
+      .eq("school_id", schoolId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle(),
+    readSettingDomain(db, schoolId, "academic"),
+    readSettingDomain(db, schoolId, "preferences"),
+    readSettingDomain(db, schoolId, "billing"),
+    readSettingDomain(db, schoolId, "pedagogy"),
+    readSettingDomain(db, schoolId, "branding"),
+    readSettingDomain(db, schoolId, "banking"),
+    readSettingDomain(db, schoolId, "agt"),
+  ]);
 
   const academicValue = (academicSettings?.value ?? {}) as JsonMap;
   const preferencesValue = (preferenceSettings?.value ?? {}) as JsonMap;
@@ -120,57 +124,70 @@ async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
     id: school.id as string,
     name: school.name as string,
     nif: (school.nif as string | null) ?? null,
-    director_name: (academicValue.director_name as string | undefined) ?? null,
+    director_name: (academicValue["director_name"] as string | undefined) ?? null,
     phone: (school.phone as string | null) ?? null,
     email: (school.email as string | null) ?? null,
     address: (school.address as string | null) ?? null,
     academic_year:
-      (academicValue.academic_year as string | undefined) ??
+      (academicValue["academic_year"] as string | undefined) ??
       (activeYear?.name as string | undefined) ??
       schoolSettingDefaults.academicYear,
     currency: (school.currency_code as string | undefined) || schoolSettingDefaults.currency,
     evaluation_periods:
-      Number(academicValue.evaluation_periods ?? schoolSettingDefaults.evaluationPeriods) ||
+      Number(academicValue["evaluation_periods"] ?? schoolSettingDefaults.evaluationPeriods) ||
       schoolSettingDefaults.evaluationPeriods,
     passing_grade:
-      Number(academicValue.passing_grade ?? schoolSettingDefaults.passingGrade) ||
+      Number(academicValue["passing_grade"] ?? schoolSettingDefaults.passingGrade) ||
       schoolSettingDefaults.passingGrade,
     preferences: preferencesValue,
     pedagogy: pedagogySettingsSchema.safeParse(pedagogySettings?.value ?? {}).data ?? {
       teachingLevels: [],
       courses: [],
+      closedTerms: [],
     },
     version: Number(academicSettings?.version ?? 1),
     billing: {
       id: billingSettings?.id ?? "billing",
-      due_day: Number(billingValue.due_day ?? 10),
-      late_fee_percent: Number(billingValue.late_fee_percent ?? 2),
-      grace_days: Number(billingValue.grace_days ?? 5),
-      sibling_discount_percent: Number(billingValue.sibling_discount_percent ?? 10),
+      due_day: Number(billingValue["due_day"] ?? 10),
+      late_fee_percent: Number(billingValue["late_fee_percent"] ?? 2),
+      grace_days: Number(billingValue["grace_days"] ?? 5),
+      sibling_discount_percent: Number(billingValue["sibling_discount_percent"] ?? 10),
       version: Number(billingSettings?.version ?? 1),
     },
     branding: {
-      logo_url: typeof brandingValue.logo_url === "string" ? brandingValue.logo_url : null,
+      logo_url: typeof brandingValue["logo_url"] === "string" ? brandingValue["logo_url"] : null,
     },
     banking: {
-      bank_name: typeof bankingValue.bank_name === "string" ? bankingValue.bank_name : "",
+      bank_name: typeof bankingValue["bank_name"] === "string" ? bankingValue["bank_name"] : "",
       account_holder:
-        typeof bankingValue.account_holder === "string" ? bankingValue.account_holder : "",
-      iban: typeof bankingValue.iban === "string" ? bankingValue.iban : "",
-      swift: typeof bankingValue.swift === "string" ? bankingValue.swift : "",
+        typeof bankingValue["account_holder"] === "string" ? bankingValue["account_holder"] : "",
+      iban: typeof bankingValue["iban"] === "string" ? bankingValue["iban"] : "",
+      swift: typeof bankingValue["swift"] === "string" ? bankingValue["swift"] : "",
       multicaixa_merchant:
-        typeof bankingValue.multicaixa_merchant === "string"
-          ? bankingValue.multicaixa_merchant
+        typeof bankingValue["multicaixa_merchant"] === "string"
+          ? bankingValue["multicaixa_merchant"]
           : "",
     },
     agt: {
       software_certified:
-        typeof agtValue.software_certified === "string" ? agtValue.software_certified : "",
-      invoice_series: typeof agtValue.invoice_series === "string" ? agtValue.invoice_series : "",
-      fiscal_notes: typeof agtValue.fiscal_notes === "string" ? agtValue.fiscal_notes : "",
+        typeof agtValue["software_certified"] === "string" ? agtValue["software_certified"] : "",
+      invoice_series:
+        typeof agtValue["invoice_series"] === "string" ? agtValue["invoice_series"] : "",
+      fiscal_notes: typeof agtValue["fiscal_notes"] === "string" ? agtValue["fiscal_notes"] : "",
     },
   };
 }
+
+export type SchoolSettingsBundle = Awaited<ReturnType<typeof loadSchoolSettingsBundle>>;
+
+export type RecentAuditLog = {
+  id: string;
+  actor_id: string | null;
+  action: string;
+  entity_type: string;
+  reason: string | null;
+  created_at: string;
+};
 
 export const getSchoolSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

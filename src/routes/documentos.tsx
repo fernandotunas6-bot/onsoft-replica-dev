@@ -35,7 +35,11 @@ import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { PrintTemplateStudio } from "@/features/documents/PrintTemplateStudio";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { exportCsv } from "@/lib/export-csv";
-import { exportOfficialDeclarationPdf, exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf";
+import {
+  exportOfficialDeclarationPdf,
+  exportOfficialPautaPdf,
+  exportPdfTable,
+} from "@/lib/export-pdf";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
 
@@ -44,6 +48,31 @@ const documentosFilterDefaults = {
   estado: "todos",
   de: "",
   ate: "",
+};
+
+type DocumentRequestExportRow = {
+  tipo: string;
+  aluno: string;
+  processo: string;
+  pedidoEm: string;
+  responsavel: string;
+  estado: "Emitido" | "Em processamento" | "Pendente de pagamento" | "Recusado" | "Cancelado";
+};
+
+type DocumentWorkspaceView = {
+  students: Array<{ id: string; full_name: string; registration_number: string }>;
+  templates: Array<{ id: string; name: string; fee_amount: number; turnaround_days: number }>;
+  requests: Array<{
+    id: string;
+    template_name: string;
+    student_name: string;
+    registration_number: string;
+    class_name: string | null;
+    requested_at: string;
+    assigned_to: string | null;
+    status: string;
+    next_status: string | null;
+  }>;
 };
 
 export const Route = createFileRoute("/documentos")({
@@ -107,7 +136,8 @@ function DocumentosPage() {
   const ate = filters.ate;
   const workspaceQuery = useQuery({
     queryKey: ["documents", "workspace"],
-    queryFn: () => listDocumentWorkspace({ data: { limit: 250 } }),
+    queryFn: () =>
+      listDocumentWorkspace({ data: { limit: 250 } }) as unknown as Promise<DocumentWorkspaceView>,
   });
   const printCatalogQuery = useQuery({
     queryKey: ["documents", "print-templates"],
@@ -151,7 +181,8 @@ function DocumentosPage() {
     [workspaceQuery.data],
   );
 
-  const academicYear = selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "";
+  const academicYear =
+    selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "";
 
   const downloadDeclaration = async (documento: {
     id: string;
@@ -160,7 +191,11 @@ function DocumentosPage() {
     processo: string;
     turma: string | null;
   }) => {
-    const validationCode = documentValidationCode([documento.id, documento.processo, documento.tipo]);
+    const validationCode = documentValidationCode([
+      documento.id,
+      documento.processo,
+      documento.tipo,
+    ]);
     const fallback = () =>
       exportOfficialDeclarationPdf(`declaracao-${documento.processo}`, documento.tipo, {
         schoolName: school?.name ?? "Escola",
@@ -258,14 +293,14 @@ function DocumentosPage() {
       )
     : 0;
   const docColumns = [
-    { label: "Documento", value: (row: Record<string, unknown>) => row.tipo },
-    { label: "Aluno", value: (row: Record<string, unknown>) => row.aluno },
-    { label: "Processo", value: (row: Record<string, unknown>) => row.processo },
-    { label: "Pedido em", value: (row: Record<string, unknown>) => row.pedidoEm },
-    { label: "Responsável", value: (row: Record<string, unknown>) => row.responsavel },
-    { label: "Estado", value: (row: Record<string, unknown>) => row.estado },
+    { label: "Documento", value: (row: DocumentRequestExportRow) => row.tipo },
+    { label: "Aluno", value: (row: DocumentRequestExportRow) => row.aluno },
+    { label: "Processo", value: (row: DocumentRequestExportRow) => row.processo },
+    { label: "Pedido em", value: (row: DocumentRequestExportRow) => row.pedidoEm },
+    { label: "Responsável", value: (row: DocumentRequestExportRow) => row.responsavel },
+    { label: "Estado", value: (row: DocumentRequestExportRow) => row.estado },
   ];
-  const exportRows = filtered.map((documento) => ({
+  const exportRows: DocumentRequestExportRow[] = filtered.map((documento) => ({
     tipo: documento.tipo,
     aluno: documento.aluno,
     processo: documento.processo,
@@ -397,17 +432,17 @@ function DocumentosPage() {
                   { name: "notas", label: "Notas internas", type: "textarea", full: true },
                 ]}
                 onSubmit={async (values) => {
-                  const student = students[studentOptions.indexOf(values.aluno ?? "")];
-                  const template = templates[templateOptions.indexOf(values.modelo ?? "")];
+                  const student = students[studentOptions.indexOf(values["aluno"] ?? "")];
+                  const template = templates[templateOptions.indexOf(values["modelo"] ?? "")];
                   if (!student || !template) throw new Error("Selecione aluno e modelo válidos.");
                   await createDocumentRequest({
                     data: {
                       studentId: student.id,
                       templateId: template.id,
-                      requestNumber: values.numero,
-                      priority: values.urgencia === "Urgente" ? "urgent" : "normal",
-                      dueOn: values.prazo || undefined,
-                      notes: values.notas || undefined,
+                      requestNumber: values["numero"],
+                      priority: values["urgencia"] === "Urgente" ? "urgent" : "normal",
+                      dueOn: values["prazo"] || undefined,
+                      notes: values["notas"] || undefined,
                     },
                   });
                   await queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
@@ -678,41 +713,41 @@ function DocumentosPage() {
                         ) : null}
                         {d.estado === "Emitido" ? (
                           <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void downloadDeclaration(d)}
-                          >
-                            <Download className="size-3.5" /> PDF
-                          </Button>
-                          {resendOn ? (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={async () => {
-                                await navigator.clipboard.writeText(
-                                  `${d.tipo} de ${d.aluno} (${d.processo}) emitido no SIGA.`,
-                                );
-                                toast.success("Texto do documento copiado para e-mail Resend");
-                              }}
+                              onClick={() => void downloadDeclaration(d)}
                             >
-                              E-mail
+                              <Download className="size-3.5" /> PDF
                             </Button>
-                          ) : null}
-                          {whatsappOn ? (
-                            <Button size="sm" variant="outline" asChild>
-                              <a
-                                href={whatsappHref(
-                                  "",
-                                  `${d.tipo} de ${d.aluno} está pronto para levantamento.`,
-                                )}
-                                target="_blank"
-                                rel="noreferrer"
+                            {resendOn ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  await navigator.clipboard.writeText(
+                                    `${d.tipo} de ${d.aluno} (${d.processo}) emitido no SIGA.`,
+                                  );
+                                  toast.success("Texto do documento copiado para e-mail Resend");
+                                }}
                               >
-                                WhatsApp
-                              </a>
-                            </Button>
-                          ) : null}
+                                E-mail
+                              </Button>
+                            ) : null}
+                            {whatsappOn ? (
+                              <Button size="sm" variant="outline" asChild>
+                                <a
+                                  href={whatsappHref(
+                                    "",
+                                    `${d.tipo} de ${d.aluno} está pronto para levantamento.`,
+                                  )}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  WhatsApp
+                                </a>
+                              </Button>
+                            ) : null}
                           </>
                         ) : null}
                         {!d.nextStatus && d.estado !== "Emitido" ? (

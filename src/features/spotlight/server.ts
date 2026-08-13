@@ -64,7 +64,8 @@ export const saveSpotlightOverrides = createServerFn({ method: "POST" })
           version: Number(existing.data.version ?? 1) + 1,
           changed_by: context.userId,
         })
-        .eq("id", existing.data.id);
+        .eq("id", existing.data.id)
+        .eq("school_id", membership.schoolId);
       if (error) throw publicDatabaseError(error, "Não foi possível guardar os destaques.");
     } else {
       const { error } = await db.from("school_settings").insert({

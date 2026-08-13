@@ -145,7 +145,7 @@ export function ColleagueDirectory({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-border px-3 py-3">
-        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onBack}>
+        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onBack} aria-label="Voltar">
           <ArrowLeft className="size-4" />
         </Button>
         <p className="text-sm font-semibold">Nova mensagem</p>
@@ -154,6 +154,7 @@ export function ColleagueDirectory({
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            aria-label="Pesquisar destinatário"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Pesquisar nome ou cargo…"
@@ -274,7 +275,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-border px-3 py-3">
-        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onBack}>
+        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onBack} aria-label="Voltar">
           <ArrowLeft className="size-4" />
         </Button>
         <UserAvatar
@@ -326,12 +327,13 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
       </div>
       <form className="flex items-center gap-2 border-t border-border px-3 py-3" onSubmit={send}>
         <Input
+          aria-label="Mensagem"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder="Escrever mensagem…"
           maxLength={2000}
         />
-        <Button type="submit" size="icon" className="size-9 shrink-0" disabled={!draft.trim()}>
+        <Button type="submit" size="icon" className="size-9 shrink-0" disabled={!draft.trim()} aria-label="Enviar mensagem">
           <Send className="size-4" />
         </Button>
       </form>

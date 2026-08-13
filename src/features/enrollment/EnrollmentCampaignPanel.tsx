@@ -223,6 +223,7 @@ export function EnrollmentCampaignPanel() {
               <input
                 type="checkbox"
                 name={`field_${field}`}
+                aria-label={`Mostrar o campo ${field}`}
                 defaultChecked={visible.has(field)}
               />
               {fieldLabels[field]}

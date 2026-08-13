@@ -231,6 +231,20 @@
   box-shadow: var(--shadow-card);
 }
 
+/* Documentos oficiais e iframes de impressão têm papel branco invariável, inclusive no tema escuro. */
+.siga-official-paper {
+  background-color: #fff;
+  color: #000;
+}
+
+.siga-official-grid {
+  border-color: #000;
+}
+
+.siga-print-preview {
+  background-color: #fff;
+}
+
 /* ---------------------------------------------------------------------------
  * Minimals-inspired additions (icons, nav rows, header, media).
  * Additive only — existing tokens and utilities are untouched.

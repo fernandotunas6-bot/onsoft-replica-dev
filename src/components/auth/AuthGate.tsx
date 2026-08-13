@@ -380,6 +380,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   Introduza o código da aplicação autenticadora para concluir o início de sessão.
                 </p>
                 <Input
+                  aria-label="Código de autenticação multifator"
                   value={mfaCode}
                   onChange={(event) => setMfaCode(event.target.value)}
                   inputMode="numeric"
@@ -457,6 +458,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 <input
                   type="checkbox"
                   name="remember"
+                  aria-label="Lembrar email"
                   defaultChecked={Boolean(rememberedEmail)}
                   className="size-4 rounded border-input"
                 />

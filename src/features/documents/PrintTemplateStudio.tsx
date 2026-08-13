@@ -292,7 +292,7 @@ export function PrintTemplateStudio() {
             </span>
             <iframe
               title="Pré-visualização do modelo"
-              className="min-h-[320px] flex-1 rounded-lg border border-border bg-white"
+              className="siga-print-preview min-h-[320px] flex-1 rounded-lg border border-border"
               srcDoc={previewHtml}
             />
           </div>

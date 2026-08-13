@@ -6,10 +6,10 @@ function safeCell(value: CsvValue) {
   return `"${protectedText.replaceAll('"', '""')}"`;
 }
 
-export function exportCsv(
+export function exportCsv<Row extends object>(
   filename: string,
-  columns: ReadonlyArray<{ label: string; value: (row: Record<string, CsvValue>) => CsvValue }>,
-  rows: ReadonlyArray<Record<string, CsvValue>>,
+  columns: ReadonlyArray<{ label: string; value: (row: Row) => CsvValue }>,
+  rows: ReadonlyArray<Row>,
 ) {
   const header = columns.map((column) => safeCell(column.label)).join(";");
   const body = rows.map((row) => columns.map((column) => safeCell(column.value(row))).join(";"));

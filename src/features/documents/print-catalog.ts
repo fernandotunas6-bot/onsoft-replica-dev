@@ -220,22 +220,22 @@ export function matchPrintTemplateKey(
 
 export type PrintSchoolContext = {
   name: string;
-  nif?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  address?: string | null;
-  directorName?: string | null;
-  academicYear?: string | null;
-  logoUrl?: string | null;
+  nif?: string | null | undefined;
+  phone?: string | null | undefined;
+  email?: string | null | undefined;
+  address?: string | null | undefined;
+  directorName?: string | null | undefined;
+  academicYear?: string | null | undefined;
+  logoUrl?: string | null | undefined;
 };
 
 export type PrintStudentContext = {
   fullName: string;
   academicNumber: string;
-  className?: string | null;
-  programName?: string | null;
-  documentTitle?: string;
-  validationCode?: string;
+  className?: string | null | undefined;
+  programName?: string | null | undefined;
+  documentTitle?: string | undefined;
+  validationCode?: string | undefined;
 };
 
 export function buildPrintSamplePayload(

@@ -43,8 +43,8 @@ export function overlayBoletim(input: {
 }
 
 export function overlayPauta(input: {
-  subjectName?: string;
-  teacherName?: string;
+  subjectName?: string | undefined;
+  teacherName?: string | undefined;
   periodName?: string;
   className?: string;
   courseName?: string;
@@ -270,8 +270,8 @@ export function overlayDiario(input: {
 }
 
 export function overlayActa(input: {
-  teacherName?: string;
-  summary?: string;
+  teacherName?: string | undefined;
+  summary?: string | undefined;
   decisions: Array<{
     student: string;
     average: string | number;

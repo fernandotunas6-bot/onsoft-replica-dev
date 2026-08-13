@@ -95,7 +95,11 @@ export const searchStudents = createServerFn({ method: "GET" })
 
     const [{ data: people }, { data: enrollments }, { data: guardians }] = await Promise.all([
       personIds.length
-        ? db.from("people").select("id, full_name, email, phone").in("id", personIds)
+        ? db
+            .from("people")
+            .select("id, full_name, email, phone")
+            .eq("school_id", membership.schoolId)
+            .in("id", personIds)
         : Promise.resolve({
             data: [] as Array<{
               id: string;
@@ -109,6 +113,7 @@ export const searchStudents = createServerFn({ method: "GET" })
             .from("enrollments")
             .select("student_id, class_group_id, academic_year_id, status")
             .in("student_id", studentIds)
+            .eq("school_id", membership.schoolId)
             .eq("status", "active")
         : Promise.resolve({
             data: [] as Array<{
@@ -123,6 +128,7 @@ export const searchStudents = createServerFn({ method: "GET" })
             .from("student_guardians")
             .select("student_id, guardian_person_id, is_primary")
             .in("student_id", studentIds)
+            .eq("school_id", membership.schoolId)
             .eq("is_primary", true)
         : Promise.resolve({
             data: [] as Array<{
@@ -161,15 +167,27 @@ export const searchStudents = createServerFn({ method: "GET" })
 
     const [{ data: classGroups }, { data: years }, { data: guardianPeople }] = await Promise.all([
       classGroupIds.length
-        ? db.from("class_groups").select("id, name, grade_level_id").in("id", classGroupIds)
+        ? db
+            .from("class_groups")
+            .select("id, name, grade_level_id")
+            .eq("school_id", membership.schoolId)
+            .in("id", classGroupIds)
         : Promise.resolve({
             data: [] as Array<{ id: string; name: string; grade_level_id: string | null }>,
           }),
       yearIds.length
-        ? db.from("academic_years").select("id, name").in("id", yearIds)
+        ? db
+            .from("academic_years")
+            .select("id, name")
+            .eq("school_id", membership.schoolId)
+            .in("id", yearIds)
         : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
       guardianPersonIds.length
-        ? db.from("people").select("id, full_name").in("id", guardianPersonIds)
+        ? db
+            .from("people")
+            .select("id, full_name")
+            .eq("school_id", membership.schoolId)
+            .in("id", guardianPersonIds)
         : Promise.resolve({ data: [] as Array<{ id: string; full_name: string }> }),
     ]);
 
@@ -181,7 +199,11 @@ export const searchStudents = createServerFn({ method: "GET" })
       ),
     ] as string[];
     const { data: gradeLevels } = gradeLevelIds.length
-      ? await db.from("grade_levels").select("id, name").in("id", gradeLevelIds)
+      ? await db
+          .from("grade_levels")
+          .select("id, name")
+          .eq("school_id", membership.schoolId)
+          .in("id", gradeLevelIds)
       : { data: [] as Array<{ id: string; name: string }> };
 
     const classById = new Map(
@@ -223,17 +245,17 @@ export const searchStudents = createServerFn({ method: "GET" })
       }) => {
         const person = peopleById.get(student.person_id);
         const enrollment = enrollmentByStudent.get(student.id);
-        const classGroup = enrollment?.class_group_id
-          ? classById.get(String(enrollment.class_group_id))
+        const classGroup = enrollment?.["class_group_id"]
+          ? classById.get(String(enrollment["class_group_id"]))
           : null;
-        const grade = classGroup?.grade_level_id
-          ? gradeById.get(String(classGroup.grade_level_id))
+        const grade = classGroup?.["grade_level_id"]
+          ? gradeById.get(String(classGroup["grade_level_id"]))
           : null;
-        const year = enrollment?.academic_year_id
-          ? yearById.get(String(enrollment.academic_year_id))
+        const year = enrollment?.["academic_year_id"]
+          ? yearById.get(String(enrollment["academic_year_id"]))
           : null;
         const guardianId = guardianByStudent.get(student.id);
-        const enrollmentStatus = enrollment?.status ? String(enrollment.status) : null;
+        const enrollmentStatus = enrollment?.["status"] ? String(enrollment["status"]) : null;
         const effectiveStatus =
           enrollmentStatus === "active" && student.status === "applicant"
             ? "active"
@@ -241,16 +263,16 @@ export const searchStudents = createServerFn({ method: "GET" })
         return {
           id: student.id,
           registration_number: student.student_number,
-          full_name: String(person?.full_name ?? "—"),
-          email: (person?.email as string | null) ?? null,
-          phone: (person?.phone as string | null) ?? null,
+          full_name: String(person?.["full_name"] ?? "—"),
+          email: (person?.["email"] as string | null) ?? null,
+          phone: (person?.["phone"] as string | null) ?? null,
           // Matrícula activa no SGA implica aluno activo na UI, mesmo se o
           // registo ainda estiver como "applicant" por seed/legado.
           student_status: effectiveStatus,
           payment_status: null,
-          grade_name: (grade?.name as string | null) ?? null,
-          class_name: (classGroup?.name as string | null) ?? null,
-          academic_year: (year?.name as string | null) ?? null,
+          grade_name: (grade?.["name"] as string | null) ?? null,
+          class_name: (classGroup?.["name"] as string | null) ?? null,
+          academic_year: (year?.["name"] as string | null) ?? null,
           primary_guardian_name: guardianId ? (guardianNameById.get(guardianId) ?? null) : null,
           person_id: student.person_id,
           school_id: student.school_id,
@@ -261,11 +283,15 @@ export const searchStudents = createServerFn({ method: "GET" })
     const staleApplicantIds = rows
       .filter((student: { id: string; status: string }) => {
         const enrollment = enrollmentByStudent.get(student.id);
-        return student.status === "applicant" && String(enrollment?.status ?? "") === "active";
+        return student.status === "applicant" && String(enrollment?.["status"] ?? "") === "active";
       })
       .map((student: { id: string }) => student.id);
     if (staleApplicantIds.length) {
-      await db.from("students").update({ status: "active" }).in("id", staleApplicantIds);
+      await db
+        .from("students")
+        .update({ status: "active" })
+        .eq("school_id", membership.schoolId)
+        .in("id", staleApplicantIds);
     }
 
     if (!query) return mapped;
@@ -283,6 +309,8 @@ export const getStudentProfile = createServerFn({ method: "GET" })
   .validator((input: unknown) => getStudentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
     const { data: student, error: studentError } = await db
       .from("students")
@@ -290,6 +318,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         "id, student_number, status, person_id, school_id, admission_date, created_at, updated_at",
       )
       .eq("id", data.id)
+      .eq("school_id", membership.schoolId)
       .maybeSingle();
     if (studentError) throw publicDatabaseError(studentError, "Não foi possível carregar o aluno.");
     if (!student) throw new Error("Aluno não encontrado");
@@ -301,18 +330,17 @@ export const getStudentProfile = createServerFn({ method: "GET" })
           "id, full_name, preferred_name, email, phone, date_of_birth, sex, national_id, status, photo_url",
         )
         .eq("id", student.person_id)
+        .eq("school_id", membership.schoolId)
         .maybeSingle()
         .then(async (result) => {
-          if (
-            result.error &&
-            /photo_url|42703|schema cache/i.test(result.error.message)
-          ) {
+          if (result.error && /photo_url|42703|schema cache/i.test(result.error.message)) {
             return db
               .from("people")
               .select(
                 "id, full_name, preferred_name, email, phone, date_of_birth, sex, national_id, status",
               )
               .eq("id", student.person_id)
+              .eq("school_id", membership.schoolId)
               .maybeSingle();
           }
           return result;
@@ -320,27 +348,27 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       db
         .from("student_guardians")
         .select("guardian_person_id, relationship, is_primary")
-        .eq("student_id", student.id),
+        .eq("student_id", student.id)
+        .eq("school_id", membership.schoolId),
       db
         .from("enrollments")
         .select(
           "id, class_group_id, academic_year_id, status, enrolled_on, attendance_rate, final_average",
         )
         .eq("student_id", student.id)
+        .eq("school_id", membership.schoolId)
         .eq("status", "active")
         .limit(1)
         .maybeSingle(),
     ]);
-    const person = personResult.data as
-      | {
-          full_name?: string | null;
-          email?: string | null;
-          phone?: string | null;
-          sex?: string | null;
-          date_of_birth?: string | null;
-          photo_url?: string | null;
-        }
-      | null;
+    const person = personResult.data as {
+      full_name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+      sex?: string | null;
+      date_of_birth?: string | null;
+      photo_url?: string | null;
+    } | null;
     const guardians = guardiansResult.data;
     let enrollment = enrollmentResult.data as {
       id: string;
@@ -359,6 +387,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         .from("enrollments")
         .select("id, class_group_id, academic_year_id, status, enrolled_on")
         .eq("student_id", student.id)
+        .eq("school_id", membership.schoolId)
         .eq("status", "active")
         .limit(1)
         .maybeSingle();
@@ -373,10 +402,15 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       (row: { guardian_person_id: string }) => row.guardian_person_id,
     );
     const { data: guardianPeople } = guardianIds.length
-      ? await db.from("people").select("id, full_name, phone, email").in("id", guardianIds)
+      ? await db
+          .from("people")
+          .select("id, full_name, phone, email")
+          .eq("school_id", membership.schoolId)
+          .in("id", guardianIds)
       : { data: [] as Array<Record<string, unknown>> };
+    const guardianRows = (guardianPeople ?? []) as Array<Record<string, unknown>>;
     const guardianById = new Map(
-      (guardianPeople ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
+      guardianRows.map((row) => [String(row["id"] ?? ""), row] as const),
     );
 
     let className: string | null = null;
@@ -387,6 +421,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         .from("class_groups")
         .select("name, grade_level_id, academic_year_id")
         .eq("id", enrollment.class_group_id)
+        .eq("school_id", membership.schoolId)
         .maybeSingle();
       className = classGroup?.name ?? null;
       if (classGroup?.grade_level_id) {
@@ -394,6 +429,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
           .from("grade_levels")
           .select("name")
           .eq("id", classGroup.grade_level_id)
+          .eq("school_id", membership.schoolId)
           .maybeSingle();
         gradeName = grade?.name ?? null;
       }
@@ -403,6 +439,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
           .from("academic_years")
           .select("name")
           .eq("id", yearId)
+          .eq("school_id", membership.schoolId)
           .maybeSingle();
         academicYear = year?.name ?? null;
       }
@@ -430,8 +467,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         enrolled_on: enrollment?.enrolled_on ?? null,
         class_group_id: enrollment?.class_group_id ?? null,
         academic_year_id: enrollment?.academic_year_id ?? null,
-        final_average:
-          enrollment?.final_average == null ? null : Number(enrollment.final_average),
+        final_average: enrollment?.final_average == null ? null : Number(enrollment.final_average),
         attendance_rate:
           enrollment?.attendance_rate == null ? null : Number(enrollment.attendance_rate),
         address: null,
@@ -448,10 +484,10 @@ export const getStudentProfile = createServerFn({ method: "GET" })
             is_primary: row.is_primary,
             guardian: guardian
               ? {
-                  id: guardian.id,
-                  full_name: guardian.full_name,
-                  phone_primary: guardian.phone,
-                  email: guardian.email,
+                  id: String(guardian["id"] ?? ""),
+                  full_name: String(guardian["full_name"] ?? "—"),
+                  phone_primary: (guardian["phone"] as string | null) ?? null,
+                  email: (guardian["email"] as string | null) ?? null,
                 }
               : null,
           };
@@ -542,9 +578,7 @@ export const createStudent = createServerFn({ method: "POST" })
   });
 
 function rpcAuthError(error: { code?: string; message?: string }) {
-  return (
-    error.code === "42501" || /is_aal2|autorização|autorizacao/i.test(error.message ?? "")
-  );
+  return error.code === "42501" || /is_aal2|autorização|autorizacao/i.test(error.message ?? "");
 }
 
 export const enrollNewStudent = createServerFn({ method: "POST" })
@@ -664,7 +698,10 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => changeStudentStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     const statusMap: Record<string, string> = {
       active: "active",
@@ -678,6 +715,7 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
       .from("students")
       .update({ status: nextStatus, updated_by: context.userId })
       .eq("id", data.studentId)
+      .eq("school_id", membership.schoolId)
       .select("id, status")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível alterar o estado do aluno.");
@@ -690,7 +728,10 @@ export const updateStudentProfile = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateStudentProfileInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     void data.address; // SGA people não tem coluna address
     const { data: person, error } = await db
@@ -702,6 +743,7 @@ export const updateStudentProfile = createServerFn({ method: "POST" })
         updated_by: context.userId,
       })
       .eq("id", data.personId)
+      .eq("school_id", membership.schoolId)
       .select("id")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a ficha.");
@@ -725,6 +767,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       .select("id, status")
       .eq("student_id", data.studentId)
       .eq("academic_year_id", data.academicYearId)
+      .eq("school_id", membership.schoolId)
       .maybeSingle();
     if (existingError) {
       throw publicDatabaseError(existingError, "Não foi possível verificar matrículas existentes.");
@@ -739,6 +782,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
           updated_by: context.userId,
         })
         .eq("id", existing.id)
+        .eq("school_id", membership.schoolId)
         .select("*")
         .single();
       if (error)
@@ -746,7 +790,8 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       await db
         .from("students")
         .update({ status: "active", updated_by: context.userId })
-        .eq("id", data.studentId);
+        .eq("id", data.studentId)
+        .eq("school_id", membership.schoolId);
       return updated;
     }
 
@@ -811,17 +856,29 @@ export const listEnrollments = createServerFn({ method: "GET" })
     const classIds = [...new Set((enrollments ?? []).map((row) => row.class_group_id))];
     const [{ data: students }, { data: groups }] = await Promise.all([
       studentIds.length
-        ? db.from("students").select("id, student_number, person_id").in("id", studentIds)
+        ? db
+            .from("students")
+            .select("id, student_number, person_id")
+            .eq("school_id", membership.schoolId)
+            .in("id", studentIds)
         : Promise.resolve({
             data: [] as Array<{ id: string; student_number: string; person_id: string }>,
           }),
       classIds.length
-        ? db.from("class_groups").select("id, name").in("id", classIds)
+        ? db
+            .from("class_groups")
+            .select("id, name")
+            .eq("school_id", membership.schoolId)
+            .in("id", classIds)
         : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
     ]);
     const personIds = [...new Set((students ?? []).map((row) => row.person_id))];
     const { data: people } = personIds.length
-      ? await db.from("people").select("id, full_name").in("id", personIds)
+      ? await db
+          .from("people")
+          .select("id, full_name")
+          .eq("school_id", membership.schoolId)
+          .in("id", personIds)
       : { data: [] as Array<{ id: string; full_name: string }> };
 
     const peopleById = new Map((people ?? []).map((row) => [row.id, row.full_name]));
@@ -881,8 +938,8 @@ export const updateEnrollment = createServerFn({ method: "POST" })
       status: data.status,
       updated_by: context.userId,
     };
-    if (classGroup.academic_year_id) {
-      patch.academic_year_id = classGroup.academic_year_id;
+    if (classGroup["academic_year_id"]) {
+      patch["academic_year_id"] = classGroup["academic_year_id"];
     }
 
     const { data: enrollment, error } = await db

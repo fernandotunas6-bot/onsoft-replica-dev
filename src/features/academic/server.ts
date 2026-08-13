@@ -18,6 +18,7 @@ import {
   createClassGroupInputSchema,
   createScheduleSlotInputSchema,
   deleteScheduleSlotInputSchema,
+  updateScheduleSlotInputSchema,
   createSubjectInputSchema,
   updateSubjectInputSchema,
   deactivateSubjectInputSchema,
@@ -59,9 +60,107 @@ async function assertTermOpen(
   }
 }
 
-type ClassGroupSummary = Record<string, unknown> & {
+function scheduleTime(value: unknown) {
+  return String(value ?? "").slice(0, 5);
+}
+
+function scheduleTimesOverlap(
+  startsAt: string,
+  endsAt: string,
+  otherStartsAt: unknown,
+  otherEndsAt: unknown,
+) {
+  return startsAt < scheduleTime(otherEndsAt) && endsAt > scheduleTime(otherStartsAt);
+}
+
+async function assertScheduleSlotAvailable({
+  db,
+  schoolId,
+  classGroupId,
+  teacherId,
+  weekday,
+  startsAt,
+  endsAt,
+  room,
+  excludeSlotId,
+}: {
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>;
+  schoolId: string;
+  classGroupId: string;
+  teacherId: string | null;
+  weekday: number;
+  startsAt: string;
+  endsAt: string;
+  room: string;
+  excludeSlotId?: string;
+}) {
+  let query = db
+    .from("timetable_slots")
+    .select("id, class_subject_id, starts_at, ends_at, room")
+    .eq("school_id", schoolId)
+    .eq("weekday", weekday)
+    .eq("status", "active");
+  if (excludeSlotId) query = query.neq("id", excludeSlotId);
+  const { data: candidateSlots, error: slotsError } = await query;
+  if (slotsError) {
+    throw publicDatabaseError(slotsError, "Não foi possível validar conflitos de horário.");
+  }
+
+  const overlappingSlots = (candidateSlots ?? []).filter((slot) =>
+    scheduleTimesOverlap(startsAt, endsAt, slot.starts_at, slot.ends_at),
+  );
+  if (overlappingSlots.length === 0) return;
+
+  const relatedClassSubjectIds = [
+    ...new Set(overlappingSlots.map((slot) => String(slot.class_subject_id))),
+  ];
+  const { data: relatedClassSubjects, error: subjectsError } = await db
+    .from("class_subjects")
+    .select("id, class_group_id, teacher_id")
+    .eq("school_id", schoolId)
+    .in("id", relatedClassSubjectIds);
+  if (subjectsError) {
+    throw publicDatabaseError(subjectsError, "Não foi possível validar conflitos de horário.");
+  }
+  const subjectById = new Map(
+    (relatedClassSubjects ?? []).map((subject) => [String(subject.id), subject]),
+  );
+
+  for (const slot of overlappingSlots) {
+    const related = subjectById.get(String(slot.class_subject_id));
+    if (String(related?.class_group_id ?? "") === classGroupId) {
+      throw new Error("Esta turma já possui uma aula nesse período.");
+    }
+    if (teacherId && String(related?.teacher_id ?? "") === teacherId) {
+      throw new Error("O professor já possui uma aula nesse período.");
+    }
+    if (
+      String(slot.room ?? "")
+        .trim()
+        .toLocaleLowerCase() === room.trim().toLocaleLowerCase()
+    ) {
+      throw new Error("A sala já está ocupada nesse período.");
+    }
+  }
+}
+
+type StructureSummary = {
   id: string;
   name: string;
+  code: string;
+};
+
+type ClassGroupSummary = {
+  id: string;
+  academic_year_id: string | null;
+  name: string;
+  code: string;
+  shift: string;
+  status: string;
+  campus_id: string | null;
+  capacity: number | null;
+  whatsapp_invite_url: string | null;
+  whatsapp_group_name: string | null;
   course_id: string | null;
   course_name: string;
   grade_name: string;
@@ -72,9 +171,16 @@ type ClassGroupSummary = Record<string, unknown> & {
   attendance_rate: number | null;
 };
 
-type SubjectSummary = Record<string, unknown> & {
+type SubjectSummary = {
   id: string;
   name: string;
+  code: string;
+  teacher_name: string | null;
+  weekly_hours: number;
+  grade_from: number | null;
+  grade_to: number | null;
+  classes_label: string;
+  weekly_hours_label: string;
   approval_rate: number | null;
 };
 
@@ -141,14 +247,15 @@ async function loadPeopleLite(
   return map;
 }
 
-type ScheduleSlotSummary = {
-  id: unknown;
+export type ScheduleSlotSummary = {
+  id: string;
   class_group_id: string | null;
-  weekday: unknown;
-  starts_at: unknown;
-  ends_at: unknown;
+  weekday: number;
+  starts_at: string;
+  ends_at: string;
   subject_id: string | null;
-  label: unknown;
+  teacher_id: string | null;
+  label: string | null;
   subject_name: string | null;
   display_label: string;
   class_group_name: string;
@@ -162,10 +269,10 @@ type ClassSubjectNav = {
 };
 
 export type PedagogicalWorkspace = {
-  academicYears: Array<Record<string, unknown>>;
-  courses: Array<Record<string, unknown>>;
-  gradeLevels: Array<Record<string, unknown>>;
-  rooms: Array<Record<string, unknown>>;
+  academicYears: StructureSummary[];
+  courses: StructureSummary[];
+  gradeLevels: StructureSummary[];
+  rooms: StructureSummary[];
   classGroups: ClassGroupSummary[];
   subjects: SubjectSummary[];
   classSubjects: ClassSubjectNav[];
@@ -176,6 +283,14 @@ export type PedagogicalWorkspace = {
   gradesAvailable: boolean;
   scheduleAvailable: boolean;
 };
+
+function toStructureSummary(row: Record<string, unknown>): StructureSummary {
+  return {
+    id: String(row["id"] ?? ""),
+    name: String(row["name"] ?? ""),
+    code: String(row["code"] ?? row["name"] ?? ""),
+  };
+}
 
 export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -358,9 +473,20 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         const year = yearById.get(String(group["academic_year_id"]));
         const stats = enrollmentStats.get(String(group["id"]));
         return {
-          ...group,
           id: String(group["id"]),
+          academic_year_id: group["academic_year_id"] ? String(group["academic_year_id"]) : null,
           name: String(group["name"] ?? ""),
+          code: String(group["code"] ?? ""),
+          shift: String(group["shift"] ?? ""),
+          status: String(group["status"] ?? "active"),
+          campus_id: group["campus_id"] ? String(group["campus_id"]) : null,
+          capacity: Number.isFinite(Number(group["capacity"])) ? Number(group["capacity"]) : null,
+          whatsapp_invite_url: group["whatsapp_invite_url"]
+            ? String(group["whatsapp_invite_url"])
+            : null,
+          whatsapp_group_name: group["whatsapp_group_name"]
+            ? String(group["whatsapp_group_name"])
+            : null,
           course_id: program ? String(program["id"] ?? "") : null,
           course_name: (program?.["name"] as string) ?? "—",
           grade_name: (grade?.["name"] as string) ?? "—",
@@ -412,9 +538,9 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const subjectRows = subjectsMissing
       ? []
       : ((subjects.data ?? []) as Array<Record<string, unknown>>).map((subject) => ({
-          ...subject,
           id: String(subject["id"] ?? ""),
           name: String(subject["name"] ?? ""),
+          code: String(subject["code"] ?? ""),
           teacher_name: null,
           weekly_hours: 0,
           grade_from: null,
@@ -448,23 +574,23 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           const classGroupIdRaw = classSubject?.["class_group_id"];
           const classGroup = classGroupIdRaw ? groupById.get(String(classGroupIdRaw)) : null;
           return {
-            id: slot["id"],
+            id: String(slot["id"] ?? ""),
             class_group_id: classGroupIdRaw ? String(classGroupIdRaw) : null,
-            weekday: slot["weekday"],
-            starts_at: slot["starts_at"],
-            ends_at: slot["ends_at"],
+            weekday: Number(slot["weekday"] ?? 0),
+            starts_at: String(slot["starts_at"] ?? ""),
+            ends_at: String(slot["ends_at"] ?? ""),
             subject_id: subjectIdRaw ? String(subjectIdRaw) : null,
-            label: slot["room"] ?? null,
+            teacher_id: classSubject?.["teacher_id"] ? String(classSubject["teacher_id"]) : null,
+            label: slot["room"] ? String(slot["room"]) : null,
             subject_name: (subject?.["name"] as string | null) ?? null,
             display_label: (subject?.["name"] as string) ?? (slot["room"] as string) ?? "—",
             class_group_name: (classGroup?.["name"] as string) ?? "—",
           };
         });
 
-    const academicYears = (years.data ?? []).map((year: Record<string, unknown>) => ({
-      ...year,
-      code: year["name"],
-    }));
+    const academicYears = (years.data ?? []).map((year: Record<string, unknown>) =>
+      toStructureSummary(year),
+    );
 
     const subjectPassRates = new Map<string, { pass: number; total: number }>();
     const termGrades = gradesMissing
@@ -532,9 +658,11 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
 
     return {
       academicYears,
-      courses: programs.data ?? [],
-      gradeLevels: grades.data ?? [],
-      rooms: campuses.data ?? [],
+      courses: (programs.data ?? []).map((row: Record<string, unknown>) => toStructureSummary(row)),
+      gradeLevels: (grades.data ?? []).map((row: Record<string, unknown>) =>
+        toStructureSummary(row),
+      ),
+      rooms: (campuses.data ?? []).map((row: Record<string, unknown>) => toStructureSummary(row)),
       classGroups,
       subjects: subjectsWithRates,
       classSubjects: classSubjectNav,
@@ -742,6 +870,7 @@ export const deactivateSubject = createServerFn({ method: "POST" })
     const { count, error: linkError } = await db
       .from("class_subjects")
       .select("id", { count: "exact", head: true })
+      .eq("school_id", membership.schoolId)
       .eq("subject_id", data.subjectId)
       .eq("status", "active");
     if (linkError) {
@@ -851,17 +980,23 @@ export const createScheduleSlot = createServerFn({ method: "POST" })
     if (!data.subjectId) throw new Error("Seleccione uma disciplina para o horário.");
 
     let classSubjectId: string | null = null;
-    const { data: existing } = await db
+    let teacherId: string | null = null;
+    const { data: existing, error: existingError } = await db
       .from("class_subjects")
-      .select("id")
+      .select("id, teacher_id")
+      .eq("school_id", membership.schoolId)
       .eq("class_group_id", data.classGroupId)
       .eq("subject_id", data.subjectId)
       .eq("status", "active")
       .maybeSingle();
+    if (existingError) {
+      throw publicDatabaseError(existingError, "Não foi possível associar a disciplina à turma.");
+    }
     if (existing?.id) {
       classSubjectId = existing.id;
+      teacherId = existing.teacher_id ?? null;
     } else {
-      const teacherId = await ensureDefaultTeacher(db, membership.schoolId, context.userId);
+      teacherId = await ensureDefaultTeacher(db, membership.schoolId, context.userId);
       const { data: created, error: csError } = await db
         .from("class_subjects")
         .insert({
@@ -880,6 +1015,21 @@ export const createScheduleSlot = createServerFn({ method: "POST" })
         throw publicDatabaseError(csError, "Não foi possível associar a disciplina à turma.");
       classSubjectId = created.id;
     }
+    if (!classSubjectId) throw new Error("Não foi possível associar a disciplina à turma.");
+
+    const startsAt = data.startsAt.length === 5 ? `${data.startsAt}:00` : data.startsAt;
+    const endsAt = data.endsAt.length === 5 ? `${data.endsAt}:00` : data.endsAt;
+    const room = data.label?.trim() || "Sala";
+    await assertScheduleSlotAvailable({
+      db,
+      schoolId: membership.schoolId,
+      classGroupId: data.classGroupId,
+      teacherId,
+      weekday: data.weekday,
+      startsAt,
+      endsAt,
+      room,
+    });
 
     const { data: slot, error } = await db
       .from("timetable_slots")
@@ -887,10 +1037,10 @@ export const createScheduleSlot = createServerFn({ method: "POST" })
         school_id: membership.schoolId,
         class_subject_id: classSubjectId,
         weekday: data.weekday,
-        starts_at: data.startsAt.length === 5 ? `${data.startsAt}:00` : data.startsAt,
-        ends_at: data.endsAt.length === 5 ? `${data.endsAt}:00` : data.endsAt,
+        starts_at: startsAt,
+        ends_at: endsAt,
         // SGA: room is NOT NULL — use rótulo or a safe default.
-        room: data.label?.trim() || "Sala",
+        room,
         status: "active",
         created_by: context.userId,
       })
@@ -898,6 +1048,71 @@ export const createScheduleSlot = createServerFn({ method: "POST" })
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar o slot de horário.");
     return slot;
+  });
+
+export const updateScheduleSlot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => updateScheduleSlotInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { data: currentSlot, error: slotError } = await db
+      .from("timetable_slots")
+      .select("id, class_subject_id")
+      .eq("id", data.slotId)
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (slotError)
+      throw publicDatabaseError(slotError, "Não foi possível carregar o slot de horário.");
+    if (!currentSlot) throw new Error("Slot não encontrado ou já inactivo.");
+
+    const { data: classSubject, error: subjectError } = await db
+      .from("class_subjects")
+      .select("id, class_group_id, teacher_id")
+      .eq("id", currentSlot.class_subject_id)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (subjectError) {
+      throw publicDatabaseError(subjectError, "Não foi possível validar o slot de horário.");
+    }
+    if (!classSubject) throw new Error("A disciplina deste slot já não está disponível.");
+
+    const startsAt = `${data.startsAt}:00`;
+    const endsAt = `${data.endsAt}:00`;
+    const room = data.label?.trim() || "Sala";
+    await assertScheduleSlotAvailable({
+      db,
+      schoolId: membership.schoolId,
+      classGroupId: String(classSubject.class_group_id),
+      teacherId: classSubject.teacher_id ? String(classSubject.teacher_id) : null,
+      weekday: data.weekday,
+      startsAt,
+      endsAt,
+      room,
+      excludeSlotId: data.slotId,
+    });
+
+    const { data: slot, error } = await db
+      .from("timetable_slots")
+      .update({
+        weekday: data.weekday,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        room,
+      })
+      .eq("id", data.slotId)
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .select("id")
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível actualizar o slot de horário.");
+    if (!slot) throw new Error("Slot não encontrado ou já inactivo.");
+    return { id: slot.id };
   });
 
 export const deleteScheduleSlot = createServerFn({ method: "POST" })
@@ -979,7 +1194,8 @@ export const assignClassSubjectTeacher = createServerFn({ method: "POST" })
           status: "active",
           updated_by: context.userId,
         })
-        .eq("id", existing.id);
+        .eq("id", existing.id)
+        .eq("school_id", membership.schoolId);
       if (error) throw publicDatabaseError(error, "Não foi possível actualizar o docente.");
       return { id: existing.id, updated: true };
     }
@@ -1032,7 +1248,8 @@ export const unassignClassSubjectTeacher = createServerFn({ method: "POST" })
         teacher_id: null,
         updated_by: context.userId,
       })
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .eq("school_id", membership.schoolId);
     if (error) throw publicDatabaseError(error, "Não foi possível desligar o professor.");
     return { id: existing.id, teacherId: null };
   });
@@ -1622,7 +1839,8 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
             recorded_by: context.userId,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", existing.id);
+          .eq("id", existing.id)
+          .eq("school_id", membership.schoolId);
       }),
     ]);
     if (insertResult.error)

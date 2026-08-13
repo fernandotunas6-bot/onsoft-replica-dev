@@ -10,12 +10,12 @@ import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 export type QuickField = {
   name: string;
   label: string;
-  placeholder?: string;
+  placeholder?: string | undefined;
   type?: "text" | "number" | "date" | "textarea" | "select" | "angola-identity";
-  options?: string[];
-  full?: boolean;
-  required?: boolean;
-  defaultValue?: string | number;
+  options?: string[] | undefined;
+  full?: boolean | undefined;
+  required?: boolean | undefined;
+  defaultValue?: string | number | undefined;
 };
 
 /** Modal de criação e edição rápida com validação nativa dos campos. */
@@ -42,8 +42,8 @@ export function QuickFormModal({
   submitLabel?: string;
   size?: "sm" | "md" | "lg" | undefined;
   note?: string | undefined;
-  /** Quando fornecido, substitui o guardar simulado por uma mutação real. */
-  onSubmit?: (values: Record<string, string>) => Promise<void>;
+  /** Mutação real executada ao submeter o formulário. */
+  onSubmit: (values: Record<string, string>) => Promise<void>;
   /** Abre o modal automaticamente (ex.: deep-link da sidebar). */
   autoOpen?: boolean;
   successDescription?: string;
@@ -63,9 +63,6 @@ export function QuickFormModal({
     if (!formRef.current?.reportValidity()) return;
     setSaving(true);
     try {
-      if (!onSubmit) {
-        throw new Error("Esta acção ainda não está disponível neste módulo.");
-      }
       const values = Object.fromEntries(new FormData(formRef.current).entries()) as Record<
         string,
         string
@@ -148,9 +145,9 @@ export function QuickFormModal({
                 <AngolaIdentityField
                   id={field.name}
                   name={field.name}
-                  defaultValue={field.defaultValue != null ? String(field.defaultValue) : undefined}
+                  defaultValue={field.defaultValue != null ? String(field.defaultValue) : ""}
                   disabled={false}
-                  placeholder={field.placeholder}
+                  placeholder={field.placeholder ?? ""}
                   className="mt-1.5"
                 />
               ) : (

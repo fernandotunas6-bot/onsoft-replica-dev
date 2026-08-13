@@ -11,7 +11,7 @@ export async function insertFinanceArchive(
     schoolId: string;
     userId: string;
     area: "secretaria" | "escola";
-    category: "recibo" | "talao" | "fatura";
+    category: "recibo" | "talao" | "fatura" | "outro";
     title: string;
     description: string;
     relatedPersonId?: string | null | undefined;
@@ -31,7 +31,12 @@ export async function insertFinanceArchive(
     .eq("reference_code", documentCode)
     .maybeSingle();
   if (existing?.id) {
-    return { documentCode, fileId: String(existing.id), reused: true as const, storage: "sga" as const };
+    return {
+      documentCode,
+      fileId: String(existing.id),
+      reused: true as const,
+      storage: "sga" as const,
+    };
   }
 
   const id = crypto.randomUUID();
@@ -93,7 +98,11 @@ export async function insertFinanceArchive(
 
   const { error } = await db.from("siga_files").insert(payload);
   if (error) {
-    if (/42P01|schema cache|does not exist|42703|reference_code|related_person|category/i.test(error.message)) {
+    if (
+      /42P01|schema cache|does not exist|42703|reference_code|related_person|category/i.test(
+        error.message,
+      )
+    ) {
       return {
         documentCode,
         fileId: id,

@@ -49,7 +49,7 @@ export function FileKindIcon({
     <span className={cn("relative inline-flex shrink-0", className)}>
       <span
         className={cn(
-          "flex items-center justify-center rounded-lg text-white shadow-sm",
+          "flex items-center justify-center rounded-lg text-primary-foreground shadow-sm",
           box,
         )}
         style={{ background: meta.color }}

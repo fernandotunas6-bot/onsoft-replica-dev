@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -1108,6 +1109,7 @@ export function FileBrowser({
                   <input
                     ref={inputRef}
                     type="file"
+                    aria-label="Seleccionar arquivos para carregar"
                     accept={uploadAccept}
                     multiple
                     className="sr-only"
@@ -1441,9 +1443,13 @@ export function FileBrowser({
                   Detalhes
                 </p>
                 {previewUrl ? (
-                  <div className="mt-3 overflow-hidden rounded-xl border border-border bg-secondary/40">
-                    <img src={previewUrl} alt="" className="max-h-36 w-full object-cover" />
-                  </div>
+                  <MediaFrame
+                    src={previewUrl}
+                    alt={`Pré-visualização de ${selected.name}`}
+                    ratio="16/5"
+                    rounded="rounded-xl"
+                    className="mt-3 max-h-36 border border-border bg-secondary/40"
+                  />
                 ) : (
                   <div className="mt-3 flex items-center gap-3 rounded-xl border border-border bg-secondary/30 px-3 py-3">
                     <FileKindIcon kind={selected.kind} visibility={selected.visibility} />

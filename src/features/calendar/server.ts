@@ -13,6 +13,15 @@ import {
   updateCalendarEventInputSchema,
 } from "./schemas";
 
+export type CalendarEventSummary = {
+  id: string;
+  title: string;
+  description: string;
+  event_date: string;
+  ends_on: string;
+  category: "academic";
+};
+
 export const listCalendarEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listCalendarEventsInputSchema.parse(input ?? {}))
@@ -32,11 +41,11 @@ export const listCalendarEvents = createServerFn({ method: "GET" })
     if (error) throw publicDatabaseError(error, "Não foi possível carregar o calendário lectivo.");
 
     return (terms ?? []).map((term: Record<string, unknown>) => ({
-      id: term.id,
-      title: term.name,
-      description: `Período lectivo ${term.sequence ?? ""}`.trim(),
-      event_date: term.starts_on,
-      ends_on: term.ends_on,
+      id: String(term["id"] ?? ""),
+      title: String(term["name"] ?? ""),
+      description: `Período lectivo ${term["sequence"] ?? ""}`.trim(),
+      event_date: String(term["starts_on"] ?? ""),
+      ends_on: String(term["ends_on"] ?? ""),
       category: "academic" as const,
     }));
   });

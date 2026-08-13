@@ -42,6 +42,20 @@ const relatorioFinanceiroFilterDefaults = {
   q: "",
 };
 
+type CollectionReportRow = {
+  mes: string;
+  cobrado: number;
+  recebido: number;
+  desvio: number;
+  eficiencia: number;
+};
+
+type CategoryReportRow = {
+  sentido: "Receita" | "Despesa";
+  categoria: string;
+  valor: number;
+};
+
 export const Route = createFileRoute("/relatorios/financeiros")({
   head: () => ({
     meta: [
@@ -104,7 +118,7 @@ function RelatoriosFinanceiros() {
   const despesaPorCategoria = (reportingQuery.data?.categories ?? [])
     .filter((category) => category.direction === "out")
     .map((category) => ({ categoria: category.category, valor: Number(category.amount) }));
-  const cobrancaRows = useMemo(
+  const cobrancaRows = useMemo<CollectionReportRow[]>(
     () =>
       mensalidadesPorMes.map((mes) => ({
         ...mes,
@@ -113,10 +127,10 @@ function RelatoriosFinanceiros() {
       })),
     [mensalidadesPorMes],
   );
-  const categoriaRows = useMemo(() => {
+  const categoriaRows = useMemo<CategoryReportRow[]>(() => {
     const rows = [
-      ...receitaPorCategoria.map((row) => ({ ...row, sentido: "Receita" })),
-      ...despesaPorCategoria.map((row) => ({ ...row, sentido: "Despesa" })),
+      ...receitaPorCategoria.map((row) => ({ ...row, sentido: "Receita" as const })),
+      ...despesaPorCategoria.map((row) => ({ ...row, sentido: "Despesa" as const })),
     ];
     const bySentido =
       sentido === "receita"
@@ -129,7 +143,7 @@ function RelatoriosFinanceiros() {
   }, [despesaPorCategoria, query, receitaPorCategoria, sentido]);
   const cobrancaColumns: Array<{
     label: string;
-    value: (row: Record<string, CsvValue>) => CsvValue;
+    value: (row: CollectionReportRow) => CsvValue;
   }> = [
     { label: "Mês", value: (row) => row.mes },
     { label: "Cobrado (Kz)", value: (row) => row.cobrado },
@@ -139,7 +153,7 @@ function RelatoriosFinanceiros() {
   ];
   const categoriaColumns: Array<{
     label: string;
-    value: (row: Record<string, CsvValue>) => CsvValue;
+    value: (row: CategoryReportRow) => CsvValue;
   }> = [
     { label: "Sentido", value: (row) => row.sentido },
     { label: "Categoria", value: (row) => row.categoria },
@@ -189,7 +203,7 @@ function RelatoriosFinanceiros() {
             })),
           },
         ],
-        banking: schoolBanking,
+        ...(schoolBanking ? { banking: schoolBanking } : {}),
       }),
       fallback: () =>
         exportOfficialPautaPdf(
@@ -197,7 +211,7 @@ function RelatoriosFinanceiros() {
           "Cobrança mensal",
           {
             schoolName: printSchool.name,
-            academicYear: printSchool.academicYear,
+            academicYear: printSchool.academicYear ?? "",
             directorName: printSchool.directorName ?? undefined,
             issuedOn: new Date().toLocaleDateString("pt-AO"),
             termLabel: `Filtros activos: ${activeCount || "nenhum"}`,
@@ -231,7 +245,7 @@ function RelatoriosFinanceiros() {
             })),
           },
         ],
-        banking: schoolBanking,
+        ...(schoolBanking ? { banking: schoolBanking } : {}),
       }),
       fallback: () =>
         exportOfficialPautaPdf(
@@ -239,7 +253,7 @@ function RelatoriosFinanceiros() {
           "Receitas e despesas por categoria",
           {
             schoolName: printSchool.name,
-            academicYear: printSchool.academicYear,
+            academicYear: printSchool.academicYear ?? "",
             directorName: printSchool.directorName ?? undefined,
             issuedOn: new Date().toLocaleDateString("pt-AO"),
             termLabel: `Filtro sentido: ${sentido}`,
@@ -289,7 +303,7 @@ function RelatoriosFinanceiros() {
             })),
           },
         ],
-        banking: schoolBanking,
+        ...(schoolBanking ? { banking: schoolBanking } : {}),
       }),
       fallback: () =>
         exportOfficialPautaPdf(
@@ -324,9 +338,8 @@ function RelatoriosFinanceiros() {
             <AlertTriangle className="size-4" />
             <AlertTitle>Relatório incompleto</AlertTitle>
             <AlertDescription>
-              Há mais facturas/recibos do que este relatório conseguiu somar. Os totais abaixo
-              estão por baixo do valor real — contacte o suporte para paginar o histórico
-              completo.
+              Há mais facturas/recibos do que este relatório conseguiu somar. Os totais abaixo estão
+              por baixo do valor real — contacte o suporte para paginar o histórico completo.
             </AlertDescription>
           </Alert>
         ) : null}

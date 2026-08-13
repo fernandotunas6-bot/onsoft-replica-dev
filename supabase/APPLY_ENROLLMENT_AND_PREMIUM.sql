@@ -11,7 +11,7 @@ RETURNS uuid
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = pg_catalog, public
 AS $$
   SELECT school_id
   FROM public.school_memberships
@@ -23,6 +23,28 @@ $$;
 
 REVOKE ALL ON FUNCTION public.current_school_id() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.current_school_id() TO authenticated, service_role;
+
+-- APPLY_IN_SQL_EDITOR.sql cria o bucket antes desta função existir. Ao reaplicar
+-- este script, as políticas passam a limitar os uploads ao prefixo da própria escola.
+DROP POLICY IF EXISTS "Authenticated users can upload school logos" ON storage.objects;
+CREATE POLICY "Authenticated users can upload school logos"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'school-logos'
+    AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+  );
+
+DROP POLICY IF EXISTS "Authenticated users can replace school logos" ON storage.objects;
+CREATE POLICY "Authenticated users can replace school logos"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (
+    bucket_id = 'school-logos'
+    AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+  )
+  WITH CHECK (
+    bucket_id = 'school-logos'
+    AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+  );
 
 CREATE OR REPLACE FUNCTION public.siga_touch_updated_at()
 RETURNS trigger
@@ -423,6 +445,33 @@ ALTER TABLE public.person_documents
 ALTER TABLE public.person_documents
   ADD COLUMN IF NOT EXISTS file_name text;
 
+-- A FK isolada não garante que pessoa e documento pertencem à mesma escola.
+-- Este trigger impede a criação de referências cruzadas, inclusive via Data API.
+CREATE OR REPLACE FUNCTION public.enforce_person_document_school()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.people
+    WHERE id = NEW.person_id
+      AND school_id = NEW.school_id
+  ) THEN
+    RAISE EXCEPTION 'A pessoa do documento deve pertencer à mesma escola';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.enforce_person_document_school() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS person_documents_enforce_school ON public.person_documents;
+CREATE TRIGGER person_documents_enforce_school
+  BEFORE INSERT OR UPDATE OF school_id, person_id ON public.person_documents
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_person_document_school();
+
 -- Arquivos da escola: metadados no Postgres, bytes no bucket privado (não no SQL).
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('siga-files', 'siga-files', false)
@@ -431,23 +480,42 @@ ON CONFLICT (id) DO NOTHING;
 DROP POLICY IF EXISTS "Staff can read siga files" ON storage.objects;
 CREATE POLICY "Staff can read siga files"
   ON storage.objects FOR SELECT TO authenticated
-  USING (bucket_id = 'siga-files');
+  USING (
+    bucket_id = 'siga-files'
+    AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+  );
 
 DROP POLICY IF EXISTS "Staff can upload siga files" ON storage.objects;
 CREATE POLICY "Staff can upload siga files"
   ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'siga-files');
+  WITH CHECK (
+    bucket_id = 'siga-files'
+    AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+    AND (storage.foldername(name))[5] = (SELECT auth.uid())::text
+  );
 
 DROP POLICY IF EXISTS "Staff can replace siga files" ON storage.objects;
 CREATE POLICY "Staff can replace siga files"
   ON storage.objects FOR UPDATE TO authenticated
-  USING (bucket_id = 'siga-files')
-  WITH CHECK (bucket_id = 'siga-files');
+  USING (
+    bucket_id = 'siga-files'
+    AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+    AND (storage.foldername(name))[5] = (SELECT auth.uid())::text
+  )
+  WITH CHECK (
+    bucket_id = 'siga-files'
+    AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+    AND (storage.foldername(name))[5] = (SELECT auth.uid())::text
+  );
 
 DROP POLICY IF EXISTS "Staff can delete siga files" ON storage.objects;
 CREATE POLICY "Staff can delete siga files"
   ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'siga-files');
+  USING (
+    bucket_id = 'siga-files'
+    AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+    AND (storage.foldername(name))[5] = (SELECT auth.uid())::text
+  );
 
 CREATE TABLE IF NOT EXISTS public.siga_files (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -712,6 +780,161 @@ CREATE INDEX IF NOT EXISTS siga_assessment_items_plan_component_idx
   ON public.siga_assessment_items (lesson_plan_component_id)
   WHERE lesson_plan_component_id IS NOT NULL;
 
+-- Despesas de caixa: separadas dos recibos SGA para não adulterar a liquidação
+-- de faturas. A escrita passa exclusivamente pelos server functions, que validam
+-- Administrador/Tesouraria antes de usar o cliente de serviço.
+CREATE TABLE IF NOT EXISTS public.siga_cash_expenses (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  document_number text NOT NULL,
+  description text NOT NULL,
+  category text NOT NULL,
+  amount numeric NOT NULL,
+  method text NOT NULL DEFAULT 'cash',
+  reference text,
+  occurred_at timestamptz NOT NULL DEFAULT now(),
+  status text NOT NULL DEFAULT 'posted',
+  reversal_reason text,
+  reversed_at timestamptz,
+  reversed_by uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  updated_by uuid REFERENCES auth.users(id),
+  UNIQUE (school_id, document_number)
+);
+
+ALTER TABLE public.siga_cash_expenses DROP CONSTRAINT IF EXISTS siga_cash_expenses_document_number_check;
+ALTER TABLE public.siga_cash_expenses
+  ADD CONSTRAINT siga_cash_expenses_document_number_check
+  CHECK (document_number = btrim(document_number) AND char_length(document_number) BETWEEN 1 AND 64);
+
+ALTER TABLE public.siga_cash_expenses DROP CONSTRAINT IF EXISTS siga_cash_expenses_description_check;
+ALTER TABLE public.siga_cash_expenses
+  ADD CONSTRAINT siga_cash_expenses_description_check
+  CHECK (description = btrim(description) AND char_length(description) BETWEEN 1 AND 500);
+
+ALTER TABLE public.siga_cash_expenses DROP CONSTRAINT IF EXISTS siga_cash_expenses_category_check;
+ALTER TABLE public.siga_cash_expenses
+  ADD CONSTRAINT siga_cash_expenses_category_check
+  CHECK (category = btrim(category) AND char_length(category) BETWEEN 1 AND 80);
+
+ALTER TABLE public.siga_cash_expenses DROP CONSTRAINT IF EXISTS siga_cash_expenses_amount_check;
+ALTER TABLE public.siga_cash_expenses
+  ADD CONSTRAINT siga_cash_expenses_amount_check CHECK (amount > 0);
+
+ALTER TABLE public.siga_cash_expenses DROP CONSTRAINT IF EXISTS siga_cash_expenses_method_check;
+ALTER TABLE public.siga_cash_expenses
+  ADD CONSTRAINT siga_cash_expenses_method_check CHECK (
+    method IN ('cash', 'multicaixa', 'transfer', 'express', 'multicaixa_express', 'unitel_money')
+  );
+
+ALTER TABLE public.siga_cash_expenses DROP CONSTRAINT IF EXISTS siga_cash_expenses_status_check;
+ALTER TABLE public.siga_cash_expenses
+  ADD CONSTRAINT siga_cash_expenses_status_check CHECK (status IN ('posted', 'reversed'));
+
+CREATE INDEX IF NOT EXISTS siga_cash_expenses_school_occurred_idx
+  ON public.siga_cash_expenses (school_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS siga_cash_expenses_school_category_idx
+  ON public.siga_cash_expenses (school_id, category, occurred_at DESC);
+
+DROP TRIGGER IF EXISTS siga_cash_expenses_set_updated_at ON public.siga_cash_expenses;
+CREATE TRIGGER siga_cash_expenses_set_updated_at
+  BEFORE UPDATE ON public.siga_cash_expenses
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+ALTER TABLE public.siga_cash_expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_cash_expenses FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_cash_expenses FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.siga_cash_expenses TO authenticated;
+GRANT ALL ON public.siga_cash_expenses TO service_role;
+
+DROP POLICY IF EXISTS "Read school cash expenses" ON public.siga_cash_expenses;
+CREATE POLICY "Read school cash expenses"
+  ON public.siga_cash_expenses
+  FOR SELECT TO authenticated
+  USING (school_id = (SELECT public.current_school_id()));
+
+-- Comunicados institucionais: o portal pode ler os da própria escola; criação,
+-- edição e arquivo passam pelos server functions, que exigem Administrador/Secretaria.
+CREATE TABLE IF NOT EXISTS public.announcements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  body text NOT NULL,
+  audience text NOT NULL DEFAULT 'school',
+  channel text NOT NULL DEFAULT 'portal',
+  status text NOT NULL DEFAULT 'draft',
+  scheduled_for date,
+  published_at timestamptz,
+  archived_at timestamptz,
+  priority text NOT NULL DEFAULT 'normal',
+  role_code text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  updated_by uuid REFERENCES auth.users(id)
+);
+
+-- Algumas instalações SGA já tinham a tabela-base antes do módulo. Completar
+-- as colunas sem tocar nos comunicados históricos.
+ALTER TABLE public.announcements
+  ADD COLUMN IF NOT EXISTS channel text NOT NULL DEFAULT 'portal';
+ALTER TABLE public.announcements
+  ADD COLUMN IF NOT EXISTS scheduled_for date;
+ALTER TABLE public.announcements
+  ADD COLUMN IF NOT EXISTS updated_by uuid REFERENCES auth.users(id);
+
+ALTER TABLE public.announcements DROP CONSTRAINT IF EXISTS announcements_title_check;
+ALTER TABLE public.announcements
+  ADD CONSTRAINT announcements_title_check
+  CHECK (title = btrim(title) AND char_length(title) BETWEEN 2 AND 160);
+
+ALTER TABLE public.announcements DROP CONSTRAINT IF EXISTS announcements_body_check;
+ALTER TABLE public.announcements
+  ADD CONSTRAINT announcements_body_check
+  CHECK (body = btrim(body) AND char_length(body) BETWEEN 2 AND 4000);
+
+ALTER TABLE public.announcements DROP CONSTRAINT IF EXISTS announcements_audience_check;
+ALTER TABLE public.announcements
+  ADD CONSTRAINT announcements_audience_check CHECK (audience IN ('school'));
+
+ALTER TABLE public.announcements DROP CONSTRAINT IF EXISTS announcements_channel_check;
+ALTER TABLE public.announcements
+  ADD CONSTRAINT announcements_channel_check CHECK (channel IN ('sms', 'email', 'portal'));
+
+ALTER TABLE public.announcements DROP CONSTRAINT IF EXISTS announcements_status_check;
+ALTER TABLE public.announcements
+  ADD CONSTRAINT announcements_status_check CHECK (status IN ('draft', 'scheduled', 'published', 'archived'));
+
+ALTER TABLE public.announcements DROP CONSTRAINT IF EXISTS announcements_scheduled_for_check;
+ALTER TABLE public.announcements
+  ADD CONSTRAINT announcements_scheduled_for_check
+  CHECK (status <> 'scheduled' OR scheduled_for IS NOT NULL);
+
+CREATE INDEX IF NOT EXISTS announcements_school_created_idx
+  ON public.announcements (school_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS announcements_school_status_schedule_idx
+  ON public.announcements (school_id, status, scheduled_for)
+  WHERE status IN ('scheduled', 'published');
+
+DROP TRIGGER IF EXISTS announcements_set_updated_at ON public.announcements;
+CREATE TRIGGER announcements_set_updated_at
+  BEFORE UPDATE ON public.announcements
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.announcements FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.announcements FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.announcements TO authenticated;
+GRANT ALL ON public.announcements TO service_role;
+
+DROP POLICY IF EXISTS "Read school announcements" ON public.announcements;
+CREATE POLICY "Read school announcements"
+  ON public.announcements
+  FOR SELECT TO authenticated
+  USING (school_id = (SELECT public.current_school_id()));
+
 -- Verificação: deve devolver as relações novas.
 SELECT c.relname AS tabela
 FROM pg_class c
@@ -731,6 +954,8 @@ WHERE n.nspname = 'public'
     'siga_file_events',
     'person_documents',
     'siga_lesson_plans',
-    'siga_lesson_plan_components'
+    'siga_lesson_plan_components',
+    'siga_cash_expenses',
+    'announcements'
   )
 ORDER BY 1;

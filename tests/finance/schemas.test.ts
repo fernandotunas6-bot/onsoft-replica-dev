@@ -4,6 +4,7 @@ import {
   cancelPaymentPlanInputSchema,
   officialReceiptBody,
   paymentStatusFromInvoices,
+  recordCashExpenseInputSchema,
 } from "@/features/finance/schemas";
 
 describe("officialReceiptBody", () => {
@@ -37,19 +38,13 @@ describe("paymentStatusFromInvoices", () => {
 
   it("marca em dívida quando há fatura vencida em aberto", () => {
     expect(
-      paymentStatusFromInvoices(
-        [{ status: "issued", due_on: "2026-01-01" }],
-        "2026-08-11",
-      ),
+      paymentStatusFromInvoices([{ status: "issued", due_on: "2026-01-01" }], "2026-08-11"),
     ).toBe("overdue");
   });
 
   it("marca pendente quando ainda não venceu", () => {
     expect(
-      paymentStatusFromInvoices(
-        [{ status: "partial", due_on: "2026-12-01" }],
-        "2026-08-11",
-      ),
+      paymentStatusFromInvoices([{ status: "partial", due_on: "2026-12-01" }], "2026-08-11"),
     ).toBe("pending");
   });
 });
@@ -68,8 +63,33 @@ describe("cancelPaymentPlanInputSchema", () => {
   it("exige o id do plano", () => {
     expect(cancelPaymentPlanInputSchema.safeParse({}).success).toBe(false);
     expect(
-      cancelPaymentPlanInputSchema.parse({ planId: "11111111-1111-1111-1111-111111111111" })
-        .planId,
+      cancelPaymentPlanInputSchema.parse({ planId: "11111111-1111-1111-1111-111111111111" }).planId,
     ).toHaveLength(36);
+  });
+});
+
+describe("recordCashExpenseInputSchema", () => {
+  it("aceita uma despesa de caixa com dados auditáveis", () => {
+    expect(
+      recordCashExpenseInputSchema.safeParse({
+        documentNumber: "DC-2026-0001",
+        description: "Compra de papel e toners para secretaria",
+        category: "Material de escritório",
+        amount: 45_000,
+        method: "cash",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejeita valores negativos e documentos em branco", () => {
+    expect(
+      recordCashExpenseInputSchema.safeParse({
+        documentNumber: " ",
+        description: "Despesa inválida",
+        category: "Outros",
+        amount: -1,
+        method: "cash",
+      }).success,
+    ).toBe(false);
   });
 });

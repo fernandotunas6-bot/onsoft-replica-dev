@@ -24,6 +24,18 @@ import { canWriteFileArea } from "@/features/arquivos/kinds";
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
 
+export type CashEntrySummary = {
+  id: string;
+  document_number: string;
+  occurred_at: string;
+  description: string;
+  category: string;
+  method: string;
+  status: "posted" | "reversed";
+  direction: "in" | "out";
+  amount: number;
+};
+
 /**
  * Pagina até esgotar os registos (ou até um tecto de segurança de 30 000), em vez
  * do antigo `.limit(500)` sem `.order()` — que truncava o relatório financeiro
@@ -48,6 +60,15 @@ async function fetchAllRows<T>(
     if (batch.length < REPORTING_PAGE_SIZE) return { rows, truncated: false };
   }
   return { rows, truncated: true };
+}
+
+function isMissingSgaTable(error: { code?: string; message?: string } | null) {
+  return Boolean(
+    error &&
+    (error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
+  );
 }
 
 function categoryToFeeKind(category: string) {
@@ -143,7 +164,7 @@ async function archiveFinanceQuietly(
     schoolId: string;
     userId: string;
     role: string;
-    category: "recibo" | "talao" | "fatura";
+    category: "recibo" | "talao" | "fatura" | "outro";
     title: string;
     description: string;
     relatedPersonId?: string | null;
@@ -212,10 +233,12 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
       };
     }
     const db = await loadSgaAdminClient();
-    const [{ error: penaltyError }, { error: prefsError }] = await Promise.all([
-      db.from("finance_invoices").select("id, penalty_amount").limit(1),
-      db.from("notification_preferences").select("id").limit(1),
-    ]);
+    const [{ error: penaltyError }, { error: prefsError }, { error: cashExpensesError }] =
+      await Promise.all([
+        db.from("finance_invoices").select("id, penalty_amount").limit(1),
+        db.from("notification_preferences").select("id").limit(1),
+        db.from("siga_cash_expenses").select("id").limit(1),
+      ]);
     const missingPenaltyAmount = Boolean(
       penaltyError && /penalty_amount/i.test(penaltyError.message),
     );
@@ -242,10 +265,17 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
     if (penaltyError && !missingPenaltyAmount) {
       throw publicDatabaseError(penaltyError, "Não foi possível validar o schema financeiro.");
     }
+    if (cashExpensesError && !isMissingSgaTable(cashExpensesError)) {
+      throw publicDatabaseError(
+        cashExpensesError,
+        "Não foi possível validar as despesas de caixa.",
+      );
+    }
     return {
       ready: !missingPenaltyAmount && !missingNotificationPreferences,
       missingPenaltyAmount,
       missingNotificationPreferences,
+      missingCashExpenses: isMissingSgaTable(cashExpensesError),
     };
   });
 
@@ -292,7 +322,19 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     }
     const db = await loadSgaAdminClient();
 
-    const [invoicesPaged, receiptsPaged, { data: feeItems }] = await Promise.all([
+    const { error: cashExpensesSchemaError } = await db
+      .from("siga_cash_expenses")
+      .select("id")
+      .limit(1);
+    if (cashExpensesSchemaError && !isMissingSgaTable(cashExpensesSchemaError)) {
+      throw publicDatabaseError(
+        cashExpensesSchemaError,
+        "Não foi possível validar as despesas de caixa.",
+      );
+    }
+    const cashExpensesAvailable = !isMissingSgaTable(cashExpensesSchemaError);
+
+    const [invoicesPaged, receiptsPaged, expensesPaged, { data: feeItems }] = await Promise.all([
       fetchAllRows("Não foi possível calcular o resumo financeiro.", (from, to) =>
         db
           .from("finance_invoices")
@@ -311,11 +353,22 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
           .order("paid_on", { ascending: true })
           .range(from, to),
       ),
+      cashExpensesAvailable
+        ? fetchAllRows("Não foi possível calcular as despesas.", (from, to) =>
+            db
+              .from("siga_cash_expenses")
+              .select("id, amount, category, occurred_at, status")
+              .eq("school_id", membership.schoolId)
+              .order("occurred_at", { ascending: true })
+              .range(from, to),
+          )
+        : Promise.resolve({ rows: [] as Array<Record<string, unknown>>, truncated: false }),
       db.from("fee_items").select("id, name, kind").eq("school_id", membership.schoolId),
     ]);
     const invoices = invoicesPaged.rows;
     const receipts = receiptsPaged.rows;
-    const truncated = invoicesPaged.truncated || receiptsPaged.truncated;
+    const expenses = expensesPaged.rows;
+    const truncated = invoicesPaged.truncated || receiptsPaged.truncated || expensesPaged.truncated;
 
     const today = new Date().toISOString().slice(0, 10);
     const activeInvoices = (invoices ?? []).filter(
@@ -342,6 +395,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
 
     const paidByInvoice = new Map<string, number>();
     let cashIn = 0;
+    let cashOut = 0;
     for (const receipt of receipts ?? []) {
       if (receipt.status === "reversed") continue;
       cashIn += Number(receipt.amount ?? 0);
@@ -359,6 +413,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     const billedStudents = new Set<string>();
     const monthlyMap = new Map<string, { billed: number; received: number }>();
     const categoryMap = new Map<string, number>();
+    const expenseCategoryMap = new Map<string, number>();
     const feeById = new Map(
       (feeItems ?? []).map((item: { id: string; name: string; kind: string }) => [item.id, item]),
     );
@@ -391,6 +446,16 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
       categoryMap.set(category, (categoryMap.get(category) ?? 0) + amount);
     }
 
+    for (const expense of expenses) {
+      if (expense.status === "reversed") continue;
+      cashOut += Number(expense.amount ?? 0);
+      const category = String(expense.category ?? "Despesa");
+      expenseCategoryMap.set(
+        category,
+        (expenseCategoryMap.get(category) ?? 0) + Number(expense.amount ?? 0),
+      );
+    }
+
     return {
       summary: {
         billed,
@@ -402,8 +467,8 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
         overdue_invoice_count: overdueCount,
         billed_student_count: billedStudents.size,
         cash_in: cashIn,
-        cash_out: 0,
-        cash_balance: cashIn,
+        cash_out: cashOut,
+        cash_balance: cashIn - cashOut,
         truncated,
       },
       monthly: [...monthlyMap.entries()]
@@ -413,11 +478,18 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
           billed: values.billed,
           received: values.received,
         })),
-      categories: [...categoryMap.entries()].map(([category, total]) => ({
-        category,
-        direction: "in" as "in" | "out",
-        amount: total,
-      })),
+      categories: [
+        ...[...categoryMap.entries()].map(([category, total]) => ({
+          category,
+          direction: "in" as "in" | "out",
+          amount: total,
+        })),
+        ...[...expenseCategoryMap.entries()].map(([category, total]) => ({
+          category,
+          direction: "out" as "in" | "out",
+          amount: total,
+        })),
+      ],
     };
   });
 
@@ -545,32 +617,67 @@ export const listCashEntries = createServerFn({ method: "GET" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: receipts, error } = await db
-      .from("finance_receipts")
-      .select(
-        "id, receipt_number, amount, paid_on, payment_method, status, invoice_id, reversal_reason, created_at",
-      )
-      .eq("school_id", membership.schoolId)
-      .order("paid_on", { ascending: false })
-      .limit(data.limit);
-    if (error) {
-      throw publicDatabaseError(error, "Não foi possível carregar os movimentos de caixa.");
+    const [{ data: receipts, error: receiptsError }, { data: expenses, error: expensesError }] =
+      await Promise.all([
+        db
+          .from("finance_receipts")
+          .select(
+            "id, receipt_number, amount, paid_on, payment_method, status, invoice_id, reversal_reason, created_at",
+          )
+          .eq("school_id", membership.schoolId)
+          .order("paid_on", { ascending: false })
+          .limit(data.limit),
+        db
+          .from("siga_cash_expenses")
+          .select(
+            "id, document_number, description, category, amount, method, occurred_at, status, reversal_reason",
+          )
+          .eq("school_id", membership.schoolId)
+          .order("occurred_at", { ascending: false })
+          .limit(data.limit),
+      ]);
+    if (receiptsError) {
+      throw publicDatabaseError(receiptsError, "Não foi possível carregar os movimentos de caixa.");
+    }
+    if (expensesError && !isMissingSgaTable(expensesError)) {
+      throw publicDatabaseError(expensesError, "Não foi possível carregar as despesas de caixa.");
     }
 
-    return (receipts ?? []).map((receipt: Record<string, unknown>) => ({
-      id: receipt.id,
-      document_number: receipt.receipt_number,
-      occurred_at: receipt.paid_on ?? receipt.created_at,
-      description:
-        receipt.status === "reversed"
-          ? `Recibo anulado${receipt.reversal_reason ? `: ${receipt.reversal_reason}` : ""}`
-          : "Recebimento de fatura",
-      category: "Recebimento",
-      method: receipt.payment_method ?? "cash",
-      status: receipt.status === "reversed" ? "reversed" : "posted",
-      direction: "in" as const,
-      amount: Number(receipt.amount ?? 0),
-    }));
+    const receiptEntries: CashEntrySummary[] = (receipts ?? []).map(
+      (receipt: Record<string, unknown>) => ({
+        id: String(receipt["id"] ?? ""),
+        document_number: String(receipt["receipt_number"] ?? ""),
+        occurred_at: String(receipt["paid_on"] ?? receipt["created_at"] ?? ""),
+        description:
+          receipt["status"] === "reversed"
+            ? `Recibo anulado${receipt["reversal_reason"] ? `: ${receipt["reversal_reason"]}` : ""}`
+            : "Recebimento de fatura",
+        category: "Recebimento",
+        method: String(receipt["payment_method"] ?? "cash"),
+        status: receipt["status"] === "reversed" ? "reversed" : "posted",
+        direction: "in" as const,
+        amount: Number(receipt["amount"] ?? 0),
+      }),
+    );
+    const expenseEntries: CashEntrySummary[] = isMissingSgaTable(expensesError)
+      ? []
+      : (expenses ?? []).map((expense: Record<string, unknown>) => ({
+          id: String(expense["id"] ?? ""),
+          document_number: String(expense["document_number"] ?? ""),
+          occurred_at: String(expense["occurred_at"] ?? ""),
+          description:
+            expense["status"] === "reversed"
+              ? `Despesa anulada${expense["reversal_reason"] ? `: ${expense["reversal_reason"]}` : ""}`
+              : String(expense["description"] ?? ""),
+          category: String(expense["category"] ?? "Despesa"),
+          method: String(expense["method"] ?? "cash"),
+          status: expense["status"] === "reversed" ? "reversed" : "posted",
+          direction: "out" as const,
+          amount: Number(expense["amount"] ?? 0),
+        }));
+    return [...receiptEntries, ...expenseEntries]
+      .sort((left, right) => String(right.occurred_at).localeCompare(String(left.occurred_at)))
+      .slice(0, data.limit);
   });
 
 /**
@@ -624,7 +731,9 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
 
     const linked = await personIdForInvoice(db, membership.schoolId, data.invoiceId);
     const documentCode = stableDocumentCode("recibo", result.receiptId);
-    const noteExtra = data.receiptNumber ? ` Referência do funcionário: ${data.receiptNumber}.` : "";
+    const noteExtra = data.receiptNumber
+      ? ` Referência do funcionário: ${data.receiptNumber}.`
+      : "";
     const archived = await archiveFinanceQuietly(db, {
       schoolId: membership.schoolId,
       userId: context.userId,
@@ -675,7 +784,8 @@ export const cancelInvoice = createServerFn({ method: "POST" })
     const { data: receipts, error: receiptsError } = await db
       .from("finance_receipts")
       .select("amount, status")
-      .eq("invoice_id", data.invoiceId);
+      .eq("invoice_id", data.invoiceId)
+      .eq("school_id", membership.schoolId);
     if (receiptsError) {
       throw publicDatabaseError(receiptsError, "Não foi possível verificar os recibos da fatura.");
     }
@@ -843,11 +953,48 @@ export const issueInvoice = createServerFn({ method: "POST" })
 export const recordCashExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordCashExpenseInputSchema.parse(input))
-  .handler(async ({ data }) => {
-    void data;
-    throw new Error(
-      "O SGA actual regista recebimentos (recibos). Despesas de caixa ainda não têm tabela nativa ligada nesta interface.",
-    );
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { data: expense, error } = await db
+      .from("siga_cash_expenses")
+      .insert({
+        school_id: membership.schoolId,
+        document_number: data.documentNumber,
+        description: data.description,
+        category: data.category,
+        amount: data.amount,
+        method: data.method,
+        reference: data.reference ?? null,
+        occurred_at: data.occurredAt ?? new Date().toISOString(),
+        status: "posted",
+        created_by: context.userId,
+        updated_by: context.userId,
+      })
+      .select("id, document_number, description, category, amount, method, occurred_at, status")
+      .single();
+    if (error) throw publicDatabaseError(error, "Não foi possível registar a despesa de caixa.");
+
+    const documentCode = stableDocumentCode("despesa", String(expense.id));
+    const archived = await archiveFinanceQuietly(db, {
+      schoolId: membership.schoolId,
+      userId: context.userId,
+      role: membership.appRole,
+      category: "outro",
+      title: `Despesa ${expense.document_number}`,
+      description: `Despesa de caixa: ${expense.description}. Categoria ${expense.category}. Referência ${data.reference ?? "—"}. Arquivada automaticamente na biblioteca SIGA.`,
+      sourceLabel: expense.document_number,
+      amountLabel: formatAmountKz(Number(expense.amount)),
+      documentCode,
+    });
+    return {
+      ...expense,
+      library_document_code: archived?.documentCode ?? documentCode,
+      library_file_id: archived?.fileId ?? null,
+    };
   });
 
 export const reverseCashEntry = createServerFn({ method: "POST" })
@@ -873,8 +1020,25 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
       .select("*")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível anular o lançamento.");
-    if (!receipt) throw new Error("Movimento não encontrado.");
-    return receipt;
+    if (receipt) return receipt;
+
+    const { data: expense, error: expenseError } = await db
+      .from("siga_cash_expenses")
+      .update({
+        status: "reversed",
+        reversed_at: new Date().toISOString(),
+        reversed_by: context.userId,
+        reversal_reason: data.reason,
+        updated_by: context.userId,
+      })
+      .eq("id", data.cashEntryId)
+      .eq("school_id", membership.schoolId)
+      .eq("status", "posted")
+      .select("*")
+      .maybeSingle();
+    if (expenseError) throw publicDatabaseError(expenseError, "Não foi possível anular a despesa.");
+    if (!expense) throw new Error("Movimento não encontrado ou já anulado.");
+    return expense;
   });
 
 export const createPaymentPlan = createServerFn({ method: "POST" })

@@ -4,6 +4,7 @@ import {
   unassignClassSubjectTeacherInputSchema,
   createScheduleSlotInputSchema,
   deleteScheduleSlotInputSchema,
+  updateScheduleSlotInputSchema,
   createSubjectInputSchema,
   updateSubjectInputSchema,
   deactivateSubjectInputSchema,
@@ -109,7 +110,7 @@ describe("academic subject/grade schemas", () => {
 });
 
 describe("academic schedule schemas", () => {
-  it("requires subject or label", () => {
+  it("requires a subject", () => {
     const result = createScheduleSlotInputSchema.safeParse({
       classGroupId: "11111111-1111-1111-1111-111111111111",
       weekday: 1,
@@ -119,15 +120,28 @@ describe("academic schedule schemas", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts a labeled slot without subject", () => {
+  it("accepts a scheduled lesson with a subject", () => {
     const parsed = createScheduleSlotInputSchema.parse({
       classGroupId: "11111111-1111-1111-1111-111111111111",
       weekday: 5,
       startsAt: "11:20",
       endsAt: "12:10",
+      subjectId: "22222222-2222-2222-2222-222222222222",
       label: "Direcção de turma",
     });
     expect(parsed.label).toBe("Direcção de turma");
+  });
+
+  it("rejects an inverted update range", () => {
+    expect(
+      updateScheduleSlotInputSchema.safeParse({
+        slotId: "11111111-1111-1111-1111-111111111111",
+        weekday: 2,
+        startsAt: "10:00",
+        endsAt: "09:30",
+        label: "Sala 1",
+      }).success,
+    ).toBe(false);
   });
 
   it("exige o id do slot para remover", () => {

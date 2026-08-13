@@ -131,6 +131,7 @@ export function ClassGroupSheet({
               <>
                 <SheetCell label="Ano lectivo" full>
                   <select
+                    aria-label="Ano lectivo"
                     className={fieldClass}
                     value={values.ano}
                     onChange={(event) => set("ano", event.target.value)}
@@ -142,6 +143,7 @@ export function ClassGroupSheet({
                 </SheetCell>
                 <SheetCell label="Designação">
                   <input
+                    aria-label="Designação"
                     className={fieldClass}
                     value={values.nome}
                     onChange={(event) => set("nome", event.target.value)}
@@ -150,6 +152,7 @@ export function ClassGroupSheet({
                 </SheetCell>
                 <SheetCell label="Código">
                   <input
+                    aria-label="Código"
                     className={fieldClass}
                     value={values.codigo}
                     onChange={(event) => set("codigo", event.target.value)}
@@ -158,6 +161,7 @@ export function ClassGroupSheet({
                 </SheetCell>
                 <SheetCell label="Classe">
                   <select
+                    aria-label="Classe"
                     className={fieldClass}
                     value={values.classe}
                     onChange={(event) => set("classe", event.target.value)}
@@ -169,6 +173,7 @@ export function ClassGroupSheet({
                 </SheetCell>
                 <SheetCell label="Curso">
                   <select
+                    aria-label="Curso"
                     className={fieldClass}
                     value={values.curso}
                     onChange={(event) => set("curso", event.target.value)}
@@ -184,6 +189,7 @@ export function ClassGroupSheet({
               <>
                 <SheetCell label="Sala">
                   <select
+                    aria-label="Sala"
                     className={fieldClass}
                     value={values.sala}
                     onChange={(event) => set("sala", event.target.value)}
@@ -195,6 +201,7 @@ export function ClassGroupSheet({
                 </SheetCell>
                 <SheetCell label="Turno">
                   <select
+                    aria-label="Turno"
                     className={fieldClass}
                     value={values.turno}
                     onChange={(event) => set("turno", event.target.value)}
@@ -206,6 +213,7 @@ export function ClassGroupSheet({
                 </SheetCell>
                 <SheetCell label="Capacidade" full>
                   <input
+                    aria-label="Capacidade"
                     className={fieldClass}
                     type="number"
                     min={1}
@@ -220,6 +228,7 @@ export function ClassGroupSheet({
               <>
                 <SheetCell label="Nome da sala WhatsApp">
                   <input
+                    aria-label="Nome da sala WhatsApp"
                     className={fieldClass}
                     value={values.whatsappNome}
                     onChange={(event) => set("whatsappNome", event.target.value)}
@@ -228,6 +237,7 @@ export function ClassGroupSheet({
                 </SheetCell>
                 <SheetCell label="Link do grupo" full>
                   <input
+                    aria-label="Link do grupo WhatsApp"
                     className={fieldClass}
                     value={values.whatsapp}
                     onChange={(event) => set("whatsapp", event.target.value)}

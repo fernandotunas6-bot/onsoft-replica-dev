@@ -14,6 +14,8 @@ import { overlayTalao } from "@/features/documents/print-overlays";
 import { printBundledTemplate } from "@/features/documents/print-issue-loader";
 import { whatsappHref } from "@/features/integrations/actions";
 
+// style-check: route-exempt - formulário público com identidade própria da escola.
+
 export const Route = createFileRoute("/matricula/$slug")({
   head: ({ params }) => ({
     meta: [

@@ -40,7 +40,14 @@ import { setTermLock } from "@/features/school/server";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf } from "@/lib/export-pdf";
-import { overlayActa, overlayBoletim, overlayMapa, overlayPauta, overlayServico, overlayValidacao } from "@/features/documents/print-overlays";
+import {
+  overlayActa,
+  overlayBoletim,
+  overlayMapa,
+  overlayPauta,
+  overlayServico,
+  overlayValidacao,
+} from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import {
   annualAverage,
@@ -73,6 +80,29 @@ type TermGradeRow = {
   mac: number;
   npp: number;
   npt: number;
+};
+
+type PautaExportRow = {
+  n: string;
+  aluno: string;
+  proc: string;
+  mac: string;
+  npp: string;
+  npt: string;
+  media: string;
+  situacao: string;
+};
+
+type StudentListExportRow = Pick<PautaExportRow, "n" | "aluno" | "proc">;
+
+type ClassMapExportRow = {
+  classe: string;
+  curso: string;
+  turma: string;
+  alunos: number;
+  media: string;
+  transitam: number;
+  pendentes: number;
 };
 
 type ClassGroupOption = {
@@ -156,7 +186,7 @@ export function AssessmentCenter({
   onOpenChange: (open: boolean) => void;
   schoolName: string;
   academicYear: string;
-  directorName?: string | null;
+  directorName?: string | null | undefined;
   classGroups: ClassGroupOption[];
   subjects: SubjectOption[];
   enrollments: EnrollmentRow[];
@@ -165,9 +195,9 @@ export function AssessmentCenter({
   canLaunch: boolean;
   canLockTerm: boolean;
   closedTerms: Array<1 | 2 | 3>;
-  initialTerm?: string;
-  initialClassGroupId?: string;
-  initialSubjectId?: string;
+  initialTerm?: string | undefined;
+  initialClassGroupId?: string | undefined;
+  initialSubjectId?: string | undefined;
 }) {
   const queryClient = useQueryClient();
   const installed = useInstalledIntegrations();
@@ -241,7 +271,9 @@ export function AssessmentCenter({
         if (!q) return true;
         return (
           row.student_name.toLowerCase().includes(q) ||
-          String(row.registration_number ?? "").toLowerCase().includes(q)
+          String(row.registration_number ?? "")
+            .toLowerCase()
+            .includes(q)
         );
       })
       .slice()
@@ -283,7 +315,8 @@ export function AssessmentCenter({
       };
       for (const item of items) {
         const score = scores.find(
-          (entry) => String(entry.item_id) === String(item.id) && String(entry.enrollment_id) === student.id,
+          (entry) =>
+            String(entry.item_id) === String(item.id) && String(entry.enrollment_id) === student.id,
         );
         row[String(item.id)] = score?.score == null ? "" : String(score.score);
       }
@@ -343,9 +376,13 @@ export function AssessmentCenter({
       map.set(cellKey(student.id, "npt"), grade ? String(grade.npt) : "");
       for (const item of items) {
         const score = scores.find(
-          (entry) => String(entry.item_id) === String(item.id) && String(entry.enrollment_id) === student.id,
+          (entry) =>
+            String(entry.item_id) === String(item.id) && String(entry.enrollment_id) === student.id,
         );
-        map.set(cellKey(student.id, String(item.id)), score?.score == null ? "" : String(score.score));
+        map.set(
+          cellKey(student.id, String(item.id)),
+          score?.score == null ? "" : String(score.score),
+        );
       }
     }
     return map;
@@ -370,13 +407,13 @@ export function AssessmentCenter({
         .filter((item) => item.component === component && item.counts_toward_pauta)
         .map((item) => parsePautaScore(row[String(item.id)] ?? ""));
     const mac =
-      parsePautaScore(row.mac ?? "") ??
+      parsePautaScore(row["mac"] ?? "") ??
       annualAverage(fromItems("MAC").filter((value) => value != null && !Number.isNaN(value)));
     const npp =
-      parsePautaScore(row.npp ?? "") ??
+      parsePautaScore(row["npp"] ?? "") ??
       annualAverage(fromItems("NPP").filter((value) => value != null && !Number.isNaN(value)));
     const npt =
-      parsePautaScore(row.npt ?? "") ??
+      parsePautaScore(row["npt"] ?? "") ??
       annualAverage(fromItems("NPT").filter((value) => value != null && !Number.isNaN(value)));
     const average = mac != null && npp != null && npt != null ? scoreAverage(mac, npp, npt) : null;
     const recurso = annualAverage(
@@ -393,13 +430,17 @@ export function AssessmentCenter({
     );
     const finalScore = exame ?? recursoFinal(average, recurso);
     const situacao =
-      finalScore == null ? { label: "Pendente", tone: "muted" as const } : situacaoPauta(finalScore, passingGrade);
+      finalScore == null
+        ? { label: "Pendente", tone: "muted" as const }
+        : situacaoPauta(finalScore, passingGrade);
     return { student, mac, npp, npt, average, recurso, exame, finalScore, situacao, row };
   });
 
   const visibleRows = computedRows.filter((entry) => {
     if (mode === "revisao") {
-      const dirty = ["mac", "npp", "npt"].some((key) => dirtyKeys.has(cellKey(entry.student.id, key)));
+      const dirty = ["mac", "npp", "npt"].some((key) =>
+        dirtyKeys.has(cellKey(entry.student.id, key)),
+      );
       return entry.average == null || dirty;
     }
     if (filters.situacao === "todos") return true;
@@ -408,7 +449,8 @@ export function AssessmentCenter({
     if (filters.situacao === "transita") return entry.situacao.label === "Transita";
     if (filters.situacao === "nao_transita") return entry.situacao.label === "Não transita";
     if (filters.situacao === "em_recurso") return entry.recurso != null;
-    if (filters.situacao === "aprovado") return (entry.exame ?? entry.finalScore ?? 0) >= passingGrade;
+    if (filters.situacao === "aprovado")
+      return (entry.exame ?? entry.finalScore ?? 0) >= passingGrade;
     if (filters.situacao === "reprovado")
       return entry.finalScore != null && entry.finalScore < passingGrade;
     return true;
@@ -565,7 +607,7 @@ export function AssessmentCenter({
     return () => window.clearTimeout(timer);
   }, [autosave, canEdit, dirtyCount]);
 
-  const officialRows = visibleRows.map((entry, index) => ({
+  const officialRows: PautaExportRow[] = visibleRows.map((entry, index) => ({
     n: String(index + 1).padStart(2, "0"),
     aluno: entry.student.student_name,
     proc: entry.student.registration_number ?? "",
@@ -579,24 +621,24 @@ export function AssessmentCenter({
   const officialMeta = {
     schoolName,
     academicYear,
-    gradeName: selectedGroup?.grade_name,
-    courseName: selectedGroup?.course_name,
-    className: selectedGroup?.name,
-    subjectName: selectedSubject?.name,
+    ...(selectedGroup?.grade_name ? { gradeName: selectedGroup.grade_name } : {}),
+    ...(selectedGroup?.course_name ? { courseName: selectedGroup.course_name } : {}),
+    ...(selectedGroup?.name ? { className: selectedGroup.name } : {}),
+    ...(selectedSubject?.name ? { subjectName: selectedSubject.name } : {}),
     termLabel: `${term}º trimestre`,
-    directorName: directorName ?? undefined,
+    ...(directorName ? { directorName } : {}),
     validationCode,
   };
 
   const pautaColumns = [
-    { label: "Nº", value: (row: Record<string, string | number>) => row.n },
-    { label: "Aluno", value: (row: Record<string, string | number>) => row.aluno },
-    { label: "Proc.", value: (row: Record<string, string | number>) => row.proc },
-    { label: "MAC", value: (row: Record<string, string | number>) => row.mac },
-    { label: "NPP", value: (row: Record<string, string | number>) => row.npp },
-    { label: "NPT", value: (row: Record<string, string | number>) => row.npt },
-    { label: "Média", value: (row: Record<string, string | number>) => row.media },
-    { label: "Situação", value: (row: Record<string, string | number>) => row.situacao },
+    { label: "Nº", value: (row: PautaExportRow) => row.n },
+    { label: "Aluno", value: (row: PautaExportRow) => row.aluno },
+    { label: "Proc.", value: (row: PautaExportRow) => row.proc },
+    { label: "MAC", value: (row: PautaExportRow) => row.mac },
+    { label: "NPP", value: (row: PautaExportRow) => row.npp },
+    { label: "NPT", value: (row: PautaExportRow) => row.npt },
+    { label: "Média", value: (row: PautaExportRow) => row.media },
+    { label: "Situação", value: (row: PautaExportRow) => row.situacao },
   ];
 
   const printSchool = {
@@ -624,7 +666,13 @@ export function AssessmentCenter({
           })),
         }),
         fallback: () =>
-          exportOfficialPautaPdf(`acta-${slug}`, "Acta do conselho de notas", officialMeta, pautaColumns, officialRows),
+          exportOfficialPautaPdf(
+            `acta-${slug}`,
+            "Acta do conselho de notas",
+            officialMeta,
+            pautaColumns,
+            officialRows,
+          ),
       });
       return;
     }
@@ -652,11 +700,15 @@ export function AssessmentCenter({
     }
     if (docType === "relacao") {
       const columns = [
-        { label: "Nº", value: (row: Record<string, string | number>) => row.n },
-        { label: "Aluno", value: (row: Record<string, string | number>) => row.aluno },
-        { label: "Proc.", value: (row: Record<string, string | number>) => row.proc },
+        { label: "Nº", value: (row: StudentListExportRow) => row.n },
+        { label: "Aluno", value: (row: StudentListExportRow) => row.aluno },
+        { label: "Proc.", value: (row: StudentListExportRow) => row.proc },
       ];
-      const rows = officialRows.map(({ n, aluno, proc }) => ({ n, aluno, proc }));
+      const rows: StudentListExportRow[] = officialRows.map(({ n, aluno, proc }) => ({
+        n,
+        aluno,
+        proc,
+      }));
       if (kind === "excel") exportCsv(`relacao-${slug}`, columns, rows);
       else {
         void issuePrintDocument({
@@ -683,22 +735,28 @@ export function AssessmentCenter({
             ],
           }),
           fallback: () =>
-            exportOfficialPautaPdf(`relacao-${slug}`, "Relação de alunos", officialMeta, columns, rows),
+            exportOfficialPautaPdf(
+              `relacao-${slug}`,
+              "Relação de alunos",
+              officialMeta,
+              columns,
+              rows,
+            ),
         });
       }
       return;
     }
     if (docType === "mapa") {
       const columns = [
-        { label: "Classe", value: (row: Record<string, string | number>) => row.classe },
-        { label: "Curso", value: (row: Record<string, string | number>) => row.curso },
-        { label: "Turma", value: (row: Record<string, string | number>) => row.turma },
-        { label: "Alunos", value: (row: Record<string, string | number>) => row.alunos },
-        { label: "Média", value: (row: Record<string, string | number>) => row.media },
-        { label: "Transitam", value: (row: Record<string, string | number>) => row.transitam },
-        { label: "Pendentes", value: (row: Record<string, string | number>) => row.pendentes },
+        { label: "Classe", value: (row: ClassMapExportRow) => row.classe },
+        { label: "Curso", value: (row: ClassMapExportRow) => row.curso },
+        { label: "Turma", value: (row: ClassMapExportRow) => row.turma },
+        { label: "Alunos", value: (row: ClassMapExportRow) => row.alunos },
+        { label: "Média", value: (row: ClassMapExportRow) => row.media },
+        { label: "Transitam", value: (row: ClassMapExportRow) => row.transitam },
+        { label: "Pendentes", value: (row: ClassMapExportRow) => row.pendentes },
       ];
-      const rows = classMap.map((row) => ({
+      const rows: ClassMapExportRow[] = classMap.map((row) => ({
         classe: row.gradeName,
         curso: row.courseName,
         turma: row.name,
@@ -723,19 +781,25 @@ export function AssessmentCenter({
             })),
           ),
           fallback: () =>
-            exportOfficialPautaPdf(`mapa-${slug}`, "Mapa de aproveitamento", officialMeta, columns, rows),
+            exportOfficialPautaPdf(
+              `mapa-${slug}`,
+              "Mapa de aproveitamento",
+              officialMeta,
+              columns,
+              rows,
+            ),
         });
       }
       return;
     }
     if (docType === "boletim" && selectedStudent) {
       const columns = [
-        { label: "Disciplina", value: (row: Record<string, string | number>) => row.disciplina },
-        { label: "1º T", value: (row: Record<string, string | number>) => row.t1 },
-        { label: "2º T", value: (row: Record<string, string | number>) => row.t2 },
-        { label: "3º T", value: (row: Record<string, string | number>) => row.t3 },
-        { label: "MFA", value: (row: Record<string, string | number>) => row.mfa },
-        { label: "Situação", value: (row: Record<string, string | number>) => row.situacao },
+        { label: "Disciplina", value: (row: Record<string, string | number>) => row["disciplina"] },
+        { label: "1º T", value: (row: Record<string, string | number>) => row["t1"] },
+        { label: "2º T", value: (row: Record<string, string | number>) => row["t2"] },
+        { label: "3º T", value: (row: Record<string, string | number>) => row["t3"] },
+        { label: "MFA", value: (row: Record<string, string | number>) => row["mfa"] },
+        { label: "Situação", value: (row: Record<string, string | number>) => row["situacao"] },
       ];
       const rows = dossier.map((row) => ({
         disciplina: row.subjectName,
@@ -911,9 +975,9 @@ export function AssessmentCenter({
         if (!cells) return;
         next[entry.student.id] = {
           ...(next[entry.student.id] ?? {}),
-          mac: cells[0] ?? next[entry.student.id]?.mac ?? "",
-          npp: cells[1] ?? next[entry.student.id]?.npp ?? "",
-          npt: cells[2] ?? next[entry.student.id]?.npt ?? "",
+          mac: cells[0] ?? next[entry.student.id]?.["mac"] ?? "",
+          npp: cells[1] ?? next[entry.student.id]?.["npp"] ?? "",
+          npt: cells[2] ?? next[entry.student.id]?.["npt"] ?? "",
         };
       });
       return next;
@@ -942,16 +1006,16 @@ export function AssessmentCenter({
   }, [open]);
 
   const classes = Array.from(new Set(classGroups.map((group) => group.grade_name).filter(Boolean)));
-  const courses = Array.from(new Set(classGroups.map((group) => group.course_name).filter(Boolean)));
+  const courses = Array.from(
+    new Set(classGroups.map((group) => group.course_name).filter(Boolean)),
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[96vh] w-[98vw] max-w-[98vw] flex-col gap-0 overflow-hidden p-0 sm:rounded-xl">
         <div className="flex items-center justify-between border-b px-5 py-3 print:hidden">
           <div>
-            <DialogTitle className="font-display text-xl font-extrabold">
-              {schoolName}
-            </DialogTitle>
+            <DialogTitle className="font-display text-xl font-extrabold">{schoolName}</DialogTitle>
             <DialogDescription className="sr-only">
               Grelha de lançamento de notas e geração de pautas oficiais.
             </DialogDescription>
@@ -997,7 +1061,9 @@ export function AssessmentCenter({
               onClick={() => setMode(item.id)}
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-semibold",
-                mode === item.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                mode === item.id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground",
               )}
             >
               {item.label}
@@ -1080,7 +1146,12 @@ export function AssessmentCenter({
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2 border-b px-5 py-2 print:hidden">
-          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={!canEdit}>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setCreateOpen(true)}
+            disabled={!canEdit}
+          >
             <FilePlus2 className="size-3.5" /> + Avaliação
           </Button>
           <Button size="sm" variant="outline" onClick={fillDown} disabled={!canEdit || !selectedId}>
@@ -1100,7 +1171,12 @@ export function AssessmentCenter({
           <Button size="sm" variant="outline" onClick={redo} disabled={!future.length}>
             Refazer
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setDocsOpen((value) => !value)}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => setDocsOpen((value) => !value)}
+          >
             <FileDown className="size-3.5" /> Documentos
           </Button>
           {turnitinOn ? (
@@ -1242,7 +1318,11 @@ export function AssessmentCenter({
                     : "Pauta da turma PDF"}
               </Button>
               {selectedStudent ? (
-                <Button size="sm" variant="outline" onClick={() => exportDocument("pdf", "boletim")}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => exportDocument("pdf", "boletim")}
+                >
                   Boletim do aluno
                 </Button>
               ) : null}
@@ -1255,7 +1335,11 @@ export function AssessmentCenter({
               <Button size="sm" variant="outline" onClick={() => exportDocument("pdf", "acta")}>
                 Acta do conselho
               </Button>
-              <Button size="sm" variant="outline" onClick={() => exportDocument("pdf", "validacao")}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => exportDocument("pdf", "validacao")}
+              >
                 Validação de notas
               </Button>
               <Button size="sm" variant="outline" onClick={() => exportDocument("excel")}>
@@ -1322,14 +1406,17 @@ export function AssessmentCenter({
               <Stat label="Média da turma" value={formatScore(classAverage)} />
               <Stat
                 label="Transitam"
-                value={String(visibleRows.filter((row) => row.situacao.label === "Transita").length)}
+                value={String(
+                  visibleRows.filter((row) => row.situacao.label === "Transita").length,
+                )}
               />
             </div>
           ) : mode === "avaliacoes" ? (
             <div className="space-y-2">
               {!assessmentsAvailable ? (
                 <p className="text-sm text-muted-foreground">
-                  Aplique <code>APPLY_ENROLLMENT_AND_PREMIUM.sql</code> para criar avaliações detalhadas.
+                  Aplique <code>APPLY_ENROLLMENT_AND_PREMIUM.sql</code> para criar avaliações
+                  detalhadas.
                 </p>
               ) : items.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -1419,7 +1506,11 @@ export function AssessmentCenter({
                     className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm"
                   >
                     <span>{item.label}</span>
-                    <span className={item.ok ? "font-semibold text-emerald-600" : "font-semibold text-destructive"}>
+                    <span
+                      className={
+                        item.ok ? "font-semibold text-primary" : "font-semibold text-destructive"
+                      }
+                    >
                       {item.ok ? "Pronto" : "Bloqueia"}
                     </span>
                   </li>
@@ -1446,6 +1537,7 @@ export function AssessmentCenter({
                     {checkedIds.size} seleccionado(s)
                   </p>
                   <select
+                    aria-label="Campo a aplicar em lote"
                     className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
                     value={batchField}
                     onChange={(event) => setBatchField(event.target.value as "mac" | "npp" | "npt")}
@@ -1455,6 +1547,7 @@ export function AssessmentCenter({
                     <option value="npt">NPT</option>
                   </select>
                   <Input
+                    aria-label="Nota a aplicar em lote"
                     className="h-9 w-24"
                     inputMode="decimal"
                     placeholder="0–20"
@@ -1507,14 +1600,18 @@ export function AssessmentCenter({
 
           {selectedStudent && mode === "lancamento" && scope !== "alunos" ? (
             <div className="mt-4 rounded-xl border bg-card p-4 text-sm">
-              <p className="font-semibold">{selectedStudent.student.student_name} · detalhe MAC/NPP/NPT</p>
+              <p className="font-semibold">
+                {selectedStudent.student.student_name} · detalhe MAC/NPP/NPT
+              </p>
               {(["MAC", "NPP", "NPT"] as const).map((component) => (
                 <div key={component} className="mt-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                     {component}
                   </p>
                   {items.filter((item) => item.component === component).length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sem avaliações neste componente.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sem avaliações neste componente.
+                    </p>
                   ) : (
                     items
                       .filter((item) => item.component === component)
@@ -1541,7 +1638,11 @@ export function AssessmentCenter({
             <Button variant="outline" onClick={() => exportDocument("pdf")}>
               Guardar como PDF
             </Button>
-            <Button className="gap-1.5" disabled={!canEdit || dirtyCount === 0 || saving} onClick={() => setSaveOpen(true)}>
+            <Button
+              className="gap-1.5"
+              disabled={!canEdit || dirtyCount === 0 || saving}
+              onClick={() => setSaveOpen(true)}
+            >
               <Save className="size-3.5" /> Guardar
             </Button>
           </div>
@@ -1585,9 +1686,7 @@ export function AssessmentCenter({
           classGroupId={selectedGroup?.id}
           subjectId={selectedSubject?.id}
           term={term}
-          onCreated={() =>
-            queryClient.invalidateQueries({ queryKey: ["academic", "assessments"] })
-          }
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ["academic", "assessments"] })}
         />
       </DialogContent>
     </Dialog>
@@ -1651,9 +1750,7 @@ function StudentDossierTable({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">
-          {studentName} · todas as disciplinas e trimestres
-        </p>
+        <p className="text-sm font-semibold">{studentName} · todas as disciplinas e trimestres</p>
         <Button size="sm" variant="outline" onClick={onBack}>
           Voltar à grelha
         </Button>
@@ -1719,16 +1816,21 @@ function OfficialPautaView({
     termLabel?: string;
     validationCode?: string;
   };
-  rows: Array<Record<string, string>>;
+  rows: PautaExportRow[];
 }) {
   return (
-    <div id="siga-pauta-oficial" className="mx-auto max-w-4xl bg-white px-8 py-10 text-black shadow-soft print:shadow-none">
+    <div
+      id="siga-pauta-oficial"
+      className="siga-official-paper mx-auto max-w-4xl px-8 py-10 shadow-soft print:shadow-none"
+    >
       <div className="text-center">
         <AngolaEmblem className="mx-auto size-20" />
         <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em]">República de Angola</p>
         <p className="text-xs uppercase tracking-[0.16em]">Ministério da Educação</p>
         <h2 className="mt-3 font-display text-2xl font-extrabold">{schoolName}</h2>
-        <p className="mt-1 text-sm font-semibold uppercase tracking-wide">Pauta de avaliação contínua</p>
+        <p className="mt-1 text-sm font-semibold uppercase tracking-wide">
+          Pauta de avaliação contínua
+        </p>
       </div>
       <div className="mt-6 grid grid-cols-2 gap-2 text-sm">
         <p>Ano Lectivo: {academicYear}</p>
@@ -1741,24 +1843,26 @@ function OfficialPautaView({
       <table className="mt-6 w-full border-collapse text-sm">
         <thead>
           <tr>
-            {["Nº", "Nome do Aluno", "Proc.", "MAC", "NPP", "NPT", "Média", "Situação"].map((label) => (
-              <th key={label} className="border border-black px-2 py-1 text-left">
-                {label}
-              </th>
-            ))}
+            {["Nº", "Nome do Aluno", "Proc.", "MAC", "NPP", "NPT", "Média", "Situação"].map(
+              (label) => (
+                <th key={label} className="siga-official-grid border px-2 py-1 text-left">
+                  {label}
+                </th>
+              ),
+            )}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.n}>
-              <td className="border border-black px-2 py-1">{row.n}</td>
-              <td className="border border-black px-2 py-1">{row.aluno}</td>
-              <td className="border border-black px-2 py-1">{row.proc}</td>
-              <td className="border border-black px-2 py-1 text-right">{row.mac}</td>
-              <td className="border border-black px-2 py-1 text-right">{row.npp}</td>
-              <td className="border border-black px-2 py-1 text-right">{row.npt}</td>
-              <td className="border border-black px-2 py-1 text-right">{row.media}</td>
-              <td className="border border-black px-2 py-1">{row.situacao}</td>
+              <td className="siga-official-grid border px-2 py-1">{row.n}</td>
+              <td className="siga-official-grid border px-2 py-1">{row.aluno}</td>
+              <td className="siga-official-grid border px-2 py-1">{row.proc}</td>
+              <td className="siga-official-grid border px-2 py-1 text-right">{row.mac}</td>
+              <td className="siga-official-grid border px-2 py-1 text-right">{row.npp}</td>
+              <td className="siga-official-grid border px-2 py-1 text-right">{row.npt}</td>
+              <td className="siga-official-grid border px-2 py-1 text-right">{row.media}</td>
+              <td className="siga-official-grid border px-2 py-1">{row.situacao}</td>
             </tr>
           ))}
         </tbody>
@@ -1785,8 +1889,8 @@ function CreateAssessmentDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  classGroupId?: string;
-  subjectId?: string;
+  classGroupId?: string | undefined;
+  subjectId?: string | undefined;
   term: 1 | 2 | 3;
   onCreated: () => void;
 }) {
@@ -1860,6 +1964,7 @@ function CreateAssessmentDialog({
         <div>
           <Label>Tipo</Label>
           <select
+            aria-label="Tipo de avaliação"
             className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
             value={kind}
             onChange={(event) => setKind(event.target.value)}
@@ -1874,6 +1979,7 @@ function CreateAssessmentDialog({
         <div>
           <Label>Componente</Label>
           <select
+            aria-label="Componente de avaliação"
             className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
             value={component}
             onChange={(event) => setComponent(event.target.value)}
@@ -1887,11 +1993,20 @@ function CreateAssessmentDialog({
         </div>
         <div>
           <Label htmlFor="av-date">Data</Label>
-          <Input id="av-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+          <Input
+            id="av-date"
+            type="date"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+          />
         </div>
         <div>
           <Label htmlFor="av-max">Cotação</Label>
-          <Input id="av-max" value={maxScore} onChange={(event) => setMaxScore(event.target.value)} />
+          <Input
+            id="av-max"
+            value={maxScore}
+            onChange={(event) => setMaxScore(event.target.value)}
+          />
         </div>
         <div className="sm:col-span-2">
           <Label htmlFor="av-desc">Descrição</Label>

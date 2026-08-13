@@ -429,6 +429,7 @@ export function FileUploadInquiryModal({
               <input
                 type="checkbox"
                 className="mt-0.5"
+                aria-label="Usar como foto de perfil"
                 checked={applyAsProfilePhoto}
                 onChange={(event) => setApplyAsProfilePhoto(event.target.checked)}
               />

@@ -52,10 +52,12 @@ for (const file of files) {
   const rel = relative(ROOT, file);
   const code = readFileSync(file, "utf8");
   const isRoute = /src[\\/]routes[\\/]/.test(rel) && !/__root|api[\\/]/.test(rel);
+  // Public forms, redirects and downloaded feeds deliberately do not use the admin shell.
+  const routeStyleExempt = /style-check: route-exempt/.test(code);
   const hasJsx = /<[A-Za-z]/.test(code);
 
   // 1. chips de ícone / componentes de estilo
-  if (isRoute && hasJsx) {
+  if (isRoute && hasJsx && !routeStyleExempt) {
     routes += 1;
     const hasStyleSystem =
       /IconChip|PageHeader|StatGrid|Panel\b/.test(code) || /AppShell/.test(code) === false;

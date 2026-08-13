@@ -117,6 +117,7 @@ async function saveComponents(
     const { error } = await db
       .from("siga_lesson_plan_components")
       .delete()
+      .eq("school_id", schoolId)
       .in(
         "id",
         toRemove.map((row) => row.id),
@@ -154,13 +155,15 @@ async function saveComponents(
       const { error } = await db
         .from("siga_lesson_plan_components")
         .update({ planned_count: component.plannedCount, sequence: sequence + 1 })
-        .eq("id", existingRow.id);
+        .eq("id", existingRow.id)
+        .eq("school_id", schoolId);
       if (error) throw publicDatabaseError(error, "Não foi possível actualizar um componente.");
 
       const { data: items } = await db
         .from("siga_assessment_items")
         .select("id")
-        .eq("lesson_plan_component_id", existingRow.id);
+        .eq("lesson_plan_component_id", existingRow.id)
+        .eq("school_id", schoolId);
       const currentCount = items?.length ?? 0;
       if (component.plannedCount > currentCount) {
         const missing = component.plannedCount - currentCount;

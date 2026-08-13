@@ -10,6 +10,7 @@ import {
   Table2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { fileKindMeta, type FileKind } from "./kinds";
 
 const kindIcon = {
@@ -54,10 +55,16 @@ export function FileCover({
         style={{ background: `color-mix(in oklch, ${meta.color} 18%, white)` }}
       >
         {previewUrl ? (
-          <img src={previewUrl} alt="" className="absolute inset-0 size-full object-cover" />
+          <MediaFrame
+            src={previewUrl}
+            alt={`Pré-visualização de ${name}`}
+            ratio="1/1"
+            rounded="rounded-none"
+            className="absolute inset-0 size-full"
+          />
         ) : (
           <span
-            className="flex size-12 items-center justify-center rounded-xl text-white shadow-md"
+            className="flex size-12 items-center justify-center rounded-xl text-primary-foreground shadow-md"
             style={{ background: meta.color }}
           >
             <Icon className="size-6" aria-hidden />

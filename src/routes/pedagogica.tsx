@@ -3,7 +3,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import {
-  CalendarDays,
   Download,
   FileDown,
   GraduationCap,
@@ -34,12 +33,14 @@ import { meetingRoomLink } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet } from "@/features/academic/ClassGroupSheet";
 import { GradePautaSheet } from "@/features/academic/GradePautaSheet";
+import { ScheduleWorkspace } from "@/features/academic/schedule/ScheduleWorkspace";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import {
   createScheduleSlot,
   deleteScheduleSlot,
+  updateScheduleSlot,
   createSubject,
   updateSubject,
   deactivateSubject,
@@ -100,6 +101,8 @@ const pedagogicaFilterDefaults = {
   estado: "todos",
   lotacao: "todas",
 };
+
+type PedagogicaTab = NonNullable<z.infer<typeof pedagogicaSearchSchema>["tab"]>;
 
 export const Route = createFileRoute("/pedagogica")({
   validateSearch: pedagogicaSearchSchema,
@@ -176,9 +179,9 @@ function AssignTeacherForm({
       submitLabel="Atribuir"
       successDescription="Professor ligado à disciplina da turma."
       onSubmit={async (values) => {
-        const classGroupId = resolveOptionId(turmaOptions, values.turma, turmaIds);
-        const subjectId = resolveOptionId(subjectOptions, values.disciplina, subjectIds);
-        const teacherId = resolveOptionId(teacherOptions, values.professor, teacherIds);
+        const classGroupId = resolveOptionId(turmaOptions, values["turma"], turmaIds);
+        const subjectId = resolveOptionId(subjectOptions, values["disciplina"], subjectIds);
+        const teacherId = resolveOptionId(teacherOptions, values["professor"], teacherIds);
         if (!classGroupId || !subjectId || !teacherId) {
           throw new Error("Seleccione turma, disciplina e professor.");
         }
@@ -246,10 +249,9 @@ function PedagogicaPage() {
     disciplina: disciplinaFromSearch,
     pauta,
   } = Route.useSearch();
-  const [tab, setTab] = useState(tabFromSearch ?? "turmas");
+  const [tab, setTab] = useState<PedagogicaTab>(tabFromSearch ?? "turmas");
   const [bootstrapping, setBootstrapping] = useState(false);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
-  const [scheduleClassGroupId, setScheduleClassGroupId] = useState<string>("");
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "pedagogica",
     pedagogicaFilterDefaults,
@@ -291,11 +293,15 @@ function PedagogicaPage() {
   }, [pauta, turmaFromSearch, disciplinaFromSearch]);
 
   const onTabChange = (next: string) => {
-    setTab(next);
+    if (!(["turmas", "disciplinas", "notas", "horarios"] as const).includes(next as PedagogicaTab)) {
+      return;
+    }
+    const nextTab = next as PedagogicaTab;
+    setTab(nextTab);
     void navigate({
       search: (prev) => ({
         ...prev,
-        tab: next as "turmas" | "disciplinas" | "notas" | "horarios",
+        tab: nextTab,
       }),
       replace: true,
     });
@@ -335,47 +341,6 @@ function PedagogicaPage() {
   const enrollmentSelectOptions = enrollmentOptions.map((enrollment) =>
     optionLabel(enrollment.id, enrollment.label),
   );
-  const classGroupOptions = classGroups.map((group) => optionLabel(group.id, group.name));
-  const weekdayOptions = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"] as const;
-  const weekdayValues = {
-    Segunda: 1,
-    Terça: 2,
-    Quarta: 3,
-    Quinta: 4,
-    Sexta: 5,
-  } as const;
-
-  const selectedScheduleGroupId =
-    scheduleClassGroupId ||
-    classGroups.find((group) => scheduleSlots.some((slot) => slot.class_group_id === group.id))
-      ?.id ||
-    classGroups[0]?.id ||
-    "";
-
-  const selectedScheduleGroup = classGroups.find((group) => group.id === selectedScheduleGroupId);
-  const slotsForGroup = scheduleSlots.filter(
-    (slot) => slot.class_group_id === selectedScheduleGroupId,
-  );
-  const scheduleGrid = useMemo(() => {
-    const formatTime = (value: string) => value.slice(0, 5);
-    const ranges = Array.from(
-      new Set(
-        slotsForGroup.map((slot) => `${formatTime(slot.starts_at)} – ${formatTime(slot.ends_at)}`),
-      ),
-    ).sort();
-    return ranges.map((hora) => {
-      const [start] = hora.split(" – ");
-      const cells: Record<string, string> = { hora };
-      for (let day = 1; day <= 5; day += 1) {
-        const slot = slotsForGroup.find(
-          (item) => item.weekday === day && formatTime(item.starts_at) === start,
-        );
-        cells[`d${day}`] = slot?.display_label ?? "—";
-      }
-      return cells;
-    });
-  }, [slotsForGroup]);
-
   const structureReady = academicYears.length > 0 && courses.length > 0 && gradeLevels.length > 0;
 
   const mediaNotas =
@@ -492,14 +457,14 @@ function PedagogicaPage() {
   });
 
   const pautaColumns = [
-    { label: "Aluno", value: (row: Record<string, string | number>) => row.aluno },
-    { label: "Turma", value: (row: Record<string, string | number>) => row.turma },
-    { label: "Disciplina", value: (row: Record<string, string | number>) => row.disciplina },
-    { label: "Trimestre", value: (row: Record<string, string | number>) => row.trimestre },
-    { label: "MAC", value: (row: Record<string, string | number>) => row.mac },
-    { label: "NPP", value: (row: Record<string, string | number>) => row.npp },
-    { label: "NPT", value: (row: Record<string, string | number>) => row.npt },
-    { label: "Média", value: (row: Record<string, string | number>) => row.media },
+    { label: "Aluno", value: (row: Record<string, string | number>) => row["aluno"] },
+    { label: "Turma", value: (row: Record<string, string | number>) => row["turma"] },
+    { label: "Disciplina", value: (row: Record<string, string | number>) => row["disciplina"] },
+    { label: "Trimestre", value: (row: Record<string, string | number>) => row["trimestre"] },
+    { label: "MAC", value: (row: Record<string, string | number>) => row["mac"] },
+    { label: "NPP", value: (row: Record<string, string | number>) => row["npp"] },
+    { label: "NPT", value: (row: Record<string, string | number>) => row["npt"] },
+    { label: "Média", value: (row: Record<string, string | number>) => row["media"] },
   ] as const;
 
   const pautaRows = notasFiltradas.map((nota) => ({
@@ -978,24 +943,24 @@ function PedagogicaPage() {
                                 icon={<Pencil className="size-5" />}
                                 submitLabel="Guardar"
                                 onSubmit={async (values) => {
-                                  const capacity = Number(values.capacidade || t.capacidadeReal);
+                                  const capacity = Number(values["capacidade"] || t.capacidadeReal);
                                   await updateClassGroup({
                                     data: {
                                       id: t.id,
-                                      code: values.codigo ?? t.code,
-                                      name: values.nome ?? t.nome,
+                                      code: values["codigo"] ?? t.code,
+                                      name: values["nome"] ?? t.nome,
                                       shift:
                                         shiftValues[
-                                          (values.turno as keyof typeof shiftValues | undefined) ??
+                                          (values["turno"] as keyof typeof shiftValues | undefined) ??
                                             "Manhã"
                                         ],
                                       capacity: Number.isFinite(capacity)
                                         ? capacity
                                         : t.capacidadeReal,
                                       roomId: t.campusId,
-                                      status: values.estado === "Inactiva" ? "inactive" : "active",
-                                      whatsappInviteUrl: values.whatsapp || undefined,
-                                      whatsappGroupName: values.whatsappNome || undefined,
+                                      status: values["estado"] === "Inactiva" ? "inactive" : "active",
+                                      whatsappInviteUrl: values["whatsapp"] || undefined,
+                                      whatsappGroupName: values["whatsappNome"] || undefined,
                                     },
                                   });
                                   await queryClient.invalidateQueries({
@@ -1220,14 +1185,14 @@ function PedagogicaPage() {
                       icon={<Plus className="size-5" />}
                       submitLabel="Criar disciplina"
                       onSubmit={async (values) => {
-                        const weeklyHours = Number(values.carga || 4);
-                        const gradeFrom = values.classeDe ? Number(values.classeDe) : undefined;
-                        const gradeTo = values.classeAte ? Number(values.classeAte) : undefined;
+                        const weeklyHours = Number(values["carga"] || 4);
+                        const gradeFrom = values["classeDe"] ? Number(values["classeDe"]) : undefined;
+                        const gradeTo = values["classeAte"] ? Number(values["classeAte"]) : undefined;
                         await createSubject({
                           data: {
-                            code: values.codigo ?? "",
-                            name: values.nome ?? "",
-                            teacherName: values.professor || undefined,
+                            code: values["codigo"] ?? "",
+                            name: values["nome"] ?? "",
+                            teacherName: values["professor"] || undefined,
                             weeklyHours: Number.isFinite(weeklyHours) ? weeklyHours : 4,
                             gradeFrom: Number.isFinite(gradeFrom) ? gradeFrom : undefined,
                             gradeTo: Number.isFinite(gradeTo) ? gradeTo : undefined,
@@ -1396,8 +1361,8 @@ function PedagogicaPage() {
                                             await updateSubject({
                                               data: {
                                                 subjectId: d.id,
-                                                name: values.nome ?? "",
-                                                code: values.codigo ?? "",
+                                                name: values["nome"] ?? "",
+                                                code: values["codigo"] ?? "",
                                               },
                                             });
                                             await refreshAcademic();
@@ -1546,17 +1511,17 @@ function PedagogicaPage() {
                       onSubmit={async (values) => {
                         const enrollmentId = resolveOptionId(
                           enrollmentSelectOptions,
-                          values.matricula,
+                          values["matricula"],
                           enrollmentOptions.map((row) => row.id),
                         );
                         const subjectId = resolveOptionId(
                           subjectOptions,
-                          values.disciplina,
+                          values["disciplina"],
                           subjects.map((row) => row.id),
                         );
                         const termMap = { "1º": 1, "2º": 2, "3º": 3 } as const;
                         const term =
-                          termMap[(values.trimestre as keyof typeof termMap) ?? "1º"] ?? 1;
+                          termMap[(values["trimestre"] as keyof typeof termMap) ?? "1º"] ?? 1;
                         if (!enrollmentId || !subjectId) {
                           throw new Error("Seleccione matrícula e disciplina.");
                         }
@@ -1565,9 +1530,9 @@ function PedagogicaPage() {
                             enrollmentId,
                             subjectId,
                             term,
-                            mac: Number(values.mac),
-                            npp: Number(values.npp),
-                            npt: Number(values.npt),
+                            mac: Number(values["mac"]),
+                            npp: Number(values["npp"]),
+                            npt: Number(values["npt"]),
                           },
                         });
                         await queryClient.invalidateQueries({
@@ -1719,350 +1684,30 @@ function PedagogicaPage() {
           </TabsContent>
 
           <TabsContent value="horarios" className="mt-5 space-y-4">
-            <Panel
-              title={
-                selectedScheduleGroup
-                  ? `Horário semanal — ${selectedScheduleGroup.name}`
-                  : "Horário semanal"
-              }
-              description={
-                !scheduleAvailable
-                  ? "Não foi possível carregar os horários neste momento"
-                  : "Slots Segunda–Sexta por turma"
-              }
-              action={
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CalendarDays className="size-4" /> {activeYearLabel}
-                  </span>
-                  {canManageAcademic && scheduleAvailable && classGroups.length > 0 ? (
-                    <QuickFormModal
-                      title="Novo slot"
-                      eyebrow="Horário"
-                      description="Adicione uma aula ao horário da turma."
-                      icon={<Plus className="size-5" />}
-                      submitLabel="Criar slot"
-                      onSubmit={async (values) => {
-                        const classGroupId = resolveOptionId(
-                          classGroupOptions,
-                          values.turma,
-                          classGroups.map((group) => group.id),
-                        );
-                        const subjectId =
-                          values.disciplina && values.disciplina !== "Sem disciplina"
-                            ? resolveOptionId(
-                                subjectOptions,
-                                values.disciplina,
-                                subjects.map((subject) => subject.id),
-                              )
-                            : undefined;
-                        const weekday =
-                          weekdayValues[
-                            (values.dia as keyof typeof weekdayValues | undefined) ?? "Segunda"
-                          ];
-                        if (!classGroupId) throw new Error("Seleccione a turma.");
-                        const room = values.rotulo || "Sala";
-                        const virtual =
-                          values.salaVirtual === "Zoom"
-                            ? meetingRoomLink("zoom")
-                            : values.salaVirtual === "Teams"
-                              ? meetingRoomLink("teams")
-                              : "";
-                        await createScheduleSlot({
-                          data: {
-                            classGroupId,
-                            weekday,
-                            startsAt: values.inicio ?? "",
-                            endsAt: values.fim ?? "",
-                            subjectId,
-                            label: virtual ? `${room} · ${virtual}` : room,
-                          },
-                        });
-                        await queryClient.invalidateQueries({
-                          queryKey: ["academic", "pedagogical-workspace"],
-                        });
-                        if (classGroupId) setScheduleClassGroupId(classGroupId);
-                      }}
-                      fields={[
-                        {
-                          name: "turma",
-                          label: "Turma",
-                          type: "select",
-                          options: classGroupOptions,
-                          full: true,
-                        },
-                        {
-                          name: "dia",
-                          label: "Dia",
-                          type: "select",
-                          options: [...weekdayOptions],
-                        },
-                        {
-                          name: "inicio",
-                          label: "Início (HH:MM)",
-                          placeholder: "07:30",
-                        },
-                        {
-                          name: "fim",
-                          label: "Fim (HH:MM)",
-                          placeholder: "08:20",
-                        },
-                        {
-                          name: "disciplina",
-                          label: "Disciplina",
-                          type: "select",
-                          options: ["Sem disciplina", ...subjectOptions],
-                          required: false,
-                        },
-                        {
-                          name: "rotulo",
-                          label: "Sala / rótulo",
-                          placeholder: "Ex.: Sala 1",
-                          defaultValue: "Sala 1",
-                          required: true,
-                          full: true,
-                        },
-                        ...(zoomOn || teamsOn
-                          ? [
-                              {
-                                name: "salaVirtual",
-                                label: "Sala virtual",
-                                type: "select" as const,
-                                options: [
-                                  "Sem sala virtual",
-                                  ...(zoomOn ? ["Zoom"] : []),
-                                  ...(teamsOn ? ["Teams"] : []),
-                                ],
-                                required: false,
-                                full: true,
-                              },
-                            ]
-                          : []),
-                      ]}
-                      trigger={(open) => (
-                        <Button size="sm" className="gap-1.5" onClick={open}>
-                          <Plus className="size-3.5" /> Slot
-                        </Button>
-                      )}
-                    />
-                  ) : null}
-                </div>
-              }
-            >
-              {!canManageAcademic ? (
-                <p className="text-sm text-muted-foreground">
-                  A consulta de horários reais está reservada a Secretaria/Admin.
-                </p>
-              ) : !scheduleAvailable ? (
-                <p className="text-sm text-muted-foreground">
-                  Não foi possível carregar os horários neste momento. Tente novamente ou contacte o
-                  suporte técnico se persistir.
-                </p>
-              ) : classGroups.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Crie primeiro uma turma para definir o horário semanal.
-                </p>
-              ) : (
-                <>
-                  <div className="mb-4 flex flex-wrap items-center gap-3">
-                    <label className="text-sm font-medium" htmlFor="horario-turma">
-                      Turma
-                    </label>
-                    <select
-                      id="horario-turma"
-                      className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
-                      value={selectedScheduleGroupId}
-                      onChange={(event) => setScheduleClassGroupId(event.target.value)}
-                    >
-                      {classGroups.map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {scheduleGrid.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      Sem slots para esta turma. Adicione o primeiro com o botão Slot.
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Hora</TableHead>
-                            <TableHead>Segunda</TableHead>
-                            <TableHead>Terça</TableHead>
-                            <TableHead>Quarta</TableHead>
-                            <TableHead>Quinta</TableHead>
-                            <TableHead>Sexta</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {scheduleGrid.map((row) => (
-                            <TableRow key={row.hora}>
-                              <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
-                                {row.hora}
-                              </TableCell>
-                              <TableCell>{row.d1}</TableCell>
-                              <TableCell>{row.d2}</TableCell>
-                              <TableCell>{row.d3}</TableCell>
-                              <TableCell>{row.d4}</TableCell>
-                              <TableCell>{row.d5}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                  {slotsForGroup.length > 0 ? (
-                    <ul className="mt-4 divide-y divide-border rounded-lg border">
-                      {slotsForGroup.map((slot) => {
-                        const weekdayLabel =
-                          Object.entries(weekdayValues).find(
-                            ([, value]) => value === Number(slot.weekday),
-                          )?.[0] ?? `Dia ${slot.weekday}`;
-                        const starts = String(slot.starts_at ?? "").slice(0, 5);
-                        const ends = String(slot.ends_at ?? "").slice(0, 5);
-                        return (
-                          <li
-                            key={String(slot.id)}
-                            className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
-                          >
-                            <p className="text-sm">
-                              <span className="font-medium">{weekdayLabel}</span>
-                              <span className="mx-2 font-mono text-xs text-muted-foreground">
-                                {starts}–{ends}
-                              </span>
-                              {slot.display_label}
-                            </p>
-                            <div className="flex items-center gap-1">
-                              {(zoomOn || teamsOn) &&
-                              /zoom\.us|teams\.microsoft/i.test(
-                                String(slot.display_label ?? slot.label ?? ""),
-                              ) ? (
-                                <Button size="sm" variant="outline" asChild>
-                                  <a
-                                    href={
-                                      String(slot.display_label ?? slot.label ?? "").match(
-                                        /https?:\/\/\S+/,
-                                      )?.[0]
-                                    }
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Sala
-                                  </a>
-                                </Button>
-                              ) : (
-                                <>
-                                  {zoomOn ? (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={async () => {
-                                        const link = meetingRoomLink("zoom");
-                                        await navigator.clipboard.writeText(link);
-                                        toast.success("Link Zoom copiado", { description: link });
-                                      }}
-                                    >
-                                      Zoom
-                                    </Button>
-                                  ) : null}
-                                  {teamsOn ? (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={async () => {
-                                        const link = meetingRoomLink("teams");
-                                        await navigator.clipboard.writeText(link);
-                                        toast.success("Link Teams copiado", { description: link });
-                                      }}
-                                    >
-                                      Teams
-                                    </Button>
-                                  ) : null}
-                                </>
-                              )}
-                              <QuickFormModal
-                                title="Copiar slot"
-                                description={`Copia ${slot.display_label} (${starts}–${ends}) para outro dia da semana.`}
-                                submitLabel="Copiar"
-                                successDescription="Slot copiado para o dia escolhido."
-                                onSubmit={async (values) => {
-                                  if (!slot.class_group_id) {
-                                    throw new Error("Este slot não tem turma associada.");
-                                  }
-                                  const weekday =
-                                    weekdayValues[
-                                      (values.dia as keyof typeof weekdayValues | undefined) ??
-                                        "Segunda"
-                                    ];
-                                  await createScheduleSlot({
-                                    data: {
-                                      classGroupId: String(slot.class_group_id),
-                                      weekday,
-                                      startsAt: starts,
-                                      endsAt: ends,
-                                      subjectId: slot.subject_id ?? undefined,
-                                      label:
-                                        String(slot.label ?? slot.display_label ?? "Sala") ||
-                                        "Sala",
-                                    },
-                                  });
-                                  await queryClient.invalidateQueries({
-                                    queryKey: ["academic", "pedagogical-workspace"],
-                                  });
-                                }}
-                                fields={[
-                                  {
-                                    name: "dia",
-                                    label: "Dia",
-                                    type: "select",
-                                    options: weekdayOptions.filter((day) => day !== weekdayLabel),
-                                  },
-                                ]}
-                                trigger={(open) => (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="gap-1.5"
-                                    onClick={open}
-                                  >
-                                    Copiar
-                                  </Button>
-                                )}
-                              />
-                              <ConfirmActionModal
-                                title="Remover slot"
-                                description={`Retira ${slot.display_label} de ${weekdayLabel} (${starts}–${ends}) do horário desta turma.`}
-                                confirmLabel="Remover"
-                                onConfirm={async () => {
-                                  await deleteScheduleSlot({ data: { slotId: String(slot.id) } });
-                                  await queryClient.invalidateQueries({
-                                    queryKey: ["academic", "pedagogical-workspace"],
-                                  });
-                                }}
-                                trigger={(open) => (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="gap-1.5 text-destructive"
-                                    onClick={open}
-                                  >
-                                    <Trash2 className="size-3.5" /> Remover
-                                  </Button>
-                                )}
-                              />
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
-                </>
-              )}
-            </Panel>
+            <ScheduleWorkspace
+              activeYearLabel={activeYearLabel}
+              canManage={canManageAcademic}
+              scheduleAvailable={scheduleAvailable}
+              classGroups={classGroups}
+              subjects={subjects}
+              slots={scheduleSlots}
+              virtualRooms={[
+                ...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink("zoom") }] : []),
+                ...(teamsOn ? [{ label: "Teams", url: meetingRoomLink("teams") }] : []),
+              ]}
+              onCreateSlot={async (data) => {
+                await createScheduleSlot({ data });
+                await refreshAcademic();
+              }}
+              onUpdateSlot={async (data) => {
+                await updateScheduleSlot({ data });
+                await refreshAcademic();
+              }}
+              onDeleteSlot={async (slotId) => {
+                await deleteScheduleSlot({ data: { slotId } });
+                await refreshAcademic();
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>

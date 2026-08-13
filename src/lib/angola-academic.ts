@@ -42,7 +42,11 @@ export const angolaSecondaryCourses = [
 
 export type AngolaCourseId = (typeof angolaSecondaryCourses)[number]["id"];
 
-export const angolaCoreSubjects = [
+export const angolaCoreSubjects: ReadonlyArray<{
+  code: string;
+  name: string;
+  levels: readonly AngolaTeachingLevelId[];
+}> = [
   { code: "LP", name: "Língua Portuguesa", levels: ["primario", "i_ciclo", "ii_ciclo"] },
   { code: "MAT", name: "Matemática", levels: ["primario", "i_ciclo", "ii_ciclo"] },
   { code: "EF", name: "Educação Física", levels: ["primario", "i_ciclo", "ii_ciclo"] },
@@ -72,7 +76,7 @@ export function scoreAverage(mac: number, npp: number, npt: number) {
   return (mac + npp + npt) / 3;
 }
 
-export function situacaoPauta(average: number, passing = angolaGradeScale.passing) {
+export function situacaoPauta(average: number, passing: number = angolaGradeScale.passing) {
   if (!Number.isFinite(average)) return { label: "—", tone: "muted" as const };
   return average >= passing
     ? { label: "Transita", tone: "success" as const }

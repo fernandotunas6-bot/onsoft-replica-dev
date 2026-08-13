@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -32,6 +33,8 @@ import {
   updateSchoolAgt,
   updateSchoolBanking,
   updateSchoolSettings,
+  type RecentAuditLog,
+  type SchoolSettingsBundle,
 } from "@/features/school/server";
 import { AGT_NIF_PORTAL_URL, validateSchoolNif } from "@/lib/angola-identity";
 import {
@@ -50,7 +53,7 @@ import {
   angolaSecondaryCourses,
   angolaTeachingLevels,
 } from "@/lib/angola-academic";
-import { listCalendarEvents } from "@/features/calendar/server";
+import { listCalendarEvents, type CalendarEventSummary } from "@/features/calendar/server";
 import { whatsappHref } from "@/features/integrations/actions";
 import { AppMark } from "@/features/integrations/app-marks";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -67,6 +70,7 @@ import {
   listSchoolIntegrations,
   revokeSchoolIntegration,
   upsertSchoolIntegration,
+  type SchoolIntegrationSummary,
 } from "@/features/integrations/server";
 
 /**
@@ -95,6 +99,7 @@ const institutionSchema = z.object({
 });
 
 type Institution = z.infer<typeof institutionSchema>;
+const initialInstitution: Institution = { ...emptyInstitution };
 
 const institutionFields: {
   id: keyof Institution;
@@ -179,12 +184,12 @@ export function SchoolSettingsPanel() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const schoolQuery = useQuery({
     queryKey: ["school", "settings"],
-    queryFn: () => getSchoolSettings(),
+    queryFn: () => getSchoolSettings() as Promise<SchoolSettingsBundle>,
     staleTime: 5 * 60_000,
   });
   const calendarQuery = useQuery({
     queryKey: ["calendar", "events", "settings"],
-    queryFn: () => listCalendarEvents({ data: { limit: 5 } }),
+    queryFn: () => listCalendarEvents({ data: { limit: 5 } }) as Promise<CalendarEventSummary[]>,
     staleTime: 60_000,
     retry: false,
   });
@@ -387,10 +392,13 @@ export function SchoolSettingsPanel() {
         </h5>
         <div className="mb-4 flex flex-wrap items-start gap-4 rounded-xl border border-border bg-muted/20 p-4">
           {logoUrl ? (
-            <img
+            <MediaFrame
               src={logoUrl}
               alt="Logótipo da escola"
-              className="size-16 rounded-lg border border-border bg-background object-contain p-1"
+              ratio="1/1"
+              rounded="rounded-lg"
+              className="size-16 border border-border bg-background p-1"
+              imgClassName="object-contain"
             />
           ) : (
             <div className="flex size-16 items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">
@@ -666,7 +674,7 @@ export function BillingParametersSummary() {
   const billingQuery = useQuery({
     queryKey: ["school", "billing-settings"],
     enabled: canManage,
-    queryFn: async () => (await getSchoolSettings()).billing,
+    queryFn: async () => (await (getSchoolSettings() as Promise<SchoolSettingsBundle>)).billing,
     staleTime: 5 * 60_000,
   });
 
@@ -715,7 +723,7 @@ export function BillingSettingsForm() {
   const billingQuery = useQuery({
     queryKey: ["school", "billing-settings"],
     enabled: canManage,
-    queryFn: async () => (await getSchoolSettings()).billing,
+    queryFn: async () => (await (getSchoolSettings() as Promise<SchoolSettingsBundle>)).billing,
     staleTime: 5 * 60_000,
   });
 
@@ -877,7 +885,7 @@ function SchoolBankingForm() {
   const canEdit = currentUser.role === "Administrador" || currentUser.role === "Tesouraria";
   const schoolQuery = useQuery({
     queryKey: ["school", "settings"],
-    queryFn: () => getSchoolSettings(),
+    queryFn: () => getSchoolSettings() as Promise<SchoolSettingsBundle>,
     staleTime: 5 * 60_000,
   });
   const banking = schoolQuery.data?.banking;
@@ -1001,7 +1009,7 @@ function SchoolAgtForm() {
   const canEdit = currentUser.role === "Administrador";
   const schoolQuery = useQuery({
     queryKey: ["school", "settings"],
-    queryFn: () => getSchoolSettings(),
+    queryFn: () => getSchoolSettings() as Promise<SchoolSettingsBundle>,
     staleTime: 5 * 60_000,
   });
   const agt = schoolQuery.data?.agt;
@@ -1100,7 +1108,7 @@ function AcademicIntegrationsCatalog() {
   const [installProvider, setInstallProvider] = useState<string | null>(null);
   const catalogQuery = useQuery({
     queryKey: ["school", "integrations"],
-    queryFn: () => listSchoolIntegrations(),
+    queryFn: () => listSchoolIntegrations() as Promise<SchoolIntegrationSummary[]>,
     retry: false,
   });
   const items = catalogQuery.data ?? [];
@@ -1200,7 +1208,7 @@ function AcademicIntegrationsCatalog() {
                     </p>
                   ) : null}
                   <form
-                    key={`${item.id}-${item.status}-${String(config.merchantId ?? "")}`}
+                    key={`${item.id}-${item.status}-${String(config["merchantId"] ?? "")}`}
                     className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
                     onSubmit={(event) => {
                       event.preventDefault();
@@ -1227,13 +1235,15 @@ function AcademicIntegrationsCatalog() {
                   >
                     <Input
                       name="merchantId"
-                      defaultValue={String(config.merchantId ?? "")}
+                      aria-label={`Identificador de comerciante ${item.name}`}
+                      defaultValue={String(config["merchantId"] ?? "")}
                       placeholder={hints.merchant}
                       className="h-8 text-xs"
                     />
                     <Input
                       name="callbackUrl"
-                      defaultValue={String(config.callbackUrl ?? "")}
+                      aria-label={`URL de retorno ${item.name}`}
+                      defaultValue={String(config["callbackUrl"] ?? "")}
                       placeholder={hints.callback}
                       className="h-8 text-xs"
                     />
@@ -1400,7 +1410,7 @@ function AuditLogList() {
     queryKey: ["audit-logs", "recent", currentUser.id],
     enabled: isAdministrator,
     staleTime: 30_000,
-    queryFn: () => listRecentAuditLogs(),
+    queryFn: () => listRecentAuditLogs() as Promise<RecentAuditLog[]>,
   });
 
   if (currentUser.profile.isLoading) {
@@ -1465,13 +1475,17 @@ function TwoFactorEnroll() {
       </p>
       {qr ? (
         <div className="space-y-3 rounded-xl border border-border bg-secondary/40 p-3">
-          <img
+          <MediaFrame
             src={qr}
             alt="QR do autenticador"
-            className="mx-auto size-40 rounded-lg bg-white p-2"
+            ratio="1/1"
+            rounded="rounded-lg"
+            className="mx-auto size-40 bg-background p-2"
+            imgClassName="object-contain"
           />
           <div className="flex gap-2">
             <Input
+              aria-label="Código de autenticação em dois passos"
               value={code}
               onChange={(event) => setCode(event.target.value)}
               inputMode="numeric"
@@ -1588,7 +1602,7 @@ export function PedagogicalSettingsPanel() {
   const canEdit = currentUser.role === "Administrador";
   const schoolQuery = useQuery({
     queryKey: ["school", "settings"],
-    queryFn: () => getSchoolSettings(),
+    queryFn: () => getSchoolSettings() as Promise<SchoolSettingsBundle>,
     staleTime: 5 * 60_000,
   });
   const workspaceQuery = useQuery({

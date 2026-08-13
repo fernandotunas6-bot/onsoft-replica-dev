@@ -109,6 +109,7 @@ export function InstallConsentModal({
                     <input
                       type="checkbox"
                       className="mt-1 size-4 accent-primary"
+                      aria-label={`Conceder ${capability.label}`}
                       checked={checked}
                       onChange={() => toggle(capability.id)}
                     />

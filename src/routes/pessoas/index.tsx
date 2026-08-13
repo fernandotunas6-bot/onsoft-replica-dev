@@ -154,10 +154,10 @@ function PeoplePage() {
   const handleCreatePerson = async (values: Record<string, string>) => {
     const duplicates = await findPersonDuplicates({
       data: {
-        fullName: values.nome ?? "",
-        birthDate: values.nascimento || undefined,
-        phone: values.telefone || undefined,
-        email: values.email || undefined,
+        fullName: values["nome"] ?? "",
+        birthDate: values["nascimento"] || undefined,
+        phone: values["telefone"] || undefined,
+        email: values["email"] || undefined,
       },
     });
     const strongMatch = duplicates.find((d) => d.score >= 0.9);
@@ -167,8 +167,8 @@ function PeoplePage() {
       );
     }
 
-    if (values.nif?.trim()) {
-      const nifCheck = validateAngolaNif(values.nif);
+    if (values["nif"]?.trim()) {
+      const nifCheck = validateAngolaNif(values["nif"]);
       if (!nifCheck.ok) {
         throw new Error(nifCheck.error ?? "NIF/BI inválido.");
       }
@@ -896,10 +896,10 @@ function PeoplePage() {
                   await updatePerson({
                     data: {
                       personId: person.id,
-                      fullName: values.nome ?? person.full_name,
-                      email: values.email || undefined,
-                      phone: values.telefone || undefined,
-                      nif: values.nif || undefined,
+                      fullName: values["nome"] ?? person.full_name,
+                      email: values["email"] || undefined,
+                      phone: values["telefone"] || undefined,
+                      nif: values["nif"] || undefined,
                     },
                   });
                   await Promise.all([
@@ -1011,8 +1011,7 @@ function PeoplePage() {
                         toast.success("Foto actualizada a partir da biblioteca");
                       } catch (error) {
                         toast.error("Não foi possível actualizar a foto", {
-                          description:
-                            error instanceof Error ? error.message : "Tente novamente.",
+                          description: error instanceof Error ? error.message : "Tente novamente.",
                         });
                       }
                     })();
@@ -1020,214 +1019,225 @@ function PeoplePage() {
                 />
               ) : null}
             </div>
-          <dl className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Email
-              </dt>
-              <dd className="mt-1 text-sm font-medium">
-                {person.email ?? "—"}
-                {resendOn && person.email ? (
-                  <>
-                    {" "}
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-primary hover:underline"
-                      onClick={() => void copyResendEmail(person.full_name, person.email!)}
-                    >
-                      E-mail Resend
-                    </button>
-                  </>
-                ) : null}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Telefone
-              </dt>
-              <dd className="mt-1 text-sm font-medium">
-                {person.phone_primary ? (
-                  <AngolaPhoneField
-                    id={`person-phone-${person.id}`}
-                    defaultValue={person.phone_primary}
-                    disabled
-                  />
-                ) : (
-                  "—"
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                NIF
-              </dt>
-              <dd className="mt-1 text-sm font-medium">
-                {person.nif
-                  ? isAngolaBiNif(person.nif)
-                    ? formatAngolaBi(person.nif)
-                    : person.nif
-                  : "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Estado
-              </dt>
-              <dd className="mt-1 text-sm font-medium">
-                {statusLabels[person.status] ?? person.status}
-              </dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Morada
-              </dt>
-              <dd className="mt-1 text-sm font-medium">{person.address ?? "—"}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Documentos
-              </dt>
-              <dd className="space-y-3">
-                {(person.documents ?? []).length ? (
-                  <ul className="space-y-2">
-                    {(person.documents ?? []).map((document) => (
-                      <li
-                        key={document.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm"
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Email
+                </dt>
+                <dd className="mt-1 text-sm font-medium">
+                  {person.email ?? "—"}
+                  {resendOn && person.email ? (
+                    <>
+                      {" "}
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-primary hover:underline"
+                        onClick={() => void copyResendEmail(person.full_name, person.email!)}
                       >
-                        <span className="min-w-0">
-                          <span className="block font-medium">
-                            {documentTypeLabels[document.document_type] ?? document.document_type}
-                          </span>
-                          <span className="font-mono text-xs">
-                            {document.document_type === "bi"
-                              ? formatAngolaBi(document.document_number)
-                              : document.document_number}
-                          </span>
-                          {document.file_name ? (
-                            <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                              {document.file_name}
-                            </span>
-                          ) : null}
-                        </span>
-                        {document.file_id ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1"
-                            onClick={() => {
-                              void (async () => {
-                                try {
-                                  const signed = await signSchoolFile({
-                                    data: { id: String(document.file_id) },
-                                  });
-                                  if (signed.url) {
-                                    window.open(signed.url, "_blank", "noopener,noreferrer");
-                                    return;
-                                  }
-                                  const stub = {
-                                    id: String(document.file_id),
-                                    storageBackend: "local",
-                                    kind: "pdf",
-                                  } as SchoolFileRecord;
-                                  const url = await resolveFileUrl(stub);
-                                  window.open(url, "_blank", "noopener,noreferrer");
-                                } catch (error) {
-                                  toast.error("Não foi possível abrir o anexo", {
-                                    description:
-                                      error instanceof Error ? error.message : "Tente novamente.",
-                                  });
-                                }
-                              })();
-                            }}
-                          >
-                            <FolderOpen className="size-3.5" /> Abrir
-                          </Button>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Nenhum documento registado.</p>
-                )}
-                <QuickFormModal
-                  title="Adicionar documento"
-                  description="Registe BI, passaporte ou outro documento de identificação."
-                  icon={<FileText className="size-5" />}
-                  submitLabel="Guardar documento"
-                  successDescription="Documento associado à ficha."
-                  onSubmit={async (values) => {
-                    await addPersonDocument({
-                      data: {
-                        personId: person.id,
-                        document: {
-                          document_type: values.tipo as (typeof personDocumentTypeOptions)[number],
-                          document_number: values.numero,
-                          issued_at: values.emissao || undefined,
-                          expires_at: values.validade || undefined,
-                          file_id: pendingDocFile?.id,
-                          file_name: pendingDocFile?.name,
-                        },
-                      },
-                    });
-                    setPendingDocFile(null);
-                    await queryClient.invalidateQueries({
-                      queryKey: ["people", "detail", person.id],
-                    });
-                  }}
-                  fields={[
-                    {
-                      name: "tipo",
-                      label: "Tipo",
-                      type: "select",
-                      options: [...personDocumentTypeOptions],
-                      defaultValue: "bi",
-                      full: true,
-                    },
-                    {
-                      name: "numero",
-                      label: "Número",
-                      placeholder: "Número do documento",
-                      full: true,
-                    },
-                    {
-                      name: "emissao",
-                      label: "Data de emissão",
-                      type: "date",
-                      required: false,
-                    },
-                    {
-                      name: "validade",
-                      label: "Validade",
-                      type: "date",
-                      required: false,
-                    },
-                  ]}
-                  trigger={(open) => (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <PickFileButton
-                        label={pendingDocFile ? pendingDocFile.name : "Anexar PDF"}
-                        area="secretaria"
-                        acceptKinds={["pdf", "png", "jpeg"]}
-                        variant="outline"
-                        size="sm"
-                        onPick={(file) => {
-                          setPendingDocFile({ id: file.id, name: file.name });
-                          toast.message("Anexo seleccionado", {
-                            description: "Complete o formulário e guarde o documento.",
-                          });
-                        }}
-                      />
-                      <Button variant="outline" size="sm" className="gap-1.5" onClick={open}>
-                        <FileText className="size-3.5" /> Adicionar documento
-                      </Button>
-                    </div>
+                        E-mail Resend
+                      </button>
+                    </>
+                  ) : null}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Telefone
+                </dt>
+                <dd className="mt-1 text-sm font-medium">
+                  {person.phone_primary ? (
+                    <AngolaPhoneField
+                      id={`person-phone-${person.id}`}
+                      defaultValue={person.phone_primary}
+                      disabled
+                    />
+                  ) : (
+                    "—"
                   )}
-                />
-              </dd>
-            </div>
-          </dl>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  NIF
+                </dt>
+                <dd className="mt-1 text-sm font-medium">
+                  {person.nif
+                    ? isAngolaBiNif(person.nif)
+                      ? formatAngolaBi(person.nif)
+                      : person.nif
+                    : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Estado
+                </dt>
+                <dd className="mt-1 text-sm font-medium">
+                  {statusLabels[person.status] ?? person.status}
+                </dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Morada
+                </dt>
+                <dd className="mt-1 text-sm font-medium">{person.address ?? "—"}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Documentos
+                </dt>
+                <dd className="space-y-3">
+                  {(person.documents ?? []).length ? (
+                    <ul className="space-y-2">
+                      {(person.documents ?? []).map(
+                        (document: {
+                          id: string;
+                          document_type: string;
+                          document_number: string;
+                          issued_at: string | null;
+                          expires_at: string | null;
+                          file_name: string | null;
+                        }) => (
+                        <li
+                          key={document.id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm"
+                        >
+                          <span className="min-w-0">
+                            <span className="block font-medium">
+                              {documentTypeLabels[document.document_type] ?? document.document_type}
+                            </span>
+                            <span className="font-mono text-xs">
+                              {document.document_type === "bi"
+                                ? formatAngolaBi(document.document_number)
+                                : document.document_number}
+                            </span>
+                            {document.file_name ? (
+                              <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                                {document.file_name}
+                              </span>
+                            ) : null}
+                          </span>
+                          {document.file_id ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1"
+                              onClick={() => {
+                                void (async () => {
+                                  try {
+                                    const signed = await signSchoolFile({
+                                      data: { id: String(document.file_id) },
+                                    });
+                                    if (signed.url) {
+                                      window.open(signed.url, "_blank", "noopener,noreferrer");
+                                      return;
+                                    }
+                                    const stub = {
+                                      id: String(document.file_id),
+                                      storageBackend: "local",
+                                      kind: "pdf",
+                                    } as SchoolFileRecord;
+                                    const url = await resolveFileUrl(stub);
+                                    window.open(url, "_blank", "noopener,noreferrer");
+                                  } catch (error) {
+                                    toast.error("Não foi possível abrir o anexo", {
+                                      description:
+                                        error instanceof Error ? error.message : "Tente novamente.",
+                                    });
+                                  }
+                                })();
+                              }}
+                            >
+                              <FolderOpen className="size-3.5" /> Abrir
+                            </Button>
+                          ) : null}
+                        </li>
+                        ),
+                      )}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhum documento registado.</p>
+                  )}
+                  <QuickFormModal
+                    title="Adicionar documento"
+                    description="Registe BI, passaporte ou outro documento de identificação."
+                    icon={<FileText className="size-5" />}
+                    submitLabel="Guardar documento"
+                    successDescription="Documento associado à ficha."
+                    onSubmit={async (values) => {
+                      await addPersonDocument({
+                        data: {
+                          personId: person.id,
+                          document: {
+                            document_type: values[
+                              "tipo"
+                            ] as (typeof personDocumentTypeOptions)[number],
+                            document_number: values["numero"] ?? "",
+                            issued_at: values["emissao"] || undefined,
+                            expires_at: values["validade"] || undefined,
+                            file_id: pendingDocFile?.id,
+                            file_name: pendingDocFile?.name,
+                          },
+                        },
+                      });
+                      setPendingDocFile(null);
+                      await queryClient.invalidateQueries({
+                        queryKey: ["people", "detail", person.id],
+                      });
+                    }}
+                    fields={[
+                      {
+                        name: "tipo",
+                        label: "Tipo",
+                        type: "select",
+                        options: [...personDocumentTypeOptions],
+                        defaultValue: "bi",
+                        full: true,
+                      },
+                      {
+                        name: "numero",
+                        label: "Número",
+                        placeholder: "Número do documento",
+                        full: true,
+                      },
+                      {
+                        name: "emissao",
+                        label: "Data de emissão",
+                        type: "date",
+                        required: false,
+                      },
+                      {
+                        name: "validade",
+                        label: "Validade",
+                        type: "date",
+                        required: false,
+                      },
+                    ]}
+                    trigger={(open) => (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <PickFileButton
+                          label={pendingDocFile ? pendingDocFile.name : "Anexar PDF"}
+                          area="secretaria"
+                          acceptKinds={["pdf", "png", "jpeg"]}
+                          variant="outline"
+                          size="sm"
+                          onPick={(file) => {
+                            setPendingDocFile({ id: file.id, name: file.name });
+                            toast.message("Anexo seleccionado", {
+                              description: "Complete o formulário e guarde o documento.",
+                            });
+                          }}
+                        />
+                        <Button variant="outline" size="sm" className="gap-1.5" onClick={open}>
+                          <FileText className="size-3.5" /> Adicionar documento
+                        </Button>
+                      </div>
+                    )}
+                  />
+                </dd>
+              </div>
+            </dl>
           </div>
         ) : null}
       </PremiumModal>

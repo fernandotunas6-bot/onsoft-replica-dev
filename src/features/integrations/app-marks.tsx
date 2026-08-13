@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { MediaFrame } from "@/components/ui/media-frame";
 
 const brandLogos: Record<string, { src: string; label: string; bleed?: boolean }> = {
   zoom: { src: "/brands/zoom.png", label: "Zoom" },
@@ -58,15 +59,17 @@ export function AppMark({ id, className }: { id: string; className?: string }) {
   const logo = brandLogos[id];
   if (logo) {
     return (
-      <img
+      <MediaFrame
         src={logo.src}
-        alt=""
-        title={logo.label}
+        alt={logo.label}
+        ratio="1/1"
+        rounded="rounded-[22%]"
         className={cn(
-          "size-10 object-contain",
-          logo.bleed ? "rounded-[22%]" : "rounded-[22%] bg-white p-0.5 shadow-sm",
+          "size-10",
+          logo.bleed ? undefined : "bg-background p-0.5 shadow-sm",
           className,
         )}
+        imgClassName="object-contain"
       />
     );
   }

@@ -1156,7 +1156,11 @@ export const deleteSchoolFile = createServerFn({ method: "POST" })
     if (row.storage_backend === "sga" && row.storage_path) {
       await db.storage.from(FILES_BUCKET).remove([String(row.storage_path)]);
     }
-    const { error: delError } = await db.from("siga_files").delete().eq("id", data.id);
+    const { error: delError } = await db
+      .from("siga_files")
+      .delete()
+      .eq("id", data.id)
+      .eq("school_id", membership.schoolId);
     if (delError) throw publicDatabaseError(delError, "Não foi possível apagar o ficheiro.");
     return { ok: true, localOnly: false };
   });

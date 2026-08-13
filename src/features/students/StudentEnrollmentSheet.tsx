@@ -183,10 +183,11 @@ export function StudentEnrollmentSheet({
             return (
               <SheetGrid>
                 <SheetCell label="Nome completo" full>
-                  <Input value={values.nome} onChange={(e) => setField("nome", e.target.value)} />
+                  <Input aria-label="Nome completo" value={values.nome} onChange={(e) => setField("nome", e.target.value)} />
                 </SheetCell>
                 <SheetCell label="Data de nascimento">
                   <Input
+                    aria-label="Data de nascimento"
                     type="date"
                     value={values.nascimento}
                     onChange={(e) => setField("nascimento", e.target.value)}
@@ -194,6 +195,7 @@ export function StudentEnrollmentSheet({
                 </SheetCell>
                 <SheetCell label="Género">
                   <select
+                    aria-label="Género"
                     className={fieldClass}
                     value={values.genero}
                     onChange={(e) => setField("genero", e.target.value)}
@@ -226,6 +228,7 @@ export function StudentEnrollmentSheet({
                 </SheetCell>
                 <SheetCell label="Email">
                   <Input
+                    aria-label="Email"
                     type="email"
                     value={values.email}
                     onChange={(e) => setField("email", e.target.value)}
@@ -247,12 +250,13 @@ export function StudentEnrollmentSheet({
                 </SheetCell>
                 <SheetCell label="Morada" full>
                   <Input
+                    aria-label="Morada"
                     value={values.morada}
                     onChange={(e) => setField("morada", e.target.value)}
                   />
                 </SheetCell>
                 <SheetCell label="Observações" full>
-                  <Textarea value={values.obs} onChange={(e) => setField("obs", e.target.value)} />
+                  <Textarea aria-label="Observações" value={values.obs} onChange={(e) => setField("obs", e.target.value)} />
                 </SheetCell>
               </SheetGrid>
             );
@@ -262,6 +266,7 @@ export function StudentEnrollmentSheet({
               <SheetGrid>
                 <SheetCell label="Encarregado já registado" full>
                   <select
+                    aria-label="Encarregado já registado"
                     className={fieldClass}
                     value={values.encarregadoId}
                     onChange={(e) => setField("encarregadoId", e.target.value)}
@@ -276,6 +281,7 @@ export function StudentEnrollmentSheet({
                 </SheetCell>
                 <SheetCell label="Parentesco" full>
                   <select
+                    aria-label="Parentesco"
                     className={fieldClass}
                     value={values.parentesco}
                     onChange={(e) => setField("parentesco", e.target.value)}
@@ -295,6 +301,7 @@ export function StudentEnrollmentSheet({
               <SheetGrid>
                 <SheetCell label="Nº de processo">
                   <Input
+                    aria-label="Número de processo"
                     value={values.processo}
                     onChange={(e) => setField("processo", e.target.value)}
                     placeholder="2026-0001"
@@ -302,6 +309,7 @@ export function StudentEnrollmentSheet({
                 </SheetCell>
                 <SheetCell label="Turma">
                   <select
+                    aria-label="Turma"
                     className={fieldClass}
                     value={values.turmaId}
                     onChange={(e) => setField("turmaId", e.target.value)}

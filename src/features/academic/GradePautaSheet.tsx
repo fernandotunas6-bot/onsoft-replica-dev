@@ -615,6 +615,7 @@ export function GradePautaSheet({
         <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Turma
           <select
+            aria-label="Turma"
             className="flex h-9 min-w-[180px] rounded-lg border border-input bg-background px-3 text-sm text-foreground"
             value={classGroupId}
             onChange={(event) => setClassGroupId(event.target.value)}
@@ -631,6 +632,7 @@ export function GradePautaSheet({
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">
             Disciplina
             <select
+              aria-label="Disciplina"
               className="flex h-9 min-w-[180px] rounded-lg border border-input bg-background px-3 text-sm text-foreground"
               value={subjectId}
               onChange={(event) => setSubjectId(event.target.value)}
@@ -647,6 +649,7 @@ export function GradePautaSheet({
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">
             Trimestre
             <select
+              aria-label="Trimestre"
               className="flex h-9 min-w-[100px] rounded-lg border border-input bg-background px-3 text-sm text-foreground"
               value={term}
               onChange={(event) => setTerm(Number(event.target.value) as 1 | 2 | 3)}
@@ -965,6 +968,7 @@ export function GradePautaSheet({
                       <TableCell key={field} className="text-right">
                         {canEdit ? (
                           <Input
+                            aria-label={`${field.toUpperCase()} de ${student.student_name}`}
                             inputMode="decimal"
                             data-pauta={`${index}-${field}`}
                             className="ml-auto h-8 w-20 text-right"

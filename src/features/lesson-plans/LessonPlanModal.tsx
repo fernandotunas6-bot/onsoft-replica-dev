@@ -287,6 +287,7 @@ export function LessonPlanModal({
           <input
             type="checkbox"
             className="mt-0.5"
+            aria-label="Publicar plano"
             checked={publish}
             onChange={(event) => setPublish(event.target.checked)}
           />
@@ -342,6 +343,7 @@ function ComponentGroup({
         {rows.map((row, index) => (
           <div key={index} className="flex items-center gap-2">
             <Input
+              aria-label={`${title}: nome do item ${index + 1}`}
               value={row.name}
               onChange={(event) => onUpdateRow(index, { name: event.target.value })}
               placeholder={kind === "avaliacao" ? "Ex.: Trabalho de casa" : "Ex.: Prova de Matemática"}

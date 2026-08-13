@@ -49,6 +49,7 @@ import {
   listCashEntries,
   listInvoices,
   listPaymentPlans,
+  recordCashExpense,
   recordInvoicePayment,
   reverseCashEntry,
 } from "@/features/finance/server";
@@ -71,6 +72,17 @@ const financeiroFilterDefaults = {
   categoria: "todas",
   de: "",
   ate: "",
+};
+
+type CashExportRow = {
+  data: string;
+  documento: string;
+  descricao: string;
+  categoria: string;
+  metodo: string;
+  tipo: "Entrada" | "Saída";
+  valor: number;
+  status: "posted" | "reversed";
 };
 
 export const Route = createFileRoute("/financeiro")({
@@ -138,6 +150,7 @@ function FinanceiroPage() {
   const missingPenalty = Boolean(schemaQuery.data?.missingPenaltyAmount);
   const missingPrefs = Boolean(schemaQuery.data?.missingNotificationPreferences);
   const schemaBlocked = missingPenalty || missingPrefs;
+  const cashExpensesAvailable = schemaQuery.data ? !schemaQuery.data.missingCashExpenses : false;
   const movimentos = useMemo(
     () =>
       (cashQuery.data ?? []).map((entry) => ({
@@ -233,7 +246,7 @@ function FinanceiroPage() {
             ],
           },
         ],
-        banking: schoolBanking,
+        ...(schoolBanking ? { banking: schoolBanking } : {}),
       }),
     });
   };
@@ -289,7 +302,7 @@ function FinanceiroPage() {
             ],
           },
         ],
-        banking: schoolBanking,
+        ...(schoolBanking ? { banking: schoolBanking } : {}),
       }),
     });
     if (libraryCode) {
@@ -308,9 +321,7 @@ function FinanceiroPage() {
   const paymentMethods = {
     Numerário: "cash",
   } as const;
-  const reversibleEntries = movimentos.filter(
-    (movimento) => movimento.status === "posted" || movimento.status === "issued",
-  );
+  const reversibleEntries = movimentos.filter((movimento) => movimento.status === "posted");
   const cashEntryOptions = reversibleEntries.map(
     (movimento) => `${movimento.documento} · ${movimento.descricao}`,
   );
@@ -325,16 +336,16 @@ function FinanceiroPage() {
     ),
   ].sort((a, b) => a.localeCompare(b, "pt"));
   const cashColumns = [
-    { label: "Data", value: (row: Record<string, unknown>) => row.data },
-    { label: "Documento", value: (row: Record<string, unknown>) => row.documento },
-    { label: "Descrição", value: (row: Record<string, unknown>) => row.descricao },
-    { label: "Categoria", value: (row: Record<string, unknown>) => row.categoria },
-    { label: "Método", value: (row: Record<string, unknown>) => row.metodo },
-    { label: "Tipo", value: (row: Record<string, unknown>) => row.tipo },
-    { label: "Valor (Kz)", value: (row: Record<string, unknown>) => row.valor },
-    { label: "Estado", value: (row: Record<string, unknown>) => row.status },
+    { label: "Data", value: (row: CashExportRow) => row.data },
+    { label: "Documento", value: (row: CashExportRow) => row.documento },
+    { label: "Descrição", value: (row: CashExportRow) => row.descricao },
+    { label: "Categoria", value: (row: CashExportRow) => row.categoria },
+    { label: "Método", value: (row: CashExportRow) => row.metodo },
+    { label: "Tipo", value: (row: CashExportRow) => row.tipo },
+    { label: "Valor (Kz)", value: (row: CashExportRow) => row.valor },
+    { label: "Estado", value: (row: CashExportRow) => row.status },
   ];
-  const exportRows = lista.map((movimento) => ({
+  const exportRows: CashExportRow[] = lista.map((movimento) => ({
     data: new Date(movimento.data).toLocaleDateString("pt-PT"),
     documento: movimento.documento,
     descricao: movimento.descricao,
@@ -373,7 +384,7 @@ function FinanceiroPage() {
             })),
           },
         ],
-        banking: schoolBanking,
+        ...(schoolBanking ? { banking: schoolBanking } : {}),
       }),
       fallback: () =>
         exportOfficialPautaPdf(
@@ -433,7 +444,7 @@ function FinanceiroPage() {
                 onSubmit={async (values) => {
                   const invoice = payableInvoices.find((item) =>
                     `${item.number} · ${item.student_name} · ${Number(item.total_amount).toLocaleString("pt-PT")} Kz`.includes(
-                      values.fatura ?? "",
+                      values["fatura"] ?? "",
                     ),
                   );
                   const channelMap = {
@@ -446,23 +457,24 @@ function FinanceiroPage() {
                     data: {
                       invoiceId: invoice?.id,
                       channel:
-                        channelMap[(values.canal as keyof typeof channelMap) ?? "Numerário"] ??
+                        channelMap[(values["canal"] as keyof typeof channelMap) ?? "Numerário"] ??
                         "cash",
-                      installments: Number(values.prestacoes || 1),
-                      reference: values.referencia || undefined,
-                      notes: values.notas || undefined,
+                      installments: Number(values["prestacoes"] || 1),
+                      reference: values["referencia"] || undefined,
+                      notes: values["notas"] || undefined,
                     },
                   });
                   await queryClient.invalidateQueries({ queryKey: ["finance"] });
                   await queryClient.invalidateQueries({ queryKey: ["finance", "payment-plans"] });
                   await printPaymentPlan({
-                    id: values.referencia || "plano",
+                    id: values["referencia"] || "plano",
                     channel:
-                      channelMap[(values.canal as keyof typeof channelMap) ?? "Numerário"] ?? "cash",
-                    installments: Number(values.prestacoes || 1),
-                    reference: values.referencia || null,
+                      channelMap[(values["canal"] as keyof typeof channelMap) ?? "Numerário"] ??
+                      "cash",
+                    installments: Number(values["prestacoes"] || 1),
+                    reference: values["referencia"] || null,
                     status: "pending_gateway",
-                    notes: values.notas || null,
+                    notes: values["notas"] || null,
                   });
                 }}
                 fields={[
@@ -549,20 +561,21 @@ function FinanceiroPage() {
                   },
                 ]}
                 onSubmit={async (values) => {
-                  const invoiceIndex = invoiceOptions.indexOf(values.fatura ?? "");
+                  const invoiceIndex = invoiceOptions.indexOf(values["fatura"] ?? "");
                   const invoice = payableInvoices[invoiceIndex];
-                  const method = paymentMethods[values.metodo as keyof typeof paymentMethods];
-                  if (!invoice || !method)
+                  const methodLabel = values["metodo"];
+                  const method = paymentMethods[methodLabel as keyof typeof paymentMethods];
+                  if (!invoice || !method || !methodLabel)
                     throw new Error("Selecione uma fatura e um método válidos.");
                   const paid = await recordInvoicePayment({
                     data: {
                       invoiceId: invoice.id,
-                      receiptNumber: values.recibo,
-                      amount: Number(values.valor),
+                      receiptNumber: values["recibo"],
+                      amount: Number(values["valor"]),
                       method,
-                      reference: values.referencia || undefined,
-                      paidAt: values.data
-                        ? new Date(`${values.data}T12:00:00Z`).toISOString()
+                      reference: values["referencia"] || undefined,
+                      paidAt: values["data"]
+                        ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
                         : undefined,
                     },
                   });
@@ -590,8 +603,8 @@ function FinanceiroPage() {
                           title: "Quitação",
                           rows: [
                             { label: "Fatura", value: invoice.number },
-                            { label: "Valor", value: kwanza(Number(values.valor)) },
-                            { label: "Método", value: values.metodo },
+                            { label: "Valor", value: kwanza(Number(values["valor"])) },
+                            { label: "Método", value: methodLabel },
                           ],
                         },
                       ],
@@ -600,9 +613,9 @@ function FinanceiroPage() {
                         studentName: invoice.student_name,
                         invoiceNumber: invoice.number,
                         receiptNumber: paid.receipt_number,
-                        amountLabel: kwanza(Number(values.valor)),
+                        amountLabel: kwanza(Number(values["valor"])),
                       }),
-                      banking: schoolBanking,
+                      ...(schoolBanking ? { banking: schoolBanking } : {}),
                     }),
                   });
                 }}
@@ -635,10 +648,10 @@ function FinanceiroPage() {
                 ]}
                 onSubmit={async (values) => {
                   const entry =
-                    reversibleEntries[cashEntryOptions.indexOf(values.lancamento ?? "")];
+                    reversibleEntries[cashEntryOptions.indexOf(values["lancamento"] ?? "")];
                   if (!entry) throw new Error("Selecione um lançamento válido.");
                   await reverseCashEntry({
-                    data: { cashEntryId: entry.id, reason: values.motivo },
+                    data: { cashEntryId: entry.id, reason: values["motivo"] ?? "" },
                   });
                   await Promise.all([
                     queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
@@ -657,14 +670,98 @@ function FinanceiroPage() {
                   </Button>
                 )}
               />
-              <Button
-                variant="outline"
-                className="gap-2"
-                disabled
-                title="Despesas de caixa ainda não têm tabela nativa no SGA"
-              >
-                <ArrowDownRight className="size-4" /> Despesas (indisponível no SGA)
-              </Button>
+              <QuickFormModal
+                eyebrow="Tesouraria"
+                title="Registar despesa"
+                description="Registe uma saída de caixa com documento, categoria e comprovativo. O lançamento pode ser anulado, mantendo o histórico."
+                icon={<ArrowDownRight className="size-5" />}
+                submitLabel="Registar despesa"
+                fields={[
+                  {
+                    name: "documento",
+                    label: "Documento",
+                    placeholder: "DC 2026/0001",
+                  },
+                  {
+                    name: "categoria",
+                    label: "Categoria",
+                    placeholder: "Ex.: Material didáctico",
+                  },
+                  {
+                    name: "valor",
+                    label: "Valor (Kz)",
+                    type: "number",
+                    placeholder: "45000",
+                  },
+                  {
+                    name: "metodo",
+                    label: "Método",
+                    type: "select",
+                    options: [
+                      "Numerário",
+                      "Transferência",
+                      "Multicaixa",
+                      "Multicaixa Express",
+                      "Unitel Money",
+                    ],
+                  },
+                  { name: "data", label: "Data da despesa", type: "date" },
+                  {
+                    name: "referencia",
+                    label: "Referência / comprovativo",
+                    required: false,
+                  },
+                  {
+                    name: "descricao",
+                    label: "Descrição",
+                    type: "textarea",
+                    full: true,
+                  },
+                ]}
+                onSubmit={async (values) => {
+                  const methodMap = {
+                    Numerário: "cash",
+                    Transferência: "transfer",
+                    Multicaixa: "multicaixa",
+                    "Multicaixa Express": "multicaixa_express",
+                    "Unitel Money": "unitel_money",
+                  } as const;
+                  const method = methodMap[values["metodo"] as keyof typeof methodMap];
+                  if (!method) throw new Error("Seleccione um método de pagamento válido.");
+                  await recordCashExpense({
+                    data: {
+                      documentNumber: values["documento"] ?? "",
+                      category: values["categoria"] ?? "",
+                      description: values["descricao"] ?? "",
+                      amount: Number(values["valor"]),
+                      method,
+                      reference: values["referencia"] || undefined,
+                      occurredAt: values["data"]
+                        ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
+                        : undefined,
+                    },
+                  });
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
+                    queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
+                  ]);
+                }}
+                trigger={(open) => (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={open}
+                    disabled={!cashExpensesAvailable}
+                    title={
+                      cashExpensesAvailable
+                        ? "Registar uma saída de caixa"
+                        : "A actualizar a estrutura financeira do SGA"
+                    }
+                  >
+                    <ArrowDownRight className="size-4" /> Despesa
+                  </Button>
+                )}
+              />
             </>
           }
         />
@@ -836,11 +933,7 @@ function FinanceiroPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void printCashMovement(m)}
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => void printCashMovement(m)}>
                           Recibo
                         </Button>
                         {resendInvoices ? (
@@ -860,10 +953,7 @@ function FinanceiroPage() {
                         {whatsappOn ? (
                           <Button size="sm" variant="ghost" asChild>
                             <a
-                              href={whatsappHref(
-                                "",
-                                `Recibo SIGA: ${m.tipo} ${kwanza(m.valor)}`,
-                              )}
+                              href={whatsappHref("", `Recibo SIGA: ${m.tipo} ${kwanza(m.valor)}`)}
                               target="_blank"
                               rel="noreferrer"
                             >
@@ -915,7 +1005,10 @@ function FinanceiroPage() {
               <TableBody>
                 {(plansQuery.data ?? []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
+                    <TableCell
+                      colSpan={6}
+                      className="py-6 text-center text-sm text-muted-foreground"
+                    >
                       Ainda sem planos. Use «Pagamento avançado» para criar um.
                     </TableCell>
                   </TableRow>
@@ -948,9 +1041,7 @@ function FinanceiroPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {plan.created_at
-                          ? new Date(plan.created_at).toLocaleString("pt-PT")
-                          : "—"}
+                        {plan.created_at ? new Date(plan.created_at).toLocaleString("pt-PT") : "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
@@ -989,29 +1080,29 @@ function FinanceiroPage() {
                               </a>
                             </Button>
                           ) : null}
-                        {plan.status === "pending_gateway" || plan.status === "scheduled" ? (
-                          <ConfirmActionModal
-                            title="Cancelar plano"
-                            description="O plano deixa de ficar à espera do gateway. Não gera recibo."
-                            confirmLabel="Cancelar plano"
-                            onConfirm={async () => {
-                              await cancelPaymentPlan({ data: { planId: String(plan.id) } });
-                              await queryClient.invalidateQueries({
-                                queryKey: ["finance", "payment-plans"],
-                              });
-                            }}
-                            trigger={(open) => (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive"
-                                onClick={open}
-                              >
-                                Cancelar
-                              </Button>
-                            )}
-                          />
-                        ) : null}
+                          {plan.status === "pending_gateway" || plan.status === "scheduled" ? (
+                            <ConfirmActionModal
+                              title="Cancelar plano"
+                              description="O plano deixa de ficar à espera do gateway. Não gera recibo."
+                              confirmLabel="Cancelar plano"
+                              onConfirm={async () => {
+                                await cancelPaymentPlan({ data: { planId: String(plan.id) } });
+                                await queryClient.invalidateQueries({
+                                  queryKey: ["finance", "payment-plans"],
+                                });
+                              }}
+                              trigger={(open) => (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive"
+                                  onClick={open}
+                                >
+                                  Cancelar
+                                </Button>
+                              )}
+                            />
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>
