@@ -45,7 +45,7 @@ import {
 export type UploadInquiryResult = FileMetaFields & {
   visibility: SchoolFileRecord["visibility"];
   area: FileArea;
-  applyAsProfilePhoto?: boolean;
+  applyAsProfilePhoto?: boolean | undefined;
 };
 
 function defaultTitleFromName(name: string) {

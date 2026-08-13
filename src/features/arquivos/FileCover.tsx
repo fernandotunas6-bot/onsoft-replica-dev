@@ -35,9 +35,9 @@ export function FileCover({
 }: {
   kind: FileKind;
   name: string;
-  selected?: boolean;
+  selected?: boolean | undefined;
   previewUrl?: string | null;
-  className?: string;
+  className?: string | undefined;
 }) {
   const meta = fileKindMeta[kind];
   const Icon = kindIcon[kind];

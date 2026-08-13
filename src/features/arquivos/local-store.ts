@@ -64,10 +64,10 @@ export async function saveLocalFile(input: {
 export async function listLocalFiles(input: {
   schoolId: string;
   ownerUserId: string;
-  area?: FileArea;
-  classGroupId?: string;
+  area?: FileArea | undefined;
+  classGroupId?: string | undefined;
   parentId?: string | null;
-  query?: string;
+  query?: string | undefined;
   limit: number;
 }): Promise<SchoolFileRecord[]> {
   if (typeof indexedDB === "undefined") return [];

@@ -14,10 +14,10 @@ export async function insertFinanceArchive(
     category: "recibo" | "talao" | "fatura";
     title: string;
     description: string;
-    relatedPersonId?: string | null;
-    sourceLabel?: string;
-    amountLabel?: string;
-    documentCode?: string;
+    relatedPersonId?: string | null | undefined;
+    sourceLabel?: string | undefined;
+    amountLabel?: string | undefined;
+    documentCode?: string | undefined;
   },
 ) {
   const documentCode = input.documentCode?.trim()
