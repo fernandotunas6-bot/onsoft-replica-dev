@@ -27,7 +27,11 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { AppearanceColors } from "@/components/settings/AppearanceColors";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { getCurrentAccountContext, updateCurrentProfile } from "@/features/auth/server";
+import {
+  getCurrentAccountContext,
+  setCurrentProfileAvatar,
+  updateCurrentProfile,
+} from "@/features/auth/server";
 import { normalizeAngolaPhone, validateAngolaPhone } from "@/lib/angola-phone";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { PasswordChangeForm } from "@/features/auth/PasswordChangeForm";
@@ -97,19 +101,11 @@ function ProfileAvatarField() {
         .upload(path, file, { upsert: true, cacheControl: "3600" });
       if (uploadError) throw uploadError;
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(path);
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
-        .eq("id", currentUser.id);
-      if (updateError) throw updateError;
+      const profile = await setCurrentProfileAvatar({ data: { storagePath: path } });
 
       queryClient.setQueryData(["auth", "profile", currentUser.id], (prev: unknown) => ({
         ...(typeof prev === "object" && prev ? prev : {}),
-        avatar_url: publicUrl,
+        avatar_url: profile.avatar_url,
       }));
       toast.success("Foto de perfil actualizada.");
     } catch {
@@ -444,7 +440,8 @@ function useSettingsPanels(): StackPanel[] {
       {
         id: "arquivos",
         title: "Arquivos",
-        description: "Onde a escola guarda PDF, Word, Excel e imagens — e a área por defeito de cada colaborador.",
+        description:
+          "Onde a escola guarda PDF, Word, Excel e imagens — e a área por defeito de cada colaborador.",
         icon: FolderOpen,
         tone: "info",
         render: () => <FilesSettingsPanel />,

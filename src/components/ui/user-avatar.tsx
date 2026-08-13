@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { resolvePersonPhotoUrl } from "@/features/arquivos/person-photo-url";
+import {
+  isManagedProfileAvatarUrl,
+  resolveProfileAvatarUrl,
+} from "@/features/auth/profile-avatar-url";
 import { cn } from "@/lib/utils";
 
 function useAvatarUrl(url?: string | null) {
@@ -8,7 +12,11 @@ function useAvatarUrl(url?: string | null) {
   useEffect(() => {
     let active = true;
     setResolvedUrl(null);
-    void resolvePersonPhotoUrl(url).then((result) => {
+    const resolve =
+      url && isManagedProfileAvatarUrl(url)
+        ? resolveProfileAvatarUrl(url)
+        : resolvePersonPhotoUrl(url);
+    void resolve.then((result) => {
       if (active) setResolvedUrl(result);
     });
     return () => {

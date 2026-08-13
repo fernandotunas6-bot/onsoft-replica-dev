@@ -2,7 +2,29 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
-import { updateCurrentProfileInputSchema } from "./schemas";
+import {
+  setCurrentProfileAvatarInputSchema,
+  signProfileAvatarInputSchema,
+  updateCurrentProfileInputSchema,
+} from "./schemas";
+
+const AVATAR_REFERENCE_PREFIX = "siga-avatar://";
+const AVATAR_STORAGE_PATH = /^[0-9a-f-]{36}\/avatar-[0-9]{13}\.(png|jpg|jpeg|webp)$/i;
+
+function avatarStoragePathFromUrl(value: string) {
+  if (value.startsWith(AVATAR_REFERENCE_PREFIX)) {
+    const storagePath = value.slice(AVATAR_REFERENCE_PREFIX.length);
+    return AVATAR_STORAGE_PATH.test(storagePath) ? storagePath : null;
+  }
+  try {
+    const pathname = new URL(value).pathname;
+    const match = pathname.match(/^\/storage\/v1\/object\/public\/avatars\/(.+)$/);
+    const storagePath = match?.[1] ? decodeURIComponent(match[1]) : null;
+    return storagePath && AVATAR_STORAGE_PATH.test(storagePath) ? storagePath : null;
+  } catch {
+    return null;
+  }
+}
 
 export const getCurrentAccountContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -178,4 +200,47 @@ export const updateCurrentProfile = createServerFn({ method: "POST" })
     }
 
     return row;
+  });
+
+export const setCurrentProfileAvatar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => setCurrentProfileAvatarInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!data.storagePath.startsWith(`${context.userId}/`)) {
+      throw new Error("O avatar deve pertencer à sua conta.");
+    }
+    const db = await loadSgaAdminClient();
+    const avatarUrl = `${AVATAR_REFERENCE_PREFIX}${data.storagePath}`;
+    const { data: profile, error } = await db
+      .from("profiles")
+      .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+      .eq("id", context.userId)
+      .select("avatar_url, updated_at")
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível actualizar a foto de perfil.");
+    if (!profile) throw new Error("Perfil não encontrado.");
+    return profile;
+  });
+
+export const signProfileAvatar = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => signProfileAvatarInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const storagePath = avatarStoragePathFromUrl(data.avatarUrl);
+    if (!storagePath) return { url: null };
+    const ownerId = storagePath.split("/", 1)[0];
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const db = await loadSgaAdminClient();
+    const { data: profile, error } = await db
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", ownerId)
+      .eq("school_id", membership.schoolId)
+      .eq("avatar_url", data.avatarUrl)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível abrir a foto de perfil.");
+    if (!profile) return { url: null };
+    const signed = await db.storage.from("avatars").createSignedUrl(storagePath, 120);
+    return { url: signed.data?.signedUrl ?? null };
   });

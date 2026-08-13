@@ -107,16 +107,13 @@ CREATE POLICY "Authenticated users can replace school logos"
     AND name ~ '^[0-9a-f-]{36}/logo-[0-9]{13}\.(png|jpg|jpeg|webp|svg)$'
   );
 
--- Fotografia de perfil (Definições → Conta) — src/components/modals/SettingsCenter.tsx
--- envia para o bucket "avatars", que não existia.
+-- Fotografia de perfil (Definições → Conta). O bucket é privado: a aplicação
+-- entrega URLs assinadas somente a colaboradores da mesma escola.
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('avatars', 'avatars', true)
-ON CONFLICT (id) DO NOTHING;
+VALUES ('avatars', 'avatars', false)
+ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
 
 DROP POLICY IF EXISTS "Avatars are publicly accessible" ON storage.objects;
-CREATE POLICY "Avatars are publicly accessible"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'avatars');
 
 DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
 CREATE POLICY "Users can upload their own avatar"
