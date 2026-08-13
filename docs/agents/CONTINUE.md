@@ -2,47 +2,55 @@
 
 Ler isto **antes** de alterar código. Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-08-12)
+## Estado (2026-08-13)
 
-Ciclos 1–7 da sessão premium estão no código. Commits **não** foram criados: `user.name` / `user.email` vazios (não alterar `git config`).
+Os ciclos 1–34 da sessão premium estão no código. As consolidações mais recentes
+estão versionadas localmente:
 
-| Ciclo | O quê | Estado |
-| --- | --- | --- |
-| 1 | Filtros persistentes URL + localStorage | Feito |
-| 2 | Folha sequencial de aluno + link público `/matricula/$slug` | Feito (precisa SQL) |
-| 3 | Folha de turmas + WhatsApp | Feito (colunas WhatsApp no SQL) |
-| 4 | Grants, ficha professor, workspace, ICS | Feito (tabelas no SQL) |
-| 5 | Pagamento avançado Multicaixa/Unitel | Feito (tabela no SQL) |
-| 6 | Catálogo integrações + 2FA TOTP | Feito (tabela + AuthGate) |
-| 7 | Wiring catalog-ready nos ecrãs + testes integrações | Feito |
-| 8 | Supervisão de desempenho + resposta ao toque | Feito |
-| 9 | Identidade Angola (BI/NIF/IBAN), perfil, branding, AGT | Feito (precisa SQL) |
-| 9 | Lazy Recharts + impressão diferida (print-issue-loader) | Feito |
-| 10 | Telefone angolano (+244): componente, validação Zod, normalização E.164 | Feito |
-| 11 | Mensagens internas no painel da conta (colegas reais, pesquisa, thread) | Feito (precisa SQL) |
-| 12 | Não-lidas: ponto nos avatares, sino e lista de notificações | Feito |
-| 13 | Sino operacional: candidaturas, matrícula, documentos, faturas | Feito |
-| 14 | Taxa de presença na matrícula, ficha, dashboard e turmas | Feito (precisa SQL) |
-| 15 | Destaques no painel da conta (notas, novidades, atalhos) | Feito |
-| 16 | Gerir destaques em Definições (textos, ordem, visibilidade) | Feito |
-| 17 | Notas e atalhos próprios da escola nos destaques | Feito |
-| 18 | Público, calendário (Luanda) e pré-visualização dos destaques | Feito |
-| 19 | Destaques no início (além do painel da conta) | Feito |
-| 20 | Ligação interna ou externa no botão de cada destaque | Feito |
-| 21 | Ícone, cor e tipo em todos os destaques | Feito |
-| 22 | Arquivos (biblioteca Moodle: SGA + local, waffle, picker) | Feito (precisa SQL) |
-| 23 | Arquivos: miniaturas, filtros, logo/perfil da biblioteca | Feito |
-| 24 | Arquivos ligados a foto aluno/pessoa, docs e comunicados | Feito (precisa SQL) |
-| 25 | Materiais de turma + descarregar/renomear arquivos | Feito (precisa SQL) |
-| 26 | Filtro turma nos arquivos + materiais no workspace | Feito |
-| 27 | Arquivos visual OneDrive + utilizador, acesso e auditoria | Feito (precisa SQL) |
-| 28 | Arquivos: breadcrumb, barra de comandos, drag-drop, avatares | Feito |
-| 29 | Inquérito de metadados + ligação a utilizadores/pessoas | Feito (precisa SQL) |
-| 30 | Foto de aluno: relação + perfil na ficha | Feito |
-| 31 | Media reconhecida + inquérito/área obrigatórios | Feito |
-| 32 | Pastas, selecção, mover e modal expansível | Feito (precisa SQL) |
-| 33 | Recibos/talões na biblioteca + ID pesquisável | Feito (precisa SQL) |
-| 34 | Planos de Aula (título/conteúdo/anexo + avaliações/provas por turma-disciplina-trimestre) | Feito (precisa SQL) |
+- `6d11ee8` — módulos escolares e tesouraria
+- `251ef86` — contratos tipados dos módulos
+- `afd58b8` — requisitos dos validadores visuais na CI
+- `ac2aba5` — fotos de pessoas protegidas no Storage
+- `1eea631` — avatares de conta privados com URLs assinadas
+- `f6bb092` — limpeza de avatares privados substituídos
+
+| Ciclo | O quê                                                                                     | Estado                          |
+| ----- | ----------------------------------------------------------------------------------------- | ------------------------------- |
+| 1     | Filtros persistentes URL + localStorage                                                   | Feito                           |
+| 2     | Folha sequencial de aluno + link público `/matricula/$slug`                               | Feito (precisa SQL)             |
+| 3     | Folha de turmas + WhatsApp                                                                | Feito (colunas WhatsApp no SQL) |
+| 4     | Grants, ficha professor, workspace, ICS                                                   | Feito (tabelas no SQL)          |
+| 5     | Pagamento avançado Multicaixa/Unitel                                                      | Feito (tabela no SQL)           |
+| 6     | Catálogo integrações + 2FA TOTP                                                           | Feito (tabela + AuthGate)       |
+| 7     | Wiring catalog-ready nos ecrãs + testes integrações                                       | Feito                           |
+| 8     | Supervisão de desempenho + resposta ao toque                                              | Feito                           |
+| 9     | Identidade Angola (BI/NIF/IBAN), perfil, branding, AGT                                    | Feito (precisa SQL)             |
+| 9     | Lazy Recharts + impressão diferida (print-issue-loader)                                   | Feito                           |
+| 10    | Telefone angolano (+244): componente, validação Zod, normalização E.164                   | Feito                           |
+| 11    | Mensagens internas no painel da conta (colegas reais, pesquisa, thread)                   | Feito (precisa SQL)             |
+| 12    | Não-lidas: ponto nos avatares, sino e lista de notificações                               | Feito                           |
+| 13    | Sino operacional: candidaturas, matrícula, documentos, faturas                            | Feito                           |
+| 14    | Taxa de presença na matrícula, ficha, dashboard e turmas                                  | Feito (precisa SQL)             |
+| 15    | Destaques no painel da conta (notas, novidades, atalhos)                                  | Feito                           |
+| 16    | Gerir destaques em Definições (textos, ordem, visibilidade)                               | Feito                           |
+| 17    | Notas e atalhos próprios da escola nos destaques                                          | Feito                           |
+| 18    | Público, calendário (Luanda) e pré-visualização dos destaques                             | Feito                           |
+| 19    | Destaques no início (além do painel da conta)                                             | Feito                           |
+| 20    | Ligação interna ou externa no botão de cada destaque                                      | Feito                           |
+| 21    | Ícone, cor e tipo em todos os destaques                                                   | Feito                           |
+| 22    | Arquivos (biblioteca Moodle: SGA + local, waffle, picker)                                 | Feito (precisa SQL)             |
+| 23    | Arquivos: miniaturas, filtros, logo/perfil da biblioteca                                  | Feito                           |
+| 24    | Arquivos ligados a foto aluno/pessoa, docs e comunicados                                  | Feito (precisa SQL)             |
+| 25    | Materiais de turma + descarregar/renomear arquivos                                        | Feito (precisa SQL)             |
+| 26    | Filtro turma nos arquivos + materiais no workspace                                        | Feito                           |
+| 27    | Arquivos visual OneDrive + utilizador, acesso e auditoria                                 | Feito (precisa SQL)             |
+| 28    | Arquivos: breadcrumb, barra de comandos, drag-drop, avatares                              | Feito                           |
+| 29    | Inquérito de metadados + ligação a utilizadores/pessoas                                   | Feito (precisa SQL)             |
+| 30    | Foto de aluno: relação + perfil na ficha                                                  | Feito                           |
+| 31    | Media reconhecida + inquérito/área obrigatórios                                           | Feito                           |
+| 32    | Pastas, selecção, mover e modal expansível                                                | Feito (precisa SQL)             |
+| 33    | Recibos/talões na biblioteca + ID pesquisável                                             | Feito (precisa SQL)             |
+| 34    | Planos de Aula (título/conteúdo/anexo + avaliações/provas por turma-disciplina-trimestre) | Feito (precisa SQL)             |
 
 ## Ciclo 9 — identidade, escola e tesouraria
 
@@ -65,6 +73,21 @@ Correr **só** no SQL Editor, nesta ordem:
 2. `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql`
 
 O segundo cria `current_school_id()` a partir de `school_memberships`. Sem isto as tabelas novas não existem (inclui `siga_assessment_items/scores` do Centro de Avaliação e `siga_lesson_plans/siga_lesson_plan_components` dos Planos de Aula).
+
+### Reaplicação obrigatória de Storage
+
+Após os commits de privacidade, reaplicar os dois scripts canónicos para manter
+as políticas alinhadas ao código:
+
+- `school-logos` público fica reservado ao logótipo institucional e ao padrão
+  de caminhos gerado pela interface;
+- fotos de pessoas ficam no bucket privado `siga-files`, referenciadas por
+  `siga-file://` e servidas por URL assinada;
+- avatares de conta ficam no bucket privado `avatars`, referenciados por
+  `siga-avatar://` e servidos por URL assinada.
+
+Referências públicas legadas de avatar continuam compatíveis enquanto existirem
+registos antigos em `profiles.avatar_url`.
 
 **Nunca** aplicar ao SGA:
 
@@ -98,23 +121,27 @@ npm test                    # vitest (usar Node 24)
 
 Scaffold cria `schemas.ts`, `server.ts`, teste e opcionalmente a rota. Não sobrescreve ficheiros existentes.
 
+Validação local mais recente: `npm run siga:check`, testes Vitest (222), build
+de produção e TypeScript concluídos. Os testes SQL pgTAP exigem Docker local;
+quando o daemon estiver disponível, correr as suites em `supabase/tests/`.
+
 ## Skills (um por módulo)
 
-| Skill | Quando |
-| --- | --- |
-| `siga` | qualquer trabalho SIGA, scaffold, SQL, handoff |
-| `siga-alunos` | alunos, matrícula interna, ficha |
-| `siga-pessoas` | pessoas, professores |
-| `siga-pedagogica` | turmas, notas, horários, WhatsApp |
-| `siga-financeiro` | caixa, faturas, planos, Multicaixa/Unitel |
-| `siga-documentos` | emissão de documentos |
-| `siga-calendario` | calendário lectivo, ICS |
-| `siga-comunicacoes` | comunicados |
-| `siga-acessos` | contas, grants, 2FA |
-| `siga-matricula` | link público `/matricula` |
-| `siga-integracoes` | catálogo catalog-ready |
-| `siga-arquivos` | biblioteca de ficheiros, picker Moodle |
-| `siga-dashboard` | dashboard e workspace do professor |
+| Skill               | Quando                                                           |
+| ------------------- | ---------------------------------------------------------------- |
+| `siga`              | qualquer trabalho SIGA, scaffold, SQL, handoff                   |
+| `siga-alunos`       | alunos, matrícula interna, ficha                                 |
+| `siga-pessoas`      | pessoas, professores                                             |
+| `siga-pedagogica`   | turmas, notas, horários, WhatsApp                                |
+| `siga-financeiro`   | caixa, faturas, planos, Multicaixa/Unitel                        |
+| `siga-documentos`   | emissão de documentos                                            |
+| `siga-calendario`   | calendário lectivo, ICS                                          |
+| `siga-comunicacoes` | comunicados                                                      |
+| `siga-acessos`      | contas, grants, 2FA                                              |
+| `siga-matricula`    | link público `/matricula`                                        |
+| `siga-integracoes`  | catálogo catalog-ready                                           |
+| `siga-arquivos`     | biblioteca de ficheiros, picker Moodle                           |
+| `siga-dashboard`    | dashboard e workspace do professor                               |
 | `siga-lesson-plans` | planos de aula, avaliações/provas por turma-disciplina-trimestre |
 
 Registo canónico: `scripts/siga/modules.json`.
@@ -201,7 +228,8 @@ Registo canónico: `scripts/siga/modules.json`.
 
 ## Ciclo 24 — arquivos nas fichas
 
-- Ficha do aluno e registo central: **Foto** / **Foto da biblioteca** (PNG/JPEG → `school-logos` + `people.photo_url`).
+- Ficha do aluno e registo central: **Foto** / **Foto da biblioteca** (PNG/JPEG
+  → `siga-files` privado + referência `siga-file://` em `people.photo_url`).
 - Documento da pessoa: **Anexar PDF** da biblioteca (`file_id` / `file_name` em `person_documents`); botão **Abrir** no anexo. Colunas no `APPLY_ENROLLMENT_AND_PREMIUM.sql`.
 - Comunicados: **Anexar arquivo** acrescenta referência `[Arquivo SIGA] nome` à mensagem (sem blob no Postgres).
 
@@ -241,7 +269,9 @@ Registo canónico: `scripts/siga/modules.json`.
 ## Ciclo 30 — fotografia de aluno
 
 - Categoria **Fotografia**: inquérito exige aluno (`listArquivosStudentOptions`); PNG/JPEG; opção **Usar como foto de perfil** (predefinida).
-- Após guardar: `applyLibraryPhotoToPerson` → `school-logos` + `people.photo_url` + metadados `category=foto` / `related_person_id`.
+- Após guardar: `applyLibraryPhotoToPerson` mantém o ficheiro em `siga-files`
+  privado, grava `people.photo_url` como `siga-file://` e actualiza os
+  metadados `category=foto` / `related_person_id`.
 - Ficha do aluno: painel **Arquivos do aluno** (`StudentRelatedFilesPanel`) com lista ligada, **Usar no perfil** e atalho `/arquivos?pessoa=`.
 - Botão **Foto** na ficha também marca o ficheiro como fotografia relacionada.
 
@@ -272,13 +302,13 @@ Registo canónico: `scripts/siga/modules.json`.
 - `/planos-aula` (sidebar → Área Pedagógica): cartões agrupados por trimestre, filtráveis por turma/disciplina/trimestre/texto.
 - Modal `LessonPlanModal` (padrão `PremiumModal`, o mesmo usado no Centro de Avaliação): turma, disciplina, trimestre, título, conteúdo, anexo (`PickFileButton` da biblioteca), listas repetíveis de **Avaliações** e **Provas** (nome definido pelo professor + quantidade).
 - **Não é um motor de notas novo.** Cada avaliação/prova do plano materializa-se em `siga_assessment_items` (avaliação → `component: MAC`, prova → `component: NPP`) — o Centro de Avaliação já existente (`AssessmentCenter.tsx`) lança as notas, calcula `componentAverage` e empurra para a pauta oficial via `upsertTermGradesBatch`. A pauta continua fixa a MAC/NPP/NPT.
-- Editar um plano nunca apaga notas já lançadas: itens do Centro de Avaliação com pontuação ficam ligados por `lesson_plan_component_id` mesmo que a definição do plano mude; só remove itens *sem* nota quando a quantidade planeada desce.
+- Editar um plano nunca apaga notas já lançadas: itens do Centro de Avaliação com pontuação ficam ligados por `lesson_plan_component_id` mesmo que a definição do plano mude; só remove itens _sem_ nota quando a quantidade planeada desce.
 - Tabelas novas: `siga_lesson_plans`, `siga_lesson_plan_components`; coluna nova `siga_assessment_items.lesson_plan_component_id`. Tudo em `APPLY_ENROLLMENT_AND_PREMIUM.sql`.
 
 ## Próximos passos úteis
 
 1. Utilizador aplica o SQL; confirmar as 6 tabelas no resultado do script.
-2. Quando houver identidade git, **7 commits** por ciclo (sem `.env`, sem WIP alheio).
+2. Manter commits pequenos por alteração e nunca incluir `.env` nem `.claude/worktrees/`.
 3. Aceitar candidatura cria aluno, encarregado (se veio no formulário) e opcionalmente turma (`classGroupId`). Sem turma fica `applicant`. Em `/alunos`: **Turma** (candidato), **Mudar** (activo), **Estado** e PDF **Oficial**. Campanha de matrícula (Definições) liga a `/documentos#modelos` para talões.
 4. Emitir em `/documentos` usa o modelo `.hbs` escolhido em **Modelos de impressão** (Ver / Editar / Usar). Cabeçalho da página tem botão **Modelos** (`#modelos`). Atalhos: Definições → Escola → **Atalhos**, `/configuracoes?painel=documentos` ou campanha de matrícula. A lista de pedidos também tem **Oficial**. A ficha do aluno emite **Boletim**, **Histórico**, **Declaração** e **Mais modelos** (dossiê, certificado, credenciais). Pedagógica: pauta, boletim, mapa, acta e validação. Workspace do professor: **Diário**. Relatórios académicos e talões de candidatura/matrícula também. Sem modelo ou se falhar, cai no PDF MINED. Pedidos já emitidos têm **PDF**. Pedidos em curso: **Recusar** e **Cancelar**. Ficha também: **Fatura** e **Documento**.
 5. Pedagógica: **Atribuir professor** liga `class_subjects.teacher_id`. Disciplinas: **Editar** e **Desactivar**. Horários: **Copiar** slot para outro dia. Na pauta, **Copiar trimestre anterior** preenche MAC/NPP/NPT (depois Guardar). Cabeçalho da área pedagógica tem **Pauta Oficial** e **Turmas Oficial**; grelha e centro de avaliação também. Centro de avaliação: **Imprimir** usa `issuePrintDocument` (pauta oficial), não `window.print`.
