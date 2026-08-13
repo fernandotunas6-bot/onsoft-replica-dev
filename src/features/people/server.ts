@@ -347,16 +347,30 @@ export const createPerson = createServerFn({ method: "POST" })
       }
     }
     if (roles.includes("aluno")) {
-      const suffix = String(Date.now()).slice(-6);
-      await db.from("students").insert({
+      // register_student gera o número de processo por sequência própria (nunca
+      // duplica sob pedidos simultâneos, ao contrário do `EST-${Date.now()}` anterior,
+      // que podia colidir em dois pedidos no mesmo milissegundo).
+      const { error: registerError } = await context.supabase.rpc("register_student", {
         school_id: membership.schoolId,
         person_id: person.id,
-        student_number: `EST-${suffix}`,
         admission_date: new Date().toISOString().slice(0, 10),
-        status: "applicant",
-        created_by: context.userId,
-        updated_by: context.userId,
+        guardian_person_id: null,
+        relationship: null,
+        primary_guardian: false,
+        financial_responsibility: false,
+        pickup_authorization: true,
       });
+      if (registerError) {
+        if (
+          registerError.code === "42501" ||
+          /is_aal2|autorização|autorizacao/i.test(registerError.message ?? "")
+        ) {
+          throw new Error(
+            "Pessoa criada, mas esta conta precisa de 2FA activo para a matricular como aluno.",
+          );
+        }
+        throw publicDatabaseError(registerError, "Pessoa criada, mas falhou o registo de aluno.");
+      }
     }
 
     return {

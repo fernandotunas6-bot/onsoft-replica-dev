@@ -1434,8 +1434,9 @@ function StudentDetail() {
                               },
                               {
                                 name: "recibo",
-                                label: "Recibo",
+                                label: "Referência interna (opcional)",
                                 defaultValue: `RC-${invoice.number.replace(/^FT-?/i, "")}`,
+                                required: false,
                               },
                               {
                                 name: "metodo",
@@ -1467,7 +1468,7 @@ function StudentDetail() {
                                   : method === "unitel_money"
                                     ? paymentReference("UML")
                                     : undefined);
-                              await recordInvoicePayment({
+                              const paid = await recordInvoicePayment({
                                 data: {
                                   invoiceId: invoice.id,
                                   receiptNumber: values.recibo,
@@ -1479,7 +1480,9 @@ function StudentDetail() {
                               await queryClient.invalidateQueries({
                                 queryKey: ["finance", "invoices"],
                               });
-                              await downloadInvoiceReceipt(invoice, values.recibo, amount);
+                              // Número oficial vem do servidor (gerado atomicamente) — nunca do
+                              // valor digitado, para o PDF impresso bater sempre com a base de dados.
+                              await downloadInvoiceReceipt(invoice, paid.receipt_number, amount);
                             }}
                             trigger={(open) => (
                               <Button size="sm" variant="ghost" className="h-7 px-2" onClick={open}>

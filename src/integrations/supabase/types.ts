@@ -1710,6 +1710,47 @@ export type Database = {
       };
     };
     Functions: {
+      // As 3 seguintes existem mesmo no projecto SGA real (private.*, com is_aal2()
+      // + has_permission() + lock de linha). O resto deste bloco Functions foi
+      // gerado a partir do schema Lovable antigo e não reflecte o SGA — ver
+      // docs/agents/CONTINUE.md.
+      register_payment: {
+        Args: {
+          school_id: string;
+          invoice_id: string;
+          amount: number;
+          payment_method: "cash" | "bank_transfer" | "card" | "other";
+          paid_on?: string;
+        };
+        Returns: { receiptId: string; receiptNumber: string; invoiceStatus: string };
+      };
+      enroll_student: {
+        Args: {
+          school_id: string;
+          student_id: string;
+          class_group_id: string;
+          enrolled_on: string;
+        };
+        Returns: {
+          enrollmentId: string;
+          enrollmentNumber: string;
+          classGroupId: string;
+          status: string;
+        };
+      };
+      register_student: {
+        Args: {
+          school_id: string;
+          person_id: string;
+          admission_date: string;
+          guardian_person_id?: string | null;
+          relationship?: string | null;
+          primary_guardian?: boolean;
+          financial_responsibility?: boolean;
+          pickup_authorization?: boolean;
+        };
+        Returns: { studentId: string; studentNumber: string; status: string };
+      };
       can_manage_finance: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;

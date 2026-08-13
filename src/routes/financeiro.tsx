@@ -533,7 +533,12 @@ function FinanceiroPage() {
                     type: "select",
                     options: Object.keys(paymentMethods),
                   },
-                  { name: "recibo", label: "Número do recibo", placeholder: "RC 2025/0001" },
+                  {
+                    name: "recibo",
+                    label: "Referência interna (opcional)",
+                    placeholder: "RC 2025/0001",
+                    required: false,
+                  },
                   { name: "data", label: "Data do pagamento", type: "date" },
                   {
                     name: "referencia",
@@ -549,7 +554,7 @@ function FinanceiroPage() {
                   const method = paymentMethods[values.metodo as keyof typeof paymentMethods];
                   if (!invoice || !method)
                     throw new Error("Selecione uma fatura e um método válidos.");
-                  await recordInvoicePayment({
+                  const paid = await recordInvoicePayment({
                     data: {
                       invoiceId: invoice.id,
                       receiptNumber: values.recibo,
@@ -566,6 +571,8 @@ function FinanceiroPage() {
                     queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
                     queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
                   ]);
+                  // Número oficial vem do servidor (gerado atomicamente) — nunca do
+                  // valor digitado, para o PDF impresso bater sempre com a base de dados.
                   await issuePrintDocument({
                     tipo: "Recibo de pagamento",
                     school: financeSchool,
@@ -575,7 +582,7 @@ function FinanceiroPage() {
                     },
                     overlay: overlayServico({
                       name: "Recibo de pagamento",
-                      reference: values.recibo,
+                      reference: paid.receipt_number,
                       status: "Pago",
                       parties: [{ label: "Aluno", value: invoice.student_name }],
                       sections: [
@@ -592,7 +599,7 @@ function FinanceiroPage() {
                         schoolName: school?.name ?? "Escola",
                         studentName: invoice.student_name,
                         invoiceNumber: invoice.number,
-                        receiptNumber: values.recibo,
+                        receiptNumber: paid.receipt_number,
                         amountLabel: kwanza(Number(values.valor)),
                       }),
                       banking: schoolBanking,

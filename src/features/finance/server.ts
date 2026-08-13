@@ -543,6 +543,20 @@ export const listCashEntries = createServerFn({ method: "GET" })
     }));
   });
 
+/**
+ * private.register_payment só aceita este conjunto (é validado dentro da função).
+ * Os métodos premium angolanos (Multicaixa Express, Unitel Money) não têm
+ * equivalente 1:1 — o método original fica registado na descrição do arquivo.
+ */
+function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
+  if (method === "cash") return "cash";
+  if (method === "transfer") return "bank_transfer";
+  if (method === "multicaixa" || method === "multicaixa_express" || method === "express") {
+    return "card";
+  }
+  return "other";
+}
+
 export const recordInvoicePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordInvoicePaymentInputSchema.parse(input))
@@ -553,62 +567,51 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: invoice, error: invoiceError } = await db
-      .from("finance_invoices")
-      .select("id, amount, discount_amount, status")
-      .eq("id", data.invoiceId)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (invoiceError)
-      throw publicDatabaseError(invoiceError, "Não foi possível localizar a fatura.");
-    if (!invoice) throw new Error("Fatura não encontrada.");
-    if (invoice.status === "cancelled") throw new Error("Esta fatura está cancelada.");
-
-    const { data: receipt, error } = await db
-      .from("finance_receipts")
-      .insert({
-        school_id: membership.schoolId,
-        invoice_id: data.invoiceId,
-        receipt_number: data.receiptNumber,
-        amount: data.amount,
-        paid_on: (data.paidAt ?? new Date().toISOString()).slice(0, 10),
-        payment_method: data.method,
-        received_by: context.userId,
-        status: "issued",
-      })
-      .select("*")
-      .single();
-    if (error) throw publicDatabaseError(error, "Não foi possível registrar o pagamento.");
-
-    const { data: receipts } = await db
-      .from("finance_receipts")
-      .select("amount, status")
-      .eq("invoice_id", data.invoiceId);
-    const paid = (receipts ?? [])
-      .filter((row: { status: string }) => row.status !== "reversed")
-      .reduce((sum: number, row: { amount: number }) => sum + Number(row.amount ?? 0), 0);
-    const total = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
-    if (paid >= total) {
-      await db.from("finance_invoices").update({ status: "paid" }).eq("id", data.invoiceId);
+    // register_payment tranca a fatura (FOR UPDATE), valida o saldo em aberto e gera
+    // o número do recibo atomicamente — evita a corrida de dois pagamentos simultâneos
+    // sobre a mesma fatura que o insert directo anterior não protegia.
+    // Corre no client da SESSÃO (não no admin) para auth.uid()/aal2 resolverem.
+    const { data: outcome, error } = await context.supabase.rpc("register_payment", {
+      school_id: membership.schoolId,
+      invoice_id: data.invoiceId,
+      amount: data.amount,
+      payment_method: mapPaymentMethodForLedger(data.method),
+      paid_on: (data.paidAt ?? new Date().toISOString()).slice(0, 10),
+    });
+    if (error) {
+      if (error.code === "42501" || /is_aal2|autorização/i.test(error.message ?? "")) {
+        throw new Error(
+          "Esta conta precisa de verificação em duas etapas (2FA) activa para registar pagamentos.",
+        );
+      }
+      throw publicDatabaseError(error, "Não foi possível registrar o pagamento.");
     }
+    const result = outcome as {
+      receiptId: string;
+      receiptNumber: string;
+      invoiceStatus: string;
+    };
 
     const linked = await personIdForInvoice(db, membership.schoolId, data.invoiceId);
-    const documentCode = stableDocumentCode("recibo", String(receipt.id ?? data.receiptNumber));
+    const documentCode = stableDocumentCode("recibo", result.receiptId);
+    const noteExtra = data.receiptNumber ? ` Referência do funcionário: ${data.receiptNumber}.` : "";
     const archived = await archiveFinanceQuietly(db, {
       schoolId: membership.schoolId,
       userId: context.userId,
       role: membership.appRole,
       category: "recibo",
-      title: `Recibo ${data.receiptNumber}`,
-      description: `Recibo financeiro emitido na tesouraria. Fatura ${linked.invoiceNumber ?? data.invoiceId}. Número interno ${data.receiptNumber}. Arquivado automaticamente na biblioteca SIGA.`,
+      title: `Recibo ${result.receiptNumber}`,
+      description: `Recibo financeiro emitido na tesouraria. Fatura ${linked.invoiceNumber ?? data.invoiceId}. Número oficial ${result.receiptNumber}. Método original: ${data.method}.${noteExtra} Arquivado automaticamente na biblioteca SIGA.`,
       relatedPersonId: linked.personId,
-      sourceLabel: data.receiptNumber,
+      sourceLabel: result.receiptNumber,
       amountLabel: formatAmountKz(Number(data.amount)),
       documentCode,
     });
 
     return {
-      ...receipt,
+      id: result.receiptId,
+      receipt_number: result.receiptNumber,
+      invoice_status: result.invoiceStatus,
       library_document_code: archived?.documentCode ?? documentCode,
       library_file_id: archived?.fileId ?? null,
     };

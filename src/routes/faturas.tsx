@@ -585,8 +585,9 @@ function FaturasPage() {
                               },
                               {
                                 name: "recibo",
-                                label: "Número do recibo",
+                                label: "Referência interna (opcional)",
                                 defaultValue: `RC-${f.numero.replace(/^FT-?/i, "")}`,
+                                required: false,
                               },
                               { name: "data", label: "Data", type: "date", required: false },
                               {
@@ -642,7 +643,9 @@ function FaturasPage() {
                                 }),
                                 queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
                               ]);
-                              await downloadReceipt(f, values.recibo, amount);
+                              // Número oficial vem do servidor (gerado atomicamente) — nunca do
+                              // valor digitado, para o PDF impresso bater sempre com a base de dados.
+                              await downloadReceipt(f, paid.receipt_number, amount);
                               if (paid?.library_document_code) {
                                 toast.success(`Recibo arquivado · ${paid.library_document_code}`);
                               }

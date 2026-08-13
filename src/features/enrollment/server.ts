@@ -296,29 +296,8 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         }
       }
 
-      const registrationNumber = candidacyProcessNumber(
-        application.id,
-        String(application.created_at ?? ""),
-      );
-      const { data: student, error: studentError } = await db
-        .from("students")
-        .insert({
-          school_id: membership.schoolId,
-          person_id: personRow.id,
-          student_number: registrationNumber,
-          admission_date: new Date().toISOString().slice(0, 10),
-          status: "applicant",
-          created_by: context.userId,
-          updated_by: context.userId,
-        })
-        .select("id")
-        .single();
-      if (studentError) {
-        throw publicDatabaseError(studentError, "Não foi possível matricular o candidato.");
-      }
-      studentId = student.id;
-
       const guardianName = String(payload.guardianName ?? "").trim();
+      let guardianPersonId: string | null = null;
       if (guardianName) {
         const { data: guardianPerson } = await db
           .from("people")
@@ -333,20 +312,37 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           })
           .select("id")
           .maybeSingle();
-        if (guardianPerson?.id) {
-          await db.from("student_guardians").insert({
-            school_id: membership.schoolId,
-            student_id: student.id,
-            guardian_person_id: guardianPerson.id,
-            relationship: mapSgaGuardianRelationship(
-              payload.guardianRelationship || "encarregado",
-            ),
-            is_primary: true,
-            is_pickup_authorized: true,
-            created_by: context.userId,
-          });
-        }
+        guardianPersonId = guardianPerson?.id ?? null;
       }
+
+      // register_student cria o aluno (+ encarregado) numa transação atómica: gera o
+      // número de processo por sequência própria (nunca duplica sob candidaturas
+      // aceites em simultâneo) e valida a pessoa/encarregado antes de gravar.
+      const { data: registered, error: registerError } = await context.supabase.rpc(
+        "register_student",
+        {
+          school_id: membership.schoolId,
+          person_id: personRow.id,
+          admission_date: new Date().toISOString().slice(0, 10),
+          guardian_person_id: guardianPersonId,
+          relationship: guardianPersonId
+            ? mapSgaGuardianRelationship(payload.guardianRelationship || "encarregado")
+            : null,
+          primary_guardian: Boolean(guardianPersonId),
+          financial_responsibility: Boolean(guardianPersonId),
+          pickup_authorization: true,
+        },
+      );
+      if (registerError) {
+        if (registerError.code === "42501" || /is_aal2|autorização/i.test(registerError.message ?? "")) {
+          throw new Error(
+            "Esta conta precisa de verificação em duas etapas (2FA) activa para aceitar candidaturas.",
+          );
+        }
+        throw publicDatabaseError(registerError, "Não foi possível matricular o candidato.");
+      }
+      const studentOutcome = registered as { studentId: string };
+      studentId = studentOutcome.studentId;
 
       if (data.classGroupId) {
         const { data: classGroup, error: classError } = await db
@@ -360,27 +356,24 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         if (!classGroup.academic_year_id) {
           throw new Error("Esta turma não tem ano lectivo associado.");
         }
-        const { error: enrollmentError } = await db.from("enrollments").insert({
+        // enroll_student tranca a turma (FOR UPDATE) e valida capacidade atomicamente.
+        const { error: enrollError } = await context.supabase.rpc("enroll_student", {
           school_id: membership.schoolId,
-          student_id: student.id,
-          academic_year_id: classGroup.academic_year_id,
+          student_id: studentOutcome.studentId,
           class_group_id: classGroup.id,
-          enrollment_number: `MAT-${registrationNumber}`,
-          status: "active",
           enrolled_on: new Date().toISOString().slice(0, 10),
-          created_by: context.userId,
-          updated_by: context.userId,
         });
-        if (enrollmentError) {
+        if (enrollError) {
+          if (enrollError.code === "42501" || /is_aal2|autorização/i.test(enrollError.message ?? "")) {
+            throw new Error(
+              "Aluno criado, mas esta conta precisa de 2FA activo para o colocar na turma.",
+            );
+          }
           throw publicDatabaseError(
-            enrollmentError,
+            enrollError,
             "Aluno criado, mas não foi possível colocá-lo na turma.",
           );
         }
-        await db
-          .from("students")
-          .update({ status: "active", updated_by: context.userId })
-          .eq("id", student.id);
       }
     }
 

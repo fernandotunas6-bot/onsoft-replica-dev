@@ -6,7 +6,10 @@ export const financeListInputSchema = z.object({
 
 export const recordInvoicePaymentInputSchema = z.object({
   invoiceId: z.string().uuid(),
-  receiptNumber: z.string().trim().min(1).max(64),
+  // Referência opcional do funcionário — o número oficial do recibo é gerado
+  // atomicamente pela função register_payment (private.next_document_number),
+  // nunca por este valor. Ver features/finance/server.ts.
+  receiptNumber: z.string().trim().max(64).optional(),
   amount: z.number().positive().max(999_999_999_999.99),
   method: z.enum([
     "cash",
