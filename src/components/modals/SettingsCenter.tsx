@@ -93,6 +93,7 @@ function ProfileAvatarField() {
     }
 
     setUploading(true);
+    let uploadedPath: string | null = null;
     try {
       const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${currentUser.id}/avatar-${Date.now()}.${extension}`;
@@ -100,6 +101,7 @@ function ProfileAvatarField() {
         .from("avatars")
         .upload(path, file, { upsert: true, cacheControl: "3600" });
       if (uploadError) throw uploadError;
+      uploadedPath = path;
 
       const profile = await setCurrentProfileAvatar({ data: { storagePath: path } });
 
@@ -109,6 +111,9 @@ function ProfileAvatarField() {
       }));
       toast.success("Foto de perfil actualizada.");
     } catch {
+      if (uploadedPath) {
+        await supabase.storage.from("avatars").remove([uploadedPath]);
+      }
       toast.error("Não foi possível carregar a imagem.");
     } finally {
       setUploading(false);

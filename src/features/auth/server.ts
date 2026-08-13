@@ -211,6 +211,14 @@ export const setCurrentProfileAvatar = createServerFn({ method: "POST" })
     }
     const db = await loadSgaAdminClient();
     const avatarUrl = `${AVATAR_REFERENCE_PREFIX}${data.storagePath}`;
+    const { data: previous, error: previousError } = await db
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (previousError) {
+      throw publicDatabaseError(previousError, "Não foi possível validar a foto de perfil.");
+    }
     const { data: profile, error } = await db
       .from("profiles")
       .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
@@ -219,6 +227,16 @@ export const setCurrentProfileAvatar = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a foto de perfil.");
     if (!profile) throw new Error("Perfil não encontrado.");
+    const previousPath = previous?.avatar_url
+      ? avatarStoragePathFromUrl(previous.avatar_url)
+      : null;
+    if (
+      previousPath &&
+      previousPath !== data.storagePath &&
+      previousPath.startsWith(`${context.userId}/`)
+    ) {
+      await db.storage.from("avatars").remove([previousPath]);
+    }
     return profile;
   });
 
