@@ -14,9 +14,9 @@ export function FilePickerModal({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  area?: FileArea;
-  acceptKinds?: readonly FileKind[];
-  onPick?: (file: SchoolFileRecord) => void;
+  area?: FileArea | undefined;
+  acceptKinds?: readonly FileKind[] | undefined;
+  onPick?: ((file: SchoolFileRecord) => void) | undefined;
 }) {
   const { expanded, toggleExpanded, contentClassName } = useExpandableDialog();
   return (

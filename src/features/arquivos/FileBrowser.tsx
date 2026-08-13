@@ -175,8 +175,8 @@ export function FileBrowser({
   onPick,
 }: {
   pickMode?: boolean;
-  initialArea?: FileArea;
-  acceptKinds?: readonly FileKind[];
+  initialArea?: FileArea | undefined;
+  acceptKinds?: readonly FileKind[] | undefined;
   classGroupId?: string;
   initialClassGroupId?: string;
   initialRelatedPersonId?: string;

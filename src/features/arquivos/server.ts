@@ -79,13 +79,13 @@ function asCategory(value: unknown): SchoolFileRecord["category"] {
 }
 
 function mapRow(row: Record<string, unknown>): SchoolFileRecord {
-  const name = String(row.name ?? "ficheiro");
-  const mime = String(row.mime ?? "application/octet-stream");
-  const isFolder = Boolean(row.is_folder);
+  const name = String(row["name"] ?? "ficheiro");
+  const mime = String(row["mime"] ?? "application/octet-stream");
+  const isFolder = Boolean(row["is_folder"]);
   return {
-    id: String(row.id),
-    schoolId: String(row.school_id),
-    ownerUserId: String(row.owner_user_id),
+    id: String(row["id"]),
+    schoolId: String(row["school_id"]),
+    ownerUserId: String(row["owner_user_id"]),
     name,
     mime,
     kind: isFolder
@@ -96,29 +96,29 @@ function mapRow(row: Record<string, unknown>): SchoolFileRecord {
           : mime.toLowerCase().startsWith("text/")
             ? "word"
             : "pdf")),
-    sizeBytes: Number(row.size_bytes ?? 0),
-    area: row.area as SchoolFileRecord["area"],
-    visibility: row.visibility as SchoolFileRecord["visibility"],
-    storageBackend: (row.storage_backend as SchoolFileRecord["storageBackend"]) ?? "sga",
-    storagePath: String(row.storage_path ?? ""),
-    classGroupId: row.class_group_id ? String(row.class_group_id) : null,
-    parentId: row.parent_id ? String(row.parent_id) : null,
+    sizeBytes: Number(row["size_bytes"] ?? 0),
+    area: row["area"] as SchoolFileRecord["area"],
+    visibility: row["visibility"] as SchoolFileRecord["visibility"],
+    storageBackend: (row["storage_backend"] as SchoolFileRecord["storageBackend"]) ?? "sga",
+    storagePath: String(row["storage_path"] ?? ""),
+    classGroupId: row["class_group_id"] ? String(row["class_group_id"]) : null,
+    parentId: row["parent_id"] ? String(row["parent_id"]) : null,
     isFolder,
-    title: row.title ? String(row.title) : null,
-    description: row.description ? String(row.description) : null,
-    category: asCategory(row.category),
-    documentDate: row.document_date ? String(row.document_date).slice(0, 10) : null,
-    referenceCode: row.reference_code ? String(row.reference_code) : null,
-    relatedUserId: row.related_user_id ? String(row.related_user_id) : null,
-    relatedPersonId: row.related_person_id ? String(row.related_person_id) : null,
+    title: row["title"] ? String(row["title"]) : null,
+    description: row["description"] ? String(row["description"]) : null,
+    category: asCategory(row["category"]),
+    documentDate: row["document_date"] ? String(row["document_date"]).slice(0, 10) : null,
+    referenceCode: row["reference_code"] ? String(row["reference_code"]) : null,
+    relatedUserId: row["related_user_id"] ? String(row["related_user_id"]) : null,
+    relatedPersonId: row["related_person_id"] ? String(row["related_person_id"]) : null,
     relatedUserName: null,
     relatedPersonName: null,
-    createdAt: String(row.created_at ?? new Date().toISOString()),
-    updatedAt: row.updated_at ? String(row.updated_at) : null,
-    updatedByUserId: row.updated_by ? String(row.updated_by) : null,
-    lastAction: row.last_action ? String(row.last_action) : null,
-    lastActionAt: row.last_action_at ? String(row.last_action_at) : null,
-    lastActionByUserId: row.last_action_by ? String(row.last_action_by) : null,
+    createdAt: String(row["created_at"] ?? new Date().toISOString()),
+    updatedAt: row["updated_at"] ? String(row["updated_at"]) : null,
+    updatedByUserId: row["updated_by"] ? String(row["updated_by"]) : null,
+    lastAction: row["last_action"] ? String(row["last_action"]) : null,
+    lastActionAt: row["last_action_at"] ? String(row["last_action_at"]) : null,
+    lastActionByUserId: row["last_action_by"] ? String(row["last_action_by"]) : null,
     ownerName: null,
     updatedByName: null,
     lastActionByName: null,
@@ -179,7 +179,7 @@ async function recordFileEvent(
     fileId: string;
     actorUserId: string;
     action: string;
-    detail?: string;
+    detail?: string | undefined;
   },
 ) {
   const now = new Date().toISOString();
@@ -206,10 +206,12 @@ async function recordFileEvent(
 export const getFilesWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     return {
       schoolId: membership.schoolId,
-      userId: context.userId,
+      userId,
       role: membership.appRole,
       tableHint: "Corra supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql no SQL Editor.",
     };
@@ -218,7 +220,9 @@ export const getFilesWorkspace = createServerFn({ method: "GET" })
 export const listArquivosClassOptions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data, error } = await db
       .from("class_groups")
@@ -245,7 +249,9 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listArquivosInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     if (data.area && !canReadFileArea(membership.appRole, data.area)) {
       throw new Error("Sem permissão para esta área de arquivos.");
     }
@@ -297,8 +303,8 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
       throw publicDatabaseError(error, "Não foi possível listar os arquivos.");
     }
     let files = (rows ?? [])
-      .map((row) => mapRow(row as Record<string, unknown>))
-      .filter((row) => canSeeRow(row, context.userId, membership.appRole));
+      .map((row) => mapRow(row as unknown as Record<string, unknown>))
+      .filter((row) => canSeeRow(row, userId, membership.appRole));
     if (data.classGroupId) {
       files = files.filter((row) => row.classGroupId === data.classGroupId);
     }
@@ -370,7 +376,9 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => registerSchoolFileInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     if (!canWriteFileArea(membership.appRole, data.area)) {
       throw new Error("Sem permissão para gravar nesta área.");
     }
@@ -382,7 +390,7 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     const base = {
       id: data.id,
       school_id: membership.schoolId,
-      owner_user_id: context.userId,
+      owner_user_id: userId,
       name: data.name,
       mime: data.mime,
       size_bytes: data.sizeBytes,
@@ -390,7 +398,7 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       visibility: data.visibility,
       storage_backend: data.storageBackend,
       storage_path: data.storagePath,
-      created_by: context.userId,
+      created_by: userId,
     };
     const title = data.title?.trim() || data.name;
     const category = data.category ?? "outro";
@@ -410,10 +418,10 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       related_user_id: data.relatedUserId ?? null,
       related_person_id: data.relatedPersonId ?? null,
       updated_at: now,
-      updated_by: context.userId,
+      updated_by: userId,
       last_action: "created",
       last_action_at: now,
-      last_action_by: context.userId,
+      last_action_by: userId,
     };
     let row: Record<string, unknown> | null = null;
     const first = await db.from("siga_files").insert(withAudit).select(FILE_SELECT).single();
@@ -446,7 +454,7 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       await recordFileEvent(db, {
         schoolId: membership.schoolId,
         fileId: data.id,
-        actorUserId: context.userId,
+        actorUserId: userId,
         action: "created",
         detail: data.name,
       });
@@ -460,7 +468,9 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createSchoolFolderInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     if (!canWriteFileArea(membership.appRole, data.area)) {
       throw new Error("Sem permissão para criar pastas nesta área.");
     }
@@ -469,7 +479,7 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
     const payload = {
       id: data.id,
       school_id: membership.schoolId,
-      owner_user_id: context.userId,
+      owner_user_id: userId,
       name: data.name,
       mime: "application/vnd.siga.folder",
       size_bytes: 1,
@@ -483,12 +493,12 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
       title: data.name,
       description: "Pasta da biblioteca SIGA",
       category: "outro" as const,
-      created_by: context.userId,
+      created_by: userId,
       updated_at: now,
-      updated_by: context.userId,
+      updated_by: userId,
       last_action: "folder_created",
       last_action_at: now,
-      last_action_by: context.userId,
+      last_action_by: userId,
     };
     const { data: inserted, error } = await db
       .from("siga_files")
@@ -511,7 +521,7 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
       await recordFileEvent(db, {
         schoolId: membership.schoolId,
         fileId: data.id,
-        actorUserId: context.userId,
+        actorUserId: userId,
         action: "folder_created",
         detail: data.name,
       });
@@ -525,7 +535,9 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => moveSchoolFilesInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     if (data.area && !canWriteFileArea(membership.appRole, data.area)) {
       throw new Error("Sem permissão para mover para essa área.");
     }
@@ -550,7 +562,7 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       const area = item.area as SchoolFileRecord["area"];
       const owner = String(item.owner_user_id);
       const canEdit =
-        owner === context.userId ||
+        owner === userId ||
         membership.appRole === "Administrador" ||
         (area === "secretaria" && membership.appRole === "Secretaria");
       if (!canEdit || !canWriteFileArea(membership.appRole, area)) {
@@ -578,12 +590,12 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
     const payload: Record<string, unknown> = {
       parent_id: data.parentId,
       updated_at: now,
-      updated_by: context.userId,
+      updated_by: userId,
       last_action: "moved",
       last_action_at: now,
-      last_action_by: context.userId,
+      last_action_by: userId,
     };
-    if (data.area) payload.area = data.area;
+    if (data.area) payload["area"] = data.area;
     const { error } = await db
       .from("siga_files")
       .update(payload)
@@ -600,7 +612,7 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
         await recordFileEvent(db, {
           schoolId: membership.schoolId,
           fileId: id,
-          actorUserId: context.userId,
+          actorUserId: userId,
           action: "moved",
           detail: data.parentId ? `pasta ${data.parentId}` : "raiz",
         });
@@ -615,18 +627,23 @@ export const listFolderTrail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listFolderTrailInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     if (!data.folderId) return { trail: [] as Array<{ id: string; name: string }> };
     const db = await loadSgaAdminClient();
     const trail: Array<{ id: string; name: string }> = [];
     let currentId: string | null = data.folderId;
     for (let depth = 0; depth < 12 && currentId; depth += 1) {
-      const { data: row, error } = await db
+      const { data: row, error } = (await db
         .from("siga_files")
         .select("id, name, parent_id, is_folder")
         .eq("id", currentId)
         .eq("school_id", membership.schoolId)
-        .maybeSingle();
+        .maybeSingle()) as {
+        data: { id: unknown; name: unknown; parent_id: unknown; is_folder: unknown } | null;
+        error: { message?: string; code?: string } | null;
+      };
       if (error) {
         if (missingFilesTable(error) || missingOptionalColumn(error)) return { trail: [] };
         throw publicDatabaseError(error, "Não foi possível ler o caminho da pasta.");
@@ -643,7 +660,9 @@ export const archiveFinanceDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => archiveFinanceDocumentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, [
       "Administrador",
       "Secretaria",
       "Tesouraria",
@@ -658,7 +677,7 @@ export const archiveFinanceDocument = createServerFn({ method: "POST" })
     try {
       const archived = await insertFinanceArchive(db, {
         schoolId: membership.schoolId,
-        userId: context.userId,
+        userId,
         area,
         category: data.category,
         title: data.title,
@@ -673,7 +692,7 @@ export const archiveFinanceDocument = createServerFn({ method: "POST" })
           await recordFileEvent(db, {
             schoolId: membership.schoolId,
             fileId: archived.fileId,
-            actorUserId: context.userId,
+            actorUserId: userId,
             action: "created",
             detail: archived.documentCode,
           });
@@ -691,7 +710,9 @@ export const renameSchoolFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => renameSchoolFileInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("siga_files")
@@ -707,7 +728,7 @@ export const renameSchoolFile = createServerFn({ method: "POST" })
     const area = existing.area as SchoolFileRecord["area"];
     const owner = String(existing.owner_user_id);
     const canEdit =
-      owner === context.userId ||
+      owner === userId ||
       membership.appRole === "Administrador" ||
       (area === "secretaria" && membership.appRole === "Secretaria");
     if (!canEdit || !canWriteFileArea(membership.appRole, area)) {
@@ -719,10 +740,10 @@ export const renameSchoolFile = createServerFn({ method: "POST" })
       .update({
         name: data.name,
         updated_at: now,
-        updated_by: context.userId,
+        updated_by: userId,
         last_action: "renamed",
         last_action_at: now,
-        last_action_by: context.userId,
+        last_action_by: userId,
       })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId);
@@ -740,7 +761,7 @@ export const renameSchoolFile = createServerFn({ method: "POST" })
       await recordFileEvent(db, {
         schoolId: membership.schoolId,
         fileId: data.id,
-        actorUserId: context.userId,
+        actorUserId: userId,
         action: "renamed",
         detail: data.name,
       });
@@ -754,7 +775,9 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateSchoolFileMetaInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("siga_files")
@@ -770,7 +793,7 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     const area = existing.area as SchoolFileRecord["area"];
     const owner = String(existing.owner_user_id);
     const canEdit =
-      owner === context.userId ||
+      owner === userId ||
       membership.appRole === "Administrador" ||
       (area === "secretaria" && membership.appRole === "Secretaria");
     if (!canEdit || !canWriteFileArea(membership.appRole, area)) {
@@ -779,24 +802,24 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     const payload: Record<string, unknown> = {
       updated_at: now,
-      updated_by: context.userId,
+      updated_by: userId,
       last_action: "metadata_updated",
       last_action_at: now,
-      last_action_by: context.userId,
+      last_action_by: userId,
     };
-    if (data.title !== undefined) payload.title = data.title;
-    if (data.description !== undefined) payload.description = data.description || null;
-    if (data.category !== undefined) payload.category = data.category;
-    if (data.documentDate !== undefined) payload.document_date = data.documentDate || null;
-    if (data.referenceCode !== undefined) payload.reference_code = data.referenceCode || null;
-    if (data.relatedUserId !== undefined) payload.related_user_id = data.relatedUserId;
-    if (data.relatedPersonId !== undefined) payload.related_person_id = data.relatedPersonId;
-    if (data.visibility !== undefined) payload.visibility = data.visibility;
+    if (data.title !== undefined) payload["title"] = data.title;
+    if (data.description !== undefined) payload["description"] = data.description || null;
+    if (data.category !== undefined) payload["category"] = data.category;
+    if (data.documentDate !== undefined) payload["document_date"] = data.documentDate || null;
+    if (data.referenceCode !== undefined) payload["reference_code"] = data.referenceCode || null;
+    if (data.relatedUserId !== undefined) payload["related_user_id"] = data.relatedUserId;
+    if (data.relatedPersonId !== undefined) payload["related_person_id"] = data.relatedPersonId;
+    if (data.visibility !== undefined) payload["visibility"] = data.visibility;
     if (data.area !== undefined) {
       if (!canWriteFileArea(membership.appRole, data.area)) {
         throw new Error("Sem permissão para mover para essa área.");
       }
-      payload.area = data.area;
+      payload["area"] = data.area;
     }
     const { error } = await db
       .from("siga_files")
@@ -813,7 +836,7 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
       await recordFileEvent(db, {
         schoolId: membership.schoolId,
         fileId: data.id,
-        actorUserId: context.userId,
+        actorUserId: userId,
         action: "metadata_updated",
         detail: data.title ?? undefined,
       });
@@ -826,7 +849,9 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
 export const listArquivosUserOptions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: memberships } = await db
       .from("school_memberships")
@@ -836,7 +861,16 @@ export const listArquivosUserOptions = createServerFn({ method: "GET" })
     const userIds = [
       ...new Set((memberships ?? []).map((row) => String(row.user_id)).filter(Boolean)),
     ];
-    if (!userIds.length) return { users: [] as Array<{ id: string; name: string; cargo: string | null }> };
+    if (!userIds.length) {
+      return {
+        users: [] as Array<{
+          id: string;
+          name: string;
+          cargo: string | null;
+          avatarUrl: string | null;
+        }>,
+      };
+    }
     const people = await profilePeople(db, userIds);
     return {
       users: userIds
@@ -854,7 +888,9 @@ export const listArquivosPersonOptions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listArquivosPeopleInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     let query = db
       .from("people")
@@ -865,7 +901,9 @@ export const listArquivosPersonOptions = createServerFn({ method: "GET" })
     if (data.query) query = query.ilike("full_name", `%${data.query}%`);
     const { data: rows, error } = await query;
     if (error) {
-      if (missingFilesTable(error)) return { people: [] as Array<{ id: string; name: string }> };
+      if (missingFilesTable(error)) {
+        return { people: [] as Array<{ id: string; name: string; email: string | null }> };
+      }
       throw publicDatabaseError(error, "Não foi possível listar pessoas.");
     }
     return {
@@ -881,7 +919,9 @@ export const listArquivosStudentOptions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listArquivosStudentsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: students, error } = await db
       .from("students")
@@ -952,7 +992,9 @@ export const setSchoolFileVisibility = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => setSchoolFileVisibilityInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, [
       "Administrador",
       "Secretaria",
       "Professor",
@@ -973,7 +1015,7 @@ export const setSchoolFileVisibility = createServerFn({ method: "POST" })
     const area = existing.area as SchoolFileRecord["area"];
     const owner = String(existing.owner_user_id);
     const canEdit =
-      owner === context.userId ||
+      owner === userId ||
       membership.appRole === "Administrador" ||
       (area === "secretaria" && membership.appRole === "Secretaria");
     if (!canEdit || !canWriteFileArea(membership.appRole, area)) {
@@ -985,10 +1027,10 @@ export const setSchoolFileVisibility = createServerFn({ method: "POST" })
       .update({
         visibility: data.visibility,
         updated_at: now,
-        updated_by: context.userId,
+        updated_by: userId,
         last_action: "visibility_changed",
         last_action_at: now,
-        last_action_by: context.userId,
+        last_action_by: userId,
       })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId);
@@ -1006,7 +1048,7 @@ export const setSchoolFileVisibility = createServerFn({ method: "POST" })
       await recordFileEvent(db, {
         schoolId: membership.schoolId,
         fileId: data.id,
-        actorUserId: context.userId,
+        actorUserId: userId,
         action: "visibility_changed",
         detail: data.visibility,
       });
@@ -1020,7 +1062,9 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => linkSchoolFileToClassInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, [
       "Administrador",
       "Secretaria",
       "Professor",
@@ -1033,10 +1077,10 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
       .update({
         class_group_id: data.classGroupId,
         updated_at: now,
-        updated_by: context.userId,
+        updated_by: userId,
         last_action: action,
         last_action_at: now,
-        last_action_by: context.userId,
+        last_action_by: userId,
       })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId);
@@ -1061,7 +1105,7 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
       await recordFileEvent(db, {
         schoolId: membership.schoolId,
         fileId: data.id,
-        actorUserId: context.userId,
+        actorUserId: userId,
         action,
         detail: data.classGroupId ?? undefined,
       });
@@ -1075,7 +1119,9 @@ export const deleteSchoolFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => schoolFileIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: row, error } = await db
       .from("siga_files")
@@ -1091,7 +1137,7 @@ export const deleteSchoolFile = createServerFn({ method: "POST" })
     const area = row.area as SchoolFileRecord["area"];
     const owner = String(row.owner_user_id);
     const canDelete =
-      owner === context.userId ||
+      owner === userId ||
       membership.appRole === "Administrador" ||
       (area === "secretaria" && membership.appRole === "Secretaria");
     if (!canDelete || !canWriteFileArea(membership.appRole, area)) {
@@ -1101,7 +1147,7 @@ export const deleteSchoolFile = createServerFn({ method: "POST" })
       await recordFileEvent(db, {
         schoolId: membership.schoolId,
         fileId: data.id,
-        actorUserId: context.userId,
+        actorUserId: userId,
         action: "deleted",
       });
     } catch {
@@ -1119,7 +1165,9 @@ export const logSchoolFileEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => logSchoolFileEventInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: row, error } = await db
       .from("siga_files")
@@ -1133,14 +1181,14 @@ export const logSchoolFileEvent = createServerFn({ method: "POST" })
     }
     if (!row) throw new Error("Ficheiro não encontrado.");
     const mapped = mapRow(row as Record<string, unknown>);
-    if (!canSeeRow(mapped, context.userId, membership.appRole)) {
+    if (!canSeeRow(mapped, userId, membership.appRole)) {
       throw new Error("Sem permissão.");
     }
     try {
       await recordFileEvent(db, {
         schoolId: membership.schoolId,
         fileId: data.id,
-        actorUserId: context.userId,
+        actorUserId: userId,
         action: data.action,
         detail: data.detail,
       });
@@ -1154,7 +1202,9 @@ export const listSchoolFileActivity = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listSchoolFileActivityInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: file, error: fileError } = await db
       .from("siga_files")
@@ -1167,7 +1217,7 @@ export const listSchoolFileActivity = createServerFn({ method: "GET" })
       throw publicDatabaseError(fileError, "Não foi possível carregar a auditoria.");
     }
     if (!file) throw new Error("Ficheiro não encontrado.");
-    if (!canSeeRow(mapRow(file as Record<string, unknown>), context.userId, membership.appRole)) {
+    if (!canSeeRow(mapRow(file as Record<string, unknown>), userId, membership.appRole)) {
       throw new Error("Sem permissão.");
     }
     const { data: rows, error } = await db
@@ -1213,7 +1263,9 @@ export const signSchoolFile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => schoolFileIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, STAFF_ROLES);
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     let { data: row, error } = await db
       .from("siga_files")
@@ -1235,7 +1287,7 @@ export const signSchoolFile = createServerFn({ method: "GET" })
     }
     if (!row) throw new Error("Ficheiro não encontrado.");
     const mapped = mapRow(row as Record<string, unknown>);
-    if (!canSeeRow(mapped, context.userId, membership.appRole)) {
+    if (!canSeeRow(mapped, userId, membership.appRole)) {
       throw new Error("Sem permissão para abrir este ficheiro.");
     }
     if (mapped.storageBackend !== "sga") return { local: true as const, url: null };
