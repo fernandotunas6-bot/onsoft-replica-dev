@@ -84,6 +84,7 @@ import {
   registerSchoolFile,
   renameSchoolFile,
   setSchoolFileVisibility,
+  signSchoolFiles,
   updateSchoolFileMeta,
 } from "./server";
 
@@ -358,6 +359,25 @@ export function FileBrowser({
     remoteQuery.data?.files,
     sortBy,
   ]);
+
+  // Assina todas as miniaturas visíveis numa só chamada, em vez de cada FileCoverTile
+  // pedir a sua própria URL assinada (até 48 pedidos em paralelo por pasta cheia de fotos).
+  const imagePreviewIds = useMemo(
+    () =>
+      files
+        .filter(
+          (file) => !file.isFolder && file.storageBackend === "sga" && isImageFileKind(file.kind),
+        )
+        .map((file) => file.id),
+    [files],
+  );
+  const previewsQuery = useQuery({
+    queryKey: ["arquivos", "previews", imagePreviewIds.join(",")],
+    enabled: imagePreviewIds.length > 0,
+    queryFn: () => signSchoolFiles({ data: { ids: imagePreviewIds } }),
+    staleTime: 5 * 60_000,
+  });
+  const previewUrlById = previewsQuery.data?.urls ?? {};
 
   const disorganizedCount = useMemo(() => {
     const remote = remoteQuery.data?.files ?? [];
@@ -1238,7 +1258,17 @@ export function FileBrowser({
                       }}
                       className="w-full text-left"
                     >
-                      <FileCoverTile file={file} selected={file.id === selectedId} />
+                      <FileCoverTile
+                        file={file}
+                        selected={file.id === selectedId}
+                        resolvedPreviewUrl={
+                          !file.isFolder &&
+                          file.storageBackend === "sga" &&
+                          isImageFileKind(file.kind)
+                            ? (previewUrlById[file.id] ?? null)
+                            : undefined
+                        }
+                      />
                       <p className="mt-1 truncate px-1 text-xs font-medium">
                         {file.title || file.name}
                       </p>

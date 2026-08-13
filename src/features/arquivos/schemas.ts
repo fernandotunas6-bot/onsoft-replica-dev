@@ -151,6 +151,10 @@ export const schoolFileIdInputSchema = z.object({
   id: z.string().uuid(),
 });
 
+export const schoolFileIdsInputSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(60),
+});
+
 export const renameSchoolFileInputSchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1).max(180),

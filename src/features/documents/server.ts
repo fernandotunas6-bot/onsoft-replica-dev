@@ -8,6 +8,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { loadPersonNamesById } from "@/features/people/lookup";
 import {
   createDocumentRequestInputSchema,
   getPrintTemplateInputSchema,
@@ -86,10 +87,7 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     const personIds = [
       ...new Set((studentsResult.data ?? []).map((row: { person_id: string }) => row.person_id)),
     ];
-    const { data: people } = personIds.length
-      ? await db.from("people").select("id, full_name").in("id", personIds)
-      : { data: [] as Array<{ id: string; full_name: string }> };
-    const peopleById = new Map((people ?? []).map((row) => [row.id, row.full_name]));
+    const peopleById = await loadPersonNamesById(db, membership.schoolId, personIds);
 
     const students = (studentsResult.data ?? []).map(
       (student: { id: string; student_number: string; person_id: string }) => ({

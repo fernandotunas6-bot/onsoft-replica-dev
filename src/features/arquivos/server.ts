@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
 import type { ApplicationRole } from "@/features/auth/access-policy";
+import { loadPersonNamesById } from "@/features/people/lookup";
 import { canReadFileArea, canWriteFileArea, kindFromFile } from "./kinds";
 import { insertFinanceArchive } from "./archive-finance-core";
 import { generateDocumentCode, normalizeDocumentCode, prefixForCategory } from "./document-code";
@@ -20,18 +21,14 @@ import {
   registerSchoolFileInputSchema,
   renameSchoolFileInputSchema,
   schoolFileIdInputSchema,
+  schoolFileIdsInputSchema,
   setSchoolFileVisibilityInputSchema,
   updateSchoolFileMetaInputSchema,
   type SchoolFileEvent,
   type SchoolFileRecord,
 } from "./schemas";
 
-const STAFF_ROLES: ApplicationRole[] = [
-  "Administrador",
-  "Secretaria",
-  "Tesouraria",
-  "Professor",
-];
+const STAFF_ROLES: ApplicationRole[] = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
 
 const MISSING_TABLE = /schema cache|does not exist|42P01|PGRST/i;
 const FILES_BUCKET = "siga-files";
@@ -52,9 +49,9 @@ function missingFilesTable(error: { message?: string; code?: string } | null) {
 function missingOptionalColumn(error: { message?: string } | null) {
   return Boolean(
     error &&
-      /class_group_id|updated_at|updated_by|last_action|title|description|category|document_date|reference_code|related_user|related_person|parent_id|is_folder|42703|schema cache/i.test(
-        String(error.message ?? ""),
-      ),
+    /class_group_id|updated_at|updated_by|last_action|title|description|category|document_date|reference_code|related_user|related_person|parent_id|is_folder|42703|schema cache/i.test(
+      String(error.message ?? ""),
+    ),
   );
 }
 
@@ -231,7 +228,10 @@ export const listArquivosClassOptions = createServerFn({ method: "GET" })
       .order("name", { ascending: true })
       .limit(80);
     if (error) {
-      if (missingFilesTable(error) || /42P01|schema cache|does not exist/i.test(String(error.message))) {
+      if (
+        missingFilesTable(error) ||
+        /42P01|schema cache|does not exist/i.test(String(error.message))
+      ) {
         return { classes: [] as Array<{ id: string; name: string; code: string | null }> };
       }
       throw publicDatabaseError(error, "Não foi possível listar as turmas.");
@@ -334,29 +334,20 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
     }
     const people = await profilePeople(
       db,
-      files.flatMap((file) =>
-        [
-          file.ownerUserId,
-          file.updatedByUserId,
-          file.lastActionByUserId,
-          file.relatedUserId,
-        ].filter(Boolean) as string[],
+      files.flatMap(
+        (file) =>
+          [
+            file.ownerUserId,
+            file.updatedByUserId,
+            file.lastActionByUserId,
+            file.relatedUserId,
+          ].filter(Boolean) as string[],
       ),
     );
     const personIds = [
       ...new Set(files.map((file) => file.relatedPersonId).filter(Boolean) as string[]),
     ];
-    const personNames = new Map<string, string>();
-    if (personIds.length) {
-      const { data: personRows } = await db
-        .from("people")
-        .select("id, full_name")
-        .eq("school_id", membership.schoolId)
-        .in("id", personIds);
-      for (const row of personRows ?? []) {
-        if (row.id) personNames.set(String(row.id), String(row.full_name ?? "Pessoa"));
-      }
-    }
+    const personNames = await loadPersonNamesById(db, membership.schoolId, personIds);
     return {
       files: enrichPeople(files, people).map((file) => ({
         ...file,
@@ -432,7 +423,11 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
         .select(FILE_SELECT_CLASS)
         .single();
       if (mid.error && missingOptionalColumn(mid.error)) {
-        const fallback = await db.from("siga_files").insert(base).select(FILE_SELECT_BASIC).single();
+        const fallback = await db
+          .from("siga_files")
+          .insert(base)
+          .select(FILE_SELECT_BASIC)
+          .single();
         if (fallback.error) {
           if (missingFilesTable(fallback.error)) return { storage: "local" as const, record: null };
           throw publicDatabaseError(fallback.error, "Não foi possível registar o ficheiro.");
@@ -655,7 +650,6 @@ export const listFolderTrail = createServerFn({ method: "GET" })
     return { trail };
   });
 
-
 export const archiveFinanceDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => archiveFinanceDocumentInputSchema.parse(input))
@@ -702,7 +696,10 @@ export const archiveFinanceDocument = createServerFn({ method: "POST" })
       }
       return { ok: true as const, ...archived };
     } catch (error) {
-      throw publicDatabaseError(error as { message?: string }, "Não foi possível arquivar o documento financeiro.");
+      throw publicDatabaseError(
+        error as { message?: string },
+        "Não foi possível arquivar o documento financeiro.",
+      );
     }
   });
 
@@ -753,7 +750,8 @@ export const renameSchoolFile = createServerFn({ method: "POST" })
         .update({ name: data.name })
         .eq("id", data.id)
         .eq("school_id", membership.schoolId);
-      if (plain.error) throw publicDatabaseError(plain.error, "Não foi possível renomear o ficheiro.");
+      if (plain.error)
+        throw publicDatabaseError(plain.error, "Não foi possível renomear o ficheiro.");
     } else if (error) {
       throw publicDatabaseError(error, "Não foi possível renomear o ficheiro.");
     }
@@ -1295,9 +1293,67 @@ export const signSchoolFile = createServerFn({ method: "GET" })
       throw new Error("Sem permissão para abrir este ficheiro.");
     }
     if (mapped.storageBackend !== "sga") return { local: true as const, url: null };
-    const signed = await db.storage.from(FILES_BUCKET).createSignedUrl(mapped.storagePath, 120);
+    const signed = await db.storage.from(FILES_BUCKET).createSignedUrl(mapped.storagePath, 600);
     if (signed.error || !signed.data?.signedUrl) {
       return { local: false as const, url: null };
     }
     return { local: false as const, url: signed.data.signedUrl };
+  });
+
+/**
+ * Assina várias miniaturas numa só chamada de Storage — a grelha de arquivos
+ * chamava signSchoolFile individualmente por cada capa de imagem visível (até 48
+ * pedidos em paralelo por pasta), sobrecarregando a ligação sem necessidade.
+ */
+export const signSchoolFiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => schoolFileIdsInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriter(supabase, userId, STAFF_ROLES);
+    const db = await loadSgaAdminClient();
+    let rows: Array<Record<string, unknown>> | null = null;
+    let error: { code?: string; message?: string } | null = null;
+    ({ data: rows, error } = await db
+      .from("siga_files")
+      .select(FILE_SELECT)
+      .in("id", data.ids)
+      .eq("school_id", membership.schoolId));
+    if (error && missingOptionalColumn(error)) {
+      ({ data: rows, error } = await db
+        .from("siga_files")
+        .select(FILE_SELECT_BASIC)
+        .in("id", data.ids)
+        .eq("school_id", membership.schoolId));
+    }
+    if (error) {
+      if (missingFilesTable(error)) return { urls: {} as Record<string, string> };
+      throw publicDatabaseError(error, "Não foi possível pré-visualizar os ficheiros.");
+    }
+
+    const visible = (rows ?? [])
+      .map((row) => mapRow(row as Record<string, unknown>))
+      .filter(
+        (file) => canSeeRow(file, userId, membership.appRole) && file.storageBackend === "sga",
+      );
+    if (!visible.length) return { urls: {} as Record<string, string> };
+
+    const { data: signed, error: signError } = await db.storage.from(FILES_BUCKET).createSignedUrls(
+      visible.map((file) => file.storagePath),
+      600,
+    );
+    if (signError || !signed) return { urls: {} as Record<string, string> };
+
+    const urlByPath = new Map(
+      signed
+        .filter((row): row is typeof row & { signedUrl: string } => Boolean(row.signedUrl))
+        .map((row) => [row.path, row.signedUrl]),
+    );
+    const urls: Record<string, string> = {};
+    for (const file of visible) {
+      const url = urlByPath.get(file.storagePath);
+      if (url) urls[file.id] = url;
+    }
+    return { urls };
   });

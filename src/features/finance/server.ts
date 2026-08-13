@@ -20,6 +20,7 @@ import {
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
+import { loadPersonNamesById } from "@/features/people/lookup";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -208,10 +209,7 @@ async function loadStudentDirectory(
   const personIds = [
     ...new Set((students ?? []).map((row: { person_id: string }) => row.person_id)),
   ];
-  const { data: people } = personIds.length
-    ? await db.from("people").select("id, full_name").in("id", personIds)
-    : { data: [] as Array<{ id: string; full_name: string }> };
-  const peopleById = new Map((people ?? []).map((row) => [row.id, row.full_name]));
+  const peopleById = await loadPersonNamesById(db, schoolId, personIds);
   return (students ?? []).map(
     (student: { id: string; student_number: string; person_id: string }) => ({
       student_id: student.id,

@@ -8,6 +8,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { pedagogySettingsSchema } from "@/features/school/schemas";
 import { averagePercent } from "@/features/students/schemas";
+import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
 import {
   ensureDefaultTeacher,
   listSgaTermGrades,
@@ -214,38 +215,6 @@ type EnrollmentOptionSummary = {
   class_group_id: string | null;
   class_group_name: string;
 };
-
-type PersonLite = {
-  id: string;
-  full_name: string;
-  photo_url: string | null;
-};
-
-async function loadPeopleLite(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  personIds: string[],
-) {
-  const map = new Map<string, PersonLite>();
-  if (personIds.length === 0) return map;
-  const attempts = ["id, full_name, photo_url", "id, full_name, avatar_url", "id, full_name"];
-  for (const columns of attempts) {
-    const { data, error } = await db.from("people").select(columns).in("id", personIds);
-    if (error) continue;
-    for (const row of data ?? []) {
-      const record = row as unknown as Record<string, unknown>;
-      map.set(String(record["id"]), {
-        id: String(record["id"]),
-        full_name: String(record["full_name"] ?? "—"),
-        photo_url:
-          (typeof record["photo_url"] === "string" && record["photo_url"]) ||
-          (typeof record["avatar_url"] === "string" && record["avatar_url"]) ||
-          null,
-      });
-    }
-    return map;
-  }
-  return map;
-}
 
 export type ScheduleSlotSummary = {
   id: string;
@@ -523,7 +492,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       const personIds = [
         ...new Set((studentRows ?? []).map((row: { person_id: string }) => row.person_id)),
       ];
-      const peopleById = await loadPeopleLite(db, personIds);
+      const peopleById = await loadPeopleLite(db, membership.schoolId, personIds);
       for (const student of studentRows ?? []) {
         const person = peopleById.get(student.person_id);
         studentsById.set(student.id, {
@@ -1612,10 +1581,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
       ? await db.from("students").select("id, person_id").in("id", studentIds)
       : { data: [] as Array<{ id: string; person_id: string }> };
     const personIds = [...new Set((studentRows ?? []).map((row) => row.person_id))];
-    const { data: studentPeople } = personIds.length
-      ? await db.from("people").select("id, full_name").in("id", personIds)
-      : { data: [] as Array<{ id: string; full_name: string }> };
-    const personNameById = new Map((studentPeople ?? []).map((row) => [row.id, row.full_name]));
+    const personNameById = await loadPersonNamesById(db, membership.schoolId, personIds);
     const studentNameById = new Map(
       (studentRows ?? []).map((row) => [row.id, personNameById.get(row.person_id) ?? "Aluno"]),
     );
