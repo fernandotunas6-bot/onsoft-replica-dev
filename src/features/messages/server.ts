@@ -81,6 +81,7 @@ async function loadCargoByUserId(
 export const listSchoolColleagues = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
@@ -122,6 +123,7 @@ export const listDirectThread = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listDirectThreadInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
@@ -159,6 +161,7 @@ export const sendDirectMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => sendDirectMessageInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     if (data.peerId === context.userId) {
       throw new Error("Não pode enviar uma mensagem para si próprio.");
     }
@@ -218,6 +221,7 @@ export const sendDirectMessage = createServerFn({ method: "POST" })
 export const listInboxPreviews = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();

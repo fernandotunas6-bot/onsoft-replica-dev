@@ -14,6 +14,7 @@ export const setStaffModuleGrantInputSchema = z.object({
 export const listStaffModuleGrants = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
     ]);
@@ -30,6 +31,7 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => setStaffModuleGrantInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
     ]);

@@ -316,17 +316,18 @@ function ApplicationRow({
       tipo: kind === "matricula" ? "Talão de matrícula" : "Talão de candidatura",
       school: {
         name: school?.name ?? "Escola",
-        nif: school?.nif,
-        phone: school?.phone,
-        email: school?.email,
-        address: school?.address,
-        directorName: school?.director_name,
-        academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
+        nif: school?.nif ?? null,
+        phone: school?.phone ?? null,
+        email: school?.email ?? null,
+        address: school?.address ?? null,
+        directorName: school?.director_name ?? null,
+        academicYear:
+          selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || null,
       },
       student: {
         fullName: row.full_name,
         academicNumber: row.id.slice(0, 8).toUpperCase(),
-        className: selected?.name,
+        className: selected?.name ?? null,
       },
       overlay: overlayTalao({
         kind,
@@ -336,9 +337,9 @@ function ApplicationRow({
         guardianName: payload.guardianName,
         guardianPhone: payload.guardianPhone,
         guardianEmail: payload.person?.email,
-        submittedAt: row.created_at
-          ? new Date(row.created_at).toLocaleDateString("pt-AO")
-          : undefined,
+        ...(row.created_at
+          ? { submittedAt: new Date(row.created_at).toLocaleDateString("pt-AO") }
+          : {}),
       }),
     });
   };

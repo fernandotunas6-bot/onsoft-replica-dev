@@ -363,7 +363,7 @@ export function capabilitiesForModule(
 }
 
 export function parseGrantedCapabilities(config: Record<string, unknown> | null | undefined) {
-  const raw = config?.grantedCapabilities;
+  const raw = config?.["grantedCapabilities"];
   if (!Array.isArray(raw)) return [];
   return raw.filter((value): value is string => typeof value === "string" && value.length > 0);
 }

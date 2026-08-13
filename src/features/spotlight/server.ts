@@ -22,18 +22,19 @@ async function readOverrides(
     .eq("domain", DOMAIN)
     .maybeSingle();
   if (error && /schema cache|does not exist|42P01|PGRST/i.test(error.message)) {
-    return { items: {} };
+    return { items: {}, extras: [] };
   }
   if (error) throw publicDatabaseError(error, "Não foi possível ler os destaques.");
-  const parsed = spotlightOverridesSchema.safeParse(data?.value ?? { items: {} });
-  return parsed.success ? parsed.data : { items: {} };
+  const parsed = spotlightOverridesSchema.safeParse(data?.value ?? { items: {}, extras: [] });
+  return parsed.success ? parsed.data : { items: {}, extras: [] };
 }
 
 export const listSpotlightConfig = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) return applySpotlightOverrides(spotlightCatalog, { items: {} });
+    if (!membership) return applySpotlightOverrides(spotlightCatalog, { items: {}, extras: [] });
     const db = await loadSgaAdminClient();
     const overrides = await readOverrides(db, membership.schoolId);
     return applySpotlightOverrides(spotlightCatalog, overrides);
@@ -43,6 +44,7 @@ export const saveSpotlightOverrides = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => spotlightOverridesSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     const db = await loadSgaAdminClient();
     const existing = await db

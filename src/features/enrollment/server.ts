@@ -6,6 +6,7 @@ import { mapSgaGuardianRelationship } from "@/features/students/schemas";
 import { publicInstalledProviderIds, publicSchoolEmail, publicSchoolPhone } from "@/features/integrations/install";
 import { normalizePersonNif, isAngolaBiNif } from "@/lib/angola-identity";
 import {
+  candidacyProcessNumber,
   decideEnrollmentApplicationInputSchema,
   getPublicEnrollmentFormInputSchema,
   listEnrollmentApplicationsInputSchema,
@@ -27,6 +28,7 @@ function slugFromSchoolName(name: string) {
 export const getOrCreateEnrollmentForm = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -74,6 +76,7 @@ export const updateEnrollmentForm = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateEnrollmentFormInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -188,6 +191,7 @@ export const listEnrollmentApplications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listEnrollmentApplicationsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -213,7 +217,7 @@ export const listEnrollmentApplications = createServerFn({ method: "GET" })
         .limit(data.limit);
       if (data.status !== "all") fallback = fallback.eq("status", data.status);
       const retry = await fallback;
-      rows = retry.data;
+      rows = retry.data as typeof rows;
       error = retry.error;
     }
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as candidaturas.");
@@ -224,6 +228,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => decideEnrollmentApplicationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -254,7 +259,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         guardianPhone?: string;
         guardianRelationship?: string;
       };
-      const person = payload.person ?? { full_name: application.full_name };
+      const person = payload.person ?? {};
       const fullName = String(person.full_name ?? application.full_name).trim();
       const normalizedNif = normalizePersonNif(person.nif);
       const { data: personRow, error: personError } = await db
@@ -385,7 +390,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       decided_by: context.userId,
       updated_by: context.userId,
     };
-    if (studentId) updatePayload.student_id = studentId;
+    if (studentId) updatePayload["student_id"] = studentId;
 
     const { data: row, error } = await db
       .from("enrollment_applications")
