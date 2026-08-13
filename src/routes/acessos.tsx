@@ -125,12 +125,13 @@ function AcessosPage() {
       tipo: "Folha de credenciais",
       school: {
         name: school?.name ?? "Escola",
-        nif: school?.nif,
-        phone: school?.phone,
-        email: school?.email,
-        address: school?.address,
-        directorName: school?.director_name,
-        academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
+        nif: school?.nif ?? null,
+        phone: school?.phone ?? null,
+        email: school?.email ?? null,
+        address: school?.address ?? null,
+        directorName: school?.director_name ?? null,
+        academicYear:
+          (selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year) ?? null,
       },
       student: {
         fullName: person.full_name,
@@ -139,14 +140,16 @@ function AcessosPage() {
       overlay: overlayCredenciais({
         fullName: person.full_name,
         process: person.email || person.full_name,
-        email: person.email,
+        email: person.email ?? null,
         schoolEmailDomain: domain,
       }),
     });
   };
 
   const accounts = accountsQuery.data ?? [];
-  const staff = staffQuery.data ?? [];
+  const staff = (staffQuery.data ?? []).filter(
+    (person): person is NonNullable<typeof person> => person != null,
+  );
   const activos = accounts.filter((account) => !account.disabled);
   const secretMissing =
     accountsQuery.isError &&
@@ -201,10 +204,10 @@ function AcessosPage() {
     exportCsv(
       "contas-filtradas",
       [
-        { label: "Nome", value: (row) => row.nome },
-        { label: "Email", value: (row) => row.email },
-        { label: "Cargo", value: (row) => row.cargo },
-        { label: "Estado", value: (row) => row.estado },
+        { label: "Nome", value: (row) => row["nome"] },
+        { label: "Email", value: (row) => row["email"] },
+        { label: "Cargo", value: (row) => row["cargo"] },
+        { label: "Estado", value: (row) => row["estado"] },
       ],
       filteredAccounts.map((account) => ({
         nome: account.full_name,
@@ -230,12 +233,13 @@ function AcessosPage() {
       tipo: "Contas de login",
       school: {
         name: school?.name ?? "Escola",
-        nif: school?.nif,
-        phone: school?.phone,
-        email: school?.email,
-        address: school?.address,
-        directorName: school?.director_name,
-        academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
+        nif: school?.nif ?? null,
+        phone: school?.phone ?? null,
+        email: school?.email ?? null,
+        address: school?.address ?? null,
+        directorName: school?.director_name ?? null,
+        academicYear:
+          (selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year) ?? null,
       },
       overlay: overlayServico({
         name: "Contas de login",
@@ -263,7 +267,7 @@ function AcessosPage() {
             schoolName: school?.name ?? "Escola",
             academicYear:
               selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "",
-            directorName: school?.director_name ?? undefined,
+            ...(school?.director_name != null ? { directorName: school.director_name } : {}),
             issuedOn: new Date().toLocaleDateString("pt-AO"),
             validationCode: documentValidationCode([
               school?.name,
@@ -280,10 +284,10 @@ function AcessosPage() {
     exportCsv(
       "equipa-filtrada",
       [
-        { label: "Nome", value: (row) => row.nome },
-        { label: "Email", value: (row) => row.email },
-        { label: "Papéis", value: (row) => row.papeis },
-        { label: "Estado", value: (row) => row.estado },
+        { label: "Nome", value: (row) => row["nome"] },
+        { label: "Email", value: (row) => row["email"] },
+        { label: "Papéis", value: (row) => row["papeis"] },
+        { label: "Estado", value: (row) => row["estado"] },
       ],
       filteredStaff.map((person) => ({
         nome: person.full_name,
@@ -309,12 +313,13 @@ function AcessosPage() {
       tipo: "Equipa escolar",
       school: {
         name: school?.name ?? "Escola",
-        nif: school?.nif,
-        phone: school?.phone,
-        email: school?.email,
-        address: school?.address,
-        directorName: school?.director_name,
-        academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
+        nif: school?.nif ?? null,
+        phone: school?.phone ?? null,
+        email: school?.email ?? null,
+        address: school?.address ?? null,
+        directorName: school?.director_name ?? null,
+        academicYear:
+          (selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year) ?? null,
       },
       overlay: overlayServico({
         name: "Equipa escolar",
@@ -342,7 +347,7 @@ function AcessosPage() {
             schoolName: school?.name ?? "Escola",
             academicYear:
               selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "",
-            directorName: school?.director_name ?? undefined,
+            ...(school?.director_name != null ? { directorName: school.director_name } : {}),
             issuedOn: new Date().toLocaleDateString("pt-AO"),
             validationCode: documentValidationCode([
               school?.name,
@@ -408,9 +413,9 @@ function AcessosPage() {
                 onSubmit={async (values) => {
                   await inviteSystemUser({
                     data: {
-                      fullName: values.nome ?? "",
-                      email: values.email ?? "",
-                      cargo: (values.cargo as ApplicationRole) ?? "Utilizador",
+                      fullName: values["nome"] ?? "",
+                      email: values["email"] ?? "",
+                      cargo: (values["cargo"] as ApplicationRole) ?? "Utilizador",
                     },
                   });
                   await queryClient.invalidateQueries({ queryKey: ["access", "accounts"] });
@@ -456,11 +461,11 @@ function AcessosPage() {
                   await createPerson({
                     data: {
                       person: {
-                        full_name: values.nome ?? "",
-                        email: values.email || undefined,
-                        phone_primary: values.telefone || undefined,
+                        full_name: values["nome"] ?? "",
+                        email: values["email"] || undefined,
+                        phone_primary: values["telefone"] || undefined,
                       },
-                      roles: [roleMap[values.perfil ?? ""] ?? "funcionario"],
+                      roles: [roleMap[values["perfil"] ?? ""] ?? "funcionario"],
                       documents: [],
                       relationships: [],
                     },
