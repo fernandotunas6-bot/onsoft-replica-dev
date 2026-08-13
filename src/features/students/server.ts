@@ -76,6 +76,7 @@ export const searchStudents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => searchStudentsInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
@@ -95,21 +96,41 @@ export const searchStudents = createServerFn({ method: "GET" })
     const [{ data: people }, { data: enrollments }, { data: guardians }] = await Promise.all([
       personIds.length
         ? db.from("people").select("id, full_name, email, phone").in("id", personIds)
-        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        : Promise.resolve({
+            data: [] as Array<{
+              id: string;
+              full_name: string;
+              email: string | null;
+              phone: string | null;
+            }>,
+          }),
       studentIds.length
         ? db
             .from("enrollments")
             .select("student_id, class_group_id, academic_year_id, status")
             .in("student_id", studentIds)
             .eq("status", "active")
-        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        : Promise.resolve({
+            data: [] as Array<{
+              student_id: string;
+              class_group_id: string | null;
+              academic_year_id: string | null;
+              status: string;
+            }>,
+          }),
       studentIds.length
         ? db
             .from("student_guardians")
             .select("student_id, guardian_person_id, is_primary")
             .in("student_id", studentIds)
             .eq("is_primary", true)
-        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        : Promise.resolve({
+            data: [] as Array<{
+              student_id: string;
+              guardian_person_id: string;
+              is_primary: boolean;
+            }>,
+          }),
     ]);
 
     const peopleById = new Map(
@@ -141,13 +162,15 @@ export const searchStudents = createServerFn({ method: "GET" })
     const [{ data: classGroups }, { data: years }, { data: guardianPeople }] = await Promise.all([
       classGroupIds.length
         ? db.from("class_groups").select("id, name, grade_level_id").in("id", classGroupIds)
-        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        : Promise.resolve({
+            data: [] as Array<{ id: string; name: string; grade_level_id: string | null }>,
+          }),
       yearIds.length
         ? db.from("academic_years").select("id, name").in("id", yearIds)
-        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
       guardianPersonIds.length
         ? db.from("people").select("id, full_name").in("id", guardianPersonIds)
-        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        : Promise.resolve({ data: [] as Array<{ id: string; full_name: string }> }),
     ]);
 
     const gradeLevelIds = [
@@ -159,7 +182,7 @@ export const searchStudents = createServerFn({ method: "GET" })
     ] as string[];
     const { data: gradeLevels } = gradeLevelIds.length
       ? await db.from("grade_levels").select("id, name").in("id", gradeLevelIds)
-      : { data: [] as Array<Record<string, unknown>> };
+      : { data: [] as Array<{ id: string; name: string }> };
 
     const classById = new Map(
       (classGroups ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
@@ -259,6 +282,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => getStudentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const db = await loadSgaAdminClient();
     const { data: student, error: studentError } = await db
       .from("students")
@@ -440,6 +464,7 @@ export const createStudent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createStudentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -499,6 +524,7 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => enrollNewStudentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -588,6 +614,7 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => changeStudentStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
     const db = await loadSgaAdminClient();
     const statusMap: Record<string, string> = {
@@ -613,6 +640,7 @@ export const updateStudentProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateStudentProfileInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
     const db = await loadSgaAdminClient();
     void data.address; // SGA people não tem coluna address
@@ -636,6 +664,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => enrollStudentInClassInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -705,6 +734,7 @@ export const listEnrollments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listEnrollmentsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
@@ -778,6 +808,7 @@ export const updateEnrollment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateEnrollmentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -817,6 +848,7 @@ export const updateEnrollmentAttendance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateEnrollmentAttendanceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -846,6 +878,7 @@ export const cancelEnrollment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => cancelEnrollmentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -884,6 +917,7 @@ export const cancelEnrollment = createServerFn({ method: "POST" })
 export const listAcademicDirectory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
@@ -928,6 +962,7 @@ export const assignGuardian = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => assignGuardianInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
@@ -973,6 +1008,7 @@ export const removeGuardian = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => removeGuardianInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
