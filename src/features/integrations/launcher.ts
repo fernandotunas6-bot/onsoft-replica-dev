@@ -400,9 +400,9 @@ export function isLauncherAppCurrent(app: LauncherApp, pathname: string, search 
   if (app.target.to === "/") return pathname === "/";
   const onRoute = pathname === app.target.to || pathname.startsWith(`${app.target.to}/`);
   if (!onRoute) return false;
-  if (app.target.search?.tab) {
+  if (app.target.search?.["tab"]) {
     return new URLSearchParams(search.startsWith("?") ? search.slice(1) : search).get("tab") ===
-      app.target.search.tab;
+      app.target.search["tab"];
   }
   return true;
 }

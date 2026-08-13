@@ -34,7 +34,7 @@ export function SpotlightRail({
     () =>
       visibleSpotlights(catalog, {
         role,
-        grants,
+        ...(grants ? { grants } : {}),
         canAccess: canAccessPath,
         surface,
       }),
@@ -56,7 +56,7 @@ export function SpotlightRail({
   }, [items.length, paused]);
 
   if (!items.length) return null;
-  const item = items[Math.min(index, items.length - 1)];
+  const item = items[Math.min(index, items.length - 1)]!;
   const href =
     item.link.type === "internal"
       ? resolveSpotlightPath(item, (path) => canAccessPath(path, role, grants))

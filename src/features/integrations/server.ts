@@ -52,6 +52,7 @@ function integrationPublicRow(
 export const listSchoolIntegrations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
     ]);
@@ -74,6 +75,7 @@ export const listSchoolIntegrations = createServerFn({ method: "GET" })
 export const listInstalledCapabilities = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) {
       return academicIntegrationCatalog.map((item) => ({
@@ -113,6 +115,7 @@ export const upsertSchoolIntegration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => upsertIntegrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
     ]);
@@ -128,8 +131,8 @@ export const upsertSchoolIntegration = createServerFn({ method: "POST" })
         status: data.status,
         config: {
           ...existing,
-          merchantId: data.merchantId ?? existing.merchantId ?? "",
-          callbackUrl: data.callbackUrl ?? existing.callbackUrl ?? "",
+          merchantId: data.merchantId ?? existing["merchantId"] ?? "",
+          callbackUrl: data.callbackUrl ?? existing["callbackUrl"] ?? "",
           sandbox: data.sandbox,
         },
         updated_by: context.userId,
@@ -145,6 +148,7 @@ export const installSchoolIntegration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => installIntegrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
     ]);
@@ -169,7 +173,7 @@ export const installSchoolIntegration = createServerFn({ method: "POST" })
           ...existing,
           grantedCapabilities: selected,
           installedAt: new Date().toISOString(),
-          sandbox: existing.sandbox ?? true,
+          sandbox: existing["sandbox"] ?? true,
         },
         updated_by: context.userId,
         created_by: context.userId,
@@ -184,6 +188,7 @@ export const revokeSchoolIntegration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => revokeIntegrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
     ]);

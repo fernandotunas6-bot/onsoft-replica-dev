@@ -42,6 +42,7 @@ async function loadAdminClient() {
 export const listSystemAccounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
     const { schoolId } = await requireAdminContext(context);
     const admin = await loadAdminClient();
 
@@ -117,6 +118,7 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => inviteUserInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const { schoolId } = await requireAdminContext(context);
     const admin = await loadAdminClient();
 
@@ -191,6 +193,7 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateAccountCargoInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const { schoolId } = await requireAdminContext(context);
     if (data.userId === context.userId && data.cargo !== "Administrador") {
       throw new Error("Não pode remover o seu próprio cargo de Administrador.");
@@ -249,6 +252,7 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => setAccountDisabledInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const { schoolId } = await requireAdminContext(context);
     if (data.userId === context.userId) {
       throw new Error("Não pode suspender a sua própria conta.");
@@ -282,6 +286,7 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => resendSystemInviteInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
     const { schoolId } = await requireAdminContext(context);
     if (data.userId === context.userId) {
       throw new Error("Use Alterar senha para a sua própria conta.");
