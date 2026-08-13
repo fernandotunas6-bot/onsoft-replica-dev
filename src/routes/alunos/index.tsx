@@ -39,8 +39,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { searchPeople } from "@/features/people/server";
-import { changeStudentStatus, enrollStudentInClass, searchStudents } from "@/features/students/server";
-import { listPedagogicalWorkspace } from "@/features/academic/server";
+import {
+  changeStudentStatus,
+  enrollStudentInClass,
+  searchStudents,
+} from "@/features/students/server";
+import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
@@ -183,7 +187,7 @@ function StudentsPage() {
     queryFn: () =>
       listPedagogicalWorkspace({
         data: selectedYearId ? { academicYearId: selectedYearId } : {},
-      }),
+      }) as Promise<PedagogicalWorkspace>,
   });
   const peopleQuery = useQuery({
     queryKey: ["people", "search", ""],
@@ -455,7 +459,9 @@ function StudentsPage() {
                 await Promise.all([
                   queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
                   queryClient.invalidateQueries({ queryKey: ["people", "search"] }),
-                  queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] }),
+                  queryClient.invalidateQueries({
+                    queryKey: ["academic", "pedagogical-workspace"],
+                  }),
                 ]);
               }}
               trigger={(open) => (
@@ -706,7 +712,9 @@ function StudentsPage() {
                               <FileText className="size-3.5" /> Ficha
                             </Link>
                           </Button>
-                          {s.student_status === "applicant" && !s.class_name && turmaOptions.length > 0 ? (
+                          {s.student_status === "applicant" &&
+                          !s.class_name &&
+                          turmaOptions.length > 0 ? (
                             <QuickFormModal
                               title={`Colocar ${s.full_name} na turma`}
                               description="Confirma a matrícula e activa o aluno na turma escolhida."
@@ -739,7 +747,9 @@ function StudentsPage() {
                                   },
                                 });
                                 await Promise.all([
-                                  queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["students", "search"],
+                                  }),
                                   queryClient.invalidateQueries({
                                     queryKey: ["academic", "pedagogical-workspace"],
                                   }),
@@ -795,7 +805,9 @@ function StudentsPage() {
                                   },
                                 });
                                 await Promise.all([
-                                  queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["students", "search"],
+                                  }),
                                   queryClient.invalidateQueries({
                                     queryKey: ["academic", "pedagogical-workspace"],
                                   }),
@@ -828,8 +840,7 @@ function StudentsPage() {
                                   label: "Estado",
                                   type: "select",
                                   required: true,
-                                  defaultValue:
-                                    estadoLabels[s.student_status] ?? "Activo",
+                                  defaultValue: estadoLabels[s.student_status] ?? "Activo",
                                   options: ["Activo", "Inactivo", "Transferido", "Concluído"],
                                 },
                                 {
@@ -859,7 +870,9 @@ function StudentsPage() {
                                   },
                                 });
                                 await Promise.all([
-                                  queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["students", "search"],
+                                  }),
                                   queryClient.invalidateQueries({
                                     queryKey: ["dashboard", "overview"],
                                   }),

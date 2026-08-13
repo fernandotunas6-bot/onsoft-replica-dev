@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listPedagogicalWorkspace } from "@/features/academic/server";
+import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canReadModule } from "@/features/auth/access-policy";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -86,7 +86,7 @@ function RelatoriosAcademicos() {
     queryFn: () =>
       listPedagogicalWorkspace({
         data: selectedYearId ? { academicYearId: selectedYearId } : {},
-      }),
+      }) as Promise<PedagogicalWorkspace>,
     enabled: canRead,
     retry: false,
   });
@@ -205,7 +205,11 @@ function RelatoriosAcademicos() {
     const byClass = new Map<string, { course: string; total: number; approved: number }>();
     for (const row of pautaRows) {
       const key = String(row.turma || "—");
-      const current = byClass.get(key) ?? { course: String(row.disciplina || "—"), total: 0, approved: 0 };
+      const current = byClass.get(key) ?? {
+        course: String(row.disciplina || "—"),
+        total: 0,
+        approved: 0,
+      };
       current.total += 1;
       if (row.resultado === "Aprovado") current.approved += 1;
       byClass.set(key, current);

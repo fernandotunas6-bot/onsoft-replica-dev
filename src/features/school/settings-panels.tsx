@@ -40,7 +40,11 @@ import {
   validateAngolaIban,
 } from "@/lib/angola-banking";
 import { validateAngolaPhone } from "@/lib/angola-phone";
-import { createSubject, listPedagogicalWorkspace } from "@/features/academic/server";
+import {
+  createSubject,
+  listPedagogicalWorkspace,
+  type PedagogicalWorkspace,
+} from "@/features/academic/server";
 import {
   angolaCoreSubjects,
   angolaSecondaryCourses,
@@ -80,9 +84,12 @@ const institutionSchema = z.object({
       message: "NIF inválido (9–10 dígitos AGT ou formato legado).",
     }),
   diretor: z.string().trim().min(3, "Indique o nome do director").max(120, "Máximo 120 caracteres"),
-  telefone: z.string().trim().refine((value) => validateAngolaPhone(value).ok, {
-    message: "Telefone inválido. Use +244 9XX XXX XXX.",
-  }),
+  telefone: z
+    .string()
+    .trim()
+    .refine((value) => validateAngolaPhone(value).ok, {
+      message: "Telefone inválido. Use +244 9XX XXX XXX.",
+    }),
   email: z.string().trim().email("E-mail inválido").max(255, "Máximo 255 caracteres"),
   endereco: z.string().trim().min(5, "Endereço demasiado curto").max(200, "Máximo 200 caracteres"),
 });
@@ -101,7 +108,11 @@ const institutionFields: {
     hint: "Aparece em facturas e certificados",
     full: true,
   },
-  { id: "nif", label: "NIF", hint: "Entidade AGT (9–10 dígitos). Consulte no Portal do Contribuinte." },
+  {
+    id: "nif",
+    label: "NIF",
+    hint: "Entidade AGT (9–10 dígitos). Consulte no Portal do Contribuinte.",
+  },
   { id: "diretor", label: "Director geral" },
   { id: "telefone", label: "Telefone" },
   { id: "email", label: "E-mail institucional" },
@@ -435,8 +446,7 @@ export function SchoolSettingsPanel() {
                         await uploadLogo(asFile);
                       } catch (error) {
                         toast.error("Não foi possível usar o ficheiro da biblioteca", {
-                          description:
-                            error instanceof Error ? error.message : "Tente novamente.",
+                          description: error instanceof Error ? error.message : "Tente novamente.",
                         });
                       }
                     })();
@@ -791,7 +801,9 @@ export function BillingSettingsForm() {
         <div className="rounded-xl border border-border bg-secondary/30 px-3 py-3 text-sm">
           <p className="font-semibold">Canais de pagamento instalados</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {multicaixaOn ? "Multicaixa Express: referências EMIS em Financeiro → Planos e Faturas. " : ""}
+            {multicaixaOn
+              ? "Multicaixa Express: referências EMIS em Financeiro → Planos e Faturas. "
+              : ""}
             {unitelOn ? "Unitel Money: cobrança móvel nos planos e recibos." : ""}
           </p>
         </div>
@@ -905,9 +917,7 @@ function SchoolBankingForm() {
         },
       });
       queryClient.setQueryData(["school", "settings"], (prev: unknown) =>
-        prev && typeof prev === "object"
-          ? { ...prev, banking: data }
-          : prev,
+        prev && typeof prev === "object" ? { ...prev, banking: data } : prev,
       );
       toast.success("Dados bancários guardados.");
     } catch (error) {
@@ -1102,7 +1112,10 @@ function AcademicIntegrationsCatalog() {
     const node = document.getElementById(integrationAnchorId(provider));
     node?.scrollIntoView({ block: "center", behavior: "smooth" });
     node?.classList.add("ring-2", "ring-primary/40");
-    const timer = window.setTimeout(() => node?.classList.remove("ring-2", "ring-primary/40"), 2400);
+    const timer = window.setTimeout(
+      () => node?.classList.remove("ring-2", "ring-primary/40"),
+      2400,
+    );
     return () => window.clearTimeout(timer);
   }, [items.length]);
 
@@ -1208,9 +1221,7 @@ function AcademicIntegrationsCatalog() {
                           });
                         })
                         .catch((error) =>
-                          toast.error(
-                            error instanceof Error ? error.message : "Falha ao guardar.",
-                          ),
+                          toast.error(error instanceof Error ? error.message : "Falha ao guardar."),
                         );
                     }}
                   >
@@ -1272,12 +1283,7 @@ export function IntegrationsPanel() {
   const installed = useInstalledIntegrations();
   const otherChannels = otherChannelSeeds.map((channel) => {
     const on = channel.installed(installed);
-    const state =
-      "label" in channel && !on
-        ? channel.label
-        : on
-          ? "Instalado"
-          : "Não ligado";
+    const state = "label" in channel && !on ? channel.label : on ? "Instalado" : "Não ligado";
     return {
       name: channel.name,
       state,
@@ -1459,7 +1465,11 @@ function TwoFactorEnroll() {
       </p>
       {qr ? (
         <div className="space-y-3 rounded-xl border border-border bg-secondary/40 p-3">
-          <img src={qr} alt="QR do autenticador" className="mx-auto size-40 rounded-lg bg-white p-2" />
+          <img
+            src={qr}
+            alt="QR do autenticador"
+            className="mx-auto size-40 rounded-lg bg-white p-2"
+          />
           <div className="flex gap-2">
             <Input
               value={code}
@@ -1583,7 +1593,7 @@ export function PedagogicalSettingsPanel() {
   });
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace"],
-    queryFn: () => listPedagogicalWorkspace({ data: {} }),
+    queryFn: () => listPedagogicalWorkspace({ data: {} }) as Promise<PedagogicalWorkspace>,
     staleTime: 60_000,
     retry: false,
   });
@@ -1608,8 +1618,7 @@ export function PedagogicalSettingsPanel() {
   );
   const suggestedSubjects = angolaCoreSubjects.filter(
     (subject) =>
-      teachingLevels.length === 0 ||
-      subject.levels.some((level) => teachingLevels.includes(level)),
+      teachingLevels.length === 0 || subject.levels.some((level) => teachingLevels.includes(level)),
   );
 
   const toggle = (list: string[], id: string) =>

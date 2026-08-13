@@ -49,6 +49,7 @@ import {
   listPedagogicalWorkspace,
   updateClassGroup,
   upsertTermGrade,
+  type PedagogicalWorkspace,
 } from "@/features/academic/server";
 import { listTeachers } from "@/features/people/server";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -239,8 +240,12 @@ function PedagogicaPage() {
   const teamsClasses = installed.hasCapability("teams.classes");
   const onedriveOn = installed.hasCapability("m365.onedrive");
   const { activeYearLabel, selectedYearId, school } = useSchoolSettings();
-  const { tab: tabFromSearch, turma: turmaFromSearch, disciplina: disciplinaFromSearch, pauta } =
-    Route.useSearch();
+  const {
+    tab: tabFromSearch,
+    turma: turmaFromSearch,
+    disciplina: disciplinaFromSearch,
+    pauta,
+  } = Route.useSearch();
   const [tab, setTab] = useState(tabFromSearch ?? "turmas");
   const [bootstrapping, setBootstrapping] = useState(false);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
@@ -263,7 +268,7 @@ function PedagogicaPage() {
     queryFn: () =>
       listPedagogicalWorkspace({
         data: selectedYearId ? { academicYearId: selectedYearId } : {},
-      }),
+      }) as Promise<PedagogicalWorkspace>,
     enabled: canReadAcademic,
     retry: false,
   });
@@ -519,7 +524,8 @@ function PedagogicaPage() {
       `Filtros activos: ${activeCount || "nenhum"} · ${activeYearLabel}`,
     );
   const exportarPautaOficial = () => {
-    const academicYear = activeYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "";
+    const academicYear =
+      activeYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "";
     void issuePrintDocument({
       tipo: "Pauta trimestral (lista)",
       school: {
@@ -575,10 +581,14 @@ function PedagogicaPage() {
     { label: "Programa", value: (row: (typeof turmasComDados)[number]) => String(row.curso ?? "") },
     { label: "Classe", value: (row: (typeof turmasComDados)[number]) => String(row.classe ?? "") },
     { label: "Turno", value: (row: (typeof turmasComDados)[number]) => String(row.turno ?? "") },
-    { label: "Alunos", value: (row: (typeof turmasComDados)[number]) => String(row.alunosActuais ?? "") },
+    {
+      label: "Alunos",
+      value: (row: (typeof turmasComDados)[number]) => String(row.alunosActuais ?? ""),
+    },
     { label: "Estado", value: (row: (typeof turmasComDados)[number]) => String(row.status ?? "") },
   ] as const;
-  const exportarTurmasCsv = () => exportCsv("turmas-filtradas", [...turmaExportColumns], turmasComDados);
+  const exportarTurmasCsv = () =>
+    exportCsv("turmas-filtradas", [...turmaExportColumns], turmasComDados);
   const exportarTurmasOficial = () => {
     void issuePrintDocument({
       tipo: "Lista de turmas",
@@ -614,7 +624,8 @@ function PedagogicaPage() {
           "Lista de turmas",
           {
             schoolName: school?.name ?? "Escola",
-            academicYear: activeYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "",
+            academicYear:
+              activeYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "",
             directorName: school?.director_name ?? undefined,
             issuedOn: new Date().toLocaleDateString("pt-AO"),
             validationCode: documentValidationCode([
@@ -1202,71 +1213,71 @@ function PedagogicaPage() {
                         onAssigned={refreshAcademic}
                       />
                     ) : null}
-                  <QuickFormModal
-                    title="Nova disciplina"
-                    eyebrow="Pedagógica"
-                    description="Adicione uma disciplina ao catálogo da escola."
-                    icon={<Plus className="size-5" />}
-                    submitLabel="Criar disciplina"
-                    onSubmit={async (values) => {
-                      const weeklyHours = Number(values.carga || 4);
-                      const gradeFrom = values.classeDe ? Number(values.classeDe) : undefined;
-                      const gradeTo = values.classeAte ? Number(values.classeAte) : undefined;
-                      await createSubject({
-                        data: {
-                          code: values.codigo ?? "",
-                          name: values.nome ?? "",
-                          teacherName: values.professor || undefined,
-                          weeklyHours: Number.isFinite(weeklyHours) ? weeklyHours : 4,
-                          gradeFrom: Number.isFinite(gradeFrom) ? gradeFrom : undefined,
-                          gradeTo: Number.isFinite(gradeTo) ? gradeTo : undefined,
+                    <QuickFormModal
+                      title="Nova disciplina"
+                      eyebrow="Pedagógica"
+                      description="Adicione uma disciplina ao catálogo da escola."
+                      icon={<Plus className="size-5" />}
+                      submitLabel="Criar disciplina"
+                      onSubmit={async (values) => {
+                        const weeklyHours = Number(values.carga || 4);
+                        const gradeFrom = values.classeDe ? Number(values.classeDe) : undefined;
+                        const gradeTo = values.classeAte ? Number(values.classeAte) : undefined;
+                        await createSubject({
+                          data: {
+                            code: values.codigo ?? "",
+                            name: values.nome ?? "",
+                            teacherName: values.professor || undefined,
+                            weeklyHours: Number.isFinite(weeklyHours) ? weeklyHours : 4,
+                            gradeFrom: Number.isFinite(gradeFrom) ? gradeFrom : undefined,
+                            gradeTo: Number.isFinite(gradeTo) ? gradeTo : undefined,
+                          },
+                        });
+                        await queryClient.invalidateQueries({
+                          queryKey: ["academic", "pedagogical-workspace"],
+                        });
+                      }}
+                      fields={[
+                        {
+                          name: "nome",
+                          label: "Disciplina",
+                          placeholder: "Ex.: Química",
+                          full: true,
                         },
-                      });
-                      await queryClient.invalidateQueries({
-                        queryKey: ["academic", "pedagogical-workspace"],
-                      });
-                    }}
-                    fields={[
-                      {
-                        name: "nome",
-                        label: "Disciplina",
-                        placeholder: "Ex.: Química",
-                        full: true,
-                      },
-                      { name: "codigo", label: "Código", placeholder: "Ex.: QUI" },
-                      {
-                        name: "professor",
-                        label: "Docente",
-                        placeholder: "Ex.: Prof.ª Ana Silva",
-                        required: false,
-                      },
-                      {
-                        name: "carga",
-                        label: "Horas/semana",
-                        type: "number",
-                        placeholder: "4",
-                      },
-                      {
-                        name: "classeDe",
-                        label: "Classe inicial",
-                        type: "number",
-                        placeholder: "7",
-                        required: false,
-                      },
-                      {
-                        name: "classeAte",
-                        label: "Classe final",
-                        type: "number",
-                        placeholder: "13",
-                        required: false,
-                      },
-                    ]}
-                    trigger={(open) => (
-                      <Button size="sm" className="gap-1.5" onClick={open}>
-                        <Plus className="size-3.5" /> Nova
-                      </Button>
-                    )}
-                  />
+                        { name: "codigo", label: "Código", placeholder: "Ex.: QUI" },
+                        {
+                          name: "professor",
+                          label: "Docente",
+                          placeholder: "Ex.: Prof.ª Ana Silva",
+                          required: false,
+                        },
+                        {
+                          name: "carga",
+                          label: "Horas/semana",
+                          type: "number",
+                          placeholder: "4",
+                        },
+                        {
+                          name: "classeDe",
+                          label: "Classe inicial",
+                          type: "number",
+                          placeholder: "7",
+                          required: false,
+                        },
+                        {
+                          name: "classeAte",
+                          label: "Classe final",
+                          type: "number",
+                          placeholder: "13",
+                          required: false,
+                        },
+                      ]}
+                      trigger={(open) => (
+                        <Button size="sm" className="gap-1.5" onClick={open}>
+                          <Plus className="size-3.5" /> Nova
+                        </Button>
+                      )}
+                    />
                   </div>
                 ) : null
               }
@@ -1522,77 +1533,78 @@ function PedagogicaPage() {
                       <Sparkles className="size-3.5" /> Avaliação
                     </Button>
                   ) : null}
-                {canLaunchGrades &&
-                gradesAvailable &&
-                enrollmentOptions.length > 0 &&
-                subjects.length > 0 ? (
-                  <QuickFormModal
-                    title="Lançar nota avulsa"
-                    eyebrow="Avaliação"
-                    description="Ajuste pontual de um aluno. Para a turma inteira use a grelha da pauta."
-                    icon={<Plus className="size-5" />}
-                    submitLabel="Guardar nota"
-                    onSubmit={async (values) => {
-                      const enrollmentId = resolveOptionId(
-                        enrollmentSelectOptions,
-                        values.matricula,
-                        enrollmentOptions.map((row) => row.id),
-                      );
-                      const subjectId = resolveOptionId(
-                        subjectOptions,
-                        values.disciplina,
-                        subjects.map((row) => row.id),
-                      );
-                      const termMap = { "1º": 1, "2º": 2, "3º": 3 } as const;
-                      const term = termMap[(values.trimestre as keyof typeof termMap) ?? "1º"] ?? 1;
-                      if (!enrollmentId || !subjectId) {
-                        throw new Error("Seleccione matrícula e disciplina.");
-                      }
-                      await upsertTermGrade({
-                        data: {
-                          enrollmentId,
-                          subjectId,
-                          term,
-                          mac: Number(values.mac),
-                          npp: Number(values.npp),
-                          npt: Number(values.npt),
+                  {canLaunchGrades &&
+                  gradesAvailable &&
+                  enrollmentOptions.length > 0 &&
+                  subjects.length > 0 ? (
+                    <QuickFormModal
+                      title="Lançar nota avulsa"
+                      eyebrow="Avaliação"
+                      description="Ajuste pontual de um aluno. Para a turma inteira use a grelha da pauta."
+                      icon={<Plus className="size-5" />}
+                      submitLabel="Guardar nota"
+                      onSubmit={async (values) => {
+                        const enrollmentId = resolveOptionId(
+                          enrollmentSelectOptions,
+                          values.matricula,
+                          enrollmentOptions.map((row) => row.id),
+                        );
+                        const subjectId = resolveOptionId(
+                          subjectOptions,
+                          values.disciplina,
+                          subjects.map((row) => row.id),
+                        );
+                        const termMap = { "1º": 1, "2º": 2, "3º": 3 } as const;
+                        const term =
+                          termMap[(values.trimestre as keyof typeof termMap) ?? "1º"] ?? 1;
+                        if (!enrollmentId || !subjectId) {
+                          throw new Error("Seleccione matrícula e disciplina.");
+                        }
+                        await upsertTermGrade({
+                          data: {
+                            enrollmentId,
+                            subjectId,
+                            term,
+                            mac: Number(values.mac),
+                            npp: Number(values.npp),
+                            npt: Number(values.npt),
+                          },
+                        });
+                        await queryClient.invalidateQueries({
+                          queryKey: ["academic", "pedagogical-workspace"],
+                        });
+                      }}
+                      fields={[
+                        {
+                          name: "matricula",
+                          label: "Aluno / turma",
+                          type: "select",
+                          options: enrollmentSelectOptions,
+                          full: true,
                         },
-                      });
-                      await queryClient.invalidateQueries({
-                        queryKey: ["academic", "pedagogical-workspace"],
-                      });
-                    }}
-                    fields={[
-                      {
-                        name: "matricula",
-                        label: "Aluno / turma",
-                        type: "select",
-                        options: enrollmentSelectOptions,
-                        full: true,
-                      },
-                      {
-                        name: "disciplina",
-                        label: "Disciplina",
-                        type: "select",
-                        options: subjectOptions,
-                      },
-                      {
-                        name: "trimestre",
-                        label: "Trimestre",
-                        type: "select",
-                        options: ["1º", "2º", "3º"],
-                      },
-                      { name: "mac", label: "MAC", type: "number", placeholder: "0–20" },
-                      { name: "npp", label: "NPP", type: "number", placeholder: "0–20" },
-                      { name: "npt", label: "NPT", type: "number", placeholder: "0–20" },
-                    ]}
-                    trigger={(open) => (
-                      <Button size="sm" variant="outline" className="gap-1.5" onClick={open}>
-                        <Plus className="size-3.5" /> Avulsa
-                      </Button>
-                    )}
-                  />
-                ) : null}
+                        {
+                          name: "disciplina",
+                          label: "Disciplina",
+                          type: "select",
+                          options: subjectOptions,
+                        },
+                        {
+                          name: "trimestre",
+                          label: "Trimestre",
+                          type: "select",
+                          options: ["1º", "2º", "3º"],
+                        },
+                        { name: "mac", label: "MAC", type: "number", placeholder: "0–20" },
+                        { name: "npp", label: "NPP", type: "number", placeholder: "0–20" },
+                        { name: "npt", label: "NPT", type: "number", placeholder: "0–20" },
+                      ]}
+                      trigger={(open) => (
+                        <Button size="sm" variant="outline" className="gap-1.5" onClick={open}>
+                          <Plus className="size-3.5" /> Avulsa
+                        </Button>
+                      )}
+                    />
+                  ) : null}
                 </div>
               }
             >
@@ -1843,8 +1855,8 @@ function PedagogicaPage() {
                 </p>
               ) : !scheduleAvailable ? (
                 <p className="text-sm text-muted-foreground">
-                  Não foi possível carregar os horários neste momento. Tente novamente ou
-                  contacte o suporte técnico se persistir.
+                  Não foi possível carregar os horários neste momento. Tente novamente ou contacte o
+                  suporte técnico se persistir.
                 </p>
               ) : classGroups.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -1925,115 +1937,123 @@ function PedagogicaPage() {
                               {slot.display_label}
                             </p>
                             <div className="flex items-center gap-1">
-                            {(zoomOn || teamsOn) &&
-                            /zoom\.us|teams\.microsoft/i.test(String(slot.display_label ?? slot.label ?? "")) ? (
-                              <Button size="sm" variant="outline" asChild>
-                                <a
-                                  href={
-                                    String(slot.display_label ?? slot.label ?? "").match(
-                                      /https?:\/\/\S+/,
-                                    )?.[0]
+                              {(zoomOn || teamsOn) &&
+                              /zoom\.us|teams\.microsoft/i.test(
+                                String(slot.display_label ?? slot.label ?? ""),
+                              ) ? (
+                                <Button size="sm" variant="outline" asChild>
+                                  <a
+                                    href={
+                                      String(slot.display_label ?? slot.label ?? "").match(
+                                        /https?:\/\/\S+/,
+                                      )?.[0]
+                                    }
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Sala
+                                  </a>
+                                </Button>
+                              ) : (
+                                <>
+                                  {zoomOn ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={async () => {
+                                        const link = meetingRoomLink("zoom");
+                                        await navigator.clipboard.writeText(link);
+                                        toast.success("Link Zoom copiado", { description: link });
+                                      }}
+                                    >
+                                      Zoom
+                                    </Button>
+                                  ) : null}
+                                  {teamsOn ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={async () => {
+                                        const link = meetingRoomLink("teams");
+                                        await navigator.clipboard.writeText(link);
+                                        toast.success("Link Teams copiado", { description: link });
+                                      }}
+                                    >
+                                      Teams
+                                    </Button>
+                                  ) : null}
+                                </>
+                              )}
+                              <QuickFormModal
+                                title="Copiar slot"
+                                description={`Copia ${slot.display_label} (${starts}–${ends}) para outro dia da semana.`}
+                                submitLabel="Copiar"
+                                successDescription="Slot copiado para o dia escolhido."
+                                onSubmit={async (values) => {
+                                  if (!slot.class_group_id) {
+                                    throw new Error("Este slot não tem turma associada.");
                                   }
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  Sala
-                                </a>
-                              </Button>
-                            ) : (
-                              <>
-                                {zoomOn ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      const link = meetingRoomLink("zoom");
-                                      await navigator.clipboard.writeText(link);
-                                      toast.success("Link Zoom copiado", { description: link });
-                                    }}
-                                  >
-                                    Zoom
-                                  </Button>
-                                ) : null}
-                                {teamsOn ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      const link = meetingRoomLink("teams");
-                                      await navigator.clipboard.writeText(link);
-                                      toast.success("Link Teams copiado", { description: link });
-                                    }}
-                                  >
-                                    Teams
-                                  </Button>
-                                ) : null}
-                              </>
-                            )}
-                            <QuickFormModal
-                              title="Copiar slot"
-                              description={`Copia ${slot.display_label} (${starts}–${ends}) para outro dia da semana.`}
-                              submitLabel="Copiar"
-                              successDescription="Slot copiado para o dia escolhido."
-                              onSubmit={async (values) => {
-                                if (!slot.class_group_id) {
-                                  throw new Error("Este slot não tem turma associada.");
-                                }
-                                const weekday =
-                                  weekdayValues[
-                                    (values.dia as keyof typeof weekdayValues | undefined) ??
-                                      "Segunda"
-                                  ];
-                                await createScheduleSlot({
-                                  data: {
-                                    classGroupId: String(slot.class_group_id),
-                                    weekday,
-                                    startsAt: starts,
-                                    endsAt: ends,
-                                    subjectId: slot.subject_id ?? undefined,
-                                    label:
-                                      String(slot.label ?? slot.display_label ?? "Sala") || "Sala",
+                                  const weekday =
+                                    weekdayValues[
+                                      (values.dia as keyof typeof weekdayValues | undefined) ??
+                                        "Segunda"
+                                    ];
+                                  await createScheduleSlot({
+                                    data: {
+                                      classGroupId: String(slot.class_group_id),
+                                      weekday,
+                                      startsAt: starts,
+                                      endsAt: ends,
+                                      subjectId: slot.subject_id ?? undefined,
+                                      label:
+                                        String(slot.label ?? slot.display_label ?? "Sala") ||
+                                        "Sala",
+                                    },
+                                  });
+                                  await queryClient.invalidateQueries({
+                                    queryKey: ["academic", "pedagogical-workspace"],
+                                  });
+                                }}
+                                fields={[
+                                  {
+                                    name: "dia",
+                                    label: "Dia",
+                                    type: "select",
+                                    options: weekdayOptions.filter((day) => day !== weekdayLabel),
                                   },
-                                });
-                                await queryClient.invalidateQueries({
-                                  queryKey: ["academic", "pedagogical-workspace"],
-                                });
-                              }}
-                              fields={[
-                                {
-                                  name: "dia",
-                                  label: "Dia",
-                                  type: "select",
-                                  options: weekdayOptions.filter((day) => day !== weekdayLabel),
-                                },
-                              ]}
-                              trigger={(open) => (
-                                <Button size="sm" variant="ghost" className="gap-1.5" onClick={open}>
-                                  Copiar
-                                </Button>
-                              )}
-                            />
-                            <ConfirmActionModal
-                              title="Remover slot"
-                              description={`Retira ${slot.display_label} de ${weekdayLabel} (${starts}–${ends}) do horário desta turma.`}
-                              confirmLabel="Remover"
-                              onConfirm={async () => {
-                                await deleteScheduleSlot({ data: { slotId: String(slot.id) } });
-                                await queryClient.invalidateQueries({
-                                  queryKey: ["academic", "pedagogical-workspace"],
-                                });
-                              }}
-                              trigger={(open) => (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="gap-1.5 text-destructive"
-                                  onClick={open}
-                                >
-                                  <Trash2 className="size-3.5" /> Remover
-                                </Button>
-                              )}
-                            />
+                                ]}
+                                trigger={(open) => (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="gap-1.5"
+                                    onClick={open}
+                                  >
+                                    Copiar
+                                  </Button>
+                                )}
+                              />
+                              <ConfirmActionModal
+                                title="Remover slot"
+                                description={`Retira ${slot.display_label} de ${weekdayLabel} (${starts}–${ends}) do horário desta turma.`}
+                                confirmLabel="Remover"
+                                onConfirm={async () => {
+                                  await deleteScheduleSlot({ data: { slotId: String(slot.id) } });
+                                  await queryClient.invalidateQueries({
+                                    queryKey: ["academic", "pedagogical-workspace"],
+                                  });
+                                }}
+                                trigger={(open) => (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="gap-1.5 text-destructive"
+                                    onClick={open}
+                                  >
+                                    <Trash2 className="size-3.5" /> Remover
+                                  </Button>
+                                )}
+                              />
                             </div>
                           </li>
                         );
@@ -2064,8 +2084,8 @@ function PedagogicaPage() {
           canLockTerm={account.role === "Administrador"}
           closedTerms={school?.pedagogy?.closedTerms ?? []}
           initialTerm={filters.trimestre}
-        initialClassGroupId={turmaFromSearch}
-        initialSubjectId={disciplinaFromSearch}
+          initialClassGroupId={turmaFromSearch}
+          initialSubjectId={disciplinaFromSearch}
         />
       </Suspense>
     </AppShell>

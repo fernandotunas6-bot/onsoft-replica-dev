@@ -8,7 +8,12 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { pedagogySettingsSchema } from "@/features/school/schemas";
 import { averagePercent } from "@/features/students/schemas";
-import { ensureDefaultTeacher, listSgaTermGrades, upsertSgaTermGrade } from "./sga-grades";
+import {
+  ensureDefaultTeacher,
+  listSgaTermGrades,
+  upsertSgaTermGrade,
+  upsertSgaTermGradesBatch,
+} from "./sga-grades";
 import {
   createClassGroupInputSchema,
   createScheduleSlotInputSchema,
@@ -156,7 +161,7 @@ type ClassSubjectNav = {
   teacher_id: string | null;
 };
 
-type PedagogicalWorkspace = {
+export type PedagogicalWorkspace = {
   academicYears: Array<Record<string, unknown>>;
   courses: Array<Record<string, unknown>>;
   gradeLevels: Array<Record<string, unknown>>;
@@ -249,7 +254,10 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
             if (yearFilter) query = query.in("class_group_id", filteredGroupIds);
             return query;
           })();
-    if (enrollments.error && /attendance_rate|42703|schema cache/i.test(enrollments.error.message)) {
+    if (
+      enrollments.error &&
+      /attendance_rate|42703|schema cache/i.test(enrollments.error.message)
+    ) {
       enrollments = await (() => {
         let query = db
           .from("enrollments")
@@ -339,21 +347,14 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       ]),
     );
     const classSubjectById = new Map(
-      (classSubjects ?? []).map((row: Record<string, unknown>) => [
-        String(row["id"]),
-        row,
-      ]),
+      (classSubjects ?? []).map((row: Record<string, unknown>) => [String(row["id"]), row]),
     );
 
     const classGroups: ClassGroupSummary[] = (groups.data ?? []).map(
       (group: Record<string, unknown>) => {
         const grade = gradeById.get(String(group["grade_level_id"]));
-        const program = grade?.["program_id"]
-          ? programById.get(String(grade["program_id"]))
-          : null;
-        const campus = group["campus_id"]
-          ? campusById.get(String(group["campus_id"]))
-          : null;
+        const program = grade?.["program_id"] ? programById.get(String(grade["program_id"])) : null;
+        const campus = group["campus_id"] ? campusById.get(String(group["campus_id"])) : null;
         const year = yearById.get(String(group["academic_year_id"]));
         const stats = enrollmentStats.get(String(group["id"]));
         return {
@@ -520,9 +521,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
 
     const classSubjectNav: ClassSubjectNav[] = (classSubjects ?? []).map((row) => {
       const record = row as Record<string, unknown>;
-      const subject = record["subject_id"]
-        ? subjectById.get(String(record["subject_id"]))
-        : null;
+      const subject = record["subject_id"] ? subjectById.get(String(record["subject_id"])) : null;
       return {
         class_group_id: String(record["class_group_id"] ?? ""),
         subject_id: String(record["subject_id"] ?? ""),
@@ -576,8 +575,11 @@ export const createClassGroup = createServerFn({ method: "POST" })
     };
     let { data: group, error } = await db.from("class_groups").insert(payload).select("*").single();
     if (error && (error.code === "42703" || /whatsapp_/i.test(error.message))) {
-      const { whatsapp_invite_url: _invite, whatsapp_group_name: _name, ...withoutWhatsapp } =
-        payload;
+      const {
+        whatsapp_invite_url: _invite,
+        whatsapp_group_name: _name,
+        ...withoutWhatsapp
+      } = payload;
       ({ data: group, error } = await db
         .from("class_groups")
         .insert(withoutWhatsapp)
@@ -618,8 +620,11 @@ export const updateClassGroup = createServerFn({ method: "POST" })
       .select("*")
       .maybeSingle();
     if (error && (error.code === "42703" || /whatsapp_/i.test(error.message))) {
-      const { whatsapp_invite_url: _invite, whatsapp_group_name: _name, ...withoutWhatsapp } =
-        payload;
+      const {
+        whatsapp_invite_url: _invite,
+        whatsapp_group_name: _name,
+        ...withoutWhatsapp
+      } = payload;
       ({ data: group, error } = await db
         .from("class_groups")
         .update(withoutWhatsapp)
@@ -816,23 +821,14 @@ export const upsertTermGradesBatch = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
     await assertTermOpen(db, membership.schoolId, data.term);
-    const saved = [];
-    for (const row of data.rows) {
-      saved.push(
-        await upsertSgaTermGrade({
-          db,
-          schoolId: membership.schoolId,
-          userId: context.userId,
-          enrollmentId: row.enrollmentId,
-          subjectId: data.subjectId,
-          term: data.term,
-          mac: row.mac,
-          npp: row.npp,
-          npt: row.npt,
-        }),
-      );
-    }
-    return { saved: saved.length };
+    return upsertSgaTermGradesBatch({
+      db,
+      schoolId: membership.schoolId,
+      userId: context.userId,
+      subjectId: data.subjectId,
+      term: data.term,
+      rows: data.rows,
+    });
   });
 
 export const createScheduleSlot = createServerFn({ method: "POST" })
@@ -1015,7 +1011,8 @@ export const unassignClassSubjectTeacher = createServerFn({ method: "POST" })
     if (loadError && isMissingRelation(loadError)) {
       throw new Error("Aplique APPLY_ENROLLMENT_AND_PREMIUM.sql para ligar professores às turmas.");
     }
-    if (loadError) throw publicDatabaseError(loadError, "Não foi possível ler a disciplina da turma.");
+    if (loadError)
+      throw publicDatabaseError(loadError, "Não foi possível ler a disciplina da turma.");
     if (!existing?.id) throw new Error("Esta turma ainda não tem essa disciplina atribuída.");
 
     const { error } = await db
@@ -1239,8 +1236,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
         (people ?? []).find((row) => String(row.email ?? "").toLowerCase() === email && email) ??
         (people ?? []).find(
           (row) =>
-            fullName &&
-            String(row.full_name ?? "").toLowerCase() === fullName.trim().toLowerCase(),
+            fullName && String(row.full_name ?? "").toLowerCase() === fullName.trim().toLowerCase(),
         );
       if (person) {
         const { data: teacher } = await db
@@ -1300,7 +1296,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
       };
     }
 
-    let subjectsQuery = db
+    const subjectsQuery = db
       .from("class_subjects")
       .select("id, class_group_id, subject_id, teacher_id")
       .eq("school_id", membership.schoolId)
@@ -1391,10 +1387,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
       : { data: [] as Array<{ id: string; full_name: string }> };
     const personNameById = new Map((studentPeople ?? []).map((row) => [row.id, row.full_name]));
     const studentNameById = new Map(
-      (studentRows ?? []).map((row) => [
-        row.id,
-        personNameById.get(row.person_id) ?? "Aluno",
-      ]),
+      (studentRows ?? []).map((row) => [row.id, personNameById.get(row.person_id) ?? "Aluno"]),
     );
 
     const classes = (assignments ?? []).map((row) => {

@@ -4,7 +4,11 @@ import { BookOpen, ChevronDown, GraduationCap, Layers } from "lucide-react";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { canAccessPath } from "@/features/auth/access-policy";
-import { getTeacherWorkspace, listPedagogicalWorkspace } from "@/features/academic/server";
+import {
+  getTeacherWorkspace,
+  listPedagogicalWorkspace,
+  type PedagogicalWorkspace,
+} from "@/features/academic/server";
 import {
   buildAcademicNavTree,
   isClassTeacherLevel,
@@ -33,7 +37,7 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
     queryFn: () =>
       listPedagogicalWorkspace({
         data: selectedYearId ? { academicYearId: selectedYearId } : {},
-      }),
+      }) as Promise<PedagogicalWorkspace>,
     enabled: canRead && !isTeacher,
     retry: false,
   });

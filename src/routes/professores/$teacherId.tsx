@@ -13,6 +13,7 @@ import { TeacherWorkspacePanel } from "@/features/academic/TeacherWorkspacePanel
 import {
   assignClassSubjectTeacher,
   listPedagogicalWorkspace,
+  type PedagogicalWorkspace,
 } from "@/features/academic/server";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canWriteModule } from "@/features/auth/access-policy";
@@ -51,7 +52,7 @@ function TeacherProfilePage() {
     queryFn: () =>
       listPedagogicalWorkspace({
         data: selectedYearId ? { academicYearId: selectedYearId } : {},
-      }),
+      }) as Promise<PedagogicalWorkspace>,
     enabled: canManage,
   });
   const teacher = (teachersQuery.data ?? []).find((row) => row.id === teacherId);
@@ -86,7 +87,8 @@ function TeacherProfilePage() {
                         address: school?.address,
                         directorName: school?.director_name,
                         academicYear:
-                          selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
+                          selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") ||
+                          school?.academic_year,
                       },
                       student: {
                         fullName: teacher.full_name,
@@ -202,7 +204,9 @@ function TeacherProfilePage() {
                       data: { classGroupId, subjectId, teacherId },
                     });
                     await Promise.all([
-                      queryClient.invalidateQueries({ queryKey: ["academic", "teacher-workspace"] }),
+                      queryClient.invalidateQueries({
+                        queryKey: ["academic", "teacher-workspace"],
+                      }),
                       queryClient.invalidateQueries({
                         queryKey: ["academic", "pedagogical-workspace"],
                       }),

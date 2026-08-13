@@ -45,13 +45,16 @@ import {
 } from "@/features/students/server";
 import { searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
-import {
-  buildStudentDossier,
-  documentValidationCode,
-} from "@/features/academic/assessment-views";
-import { listPedagogicalWorkspace } from "@/features/academic/server";
+import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
+import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
 import { createDocumentRequest, listDocumentWorkspace } from "@/features/documents/server";
-import { overlayBoletim, overlayCredenciais, overlayDossie, overlayHistorico, overlayServico } from "@/features/documents/print-overlays";
+import {
+  overlayBoletim,
+  overlayCredenciais,
+  overlayDossie,
+  overlayHistorico,
+  overlayServico,
+} from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { officialDeclarationBody } from "@/features/documents/schemas";
 import { issueInvoice, listInvoices, recordInvoicePayment } from "@/features/finance/server";
@@ -147,18 +150,17 @@ function StudentDetail() {
   const { activeYearLabel, selectedYearId, school, selectedYearLabel } = useSchoolSettings();
   const account = useCurrentAccount();
   const canIssueInvoice =
-    account.role === "Administrador" || account.role === "Secretaria" || account.role === "Tesouraria";
-  const canReceivePayment =
-    account.role === "Administrador" || account.role === "Tesouraria";
-  const canRequestDocument =
-    account.role === "Administrador" || account.role === "Secretaria";
+    account.role === "Administrador" ||
+    account.role === "Secretaria" ||
+    account.role === "Tesouraria";
+  const canReceivePayment = account.role === "Administrador" || account.role === "Tesouraria";
+  const canRequestDocument = account.role === "Administrador" || account.role === "Secretaria";
   const installed = useInstalledIntegrations();
   const agtOn = installed.hasCapability("agt.einvoice") || installed.hasCapability("agt.nif");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const resendInvoices = installed.hasCapability("resend.invoices");
   const resendDocuments = installed.hasCapability("resend.documents");
-  const resendOn =
-    installed.hasCapability("resend.send") || resendInvoices || resendDocuments;
+  const resendOn = installed.hasCapability("resend.send") || resendInvoices || resendDocuments;
   const receiveMethods = [
     "Numerário",
     "Transferência",
@@ -167,14 +169,15 @@ function StudentDetail() {
   ];
   const profileQuery = useQuery({
     queryKey: ["students", "profile", studentId],
-    queryFn: () => getStudentProfile({ data: { id: studentId } }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- createServerFn não infere o tipo de retorno desta função (ver getStudentProfile)
+    queryFn: () => getStudentProfile({ data: { id: studentId } }) as Promise<any>,
   });
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
     queryFn: () =>
       listPedagogicalWorkspace({
         data: selectedYearId ? { academicYearId: selectedYearId } : {},
-      }),
+      }) as Promise<PedagogicalWorkspace>,
   });
   const peopleQuery = useQuery({
     queryKey: ["people", "search", ""],
@@ -212,8 +215,7 @@ function StudentDetail() {
   const studentInvoices = (invoicesQuery.data ?? []).filter(
     (invoice) => invoice.student_id === studentId,
   );
-  const paymentStatus =
-    paymentStatusFromInvoices(studentInvoices) ?? student.payment_status;
+  const paymentStatus = paymentStatusFromInvoices(studentInvoices) ?? student.payment_status;
   const templates = documentsQuery.data?.templates ?? [];
   const templateOptions = templates.map((template) => template.name);
   const suggestedInvoiceNumber = `FT-${new Date().getFullYear()}-${student.registration_number.replace(/\W/g, "").slice(-6)}`;
@@ -428,7 +430,9 @@ function StudentDetail() {
         average: rows[0]?.mfa,
         attendance:
           student.attendance_rate != null ? `${Math.round(Number(student.attendance_rate))}%` : "—",
-        status: rows.every((row) => !/reprov|não trans/i.test(row.status)) ? "Transita" : "Pendente",
+        status: rows.every((row) => !/reprov|não trans/i.test(row.status))
+          ? "Transita"
+          : "Pendente",
         approved: rows.filter((row) => !/reprov|não trans|pendente/i.test(row.status)).length,
       }),
       fallback: () =>
@@ -594,7 +598,11 @@ function StudentDetail() {
         academicNumber: student.registration_number,
         className: student.class_name,
         programName: student.grade_name,
-        validationCode: documentValidationCode([student.id, student.registration_number, academicYear]),
+        validationCode: documentValidationCode([
+          student.id,
+          student.registration_number,
+          academicYear,
+        ]),
       },
       fallback: () =>
         exportOfficialDeclarationPdf(`declaracao-${student.registration_number}`, "Declaração", {
@@ -786,7 +794,9 @@ function StudentDetail() {
                   onClick={() => {
                     void downloadBoletim().catch((error) =>
                       toast.error(
-                        error instanceof Error ? error.message : "Não foi possível emitir o boletim.",
+                        error instanceof Error
+                          ? error.message
+                          : "Não foi possível emitir o boletim.",
                       ),
                     );
                   }}
@@ -899,8 +909,7 @@ function StudentDetail() {
                 submitLabel="Emitir"
                 successDescription="Fatura emitida."
                 onSubmit={async (values) => {
-                  const nifNote =
-                    agtOn && school?.nif ? ` NIF ${school.nif} (AGT).` : "";
+                  const nifNote = agtOn && school?.nif ? ` NIF ${school.nif} (AGT).` : "";
                   await issueInvoice({
                     data: {
                       studentId,
@@ -1097,7 +1106,10 @@ function StudentDetail() {
             },
             {
               label: "Taxa de presença",
-              value: student.attendance_rate != null ? `${Math.round(Number(student.attendance_rate))}%` : "—",
+              value:
+                student.attendance_rate != null
+                  ? `${Math.round(Number(student.attendance_rate))}%`
+                  : "—",
               hint: "Ano lectivo actual",
               action:
                 canRequestDocument && student.enrollment_id ? (
@@ -1376,11 +1388,7 @@ function StudentDetail() {
               <Field label="Turma" value={student.class_name ?? "—"} />
               <Field
                 label="Situação financeira"
-                value={
-                  paymentStatus
-                    ? (pagamentoLabels[paymentStatus] ?? paymentStatus)
-                    : "—"
-                }
+                value={paymentStatus ? (pagamentoLabels[paymentStatus] ?? paymentStatus) : "—"}
               />
             </div>
             {studentInvoices.length > 0 ? (
@@ -1459,8 +1467,9 @@ function StudentDetail() {
                                 "Unitel Money": "unitel_money",
                               } as const;
                               const method =
-                                methodMap[(values.metodo as keyof typeof methodMap) ?? "Numerário"] ??
-                                "cash";
+                                methodMap[
+                                  (values.metodo as keyof typeof methodMap) ?? "Numerário"
+                                ] ?? "cash";
                               const reference =
                                 values.referencia ||
                                 (method === "multicaixa_express"
