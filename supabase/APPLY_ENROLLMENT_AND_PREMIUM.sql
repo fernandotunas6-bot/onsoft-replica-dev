@@ -616,6 +616,102 @@ CREATE POLICY "Write school files"
   USING (school_id = (SELECT public.current_school_id()))
   WITH CHECK (school_id = (SELECT public.current_school_id()) AND owner_user_id = auth.uid());
 
+-- ---------------------------------------------------------------------------
+-- Planos de Aula (ciclo 34): documento título/conteúdo/anexo por turma+disciplina
+-- +trimestre, com estrutura de avaliações/provas nomeadas pelo professor que se
+-- materializa em siga_assessment_items (Centro de Avaliação já existente) — não
+-- cria um motor de notas paralelo, só gera os itens nomeados que já alimentam
+-- MAC/NPP/NPT via componentAverage + upsertTermGradesBatch.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.siga_lesson_plans (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  class_group_id uuid NOT NULL,
+  subject_id uuid NOT NULL,
+  term integer NOT NULL CHECK (term BETWEEN 1 AND 3),
+  title text NOT NULL,
+  content text,
+  file_id uuid REFERENCES public.siga_files(id) ON DELETE SET NULL,
+  file_name text,
+  status text NOT NULL DEFAULT 'draft',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id),
+  updated_by uuid REFERENCES auth.users(id)
+);
+
+ALTER TABLE public.siga_lesson_plans DROP CONSTRAINT IF EXISTS siga_lesson_plans_status_check;
+ALTER TABLE public.siga_lesson_plans
+  ADD CONSTRAINT siga_lesson_plans_status_check CHECK (status IN ('draft', 'published'));
+
+CREATE INDEX IF NOT EXISTS siga_lesson_plans_scope_idx
+  ON public.siga_lesson_plans (school_id, class_group_id, subject_id, term);
+
+DROP TRIGGER IF EXISTS siga_lesson_plans_set_updated_at ON public.siga_lesson_plans;
+CREATE TRIGGER siga_lesson_plans_set_updated_at
+  BEFORE UPDATE ON public.siga_lesson_plans
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+ALTER TABLE public.siga_lesson_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_lesson_plans FORCE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.siga_lesson_plans TO authenticated;
+GRANT ALL ON public.siga_lesson_plans TO service_role;
+
+DROP POLICY IF EXISTS "Manage lesson plans in own school" ON public.siga_lesson_plans;
+CREATE POLICY "Manage lesson plans in own school"
+  ON public.siga_lesson_plans
+  FOR ALL TO authenticated
+  USING (school_id = (SELECT public.current_school_id()))
+  WITH CHECK (school_id = (SELECT public.current_school_id()));
+
+CREATE TABLE IF NOT EXISTS public.siga_lesson_plan_components (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  lesson_plan_id uuid NOT NULL REFERENCES public.siga_lesson_plans(id) ON DELETE CASCADE,
+  kind text NOT NULL,
+  name text NOT NULL,
+  planned_count integer NOT NULL DEFAULT 1,
+  sequence integer NOT NULL DEFAULT 1,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.siga_lesson_plan_components
+  DROP CONSTRAINT IF EXISTS siga_lesson_plan_components_kind_check;
+ALTER TABLE public.siga_lesson_plan_components
+  ADD CONSTRAINT siga_lesson_plan_components_kind_check CHECK (kind IN ('avaliacao', 'prova'));
+
+ALTER TABLE public.siga_lesson_plan_components
+  DROP CONSTRAINT IF EXISTS siga_lesson_plan_components_count_check;
+ALTER TABLE public.siga_lesson_plan_components
+  ADD CONSTRAINT siga_lesson_plan_components_count_check CHECK (planned_count BETWEEN 1 AND 20);
+
+CREATE INDEX IF NOT EXISTS siga_lesson_plan_components_plan_idx
+  ON public.siga_lesson_plan_components (lesson_plan_id, sequence);
+
+ALTER TABLE public.siga_lesson_plan_components ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_lesson_plan_components FORCE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.siga_lesson_plan_components TO authenticated;
+GRANT ALL ON public.siga_lesson_plan_components TO service_role;
+
+DROP POLICY IF EXISTS "Manage lesson plan components in own school" ON public.siga_lesson_plan_components;
+CREATE POLICY "Manage lesson plan components in own school"
+  ON public.siga_lesson_plan_components
+  FOR ALL TO authenticated
+  USING (school_id = (SELECT public.current_school_id()))
+  WITH CHECK (school_id = (SELECT public.current_school_id()));
+
+-- Liga os itens do Centro de Avaliação gerados por um Plano de Aula de volta à
+-- definição que os originou, para conseguir sincronizar (criar/remover) quando o
+-- plano é editado, sem nunca apagar um item que já tenha notas lançadas.
+ALTER TABLE public.siga_assessment_items
+  ADD COLUMN IF NOT EXISTS lesson_plan_component_id uuid
+    REFERENCES public.siga_lesson_plan_components(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS siga_assessment_items_plan_component_idx
+  ON public.siga_assessment_items (lesson_plan_component_id)
+  WHERE lesson_plan_component_id IS NOT NULL;
+
 -- Verificação: deve devolver as relações novas.
 SELECT c.relname AS tabela
 FROM pg_class c
@@ -633,6 +729,8 @@ WHERE n.nspname = 'public'
     'siga_direct_messages',
     'siga_files',
     'siga_file_events',
-    'person_documents'
+    'person_documents',
+    'siga_lesson_plans',
+    'siga_lesson_plan_components'
   )
 ORDER BY 1;

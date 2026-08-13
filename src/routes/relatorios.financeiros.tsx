@@ -1,7 +1,8 @@
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Award, Download, FileDown, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, Award, Download, FileDown, TrendingDown, TrendingUp } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -318,6 +319,17 @@ function RelatoriosFinanceiros() {
   return (
     <AppShell>
       <div className="space-y-6">
+        {summary?.truncated ? (
+          <Alert variant="destructive">
+            <AlertTriangle className="size-4" />
+            <AlertTitle>Relatório incompleto</AlertTitle>
+            <AlertDescription>
+              Há mais facturas/recibos do que este relatório conseguiu somar. Os totais abaixo
+              estão por baixo do valor real — contacte o suporte para paginar o histórico
+              completo.
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <PageHeader
           group="Relatórios"
           title="Relatórios Financeiros"

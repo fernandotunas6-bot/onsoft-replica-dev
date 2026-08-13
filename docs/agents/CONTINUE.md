@@ -42,6 +42,7 @@ Ciclos 1–7 da sessão premium estão no código. Commits **não** foram criado
 | 31 | Media reconhecida + inquérito/área obrigatórios | Feito |
 | 32 | Pastas, selecção, mover e modal expansível | Feito (precisa SQL) |
 | 33 | Recibos/talões na biblioteca + ID pesquisável | Feito (precisa SQL) |
+| 34 | Planos de Aula (título/conteúdo/anexo + avaliações/provas por turma-disciplina-trimestre) | Feito (precisa SQL) |
 
 ## Ciclo 9 — identidade, escola e tesouraria
 
@@ -63,7 +64,7 @@ Correr **só** no SQL Editor, nesta ordem:
 1. `supabase/APPLY_IN_SQL_EDITOR.sql`
 2. `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql`
 
-O segundo cria `current_school_id()` a partir de `school_memberships`. Sem isto as tabelas novas não existem (inclui `siga_assessment_items/scores` do Centro de Avaliação).
+O segundo cria `current_school_id()` a partir de `school_memberships`. Sem isto as tabelas novas não existem (inclui `siga_assessment_items/scores` do Centro de Avaliação e `siga_lesson_plans/siga_lesson_plan_components` dos Planos de Aula).
 
 **Nunca** aplicar ao SGA:
 
@@ -114,6 +115,7 @@ Scaffold cria `schemas.ts`, `server.ts`, teste e opcionalmente a rota. Não sobr
 | `siga-integracoes` | catálogo catalog-ready |
 | `siga-arquivos` | biblioteca de ficheiros, picker Moodle |
 | `siga-dashboard` | dashboard e workspace do professor |
+| `siga-lesson-plans` | planos de aula, avaliações/provas por turma-disciplina-trimestre |
 
 Registo canónico: `scripts/siga/modules.json`.
 
@@ -264,6 +266,14 @@ Registo canónico: `scripts/siga/modules.json`.
 - Tesouraria arquiva ao receber, emitir fatura e criar plano; impressão de talão reutiliza o mesmo ID estável.
 - UI: inquérito com ID, lista/grelha com mono ID, ficha do aluno mostra recibos/talões ligados.
 - SQL: categoria `talao` no CHECK + índice `siga_files_reference_idx` em `APPLY_ENROLLMENT_AND_PREMIUM.sql`.
+
+## Ciclo 34 — Planos de Aula
+
+- `/planos-aula` (sidebar → Área Pedagógica): cartões agrupados por trimestre, filtráveis por turma/disciplina/trimestre/texto.
+- Modal `LessonPlanModal` (padrão `PremiumModal`, o mesmo usado no Centro de Avaliação): turma, disciplina, trimestre, título, conteúdo, anexo (`PickFileButton` da biblioteca), listas repetíveis de **Avaliações** e **Provas** (nome definido pelo professor + quantidade).
+- **Não é um motor de notas novo.** Cada avaliação/prova do plano materializa-se em `siga_assessment_items` (avaliação → `component: MAC`, prova → `component: NPP`) — o Centro de Avaliação já existente (`AssessmentCenter.tsx`) lança as notas, calcula `componentAverage` e empurra para a pauta oficial via `upsertTermGradesBatch`. A pauta continua fixa a MAC/NPP/NPT.
+- Editar um plano nunca apaga notas já lançadas: itens do Centro de Avaliação com pontuação ficam ligados por `lesson_plan_component_id` mesmo que a definição do plano mude; só remove itens *sem* nota quando a quantidade planeada desce.
+- Tabelas novas: `siga_lesson_plans`, `siga_lesson_plan_components`; coluna nova `siga_assessment_items.lesson_plan_component_id`. Tudo em `APPLY_ENROLLMENT_AND_PREMIUM.sql`.
 
 ## Próximos passos úteis
 

@@ -378,6 +378,180 @@ export async function upsertSgaTermGrade(params: {
   };
 }
 
+async function ensureGradeContext(params: {
+  db: Db;
+  schoolId: string;
+  userId: string;
+  academicYearId: string;
+  classGroupId: string;
+  subjectId: string;
+  term: number;
+}) {
+  const { db, schoolId, userId, academicYearId, classGroupId, subjectId, term } = params;
+  const termRow = await ensureTerm(db, schoolId, academicYearId, term);
+  const classSubjectId = await ensureClassSubject(db, schoolId, classGroupId, subjectId, userId);
+  const gradebookId = await ensureGradebook(
+    db,
+    schoolId,
+    academicYearId,
+    termRow.id,
+    classGroupId,
+    classSubjectId,
+    userId,
+  );
+  const items = await ensureComponentItems(db, schoolId, gradebookId, userId);
+  return { gradebookId, items };
+}
+
+/**
+ * Grava as notas de um componente (MAC/NPP/NPT) para vários alunos com apenas 1
+ * SELECT (existentes) + 1 INSERT em lote (novos) + updates em paralelo — substitui
+ * o padrão anterior de 1 SELECT + 1 INSERT/UPDATE por aluno, que tornava o
+ * lançamento de uma turma inteira em dezenas de idas e vindas sequenciais à base.
+ */
+async function upsertScoresBatch(
+  db: Db,
+  schoolId: string,
+  gradeItemId: string,
+  entries: Array<{ enrollmentId: string; score: number }>,
+  userId: string,
+) {
+  if (!entries.length) return;
+  const enrollmentIds = entries.map((entry) => entry.enrollmentId);
+  const { data: existing, error } = await db
+    .from("grade_scores")
+    .select("id, enrollment_id")
+    .eq("grade_item_id", gradeItemId)
+    .in("enrollment_id", enrollmentIds);
+  if (error) throw publicDatabaseError(error, "Não foi possível verificar as notas existentes.");
+
+  const existingByEnrollment = new Map(
+    (existing ?? []).map((row: { id: string; enrollment_id: string }) => [
+      row.enrollment_id,
+      row.id,
+    ]),
+  );
+  const toInsert = entries.filter((entry) => !existingByEnrollment.has(entry.enrollmentId));
+  const toUpdate = entries.filter((entry) => existingByEnrollment.has(entry.enrollmentId));
+
+  const [insertResult, ...updateResults] = await Promise.all([
+    toInsert.length
+      ? db.from("grade_scores").insert(
+          toInsert.map((entry) => ({
+            school_id: schoolId,
+            grade_item_id: gradeItemId,
+            enrollment_id: entry.enrollmentId,
+            score: entry.score,
+            status: "draft",
+            recorded_by: userId,
+            updated_by: userId,
+          })),
+        )
+      : Promise.resolve({ error: null }),
+    ...toUpdate.map((entry) =>
+      db
+        .from("grade_scores")
+        .update({ score: entry.score, status: "draft", updated_by: userId })
+        .eq("id", existingByEnrollment.get(entry.enrollmentId)!),
+    ),
+  ]);
+  if (insertResult.error) {
+    throw publicDatabaseError(insertResult.error, "Não foi possível lançar as notas.");
+  }
+  for (const result of updateResults) {
+    if (result.error) throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
+  }
+}
+
+export async function upsertSgaTermGradesBatch(params: {
+  db: Db;
+  schoolId: string;
+  userId: string;
+  subjectId: string;
+  term: number;
+  rows: Array<{ enrollmentId: string; mac: number; npp: number; npt: number }>;
+}) {
+  const { db, schoolId, userId, subjectId, term, rows } = params;
+  if (!rows.length) return { saved: 0 };
+
+  const enrollmentIds = [...new Set(rows.map((row) => row.enrollmentId))];
+  const { data: enrollments, error: enrollmentsError } = await db
+    .from("enrollments")
+    .select("id, class_group_id, academic_year_id")
+    .in("id", enrollmentIds)
+    .eq("school_id", schoolId);
+  if (enrollmentsError) {
+    throw publicDatabaseError(enrollmentsError, "Não foi possível validar as matrículas.");
+  }
+  const enrollmentById = new Map(
+    (enrollments ?? []).map(
+      (row: { id: string; class_group_id: string | null; academic_year_id: string | null }) => [
+        row.id,
+        row,
+      ],
+    ),
+  );
+
+  // Notas de uma pauta pertencem, em regra, à mesma turma/ano lectivo — mas agrupa por
+  // (turma, ano) em vez de assumir isso, para continuar correcto caso um lote misture
+  // matrículas de turmas diferentes.
+  const groups = new Map<
+    string,
+    { classGroupId: string; academicYearId: string; rows: typeof rows }
+  >();
+  for (const row of rows) {
+    const enrollment = enrollmentById.get(row.enrollmentId);
+    if (!enrollment?.class_group_id || !enrollment.academic_year_id) {
+      throw new Error("A matrícula precisa de turma e ano lectivo para lançar notas.");
+    }
+    const key = `${enrollment.class_group_id}:${enrollment.academic_year_id}`;
+    const group = groups.get(key) ?? {
+      classGroupId: enrollment.class_group_id,
+      academicYearId: enrollment.academic_year_id,
+      rows: [],
+    };
+    group.rows.push(row);
+    groups.set(key, group);
+  }
+
+  for (const group of groups.values()) {
+    const { items } = await ensureGradeContext({
+      db,
+      schoolId,
+      userId,
+      academicYearId: group.academicYearId,
+      classGroupId: group.classGroupId,
+      subjectId,
+      term,
+    });
+    await Promise.all([
+      upsertScoresBatch(
+        db,
+        schoolId,
+        items.MAC,
+        group.rows.map((row) => ({ enrollmentId: row.enrollmentId, score: row.mac })),
+        userId,
+      ),
+      upsertScoresBatch(
+        db,
+        schoolId,
+        items.NPP,
+        group.rows.map((row) => ({ enrollmentId: row.enrollmentId, score: row.npp })),
+        userId,
+      ),
+      upsertScoresBatch(
+        db,
+        schoolId,
+        items.NPT,
+        group.rows.map((row) => ({ enrollmentId: row.enrollmentId, score: row.npt })),
+        userId,
+      ),
+    ]);
+  }
+
+  return { saved: rows.length };
+}
+
 export async function listSgaTermGrades(params: {
   db: Db;
   schoolId: string;

@@ -24,7 +24,13 @@ export const accessModules = [
   {
     key: "pedagogica",
     label: "Pedagógica",
-    prefixes: ["/pedagogica", "/calendario", "/relatorios/academicos", "/comunicacoes"],
+    prefixes: [
+      "/pedagogica",
+      "/calendario",
+      "/relatorios/academicos",
+      "/comunicacoes",
+      "/planos-aula",
+    ],
   },
   { key: "gestao", label: "Acessos / Config", prefixes: ["/acessos", "/configuracoes"] },
   { key: "arquivos", label: "Arquivos", prefixes: ["/arquivos"] },
@@ -46,7 +52,13 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     roles: ["Administrador", "Secretaria", "Professor"],
   },
   {
-    prefixes: ["/pedagogica", "/calendario", "/relatorios/academicos", "/comunicacoes"],
+    prefixes: [
+      "/pedagogica",
+      "/calendario",
+      "/relatorios/academicos",
+      "/comunicacoes",
+      "/planos-aula",
+    ],
     roles: ["Administrador", "Secretaria", "Professor"],
   },
   {

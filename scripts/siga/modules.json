@@ -206,7 +206,9 @@
       "id": "arquivos",
       "skill": "siga-arquivos",
       "label": "Arquivos",
-      "routes": ["src/routes/arquivos.tsx"],
+      "routes": [
+        "src/routes/arquivos.tsx"
+      ],
       "feature": [
         "src/features/arquivos/schemas.ts",
         "src/features/arquivos/server.ts",
@@ -215,8 +217,28 @@
         "src/features/arquivos/FilePickerModal.tsx",
         "src/features/arquivos/resolve-file.ts"
       ],
-      "tests": ["tests/arquivos/schemas.test.ts"],
+      "tests": [
+        "tests/arquivos/schemas.test.ts"
+      ],
       "accessKey": "arquivos",
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+    },
+    {
+      "id": "lesson-plans",
+      "skill": "siga-lesson-plans",
+      "label": "Planos de Aula",
+      "routes": [
+        "src/routes/planos-aula.tsx"
+      ],
+      "feature": [
+        "src/features/lesson-plans/schemas.ts",
+        "src/features/lesson-plans/server.ts",
+        "src/features/lesson-plans/LessonPlanModal.tsx"
+      ],
+      "tests": [
+        "tests/lesson-plans/schemas.test.ts"
+      ],
+      "accessKey": "pedagogica",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
     }
   ]

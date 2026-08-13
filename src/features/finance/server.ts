@@ -21,6 +21,35 @@ import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
 
+const REPORTING_PAGE_SIZE = 1000;
+const REPORTING_MAX_PAGES = 30;
+
+/**
+ * Pagina até esgotar os registos (ou até um tecto de segurança de 30 000), em vez
+ * do antigo `.limit(500)` sem `.order()` — que truncava o relatório financeiro
+ * "Oficial" em silêncio e sem garantia de serem os 500 mais recentes assim que a
+ * escola ultrapassasse esse número de facturas/recibos.
+ */
+async function fetchAllRows<T>(
+  fallbackMessage: string,
+  buildPage: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: T[] | null; error: { code?: string; message?: string } | null }>,
+): Promise<{ rows: T[]; truncated: boolean }> {
+  const rows: T[] = [];
+  for (let page = 0; page < REPORTING_MAX_PAGES; page += 1) {
+    const from = page * REPORTING_PAGE_SIZE;
+    const to = from + REPORTING_PAGE_SIZE - 1;
+    const { data, error } = await buildPage(from, to);
+    if (error) throw publicDatabaseError(error, fallbackMessage);
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < REPORTING_PAGE_SIZE) return { rows, truncated: false };
+  }
+  return { rows, truncated: true };
+}
+
 function categoryToFeeKind(category: string) {
   const value = category.trim().toLowerCase();
   if (value.includes("matr")) return "enrollment";
@@ -252,6 +281,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
           cash_in: 0,
           cash_out: 0,
           cash_balance: 0,
+          truncated: false,
         },
         monthly: [],
         categories: [],
@@ -262,31 +292,30 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     }
     const db = await loadSgaAdminClient();
 
-    const [
-      { data: invoices, error: invoicesError },
-      { data: receipts, error: receiptsError },
-      { data: feeItems },
-    ] = await Promise.all([
-      db
-        .from("finance_invoices")
-        .select(
-          "id, amount, discount_amount, due_date, status, competence_month, fee_item_id, contract_id, created_at",
-        )
-        .eq("school_id", membership.schoolId)
-        .limit(500),
-      db
-        .from("finance_receipts")
-        .select("id, amount, paid_on, status, invoice_id")
-        .eq("school_id", membership.schoolId)
-        .limit(500),
+    const [invoicesPaged, receiptsPaged, { data: feeItems }] = await Promise.all([
+      fetchAllRows("Não foi possível calcular o resumo financeiro.", (from, to) =>
+        db
+          .from("finance_invoices")
+          .select(
+            "id, amount, discount_amount, due_date, status, competence_month, fee_item_id, contract_id, created_at",
+          )
+          .eq("school_id", membership.schoolId)
+          .order("created_at", { ascending: true })
+          .range(from, to),
+      ),
+      fetchAllRows("Não foi possível calcular os recebimentos.", (from, to) =>
+        db
+          .from("finance_receipts")
+          .select("id, amount, paid_on, status, invoice_id")
+          .eq("school_id", membership.schoolId)
+          .order("paid_on", { ascending: true })
+          .range(from, to),
+      ),
       db.from("fee_items").select("id, name, kind").eq("school_id", membership.schoolId),
     ]);
-    if (invoicesError) {
-      throw publicDatabaseError(invoicesError, "Não foi possível calcular o resumo financeiro.");
-    }
-    if (receiptsError) {
-      throw publicDatabaseError(receiptsError, "Não foi possível calcular os recebimentos.");
-    }
+    const invoices = invoicesPaged.rows;
+    const receipts = receiptsPaged.rows;
+    const truncated = invoicesPaged.truncated || receiptsPaged.truncated;
 
     const today = new Date().toISOString().slice(0, 10);
     const activeInvoices = (invoices ?? []).filter(
@@ -375,6 +404,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
         cash_in: cashIn,
         cash_out: 0,
         cash_balance: cashIn,
+        truncated,
       },
       monthly: [...monthlyMap.entries()]
         .sort(([a], [b]) => a.localeCompare(b))
