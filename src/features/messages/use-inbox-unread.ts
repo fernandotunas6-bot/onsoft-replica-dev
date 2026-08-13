@@ -7,6 +7,11 @@ import { readRecentContactIds } from "@/features/messages/recent-contacts";
 import type { InboxPreview } from "@/features/messages/schemas";
 import { hasUnreadIncoming, markThreadRead, readLastReadMap } from "@/features/messages/unread";
 
+function lastLocalActivity(userId: string, peerId: string) {
+  const thread = readLocalThread(userId, peerId);
+  return thread.at(-1) ?? null;
+}
+
 function lastLocalIncoming(userId: string, peerId: string) {
   const incoming = readLocalThread(userId, peerId).filter((item) => !item.mine);
   return incoming.at(-1) ?? null;
@@ -30,10 +35,7 @@ export function useInboxUnread(colleagues: SchoolColleague[] = []) {
     initialData: 0,
   });
 
-  const lastRead = useMemo(
-    () => readLastReadMap(currentUser.id),
-    [currentUser.id, readTick.data],
-  );
+  const lastRead = useMemo(() => readLastReadMap(currentUser.id), [currentUser.id, readTick.data]);
 
   const previews = useMemo(() => {
     const remote = new Map(
@@ -51,24 +53,41 @@ export function useInboxUnread(colleagues: SchoolColleague[] = []) {
     for (const peerId of peerIds) {
       if (!peerId || peerId === currentUser.id) continue;
       const fromSga = remote.get(peerId);
-      const local = lastLocalIncoming(currentUser.id, peerId);
+      const localActivity = lastLocalActivity(currentUser.id, peerId);
+      const localIncoming = lastLocalIncoming(currentUser.id, peerId);
       const person = names.get(peerId);
-      let lastIncomingAt = fromSga?.lastIncomingAt ?? null;
+
+      let lastActivityAt = fromSga?.lastActivityAt ?? null;
       let lastBody = fromSga?.lastBody ?? "";
-      if (local && (!lastIncomingAt || Date.parse(local.createdAt) > Date.parse(lastIncomingAt))) {
-        lastIncomingAt = local.createdAt;
-        lastBody = local.body;
+      if (
+        localActivity &&
+        (!lastActivityAt || Date.parse(localActivity.createdAt) > Date.parse(lastActivityAt))
+      ) {
+        lastActivityAt = localActivity.createdAt;
+        lastBody =
+          localActivity.body ||
+          (localActivity.attachmentFileName ? `📎 ${localActivity.attachmentFileName}` : "");
       }
-      if (!lastIncomingAt) continue;
+      if (!lastActivityAt) continue;
+
+      let lastIncomingAt = fromSga?.lastIncomingAt ?? null;
+      if (
+        localIncoming &&
+        (!lastIncomingAt || Date.parse(localIncoming.createdAt) > Date.parse(lastIncomingAt))
+      ) {
+        lastIncomingAt = localIncoming.createdAt;
+      }
+
       merged.push({
         peerId,
         full_name: person?.full_name || fromSga?.full_name || "Colega",
         avatar_url: person?.avatar_url ?? fromSga?.avatar_url ?? null,
-        lastIncomingAt,
+        lastActivityAt,
         lastBody,
+        lastIncomingAt,
       });
     }
-    return merged.sort((a, b) => Date.parse(b.lastIncomingAt) - Date.parse(a.lastIncomingAt));
+    return merged.sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt));
   }, [colleagues, currentUser.id, inboxQuery.data?.previews, lastRead]);
 
   const unread = useMemo(

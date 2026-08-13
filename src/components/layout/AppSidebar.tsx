@@ -167,12 +167,10 @@ export function AppSidebar({
   className,
   collapsed = false,
   onOpenSettings,
-  onOpenProfile,
 }: {
   className?: string;
   collapsed?: boolean;
   onOpenSettings?: () => void;
-  onOpenProfile?: () => void;
 }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const currentUser = useCurrentAccount();
@@ -412,8 +410,10 @@ export function AppSidebar({
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onOpenProfile?.()}>
-              <User className="size-4" /> Perfil
+            <DropdownMenuItem asChild>
+              <Link to="/perfil">
+                <User className="size-4" /> Perfil
+              </Link>
             </DropdownMenuItem>
             {canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
               <DropdownMenuItem onClick={() => onOpenSettings?.()}>

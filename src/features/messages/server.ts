@@ -130,7 +130,9 @@ export const listDirectThread = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await db
       .from("siga_direct_messages")
-      .select("id, sender_id, recipient_id, body, created_at")
+      .select(
+        "id, sender_id, recipient_id, body, attachment_file_id, attachment_file_name, created_at",
+      )
       .eq("school_id", membership.schoolId)
       .or(
         `and(sender_id.eq.${context.userId},recipient_id.eq.${data.peerId}),and(sender_id.eq.${data.peerId},recipient_id.eq.${context.userId})`,
@@ -153,6 +155,8 @@ export const listDirectThread = createServerFn({ method: "GET" })
         body: String(row.body ?? ""),
         createdAt: String(row.created_at),
         mine: String(row.sender_id) === context.userId,
+        attachmentFileId: row.attachment_file_id ? String(row.attachment_file_id) : null,
+        attachmentFileName: row.attachment_file_name ? String(row.attachment_file_name) : null,
       })),
     };
   });
@@ -184,10 +188,12 @@ export const sendDirectMessage = createServerFn({ method: "POST" })
         school_id: membership.schoolId,
         sender_id: context.userId,
         recipient_id: data.peerId,
-        body: data.body,
+        body: data.body?.trim() || null,
+        attachment_file_id: data.attachmentFileId ?? null,
+        attachment_file_name: data.attachmentFileName ?? null,
         created_by: context.userId,
       })
-      .select("id, sender_id, body, created_at")
+      .select("id, sender_id, body, attachment_file_id, attachment_file_name, created_at")
       .single();
 
     if (error) {
@@ -197,9 +203,11 @@ export const sendDirectMessage = createServerFn({ method: "POST" })
           message: {
             id: crypto.randomUUID(),
             senderId: context.userId,
-            body: data.body,
+            body: data.body ?? "",
             createdAt: new Date().toISOString(),
             mine: true,
+            attachmentFileId: data.attachmentFileId ?? null,
+            attachmentFileName: data.attachmentFileName ?? null,
           },
         };
       }
@@ -214,6 +222,8 @@ export const sendDirectMessage = createServerFn({ method: "POST" })
         body: String(row.body ?? ""),
         createdAt: String(row.created_at),
         mine: true,
+        attachmentFileId: row.attachment_file_id ? String(row.attachment_file_id) : null,
+        attachmentFileName: row.attachment_file_name ? String(row.attachment_file_name) : null,
       },
     };
   });
@@ -226,48 +236,64 @@ export const listInboxPreviews = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
 
+    // Ambas as direcções: uma conversa que só tens enviado (sem resposta ainda) tem
+    // de aparecer na lista na mesma — só não conta para "não lidas".
     const { data: rows, error } = await db
       .from("siga_direct_messages")
-      .select("sender_id, body, created_at")
+      .select("sender_id, recipient_id, body, attachment_file_name, created_at")
       .eq("school_id", membership.schoolId)
-      .eq("recipient_id", context.userId)
+      .or(`sender_id.eq.${context.userId},recipient_id.eq.${context.userId}`)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(400);
 
     if (error) {
       if (missingMessagesTable(error)) {
         return { storage: "local" as const, previews: [] as InboxPreview[] };
       }
-      throw publicDatabaseError(error, "Não foi possível ler as mensagens recebidas.");
+      throw publicDatabaseError(error, "Não foi possível ler as mensagens.");
     }
 
-    const latest = new Map<string, { lastIncomingAt: string; lastBody: string }>();
+    const latestActivity = new Map<string, { lastActivityAt: string; lastBody: string }>();
+    const latestIncoming = new Map<string, string>();
     for (const row of rows ?? []) {
-      const peerId = String(row.sender_id);
-      if (latest.has(peerId)) continue;
-      latest.set(peerId, {
-        lastIncomingAt: String(row.created_at),
-        lastBody: String(row.body ?? "").slice(0, 140),
-      });
+      const incoming = String(row.recipient_id) === context.userId;
+      const peerId = incoming ? String(row.sender_id) : String(row.recipient_id);
+      if (!latestActivity.has(peerId)) {
+        const body = String(row.body ?? "").trim();
+        latestActivity.set(peerId, {
+          lastActivityAt: String(row.created_at),
+          lastBody: body
+            ? body.slice(0, 140)
+            : row.attachment_file_name
+              ? `📎 ${String(row.attachment_file_name)}`
+              : "",
+        });
+      }
+      if (incoming && !latestIncoming.has(peerId)) {
+        latestIncoming.set(peerId, String(row.created_at));
+      }
     }
 
-    const peerIds = [...latest.keys()];
+    const peerIds = [...latestActivity.keys()];
     const { data: profiles } = peerIds.length
       ? await db.from("profiles").select("id, full_name, avatar_url").in("id", peerIds)
-      : { data: [] as Array<{ id: string; full_name?: string | null; avatar_url?: string | null }> };
+      : {
+          data: [] as Array<{ id: string; full_name?: string | null; avatar_url?: string | null }>,
+        };
     const byId = new Map((profiles ?? []).map((row) => [String(row.id), row]));
 
     return {
       storage: "sga" as const,
       previews: peerIds.map((peerId) => {
-        const preview = latest.get(peerId)!;
+        const preview = latestActivity.get(peerId)!;
         const profile = byId.get(peerId);
         return {
           peerId,
           full_name: String(profile?.full_name ?? "").trim() || "Colega",
           avatar_url: profile?.avatar_url ? String(profile.avatar_url) : null,
-          lastIncomingAt: preview.lastIncomingAt,
+          lastActivityAt: preview.lastActivityAt,
           lastBody: preview.lastBody,
+          lastIncomingAt: latestIncoming.get(peerId) ?? null,
         } satisfies InboxPreview;
       }),
     };

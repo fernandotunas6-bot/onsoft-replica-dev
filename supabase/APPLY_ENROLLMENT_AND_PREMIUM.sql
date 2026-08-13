@@ -392,6 +392,14 @@ CREATE TABLE IF NOT EXISTS public.siga_direct_messages (
 CREATE INDEX IF NOT EXISTS siga_direct_messages_thread_idx
   ON public.siga_direct_messages (school_id, sender_id, recipient_id, created_at);
 
+-- Anexo opcional da biblioteca de arquivos (ciclo 35): mensagem pode ir só com
+-- ficheiro, por isso body deixa de ser obrigatório.
+ALTER TABLE public.siga_direct_messages ALTER COLUMN body DROP NOT NULL;
+ALTER TABLE public.siga_direct_messages
+  ADD COLUMN IF NOT EXISTS attachment_file_id uuid REFERENCES public.siga_files(id) ON DELETE SET NULL;
+ALTER TABLE public.siga_direct_messages
+  ADD COLUMN IF NOT EXISTS attachment_file_name text;
+
 ALTER TABLE public.siga_direct_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.siga_direct_messages FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT ON public.siga_direct_messages TO authenticated;

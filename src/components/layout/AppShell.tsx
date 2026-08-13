@@ -2,7 +2,17 @@ import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "rea
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 
-import { Bell, ChevronDown, FileText, Maximize2, Menu, Moon, Sun, Users, Wallet } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  FileText,
+  Maximize2,
+  Menu,
+  Moon,
+  Sun,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
@@ -83,7 +93,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const panelId = consumeSettingsOpen();
-    if (panelId !== undefined && canAccessPath("/configuracoes", currentUser.role, currentUser.grants)) {
+    if (
+      panelId !== undefined &&
+      canAccessPath("/configuracoes", currentUser.role, currentUser.grants)
+    ) {
       setSettingsPanelId(panelId);
       setSettingsOpen(true);
     }
@@ -177,16 +190,12 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           collapsed={collapsed}
           className="h-full"
           onOpenSettings={() => openSettings()}
-          onOpenProfile={() => openSettings("conta.perfil")}
         />
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[260px] border-none p-0">
-          <AppSidebar
-            onOpenSettings={() => openSettings()}
-            onOpenProfile={() => openSettings("conta.perfil")}
-          />
+          <AppSidebar onOpenSettings={() => openSettings()} />
         </SheetContent>
       </Sheet>
 
@@ -463,7 +472,11 @@ function SchoolAlertRow({
 
   if (alert.settingsPanel) {
     return (
-      <button type="button" className={className} onClick={() => onOpenSettings(alert.settingsPanel!)}>
+      <button
+        type="button"
+        className={className}
+        onClick={() => onOpenSettings(alert.settingsPanel!)}
+      >
         {body}
       </button>
     );

@@ -9,6 +9,8 @@ export type LocalDirectMessage = {
   body: string;
   createdAt: string;
   mine: boolean;
+  attachmentFileId?: string | null;
+  attachmentFileName?: string | null;
 };
 
 export function readLocalThread(userId: string, peerId: string): LocalDirectMessage[] {

@@ -51,6 +51,7 @@ estão versionadas localmente:
 | 32    | Pastas, selecção, mover e modal expansível                                                | Feito (precisa SQL)             |
 | 33    | Recibos/talões na biblioteca + ID pesquisável                                             | Feito (precisa SQL)             |
 | 34    | Planos de Aula (título/conteúdo/anexo + avaliações/provas por turma-disciplina-trimestre) | Feito (precisa SQL)             |
+| 35    | Anexo de arquivo nas mensagens internas + conversas enviadas sem resposta a aparecerem na lista + página `/perfil` dedicada | Feito (precisa SQL) |
 
 ## Ciclo 9 — identidade, escola e tesouraria
 
@@ -304,6 +305,12 @@ Registo canónico: `scripts/siga/modules.json`.
 - **Não é um motor de notas novo.** Cada avaliação/prova do plano materializa-se em `siga_assessment_items` (avaliação → `component: MAC`, prova → `component: NPP`) — o Centro de Avaliação já existente (`AssessmentCenter.tsx`) lança as notas, calcula `componentAverage` e empurra para a pauta oficial via `upsertTermGradesBatch`. A pauta continua fixa a MAC/NPP/NPT.
 - Editar um plano nunca apaga notas já lançadas: itens do Centro de Avaliação com pontuação ficam ligados por `lesson_plan_component_id` mesmo que a definição do plano mude; só remove itens _sem_ nota quando a quantidade planeada desce.
 - Tabelas novas: `siga_lesson_plans`, `siga_lesson_plan_components`; coluna nova `siga_assessment_items.lesson_plan_component_id`. Tudo em `APPLY_ENROLLMENT_AND_PREMIUM.sql`.
+
+## Ciclo 35 — mensagens com anexo, fluxo corrigido e página de perfil
+
+- **Anexo nas mensagens internas**: botão de clipe (`PickFileButton`) na conversa, chip antes de enviar, bolha da mensagem mostra o ficheiro e abre com `signSchoolFile`. Mensagem pode ir só com anexo (sem texto). Colunas novas `siga_direct_messages.attachment_file_id/attachment_file_name`; `body` deixou de ser `NOT NULL`.
+- **Bug de fluxo corrigido**: `listInboxPreviews` só olhava para mensagens recebidas — uma conversa que só tu iniciaste (sem resposta ainda) não aparecia em lado nenhum. Agora `InboxPreview` separa `lastActivityAt` (qualquer direcção, para pré-visualização/ordenação) de `lastIncomingAt` (só recebidas, para o ponto de não-lida).
+- **`/perfil`**: página dedicada (foto, nome, telemóvel) extraída para `src/features/auth/ProfileSettingsPanel.tsx` — usada tanto na página como no painel Conta → Perfil do Centro de Configurações (uma só fonte). O menu da conta na sidebar abre `/perfil` em vez do modal.
 
 ## Próximos passos úteis
 

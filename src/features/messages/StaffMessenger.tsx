@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Search, Send } from "lucide-react";
+import { ArrowLeft, FileText, Paperclip, Search, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { signSchoolFile } from "@/features/arquivos/server";
+import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import {
   listDirectThread,
   listSchoolColleagues,
@@ -116,8 +119,7 @@ export function ColleagueAvatars({
         className="relative flex size-8 items-center justify-center rounded-full border border-dashed border-border bg-card/50 text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
         onClick={onOpenDirectory}
       >
-        +
-        {hiddenUnread ? <UnreadDot label="Há mensagens por ler" /> : null}
+        +{hiddenUnread ? <UnreadDot label="Há mensagens por ler" /> : null}
       </button>
     </div>
   );
@@ -132,10 +134,7 @@ export function ColleagueDirectory({
 }) {
   const { colleagues, colleaguesQuery } = useFrequentColleagues();
   const { unreadIds, previews } = useInboxUnread(colleagues);
-  const previewById = useMemo(
-    () => new Map(previews.map((row) => [row.peerId, row])),
-    [previews],
-  );
+  const previewById = useMemo(() => new Map(previews.map((row) => [row.peerId, row])), [previews]);
   const [query, setQuery] = useState("");
   const filtered = useMemo(
     () => colleagues.filter((row) => matchesColleagueQuery(row, query)),
@@ -145,7 +144,14 @@ export function ColleagueDirectory({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-border px-3 py-3">
-        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onBack} aria-label="Voltar">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          onClick={onBack}
+          aria-label="Voltar"
+        >
           <ArrowLeft className="size-4" />
         </Button>
         <p className="text-sm font-semibold">Nova mensagem</p>
@@ -206,10 +212,37 @@ export function ColleagueDirectory({
   );
 }
 
+function openAttachment(fileId: string) {
+  signSchoolFile({ data: { id: fileId } })
+    .then((signed) => {
+      if (signed.url) window.open(signed.url, "_blank", "noopener");
+      else toast.error("Não foi possível abrir o arquivo.");
+    })
+    .catch((error) => {
+      toast.error("Não foi possível abrir o arquivo", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    });
+}
+
+function MessageAttachment({ fileId, fileName }: { fileId: string; fileName: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => openAttachment(fileId)}
+      className="mt-1 flex w-full items-center gap-1.5 rounded-lg border border-current/20 bg-black/5 px-2 py-1.5 text-left text-xs font-medium hover:bg-black/10"
+    >
+      <FileText className="size-3.5 shrink-0" />
+      <span className="truncate">{fileName}</span>
+    </button>
+  );
+}
+
 export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBack: () => void }) {
   const currentUser = useCurrentAccount();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [attachment, setAttachment] = useState<{ id: string; name: string } | null>(null);
   const [localMessages, setLocalMessages] = useState(() =>
     readLocalThread(currentUser.id, peer.id),
   );
@@ -240,10 +273,18 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
   const send = async (event: FormEvent) => {
     event.preventDefault();
     const body = draft.trim();
-    if (!body) return;
+    if (!body && !attachment) return;
     setDraft("");
+    setAttachment(null);
     try {
-      const result = await sendDirectMessage({ data: { peerId: peer.id, body } });
+      const result = await sendDirectMessage({
+        data: {
+          peerId: peer.id,
+          body: body || undefined,
+          attachmentFileId: attachment?.id,
+          attachmentFileName: attachment?.name,
+        },
+      });
       if (result.storage === "local") {
         setLocalMessages(appendLocalThread(currentUser.id, peer.id, result.message));
       } else {
@@ -261,6 +302,8 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
         body,
         createdAt: new Date().toISOString(),
         mine: true,
+        attachmentFileId: attachment?.id ?? null,
+        attachmentFileName: attachment?.name ?? null,
       };
       setLocalMessages(appendLocalThread(currentUser.id, peer.id, fallback));
       toast.message("Mensagem guardada neste dispositivo", {
@@ -275,7 +318,14 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-border px-3 py-3">
-        <Button type="button" variant="ghost" size="icon" className="size-8" onClick={onBack} aria-label="Voltar">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          onClick={onBack}
+          aria-label="Voltar"
+        >
           <ArrowLeft className="size-4" />
         </Button>
         <UserAvatar
@@ -310,7 +360,13 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
                   : "bg-secondary text-secondary-foreground"
               }`}
             >
-              <p>{item.body}</p>
+              {item.body ? <p>{item.body}</p> : null}
+              {item.attachmentFileId && item.attachmentFileName ? (
+                <MessageAttachment
+                  fileId={item.attachmentFileId}
+                  fileName={item.attachmentFileName}
+                />
+              ) : null}
               {item.createdAt ? (
                 <p
                   className={`mt-1 text-[10px] ${
@@ -325,17 +381,48 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
         ))}
         <div ref={bottomRef} />
       </div>
-      <form className="flex items-center gap-2 border-t border-border px-3 py-3" onSubmit={send}>
-        <Input
-          aria-label="Mensagem"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Escrever mensagem…"
-          maxLength={2000}
-        />
-        <Button type="submit" size="icon" className="size-9 shrink-0" disabled={!draft.trim()} aria-label="Enviar mensagem">
-          <Send className="size-4" />
-        </Button>
+      <form className="border-t border-border px-3 py-3" onSubmit={send}>
+        {attachment ? (
+          <span className="mb-2 flex w-fit items-center gap-1.5 rounded-full border border-border bg-secondary/50 px-2.5 py-1 text-xs">
+            <FileText className="size-3.5" />
+            <span className="max-w-[220px] truncate">{attachment.name}</span>
+            <button
+              type="button"
+              onClick={() => setAttachment(null)}
+              className="text-muted-foreground hover:text-destructive"
+              aria-label="Remover anexo"
+            >
+              <X className="size-3.5" />
+            </button>
+          </span>
+        ) : null}
+        <div className="flex items-center gap-2">
+          <PickFileButton
+            variant="ghost"
+            size="sm"
+            onPick={(picked: SchoolFileRecord) =>
+              setAttachment({ id: picked.id, name: picked.name })
+            }
+          >
+            <Paperclip className="size-4" />
+          </PickFileButton>
+          <Input
+            aria-label="Mensagem"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Escrever mensagem…"
+            maxLength={2000}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            className="size-9 shrink-0"
+            disabled={!draft.trim() && !attachment}
+            aria-label="Enviar mensagem"
+          >
+            <Send className="size-4" />
+          </Button>
+        </div>
       </form>
     </div>
   );
