@@ -6,6 +6,7 @@ import {
   personCoreFieldsSchema,
   personDocumentInputSchema,
   searchPeopleInputSchema,
+  setPersonPhotoUrlInputSchema,
   updatePersonInputSchema,
 } from "@/features/people/schemas";
 
@@ -156,5 +157,24 @@ describe("updatePersonInputSchema", () => {
       file_name: "bi-scan.pdf",
     });
     expect(parsed.file_name).toBe("bi-scan.pdf");
+  });
+});
+
+describe("setPersonPhotoUrlInputSchema", () => {
+  it("accepts only public HTTPS URLs or a private SIGA file reference", () => {
+    const personId = "11111111-1111-1111-1111-111111111111";
+    const fileId = "22222222-2222-4222-8222-222222222222";
+    expect(
+      setPersonPhotoUrlInputSchema.safeParse({
+        personId,
+        photoUrl: `siga-file://${fileId}`,
+      }).success,
+    ).toBe(true);
+    expect(
+      setPersonPhotoUrlInputSchema.safeParse({
+        personId,
+        photoUrl: "siga-file://not-a-file",
+      }).success,
+    ).toBe(false);
   });
 });

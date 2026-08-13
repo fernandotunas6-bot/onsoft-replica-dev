@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { resolvePersonPhotoUrl } from "@/features/arquivos/person-photo-url";
 import { cn } from "@/lib/utils";
 
 /**
@@ -81,7 +82,20 @@ export function MediaAvatar({
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
 
-  if (!src) {
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(src ?? null);
+
+  useEffect(() => {
+    let active = true;
+    setResolvedSrc(null);
+    void resolvePersonPhotoUrl(src).then((result) => {
+      if (active) setResolvedSrc(result);
+    });
+    return () => {
+      active = false;
+    };
+  }, [src]);
+
+  if (!resolvedSrc) {
     return (
       <span
         aria-label={alt}
@@ -100,7 +114,7 @@ export function MediaAvatar({
 
   return (
     <MediaFrame
-      src={src}
+      src={resolvedSrc}
       alt={alt}
       ratio="1/1"
       rounded="rounded-full"

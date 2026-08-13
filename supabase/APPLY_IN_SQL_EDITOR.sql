@@ -88,13 +88,24 @@ CREATE POLICY "School logos are publicly accessible"
 DROP POLICY IF EXISTS "Authenticated users can upload school logos" ON storage.objects;
 CREATE POLICY "Authenticated users can upload school logos"
   ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'school-logos');
+  WITH CHECK (
+    bucket_id = 'school-logos'
+    -- O bucket é público: aceita apenas o nome de ficheiro gerado pela UI de branding,
+    -- nunca imagens de pessoas nem caminhos arbitrários.
+    AND name ~ '^[0-9a-f-]{36}/logo-[0-9]{13}\.(png|jpg|jpeg|webp|svg)$'
+  );
 
 DROP POLICY IF EXISTS "Authenticated users can replace school logos" ON storage.objects;
 CREATE POLICY "Authenticated users can replace school logos"
   ON storage.objects FOR UPDATE TO authenticated
-  USING (bucket_id = 'school-logos')
-  WITH CHECK (bucket_id = 'school-logos');
+  USING (
+    bucket_id = 'school-logos'
+    AND name ~ '^[0-9a-f-]{36}/logo-[0-9]{13}\.(png|jpg|jpeg|webp|svg)$'
+  )
+  WITH CHECK (
+    bucket_id = 'school-logos'
+    AND name ~ '^[0-9a-f-]{36}/logo-[0-9]{13}\.(png|jpg|jpeg|webp|svg)$'
+  );
 
 -- Fotografia de perfil (Definições → Conta) — src/components/modals/SettingsCenter.tsx
 -- envia para o bucket "avatars", que não existia.

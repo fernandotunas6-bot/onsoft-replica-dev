@@ -206,7 +206,12 @@ export type UpdatePersonInput = z.infer<typeof updatePersonInputSchema>;
 
 export const setPersonPhotoUrlInputSchema = z.object({
   personId: z.string().uuid(),
-  photoUrl: z.string().trim().url().max(800),
+  photoUrl: z
+    .union([
+      z.string().trim().url().startsWith("https://"),
+      z.string().regex(/^siga-file:\/\/[0-9a-f-]{36}$/i),
+    ])
+    .refine((value) => value.length <= 800, "URL de foto demasiado longa."),
 });
 export type SetPersonPhotoUrlInput = z.infer<typeof setPersonPhotoUrlInputSchema>;
 

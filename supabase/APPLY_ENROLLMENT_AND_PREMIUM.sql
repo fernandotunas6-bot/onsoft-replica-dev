@@ -32,6 +32,10 @@ CREATE POLICY "Authenticated users can upload school logos"
   WITH CHECK (
     bucket_id = 'school-logos'
     AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+    AND name ~ (
+      '^' || (SELECT public.current_school_id())::text
+      || '/logo-[0-9]{13}\.(png|jpg|jpeg|webp|svg)$'
+    )
   );
 
 DROP POLICY IF EXISTS "Authenticated users can replace school logos" ON storage.objects;
@@ -40,10 +44,18 @@ CREATE POLICY "Authenticated users can replace school logos"
   USING (
     bucket_id = 'school-logos'
     AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+    AND name ~ (
+      '^' || (SELECT public.current_school_id())::text
+      || '/logo-[0-9]{13}\.(png|jpg|jpeg|webp|svg)$'
+    )
   )
   WITH CHECK (
     bucket_id = 'school-logos'
     AND split_part(name, '/', 1) = (SELECT public.current_school_id())::text
+    AND name ~ (
+      '^' || (SELECT public.current_school_id())::text
+      || '/logo-[0-9]{13}\.(png|jpg|jpeg|webp|svg)$'
+    )
   );
 
 CREATE OR REPLACE FUNCTION public.siga_touch_updated_at()

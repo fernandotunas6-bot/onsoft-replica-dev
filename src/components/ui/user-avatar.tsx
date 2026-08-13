@@ -1,4 +1,23 @@
+import { useEffect, useState } from "react";
+import { resolvePersonPhotoUrl } from "@/features/arquivos/person-photo-url";
 import { cn } from "@/lib/utils";
+
+function useAvatarUrl(url?: string | null) {
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
+
+  useEffect(() => {
+    let active = true;
+    setResolvedUrl(null);
+    void resolvePersonPhotoUrl(url).then((result) => {
+      if (active) setResolvedUrl(result);
+    });
+    return () => {
+      active = false;
+    };
+  }, [url]);
+
+  return resolvedUrl;
+}
 
 /** Círculo de avatar com foto (quando existe) e iniciais como reserva. */
 export function UserAvatar({
@@ -10,6 +29,7 @@ export function UserAvatar({
   initials: string;
   className?: string;
 }) {
+  const resolvedUrl = useAvatarUrl(url);
   return (
     <span
       className={cn(
@@ -17,7 +37,7 @@ export function UserAvatar({
         className,
       )}
     >
-      {url ? <img src={url} alt="" className="size-full object-cover" /> : initials}
+      {resolvedUrl ? <img src={resolvedUrl} alt="" className="size-full object-cover" /> : initials}
     </span>
   );
 }
