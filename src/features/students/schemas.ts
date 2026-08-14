@@ -98,7 +98,7 @@ export type EnrollStudentInClassInput = z.infer<typeof enrollStudentInClassInput
 export const updateEnrollmentInputSchema = z.object({
   enrollmentId: z.string().uuid(),
   classGroupId: z.string().uuid(),
-  status: z.enum(["active", "inactive", "transferred", "withdrawn"]).default("active"),
+  status: z.enum(["active", "cancelled", "completed", "transferred"]).default("active"),
 });
 export type UpdateEnrollmentInput = z.infer<typeof updateEnrollmentInputSchema>;
 

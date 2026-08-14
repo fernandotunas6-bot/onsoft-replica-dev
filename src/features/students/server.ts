@@ -111,7 +111,7 @@ export const searchStudents = createServerFn({ method: "GET" })
       studentIds.length
         ? db
             .from("enrollments")
-            .select("student_id, class_group_id, academic_year_id, status")
+            .select("student_id, class_group_id, academic_year_id, status, payment_status")
             .in("student_id", studentIds)
             .eq("school_id", membership.schoolId)
             .eq("status", "active")
@@ -121,6 +121,7 @@ export const searchStudents = createServerFn({ method: "GET" })
               class_group_id: string | null;
               academic_year_id: string | null;
               status: string;
+              payment_status: string | null;
             }>,
           }),
       studentIds.length
@@ -269,7 +270,9 @@ export const searchStudents = createServerFn({ method: "GET" })
           // Matrícula activa no SGA implica aluno activo na UI, mesmo se o
           // registo ainda estiver como "applicant" por seed/legado.
           student_status: effectiveStatus,
-          payment_status: null,
+          payment_status: enrollment?.["payment_status"]
+            ? String(enrollment["payment_status"])
+            : null,
           grade_name: (grade?.["name"] as string | null) ?? null,
           class_name: (classGroup?.["name"] as string | null) ?? null,
           academic_year: (year?.["name"] as string | null) ?? null,
@@ -353,7 +356,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       db
         .from("enrollments")
         .select(
-          "id, class_group_id, academic_year_id, status, enrolled_on, attendance_rate, final_average",
+          "id, class_group_id, academic_year_id, status, payment_status, enrolled_on, attendance_rate, final_average",
         )
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId)
@@ -375,6 +378,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       class_group_id: string | null;
       academic_year_id: string | null;
       status: string;
+      payment_status?: string | null;
       enrolled_on: string | null;
       attendance_rate?: number | null;
       final_average?: number | null;
@@ -453,7 +457,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         email: person?.email ?? null,
         phone: person?.phone ?? null,
         student_status: student.status,
-        payment_status: null,
+        payment_status: enrollment?.payment_status ?? null,
         grade_name: gradeName,
         class_name: className,
         academic_year: academicYear,
@@ -693,6 +697,83 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
     };
   });
 
+async function recordStudentStatusEvent(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  input: {
+    schoolId: string;
+    studentId: string;
+    fromStatus: string | null;
+    toStatus: string;
+    reason: string | null;
+    changedBy: string;
+  },
+) {
+  try {
+    await db.from("student_status_events").insert({
+      school_id: input.schoolId,
+      student_id: input.studentId,
+      from_status: input.fromStatus,
+      to_status: input.toStatus,
+      reason: input.reason,
+      changed_by: input.changedBy,
+    });
+  } catch {
+    // Tabela de auditoria ainda não aplicada neste ambiente — não bloqueia a mudança de estado.
+  }
+}
+
+/**
+ * Concluir (graduar) exige nota final aprovada (média ≥ 10, escala 0–20) na
+ * matrícula activa e nenhuma fatura em dívida — regra definida com a escola.
+ */
+async function assertGraduationEligible(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  studentId: string,
+) {
+  const { data: enrollment } = await db
+    .from("enrollments")
+    .select("id, final_average")
+    .eq("school_id", schoolId)
+    .eq("student_id", studentId)
+    .eq("status", "active")
+    .order("enrolled_on", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const average = enrollment?.final_average == null ? null : Number(enrollment.final_average);
+  if (average == null || average < 10) {
+    throw new Error(
+      "Só é possível concluir com nota final aprovada (média ≥ 10) lançada na matrícula activa.",
+    );
+  }
+
+  const { data: enrollments } = await db
+    .from("enrollments")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("student_id", studentId);
+  const enrollmentIds = (enrollments ?? []).map((row) => row.id);
+  if (!enrollmentIds.length) return;
+  const { data: contracts } = await db
+    .from("finance_contracts")
+    .select("id")
+    .in("enrollment_id", enrollmentIds);
+  const contractIds = (contracts ?? []).map((row) => row.id);
+  if (!contractIds.length) return;
+  const { data: invoices } = await db
+    .from("finance_invoices")
+    .select("status")
+    .eq("school_id", schoolId)
+    .in("contract_id", contractIds)
+    .neq("status", "cancelled");
+  const hasDebt = (invoices ?? []).some(
+    (invoice) => invoice.status !== "paid" && invoice.status !== "void",
+  );
+  if (hasDebt) {
+    throw new Error("Este aluno tem facturas em dívida — regularize antes de concluir.");
+  }
+}
+
 export const changeStudentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => changeStudentStatusInputSchema.parse(input))
@@ -703,23 +784,35 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const statusMap: Record<string, string> = {
-      active: "active",
-      inactive: "inactive",
-      transferred: "transferred",
-      graduated: "graduated",
-      applicant: "applicant",
-    };
-    const nextStatus = statusMap[data.newStatus] ?? data.newStatus;
+
+    if (data.newStatus === "graduated") {
+      await assertGraduationEligible(db, membership.schoolId, data.studentId);
+    }
+
+    const { data: current } = await db
+      .from("students")
+      .select("status")
+      .eq("id", data.studentId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+
     const { data: student, error } = await db
       .from("students")
-      .update({ status: nextStatus, updated_by: context.userId })
+      .update({ status: data.newStatus, updated_by: context.userId })
       .eq("id", data.studentId)
       .eq("school_id", membership.schoolId)
       .select("id, status")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível alterar o estado do aluno.");
     if (!student) throw new Error("Aluno não encontrado");
+    await recordStudentStatusEvent(db, {
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+      fromStatus: current?.status ?? null,
+      toStatus: data.newStatus,
+      reason: data.reason ?? null,
+      changedBy: context.userId,
+    });
     return student;
   });
 
@@ -994,33 +1087,26 @@ export const cancelEnrollment = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    let { data: enrollment, error } = await db
+    const { data: enrollment, error } = await db
       .from("enrollments")
       .update({
-        status: "withdrawn",
+        status: "cancelled",
         updated_by: context.userId,
       })
       .eq("id", data.enrollmentId)
       .eq("school_id", membership.schoolId)
       .select("id, status, student_id")
       .maybeSingle();
-    if (error && /status|check/i.test(error.message)) {
-      const retry = await db
-        .from("enrollments")
-        .update({
-          status: "inactive",
-          updated_by: context.userId,
-        })
-        .eq("id", data.enrollmentId)
-        .eq("school_id", membership.schoolId)
-        .select("id, status, student_id")
-        .maybeSingle();
-      enrollment = retry.data;
-      error = retry.error;
-    }
     if (error) throw publicDatabaseError(error, "Não foi possível anular a matrícula.");
     if (!enrollment) throw new Error("Matrícula não encontrada.");
-    void data.reason;
+    await recordStudentStatusEvent(db, {
+      schoolId: membership.schoolId,
+      studentId: enrollment.student_id,
+      fromStatus: null,
+      toStatus: "cancelled",
+      reason: data.reason ?? null,
+      changedBy: context.userId,
+    });
     return enrollment;
   });
 
