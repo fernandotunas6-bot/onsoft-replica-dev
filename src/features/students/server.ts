@@ -805,6 +805,24 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível alterar o estado do aluno.");
     if (!student) throw new Error("Aluno não encontrado");
+
+    // Saída definitiva: fecha a matrícula activa para que deixe de aparecer
+    // em pautas/turmas/roteiros que filtram por enrollments.status = "active",
+    // mantendo o histórico (turma, notas) intacto no registo fechado.
+    const enrollmentCloseStatus: Record<string, "completed" | "transferred"> = {
+      graduated: "completed",
+      transferred: "transferred",
+    };
+    const closeStatus = enrollmentCloseStatus[data.newStatus];
+    if (closeStatus) {
+      await db
+        .from("enrollments")
+        .update({ status: closeStatus, updated_by: context.userId })
+        .eq("student_id", data.studentId)
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active");
+    }
+
     await recordStudentStatusEvent(db, {
       schoolId: membership.schoolId,
       studentId: data.studentId,
