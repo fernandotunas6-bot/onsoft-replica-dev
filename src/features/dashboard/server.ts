@@ -56,7 +56,6 @@ function emptyOverview(role = "Utilizador") {
     totals: {
       students: 0,
       activeStudents: 0,
-      applicants: 0,
       male: 0,
       female: 0,
       courses: 0,
@@ -269,7 +268,6 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       overview.totals = {
         students: students.length,
         activeStudents: students.filter((row) => String(row.status) === "active").length,
-        applicants: students.filter((row) => String(row.status) === "applicant").length,
         male,
         female,
         courses: programsResult.count ?? 0,
@@ -515,12 +513,14 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
 
     if (canStudents) {
       try {
-        const [{ count: applicantCount }, applications, documents] = await Promise.all([
+        const [activeStudents, classedEnrollments, applications, documents] = await Promise.all([
+          db.from("students").select("id").eq("school_id", schoolId).eq("status", "active"),
           db
-            .from("students")
-            .select("id", { count: "exact", head: true })
+            .from("enrollments")
+            .select("student_id")
             .eq("school_id", schoolId)
-            .eq("status", "applicant"),
+            .eq("status", "active")
+            .not("class_group_id", "is", null),
           db
             .from("enrollment_applications")
             .select("id", { count: "exact", head: true })
@@ -548,8 +548,16 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
         }
 
         const pendingDocs = documents.error ? 0 : (documents.data ?? []).length;
+        const classedStudentIds = new Set(
+          (classedEnrollments.data ?? []).map((row: { student_id: string }) => row.student_id),
+        );
+        const withoutClassCount = activeStudents.error
+          ? 0
+          : (activeStudents.data ?? []).filter(
+              (row: { id: string }) => !classedStudentIds.has(row.id),
+            ).length;
         const candidaturas = buildSchoolAlert("candidaturas", pendingApps);
-        const matricula = buildSchoolAlert("matricula", applicantCount ?? 0);
+        const matricula = buildSchoolAlert("matricula", withoutClassCount);
         const documentos = buildSchoolAlert("documentos", pendingDocs);
         if (candidaturas) alerts.push(candidaturas);
         if (matricula) alerts.push(matricula);

@@ -157,20 +157,8 @@ function Dashboard() {
       icon: Users,
       tone: "primary" as const,
       hint: capabilities.students
-        ? `${data?.totals.activeStudents ?? 0} com matrícula activa${
-            data?.totals.applicants
-              ? ` · ${data.totals.applicants} candidato(s) — confirmar matrícula`
-              : ""
-          }`
+        ? `${data?.totals.activeStudents ?? 0} com matrícula activa`
         : "Sem permissão de leitura académica",
-      href:
-        capabilities.students && (data?.totals.applicants ?? 0) > 0
-          ? ("/alunos" as const)
-          : undefined,
-      search:
-        capabilities.students && (data?.totals.applicants ?? 0) > 0
-          ? { action: "confirmar" as const }
-          : undefined,
     },
     {
       label: "Estudantes masculinos",
@@ -407,7 +395,6 @@ function Dashboard() {
               <Link
                 key={s.label}
                 to={s.href}
-                {...(s.search ? { search: s.search } : {})}
                 className="surface-card block p-5 transition-colors hover:border-primary/40"
               >
                 {card}

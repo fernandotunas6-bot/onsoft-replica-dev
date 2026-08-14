@@ -483,7 +483,7 @@ function SchoolAlertRow({
   }
   if (alert.href === "/alunos") {
     return (
-      <Link to="/alunos" search={{ action: "confirmar" }} className={className} onClick={onClose}>
+      <Link to="/alunos" className={className} onClick={onClose}>
         {body}
       </Link>
     );

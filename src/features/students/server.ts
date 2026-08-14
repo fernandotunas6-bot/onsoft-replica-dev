@@ -256,20 +256,13 @@ export const searchStudents = createServerFn({ method: "GET" })
           ? yearById.get(String(enrollment["academic_year_id"]))
           : null;
         const guardianId = guardianByStudent.get(student.id);
-        const enrollmentStatus = enrollment?.["status"] ? String(enrollment["status"]) : null;
-        const effectiveStatus =
-          enrollmentStatus === "active" && student.status === "applicant"
-            ? "active"
-            : student.status;
         return {
           id: student.id,
           registration_number: student.student_number,
           full_name: String(person?.["full_name"] ?? "—"),
           email: (person?.["email"] as string | null) ?? null,
           phone: (person?.["phone"] as string | null) ?? null,
-          // Matrícula activa no SGA implica aluno activo na UI, mesmo se o
-          // registo ainda estiver como "applicant" por seed/legado.
-          student_status: effectiveStatus,
+          student_status: student.status,
           payment_status: enrollment?.["payment_status"]
             ? String(enrollment["payment_status"])
             : null,
@@ -282,20 +275,6 @@ export const searchStudents = createServerFn({ method: "GET" })
         };
       },
     );
-
-    const staleApplicantIds = rows
-      .filter((student: { id: string; status: string }) => {
-        const enrollment = enrollmentByStudent.get(student.id);
-        return student.status === "applicant" && String(enrollment?.["status"] ?? "") === "active";
-      })
-      .map((student: { id: string }) => student.id);
-    if (staleApplicantIds.length) {
-      await db
-        .from("students")
-        .update({ status: "active" })
-        .eq("school_id", membership.schoolId)
-        .in("id", staleApplicantIds);
-    }
 
     if (!query) return mapped;
     return mapped.filter(
@@ -1236,4 +1215,69 @@ export const removeGuardian = createServerFn({ method: "POST" })
       .eq("school_id", membership.schoolId);
     if (error) throw publicDatabaseError(error, "Não foi possível remover o encarregado.");
     return { studentId: data.studentId, guardianPersonId: data.guardianPersonId };
+  });
+
+export type StudentOutcomesReport = {
+  active: number;
+  graduated: number;
+  transferred: number;
+  inactive: number;
+  completionRatePct: number | null;
+  recentEvents: Array<{
+    toStatus: string;
+    reason: string | null;
+    createdAt: string;
+  }>;
+};
+
+/**
+ * Taxa de conclusão/abandono por escola — usa a contagem actual de
+ * students.status para o retrato geral, e student_status_events (ciclo 36)
+ * para o histórico recente de mudanças, que só existe a partir da data em
+ * que a tabela de auditoria foi aplicada.
+ */
+export const getStudentOutcomesReport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<StudentOutcomesReport> => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: rows, error } = await db
+      .from("students")
+      .select("status")
+      .eq("school_id", membership.schoolId);
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar o resumo de alunos.");
+
+    const counts = { active: 0, graduated: 0, transferred: 0, inactive: 0 };
+    for (const row of rows ?? []) {
+      const status = String(row.status ?? "");
+      if (status in counts) counts[status as keyof typeof counts] += 1;
+    }
+
+    const resolved = counts.graduated + counts.transferred + counts.inactive;
+    const completionRatePct = resolved > 0 ? Math.round((counts.graduated / resolved) * 100) : null;
+
+    let recentEvents: StudentOutcomesReport["recentEvents"] = [];
+    try {
+      const { data: events } = await db
+        .from("student_status_events")
+        .select("to_status, reason, created_at")
+        .eq("school_id", membership.schoolId)
+        .in("to_status", ["graduated", "transferred", "inactive"])
+        .order("created_at", { ascending: false })
+        .limit(20);
+      recentEvents = (events ?? []).map((row) => ({
+        toStatus: String(row.to_status),
+        reason: row.reason ? String(row.reason) : null,
+        createdAt: String(row.created_at),
+      }));
+    } catch {
+      // Tabela de auditoria ainda não aplicada neste ambiente.
+    }
+
+    return { ...counts, completionRatePct, recentEvents };
   });
