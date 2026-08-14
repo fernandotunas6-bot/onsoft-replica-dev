@@ -45,6 +45,83 @@ Ler isto **antes** de alterar código. Depois abrir o skill do módulo em `.curs
   de vida completo do aluno — candidatura → matrícula → percurso académico → boletins/diploma →
   saída — mais professores e financeiro, módulo a módulo, com foco em organização impecável.
 
+## Ciclos 36–37 — auditoria de rigor por módulo (2026-08-14)
+
+Pedido do utilizador: rever com rigor o ciclo de vida completo do aluno até à
+saída, depois professores e financeiro, "escola inteira deve estar a
+funcionar com rigor". Metodologia: agente de investigação por módulo (sem
+editar) → correção → lint/tsc/vitest → commit. Ver `git log --oneline -10`
+para os commits exactos.
+
+**Módulo aluno** — commits `4d93efd`, `0bc0d65`, `72cbe0f`, `6e6780a`:
+- `cancelEnrollment` gravava `status="withdrawn"` (inválido; a constraint só
+  aceita `pending/active/cancelled/completed/transferred`) e caía num
+  fallback com `"inactive"`, também inválido. Corrigido para `"cancelled"`.
+- `changeStudentStatus` não tinha nenhuma regra para "Concluído" — agora
+  exige nota final aprovada (média ≥ 10 na matrícula activa) **e** nenhuma
+  factura em dívida (`assertGraduationEligible`).
+- Nova tabela `student_status_events` (em `APPLY_ENROLLMENT_AND_PREMIUM.sql`,
+  já aplicada) audita toda a mudança de estado — o campo "Motivo" já
+  existia na interface mas era descartado.
+- Marcar "Concluído"/"Transferido" agora fecha a matrícula activa
+  (`enrollments.status` → `completed`/`transferred`), antes ficava
+  `active` para sempre.
+- Certificado de Habilitações (o "diploma" angolano) ligado ao encerramento
+  do processo — botão destacado + atalho no toast ao concluir.
+- Estado "Candidato" (`applicant`) removido — nunca foi um valor válido em
+  `students.status` (confirmado vazio em produção), mas alimentava um botão
+  morto, um alerta do sino sempre a zero e o dashboard. O botão "Colocar na
+  turma" foi reaproveitado para a condição real que faltava (aluno activo
+  sem turma); o alerta do sino conta agora o mesmo caso.
+- Novo painel "Conclusão e saída" em `/relatorios/academicos` (taxa de
+  conclusão, activos/concluídos/transferidos/inactivos, histórico recente).
+
+**Módulo professor** — commit `1cc835b` (falhas de autorização em produção):
+- `upsertTermGrade`/`upsertTermGradesBatch` só verificavam o cargo
+  "Professor", nunca se o autenticado era o professor atribuído à
+  disciplina da turma — qualquer professor conseguia lançar notas de
+  turmas alheias. `ensureClassSubject` (`sga-grades.ts`) agora resolve a
+  ficha via `teachers.user_id` e bloqueia se já houver outro professor
+  atribuído; ao criar a associação pela primeira vez usa a ficha real de
+  quem está a lançar (antes: `ensureDefaultTeacher` escolhia um professor
+  qualquer da escola, ou criava um "Professor Demonstração" fantasma).
+- `getTeacherWorkspace`: qualquer utilizador autenticado podia pedir o
+  horário de outro professor só por passar o `teacherId` (IDOR). Agora só
+  Administrador/Secretaria ou o próprio.
+- `updateTeacher` (modal "Editar") desactivava sem verificar disciplinas
+  activas ligadas — `deleteTeacher` já tinha essa verificação, agora ambos
+  os caminhos são consistentes. Aviso ao desactivar lembra que o acesso à
+  plataforma não é revogado automaticamente.
+
+**Módulo financeiro** — commit `bc78cde`:
+- `reverseCashEntry` anulava um recibo sem verificar se já estava anulado
+  (a despesa já tinha esse guard, o recibo não) e nunca sincronizava
+  `finance_invoices.status` — uma fatura paga cujo recibo era anulado
+  ficava **presa** (`cancelInvoice` recusava por `status="paid"`) e o gate
+  de conclusão do ciclo 36 continuava a achar que não havia dívida.
+  `cancelInvoice` e `assertGraduationEligible` passam a somar recibos não
+  anulados em vez de confiar na coluna `status`, tal como a listagem de
+  faturas já fazia — **não confiar em `finance_invoices.status` para
+  "pago"** ao escrever lógica nova neste módulo.
+- `createPaymentPlan` inseria em `finance_payment_plans` sem validar que
+  `invoiceId`/`studentId` pertenciam à escola do utilizador (a tabela não
+  tem FK nessas colunas) — IDOR entre escolas.
+- Nova tabela `finance_invoice_events` (mesmo padrão de
+  `student_status_events`) audita o motivo de cancelamento de faturas.
+
+**Achado transversal**: `finance_invoices`/`finance_receipts`/
+`finance_contracts`/`siga_cash_expenses` e o RPC `register_payment` não têm
+`CREATE TABLE`/definição em nenhuma migração no git — só existem no projecto
+Supabase real. Não é possível confirmar CHECK constraints ou o comportamento
+exacto do RPC a partir do código-fonte; qualquer alteração a estas tabelas
+precisa de inspecção directa da base de dados em produção primeiro.
+
+**Por auditar ainda** (mesma metodologia, não começado): comunicações,
+arquivos, calendário, integrações, acessos — o utilizador pediu "escola
+inteira" e "outros módulos também", mas cada módulo é uma sessão de
+investigação + correção própria; não convém adivinhar prioridade sem
+confirmar com o utilizador qual vem a seguir.
+
 ## Estado (2026-08-13)
 
 Os ciclos 1–34 da sessão premium estão no código. As consolidações mais recentes
