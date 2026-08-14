@@ -127,7 +127,11 @@ export function matchPrintTemplateKey(
 
   const fromKeywords = (): PrintTemplateKey | null => {
     if (normalized.includes("boletim")) return "boletim-escolar";
-    if (normalized.includes("certificado") || normalized.includes("habilita")) {
+    if (
+      normalized.includes("certificado") ||
+      normalized.includes("habilita") ||
+      normalized.includes("diploma")
+    ) {
       return "certificado-habilitacoes";
     }
     if (normalized.includes("histórico") || normalized.includes("historico")) {
@@ -152,7 +156,8 @@ export function matchPrintTemplateKey(
     if (normalized.includes("candidat")) return "talao-candidatura";
     if (normalized.includes("credenc")) return "folha-credenciais";
     if (normalized.includes("dossi") || normalized.includes("dossie")) return "dossie-academico";
-    if (normalized.includes("acta") || normalized.includes("conselho")) return "acta-conselho-notas";
+    if (normalized.includes("acta") || normalized.includes("conselho"))
+      return "acta-conselho-notas";
     if (normalized.includes("diário") || normalized.includes("diario")) {
       return "diario-pedagogico-professor";
     }
@@ -455,7 +460,11 @@ export function buildPrintSamplePayload(
     },
     recovery: {
       title: "Recuperação de acesso",
-      steps: ["Confirmar o número de processo", "Validar o encarregado", "Emitir nova senha temporária"],
+      steps: [
+        "Confirmar o número de processo",
+        "Validar o encarregado",
+        "Emitir nova senha temporária",
+      ],
       warning: "Não partilhar credenciais com terceiros.",
     },
     financial: { status: "Regular", total: "45.000 Kz", paid: "45.000 Kz", debt: "0 Kz" },

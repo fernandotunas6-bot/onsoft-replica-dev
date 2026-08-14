@@ -368,6 +368,21 @@ function StudentDetail() {
       queryClient.invalidateQueries({ queryKey: ["students", "profile", studentId] }),
       queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
     ]);
+    if (newStatus === "graduated") {
+      toast.message("Aluno concluído", {
+        description: "Falta emitir o Certificado de Habilitações para fechar o processo.",
+        action: {
+          label: "Emitir agora",
+          onClick: () => {
+            void downloadCertificado().catch((error) =>
+              toast.error(
+                error instanceof Error ? error.message : "Não foi possível emitir o certificado.",
+              ),
+            );
+          },
+        },
+      });
+    }
   };
 
   const classGroups = workspaceQuery.data?.classGroups ?? [];
@@ -867,6 +882,22 @@ function StudentDetail() {
                 >
                   <FileDown className="size-4" /> Histórico
                 </Button>
+                {student.student_status === "graduated" ? (
+                  <Button
+                    className="gap-2"
+                    onClick={() => {
+                      void downloadCertificado().catch((error) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível emitir o certificado.",
+                        ),
+                      );
+                    }}
+                  >
+                    <FileDown className="size-4" /> Certificado de Habilitações
+                  </Button>
+                ) : null}
                 <Button
                   variant="outline"
                   className="gap-2"
