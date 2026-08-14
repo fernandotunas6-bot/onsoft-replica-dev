@@ -40,8 +40,7 @@ import {
   setSystemAccountDisabled,
   updateSystemAccountCargo,
 } from "@/features/access/server";
-import { listStaffModuleGrants, setStaffModuleGrant } from "@/features/access/grants";
-import type { AccessLevel } from "@/features/auth/access-policy";
+import { listStaffModuleGrants } from "@/features/access/grants";
 import { createPerson, listStaffDirectory, updatePersonStatus } from "@/features/people/server";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
@@ -53,7 +52,7 @@ const acessosFilterDefaults = {
   cargo: "todos",
 };
 
-export const Route = createFileRoute("/acessos")({
+export const Route = createFileRoute("/acessos/")({
   head: () => ({
     meta: [
       { title: "Gestão de Acessos · SIGA" },
@@ -115,11 +114,7 @@ function AcessosPage() {
     queryFn: () => listStaffModuleGrants(),
     retry: false,
   });
-  const grantLevels = ["Nenhum", "Leitura", "Escrita", "Total"] as const;
-  const printStaffCredentials = async (person: {
-    full_name: string;
-    email?: string | null;
-  }) => {
+  const printStaffCredentials = async (person: { full_name: string; email?: string | null }) => {
     const domain = school?.email?.split("@")[1] || person.email?.split("@")[1] || "escola.ao";
     await issuePrintDocument({
       tipo: "Folha de credenciais",
@@ -698,180 +693,152 @@ function AcessosPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                          <QuickFormModal
-                            eyebrow="Acessos"
-                            title={`Módulos · ${account.full_name}`}
-                            description="Sobrepõe o nível do cargo. Deixe em Predefinição para usar a política do perfil."
-                            icon={<KeyRound className="size-5" />}
-                            submitLabel="Guardar permissões"
-                            onSubmit={async (values) => {
-                              for (const module of accessModules) {
-                                const selected = values[module.key];
-                                if (!selected || selected === "Predefinição do cargo") continue;
-                                await setStaffModuleGrant({
-                                  data: {
-                                    userId: account.id,
-                                    moduleKey: module.key,
-                                    level: selected as AccessLevel,
-                                  },
-                                });
-                              }
-                              await queryClient.invalidateQueries({ queryKey: ["access", "grants"] });
-                            }}
-                            fields={accessModules.map((module) => {
-                              const current = (grantsQuery.data ?? []).find(
-                                (grant) =>
-                                  grant.user_id === account.id && grant.module_key === module.key,
-                              );
-                              return {
-                                name: module.key,
-                                label: module.label,
-                                type: "select" as const,
-                                options: ["Predefinição do cargo", ...grantLevels],
-                                defaultValue: current?.level ?? "Predefinição do cargo",
-                              };
-                            })}
-                            trigger={(open) => (
-                              <Button size="sm" variant="ghost" onClick={open}>
-                                Módulos
-                              </Button>
-                            )}
-                          />
-                          {!account.is_self && account.email ? (
-                            <>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={async () => {
+                            <Button size="sm" variant="ghost" asChild>
+                              <Link
+                                to="/acessos/permissoes/$userId"
+                                params={{ userId: account.id }}
+                              >
+                                <KeyRound className="size-3.5" /> Módulos
+                              </Link>
+                            </Button>
+                            {!account.is_self && account.email ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={async () => {
+                                    try {
+                                      const result = await resendSystemInvite({
+                                        data: { userId: account.id },
+                                      });
+                                      await navigator.clipboard.writeText(result.actionLink);
+                                      toast.success(
+                                        result.kind === "invite"
+                                          ? "Link de convite copiado"
+                                          : "Link de recuperação copiado",
+                                        { description: result.email },
+                                      );
+                                    } catch (error) {
+                                      toast.error("Não foi possível gerar o link", {
+                                        description:
+                                          error instanceof Error
+                                            ? error.message
+                                            : "Tente novamente.",
+                                      });
+                                    }
+                                  }}
+                                >
+                                  Reenviar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() =>
+                                    void printStaffCredentials({
+                                      full_name: account.full_name,
+                                      email: account.email,
+                                    }).catch((error) =>
+                                      toast.error(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Não foi possível imprimir as credenciais.",
+                                      ),
+                                    )
+                                  }
+                                >
+                                  Credenciais
+                                </Button>
+                                {whatsappOn ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={async () => {
+                                      try {
+                                        const result = await resendSystemInvite({
+                                          data: { userId: account.id },
+                                        });
+                                        const label =
+                                          result.kind === "invite" ? "convite" : "recuperação";
+                                        await navigator.clipboard.writeText(result.actionLink);
+                                        window.open(
+                                          whatsappHref(
+                                            "",
+                                            `Acesso SIGA (${label}): ${result.actionLink}`,
+                                          ),
+                                          "_blank",
+                                          "noopener,noreferrer",
+                                        );
+                                        toast.success("Link copiado", {
+                                          description: "WhatsApp aberto para enviar o acesso.",
+                                        });
+                                      } catch (error) {
+                                        toast.error("Não foi possível gerar o link", {
+                                          description:
+                                            error instanceof Error
+                                              ? error.message
+                                              : "Tente novamente.",
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    WhatsApp
+                                  </Button>
+                                ) : null}
+                                {resendOn ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={async () => {
+                                      try {
+                                        const result = await resendSystemInvite({
+                                          data: { userId: account.id },
+                                        });
+                                        await navigator.clipboard.writeText(result.actionLink);
+                                        window.open(
+                                          `mailto:${encodeURIComponent(result.email)}?subject=${encodeURIComponent("Acesso SIGA")}&body=${encodeURIComponent(result.actionLink)}`,
+                                        );
+                                        toast.success(
+                                          "Texto do convite copiado para e-mail Resend",
+                                          {
+                                            description: result.email,
+                                          },
+                                        );
+                                      } catch (error) {
+                                        toast.error("Não foi possível gerar o link", {
+                                          description:
+                                            error instanceof Error
+                                              ? error.message
+                                              : "Tente novamente.",
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    E-mail
+                                  </Button>
+                                ) : null}
+                              </>
+                            ) : null}
+                            <Switch
+                              checked={!account.disabled}
+                              disabled={account.is_self}
+                              onCheckedChange={async (checked) => {
                                 try {
-                                  const result = await resendSystemInvite({
-                                    data: { userId: account.id },
+                                  await setSystemAccountDisabled({
+                                    data: { userId: account.id, disabled: !checked },
                                   });
-                                  await navigator.clipboard.writeText(result.actionLink);
-                                  toast.success(
-                                    result.kind === "invite"
-                                      ? "Link de convite copiado"
-                                      : "Link de recuperação copiado",
-                                    { description: result.email },
-                                  );
+                                  await queryClient.invalidateQueries({
+                                    queryKey: ["access", "accounts"],
+                                  });
+                                  toast.success(checked ? "Conta reactivada" : "Conta suspensa");
                                 } catch (error) {
-                                  toast.error("Não foi possível gerar o link", {
+                                  toast.error("Não foi possível actualizar o acesso", {
                                     description:
                                       error instanceof Error ? error.message : "Tente novamente.",
                                   });
                                 }
                               }}
-                            >
-                              Reenviar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                void printStaffCredentials({
-                                  full_name: account.full_name,
-                                  email: account.email,
-                                }).catch((error) =>
-                                  toast.error(
-                                    error instanceof Error
-                                      ? error.message
-                                      : "Não foi possível imprimir as credenciais.",
-                                  ),
-                                )
-                              }
-                            >
-                              Credenciais
-                            </Button>
-                            {whatsappOn ? (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={async () => {
-                                  try {
-                                    const result = await resendSystemInvite({
-                                      data: { userId: account.id },
-                                    });
-                                    const label =
-                                      result.kind === "invite"
-                                        ? "convite"
-                                        : "recuperação";
-                                    await navigator.clipboard.writeText(result.actionLink);
-                                    window.open(
-                                      whatsappHref(
-                                        "",
-                                        `Acesso SIGA (${label}): ${result.actionLink}`,
-                                      ),
-                                      "_blank",
-                                      "noopener,noreferrer",
-                                    );
-                                    toast.success("Link copiado", {
-                                      description: "WhatsApp aberto para enviar o acesso.",
-                                    });
-                                  } catch (error) {
-                                    toast.error("Não foi possível gerar o link", {
-                                      description:
-                                        error instanceof Error
-                                          ? error.message
-                                          : "Tente novamente.",
-                                    });
-                                  }
-                                }}
-                              >
-                                WhatsApp
-                              </Button>
-                            ) : null}
-                            {resendOn ? (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={async () => {
-                                  try {
-                                    const result = await resendSystemInvite({
-                                      data: { userId: account.id },
-                                    });
-                                    await navigator.clipboard.writeText(result.actionLink);
-                                    window.open(
-                                      `mailto:${encodeURIComponent(result.email)}?subject=${encodeURIComponent("Acesso SIGA")}&body=${encodeURIComponent(result.actionLink)}`,
-                                    );
-                                    toast.success("Texto do convite copiado para e-mail Resend", {
-                                      description: result.email,
-                                    });
-                                  } catch (error) {
-                                    toast.error("Não foi possível gerar o link", {
-                                      description:
-                                        error instanceof Error
-                                          ? error.message
-                                          : "Tente novamente.",
-                                    });
-                                  }
-                                }}
-                              >
-                                E-mail
-                              </Button>
-                            ) : null}
-                            </>
-                          ) : null}
-                          <Switch
-                            checked={!account.disabled}
-                            disabled={account.is_self}
-                            onCheckedChange={async (checked) => {
-                              try {
-                                await setSystemAccountDisabled({
-                                  data: { userId: account.id, disabled: !checked },
-                                });
-                                await queryClient.invalidateQueries({
-                                  queryKey: ["access", "accounts"],
-                                });
-                                toast.success(checked ? "Conta reactivada" : "Conta suspensa");
-                              } catch (error) {
-                                toast.error("Não foi possível actualizar o acesso", {
-                                  description:
-                                    error instanceof Error ? error.message : "Tente novamente.",
-                                });
-                              }
-                            }}
-                            aria-label={`Permitir acesso de ${account.full_name}`}
-                          />
+                              aria-label={`Permitir acesso de ${account.full_name}`}
+                            />
                           </div>
                         </TableCell>
                       </TableRow>
