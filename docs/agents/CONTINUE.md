@@ -188,6 +188,90 @@ calendário, integrações, acessos) foram todos auditados e corrigidos.
 Nenhum módulo por auditar em aberto neste momento — a próxima ronda fica
 por indicação do utilizador.
 
+## Ciclo 38 — segunda verificação crítica (2026-08-14)
+
+- **`.claude/worktrees/` limpo**: continha 6 checkouts completos e obsoletos
+  (branches `worktree-agent-*`, todos já mesclados em `main`, 0 commits à
+  frente) de sessões antigas, cada um com centenas de linhas não commitadas.
+  Confirmado com o utilizador (mostrado o conteúdo primeiro) que era uma
+  iniciativa de endurecimento de tipos TypeScript abandonada, não
+  funcionalidades novas — removidos com `git worktree remove`. Isto também
+  explicava o `eslint .` reportar ~9873 problemas em vez de 2 reais (estava
+  a percorrer 7 cópias da árvore `src/`).
+- **2 avisos reais do ESLint corrigidos** (fora de formatação, confirmados
+  correndo `eslint .` na árvore inteira pela primeira vez esta sessão):
+  `let` nunca reatribuída em `performance-supervisor.ts`, escape
+  desnecessário em regex em `arquivos/local-store.ts`.
+- **Falha silenciosa corrigida**: "Fechar trimestre"/"Reabrir" no Centro de
+  Avaliação (`AssessmentCenter.tsx`) não tinha `.catch()` nem estado de
+  carregamento — mesma classe de bug já corrigida uma vez em
+  `FileBrowser.tsx`. O padrão correcto já existia ao lado em
+  `settings-panels.tsx`, só copiado.
+- **Achados documentados, não corrigidos** (backlog, menor prioridade):
+  Avaliações (testes/provas) no Centro de Avaliação só têm Criar, sem
+  Editar/Apagar — um nome errado ou duplicado fica permanente na pauta.
+  Botão "Ligar a minha conta Gmail" em Integrações fica permanentemente
+  desactivado (já auto-documentado na interface). `access/server.ts` usa um
+  padrão de acesso a dados mais antigo (`sgaClient` em vez de
+  `loadSgaAdminClient`/`requireSgaWriter`) que o resto do repo — só
+  inconsistência de estilo, autorização já confirmada correcta no ciclo 37.
+- **Velocidade**: bundle principal ~163 KB gzip, code-splitting já isola
+  gráficos/PDF/html2canvas em chunks à parte (só carregam quando usados),
+  cache de assets imutável a 1 ano. Sem sinais de problema real de
+  performance a partir daqui — TTFB medido neste ambiente (~600-950ms)
+  continua dominado pela ligação deste sandbox à Cloudflare, não pelo
+  Worker; para números reais, testar a partir do browser da escola.
+
+### ID do aluno — novo formato AAMM+3 (pedido do utilizador)
+
+A geração do número de processo **não vive no código deste repo** — é uma
+função `private.register_student` (SQL) que só existe no projecto Supabase
+real, chamada via `db.rpc("register_student", ...)` em
+`src/features/students/server.ts` e `src/features/enrollment/server.ts`
+(`decideEnrollmentApplication`). Formato anterior: `EST-000001`
+(sequencial único por escola, tabela `private.student_number_sequences`
+com PK `school_id`).
+
+Alterado directamente na base de dados (aplicado, confirmado com o
+utilizador antes por mexer na PK de uma tabela em produção):
+`student_number_sequences` passou a ter PK `(school_id, period)` — uma
+sequência por escola **e por mês**; `register_student` calcula
+`v_period := to_char(admission_date, 'YYMM')` e gera
+`v_period || lpad(numero, 3, '0')` (ex.: `2608001`, reinicia em `001` a
+cada mês). Alunos já registados mantêm o `EST-XXXXXX` antigo — só novos
+registos usam o formato novo. Nenhum código do repo assume o prefixo
+`EST-` ou um comprimento fixo, por isso não foi preciso mudar nada em
+`src/`.
+
+**Para replicar/auditar esta alteração**: a definição completa da função
+está só na base de dados (`pg_get_functiondef` via Management API), não
+neste repositório — se precisares de a alterar outra vez, busca-a em
+directo primeiro.
+
+### Login por número de Bilhete — pedido, ainda não implementado
+
+O utilizador quer que o login passe a ser por número de BI + senha em vez
+de e-mail + senha, mas decidiu adiar até garantir que **todas** as contas
+(Administrador/Secretaria/Professor/Tesouraria) têm BI preenchido na
+ficha — hoje nem todas têm. Não implementado à espera dessa garantia.
+
+O que já existe e pode ser reaproveitado quando isto avançar:
+- Validação de formato de BI (Lei 3/21) + ligação a uma API pública
+  angolana de verificação já implementadas em `src/lib/angola-identity.ts`
+  (`validateAngolaBi`, `lookupAngolaBiOnline`).
+- "Redefinir password na primeira sessão" já acontece de forma nativa: o
+  convite (`inviteSystemUser` em `src/features/access/server.ts`, via
+  `admin.auth.admin.inviteUserByEmail`) obriga a definir password ao abrir
+  o link — não precisa de trabalho extra quando o login por BI existir,
+  desde que a conta continue a ser criada da mesma forma por trás.
+
+Falta desenhar (quando o utilizador confirmar a cobertura de BI): login
+com Supabase Auth é nativamente por e-mail — a opção mais simples é um
+endpoint público que resolve BI → e-mail da conta (via `people.national_id`)
+antes de chamar `signInWithPassword` no cliente, sem mudar o `auth.users`
+por trás. Cuidado com enumeração de contas nesse endpoint (resposta
+genérica se o BI não existir).
+
 ## Estado (2026-08-13)
 
 Os ciclos 1–34 da sessão premium estão no código. As consolidações mais recentes
