@@ -741,13 +741,34 @@ async function assertGraduationEligible(
   if (!contractIds.length) return;
   const { data: invoices } = await db
     .from("finance_invoices")
-    .select("status")
+    .select("id, amount, discount_amount")
     .eq("school_id", schoolId)
     .in("contract_id", contractIds)
     .neq("status", "cancelled");
-  const hasDebt = (invoices ?? []).some(
-    (invoice) => invoice.status !== "paid" && invoice.status !== "void",
-  );
+  const invoiceIds = (invoices ?? []).map((row) => row.id);
+  if (!invoiceIds.length) return;
+
+  // Não confiar em finance_invoices.status: só é escrita pelo RPC de
+  // pagamento e por cancelInvoice — uma anulação de recibo (reverseCashEntry)
+  // não a sincroniza de volta. A soma dos recibos não anulados é a mesma
+  // fonte de verdade usada na listagem de faturas.
+  const { data: receipts } = await db
+    .from("finance_receipts")
+    .select("invoice_id, amount, status")
+    .in("invoice_id", invoiceIds);
+  const paidByInvoice = new Map<string, number>();
+  for (const receipt of receipts ?? []) {
+    if (receipt.status === "reversed") continue;
+    paidByInvoice.set(
+      receipt.invoice_id,
+      (paidByInvoice.get(receipt.invoice_id) ?? 0) + Number(receipt.amount ?? 0),
+    );
+  }
+  const hasDebt = (invoices ?? []).some((invoice) => {
+    const total = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+    const paid = paidByInvoice.get(invoice.id) ?? 0;
+    return paid < total;
+  });
   if (hasDebt) {
     throw new Error("Este aluno tem facturas em dívida — regularize antes de concluir.");
   }

@@ -990,6 +990,40 @@ CREATE POLICY "Write own school student status events"
   FOR INSERT TO authenticated
   WITH CHECK (school_id = (SELECT public.current_school_id()));
 
+-- Auditoria de cancelamento de faturas (ciclo 37 — mesmo problema do
+-- student_status_events: cancelInvoice pedia "Motivo" na interface e
+-- descartava-o com void data.reason.
+CREATE TABLE IF NOT EXISTS public.finance_invoice_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  invoice_id uuid NOT NULL REFERENCES public.finance_invoices(id) ON DELETE CASCADE,
+  from_status text,
+  to_status text NOT NULL,
+  reason text,
+  changed_by uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS finance_invoice_events_invoice_idx
+  ON public.finance_invoice_events (school_id, invoice_id, created_at DESC);
+
+ALTER TABLE public.finance_invoice_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.finance_invoice_events FORCE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT ON public.finance_invoice_events TO authenticated;
+GRANT ALL ON public.finance_invoice_events TO service_role;
+
+DROP POLICY IF EXISTS "Read own school invoice events" ON public.finance_invoice_events;
+CREATE POLICY "Read own school invoice events"
+  ON public.finance_invoice_events
+  FOR SELECT TO authenticated
+  USING (school_id = (SELECT public.current_school_id()));
+
+DROP POLICY IF EXISTS "Write own school invoice events" ON public.finance_invoice_events;
+CREATE POLICY "Write own school invoice events"
+  ON public.finance_invoice_events
+  FOR INSERT TO authenticated
+  WITH CHECK (school_id = (SELECT public.current_school_id()));
+
 -- Verificação: deve devolver as relações novas.
 SELECT c.relname AS tabela
 FROM pg_class c
@@ -1012,6 +1046,7 @@ WHERE n.nspname = 'public'
     'siga_lesson_plan_components',
     'siga_cash_expenses',
     'announcements',
-    'student_status_events'
+    'student_status_events',
+    'finance_invoice_events'
   )
 ORDER BY 1;
