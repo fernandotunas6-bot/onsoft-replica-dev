@@ -37,6 +37,25 @@ export const getOrCreateCalendarFeedToken = createServerFn({ method: "POST" })
     return { token };
   });
 
+export const revokeCalendarFeedToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+      "Tesouraria",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { error } = await db
+      .from("calendar_feed_tokens")
+      .delete()
+      .eq("school_id", membership.schoolId)
+      .eq("user_id", context.userId);
+    if (error) throw publicDatabaseError(error, "Não foi possível revogar o feed.");
+    return { ok: true };
+  });
+
 export const getPublicCalendarFeedInputSchema = z.object({
   token: z.string().trim().min(16).max(80),
 });

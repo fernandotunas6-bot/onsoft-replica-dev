@@ -149,7 +149,7 @@ export const integrationFieldHints: Record<
     callback: "URL do feed ICS",
   },
   resend_email: {
-    merchant: "API key Resend",
+    merchant: "Referência interna (não liga à Resend nem envia e-mail real)",
     callback: "Domínio de envio",
   },
   zoom: {

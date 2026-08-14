@@ -246,13 +246,22 @@ CREATE TABLE IF NOT EXISTS public.calendar_feed_tokens (
 );
 
 ALTER TABLE public.calendar_feed_tokens ENABLE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT ON public.calendar_feed_tokens TO authenticated;
+GRANT SELECT, INSERT, DELETE ON public.calendar_feed_tokens TO authenticated;
 GRANT ALL ON public.calendar_feed_tokens TO service_role;
 
 DROP POLICY IF EXISTS "Read own calendar feed token" ON public.calendar_feed_tokens;
 CREATE POLICY "Read own calendar feed token"
   ON public.calendar_feed_tokens
   FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+-- Ciclo 37: sem isto o token nunca podia ser revogado/rodado — um professor
+-- desactivado (não apagado, o auth.users cascade nunca dispara) mantinha o
+-- feed do calendário a funcionar para sempre.
+DROP POLICY IF EXISTS "Revoke own calendar feed token" ON public.calendar_feed_tokens;
+CREATE POLICY "Revoke own calendar feed token"
+  ON public.calendar_feed_tokens
+  FOR DELETE TO authenticated
   USING (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.school_integrations (

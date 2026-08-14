@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
+import { getOrCreateCalendarFeedToken, revokeCalendarFeedToken } from "@/features/calendar/feed";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -110,6 +110,11 @@ function CalendarioPage() {
         "noopener,noreferrer",
       );
     }
+  };
+
+  const revokeFeed = async () => {
+    await revokeCalendarFeedToken();
+    toast.success("Feed revogado. Qualquer link anterior deixa de funcionar.");
   };
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "calendario",
@@ -335,6 +340,19 @@ function CalendarioPage() {
                   Apple
                 </Button>
               ) : null}
+              <Button
+                variant="ghost"
+                className="gap-2 text-muted-foreground"
+                onClick={() =>
+                  void revokeFeed().catch((error) =>
+                    toast.error(
+                      error instanceof Error ? error.message : "Não foi possível revogar o feed.",
+                    ),
+                  )
+                }
+              >
+                Revogar feed
+              </Button>
               {canManage ? (
                 <QuickFormModal
                   title="Novo período lectivo"
