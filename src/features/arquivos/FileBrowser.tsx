@@ -573,6 +573,7 @@ export function FileBrowser({
     if (!schoolId || !files.length || !canWriteFileArea(account.role, targetArea)) return;
     setUploading(true);
     let appliedProfilePhoto = false;
+    let degradedToLocal = false;
     try {
       if (targetArea !== area) setArea(targetArea);
       for (const file of files) {
@@ -591,9 +592,15 @@ export function FileBrowser({
           const { error } = await supabase.storage
             .from(FILES_BUCKET)
             .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
-          if (!error) backend = "sga";
-        } catch {
-          backend = "local";
+          if (!error) {
+            backend = "sga";
+          } else {
+            degradedToLocal = true;
+            console.error(`[arquivos] falha ao enviar "${file.name}" para o Storage`, error);
+          }
+        } catch (uploadError) {
+          degradedToLocal = true;
+          console.error(`[arquivos] falha ao enviar "${file.name}" para o Storage`, uploadError);
         }
         const record: SchoolFileRecord = {
           id,
@@ -651,6 +658,10 @@ export function FileBrowser({
             ? { ...record, storageBackend: "local" }
             : record;
         if (registered.storage === "local" && backend === "sga") {
+          degradedToLocal = true;
+          console.error(
+            `[arquivos] "${file.name}" foi enviado ao Storage mas registerSchoolFile degradou para local (tabela/colunas siga_files em falta?)`,
+          );
           await saveLocalFile({ record: storedRecord, blob: file });
         }
         if (
@@ -670,11 +681,23 @@ export function FileBrowser({
           void queryClient.invalidateQueries({ queryKey: ["people"] });
         }
       }
-      toast.success(
-        appliedProfilePhoto
-          ? "Fotografia guardada e aplicada no perfil do aluno"
-          : `Ficheiros organizados em ${fileAreaMeta[targetArea].label}`,
-      );
+      if (degradedToLocal) {
+        toast.warning(
+          appliedProfilePhoto
+            ? "Fotografia guardada só neste dispositivo"
+            : "Ficheiros guardados só neste dispositivo",
+          {
+            description:
+              "Não foi possível enviar para o Storage — outros utilizadores e dispositivos não vão ver este ficheiro. Verifique a ligação e a configuração do Storage (bucket siga-files).",
+          },
+        );
+      } else {
+        toast.success(
+          appliedProfilePhoto
+            ? "Fotografia guardada e aplicada no perfil do aluno"
+            : `Ficheiros organizados em ${fileAreaMeta[targetArea].label}`,
+        );
+      }
       await refresh();
     } catch (error) {
       toast.error("Não foi possível guardar", {

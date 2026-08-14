@@ -15,9 +15,7 @@ export const listStaffModuleGrants = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-    ]);
+    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     const db = await loadSgaAdminClient();
     const { data, error } = await db
       .from("staff_module_grants")
@@ -32,9 +30,7 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
   .validator((input: unknown) => setStaffModuleGrantInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-    ]);
+    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     const db = await loadSgaAdminClient();
     const { error } = await db.from("staff_module_grants").upsert(
       {
@@ -48,5 +44,27 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
       { onConflict: "school_id,user_id,module_key" },
     );
     if (error) throw publicDatabaseError(error, "Não foi possível guardar a permissão.");
+    return { ok: true };
+  });
+
+export const clearStaffModuleGrantInputSchema = z.object({
+  userId: z.string().uuid(),
+  moduleKey: z.enum(accessModules.map((item) => item.key) as [string, ...string[]]),
+});
+
+export const clearStaffModuleGrant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => clearStaffModuleGrantInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const db = await loadSgaAdminClient();
+    const { error } = await db
+      .from("staff_module_grants")
+      .delete()
+      .eq("school_id", membership.schoolId)
+      .eq("user_id", data.userId)
+      .eq("module_key", data.moduleKey);
+    if (error) throw publicDatabaseError(error, "Não foi possível repor a predefinição.");
     return { ok: true };
   });

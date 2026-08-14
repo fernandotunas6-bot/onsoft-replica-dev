@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle } from "lucide-react";
+import { Lock, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizeAngolaPhone, validateAngolaPhone } from "@/lib/angola-phone";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { setCurrentProfileAvatar, updateCurrentProfile } from "./server";
+
+function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-bold tracking-tight">{title}</h3>
+        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 /**
  * Perfil da conta (foto + nome + telemóvel) — usado no Centro de Configurações
@@ -71,9 +91,13 @@ function ProfileAvatarField() {
 
       const profile = await setCurrentProfileAvatar({ data: { storagePath: path } });
 
-      queryClient.setQueryData(["auth", "profile", currentUser.id], (prev: unknown) => ({
+      // useCurrentAccount() lê ["auth", "account-context", id] — não "profile".
+      // Escrever na chave errada deixava o upload a ter sucesso sem o avatar
+      // se actualizar em lado nenhum da app (cabeçalho, menu, /perfil).
+      queryClient.setQueryData(["auth", "account-context", currentUser.id], (prev: unknown) => ({
         ...(typeof prev === "object" && prev ? prev : {}),
         avatar_url: profile.avatar_url,
+        updated_at: profile.updated_at,
       }));
       toast.success("Foto de perfil actualizada.");
     } catch {
@@ -199,46 +223,64 @@ export function ProfileSettingsPanel() {
   };
 
   return (
-    <form className="space-y-5" onSubmit={saveProfile}>
-      <ProfileAvatarField />
+    <form className="space-y-6" onSubmit={saveProfile}>
+      <FormSection title="Fotografia" description="Visível para os colegas nas mensagens.">
+        <ProfileAvatarField />
+      </FormSection>
+
       <Separator />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="set-nome">Nome completo</Label>
-          <Input
-            key={currentUser.profile.data?.updated_at ?? "loading"}
-            id="set-nome"
-            name="fullName"
-            defaultValue={currentUser.name}
-            minLength={2}
-            maxLength={160}
-            autoComplete="name"
-            required
-          />
+
+      <FormSection title="Dados pessoais" description="Pode editar e guardar livremente.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="set-nome">Nome completo</Label>
+            <Input
+              key={currentUser.profile.data?.updated_at ?? "loading"}
+              id="set-nome"
+              name="fullName"
+              defaultValue={currentUser.name}
+              minLength={2}
+              maxLength={160}
+              autoComplete="name"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="set-phone">Telemóvel</Label>
+            <Input
+              key={`${currentUser.profile.data?.updated_at ?? "loading"}-phone`}
+              id="set-phone"
+              name="phone"
+              defaultValue={currentUser.phone ?? ""}
+              placeholder="+244 9XX XXX XXX"
+              autoComplete="tel"
+            />
+          </div>
         </div>
-        <Field
-          id="set-email"
-          label="E-mail"
-          type="email"
-          defaultValue={currentUser.email}
-          readOnly
-        />
-        <div className="space-y-1.5">
-          <Label htmlFor="set-phone">Telemóvel</Label>
-          <Input
-            key={`${currentUser.profile.data?.updated_at ?? "loading"}-phone`}
-            id="set-phone"
-            name="phone"
-            defaultValue={currentUser.phone ?? ""}
-            placeholder="+244 9XX XXX XXX"
-            autoComplete="tel"
+      </FormSection>
+
+      <Separator />
+
+      <FormSection
+        title="Geridos pela administração"
+        description="Só a equipa de gestão de acessos pode alterar estes campos."
+      >
+        <div className="grid gap-4 rounded-lg border border-dashed border-border bg-muted/40 p-4 sm:grid-cols-2">
+          <Field
+            id="set-email"
+            label="E-mail"
+            type="email"
+            defaultValue={currentUser.email}
+            readOnly
           />
+          <Field id="set-cargo" label="Cargo" defaultValue={currentUser.role} readOnly />
         </div>
-        <Field id="set-cargo" label="Cargo" defaultValue={currentUser.role} readOnly />
-      </div>
-      <p className="text-xs text-muted-foreground">
-        E-mail e cargo são geridos pela administração e não podem ser alterados aqui.
-      </p>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Lock className="size-3.5" aria-hidden />
+          Peça a um administrador em Acessos para alterar e-mail ou cargo.
+        </p>
+      </FormSection>
+
       <div className="flex justify-end">
         <Button type="submit" disabled={saving || currentUser.profile.isLoading}>
           {saving ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}

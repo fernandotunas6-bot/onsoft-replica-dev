@@ -2,6 +2,49 @@
 
 Ler isto **antes** de alterar código. Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Produção (2026-08-14)
+
+- **Live**: https://portal-siga.com (Cloudflare Workers, conta `701800d01d428c5141fa1fdb60ee01ae`,
+  worker `fernandotunas6-bot-onsoft-replica-dev`; também acessível em
+  `fernandotunas6-bot-onsoft-replica-dev.valentinocanguele.workers.dev`). Domínio comprado na
+  Hostinger, DNS gerido pela Cloudflare (zona `a817debe40353d51e056c77e18e57f19`). `www.portal-siga.com`
+  ainda não está ligado (falta limpar um registo DNS antigo na zona).
+- **Deploy**: `npm run build` (gera `.output/`) → `npx wrangler deploy --cwd .output`. Segredos do
+  Worker (`SUPABASE_URL`, `SUPABASE_PROJECT_ID`, `SUPABASE_PUBLISHABLE_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `AUTH_BYPASS=false`) já configurados via `wrangler secret put`.
+- **SQL aplicado**: `APPLY_IN_SQL_EDITOR.sql` e `APPLY_ENROLLMENT_AND_PREMIUM.sql` já foram
+  corridos no projecto Supabase (`xodgfmxiaunpamctfeea`) — as 16 tabelas geridas por estes scripts
+  existem e estão activas. As anotações "(precisa SQL)" na tabela de ciclos abaixo referem-se ao
+  estado do código, já não ao estado da base de dados em produção.
+- **Supabase Auth**: `site_url` e `uri_allow_list` actualizados para `https://portal-siga.com`
+  (antes apontavam para `localhost:3000` — convites/recuperação de password produziam links
+  mortos). Sem SMTP próprio configurado; usa o envio por defeito do Supabase (limitado, mas
+  funcional).
+- **`public/turmas/`**: continha 3 ZIPs órfãos (~900 MB: `Unifiedtransform-master.zip`,
+  `Unifiedtransform-master.6.zip`, `supabase-master.zip`) que rebentavam o limite de 25 MB por
+  asset do Cloudflare Workers. Removidos — já estavam no `.gitignore`, não pertenciam ao site.
+- **Integrações**: catálogo (`school_integrations`) não chama nenhuma API externa real — "instalar"
+  só liga botões/links na interface (WhatsApp → `wa.me`, Resend → navegação para `/comunicacoes`,
+  etc.), sem precisar de chaves. Já ligadas: Microsoft 365, Canvas, Moodle, Google Classroom,
+  Google Calendar, SIGE, AGT. Por instalar (1 clique cada, sem credenciais): Multicaixa Express,
+  Unitel Money, WhatsApp Business, Apple Calendar, Email/Resend, Zoom, Teams, Turnitin —
+  Definições → Integrações.
+- **Bugs corrigidos nesta sessão** (ver commits/diff não commitados em `src/features/`):
+  - `FileBrowser.tsx` engolia em silêncio erros do Storage e caía para IndexedDB local sem avisar
+    — agora mostra toast de aviso + `console.error` quando degrada.
+  - `ProfileSettingsPanel.tsx`: upload de avatar escrevia na chave de cache errada
+    (`["auth","profile",id]` em vez de `["auth","account-context",id]`, que é a que
+    `useCurrentAccount()` lê) — o avatar nunca se actualizava em lado nenhum da app.
+  - `StaffMessenger.tsx`: envio deixou de esperar por `invalidateQueries` (escreve a mensagem real
+    directamente na cache); mensagens locais pré-sincronização deixaram de desaparecer quando o
+    SQL é aplicado (`mergeThreadMessages`).
+  - `/acessos`: modal "Módulos" substituído por página dedicada `/acessos/permissoes/$userId`
+    (sem modal, guarda por módulo de imediato); novo `clearStaffModuleGrant` para repor
+    "Predefinição do cargo" (antes não existia forma de reverter um override).
+- **Próximo objectivo grande** (pedido do utilizador, ainda por começar): rever com rigor o ciclo
+  de vida completo do aluno — candidatura → matrícula → percurso académico → boletins/diploma →
+  saída — mais professores e financeiro, módulo a módulo, com foco em organização impecável.
+
 ## Estado (2026-08-13)
 
 Os ciclos 1–34 da sessão premium estão no código. As consolidações mais recentes
@@ -67,6 +110,8 @@ estão versionadas localmente:
 - Recibos/faturas/relatórios financeiros incluem IBAN e logótipo quando configurados.
 
 ## SQL no SGA (`xodgfmxiaunpamctfeea`)
+
+**Já aplicado em produção a 2026-08-14** (ver secção "Produção" acima). Reaplicar só se `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql` ou `supabase/APPLY_IN_SQL_EDITOR.sql` mudarem — ambos são idempotentes (`IF NOT EXISTS`, `DROP POLICY IF EXISTS`).
 
 Correr **só** no SQL Editor, nesta ordem:
 

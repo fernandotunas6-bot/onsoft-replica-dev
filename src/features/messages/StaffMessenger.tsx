@@ -22,10 +22,27 @@ import {
   RECENT_CONTACT_LIMIT,
   touchRecentContact,
 } from "@/features/messages/recent-contacts";
-import { appendLocalThread, readLocalThread } from "@/features/messages/local-thread";
+import {
+  appendLocalThread,
+  readLocalThread,
+  type LocalDirectMessage,
+} from "@/features/messages/local-thread";
 import { useInboxUnread } from "@/features/messages/use-inbox-unread";
 
 type MessengerView = "menu" | "directory" | "thread";
+
+/**
+ * Mensagens enviadas antes de o SQL de sincronização estar aplicado ficam só
+ * neste dispositivo. Uma vez sincronizado, junta-as ao histórico real em vez
+ * de as esconder — senão pareciam ter desaparecido.
+ */
+function mergeThreadMessages(remote: LocalDirectMessage[], local: LocalDirectMessage[]) {
+  if (!local.length) return remote;
+  const remoteIds = new Set(remote.map((item) => item.id));
+  const extra = local.filter((item) => !remoteIds.has(item.id));
+  if (!extra.length) return remote;
+  return [...extra, ...remote].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+}
 
 function formatMessageTime(iso: string) {
   const date = new Date(iso);
@@ -257,7 +274,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
 
   const remote = threadQuery.data?.messages ?? [];
   const useLocal = threadQuery.data?.storage === "local" || Boolean(threadQuery.error);
-  const messages = useLocal ? localMessages : remote;
+  const messages = useLocal ? localMessages : mergeThreadMessages(remote, localMessages);
 
   const { markRead } = useInboxUnread();
   const lastIncomingAt = messages.filter((item) => !item.mine).at(-1)?.createdAt ?? null;
@@ -288,10 +305,17 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
       if (result.storage === "local") {
         setLocalMessages(appendLocalThread(currentUser.id, peer.id, result.message));
       } else {
-        await queryClient.invalidateQueries({
-          queryKey: ["messages", "thread", currentUser.id, peer.id],
-        });
-        await queryClient.invalidateQueries({
+        // Escreve a mensagem real (já com id/hora do servidor) directamente na
+        // cache em vez de invalidar — evita esperar por um novo pedido só para
+        // ver a própria mensagem aparecer.
+        queryClient.setQueryData(
+          ["messages", "thread", currentUser.id, peer.id],
+          (prev: Awaited<ReturnType<typeof listDirectThread>> | undefined) =>
+            prev
+              ? { ...prev, messages: [...prev.messages, result.message] }
+              : { storage: "sga" as const, messages: [result.message] },
+        );
+        void queryClient.invalidateQueries({
           queryKey: ["messages", "inbox", currentUser.id],
         });
       }
