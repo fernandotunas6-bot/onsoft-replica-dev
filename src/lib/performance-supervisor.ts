@@ -20,7 +20,7 @@ const SLOW_MS = 400;
 const MAX_SLOW = 24;
 const MAX_SAMPLES = 120;
 
-let slowQueries: SlowQueryEntry[] = [];
+const slowQueries: SlowQueryEntry[] = [];
 const queryTimings: number[] = [];
 const queryStart = new Map<string, number>();
 let lastTapMs: number | null = null;

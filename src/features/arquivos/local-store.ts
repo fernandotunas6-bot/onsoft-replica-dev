@@ -45,14 +45,11 @@ export function localStoragePath(input: {
   const now = new Date();
   const year = String(now.getFullYear());
   const month = String(now.getMonth() + 1).padStart(2, "0");
-  const safe = input.name.replace(/[^\w.\-]+/g, "_").slice(0, 80);
+  const safe = input.name.replace(/[^\w.-]+/g, "_").slice(0, 80);
   return `${input.schoolId}/${year}/${month}/${input.area}/${input.ownerUserId}/${input.id}-${safe}`;
 }
 
-export async function saveLocalFile(input: {
-  record: LocalMeta;
-  blob: Blob;
-}) {
+export async function saveLocalFile(input: { record: LocalMeta; blob: Blob }) {
   const db = await openDb();
   const tx = db.transaction([META, BLOBS], "readwrite");
   tx.objectStore(META).put(input.record);
@@ -177,8 +174,7 @@ export async function patchLocalFileMeta(
     store.put({
       ...existing,
       ...patch,
-      classGroupId:
-        patch.classGroupId === undefined ? existing.classGroupId : patch.classGroupId,
+      classGroupId: patch.classGroupId === undefined ? existing.classGroupId : patch.classGroupId,
       visibility: patch.visibility ?? existing.visibility,
       updatedAt: new Date().toISOString(),
     });
