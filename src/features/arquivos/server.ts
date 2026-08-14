@@ -577,7 +577,8 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       if (!parent || !parent.is_folder) {
         throw new Error("O destino tem de ser uma pasta.");
       }
-      if (data.area && String(parent.area) !== data.area) {
+      const targetArea = data.area ?? items[0]?.area;
+      if (targetArea && String(parent.area) !== targetArea) {
         throw new Error("A pasta de destino pertence a outra área.");
       }
     }
@@ -1068,6 +1069,38 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
       "Professor",
     ]);
     const db = await loadSgaAdminClient();
+
+    const { data: existing, error: loadError } = await db
+      .from("siga_files")
+      .select("id, owner_user_id, area")
+      .eq("id", data.id)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (loadError) {
+      if (missingFilesTable(loadError)) return { ok: true, localOnly: true };
+      throw publicDatabaseError(loadError, "Não foi possível ligar o ficheiro à turma.");
+    }
+    if (!existing) throw new Error("Ficheiro não encontrado.");
+    const area = existing.area as SchoolFileRecord["area"];
+    const owner = String(existing.owner_user_id);
+    const canEdit =
+      owner === userId ||
+      membership.appRole === "Administrador" ||
+      (area === "secretaria" && membership.appRole === "Secretaria");
+    if (!canEdit || !canWriteFileArea(membership.appRole, area)) {
+      throw new Error("Sem permissão para ligar este ficheiro a uma turma.");
+    }
+    if (data.classGroupId) {
+      const { data: classGroup, error: classError } = await db
+        .from("class_groups")
+        .select("id")
+        .eq("id", data.classGroupId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (classError) throw publicDatabaseError(classError, "Não foi possível validar a turma.");
+      if (!classGroup) throw new Error("Turma não encontrada nesta escola.");
+    }
+
     const action = data.classGroupId ? "linked_class" : "unlinked_class";
     const now = new Date().toISOString();
     const { error } = await db

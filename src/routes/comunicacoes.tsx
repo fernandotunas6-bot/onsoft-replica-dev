@@ -59,8 +59,7 @@ export const Route = createFileRoute("/comunicacoes")({
       { title: "Comunicações · SIGA" },
       {
         name: "description",
-        content:
-          "Envie comunicados por SMS, e-mail ou portal para encarregados, alunos e professores da escola.",
+        content: "Envie comunicados para toda a escola e acompanhe o histórico de publicações.",
       },
       { property: "og:title", content: "Comunicações · SIGA" },
       {
