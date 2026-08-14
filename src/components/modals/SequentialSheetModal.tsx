@@ -3,6 +3,7 @@ import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumModal } from "@/components/ui/premium-modal";
 import { Button } from "@/components/ui/button";
+import { formatMutationError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 
 export type SheetStep = {
@@ -58,7 +59,7 @@ export function SequentialSheetModal({
       toast.success(`${title} concluído`, { description: successDescription });
     } catch (error) {
       toast.error("Não foi possível guardar", {
-        description: error instanceof Error ? error.message : "Tente novamente.",
+        description: formatMutationError(error),
       });
     } finally {
       setSaving(false);
@@ -106,7 +107,10 @@ export function SequentialSheetModal({
           <span>{progress}%</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${progress}%` }}
+          />
         </div>
         <ol className="mt-4 flex flex-wrap gap-2">
           {steps.map((step, index) => {
@@ -143,7 +147,11 @@ export function SequentialSheetModal({
 }
 
 export function SheetGrid({ children }: { children: ReactNode }) {
-  return <div className="grid gap-px overflow-hidden rounded-lg bg-border sm:grid-cols-2">{children}</div>;
+  return (
+    <div className="grid gap-px overflow-hidden rounded-lg bg-border sm:grid-cols-2">
+      {children}
+    </div>
+  );
 }
 
 export function SheetCell({

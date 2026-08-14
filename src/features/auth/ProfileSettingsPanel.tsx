@@ -11,6 +11,7 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeAngolaPhone, validateAngolaPhone } from "@/lib/angola-phone";
+import { formatMutationError } from "@/lib/format-error";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { setCurrentProfileAvatar, updateCurrentProfile } from "./server";
 
@@ -100,11 +101,14 @@ function ProfileAvatarField() {
         updated_at: profile.updated_at,
       }));
       toast.success("Foto de perfil actualizada.");
-    } catch {
+    } catch (error) {
       if (uploadedPath) {
         await supabase.storage.from("avatars").remove([uploadedPath]);
       }
-      toast.error("Não foi possível carregar a imagem.");
+      console.error("[perfil] falha ao carregar avatar", error);
+      toast.error("Não foi possível carregar a imagem", {
+        description: formatMutationError(error),
+      });
     } finally {
       setUploading(false);
     }
