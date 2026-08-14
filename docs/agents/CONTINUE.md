@@ -116,11 +116,77 @@ Supabase real. Não é possível confirmar CHECK constraints ou o comportamento
 exacto do RPC a partir do código-fonte; qualquer alteração a estas tabelas
 precisa de inspecção directa da base de dados em produção primeiro.
 
-**Por auditar ainda** (mesma metodologia, não começado): comunicações,
-arquivos, calendário, integrações, acessos — o utilizador pediu "escola
-inteira" e "outros módulos também", mas cada módulo é uma sessão de
-investigação + correção própria; não convém adivinhar prioridade sem
-confirmar com o utilizador qual vem a seguir.
+**Módulo comunicações** — commit `0acc37b` (limpo, só 1 correcção cosmética):
+todas as mutações já filtram `school_id` na linha específica, enum de
+estado bate certo com a constraint. Só corrigido: meta description da
+página prometia envio por SMS/e-mail/portal segmentado, mas `audience` só
+suporta `"school"` (confirmado pela constraint) — texto agora reflecte a
+funcionalidade real.
+
+**Módulo acessos** (contas, convites, 2FA — a parte de grants/permissões já
+tinha sido revista antes) — sem commit, nada a corrigir: `updateSystemAccountCargo`,
+`setSystemAccountDisabled`, `resendSystemInvite`, `inviteSystemUser`
+já re-validam `school_id` na conta alvo antes de mexer, não só o cargo de
+quem pede. Auto-demoção/auto-desactivação bloqueadas. 2FA usa
+`supabase.auth.mfa.*` directamente sobre a sessão do próprio utilizador —
+não há como configurar 2FA "para" outra conta. Único gap (não é falha de
+segurança, falta de funcionalidade): não há forma de um Admin repor o 2FA
+de outra conta que perdeu o dispositivo.
+
+**Módulo integrações** — commit `f50d25c`: confirmado que nenhuma
+integração liga a uma API real (WhatsApp/Resend/etc. só geram links/copiam
+texto). Autorização e scoping de `school_integrations` correctos. Único
+achado: o campo "API key Resend" nunca é lido por código nenhum (só
+reaparece como placeholder do próprio formulário) — texto agora deixa
+claro que não liga a nada real, para não convidar alguém a colar uma
+chave verdadeira num campo morto.
+
+**Módulo arquivos** — commit `0acc37b`:
+- `linkSchoolFileToClass` só verificava o cargo, nunca se o utilizador era
+  dono do ficheiro (ou Administrador/Secretaria em "secretaria") —
+  qualquer Professor conseguia ligar/desligar qualquer ficheiro de
+  qualquer turma, incluindo ficheiros pessoais de outros professores.
+  Mesma verificação de `renameSchoolFile` aplicada aqui, mais validação de
+  que a turma pertence à escola (não existia).
+- `moveSchoolFiles`: a verificação "pasta de destino pertence a outra
+  área" só corria se o cliente enviasse `area` explicitamente — o caminho
+  normal (arrastar sem mudar de área) saltava-a. Passa a inferir a área a
+  partir do próprio item quando o cliente não a envia.
+- Não corrigido (baixa prioridade, decisão deliberada já documentada no
+  código): `deleteSchoolFile` não limpa `people.photo_url`/
+  `person_documents.file_id` quando o ficheiro referenciado é apagado —
+  ficam a apontar para um ficheiro morto. Sem FK possível nessas colunas.
+
+**Módulo calendário** — commit `f50d25c` (dois achados HIGH, confirmados a
+funcionar em produção depois do deploy):
+- `/calendario/ics` era uma rota de página (SPA), não uma rota de
+  servidor — visitar o "endereço de subscrição" devolvia a shell HTML/JS
+  da app, nunca `text/calendar`. Nenhum cliente de calendário real
+  (Google/Apple/Outlook "adicionar por URL") conseguia subscrever aquilo.
+  Convertida para `server.handlers.GET` (ver
+  `node_modules/@tanstack/start-client-core/skills/start-core/server-routes/SKILL.md`
+  para o padrão — é a primeira rota de servidor pura desta app, todo o
+  resto usa `createServerFn`). Testado directamente em produção via curl
+  com um token real: `Content-Type: text/calendar`, ICS válido.
+- `calendar_feed_tokens` nunca podia ser revogado/rodado — só tinha
+  política de SELECT, sem UPDATE/DELETE, e nenhum código o apagava.
+  Desactivar uma conta (o caminho normal, não apaga `auth.users`) deixava
+  o feed a funcionar para sempre. Nova política de DELETE (dono do token)
+  + `revokeCalendarFeedToken` + botão "Revogar feed" em `/calendario`.
+- Investigado mas **não era bug real**: parecia que apagar um período
+  lectivo com notas lançadas podia corromper `gradebooks` silenciosamente
+  (`ensureTerm` recria com datas genéricas). Confirmado directamente na
+  base de dados em produção (a tabela não está no git): existe FK real
+  `gradebooks_school_id_term_id_fkey` com `NO ACTION` — apagar um período
+  com notas já falha de forma segura. Só fica o caso raro (e inofensivo)
+  de um período apagado *sem* notas ser recriado com datas erradas se
+  alguém lançar notas na mesma sequência depois — não corrigido, baixa
+  prioridade.
+
+**Concluído**: os cinco módulos pedidos (comunicações, arquivos,
+calendário, integrações, acessos) foram todos auditados e corrigidos.
+Nenhum módulo por auditar em aberto neste momento — a próxima ronda fica
+por indicação do utilizador.
 
 ## Estado (2026-08-13)
 
