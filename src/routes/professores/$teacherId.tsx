@@ -148,16 +148,29 @@ function TeacherProfilePage() {
                     },
                   ]}
                   onSubmit={async (values) => {
+                    const nextStatus = values["estado"] === "Inactivo" ? "inactive" : "active";
                     await updateTeacher({
                       data: {
                         teacherId,
                         fullName: values["nome"] ?? teacher.full_name,
                         email: values["email"] || "",
                         phone: values["telefone"] || undefined,
-                        status: values["estado"] === "Inactivo" ? "inactive" : "active",
+                        status: nextStatus,
                       },
                     });
                     await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
+                    if (nextStatus === "inactive" && teacher.status !== "inactive") {
+                      toast.message("Professor desactivado na ficha HR", {
+                        description:
+                          "O acesso à plataforma não é revogado automaticamente — trate disso em Acessos, se for o caso.",
+                        action: {
+                          label: "Ir a Acessos",
+                          onClick: () => {
+                            window.location.href = "/acessos";
+                          },
+                        },
+                      });
+                    }
                   }}
                   trigger={(open) => (
                     <Button variant="outline" className="gap-2" onClick={open}>

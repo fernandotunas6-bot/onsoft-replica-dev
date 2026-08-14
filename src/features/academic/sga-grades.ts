@@ -83,24 +83,62 @@ export async function ensureDefaultTeacher(db: Db, schoolId: string, userId: str
   return teacher.id as string;
 }
 
+/** Resolve a ficha de professor (teachers.id) ligada ao login actual, via teachers.user_id. */
+async function resolveTeacherIdForUser(db: Db, schoolId: string, userId: string) {
+  const { data, error } = await db
+    .from("teachers")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) return null;
+  return data?.id ? (data.id as string) : null;
+}
+
+/**
+ * Garante a associação turma-disciplina e devolve o class_subjects.id.
+ *
+ * Um "Professor" só pode lançar notas na disciplina da sua própria turma —
+ * se já houver um professor atribuído (class_subjects.teacher_id) diferente
+ * do que está autenticado, bloqueia aqui. Administrador/Secretaria continuam
+ * sem restrição (supervisão da escola toda).
+ */
 async function ensureClassSubject(
   db: Db,
   schoolId: string,
   classGroupId: string,
   subjectId: string,
   userId: string,
+  role: string,
 ) {
   const { data: existing, error } = await db
     .from("class_subjects")
-    .select("id")
+    .select("id, teacher_id")
     .eq("class_group_id", classGroupId)
     .eq("subject_id", subjectId)
     .eq("status", "active")
     .maybeSingle();
   if (error) throw publicDatabaseError(error, "Não foi possível associar a disciplina.");
-  if (existing?.id) return existing.id;
 
-  const teacherId = await ensureDefaultTeacher(db, schoolId, userId);
+  if (existing?.id) {
+    if (role === "Professor" && existing.teacher_id) {
+      const callerTeacherId = await resolveTeacherIdForUser(db, schoolId, userId);
+      if (callerTeacherId !== existing.teacher_id) {
+        throw new Error("Esta disciplina está atribuída a outro professor nesta turma.");
+      }
+    }
+    return existing.id;
+  }
+
+  let teacherId: string | null = null;
+  if (role === "Professor") {
+    teacherId = await resolveTeacherIdForUser(db, schoolId, userId);
+    if (!teacherId) {
+      throw new Error("A sua conta não está ligada a uma ficha de professor nesta escola.");
+    }
+  } else {
+    teacherId = await ensureDefaultTeacher(db, schoolId, userId);
+  }
   const { data: created, error: createError } = await db
     .from("class_subjects")
     .insert({
@@ -319,6 +357,7 @@ export async function upsertSgaTermGrade(params: {
   db: Db;
   schoolId: string;
   userId: string;
+  role: string;
   enrollmentId: string;
   subjectId: string;
   term: number;
@@ -326,7 +365,7 @@ export async function upsertSgaTermGrade(params: {
   npp: number;
   npt: number;
 }) {
-  const { db, schoolId, userId, enrollmentId, subjectId, term, mac, npp, npt } = params;
+  const { db, schoolId, userId, role, enrollmentId, subjectId, term, mac, npp, npt } = params;
 
   const { data: enrollment, error: enrollmentError } = await db
     .from("enrollments")
@@ -348,6 +387,7 @@ export async function upsertSgaTermGrade(params: {
     enrollment.class_group_id,
     subjectId,
     userId,
+    role,
   );
   const gradebookId = await ensureGradebook(
     db,
@@ -382,14 +422,22 @@ async function ensureGradeContext(params: {
   db: Db;
   schoolId: string;
   userId: string;
+  role: string;
   academicYearId: string;
   classGroupId: string;
   subjectId: string;
   term: number;
 }) {
-  const { db, schoolId, userId, academicYearId, classGroupId, subjectId, term } = params;
+  const { db, schoolId, userId, role, academicYearId, classGroupId, subjectId, term } = params;
   const termRow = await ensureTerm(db, schoolId, academicYearId, term);
-  const classSubjectId = await ensureClassSubject(db, schoolId, classGroupId, subjectId, userId);
+  const classSubjectId = await ensureClassSubject(
+    db,
+    schoolId,
+    classGroupId,
+    subjectId,
+    userId,
+    role,
+  );
   const gradebookId = await ensureGradebook(
     db,
     schoolId,
@@ -468,11 +516,12 @@ export async function upsertSgaTermGradesBatch(params: {
   db: Db;
   schoolId: string;
   userId: string;
+  role: string;
   subjectId: string;
   term: number;
   rows: Array<{ enrollmentId: string; mac: number; npp: number; npt: number }>;
 }) {
-  const { db, schoolId, userId, subjectId, term, rows } = params;
+  const { db, schoolId, userId, role, subjectId, term, rows } = params;
   if (!rows.length) return { saved: 0 };
 
   const enrollmentIds = [...new Set(rows.map((row) => row.enrollmentId))];
@@ -520,6 +569,7 @@ export async function upsertSgaTermGradesBatch(params: {
       db,
       schoolId,
       userId,
+      role,
       academicYearId: group.academicYearId,
       classGroupId: group.classGroupId,
       subjectId,

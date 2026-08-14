@@ -905,6 +905,7 @@ export const upsertTermGrade = createServerFn({ method: "POST" })
       db,
       schoolId: membership.schoolId,
       userId: context.userId,
+      role: membership.appRole,
       enrollmentId: data.enrollmentId,
       subjectId: data.subjectId,
       term: data.term,
@@ -930,6 +931,7 @@ export const upsertTermGradesBatch = createServerFn({ method: "POST" })
       db,
       schoolId: membership.schoolId,
       userId: context.userId,
+      role: membership.appRole,
       subjectId: data.subjectId,
       term: data.term,
       rows: data.rows,
@@ -1395,6 +1397,19 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
+
+    const canViewAnyTeacher = ["Administrador", "Secretaria"].includes(membership.appRole);
+    if (data.teacherId && !canViewAnyTeacher) {
+      const own = await db
+        .from("teachers")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      if (own.data?.id !== data.teacherId) {
+        throw new Error("Sem permissão para ver o horário de outro professor.");
+      }
+    }
 
     let teacherId = data.teacherId ?? null;
     let teacherName = "";

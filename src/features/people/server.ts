@@ -718,6 +718,24 @@ export const updateTeacher = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
+
+    if (data.status === "inactive") {
+      const { count, error: linkError } = await db
+        .from("class_subjects")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", membership.schoolId)
+        .eq("teacher_id", data.teacherId)
+        .eq("status", "active");
+      if (linkError) {
+        throw publicDatabaseError(linkError, "Não foi possível validar disciplinas do professor.");
+      }
+      if ((count ?? 0) > 0) {
+        throw new Error(
+          "Este professor ainda está ligado a disciplinas activas. Reatribua as turmas antes de desactivar.",
+        );
+      }
+    }
+
     const { data: teacher, error: teacherError } = await db
       .from("teachers")
       .update({ status: data.status, updated_by: context.userId })
