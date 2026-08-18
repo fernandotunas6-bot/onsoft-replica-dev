@@ -64,7 +64,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirst(request));
     return;
   }
-  if (url.origin === self.location.origin && ["script", "style", "font"].includes(request.destination)) {
+  if (
+    url.origin === self.location.origin &&
+    ["script", "style", "font"].includes(request.destination)
+  ) {
     event.respondWith(cacheFirst(CACHES.assets, request));
     return;
   }
