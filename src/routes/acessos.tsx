@@ -40,7 +40,8 @@ import {
   setSystemAccountDisabled,
   updateSystemAccountCargo,
 } from "@/features/access/server";
-import { listStaffModuleGrants } from "@/features/access/grants";
+import { listStaffModuleGrants, setStaffModuleGrant } from "@/features/access/grants";
+import type { AccessLevel } from "@/features/auth/access-policy";
 import { createPerson, listStaffDirectory, updatePersonStatus } from "@/features/people/server";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
@@ -52,7 +53,7 @@ const acessosFilterDefaults = {
   cargo: "todos",
 };
 
-export const Route = createFileRoute("/acessos/")({
+export const Route = createFileRoute("/acessos")({
   head: () => ({
     meta: [
       { title: "Gestão de Acessos · SIGA" },
@@ -114,6 +115,7 @@ function AcessosPage() {
     queryFn: () => listStaffModuleGrants(),
     retry: false,
   });
+  const grantLevels = ["Nenhum", "Leitura", "Escrita", "Total"] as const;
   const printStaffCredentials = async (person: { full_name: string; email?: string | null }) => {
     const domain = school?.email?.split("@")[1] || person.email?.split("@")[1] || "escola.ao";
     await issuePrintDocument({
@@ -693,14 +695,47 @@ function AcessosPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button size="sm" variant="ghost" asChild>
-                              <Link
-                                to="/acessos/permissoes/$userId"
-                                params={{ userId: account.id }}
-                              >
-                                <KeyRound className="size-3.5" /> Módulos
-                              </Link>
-                            </Button>
+                            <QuickFormModal
+                              eyebrow="Acessos"
+                              title={`Módulos · ${account.full_name}`}
+                              description="Sobrepõe o nível do cargo. Deixe em Predefinição para usar a política do perfil."
+                              icon={<KeyRound className="size-5" />}
+                              submitLabel="Guardar permissões"
+                              onSubmit={async (values) => {
+                                for (const module of accessModules) {
+                                  const selected = values[module.key];
+                                  if (!selected || selected === "Predefinição do cargo") continue;
+                                  await setStaffModuleGrant({
+                                    data: {
+                                      userId: account.id,
+                                      moduleKey: module.key,
+                                      level: selected as AccessLevel,
+                                    },
+                                  });
+                                }
+                                await queryClient.invalidateQueries({
+                                  queryKey: ["access", "grants"],
+                                });
+                              }}
+                              fields={accessModules.map((module) => {
+                                const current = (grantsQuery.data ?? []).find(
+                                  (grant) =>
+                                    grant.user_id === account.id && grant.module_key === module.key,
+                                );
+                                return {
+                                  name: module.key,
+                                  label: module.label,
+                                  type: "select" as const,
+                                  options: ["Predefinição do cargo", ...grantLevels],
+                                  defaultValue: current?.level ?? "Predefinição do cargo",
+                                };
+                              })}
+                              trigger={(open) => (
+                                <Button size="sm" variant="ghost" onClick={open}>
+                                  Módulos
+                                </Button>
+                              )}
+                            />
                             {!account.is_self && account.email ? (
                               <>
                                 <Button

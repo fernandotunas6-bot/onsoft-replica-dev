@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcessosRouteImport } from './routes/acessos'
 import { Route as AlterarSenhaRouteImport } from './routes/alterar-senha'
 import { Route as ArquivosRouteImport } from './routes/arquivos'
 import { Route as CalendarioRouteImport } from './routes/calendario'
@@ -21,7 +22,6 @@ import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
-import { Route as AcessosIndexRouteImport } from './routes/acessos/index'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
 import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
@@ -30,11 +30,15 @@ import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
 import { Route as RelatoriosAcademicosRouteImport } from './routes/relatorios.academicos'
 import { Route as RelatoriosFinanceirosRouteImport } from './routes/relatorios.financeiros'
-import { Route as AcessosPermissoesUserIdRouteImport } from './routes/acessos/permissoes.$userId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcessosRoute = AcessosRouteImport.update({
+  id: '/acessos',
+  path: '/acessos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlterarSenhaRoute = AlterarSenhaRouteImport.update({
@@ -92,11 +96,6 @@ const PlanosAulaRoute = PlanosAulaRouteImport.update({
   path: '/planos-aula',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AcessosIndexRoute = AcessosIndexRouteImport.update({
-  id: '/acessos/',
-  path: '/acessos/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AlunosIndexRoute = AlunosIndexRouteImport.update({
   id: '/alunos/',
   path: '/alunos/',
@@ -137,14 +136,10 @@ const RelatoriosFinanceirosRoute = RelatoriosFinanceirosRouteImport.update({
   path: '/relatorios/financeiros',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AcessosPermissoesUserIdRoute = AcessosPermissoesUserIdRouteImport.update({
-  id: '/acessos/permissoes/$userId',
-  path: '/acessos/permissoes/$userId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acessos': typeof AcessosRoute
   '/alterar-senha': typeof AlterarSenhaRoute
   '/arquivos': typeof ArquivosRoute
   '/calendario': typeof CalendarioRouteWithChildren
@@ -162,13 +157,12 @@ export interface FileRoutesByFullPath {
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
-  '/acessos/': typeof AcessosIndexRoute
   '/alunos/': typeof AlunosIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
-  '/acessos/permissoes/$userId': typeof AcessosPermissoesUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acessos': typeof AcessosRoute
   '/alterar-senha': typeof AlterarSenhaRoute
   '/arquivos': typeof ArquivosRoute
   '/calendario': typeof CalendarioRouteWithChildren
@@ -186,14 +180,13 @@ export interface FileRoutesByTo {
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
-  '/acessos': typeof AcessosIndexRoute
   '/alunos': typeof AlunosIndexRoute
   '/pessoas': typeof PessoasIndexRoute
-  '/acessos/permissoes/$userId': typeof AcessosPermissoesUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acessos': typeof AcessosRoute
   '/alterar-senha': typeof AlterarSenhaRoute
   '/arquivos': typeof ArquivosRoute
   '/calendario': typeof CalendarioRouteWithChildren
@@ -211,15 +204,14 @@ export interface FileRoutesById {
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
-  '/acessos/': typeof AcessosIndexRoute
   '/alunos/': typeof AlunosIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
-  '/acessos/permissoes/$userId': typeof AcessosPermissoesUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/acessos'
     | '/alterar-senha'
     | '/arquivos'
     | '/calendario'
@@ -237,13 +229,12 @@ export interface FileRouteTypes {
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
-    | '/acessos/'
     | '/alunos/'
     | '/pessoas/'
-    | '/acessos/permissoes/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/acessos'
     | '/alterar-senha'
     | '/arquivos'
     | '/calendario'
@@ -261,13 +252,12 @@ export interface FileRouteTypes {
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
-    | '/acessos'
     | '/alunos'
     | '/pessoas'
-    | '/acessos/permissoes/$userId'
   id:
     | '__root__'
     | '/'
+    | '/acessos'
     | '/alterar-senha'
     | '/arquivos'
     | '/calendario'
@@ -285,14 +275,13 @@ export interface FileRouteTypes {
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
-    | '/acessos/'
     | '/alunos/'
     | '/pessoas/'
-    | '/acessos/permissoes/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcessosRoute: typeof AcessosRoute
   AlterarSenhaRoute: typeof AlterarSenhaRoute
   ArquivosRoute: typeof ArquivosRoute
   CalendarioRoute: typeof CalendarioRouteWithChildren
@@ -309,10 +298,8 @@ export interface RootRouteChildren {
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
   RelatoriosFinanceirosRoute: typeof RelatoriosFinanceirosRoute
-  AcessosIndexRoute: typeof AcessosIndexRoute
   AlunosIndexRoute: typeof AlunosIndexRoute
   PessoasIndexRoute: typeof PessoasIndexRoute
-  AcessosPermissoesUserIdRoute: typeof AcessosPermissoesUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -322,6 +309,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acessos': {
+      id: '/acessos'
+      path: '/acessos'
+      fullPath: '/acessos'
+      preLoaderRoute: typeof AcessosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alterar-senha': {
@@ -401,13 +395,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlanosAulaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/acessos/': {
-      id: '/acessos/'
-      path: '/acessos'
-      fullPath: '/acessos/'
-      preLoaderRoute: typeof AcessosIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/alunos/': {
       id: '/alunos/'
       path: '/alunos'
@@ -464,13 +451,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RelatoriosFinanceirosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/acessos/permissoes/$userId': {
-      id: '/acessos/permissoes/$userId'
-      path: '/acessos/permissoes/$userId'
-      fullPath: '/acessos/permissoes/$userId'
-      preLoaderRoute: typeof AcessosPermissoesUserIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -488,6 +468,7 @@ const CalendarioRouteWithChildren = CalendarioRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcessosRoute: AcessosRoute,
   AlterarSenhaRoute: AlterarSenhaRoute,
   ArquivosRoute: ArquivosRoute,
   CalendarioRoute: CalendarioRouteWithChildren,
@@ -504,10 +485,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,
   RelatoriosFinanceirosRoute: RelatoriosFinanceirosRoute,
-  AcessosIndexRoute: AcessosIndexRoute,
   AlunosIndexRoute: AlunosIndexRoute,
   PessoasIndexRoute: PessoasIndexRoute,
-  AcessosPermissoesUserIdRoute: AcessosPermissoesUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
