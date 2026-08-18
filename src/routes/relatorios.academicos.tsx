@@ -19,7 +19,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
-import { getStudentOutcomesReport } from "@/features/students/server";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canReadModule } from "@/features/auth/access-policy";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -91,14 +90,6 @@ function RelatoriosAcademicos() {
     enabled: canRead,
     retry: false,
   });
-
-  const outcomesQuery = useQuery({
-    queryKey: ["students", "outcomes-report"],
-    queryFn: () => getStudentOutcomesReport(),
-    enabled: canRead,
-    retry: false,
-  });
-  const outcomes = outcomesQuery.data;
 
   const workspace = workspaceQuery.data;
   const termGradesAll = workspace?.termGrades ?? [];
@@ -536,67 +527,6 @@ function RelatoriosAcademicos() {
                         </TableBody>
                       </Table>
                     </div>
-                  )}
-                </Panel>
-
-                <Panel
-                  title="Conclusão e saída de alunos"
-                  description="Retrato geral da escola — activos, concluídos, transferidos e inactivos"
-                >
-                  <StatGrid
-                    items={[
-                      { label: "Activos", value: String(outcomes?.active ?? 0) },
-                      { label: "Concluídos", value: String(outcomes?.graduated ?? 0) },
-                      { label: "Transferidos", value: String(outcomes?.transferred ?? 0) },
-                      { label: "Inactivos", value: String(outcomes?.inactive ?? 0) },
-                      {
-                        label: "Taxa de conclusão",
-                        value:
-                          outcomes?.completionRatePct == null
-                            ? "—"
-                            : `${outcomes.completionRatePct}%`,
-                        hint: "Concluídos sobre concluídos + transferidos + inactivos",
-                      },
-                    ]}
-                  />
-                  {outcomes?.recentEvents.length ? (
-                    <div className="mt-6 overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Estado</TableHead>
-                            <TableHead>Motivo</TableHead>
-                            <TableHead className="text-right">Data</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {outcomes.recentEvents.map((event, index) => (
-                            <TableRow key={`${event.createdAt}-${index}`}>
-                              <TableCell>
-                                <span className={cn(badgeBase, toneClass.info)}>
-                                  {event.toStatus === "graduated"
-                                    ? "Concluído"
-                                    : event.toStatus === "transferred"
-                                      ? "Transferido"
-                                      : "Inactivo"}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground">
-                                {event.reason ?? "—"}
-                              </TableCell>
-                              <TableCell className="text-right text-sm text-muted-foreground">
-                                {new Date(event.createdAt).toLocaleDateString("pt-PT")}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  ) : (
-                    <p className="mt-4 text-sm text-muted-foreground">
-                      Sem mudanças de estado registadas ainda — o histórico começa a partir de
-                      agora.
-                    </p>
                   )}
                 </Panel>
 

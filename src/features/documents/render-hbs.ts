@@ -46,10 +46,7 @@ type CloseTag = { helper: "if" | "each"; start: number; end: number };
 type ElseTag = { start: number; end: number };
 type VarTag = { raw: boolean; expr: string; start: number; end: number };
 
-function nextTag(
-  src: string,
-  from: number,
-): OpenTag | CloseTag | ElseTag | VarTag | null {
+function nextTag(src: string, from: number): OpenTag | CloseTag | ElseTag | VarTag | null {
   const open = src.indexOf("{{", from);
   if (open < 0) return null;
   if (src.startsWith("{{{", open)) {
@@ -67,7 +64,8 @@ function nextTag(
   const end = close + 2;
   const inner = src.slice(open + 2, close).trim();
   if (inner === "else") return { start: open, end };
-  if (inner.startsWith("#if ")) return { helper: "if", expr: inner.slice(4).trim(), start: open, end };
+  if (inner.startsWith("#if "))
+    return { helper: "if", expr: inner.slice(4).trim(), start: open, end };
   if (inner.startsWith("#each ")) {
     return { helper: "each", expr: inner.slice(6).trim(), start: open, end };
   }
@@ -123,16 +121,13 @@ function renderFrame(src: string, frame: Frame): string {
       const block = findBlock(src, tag);
       const innerEnd = block.elseAt ?? block.close.start;
       const consequent = src.slice(tag.end, innerEnd);
-      const alternate =
-        block.elseEnd != null ? src.slice(block.elseEnd, block.close.start) : "";
+      const alternate = block.elseEnd != null ? src.slice(block.elseEnd, block.close.start) : "";
       if (tag.helper === "if") {
         out += renderFrame(isTruthy(resolve(frame, tag.expr)) ? consequent : alternate, frame);
       } else {
         const list = resolve(frame, tag.expr);
         if (Array.isArray(list)) {
-          out += list
-            .map((item, index) => renderFrame(consequent, { data: item, index }))
-            .join("");
+          out += list.map((item, index) => renderFrame(consequent, { data: item, index })).join("");
         }
       }
       cursor = block.close.end;

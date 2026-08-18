@@ -16,10 +16,7 @@ function ibanMod97(iban: string): number {
   let remainder = 0;
   for (let index = 0; index < rearranged.length; index += 1) {
     const code = rearranged.charCodeAt(index);
-    const chunk =
-      code >= 48 && code <= 57
-        ? rearranged[index]
-        : String(code - 55);
+    const chunk = code >= 48 && code <= 57 ? rearranged[index] : String(code - 55);
     remainder = Number(`${remainder}${chunk}`) % 97;
   }
   return remainder;

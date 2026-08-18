@@ -3,7 +3,6 @@ import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumModal } from "@/components/ui/premium-modal";
 import { Button } from "@/components/ui/button";
-import { formatMutationError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 
 export type SheetStep = {
@@ -59,7 +58,7 @@ export function SequentialSheetModal({
       toast.success(`${title} concluído`, { description: successDescription });
     } catch (error) {
       toast.error("Não foi possível guardar", {
-        description: formatMutationError(error),
+        description: error instanceof Error ? error.message : "Tente novamente.",
       });
     } finally {
       setSaving(false);

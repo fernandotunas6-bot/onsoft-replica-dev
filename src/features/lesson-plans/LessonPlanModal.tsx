@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ClipboardCheck, FileText, Plus, Trash2 } from "lucide-react";
+import { ClipboardCheck, FileText, Plus, Sparkles, Trash2 } from "lucide-react";
 import { PremiumModal } from "@/components/ui/premium-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { createLessonPlan, updateLessonPlan } from "./server";
 import type { LessonPlanComponentInput } from "./schemas";
+import { generateAiLessonPlanInide } from "./ai-lesson-plan-generator";
 
 type ClassGroupOption = { id: string; name: string };
 type SubjectOption = { id: string; name: string };
@@ -226,12 +227,33 @@ export function LessonPlanModal({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="lp-conteudo">Conteúdo</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="lp-conteudo">Conteúdo / Sumário</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const selectedSubj = subjects.find((s) => s.id === subjectId)?.name ?? "Disciplina";
+                const generated = generateAiLessonPlanInide(selectedSubj, title || "Unidade Curricular");
+                setContent(
+                  `SUMÁRIO:\n${generated.summary}\n\nOBJETIVOS GERAIS:\n- ${generated.generalObjectives.join("\n- ")}\n\nMETODOLOGIA:\n${generated.methodology}\n\nRECURSOS DIDÁTICOS:\n- ${generated.didacticResources.join("\n- ")}\n\nAVALIAÇÃO:\n${generated.evaluationMethod}`,
+                );
+                toast.success("Sumário AI Gerado (INIDE/MED)", {
+                  description: "Conteúdo preenchido com base no programa curricular nacional.",
+                });
+              }}
+              className="gap-1.5 text-xs h-7 text-primary border-primary/30 bg-primary/5 hover:bg-primary/10 shadow-2xs"
+            >
+              <Sparkles className="size-3.5 text-primary" />
+              Gerar com AI (INIDE/MED)
+            </Button>
+          </div>
           <Textarea
             id="lp-conteudo"
             value={content}
             onChange={(event) => setContent(event.target.value)}
-            rows={5}
+            rows={6}
             placeholder="Sumário, objectivos, métodos e recursos da aula…"
           />
         </div>
@@ -346,7 +368,9 @@ function ComponentGroup({
               aria-label={`${title}: nome do item ${index + 1}`}
               value={row.name}
               onChange={(event) => onUpdateRow(index, { name: event.target.value })}
-              placeholder={kind === "avaliacao" ? "Ex.: Trabalho de casa" : "Ex.: Prova de Matemática"}
+              placeholder={
+                kind === "avaliacao" ? "Ex.: Trabalho de casa" : "Ex.: Prova de Matemática"
+              }
               className="flex-1"
             />
             <div className="flex items-center gap-1.5">

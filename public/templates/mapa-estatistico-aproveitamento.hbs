@@ -1,123 +1,110 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>{{{css}}}</style>
-</head>
-<body>
-  <main class="document document-mapa">
-    <section class="official-topline angola-official">
-      {{#if school.emblemUrl}}
-      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
-      {{else}}
-      <img class="logo" src="{{school.logoUrl}}" alt="" />
-      {{/if}}
-      <div class="school-title">
-        <p class="republic">{{school.ministry}}</p>
-        <p class="republic">{{school.ministryLine}}</p>
-        <h1>{{school.name}}</h1>
-        <p>{{school.address}} | NIF {{school.nif}}</p>
-      </div>
-      <div class="official-right">
-        {{#if school.logoUrl}}
-        <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <main class="document document-mapa">
+      <section class="official-topline angola-official">
+        {{#if school.emblemUrl}}
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
         {{else}}
-        {{#if school.flagUrl}}
-        <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
         {{/if}}
-        {{/if}}
-        <div class="document-box">Nº {{document.number}}</div>
-      </div>
-    </section>
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          <p>{{school.address}} | NIF {{school.nif}}</p>
+        </div>
+        <div class="official-right">
+          {{#if school.logoUrl}}
+            <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+          {{else}}
+            {{#if school.flagUrl}}
+              <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+            {{/if}}
+          {{/if}}
+          <div class="document-box">Nº {{document.number}}</div>
+        </div>
+      </section>
 
-    <div class="doc-title">Mapa Estatístico de Aproveitamento</div>
+      <div class="doc-title">Mapa Estatístico de Aproveitamento</div>
 
-    <section class="meta-grid">
-      <div class="meta-box"><b>Ano lectivo:</b> {{academicYear.name}}</div>
-      <div class="meta-box"><b>Âmbito:</b> {{classGroup.name}}</div>
-      <div class="meta-box"><b>Escala:</b> {{angola.gradingScale}}</div>
-    </section>
+      <section class="meta-grid">
+        <div class="meta-box"><b>Ano lectivo:</b> {{academicYear.name}}</div>
+        <div class="meta-box"><b>Âmbito:</b> {{classGroup.name}}</div>
+        <div class="meta-box"><b>Escala:</b> {{angola.gradingScale}}</div>
+      </section>
 
-    <table>
-      <thead>
-        <tr>
-          <th class="text-left">Turma</th>
-          <th class="text-left">Curso</th>
-          <th>Total</th>
-          <th>Aprovados</th>
-          <th>Reprovados</th>
-          <th>Pendentes</th>
-          <th>Taxa</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each rows}}
-        <tr>
-          <td class="text-left">{{classGroup}}</td>
-          <td class="text-left">{{course}}</td>
-          <td>{{total}}</td>
-          <td>{{approved}}</td>
-          <td>{{failed}}</td>
-          <td>{{pending}}</td>
-          <td><b>{{rate}}%</b></td>
-        </tr>
+      <table>
+        <thead>
+          <tr>
+            <th class="text-left">Turma</th>
+            <th class="text-left">Curso</th>
+            <th>Total</th>
+            <th>Aprovados</th>
+            <th>Reprovados</th>
+            <th>Pendentes</th>
+            <th>Taxa</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each rows}}
+            <tr>
+              <td class="text-left">{{classGroup}}</td>
+              <td class="text-left">{{course}}</td>
+              <td>{{total}}</td>
+              <td>{{approved}}</td>
+              <td>{{failed}}</td>
+              <td>{{pending}}</td>
+              <td><b>{{rate}}%</b></td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+
+      <section class="summary-panel">
+        <div><span>Total</span><strong>{{summary.total}}</strong></div>
+        <div><span>Aprovados</span><strong>{{summary.approved}}</strong></div>
+        <div><span>Reprovados</span><strong>{{summary.failed}}</strong></div>
+        <div><span>Taxa global</span><strong>{{summary.rate}}%</strong></div>
+      </section>
+
+      <section class="footer">
+        {{#each signatures}}
+          <div class="signature">{{label}}</div>
         {{/each}}
-      </tbody>
-    </table>
+      </section>
 
-    <section class="summary-panel">
-      <div><span>Total</span><strong>{{summary.total}}</strong></div>
-      <div><span>Aprovados</span><strong>{{summary.approved}}</strong></div>
-      <div><span>Reprovados</span><strong>{{summary.failed}}</strong></div>
-      <div><span>Taxa global</span><strong>{{summary.rate}}%</strong></div>
-    </section>
-
-    <section class="footer">
-      {{#each signatures}}
-      <div class="signature">{{label}}</div>
-      {{/each}}
-    </section>
-
-    <section class="validation">
-      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-      <div>
-        Mapa estatístico derivado das matrículas activas e notas finais registadas no SIGE.<br />
-        Nº {{document.number}} | Hash {{document.hash}} | Emitido em {{document.issuedAtLabel}} por {{document.issuedBy}}.
-      </div>
-    </section>
-  </main>
-</body>
+      <section class="validation">
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        <div>
+          Mapa estatístico derivado das matrículas activas e notas finais registadas no SIGE.<br />
+          Nº
+          {{document.number}}
+          | Hash
+          {{document.hash}}
+          | Emitido em
+          {{document.issuedAtLabel}}
+          por
+          {{document.issuedBy}}.
+        </div>
+      </section>
+    </main>
+  </body>
 </html>

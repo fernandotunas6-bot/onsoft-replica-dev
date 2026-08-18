@@ -31,7 +31,9 @@ export function PedagogicaNotasCharts({
           Percentagem de aprovados com base nas notas reais
         </p>
         {aproveitamentoPorClasse.length === 0 ? (
-          <p className="mt-6 text-sm text-muted-foreground">Sem dados suficientes para o gráfico.</p>
+          <p className="mt-6 text-sm text-muted-foreground">
+            Sem dados suficientes para o gráfico.
+          </p>
         ) : (
           <div className="mt-4 h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -47,8 +49,18 @@ export function PedagogicaNotasCharts({
                     color: "var(--popover-foreground)",
                   }}
                 />
-                <Bar dataKey="aprovados" fill="var(--chart-1)" radius={[8, 8, 0, 0]} maxBarSize={34} />
-                <Bar dataKey="reprovados" fill="var(--chart-2)" radius={[8, 8, 0, 0]} maxBarSize={34} />
+                <Bar
+                  dataKey="aprovados"
+                  fill="var(--chart-1)"
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={34}
+                />
+                <Bar
+                  dataKey="reprovados"
+                  fill="var(--chart-2)"
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={34}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -59,7 +71,9 @@ export function PedagogicaNotasCharts({
         <h3 className="text-base font-semibold">Média por trimestre</h3>
         <p className="mt-1 text-sm text-muted-foreground">Evolução anual das notas lançadas</p>
         {!hasTermGrades ? (
-          <p className="mt-6 text-sm text-muted-foreground">Sem dados suficientes para o gráfico.</p>
+          <p className="mt-6 text-sm text-muted-foreground">
+            Sem dados suficientes para o gráfico.
+          </p>
         ) : (
           <div className="mt-4 h-[260px]">
             <ResponsiveContainer width="100%" height="100%">

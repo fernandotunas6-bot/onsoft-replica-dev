@@ -120,12 +120,7 @@ export function DashboardCharts({
                     fontSize: 12,
                   }}
                 />
-                <Bar
-                  dataKey="alunos"
-                  fill="var(--chart-1)"
-                  radius={[8, 8, 0, 0]}
-                  maxBarSize={38}
-                />
+                <Bar dataKey="alunos" fill="var(--chart-1)" radius={[8, 8, 0, 0]} maxBarSize={38} />
               </BarChart>
             </ResponsiveContainer>
           )}

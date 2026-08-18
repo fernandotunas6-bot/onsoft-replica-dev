@@ -229,7 +229,6 @@ export function AssessmentCenter({
   const [createOpen, setCreateOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [lockingTerm, setLockingTerm] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -248,21 +247,6 @@ export function AssessmentCenter({
   const term = (Number(filters.trimestre) || 1) as 1 | 2 | 3;
   const termClosed = closedTerms.includes(term);
   const canEdit = canLaunch && !termClosed && mode !== "pauta";
-
-  const toggleTermLock = () => {
-    setLockingTerm(true);
-    void setTermLock({ data: { term, closed: !termClosed } })
-      .then(async () => {
-        await queryClient.invalidateQueries({ queryKey: ["school", "settings"] });
-        toast.success(termClosed ? `${term}º trimestre reaberto.` : `${term}º trimestre fechado.`);
-      })
-      .catch((error) => {
-        toast.error("Não foi possível alterar o trimestre", {
-          description: error instanceof Error ? error.message : "Tente novamente.",
-        });
-      })
-      .finally(() => setLockingTerm(false));
-  };
 
   const selectedGroup =
     filters.turma !== "todas"
@@ -1303,8 +1287,12 @@ export function AssessmentCenter({
               size="sm"
               variant="outline"
               className="gap-1.5"
-              disabled={lockingTerm || (!termClosed && !closeChecklist.ready)}
-              onClick={toggleTermLock}
+              disabled={!termClosed && !closeChecklist.ready}
+              onClick={() =>
+                void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
+                  queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
+                )
+              }
             >
               {termClosed ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
               {termClosed ? "Reabrir" : "Fechar trimestre"}
@@ -1530,8 +1518,12 @@ export function AssessmentCenter({
               </ul>
               {canLockTerm ? (
                 <Button
-                  disabled={lockingTerm || (!termClosed && !closeChecklist.ready)}
-                  onClick={toggleTermLock}
+                  disabled={!termClosed && !closeChecklist.ready}
+                  onClick={() =>
+                    void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
+                      queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
+                    )
+                  }
                 >
                   {termClosed ? "Reabrir trimestre" : "Fechar trimestre"}
                 </Button>

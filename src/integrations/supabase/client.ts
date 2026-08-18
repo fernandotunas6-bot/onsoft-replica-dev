@@ -26,12 +26,21 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+const DEFAULT_SUPABASE_URL = "https://xodgfmxiaunpamctfeea.supabase.co";
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvZGdmbXhpYXVucGFtY3RmZWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NjIxOTYsImV4cCI6MjEwMTMzODE5Nn0.5f5dpoKP_Yu3y4ZaWhAEDLmWpGmVDq4KtuG38kGvDIM";
+
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
-  const SUPABASE_URL = import.meta.env["VITE_SUPABASE_URL"] || process.env["SUPABASE_URL"];
+  const SUPABASE_URL =
+    import.meta.env["VITE_SUPABASE_URL"] ||
+    process.env["SUPABASE_URL"] ||
+    DEFAULT_SUPABASE_URL;
   const SUPABASE_PUBLISHABLE_KEY =
-    import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || process.env["SUPABASE_PUBLISHABLE_KEY"];
+    import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+    process.env["SUPABASE_PUBLISHABLE_KEY"] ||
+    DEFAULT_SUPABASE_PUBLISHABLE_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [

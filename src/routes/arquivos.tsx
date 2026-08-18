@@ -33,7 +33,7 @@ function ArquivosPage() {
         <PageHeader
           group="Aplicativos"
           title="Arquivos"
-          description="Biblioteca estilo OneDrive: lista com proprietário, nível de acesso e auditoria. Os bytes só abrem quando precisa."
+          description="Biblioteca no estilo Google Drive & Moodle: gestão de documentos pedagógicos, carregamento sem burocracia, pastas por turma, miniaturas em tempo real e auditoria institucional."
         />
         <InstalledModuleTools module="arquivos" />
         <FileBrowser

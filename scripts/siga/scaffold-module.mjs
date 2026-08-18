@@ -165,5 +165,9 @@ if (!catalog.modules.some((mod) => mod.id === id)) {
   console.log("update scripts/siga/modules.json");
 }
 
-console.log(created.length ? `\nCriados ${created.length} ficheiro(s).` : "\nNada novo — já existia.");
-console.log("Seguinte: ligar a tabela SGA real no server.ts e adicionar o path em access-policy.ts.");
+console.log(
+  created.length ? `\nCriados ${created.length} ficheiro(s).` : "\nNada novo — já existia.",
+);
+console.log(
+  "Seguinte: ligar a tabela SGA real no server.ts e adicionar o path em access-policy.ts.",
+);

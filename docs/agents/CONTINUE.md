@@ -2,276 +2,6 @@
 
 Ler isto **antes** de alterar código. Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Produção (2026-08-14)
-
-- **Live**: https://portal-siga.com (Cloudflare Workers, conta `701800d01d428c5141fa1fdb60ee01ae`,
-  worker `fernandotunas6-bot-onsoft-replica-dev`; também acessível em
-  `fernandotunas6-bot-onsoft-replica-dev.valentinocanguele.workers.dev`). Domínio comprado na
-  Hostinger, DNS gerido pela Cloudflare (zona `a817debe40353d51e056c77e18e57f19`). `www.portal-siga.com`
-  ainda não está ligado (falta limpar um registo DNS antigo na zona).
-- **Deploy**: `npm run build` (gera `.output/`) → `npx wrangler deploy --cwd .output`. Segredos do
-  Worker (`SUPABASE_URL`, `SUPABASE_PROJECT_ID`, `SUPABASE_PUBLISHABLE_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY`, `AUTH_BYPASS=false`) já configurados via `wrangler secret put`.
-- **SQL aplicado**: `APPLY_IN_SQL_EDITOR.sql` e `APPLY_ENROLLMENT_AND_PREMIUM.sql` já foram
-  corridos no projecto Supabase (`xodgfmxiaunpamctfeea`) — as 16 tabelas geridas por estes scripts
-  existem e estão activas. As anotações "(precisa SQL)" na tabela de ciclos abaixo referem-se ao
-  estado do código, já não ao estado da base de dados em produção.
-- **Supabase Auth**: `site_url` e `uri_allow_list` actualizados para `https://portal-siga.com`
-  (antes apontavam para `localhost:3000` — convites/recuperação de password produziam links
-  mortos). Sem SMTP próprio configurado; usa o envio por defeito do Supabase (limitado, mas
-  funcional).
-- **`public/turmas/`**: continha 3 ZIPs órfãos (~900 MB: `Unifiedtransform-master.zip`,
-  `Unifiedtransform-master.6.zip`, `supabase-master.zip`) que rebentavam o limite de 25 MB por
-  asset do Cloudflare Workers. Removidos — já estavam no `.gitignore`, não pertenciam ao site.
-- **Integrações**: catálogo (`school_integrations`) não chama nenhuma API externa real — "instalar"
-  só liga botões/links na interface (WhatsApp → `wa.me`, Resend → navegação para `/comunicacoes`,
-  etc.), sem precisar de chaves. Já ligadas: Microsoft 365, Canvas, Moodle, Google Classroom,
-  Google Calendar, SIGE, AGT. Por instalar (1 clique cada, sem credenciais): Multicaixa Express,
-  Unitel Money, WhatsApp Business, Apple Calendar, Email/Resend, Zoom, Teams, Turnitin —
-  Definições → Integrações.
-- **Bugs corrigidos nesta sessão** (ver commits/diff não commitados em `src/features/`):
-  - `FileBrowser.tsx` engolia em silêncio erros do Storage e caía para IndexedDB local sem avisar
-    — agora mostra toast de aviso + `console.error` quando degrada.
-  - `ProfileSettingsPanel.tsx`: upload de avatar escrevia na chave de cache errada
-    (`["auth","profile",id]` em vez de `["auth","account-context",id]`, que é a que
-    `useCurrentAccount()` lê) — o avatar nunca se actualizava em lado nenhum da app.
-  - `StaffMessenger.tsx`: envio deixou de esperar por `invalidateQueries` (escreve a mensagem real
-    directamente na cache); mensagens locais pré-sincronização deixaram de desaparecer quando o
-    SQL é aplicado (`mergeThreadMessages`).
-  - `/acessos`: modal "Módulos" substituído por página dedicada `/acessos/permissoes/$userId`
-    (sem modal, guarda por módulo de imediato); novo `clearStaffModuleGrant` para repor
-    "Predefinição do cargo" (antes não existia forma de reverter um override).
-- **Próximo objectivo grande** (pedido do utilizador, ainda por começar): rever com rigor o ciclo
-  de vida completo do aluno — candidatura → matrícula → percurso académico → boletins/diploma →
-  saída — mais professores e financeiro, módulo a módulo, com foco em organização impecável.
-
-## Ciclos 36–37 — auditoria de rigor por módulo (2026-08-14)
-
-Pedido do utilizador: rever com rigor o ciclo de vida completo do aluno até à
-saída, depois professores e financeiro, "escola inteira deve estar a
-funcionar com rigor". Metodologia: agente de investigação por módulo (sem
-editar) → correção → lint/tsc/vitest → commit. Ver `git log --oneline -10`
-para os commits exactos.
-
-**Módulo aluno** — commits `4d93efd`, `0bc0d65`, `72cbe0f`, `6e6780a`:
-- `cancelEnrollment` gravava `status="withdrawn"` (inválido; a constraint só
-  aceita `pending/active/cancelled/completed/transferred`) e caía num
-  fallback com `"inactive"`, também inválido. Corrigido para `"cancelled"`.
-- `changeStudentStatus` não tinha nenhuma regra para "Concluído" — agora
-  exige nota final aprovada (média ≥ 10 na matrícula activa) **e** nenhuma
-  factura em dívida (`assertGraduationEligible`).
-- Nova tabela `student_status_events` (em `APPLY_ENROLLMENT_AND_PREMIUM.sql`,
-  já aplicada) audita toda a mudança de estado — o campo "Motivo" já
-  existia na interface mas era descartado.
-- Marcar "Concluído"/"Transferido" agora fecha a matrícula activa
-  (`enrollments.status` → `completed`/`transferred`), antes ficava
-  `active` para sempre.
-- Certificado de Habilitações (o "diploma" angolano) ligado ao encerramento
-  do processo — botão destacado + atalho no toast ao concluir.
-- Estado "Candidato" (`applicant`) removido — nunca foi um valor válido em
-  `students.status` (confirmado vazio em produção), mas alimentava um botão
-  morto, um alerta do sino sempre a zero e o dashboard. O botão "Colocar na
-  turma" foi reaproveitado para a condição real que faltava (aluno activo
-  sem turma); o alerta do sino conta agora o mesmo caso.
-- Novo painel "Conclusão e saída" em `/relatorios/academicos` (taxa de
-  conclusão, activos/concluídos/transferidos/inactivos, histórico recente).
-
-**Módulo professor** — commit `1cc835b` (falhas de autorização em produção):
-- `upsertTermGrade`/`upsertTermGradesBatch` só verificavam o cargo
-  "Professor", nunca se o autenticado era o professor atribuído à
-  disciplina da turma — qualquer professor conseguia lançar notas de
-  turmas alheias. `ensureClassSubject` (`sga-grades.ts`) agora resolve a
-  ficha via `teachers.user_id` e bloqueia se já houver outro professor
-  atribuído; ao criar a associação pela primeira vez usa a ficha real de
-  quem está a lançar (antes: `ensureDefaultTeacher` escolhia um professor
-  qualquer da escola, ou criava um "Professor Demonstração" fantasma).
-- `getTeacherWorkspace`: qualquer utilizador autenticado podia pedir o
-  horário de outro professor só por passar o `teacherId` (IDOR). Agora só
-  Administrador/Secretaria ou o próprio.
-- `updateTeacher` (modal "Editar") desactivava sem verificar disciplinas
-  activas ligadas — `deleteTeacher` já tinha essa verificação, agora ambos
-  os caminhos são consistentes. Aviso ao desactivar lembra que o acesso à
-  plataforma não é revogado automaticamente.
-
-**Módulo financeiro** — commit `bc78cde`:
-- `reverseCashEntry` anulava um recibo sem verificar se já estava anulado
-  (a despesa já tinha esse guard, o recibo não) e nunca sincronizava
-  `finance_invoices.status` — uma fatura paga cujo recibo era anulado
-  ficava **presa** (`cancelInvoice` recusava por `status="paid"`) e o gate
-  de conclusão do ciclo 36 continuava a achar que não havia dívida.
-  `cancelInvoice` e `assertGraduationEligible` passam a somar recibos não
-  anulados em vez de confiar na coluna `status`, tal como a listagem de
-  faturas já fazia — **não confiar em `finance_invoices.status` para
-  "pago"** ao escrever lógica nova neste módulo.
-- `createPaymentPlan` inseria em `finance_payment_plans` sem validar que
-  `invoiceId`/`studentId` pertenciam à escola do utilizador (a tabela não
-  tem FK nessas colunas) — IDOR entre escolas.
-- Nova tabela `finance_invoice_events` (mesmo padrão de
-  `student_status_events`) audita o motivo de cancelamento de faturas.
-
-**Achado transversal**: `finance_invoices`/`finance_receipts`/
-`finance_contracts`/`siga_cash_expenses` e o RPC `register_payment` não têm
-`CREATE TABLE`/definição em nenhuma migração no git — só existem no projecto
-Supabase real. Não é possível confirmar CHECK constraints ou o comportamento
-exacto do RPC a partir do código-fonte; qualquer alteração a estas tabelas
-precisa de inspecção directa da base de dados em produção primeiro.
-
-**Módulo comunicações** — commit `0acc37b` (limpo, só 1 correcção cosmética):
-todas as mutações já filtram `school_id` na linha específica, enum de
-estado bate certo com a constraint. Só corrigido: meta description da
-página prometia envio por SMS/e-mail/portal segmentado, mas `audience` só
-suporta `"school"` (confirmado pela constraint) — texto agora reflecte a
-funcionalidade real.
-
-**Módulo acessos** (contas, convites, 2FA — a parte de grants/permissões já
-tinha sido revista antes) — sem commit, nada a corrigir: `updateSystemAccountCargo`,
-`setSystemAccountDisabled`, `resendSystemInvite`, `inviteSystemUser`
-já re-validam `school_id` na conta alvo antes de mexer, não só o cargo de
-quem pede. Auto-demoção/auto-desactivação bloqueadas. 2FA usa
-`supabase.auth.mfa.*` directamente sobre a sessão do próprio utilizador —
-não há como configurar 2FA "para" outra conta. Único gap (não é falha de
-segurança, falta de funcionalidade): não há forma de um Admin repor o 2FA
-de outra conta que perdeu o dispositivo.
-
-**Módulo integrações** — commit `f50d25c`: confirmado que nenhuma
-integração liga a uma API real (WhatsApp/Resend/etc. só geram links/copiam
-texto). Autorização e scoping de `school_integrations` correctos. Único
-achado: o campo "API key Resend" nunca é lido por código nenhum (só
-reaparece como placeholder do próprio formulário) — texto agora deixa
-claro que não liga a nada real, para não convidar alguém a colar uma
-chave verdadeira num campo morto.
-
-**Módulo arquivos** — commit `0acc37b`:
-- `linkSchoolFileToClass` só verificava o cargo, nunca se o utilizador era
-  dono do ficheiro (ou Administrador/Secretaria em "secretaria") —
-  qualquer Professor conseguia ligar/desligar qualquer ficheiro de
-  qualquer turma, incluindo ficheiros pessoais de outros professores.
-  Mesma verificação de `renameSchoolFile` aplicada aqui, mais validação de
-  que a turma pertence à escola (não existia).
-- `moveSchoolFiles`: a verificação "pasta de destino pertence a outra
-  área" só corria se o cliente enviasse `area` explicitamente — o caminho
-  normal (arrastar sem mudar de área) saltava-a. Passa a inferir a área a
-  partir do próprio item quando o cliente não a envia.
-- Não corrigido (baixa prioridade, decisão deliberada já documentada no
-  código): `deleteSchoolFile` não limpa `people.photo_url`/
-  `person_documents.file_id` quando o ficheiro referenciado é apagado —
-  ficam a apontar para um ficheiro morto. Sem FK possível nessas colunas.
-
-**Módulo calendário** — commit `f50d25c` (dois achados HIGH, confirmados a
-funcionar em produção depois do deploy):
-- `/calendario/ics` era uma rota de página (SPA), não uma rota de
-  servidor — visitar o "endereço de subscrição" devolvia a shell HTML/JS
-  da app, nunca `text/calendar`. Nenhum cliente de calendário real
-  (Google/Apple/Outlook "adicionar por URL") conseguia subscrever aquilo.
-  Convertida para `server.handlers.GET` (ver
-  `node_modules/@tanstack/start-client-core/skills/start-core/server-routes/SKILL.md`
-  para o padrão — é a primeira rota de servidor pura desta app, todo o
-  resto usa `createServerFn`). Testado directamente em produção via curl
-  com um token real: `Content-Type: text/calendar`, ICS válido.
-- `calendar_feed_tokens` nunca podia ser revogado/rodado — só tinha
-  política de SELECT, sem UPDATE/DELETE, e nenhum código o apagava.
-  Desactivar uma conta (o caminho normal, não apaga `auth.users`) deixava
-  o feed a funcionar para sempre. Nova política de DELETE (dono do token)
-  + `revokeCalendarFeedToken` + botão "Revogar feed" em `/calendario`.
-- Investigado mas **não era bug real**: parecia que apagar um período
-  lectivo com notas lançadas podia corromper `gradebooks` silenciosamente
-  (`ensureTerm` recria com datas genéricas). Confirmado directamente na
-  base de dados em produção (a tabela não está no git): existe FK real
-  `gradebooks_school_id_term_id_fkey` com `NO ACTION` — apagar um período
-  com notas já falha de forma segura. Só fica o caso raro (e inofensivo)
-  de um período apagado *sem* notas ser recriado com datas erradas se
-  alguém lançar notas na mesma sequência depois — não corrigido, baixa
-  prioridade.
-
-**Concluído**: os cinco módulos pedidos (comunicações, arquivos,
-calendário, integrações, acessos) foram todos auditados e corrigidos.
-Nenhum módulo por auditar em aberto neste momento — a próxima ronda fica
-por indicação do utilizador.
-
-## Ciclo 38 — segunda verificação crítica (2026-08-14)
-
-- **`.claude/worktrees/` limpo**: continha 6 checkouts completos e obsoletos
-  (branches `worktree-agent-*`, todos já mesclados em `main`, 0 commits à
-  frente) de sessões antigas, cada um com centenas de linhas não commitadas.
-  Confirmado com o utilizador (mostrado o conteúdo primeiro) que era uma
-  iniciativa de endurecimento de tipos TypeScript abandonada, não
-  funcionalidades novas — removidos com `git worktree remove`. Isto também
-  explicava o `eslint .` reportar ~9873 problemas em vez de 2 reais (estava
-  a percorrer 7 cópias da árvore `src/`).
-- **2 avisos reais do ESLint corrigidos** (fora de formatação, confirmados
-  correndo `eslint .` na árvore inteira pela primeira vez esta sessão):
-  `let` nunca reatribuída em `performance-supervisor.ts`, escape
-  desnecessário em regex em `arquivos/local-store.ts`.
-- **Falha silenciosa corrigida**: "Fechar trimestre"/"Reabrir" no Centro de
-  Avaliação (`AssessmentCenter.tsx`) não tinha `.catch()` nem estado de
-  carregamento — mesma classe de bug já corrigida uma vez em
-  `FileBrowser.tsx`. O padrão correcto já existia ao lado em
-  `settings-panels.tsx`, só copiado.
-- **Achados documentados, não corrigidos** (backlog, menor prioridade):
-  Avaliações (testes/provas) no Centro de Avaliação só têm Criar, sem
-  Editar/Apagar — um nome errado ou duplicado fica permanente na pauta.
-  Botão "Ligar a minha conta Gmail" em Integrações fica permanentemente
-  desactivado (já auto-documentado na interface). `access/server.ts` usa um
-  padrão de acesso a dados mais antigo (`sgaClient` em vez de
-  `loadSgaAdminClient`/`requireSgaWriter`) que o resto do repo — só
-  inconsistência de estilo, autorização já confirmada correcta no ciclo 37.
-- **Velocidade**: bundle principal ~163 KB gzip, code-splitting já isola
-  gráficos/PDF/html2canvas em chunks à parte (só carregam quando usados),
-  cache de assets imutável a 1 ano. Sem sinais de problema real de
-  performance a partir daqui — TTFB medido neste ambiente (~600-950ms)
-  continua dominado pela ligação deste sandbox à Cloudflare, não pelo
-  Worker; para números reais, testar a partir do browser da escola.
-
-### ID do aluno — novo formato AAMM+3 (pedido do utilizador)
-
-A geração do número de processo **não vive no código deste repo** — é uma
-função `private.register_student` (SQL) que só existe no projecto Supabase
-real, chamada via `db.rpc("register_student", ...)` em
-`src/features/students/server.ts` e `src/features/enrollment/server.ts`
-(`decideEnrollmentApplication`). Formato anterior: `EST-000001`
-(sequencial único por escola, tabela `private.student_number_sequences`
-com PK `school_id`).
-
-Alterado directamente na base de dados (aplicado, confirmado com o
-utilizador antes por mexer na PK de uma tabela em produção):
-`student_number_sequences` passou a ter PK `(school_id, period)` — uma
-sequência por escola **e por mês**; `register_student` calcula
-`v_period := to_char(admission_date, 'YYMM')` e gera
-`v_period || lpad(numero, 3, '0')` (ex.: `2608001`, reinicia em `001` a
-cada mês). Alunos já registados mantêm o `EST-XXXXXX` antigo — só novos
-registos usam o formato novo. Nenhum código do repo assume o prefixo
-`EST-` ou um comprimento fixo, por isso não foi preciso mudar nada em
-`src/`.
-
-**Para replicar/auditar esta alteração**: a definição completa da função
-está só na base de dados (`pg_get_functiondef` via Management API), não
-neste repositório — se precisares de a alterar outra vez, busca-a em
-directo primeiro.
-
-### Login por número de Bilhete — pedido, ainda não implementado
-
-O utilizador quer que o login passe a ser por número de BI + senha em vez
-de e-mail + senha, mas decidiu adiar até garantir que **todas** as contas
-(Administrador/Secretaria/Professor/Tesouraria) têm BI preenchido na
-ficha — hoje nem todas têm. Não implementado à espera dessa garantia.
-
-O que já existe e pode ser reaproveitado quando isto avançar:
-- Validação de formato de BI (Lei 3/21) + ligação a uma API pública
-  angolana de verificação já implementadas em `src/lib/angola-identity.ts`
-  (`validateAngolaBi`, `lookupAngolaBiOnline`).
-- "Redefinir password na primeira sessão" já acontece de forma nativa: o
-  convite (`inviteSystemUser` em `src/features/access/server.ts`, via
-  `admin.auth.admin.inviteUserByEmail`) obriga a definir password ao abrir
-  o link — não precisa de trabalho extra quando o login por BI existir,
-  desde que a conta continue a ser criada da mesma forma por trás.
-
-Falta desenhar (quando o utilizador confirmar a cobertura de BI): login
-com Supabase Auth é nativamente por e-mail — a opção mais simples é um
-endpoint público que resolve BI → e-mail da conta (via `people.national_id`)
-antes de chamar `signInWithPassword` no cliente, sem mudar o `auth.users`
-por trás. Cuidado com enumeração de contas nesse endpoint (resposta
-genérica se o BI não existir).
-
 ## Estado (2026-08-13)
 
 Os ciclos 1–34 da sessão premium estão no código. As consolidações mais recentes
@@ -284,44 +14,44 @@ estão versionadas localmente:
 - `1eea631` — avatares de conta privados com URLs assinadas
 - `f6bb092` — limpeza de avatares privados substituídos
 
-| Ciclo | O quê                                                                                     | Estado                          |
-| ----- | ----------------------------------------------------------------------------------------- | ------------------------------- |
-| 1     | Filtros persistentes URL + localStorage                                                   | Feito                           |
-| 2     | Folha sequencial de aluno + link público `/matricula/$slug`                               | Feito (precisa SQL)             |
-| 3     | Folha de turmas + WhatsApp                                                                | Feito (colunas WhatsApp no SQL) |
-| 4     | Grants, ficha professor, workspace, ICS                                                   | Feito (tabelas no SQL)          |
-| 5     | Pagamento avançado Multicaixa/Unitel                                                      | Feito (tabela no SQL)           |
-| 6     | Catálogo integrações + 2FA TOTP                                                           | Feito (tabela + AuthGate)       |
-| 7     | Wiring catalog-ready nos ecrãs + testes integrações                                       | Feito                           |
-| 8     | Supervisão de desempenho + resposta ao toque                                              | Feito                           |
-| 9     | Identidade Angola (BI/NIF/IBAN), perfil, branding, AGT                                    | Feito (precisa SQL)             |
-| 9     | Lazy Recharts + impressão diferida (print-issue-loader)                                   | Feito                           |
-| 10    | Telefone angolano (+244): componente, validação Zod, normalização E.164                   | Feito                           |
-| 11    | Mensagens internas no painel da conta (colegas reais, pesquisa, thread)                   | Feito (precisa SQL)             |
-| 12    | Não-lidas: ponto nos avatares, sino e lista de notificações                               | Feito                           |
-| 13    | Sino operacional: candidaturas, matrícula, documentos, faturas                            | Feito                           |
-| 14    | Taxa de presença na matrícula, ficha, dashboard e turmas                                  | Feito (precisa SQL)             |
-| 15    | Destaques no painel da conta (notas, novidades, atalhos)                                  | Feito                           |
-| 16    | Gerir destaques em Definições (textos, ordem, visibilidade)                               | Feito                           |
-| 17    | Notas e atalhos próprios da escola nos destaques                                          | Feito                           |
-| 18    | Público, calendário (Luanda) e pré-visualização dos destaques                             | Feito                           |
-| 19    | Destaques no início (além do painel da conta)                                             | Feito                           |
-| 20    | Ligação interna ou externa no botão de cada destaque                                      | Feito                           |
-| 21    | Ícone, cor e tipo em todos os destaques                                                   | Feito                           |
-| 22    | Arquivos (biblioteca Moodle: SGA + local, waffle, picker)                                 | Feito (precisa SQL)             |
-| 23    | Arquivos: miniaturas, filtros, logo/perfil da biblioteca                                  | Feito                           |
-| 24    | Arquivos ligados a foto aluno/pessoa, docs e comunicados                                  | Feito (precisa SQL)             |
-| 25    | Materiais de turma + descarregar/renomear arquivos                                        | Feito (precisa SQL)             |
-| 26    | Filtro turma nos arquivos + materiais no workspace                                        | Feito                           |
-| 27    | Arquivos visual OneDrive + utilizador, acesso e auditoria                                 | Feito (precisa SQL)             |
-| 28    | Arquivos: breadcrumb, barra de comandos, drag-drop, avatares                              | Feito                           |
-| 29    | Inquérito de metadados + ligação a utilizadores/pessoas                                   | Feito (precisa SQL)             |
-| 30    | Foto de aluno: relação + perfil na ficha                                                  | Feito                           |
-| 31    | Media reconhecida + inquérito/área obrigatórios                                           | Feito                           |
-| 32    | Pastas, selecção, mover e modal expansível                                                | Feito (precisa SQL)             |
-| 33    | Recibos/talões na biblioteca + ID pesquisável                                             | Feito (precisa SQL)             |
-| 34    | Planos de Aula (título/conteúdo/anexo + avaliações/provas por turma-disciplina-trimestre) | Feito (precisa SQL)             |
-| 35    | Anexo de arquivo nas mensagens internas + conversas enviadas sem resposta a aparecerem na lista + página `/perfil` dedicada | Feito (precisa SQL) |
+| Ciclo | O quê                                                                                                                       | Estado                          |
+| ----- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 1     | Filtros persistentes URL + localStorage                                                                                     | Feito                           |
+| 2     | Folha sequencial de aluno + link público `/matricula/$slug`                                                                 | Feito (precisa SQL)             |
+| 3     | Folha de turmas + WhatsApp                                                                                                  | Feito (colunas WhatsApp no SQL) |
+| 4     | Grants, ficha professor, workspace, ICS                                                                                     | Feito (tabelas no SQL)          |
+| 5     | Pagamento avançado Multicaixa/Unitel                                                                                        | Feito (tabela no SQL)           |
+| 6     | Catálogo integrações + 2FA TOTP                                                                                             | Feito (tabela + AuthGate)       |
+| 7     | Wiring catalog-ready nos ecrãs + testes integrações                                                                         | Feito                           |
+| 8     | Supervisão de desempenho + resposta ao toque                                                                                | Feito                           |
+| 9     | Identidade Angola (BI/NIF/IBAN), perfil, branding, AGT                                                                      | Feito (precisa SQL)             |
+| 9     | Lazy Recharts + impressão diferida (print-issue-loader)                                                                     | Feito                           |
+| 10    | Telefone angolano (+244): componente, validação Zod, normalização E.164                                                     | Feito                           |
+| 11    | Mensagens internas no painel da conta (colegas reais, pesquisa, thread)                                                     | Feito (precisa SQL)             |
+| 12    | Não-lidas: ponto nos avatares, sino e lista de notificações                                                                 | Feito                           |
+| 13    | Sino operacional: candidaturas, matrícula, documentos, faturas                                                              | Feito                           |
+| 14    | Taxa de presença na matrícula, ficha, dashboard e turmas                                                                    | Feito (precisa SQL)             |
+| 15    | Destaques no painel da conta (notas, novidades, atalhos)                                                                    | Feito                           |
+| 16    | Gerir destaques em Definições (textos, ordem, visibilidade)                                                                 | Feito                           |
+| 17    | Notas e atalhos próprios da escola nos destaques                                                                            | Feito                           |
+| 18    | Público, calendário (Luanda) e pré-visualização dos destaques                                                               | Feito                           |
+| 19    | Destaques no início (além do painel da conta)                                                                               | Feito                           |
+| 20    | Ligação interna ou externa no botão de cada destaque                                                                        | Feito                           |
+| 21    | Ícone, cor e tipo em todos os destaques                                                                                     | Feito                           |
+| 22    | Arquivos (biblioteca Moodle: SGA + local, waffle, picker)                                                                   | Feito (precisa SQL)             |
+| 23    | Arquivos: miniaturas, filtros, logo/perfil da biblioteca                                                                    | Feito                           |
+| 24    | Arquivos ligados a foto aluno/pessoa, docs e comunicados                                                                    | Feito (precisa SQL)             |
+| 25    | Materiais de turma + descarregar/renomear arquivos                                                                          | Feito (precisa SQL)             |
+| 26    | Filtro turma nos arquivos + materiais no workspace                                                                          | Feito                           |
+| 27    | Arquivos visual OneDrive + utilizador, acesso e auditoria                                                                   | Feito (precisa SQL)             |
+| 28    | Arquivos: breadcrumb, barra de comandos, drag-drop, avatares                                                                | Feito                           |
+| 29    | Inquérito de metadados + ligação a utilizadores/pessoas                                                                     | Feito (precisa SQL)             |
+| 30    | Foto de aluno: relação + perfil na ficha                                                                                    | Feito                           |
+| 31    | Media reconhecida + inquérito/área obrigatórios                                                                             | Feito                           |
+| 32    | Pastas, selecção, mover e modal expansível                                                                                  | Feito (precisa SQL)             |
+| 33    | Recibos/talões na biblioteca + ID pesquisável                                                                               | Feito (precisa SQL)             |
+| 34    | Planos de Aula (título/conteúdo/anexo + avaliações/provas por turma-disciplina-trimestre)                                   | Feito (precisa SQL)             |
+| 35    | Anexo de arquivo nas mensagens internas + conversas enviadas sem resposta a aparecerem na lista + página `/perfil` dedicada | Feito (precisa SQL)             |
 
 ## Ciclo 9 — identidade, escola e tesouraria
 
@@ -337,8 +67,6 @@ estão versionadas localmente:
 - Recibos/faturas/relatórios financeiros incluem IBAN e logótipo quando configurados.
 
 ## SQL no SGA (`xodgfmxiaunpamctfeea`)
-
-**Já aplicado em produção a 2026-08-14** (ver secção "Produção" acima). Reaplicar só se `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql` ou `supabase/APPLY_IN_SQL_EDITOR.sql` mudarem — ambos são idempotentes (`IF NOT EXISTS`, `DROP POLICY IF EXISTS`).
 
 Correr **só** no SQL Editor, nesta ordem:
 

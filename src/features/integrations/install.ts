@@ -50,10 +50,7 @@ function cap(
   return { id, label, description, module, moduleLabel: moduleLabel[module] };
 }
 
-export const integrationInstallPackages: Record<
-  CatalogIntegrationId,
-  IntegrationInstallPackage
-> = {
+export const integrationInstallPackages: Record<CatalogIntegrationId, IntegrationInstallPackage> = {
   multicaixa_express: {
     provider: "multicaixa_express",
     installUrl: "https://www.emis.co.ao/",
@@ -103,14 +100,60 @@ export const integrationInstallPackages: Record<
       cap(
         "whatsapp.class_groups",
         "Salas de turma",
-        "Ligar e abrir grupos WhatsApp em cada turma.",
+        "Abrir ligação para o grupo de WhatsApp da turma.",
         "pedagogica",
       ),
       cap(
         "whatsapp.notices",
-        "Avisos a encarregados",
-        "Enviar comunicados da escola pelo WhatsApp.",
+        "Avisos por WhatsApp",
+        "Preencher a mensagem de aviso rápida para o encarregado.",
         "comunicacoes",
+      ),
+    ],
+  },
+  resend_email: {
+    provider: "resend_email",
+    installUrl: "https://resend.com/docs/send-with-nodejs",
+    docsUrl: "https://resend.com/docs",
+    summary: "Instala envio transaccional de recibos, faturas e avisos por e-mail.",
+    capabilities: [
+      cap(
+        "resend.send",
+        "Disparo de comunicados",
+        "Enviar cópia por e-mail no painel de comunicações.",
+        "comunicacoes",
+      ),
+      cap(
+        "resend.invoices",
+        "E-mail de fatura",
+        "Anexar dados bancários e resumo em e-mail ao emitir fatura.",
+        "faturas",
+      ),
+      cap(
+        "resend.documents",
+        "E-mail de documento",
+        "Enviar declaração ou histórico para o e-mail da pessoa.",
+        "documentos",
+      ),
+    ],
+  },
+  gmail_workspace: {
+    provider: "gmail_workspace",
+    installUrl: "https://workspace.google.com/",
+    docsUrl: "https://developers.google.com/gmail/api",
+    summary: "Instala envio automático de boas-vindas e credenciais com a API oficial do Gmail.",
+    capabilities: [
+      cap(
+        "gmail.welcome",
+        "E-mail de boas-vindas",
+        "Enviar convite institucional de matrícula via Gmail.",
+        "comunicacoes",
+      ),
+      cap(
+        "gmail.credentials",
+        "Credenciais por Gmail",
+        "Disparar e-mail com senha temporária ao criar conta.",
+        "documentos",
       ),
     ],
   },
@@ -118,38 +161,38 @@ export const integrationInstallPackages: Record<
     provider: "google_classroom",
     installUrl: "https://classroom.google.com/",
     docsUrl: "https://developers.google.com/classroom",
-    summary: "Instala atalhos de turmas e trabalhos do Google Classroom na pedagógica.",
+    summary: "Instala ligação às turmas do Google Classroom.",
     capabilities: [
       cap(
         "classroom.classes",
         "Turmas Classroom",
-        "Abrir e sincronizar a turma SIGA com o Classroom.",
+        "Abrir o painel da turma no Google Classroom.",
         "pedagogica",
       ),
       cap(
         "classroom.work",
-        "Trabalhos e materiais",
-        "Publicar materiais da disciplina no Classroom.",
+        "Trabalhos de turma",
+        "Organizar entregas no Classroom.",
         "pedagogica",
       ),
     ],
   },
   moodle: {
     provider: "moodle",
-    installUrl: "https://docs.moodle.org/en/Web_services",
-    docsUrl: "https://docs.moodle.org/en/Web_services",
-    summary: "Instala o LMS Moodle nas disciplinas e avaliações.",
+    installUrl: "https://moodle.org/",
+    docsUrl: "https://docs.moodle.org/",
+    summary: "Instala disciplinas e notas integradas no Moodle.",
     capabilities: [
       cap(
         "moodle.courses",
         "Disciplinas Moodle",
-        "Abrir o curso Moodle a partir da turma ou disciplina.",
+        "Navegar para a disciplina no LMS Moodle.",
         "pedagogica",
       ),
       cap(
         "moodle.grades",
-        "Notas Moodle",
-        "Importar avaliações do Moodle para a pauta.",
+        "Notas do Moodle",
+        "Importar notas de trabalhos do Moodle.",
         "pedagogica",
       ),
     ],
@@ -158,101 +201,95 @@ export const integrationInstallPackages: Record<
     provider: "canvas",
     installUrl: "https://www.instructure.com/canvas",
     docsUrl: "https://canvas.instructure.com/doc/api/",
-    summary: "Instala o Canvas LMS para ensino híbrido.",
+    summary: "Instala apoio ao ensino híbrido com Canvas LMS.",
     capabilities: [
       cap(
         "canvas.courses",
         "Cursos Canvas",
-        "Abrir o curso Canvas da disciplina.",
+        "Abrir o curso correspondente no Canvas LMS.",
         "pedagogica",
       ),
       cap(
         "canvas.assignments",
-        "Trabalhos Canvas",
-        "Ligar trabalhos do Canvas à pauta de notas.",
+        "Tarefas Canvas",
+        "Lançar pontuações na pauta do SIGA.",
         "pedagogica",
       ),
     ],
   },
   microsoft_365_education: {
     provider: "microsoft_365_education",
-    installUrl: "https://learn.microsoft.com/microsoft-365/education/",
-    docsUrl: "https://learn.microsoft.com/graph/auth-v2-user",
-    summary: "Instala Teams, Outlook e OneDrive nos comunicados e na pedagógica.",
+    installUrl: "https://www.microsoft.com/education",
+    docsUrl: "https://learn.microsoft.com/graph/overview",
+    summary: "Instala canal institucional no Outlook e biblioteca no OneDrive.",
     capabilities: [
       cap(
         "m365.outlook",
-        "Outlook da escola",
-        "Enviar comunicados pelo correio Microsoft 365.",
+        "Outlook Institucional",
+        "Abrir nova mensagem no Outlook Web.",
         "comunicacoes",
       ),
       cap(
         "m365.onedrive",
-        "Materiais OneDrive",
-        "Abrir a biblioteca de arquivos da escola (SGA ou este dispositivo).",
+        "OneDrive da Escola",
+        "Navegar na biblioteca de ficheiros.",
         "arquivos",
       ),
     ],
   },
   google_calendar: {
     provider: "google_calendar",
-    installUrl: "https://calendar.google.com/calendar/u/0/r/settings/addbyurl",
-    docsUrl: "https://support.google.com/calendar/answer/37100",
-    summary: "Instala a sincronização do calendário lectivo com o Google Calendar.",
+    installUrl: "https://calendar.google.com/",
+    docsUrl: "https://developers.google.com/calendar",
+    summary: "Instala subscrição do calendário lectivo no Google Calendar.",
     capabilities: [
       cap(
         "gcal.subscribe",
-        "Subscrever ICS no Google",
-        "Copiar o feed SIGA e abrir o Google Calendar.",
+        "Subscrição Google",
+        "Adicionar o feed ICS ao Google Calendar.",
         "calendario",
       ),
     ],
   },
   apple_calendar: {
     provider: "apple_calendar",
-    installUrl: "https://support.apple.com/guide/iphone/use-icloud-for-calendar-iph3d1110d4/ios",
-    docsUrl: "https://support.apple.com/guide/iphone/use-icloud-for-calendar-iph3d1110d4/ios",
-    summary: "Instala o feed ICS para iPhone, iPad e calendário nativo.",
+    installUrl: "https://support.apple.com/guide/calendar/welcome/mac",
+    docsUrl: "https://support.apple.com/guide/calendar/welcome/mac",
+    summary: "Instala feed ICS nativo para Apple Calendar.",
     capabilities: [
       cap(
         "apple.ics",
         "Feed ICS Apple",
-        "Copiar o link ICS para o calendário do telemóvel.",
+        "Subscrever o calendário no iPhone, iPad ou Mac.",
         "calendario",
       ),
     ],
   },
-  resend_email: {
-    provider: "resend_email",
-    installUrl: "https://resend.com/docs/send-with-nodejs",
-    docsUrl: "https://resend.com/docs",
-    summary: "Instala envio transaccional de recibos, avisos e convites.",
+  firebase_analytics: {
+    provider: "firebase_analytics",
+    installUrl: "https://firebase.google.com/docs/analytics",
+    docsUrl: "https://firebase.google.com/docs",
+    summary: "Instala monitorização de exceções Crashlytics e telemetria de utilização híbrida.",
     capabilities: [
       cap(
-        "resend.send",
-        "E-mail transaccional",
-        "Enviar comunicados e recibos pelo Resend.",
+        "firebase.crashlytics",
+        "Crashlytics Log",
+        "Registar excepções e relatórios na consola de monitorização.",
+        "pedagogica",
+      ),
+      cap(
+        "firebase.telemetry",
+        "Telemetria de App",
+        "Métricas de desempenho e uso híbrido.",
         "comunicacoes",
-      ),
-      cap(
-        "resend.invoices",
-        "Recibos por e-mail",
-        "Enviar a fatura e o recibo para o encarregado.",
-        "faturas",
-      ),
-      cap(
-        "resend.documents",
-        "Declarações por e-mail",
-        "Enviar declarações e certificados emitidos ao encarregado.",
-        "documentos",
       ),
     ],
   },
   zoom: {
     provider: "zoom",
-    installUrl: "https://marketplace.zoom.us/docs/guides/build/oauth-app/",
-    docsUrl: "https://marketplace.zoom.us/docs/api-reference/introduction",
-    summary: "Instala salas virtuais Zoom nos horários e nas turmas.",
+    installUrl: "https://developers.zoom.us/",
+    docsUrl: "https://developers.zoom.us/docs/api/",
+    summary: "Instala reuniões Zoom nos horários das disciplinas.",
     capabilities: [
       cap(
         "zoom.rooms",
@@ -270,7 +307,8 @@ export const integrationInstallPackages: Record<
   },
   teams: {
     provider: "teams",
-    installUrl: "https://learn.microsoft.com/microsoftteams/platform/concepts/build-and-test/apps-package",
+    installUrl:
+      "https://learn.microsoft.com/microsoftteams/platform/concepts/build-and-test/apps-package",
     docsUrl: "https://learn.microsoft.com/graph/api/resources/onlinemeeting",
     summary: "Instala reuniões e turmas Microsoft Teams nos horários.",
     capabilities: [
@@ -328,12 +366,7 @@ export const integrationInstallPackages: Record<
     docsUrl: "https://agt.minfin.gov.ao/PortalAGT/",
     summary: "Instala NIF e faturação electrónica da AGT nas faturas da escola.",
     capabilities: [
-      cap(
-        "agt.nif",
-        "NIF da escola",
-        "Usar o NIF institucional nas faturas e recibos.",
-        "faturas",
-      ),
+      cap("agt.nif", "NIF da escola", "Usar o NIF institucional nas faturas e recibos.", "faturas"),
       cap(
         "agt.einvoice",
         "Faturação electrónica",
@@ -353,10 +386,7 @@ export function allInstallPackages() {
   return academicIntegrationCatalog.map((item) => integrationInstallPackages[item.id]);
 }
 
-export function capabilitiesForModule(
-  module: SigaHostModule,
-  grantedIds: ReadonlySet<string>,
-) {
+export function capabilitiesForModule(module: SigaHostModule, grantedIds: ReadonlySet<string>) {
   return allInstallPackages().flatMap((pack) =>
     pack.capabilities.filter((item) => item.module === module && grantedIds.has(item.id)),
   );
@@ -384,7 +414,7 @@ export function publicSchoolEmail(
   email: string | null | undefined,
   installedProviders: readonly string[],
 ) {
-  if (!installedProviders.includes("resend_email")) return null;
+  if (!installedProviders.includes("resend_email") && !installedProviders.includes("gmail_workspace")) return null;
   const trimmed = email?.trim();
   return trimmed || null;
 }

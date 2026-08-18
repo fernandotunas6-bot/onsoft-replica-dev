@@ -58,22 +58,16 @@ export function StudentRelatedFilesPanel({
         </div>
       ) : files.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">
-          Ainda não há ficheiros relacionados. Carregue uma fotografia na biblioteca com a
-          categoria <strong>Fotografia</strong> e este aluno, ou use o botão{" "}
-          <strong>Foto</strong> no cabeçalho da ficha. Recibos e talões da tesouraria
-          arquivam-se automaticamente.
+          Ainda não há ficheiros relacionados. Carregue uma fotografia na biblioteca com a categoria{" "}
+          <strong>Fotografia</strong> e este aluno, ou use o botão <strong>Foto</strong> no
+          cabeçalho da ficha. Recibos e talões da tesouraria arquivam-se automaticamente.
         </p>
       ) : (
         <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
           {files.map((file) => {
-            const categoryLabel = file.category
-              ? fileCategoryMeta[file.category]?.label
-              : null;
+            const categoryLabel = file.category ? fileCategoryMeta[file.category]?.label : null;
             return (
-              <li
-                key={file.id}
-                className="flex flex-wrap items-center gap-3 px-3 py-2.5 text-sm"
-              >
+              <li key={file.id} className="flex flex-wrap items-center gap-3 px-3 py-2.5 text-sm">
                 <FileKindIcon kind={file.kind} className="size-8 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">

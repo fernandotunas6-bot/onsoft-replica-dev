@@ -15,8 +15,7 @@ const steps = [
   { id: "revisao", label: "Revisão", description: "Confirme antes de gravar." },
 ];
 
-const fieldClass =
-  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm";
+const fieldClass = "h-10 w-full rounded-md border border-input bg-background px-3 text-sm";
 
 const shiftLabels = ["Manhã", "Tarde", "Noite"] as const;
 const shiftValues = {
@@ -96,7 +95,11 @@ export function ClassGroupSheet({
           const roomId =
             values.sala === "Sem sala"
               ? undefined
-              : resolveId(roomOptions.filter((item) => item !== "Sem sala"), values.sala, roomIds);
+              : resolveId(
+                  roomOptions.filter((item) => item !== "Sem sala"),
+                  values.sala,
+                  roomIds,
+                );
           if (!academicYearId || !courseId || !gradeLevelId) {
             throw new Error("Seleccione ano lectivo, curso e classe.");
           }
@@ -265,11 +268,11 @@ export function ClassGroupSheet({
                   <li>
                     {values.classe} · {values.curso} · {values.turno}
                   </li>
-                  <li>Sala: {values.sala} · Capacidade: {values.capacidade}</li>
+                  <li>
+                    Sala: {values.sala} · Capacidade: {values.capacidade}
+                  </li>
                   {whatsappOn ? (
-                    <li>
-                      WhatsApp: {values.whatsappNome || values.whatsapp || "não ligado"}
-                    </li>
+                    <li>WhatsApp: {values.whatsappNome || values.whatsapp || "não ligado"}</li>
                   ) : null}
                 </ul>
               </SheetCell>

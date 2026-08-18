@@ -19,7 +19,9 @@ export function readFilesPrefs(role: string): FilesStaffPrefs {
   };
   if (typeof localStorage === "undefined") return fallback;
   try {
-    const parsed = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<FilesStaffPrefs> | null;
+    const parsed = JSON.parse(
+      localStorage.getItem(KEY) ?? "null",
+    ) as Partial<FilesStaffPrefs> | null;
     const area = parsed?.defaultArea ?? fallback.defaultArea;
     return {
       defaultArea: area,

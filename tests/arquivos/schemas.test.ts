@@ -82,12 +82,13 @@ describe("arquivos schemas", () => {
         relatedUserId: userId,
       }).relatedUserId,
     ).toBe(userId);
-    expect(listArquivosInputSchema.parse({ category: "bilhete", relatedUserId: userId }).category).toBe(
-      "bilhete",
-    );
+    expect(
+      listArquivosInputSchema.parse({ category: "bilhete", relatedUserId: userId }).category,
+    ).toBe("bilhete");
     const personId = "44444444-4444-4444-8444-444444444444";
     expect(
-      listArquivosInputSchema.parse({ relatedPersonId: personId, category: "foto" }).relatedPersonId,
+      listArquivosInputSchema.parse({ relatedPersonId: personId, category: "foto" })
+        .relatedPersonId,
     ).toBe(personId);
     expect(listArquivosStudentsInputSchema.parse({ query: "Ana", limit: 10 }).limit).toBe(10);
     expect(listArquivosInputSchema.parse({ parentId: null }).parentId).toBeNull();
@@ -136,23 +137,28 @@ describe("arquivos schemas", () => {
   });
 
   it("rejects files over 8 MB and unknown types", () => {
-    expect(isAllowedSchoolFile({ name: "a.pdf", type: "application/pdf", size: FILE_MAX_BYTES }).ok).toBe(
-      true,
-    );
+    expect(
+      isAllowedSchoolFile({ name: "a.pdf", type: "application/pdf", size: FILE_MAX_BYTES }).ok,
+    ).toBe(true);
     expect(
       isAllowedSchoolFile({ name: "a.pdf", type: "application/pdf", size: FILE_MAX_BYTES + 1 }).ok,
     ).toBe(false);
-    expect(isAllowedSchoolFile({ name: "a.exe", type: "application/x-msdownload", size: 10 }).ok).toBe(
-      false,
-    );
-    expect(kindFromFile("pauta.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).toBe(
-      "excel",
-    );
+    expect(
+      isAllowedSchoolFile({ name: "a.exe", type: "application/x-msdownload", size: 10 }).ok,
+    ).toBe(false);
+    expect(
+      kindFromFile(
+        "pauta.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ),
+    ).toBe("excel");
     expect(kindFromFile("logo.svg", "image/svg+xml")).toBe("svg");
     expect(kindFromFile("foto.webp", "image/webp")).toBe("webp");
     expect(kindFromFile("aula.pptx", "")).toBe("powerpoint");
     expect(kindFromFile("lista.csv", "text/csv")).toBe("csv");
-    expect(isAllowedSchoolFile({ name: "icon.svg", type: "image/svg+xml", size: 1200 }).ok).toBe(true);
+    expect(isAllowedSchoolFile({ name: "icon.svg", type: "image/svg+xml", size: 1200 }).ok).toBe(
+      true,
+    );
   });
 
   it("flags incomplete media without description", () => {

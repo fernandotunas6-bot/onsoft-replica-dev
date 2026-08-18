@@ -1,128 +1,114 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>{{{css}}}</style>
-</head>
-<body>
-  <main class="document document-boletim">
-    <section class="official-topline angola-official">
-      {{#if school.emblemUrl}}
-      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
-      {{else}}
-      <img class="logo" src="{{school.logoUrl}}" alt="" />
-      {{/if}}
-      <div class="school-title">
-        <p class="republic">{{school.ministry}}</p>
-        <p class="republic">{{school.ministryLine}}</p>
-        <h1>{{school.name}}</h1>
-        <p>{{school.address}} | NIF {{school.nif}}</p>
-      </div>
-      <div class="official-right">
-        {{#if school.logoUrl}}
-        <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <main class="document document-boletim">
+      <section class="official-topline angola-official">
+        {{#if school.emblemUrl}}
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
         {{else}}
-        {{#if school.flagUrl}}
-        <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
         {{/if}}
-        {{/if}}
-        <div class="document-box">Nº {{document.number}}</div>
-      </div>
-    </section>
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          <p>{{school.address}} | NIF {{school.nif}}</p>
+        </div>
+        <div class="official-right">
+          {{#if school.logoUrl}}
+            <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+          {{else}}
+            {{#if school.flagUrl}}
+              <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+            {{/if}}
+          {{/if}}
+          <div class="document-box">Nº {{document.number}}</div>
+        </div>
+      </section>
 
-    <div class="doc-title">Boletim Escolar</div>
+      <div class="doc-title">Boletim Escolar</div>
 
-    <section class="meta-grid">
-      <div class="meta-box"><b>Aluno:</b> {{student.fullName}}</div>
-      <div class="meta-box"><b>Nº Académico:</b> {{student.academicNumber}}</div>
-      <div class="meta-box"><b>Turma:</b> {{classGroup.name}}</div>
-      <div class="meta-box"><b>Classe/Curso:</b> {{program.name}}</div>
-      <div class="meta-box"><b>Ano lectivo:</b> {{academicYear.name}}</div>
-      <div class="meta-box"><b>Período:</b> {{period.name}}</div>
-    </section>
+      <section class="meta-grid">
+        <div class="meta-box"><b>Aluno:</b> {{student.fullName}}</div>
+        <div class="meta-box"><b>Nº Académico:</b> {{student.academicNumber}}</div>
+        <div class="meta-box"><b>Turma:</b> {{classGroup.name}}</div>
+        <div class="meta-box"><b>Classe/Curso:</b> {{program.name}}</div>
+        <div class="meta-box"><b>Ano lectivo:</b> {{academicYear.name}}</div>
+        <div class="meta-box"><b>Período:</b> {{period.name}}</div>
+      </section>
 
-    <table>
-      <thead>
-        <tr>
-          <th class="text-left">Disciplina</th>
-          <th>MAC/CF</th>
-          <th>NPP</th>
-          <th>PT</th>
-          <th>MT</th>
-          <th>Exame</th>
-          <th>NF</th>
-          <th>Situação</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each subjects}}
-        <tr>
-          <td class="text-left">{{name}}</td>
-          <td>{{mac}}</td>
-          <td>{{npp}}</td>
-          <td>{{pt}}</td>
-          <td>{{mt}}</td>
-          <td>{{exam}}</td>
-          <td><b>{{finalGrade}}</b></td>
-          <td data-status="{{status}}">{{status}}</td>
-        </tr>
+      <table>
+        <thead>
+          <tr>
+            <th class="text-left">Disciplina</th>
+            <th>MAC/CF</th>
+            <th>NPP</th>
+            <th>PT</th>
+            <th>MT</th>
+            <th>Exame</th>
+            <th>NF</th>
+            <th>Situação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each subjects}}
+            <tr>
+              <td class="text-left">{{name}}</td>
+              <td>{{mac}}</td>
+              <td>{{npp}}</td>
+              <td>{{pt}}</td>
+              <td>{{mt}}</td>
+              <td>{{exam}}</td>
+              <td><b>{{finalGrade}}</b></td>
+              <td data-status="{{status}}">{{status}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+
+      <section class="summary-panel">
+        <div><span>Média</span><strong>{{summary.average}}</strong></div>
+        <div><span>Frequência</span><strong>{{summary.attendance}}</strong></div>
+        <div><span>Aprovadas</span><strong>{{summary.approved}}</strong></div>
+        <div><span>Resultado</span><strong>{{summary.status}}</strong></div>
+      </section>
+
+      <section class="footer">
+        {{#each signatures}}
+          <div class="signature">{{label}}</div>
         {{/each}}
-      </tbody>
-    </table>
+      </section>
 
-    <section class="summary-panel">
-      <div><span>Média</span><strong>{{summary.average}}</strong></div>
-      <div><span>Frequência</span><strong>{{summary.attendance}}</strong></div>
-      <div><span>Aprovadas</span><strong>{{summary.approved}}</strong></div>
-      <div><span>Resultado</span><strong>{{summary.status}}</strong></div>
-    </section>
-
-    <section class="footer">
-      {{#each signatures}}
-      <div class="signature">{{label}}</div>
-      {{/each}}
-    </section>
-
-    <section class="validation">
-      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-      <div>
-        Boletim derivado do Histórico Académico Individual e das notas oficiais armazenadas no SIGE.<br />
-        Hash: {{document.hash}} | Emitido em {{document.issuedAtLabel}} por {{document.issuedBy}}.
-      </div>
-    </section>
-  </main>
-</body>
+      <section class="validation">
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        <div>
+          Boletim derivado do Histórico Académico Individual e das notas oficiais armazenadas no
+          SIGE.<br />
+          Hash:
+          {{document.hash}}
+          | Emitido em
+          {{document.issuedAtLabel}}
+          por
+          {{document.issuedBy}}.
+        </div>
+      </section>
+    </main>
+  </body>
 </html>

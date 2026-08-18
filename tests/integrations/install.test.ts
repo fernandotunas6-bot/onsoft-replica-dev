@@ -26,9 +26,7 @@ describe("integration install packages", () => {
     for (const pack of packs) {
       expect(pack.installUrl.startsWith("https://")).toBe(true);
       expect(pack.capabilities.length).toBeGreaterThan(0);
-      expect(new Set(pack.capabilities.map((item) => item.id)).size).toBe(
-        pack.capabilities.length,
-      );
+      expect(new Set(pack.capabilities.map((item) => item.id)).size).toBe(pack.capabilities.length);
     }
   });
 

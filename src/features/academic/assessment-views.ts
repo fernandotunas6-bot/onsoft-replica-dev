@@ -1,8 +1,4 @@
-import {
-  annualAverage,
-  scoreAverage,
-  situacaoPauta,
-} from "@/lib/angola-academic";
+import { annualAverage, scoreAverage, situacaoPauta } from "@/lib/angola-academic";
 
 export type DossierGrade = {
   enrollment_id: string;
@@ -28,9 +24,7 @@ export function buildStudentDossier(
     const terms = ([1, 2, 3] as const).map((term) => {
       const grade = grades.find(
         (row) =>
-          row.enrollment_id === enrollmentId &&
-          row.subject_id === subject.id &&
-          row.term === term,
+          row.enrollment_id === enrollmentId && row.subject_id === subject.id && row.term === term,
       );
       return grade ? scoreAverage(grade.mac, grade.npp, grade.npt) : null;
     });
@@ -76,9 +70,15 @@ export function buildClassCourseMap(
       lancamentos: averages.length,
       media,
       transitam,
-      pendentes: Math.max(0, members.length - new Set(
-        grades.filter((grade) => memberIds.has(grade.enrollment_id)).map((grade) => grade.enrollment_id),
-      ).size),
+      pendentes: Math.max(
+        0,
+        members.length -
+          new Set(
+            grades
+              .filter((grade) => memberIds.has(grade.enrollment_id))
+              .map((grade) => grade.enrollment_id),
+          ).size,
+      ),
     };
   });
 }
@@ -138,7 +138,10 @@ export function buildTermCloseChecklist(input: {
     {
       id: "guardadas",
       ok: input.dirty === 0,
-      label: input.dirty === 0 ? "Não há alterações por guardar" : `${input.dirty} alteração(ões) por guardar`,
+      label:
+        input.dirty === 0
+          ? "Não há alterações por guardar"
+          : `${input.dirty} alteração(ões) por guardar`,
     },
   ];
   return {
@@ -159,12 +162,16 @@ export function documentValidationCode(parts: Array<string | null | undefined>) 
   return `SIGA-${(hash >>> 0).toString(16).toUpperCase().padStart(8, "0")}`;
 }
 
-export function rowsToTsv(
-  rows: Array<Array<string | number | null | undefined>>,
-) {
+export function rowsToTsv(rows: Array<Array<string | number | null | undefined>>) {
   return rows
     .map((row) =>
-      row.map((cell) => String(cell ?? "").replaceAll("\t", " ").replaceAll("\n", " ")).join("\t"),
+      row
+        .map((cell) =>
+          String(cell ?? "")
+            .replaceAll("\t", " ")
+            .replaceAll("\n", " "),
+        )
+        .join("\t"),
     )
     .join("\n");
 }

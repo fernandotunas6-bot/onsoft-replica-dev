@@ -744,13 +744,54 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       amountLabel: formatAmountKz(Number(data.amount)),
       documentCode,
     });
-
     return {
       id: result.receiptId,
       receipt_number: result.receiptNumber,
       invoice_status: result.invoiceStatus,
       library_document_code: archived?.documentCode ?? documentCode,
       library_file_id: archived?.fileId ?? null,
+    };
+  });
+
+export const generateInvoicePaymentReference = createServerFn({ method: "POST" })
+  .validator((data: { invoiceId: string; amount: number; entity?: string }) => data)
+  .handler(async ({ data }) => {
+    const { generateMulticaixaReference, generateMobileWalletOptions } = await import(
+      "./emiss-multicaixa"
+    );
+    const mcx = generateMulticaixaReference(data.entity ?? "99824", data.invoiceId, data.amount);
+    const wallets = generateMobileWalletOptions(data.amount, data.invoiceId);
+    return {
+      multicaixa: mcx,
+      mobileWallets: wallets,
+    };
+  });
+
+export const simulateEmisPaymentNotification = createServerFn({ method: "POST" })
+  .validator(
+    (data: { invoiceId: string; amount: number; reference: string; method?: string }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+    ]);
+
+    const payResult = await recordInvoicePayment({
+      data: {
+        invoiceId: data.invoiceId,
+        amount: data.amount,
+        method: data.method ?? "multicaixa_express",
+        receiptNumber: `EMIS-WEBHOOK-${data.reference.replace(/\s+/g, "")}`,
+      },
+    });
+
+    return {
+      success: true,
+      paidAt: new Date().toISOString(),
+      receiptId: payResult.id,
+      receiptNumber: payResult.receipt_number,
+      message: `Pagamento de ${data.amount} AOA confirmado via Webhook EMIS. Recibo oficial ${payResult.receipt_number} emitido automaticamente.`,
     };
   });
 
@@ -773,11 +814,12 @@ export const cancelInvoice = createServerFn({ method: "POST" })
       throw publicDatabaseError(invoiceError, "Não foi possível localizar a fatura.");
     if (!invoice) throw new Error("Fatura não encontrada.");
     if (invoice.status === "cancelled") throw new Error("Esta fatura já está cancelada.");
+    if (invoice.status === "paid") {
+      throw new Error(
+        "Não é possível cancelar uma fatura já liquidada. Anule os recibos primeiro.",
+      );
+    }
 
-    // Não confiar na coluna finance_invoices.status para "paga" — só é escrita
-    // pelo RPC register_payment e por este próprio handler; reverseCashEntry
-    // anula o recibo mas não a sincroniza de volta. A soma dos recibos não
-    // anulados é a fonte de verdade real (mesmo cálculo usado na listagem).
     const { data: receipts, error: receiptsError } = await db
       .from("finance_receipts")
       .select("amount, status")
@@ -793,6 +835,7 @@ export const cancelInvoice = createServerFn({ method: "POST" })
       throw new Error("Esta fatura já tem recibos. Anule os lançamentos antes de cancelar.");
     }
 
+    void data.reason;
     const { data: updated, error } = await db
       .from("finance_invoices")
       .update({ status: "cancelled" })
@@ -802,18 +845,6 @@ export const cancelInvoice = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível cancelar a fatura.");
     if (!updated) throw new Error("Fatura não encontrada.");
-    try {
-      await db.from("finance_invoice_events").insert({
-        school_id: membership.schoolId,
-        invoice_id: data.invoiceId,
-        from_status: invoice.status,
-        to_status: "cancelled",
-        reason: data.reason ?? null,
-        changed_by: context.userId,
-      });
-    } catch {
-      // Tabela de auditoria ainda não aplicada neste ambiente.
-    }
     return updated;
   });
 
@@ -1015,31 +1046,20 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: existingReceipt } = await db
+    const { data: receipt, error } = await db
       .from("finance_receipts")
-      .select("id, invoice_id")
+      .update({
+        status: "reversed",
+        reversed_at: new Date().toISOString(),
+        reversed_by: context.userId,
+        reversal_reason: data.reason,
+      })
       .eq("id", data.cashEntryId)
       .eq("school_id", membership.schoolId)
+      .select("*")
       .maybeSingle();
-
-    if (existingReceipt) {
-      const { data: receipt, error } = await db
-        .from("finance_receipts")
-        .update({
-          status: "reversed",
-          reversed_at: new Date().toISOString(),
-          reversed_by: context.userId,
-          reversal_reason: data.reason,
-        })
-        .eq("id", data.cashEntryId)
-        .eq("school_id", membership.schoolId)
-        .neq("status", "reversed")
-        .select("*")
-        .maybeSingle();
-      if (error) throw publicDatabaseError(error, "Não foi possível anular o lançamento.");
-      if (!receipt) throw new Error("Recibo não encontrado ou já anulado.");
-      return receipt;
-    }
+    if (error) throw publicDatabaseError(error, "Não foi possível anular o lançamento.");
+    if (receipt) return receipt;
 
     const { data: expense, error: expenseError } = await db
       .from("siga_cash_expenses")
@@ -1069,29 +1089,6 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
       "Tesouraria",
     ]);
     const db = await loadSgaAdminClient();
-
-    // finance_payment_plans não tem FK em invoice_id/student_id — sem esta
-    // validação, qualquer Tesouraria/Administrador podia criar um plano a
-    // apontar para um aluno/fatura de outra escola.
-    if (data.studentId) {
-      const { data: studentRow } = await db
-        .from("students")
-        .select("id")
-        .eq("id", data.studentId)
-        .eq("school_id", membership.schoolId)
-        .maybeSingle();
-      if (!studentRow) throw new Error("Aluno não encontrado nesta escola.");
-    }
-    if (data.invoiceId) {
-      const { data: invoiceRow } = await db
-        .from("finance_invoices")
-        .select("id")
-        .eq("id", data.invoiceId)
-        .eq("school_id", membership.schoolId)
-        .maybeSingle();
-      if (!invoiceRow) throw new Error("Fatura não encontrada nesta escola.");
-    }
-
     const { data: plan, error } = await db
       .from("finance_payment_plans")
       .insert({

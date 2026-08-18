@@ -70,7 +70,11 @@ export function PremiumModal({
         <div
           className={cn(
             "overflow-y-auto px-6 py-5",
-            size === "full" ? "max-h-[calc(96vh-10rem)]" : size === "xl" ? "max-h-[78vh]" : "max-h-[60vh]",
+            size === "full"
+              ? "max-h-[calc(96vh-10rem)]"
+              : size === "xl"
+                ? "max-h-[78vh]"
+                : "max-h-[60vh]",
           )}
         >
           {children}

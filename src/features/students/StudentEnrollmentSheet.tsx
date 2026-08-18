@@ -183,7 +183,11 @@ export function StudentEnrollmentSheet({
             return (
               <SheetGrid>
                 <SheetCell label="Nome completo" full>
-                  <Input aria-label="Nome completo" value={values.nome} onChange={(e) => setField("nome", e.target.value)} />
+                  <Input
+                    aria-label="Nome completo"
+                    value={values.nome}
+                    onChange={(e) => setField("nome", e.target.value)}
+                  />
                 </SheetCell>
                 <SheetCell label="Data de nascimento">
                   <Input
@@ -256,7 +260,11 @@ export function StudentEnrollmentSheet({
                   />
                 </SheetCell>
                 <SheetCell label="Observações" full>
-                  <Textarea aria-label="Observações" value={values.obs} onChange={(e) => setField("obs", e.target.value)} />
+                  <Textarea
+                    aria-label="Observações"
+                    value={values.obs}
+                    onChange={(e) => setField("obs", e.target.value)}
+                  />
                 </SheetCell>
               </SheetGrid>
             );

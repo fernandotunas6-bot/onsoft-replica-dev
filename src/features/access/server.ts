@@ -240,7 +240,9 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
         schoolId,
         userId: data.userId,
         actorId: context.userId,
-        fullName: String(authUser.user?.user_metadata?.["full_name"] ?? authUser.user?.email ?? "Professor"),
+        fullName: String(
+          authUser.user?.user_metadata?.["full_name"] ?? authUser.user?.email ?? "Professor",
+        ),
         email: String(authUser.user?.email ?? ""),
       });
     }

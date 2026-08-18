@@ -3,12 +3,19 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { canWriteFileArea, defaultVisibilityForArea, fileAreaMeta, visibleAreasForRole } from "./kinds";
+import {
+  canWriteFileArea,
+  defaultVisibilityForArea,
+  fileAreaMeta,
+  visibleAreasForRole,
+} from "./kinds";
 import { readFilesPrefs, writeFilesPrefs, type FilesStaffPrefs } from "./prefs";
 
 export function FilesSettingsPanel() {
   const account = useCurrentAccount();
-  const areas = visibleAreasForRole(account.role).filter((area) => canWriteFileArea(account.role, area));
+  const areas = visibleAreasForRole(account.role).filter((area) =>
+    canWriteFileArea(account.role, area),
+  );
   const [prefs, setPrefs] = useState<FilesStaffPrefs>(() => readFilesPrefs(account.role));
 
   const save = () => {
@@ -20,10 +27,10 @@ export function FilesSettingsPanel() {
     <div className="space-y-5">
       <p className="text-sm text-muted-foreground">
         O SIGA não usa uma chave de armazenamento gratuita partilhada — isso misturaria ficheiros de
-        todas as escolas e atrasaria o sistema. Os bytes ficam no bucket privado <strong>siga-files</strong>{" "}
-        do SGA. Se o bucket ou a tabela ainda não existirem, o ficheiro fica neste dispositivo
-        (pastas ano/mês/área, como o WhatsApp). Microsoft 365 / OneDrive é opcional e catalog-ready
-        em Integrações.
+        todas as escolas e atrasaria o sistema. Os bytes ficam no bucket privado{" "}
+        <strong>siga-files</strong> do SGA. Se o bucket ou a tabela ainda não existirem, o ficheiro
+        fica neste dispositivo (pastas ano/mês/área, como o WhatsApp). Microsoft 365 / OneDrive é
+        opcional e catalog-ready em Integrações.
       </p>
       <div className="space-y-1.5">
         <Label htmlFor="files-area">Área por defeito ao carregar</Label>

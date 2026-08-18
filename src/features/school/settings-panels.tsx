@@ -1304,6 +1304,46 @@ export function IntegrationsPanel() {
   return (
     <div className="space-y-8">
       <AcademicIntegrationsCatalog />
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">G</span>
+            <h5 className="text-sm font-semibold text-foreground">Google Workspace & Cloud Conectados</h5>
+          </div>
+          <Badge variant="default" className="bg-success text-success-foreground hover:bg-success">
+            Ativo (OAuth 2.0)
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          As integrações do Google Workspace (Google Calendar, Gmail, Google Drive, Google Sheets, Google Docs e Google Tasks) estão habilitadas para complementar o SIGA. O Supabase continua a ser a base de dados principal e oficial do sistema.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-xs">
+          <div className="rounded-md border border-border/70 bg-card p-2">
+            <span className="font-medium text-foreground">Google Calendar</span>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Sincronização de aulas e exames</p>
+          </div>
+          <div className="rounded-md border border-border/70 bg-card p-2">
+            <span className="font-medium text-foreground">Gmail</span>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Notificações e avisos oficiais</p>
+          </div>
+          <div className="rounded-md border border-border/70 bg-card p-2">
+            <span className="font-medium text-foreground">Google Sheets</span>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Exportação de pautas e relatórios</p>
+          </div>
+          <div className="rounded-md border border-border/70 bg-card p-2">
+            <span className="font-medium text-foreground">Google Drive</span>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Dossiês e arquivo pedagógico</p>
+          </div>
+          <div className="rounded-md border border-border/70 bg-card p-2">
+            <span className="font-medium text-foreground">Google Docs</span>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Declarações e minutas</p>
+          </div>
+          <div className="rounded-md border border-border/70 bg-card p-2">
+            <span className="font-medium text-foreground">Google Tasks</span>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Tarefas da secretaria</p>
+          </div>
+        </div>
+      </div>
       {installed.isInstalled("resend_email") ? (
         <p className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-xs text-muted-foreground">
           <strong>Resend</strong> já está instalado para e-mail transaccional da escola. O Gmail

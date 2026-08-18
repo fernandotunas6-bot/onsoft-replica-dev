@@ -20,10 +20,11 @@ import {
 
 describe("renderHandlebars", () => {
   it("interpola, escapa e injeta CSS cru", () => {
-    const html = renderHandlebars(
-      "<p>{{name}}</p><style>{{{css}}}</style><span>{{raw}}</span>",
-      { name: "Ana <b>X</b>", css: "body{color:red}", raw: "ok" },
-    );
+    const html = renderHandlebars("<p>{{name}}</p><style>{{{css}}}</style><span>{{raw}}</span>", {
+      name: "Ana <b>X</b>",
+      css: "body{color:red}",
+      raw: "ok",
+    });
     expect(html).toContain("Ana &lt;b&gt;X&lt;/b&gt;");
     expect(html).toContain("body{color:red}");
     expect(html).toContain("ok");
@@ -40,10 +41,9 @@ describe("renderHandlebars", () => {
   });
 
   it("avalia if aninhado dentro de each", () => {
-    const html = renderHandlebars(
-      "{{#each rows}}{{#if ok}}OK{{else}}NO{{/if}} {{/each}}",
-      { rows: [{ ok: true }, { ok: false }] },
-    );
+    const html = renderHandlebars("{{#each rows}}{{#if ok}}OK{{else}}NO{{/if}} {{/each}}", {
+      rows: [{ ok: true }, { ok: false }],
+    });
     expect(html).toContain("OK");
     expect(html).toContain("NO");
   });
@@ -78,9 +78,9 @@ describe("matchPrintTemplateKey", () => {
   });
 
   it("usa o modelo activo quando o tipo não é reconhecido", () => {
-    expect(
-      matchPrintTemplateKey("Documento avulso", { issue: "service-document" }),
-    ).toBe("service-document");
+    expect(matchPrintTemplateKey("Documento avulso", { issue: "service-document" })).toBe(
+      "service-document",
+    );
   });
 
   it("permite substituir o tipo por um modelo escolhido", () => {
@@ -200,9 +200,9 @@ describe("overlays de emissão", () => {
 describe("modelos em public/templates", () => {
   it("alinha PRINT_TEMPLATE_KEYS com template-registry.json", async () => {
     const root = join(process.cwd(), "public/templates");
-    const registry = JSON.parse(
-      await readFile(join(root, "template-registry.json"), "utf8"),
-    ) as { templates: Array<{ key: string }> };
+    const registry = JSON.parse(await readFile(join(root, "template-registry.json"), "utf8")) as {
+      templates: Array<{ key: string }>;
+    };
     const registryKeys = registry.templates.map((item) => item.key).sort();
     expect([...PRINT_TEMPLATE_KEYS].sort()).toEqual(registryKeys);
   });

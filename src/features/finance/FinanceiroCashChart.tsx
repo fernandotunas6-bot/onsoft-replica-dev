@@ -23,7 +23,11 @@ export function FinanceiroCashChart({
         <BarChart data={data}>
           <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis dataKey="mes" {...axis} />
-          <YAxis {...axis} tickFormatter={(v: number) => `${Math.round(v / 1_000_000)}M`} width={40} />
+          <YAxis
+            {...axis}
+            tickFormatter={(v: number) => `${Math.round(v / 1_000_000)}M`}
+            width={40}
+          />
           <Tooltip
             formatter={(v) => kwanza(Number(v))}
             contentStyle={{

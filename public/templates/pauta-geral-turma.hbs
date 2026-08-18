@@ -1,152 +1,170 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>{{{css}}}</style>
-</head>
-<body>
-  <main class="document document-pauta-turma">
-    <header class="angola-official-header" style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #009a5a;">
-      {{#if school.emblemUrl}}
-      <img src="{{school.emblemUrl}}" alt="Emblema de Angola" style="width:64px;height:64px;object-fit:contain;" />
-      {{/if}}
-      <div style="flex:1;text-align:center;">
-        <div style="font-size:11px;letter-spacing:0.18em;font-weight:700;">{{school.ministry}}</div>
-        <div style="font-size:12px;letter-spacing:0.08em;font-weight:700;margin-top:4px;">{{school.ministryLine}}</div>
-        <div style="font-size:14px;font-weight:700;margin-top:8px;">{{school.name}}</div>
-        <div style="font-size:11px;margin-top:4px;color:#444;">{{school.address}}</div>
-      </div>
-      {{#if school.logoUrl}}
-      <img src="{{school.logoUrl}}" alt="Logotipo da escola" style="width:64px;height:64px;object-fit:contain;" />
-      {{else}}
-      {{#if school.flagUrl}}
-      <img src="{{school.flagUrl}}" alt="Bandeira de Angola" style="width:72px;height:48px;object-fit:contain;" />
-      {{/if}}
-      {{/if}}
-    </header>
-
-    <section class="official-sheet">
-      <aside class="sheet-sidebar">
-        <img class="logo" src="{{school.logoUrl}}" />
-        <p><b>{{school.name}}</b></p>
-        <p>{{school.address}}</p>
-        <p><b>Telefone:</b><br />{{school.phone}}</p>
-        <p><b>Email:</b><br />{{school.email}}</p>
-        <p><b>NIF:</b><br />{{school.nif}}</p>
-        <p><b>Contexto:</b><br />{{angola.country}}<br />{{angola.gradingScale}}</p>
-      </aside>
-
-      <section>
-        <div class="sheet-main-header">
-          <div class="sheet-label">" Documento Oficial — Pauta Geral da Turma "</div>
-          <div class="sheet-number">Nº: {{document.number}}</div>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <main class="document document-pauta-turma">
+      <header
+        class="angola-official-header"
+        style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #009a5a;"
+      >
+        {{#if school.emblemUrl}}
+          <img
+            src="{{school.emblemUrl}}"
+            alt="Emblema de Angola"
+            style="width:64px;height:64px;object-fit:contain;"
+          />
+        {{/if}}
+        <div style="flex:1;text-align:center;">
+          <div
+            style="font-size:11px;letter-spacing:0.18em;font-weight:700;"
+          >{{school.ministry}}</div>
+          <div
+            style="font-size:12px;letter-spacing:0.08em;font-weight:700;margin-top:4px;"
+          >{{school.ministryLine}}</div>
+          <div style="font-size:14px;font-weight:700;margin-top:8px;">{{school.name}}</div>
+          <div style="font-size:11px;margin-top:4px;color:#444;">{{school.address}}</div>
         </div>
+        {{#if school.logoUrl}}
+          <img
+            src="{{school.logoUrl}}"
+            alt="Logotipo da escola"
+            style="width:64px;height:64px;object-fit:contain;"
+          />
+        {{else}}
+          {{#if school.flagUrl}}
+            <img
+              src="{{school.flagUrl}}"
+              alt="Bandeira de Angola"
+              style="width:72px;height:48px;object-fit:contain;"
+            />
+          {{/if}}
+        {{/if}}
+      </header>
 
-        <div class="sheet-main-header">
-          <div>
-            <div class="sheet-info"><b>Classe</b><span>{{classGroup.level}}</span></div>
-            <div class="sheet-info"><b>Turma</b><span>{{classGroup.name}}</span></div>
-            <div class="sheet-info"><b>Curso</b><span>{{classGroup.course}}</span></div>
-            <div class="sheet-info"><b>Ano</b><span>{{academicYear.name}}</span></div>
-            <div class="sheet-info"><b>Período</b><span>{{period.name}}</span></div>
-            <div class="sheet-info"><b>Turno</b><span>{{classGroup.shift}}</span></div>
-          </div>
-          <div class="sheet-observations">
-            <b>Observações</b><br />
-            Nota mínima positiva: {{angola.minimumPass}} valores.<br />
-            Documento derivado das notas oficiais registadas no SIGE.<br />
-            <div class="teacher-line">Director de Turma: <b>{{teacher.fullName}}</b></div>
-          </div>
-        </div>
+      <section class="official-sheet">
+        <aside class="sheet-sidebar">
+          <img class="logo" src="{{school.logoUrl}}" />
+          <p><b>{{school.name}}</b></p>
+          <p>{{school.address}}</p>
+          <p><b>Telefone:</b><br />{{school.phone}}</p>
+          <p><b>Email:</b><br />{{school.email}}</p>
+          <p><b>NIF:</b><br />{{school.nif}}</p>
+          <p><b>Contexto:</b><br />{{angola.country}}<br />{{angola.gradingScale}}</p>
+        </aside>
 
-        <table class="compact-table">
-          <thead>
-            <tr>
-              <th>Nº</th>
-              <th>Foto</th>
-              <th>Nº Aluno</th>
-              <th class="student-name">Nome do aluno</th>
-              <th>Sexo</th>
-              {{#each subjects}}<th>{{shortName}}</th>{{/each}}
-              <th>Prom.</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each students}}
-            <tr>
-              <td>{{index}}</td>
-              <td style="width:36px;text-align:center;">
-                {{#if photoUrl}}
-                <img src="{{photoUrl}}" alt="" style="width:28px;height:28px;object-fit:cover;border-radius:999px;border:1px solid #ccc;" />
-                {{else}}
-                <span style="display:inline-block;width:28px;height:28px;border-radius:999px;background:#e5e7eb;"></span>
-                {{/if}}
-              </td>
-              <td>{{academicNumber}}</td>
-              <td class="student-name">{{fullName}}</td>
-              <td>{{gender}}</td>
-              {{#each subjectGrades}}<td>{{this}}</td>{{/each}}
-              <td><b>{{average}}</b></td>
-              <td data-status="{{status}}">{{status}}</td>
-            </tr>
+        <section>
+          <div class="sheet-main-header">
+            <div class="sheet-label">" Documento Oficial — Pauta Geral da Turma "</div>
+            <div class="sheet-number">Nº: {{document.number}}</div>
+          </div>
+
+          <div class="sheet-main-header">
+            <div>
+              <div class="sheet-info"><b>Classe</b><span>{{classGroup.level}}</span></div>
+              <div class="sheet-info"><b>Turma</b><span>{{classGroup.name}}</span></div>
+              <div class="sheet-info"><b>Curso</b><span>{{classGroup.course}}</span></div>
+              <div class="sheet-info"><b>Ano</b><span>{{academicYear.name}}</span></div>
+              <div class="sheet-info"><b>Período</b><span>{{period.name}}</span></div>
+              <div class="sheet-info"><b>Turno</b><span>{{classGroup.shift}}</span></div>
+            </div>
+            <div class="sheet-observations">
+              <b>Observações</b><br />
+              Nota mínima positiva:
+              {{angola.minimumPass}}
+              valores.<br />
+              Documento derivado das notas oficiais registadas no SIGE.<br />
+              <div class="teacher-line">Director de Turma: <b>{{teacher.fullName}}</b></div>
+            </div>
+          </div>
+
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Nº</th>
+                <th>Foto</th>
+                <th>Nº Aluno</th>
+                <th class="student-name">Nome do aluno</th>
+                <th>Sexo</th>
+                {{#each subjects}}<th>{{shortName}}</th>{{/each}}
+                <th>Prom.</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each students}}
+                <tr>
+                  <td>{{index}}</td>
+                  <td style="width:36px;text-align:center;">
+                    {{#if photoUrl}}
+                      <img
+                        src="{{photoUrl}}"
+                        alt=""
+                        style="width:28px;height:28px;object-fit:cover;border-radius:999px;border:1px solid #ccc;"
+                      />
+                    {{else}}
+                      <span
+                        style="display:inline-block;width:28px;height:28px;border-radius:999px;background:#e5e7eb;"
+                      ></span>
+                    {{/if}}
+                  </td>
+                  <td>{{academicNumber}}</td>
+                  <td class="student-name">{{fullName}}</td>
+                  <td>{{gender}}</td>
+                  {{#each subjectGrades}}<td>{{this}}</td>{{/each}}
+                  <td><b>{{average}}</b></td>
+                  <td data-status="{{status}}">{{status}}</td>
+                </tr>
+              {{/each}}
+            </tbody>
+          </table>
+
+          <div class="sheet-label">
+            Fim da Lista de Alunos — Total:
+            {{summary.total}}
+            | Aprovados:
+            {{summary.approved}}
+            | Reprovados:
+            {{summary.failed}}
+            | Taxa:
+            {{summary.approvalRate}}%
+          </div>
+
+          <section class="footer">
+            {{#each signatures}}
+              <div class="signature">{{label}}</div>
             {{/each}}
-          </tbody>
-        </table>
+          </section>
 
-        <div class="sheet-label">
-          Fim da Lista de Alunos — Total: {{summary.total}} | Aprovados: {{summary.approved}} | Reprovados: {{summary.failed}} | Taxa: {{summary.approvalRate}}%
-        </div>
-
-        <section class="footer">
-          {{#each signatures}}
-          <div class="signature">{{label}}</div>
-          {{/each}}
-        </section>
-
-        <section class="validation">
-          {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-          <div>
-            Hash: {{document.hash}}<br />
-            {{document.sourceNote}}<br />
-            Emitido em {{document.issuedAtLabel}} por {{document.issuedBy}}.
-          </div>
+          <section class="validation">
+            {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+            <div>
+              Hash:
+              {{document.hash}}<br />
+              {{document.sourceNote}}<br />
+              Emitido em
+              {{document.issuedAtLabel}}
+              por
+              {{document.issuedBy}}.
+            </div>
+          </section>
         </section>
       </section>
-    </section>
-  </main>
-</body>
+    </main>
+  </body>
 </html>

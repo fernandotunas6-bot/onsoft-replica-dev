@@ -36,6 +36,7 @@ const integrationTargets: Record<
   multicaixa_express: { type: "route", to: "/financeiro" },
   unitel_money: { type: "route", to: "/financeiro" },
   whatsapp_business: { type: "route", to: "/pedagogica", search: { tab: "turmas" } },
+  gmail_workspace: { type: "route", to: "/comunicacoes" },
   google_classroom: { type: "route", to: "/pedagogica", search: { tab: "turmas" } },
   moodle: { type: "route", to: "/pedagogica", search: { tab: "turmas" } },
   canvas: { type: "route", to: "/pedagogica", search: { tab: "turmas" } },
@@ -43,6 +44,7 @@ const integrationTargets: Record<
   google_calendar: { type: "ics" },
   apple_calendar: { type: "ics" },
   resend_email: { type: "route", to: "/comunicacoes" },
+  firebase_analytics: { type: "settings", panelId: "integracoes" },
   zoom: { type: "route", to: "/pedagogica", search: { tab: "horarios" } },
   teams: { type: "route", to: "/pedagogica", search: { tab: "horarios" } },
   turnitin: { type: "route", to: "/pedagogica", search: { tab: "notas" } },
@@ -56,11 +58,13 @@ const integrationShortNames: Partial<
   multicaixa_express: "Multicaixa",
   unitel_money: "Unitel Money",
   whatsapp_business: "WhatsApp",
+  gmail_workspace: "Gmail",
   google_classroom: "Classroom",
   microsoft_365_education: "Microsoft 365",
   google_calendar: "Google Calendar",
   apple_calendar: "Calendário Apple",
   resend_email: "Email",
+  firebase_analytics: "Firebase",
   agt: "AGT",
 };
 
@@ -69,6 +73,7 @@ const catalogGroupToSection: Record<string, LauncherSectionId> = {
   Comunicação: "communication",
   Académico: "academic",
   Calendário: "calendar",
+  Monitorização: "state",
   Aulas: "lessons",
   Estado: "state",
 };
@@ -310,9 +315,7 @@ export function launcherAppPath(app: LauncherApp) {
 
 export function hrefForLauncherApp(app: LauncherApp) {
   if (app.target.type === "settings") {
-    const query = app.target.panelId
-      ? `?painel=${encodeURIComponent(app.target.panelId)}`
-      : "";
+    const query = app.target.panelId ? `?painel=${encodeURIComponent(app.target.panelId)}` : "";
     return `/configuracoes${query}`;
   }
   if (app.target.type === "ics") return "/calendario";
@@ -320,11 +323,7 @@ export function hrefForLauncherApp(app: LauncherApp) {
   return `${app.target.to}${query}`;
 }
 
-export function canOpenLauncherApp(
-  app: LauncherApp,
-  role: string,
-  grants: ModuleGrantMap = {},
-) {
+export function canOpenLauncherApp(app: LauncherApp, role: string, grants: ModuleGrantMap = {}) {
   if (app.target.type === "settings") return canAccessPath("/configuracoes", role, grants);
   if (app.target.type === "ics") return canAccessPath("/calendario", role, grants);
   return canAccessPath(app.target.to, role, grants);
@@ -395,14 +394,17 @@ export function searchLauncherApps(
 }
 
 export function isLauncherAppCurrent(app: LauncherApp, pathname: string, search = "") {
-  if (app.target.type === "ics") return pathname === "/calendario" || pathname.startsWith("/calendario/");
+  if (app.target.type === "ics")
+    return pathname === "/calendario" || pathname.startsWith("/calendario/");
   if (app.target.type !== "route") return false;
   if (app.target.to === "/") return pathname === "/";
   const onRoute = pathname === app.target.to || pathname.startsWith(`${app.target.to}/`);
   if (!onRoute) return false;
   if (app.target.search?.["tab"]) {
-    return new URLSearchParams(search.startsWith("?") ? search.slice(1) : search).get("tab") ===
-      app.target.search["tab"];
+    return (
+      new URLSearchParams(search.startsWith("?") ? search.slice(1) : search).get("tab") ===
+      app.target.search["tab"]
+    );
   }
   return true;
 }

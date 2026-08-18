@@ -3,11 +3,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  lookupAngolaBiOnline,
-  validateAngolaBi,
-  validateAngolaNif,
-} from "@/lib/angola-identity";
+import { lookupAngolaBiOnline, validateAngolaBi, validateAngolaNif } from "@/lib/angola-identity";
 
 type AngolaIdentityFieldProps = {
   id: string;

@@ -86,7 +86,11 @@ export const spotlightItemSchema = z
     roles: z.array(z.enum(applicationRoles)).optional(),
     startsOn: spotlightDaySchema.optional(),
     endsOn: spotlightDaySchema.optional(),
-    surfaces: z.array(z.enum(["drawer", "home"])).min(1).max(2).optional(),
+    surfaces: z
+      .array(z.enum(["drawer", "home"]))
+      .min(1)
+      .max(2)
+      .optional(),
     link: spotlightLinkSchema,
   })
   .superRefine((item, ctx) => {
@@ -140,10 +144,7 @@ export function visibleSpotlights(
     .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, "pt"));
 }
 
-export function resolveSpotlightPath(
-  item: SpotlightItem,
-  canAccess: (path: string) => boolean,
-) {
+export function resolveSpotlightPath(item: SpotlightItem, canAccess: (path: string) => boolean) {
   if (item.link.type !== "internal") return null;
   if (canAccess(item.link.to)) return item.link.to;
   if (item.link.fallbackTo && canAccess(item.link.fallbackTo)) return item.link.fallbackTo;
@@ -159,7 +160,11 @@ export const spotlightItemOverrideSchema = z.object({
   roles: z.array(z.enum(applicationRoles)).optional(),
   startsOn: z.union([spotlightDaySchema, z.null()]).optional(),
   endsOn: z.union([spotlightDaySchema, z.null()]).optional(),
-  surfaces: z.array(z.enum(["drawer", "home"])).min(1).max(2).optional(),
+  surfaces: z
+    .array(z.enum(["drawer", "home"]))
+    .min(1)
+    .max(2)
+    .optional(),
   link: spotlightLinkSchema.optional(),
   kind: z.enum(spotlightKinds).optional(),
   icon: z.string().min(1).optional(),
@@ -239,7 +244,8 @@ export function applySpotlightOverrides(
       title: patch.title ?? item.title,
       body: patch.body ?? item.body,
       cta: patch.cta ?? item.cta,
-      roles: patch.roles !== undefined ? (patch.roles.length ? patch.roles : undefined) : item.roles,
+      roles:
+        patch.roles !== undefined ? (patch.roles.length ? patch.roles : undefined) : item.roles,
       startsOn: patch.startsOn === null ? undefined : (patch.startsOn ?? item.startsOn),
       endsOn: patch.endsOn === null ? undefined : (patch.endsOn ?? item.endsOn),
       surfaces: patch.surfaces ?? item.surfaces,

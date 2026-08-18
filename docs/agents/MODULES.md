@@ -2,20 +2,20 @@
 
 Fonte de verdade: [`scripts/siga/modules.json`](../../scripts/siga/modules.json).
 
-| id | Skill | Rotas | Feature |
-| --- | --- | --- | --- |
-| dashboard | `siga-dashboard` | `/` | `features/dashboard`, `TeacherWorkspacePanel` |
-| alunos | `siga-alunos` | `/alunos`, `/alunos/$id` | `features/students` |
-| pessoas | `siga-pessoas` | `/pessoas`, `/professores/$id` | `features/people` |
-| pedagogica | `siga-pedagogica` | `/pedagogica` | `features/academic` |
-| financeiro | `siga-financeiro` | `/financeiro`, `/faturas` | `features/finance` |
-| documentos | `siga-documentos` | `/documentos` | `features/documents` |
-| calendario | `siga-calendario` | `/calendario`, `/calendario/ics` | `features/calendar` |
-| comunicacoes | `siga-comunicacoes` | `/comunicacoes` | `features/communications` |
-| acessos | `siga-acessos` | `/acessos` | `features/access`, `access-policy` |
-| matricula | `siga-matricula` | `/matricula/$slug` | `features/enrollment` |
-| integracoes | `siga-integracoes` | Settings, waffle | `features/integrations` |
-| arquivos | `siga-arquivos` | `/arquivos` (waffle) | `features/arquivos` |
+| id           | Skill               | Rotas                            | Feature                                       |
+| ------------ | ------------------- | -------------------------------- | --------------------------------------------- |
+| dashboard    | `siga-dashboard`    | `/`                              | `features/dashboard`, `TeacherWorkspacePanel` |
+| alunos       | `siga-alunos`       | `/alunos`, `/alunos/$id`         | `features/students`                           |
+| pessoas      | `siga-pessoas`      | `/pessoas`, `/professores/$id`   | `features/people`                             |
+| pedagogica   | `siga-pedagogica`   | `/pedagogica`                    | `features/academic`                           |
+| financeiro   | `siga-financeiro`   | `/financeiro`, `/faturas`        | `features/finance`                            |
+| documentos   | `siga-documentos`   | `/documentos`                    | `features/documents`                          |
+| calendario   | `siga-calendario`   | `/calendario`, `/calendario/ics` | `features/calendar`                           |
+| comunicacoes | `siga-comunicacoes` | `/comunicacoes`                  | `features/communications`                     |
+| acessos      | `siga-acessos`      | `/acessos`                       | `features/access`, `access-policy`            |
+| matricula    | `siga-matricula`    | `/matricula/$slug`               | `features/enrollment`                         |
+| integracoes  | `siga-integracoes`  | Settings, waffle                 | `features/integrations`                       |
+| arquivos     | `siga-arquivos`     | `/arquivos` (waffle)             | `features/arquivos`                           |
 
 ## Integrações (catalog-ready)
 

@@ -13,12 +13,14 @@ import {
   Download,
   FileDown,
   FileText,
+  Search,
   ArrowRightLeft,
   UserPlus,
   Users,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { whatsappHref } from "@/features/integrations/actions";
 import { AppMark } from "@/features/integrations/app-marks";
@@ -57,7 +59,7 @@ import { usePersistedListFilters } from "@/lib/list-filters";
 
 const alunosSearchSchema = z
   .object({
-    action: z.enum(["matricular", "estado"]).optional(),
+    action: z.enum(["matricular", "confirmar", "estado"]).optional(),
   })
   .passthrough();
 
@@ -103,6 +105,7 @@ const estadoLabels: Record<string, string> = {
   inactive: "Inactivo",
   transferred: "Transferido",
   graduated: "Concluído",
+  applicant: "Candidato",
 };
 
 const estadoTone: Record<string, string> = {
@@ -110,6 +113,7 @@ const estadoTone: Record<string, string> = {
   inactive: "bg-muted text-muted-foreground",
   transferred: "border border-destructive/30 bg-destructive/10 text-destructive-strong",
   graduated: "bg-success/15 text-success",
+  applicant: "bg-warning/20 text-warning-foreground",
 };
 
 const pagamentoLabels: Record<string, string> = {
@@ -163,15 +167,18 @@ function StudentsPage() {
   const sigeOn = installed.hasCapability("sige.export_students");
 
   useEffect(() => {
-    if (action === "estado") setFilter("estado", "todos");
+    if (action === "confirmar") setFilter("estado", "applicant");
+    else if (action === "estado") setFilter("estado", "todos");
   }, [action, setFilter]);
 
   const actionHint =
     action === "matricular"
       ? "Abra o formulário de nova matrícula para registar o aluno."
-      : action === "estado"
-        ? "Use Estado na lista para activar, transferir ou concluir o aluno."
-        : null;
+      : action === "confirmar"
+        ? "Candidatos sem turma. Use Turma na lista ou abra a ficha para confirmar a matrícula."
+        : action === "estado"
+          ? "Use Estado na lista para activar, transferir ou concluir o aluno."
+          : null;
 
   const studentsQuery = useQuery({
     queryKey: ["students", "search"],
@@ -482,7 +489,7 @@ function StudentsPage() {
             {
               label: "Activos",
               value: allStudents.filter(
-                (s) => s.student_status === "active" || Boolean(s.class_name),
+                (s) => ["active", "applicant"].includes(s.student_status) || Boolean(s.class_name),
               ).length,
               hint: "Matrícula em curso",
             },
@@ -597,7 +604,35 @@ function StudentsPage() {
           ]}
         />
 
-        <div className="rounded-xl border border-border bg-card shadow-soft">
+        <div className="surface-card rounded-2xl border border-border p-4 shadow-soft space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border">
+            <div className="relative flex-1 min-w-[240px] max-w-md">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Pesquisar aluno em tempo real..."
+                value={query}
+                onChange={(e) => {
+                  setFilter("q", e.target.value);
+                  setPage(1);
+                }}
+                className="pl-9 h-9 text-sm rounded-xl"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-2 rounded-xl text-xs font-semibold"
+                onClick={exportarAlunosOficial}
+                disabled={!filtered.length}
+              >
+                <FileText className="size-4 text-primary" />
+                Exportar PDF
+              </Button>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <Table className="min-w-[880px]">
               <TableHeader>
@@ -699,14 +734,14 @@ function StudentsPage() {
                               <FileText className="size-3.5" /> Ficha
                             </Link>
                           </Button>
-                          {s.student_status === "active" &&
+                          {s.student_status === "applicant" &&
                           !s.class_name &&
                           turmaOptions.length > 0 ? (
                             <QuickFormModal
                               title={`Colocar ${s.full_name} na turma`}
-                              description="Atribui uma turma ao aluno."
+                              description="Confirma a matrícula e activa o aluno na turma escolhida."
                               submitLabel="Colocar na turma"
-                              successDescription="Aluno colocado na turma."
+                              successDescription="Aluno colocado na turma e estado actualizado para activo."
                               fields={[
                                 {
                                   name: "turma",
@@ -815,66 +850,68 @@ function StudentsPage() {
                               )}
                             />
                           ) : null}
-                          <QuickFormModal
-                            title={`Estado de ${s.full_name}`}
-                            description="Altera o estado académico sem abrir a ficha."
-                            submitLabel="Actualizar estado"
-                            successDescription="Estado do aluno actualizado."
-                            fields={[
-                              {
-                                name: "estado",
-                                label: "Estado",
-                                type: "select",
-                                required: true,
-                                defaultValue: estadoLabels[s.student_status] ?? "Activo",
-                                options: ["Activo", "Inactivo", "Transferido", "Concluído"],
-                              },
-                              {
-                                name: "motivo",
-                                label: "Motivo",
-                                type: "textarea",
-                                required: false,
-                                full: true,
-                              },
-                            ]}
-                            onSubmit={async (values) => {
-                              const statusMap: Record<
-                                string,
-                                "active" | "inactive" | "transferred" | "graduated"
-                              > = {
-                                Activo: "active",
-                                Inactivo: "inactive",
-                                Transferido: "transferred",
-                                Concluído: "graduated",
-                              };
-                              const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
-                              await changeStudentStatus({
-                                data: {
-                                  studentId: s.id,
-                                  newStatus,
-                                  reason: values["motivo"] || undefined,
+                          {s.student_status !== "applicant" ? (
+                            <QuickFormModal
+                              title={`Estado de ${s.full_name}`}
+                              description="Altera o estado académico sem abrir a ficha."
+                              submitLabel="Actualizar estado"
+                              successDescription="Estado do aluno actualizado."
+                              fields={[
+                                {
+                                  name: "estado",
+                                  label: "Estado",
+                                  type: "select",
+                                  required: true,
+                                  defaultValue: estadoLabels[s.student_status] ?? "Activo",
+                                  options: ["Activo", "Inactivo", "Transferido", "Concluído"],
                                 },
-                              });
-                              await Promise.all([
-                                queryClient.invalidateQueries({
-                                  queryKey: ["students", "search"],
-                                }),
-                                queryClient.invalidateQueries({
-                                  queryKey: ["dashboard", "overview"],
-                                }),
-                              ]);
-                            }}
-                            trigger={(open) => (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 gap-1 px-2 text-xs"
-                                onClick={open}
-                              >
-                                Estado
-                              </Button>
-                            )}
-                          />
+                                {
+                                  name: "motivo",
+                                  label: "Motivo",
+                                  type: "textarea",
+                                  required: false,
+                                  full: true,
+                                },
+                              ]}
+                              onSubmit={async (values) => {
+                                const statusMap: Record<
+                                  string,
+                                  "active" | "inactive" | "transferred" | "graduated"
+                                > = {
+                                  Activo: "active",
+                                  Inactivo: "inactive",
+                                  Transferido: "transferred",
+                                  Concluído: "graduated",
+                                };
+                                const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
+                                await changeStudentStatus({
+                                  data: {
+                                    studentId: s.id,
+                                    newStatus,
+                                    reason: values["motivo"] || undefined,
+                                  },
+                                });
+                                await Promise.all([
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["students", "search"],
+                                  }),
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["dashboard", "overview"],
+                                  }),
+                                ]);
+                              }}
+                              trigger={(open) => (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 gap-1 px-2 text-xs"
+                                  onClick={open}
+                                >
+                                  Estado
+                                </Button>
+                              )}
+                            />
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>

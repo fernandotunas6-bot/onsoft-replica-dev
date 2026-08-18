@@ -3,7 +3,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
 import { mapSgaGuardianRelationship } from "@/features/students/schemas";
-import { publicInstalledProviderIds, publicSchoolEmail, publicSchoolPhone } from "@/features/integrations/install";
+import {
+  publicInstalledProviderIds,
+  publicSchoolEmail,
+  publicSchoolPhone,
+} from "@/features/integrations/install";
 import { normalizePersonNif, isAngolaBiNif } from "@/lib/angola-identity";
 import {
   candidacyProcessNumber,
@@ -49,7 +53,11 @@ export const getOrCreateEnrollmentForm = createServerFn({ method: "POST" })
     }
     if (existing.data) return existing.data;
 
-    const school = await db.from("schools").select("name").eq("id", membership.schoolId).maybeSingle();
+    const school = await db
+      .from("schools")
+      .select("name")
+      .eq("id", membership.schoolId)
+      .maybeSingle();
     const slug = `${slugFromSchoolName(String(school.data?.name ?? "escola"))}-matricula`;
     const { data, error } = await db
       .from("enrollment_forms")
@@ -129,7 +137,11 @@ export const getPublicEnrollmentForm = createServerFn({ method: "GET" })
       .eq("id", form.school_id)
       .maybeSingle();
     if (school.error && /phone|email|42703|schema cache/i.test(school.error.message)) {
-      const fallback = await db.from("schools").select("name").eq("id", form.school_id).maybeSingle();
+      const fallback = await db
+        .from("schools")
+        .select("name")
+        .eq("id", form.school_id)
+        .maybeSingle();
       schoolName = fallback.data?.name ?? "Escola";
     } else {
       schoolName = school.data?.name ?? "Escola";
@@ -272,8 +284,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           phone: person.phone_primary || null,
           national_id: normalizedNif,
           date_of_birth: person.birth_date || null,
-          sex:
-            person.sex === "M" ? "male" : person.sex === "F" ? "female" : person.sex || null,
+          sex: person.sex === "M" ? "male" : person.sex === "F" ? "female" : person.sex || null,
           status: "active",
           created_by: context.userId,
           updated_by: context.userId,
@@ -334,7 +345,10 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         },
       );
       if (registerError) {
-        if (registerError.code === "42501" || /is_aal2|autorização/i.test(registerError.message ?? "")) {
+        if (
+          registerError.code === "42501" ||
+          /is_aal2|autorização/i.test(registerError.message ?? "")
+        ) {
           throw new Error(
             "Esta conta precisa de verificação em duas etapas (2FA) activa para aceitar candidaturas.",
           );
@@ -364,7 +378,10 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           enrolled_on: new Date().toISOString().slice(0, 10),
         });
         if (enrollError) {
-          if (enrollError.code === "42501" || /is_aal2|autorização/i.test(enrollError.message ?? "")) {
+          if (
+            enrollError.code === "42501" ||
+            /is_aal2|autorização/i.test(enrollError.message ?? "")
+          ) {
             throw new Error(
               "Aluno criado, mas esta conta precisa de 2FA activo para o colocar na turma.",
             );
@@ -408,7 +425,10 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           .select("id, status")
           .maybeSingle();
         if (fallbackError) {
-          throw publicDatabaseError(fallbackError, "Aluno criado, mas a candidatura não actualizou.");
+          throw publicDatabaseError(
+            fallbackError,
+            "Aluno criado, mas a candidatura não actualizou.",
+          );
         }
         return { ...fallback, studentId };
       }

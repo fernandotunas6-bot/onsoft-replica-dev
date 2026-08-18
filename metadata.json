@@ -1,0 +1,6 @@
+{
+  "name": "SIGA - Sistema Integrado de Gestão Acadêmica",
+  "description": "Sistema integrado de gestão académica, financeira, pedagógica e administrativa para instituições de ensino em Angola.",
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"],
+  "permissions": []
+}

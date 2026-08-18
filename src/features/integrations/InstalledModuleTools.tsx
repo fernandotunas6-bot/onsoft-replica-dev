@@ -113,7 +113,8 @@ export function InstalledModuleTools({
       if (kind === "navigate-arquivos") {
         void navigate({ href: "/arquivos" });
         toast.message(label, {
-          description: "Aberta a biblioteca. OneDrive fica catalog-ready; os bytes estão no SGA ou neste dispositivo.",
+          description:
+            "Aberta a biblioteca. OneDrive fica catalog-ready; os bytes estão no SGA ou neste dispositivo.",
         });
         return;
       }

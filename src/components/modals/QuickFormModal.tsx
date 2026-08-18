@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
-import { formatMutationError } from "@/lib/format-error";
 
 export type QuickField = {
   name: string;
@@ -76,7 +75,7 @@ export function QuickFormModal({
       });
     } catch (error) {
       toast.error("Não foi possível guardar", {
-        description: formatMutationError(error, "Tenta novamente."),
+        description: error instanceof Error ? error.message : "Tenta novamente.",
       });
     } finally {
       setSaving(false);

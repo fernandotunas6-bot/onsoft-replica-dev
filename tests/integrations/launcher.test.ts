@@ -83,7 +83,10 @@ describe("app launcher catalog", () => {
   it("labels integration status and sorts connected apps first", () => {
     expect(integrationStatusLabel("connected")).toBe("Ligado");
     expect(integrationStatusLabel("disconnected")).toBe("Não ligado");
-    const sorted = sortIntegrationsByStatus(launcherIntegrationApps, new Map([["zoom", "connected"]]));
+    const sorted = sortIntegrationsByStatus(
+      launcherIntegrationApps,
+      new Map([["zoom", "connected"]]),
+    );
     expect(sorted[0]?.id).toBe("zoom");
   });
 
@@ -111,6 +114,7 @@ describe("app launcher catalog", () => {
       "Académico",
       "Aulas",
       "Calendário",
+      "Monitorização",
       "Estado",
     ]);
     expect(groups.at(-1)?.items.map((item) => item.id)).toEqual(["sige", "agt"]);
@@ -123,7 +127,9 @@ describe("app launcher catalog", () => {
 
   it("keeps Zoom and Teams in the teaching waffle even when disconnected", () => {
     const compact = compactLauncherSections({ role: "Administrador" });
-    const teaching = compact.find((section) => section.id === "academic")?.apps.map((app) => app.id);
+    const teaching = compact
+      .find((section) => section.id === "academic")
+      ?.apps.map((app) => app.id);
     expect(teaching).toContain("zoom");
     expect(teaching).toContain("teams");
   });

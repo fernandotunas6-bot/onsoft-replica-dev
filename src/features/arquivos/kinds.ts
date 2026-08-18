@@ -52,7 +52,12 @@ const extensionToKind: Record<string, FileKind> = {
 
 export const fileKindMeta: Record<
   FileKind,
-  { label: string; color: string; accept: string; family: "documento" | "imagem" | "dados" | "pasta" }
+  {
+    label: string;
+    color: string;
+    accept: string;
+    family: "documento" | "imagem" | "dados" | "pasta";
+  }
 > = {
   folder: { label: "Pasta", color: "#CA8A04", accept: "", family: "pasta" },
   pdf: { label: "PDF", color: "#DC2626", accept: ".pdf,application/pdf", family: "documento" },
@@ -296,10 +301,7 @@ export function fileNeedsOrganization(file: {
   return false;
 }
 
-export function suggestFileCategory(input: {
-  name: string;
-  kind: FileKind | null;
-}): FileCategory {
+export function suggestFileCategory(input: { name: string; kind: FileKind | null }): FileCategory {
   const n = input.name.toLowerCase();
   if (input.kind && isImageFileFamily(input.kind)) {
     if (/logo|brasao|brasão|icon|ícone|emblema|selo/.test(n) || input.kind === "svg") {
@@ -311,7 +313,8 @@ export function suggestFileCategory(input: {
   if (/certific|diploma|habilita/.test(n)) return "certificado";
   if (/contrato|acordo/.test(n)) return "contrato";
   if (/fatura|factura|invoice/.test(n)) return "fatura";
-  if (/recibo|talao|talão/.test(n)) return /talao|talão|plano|gateway|multicaixa|unitel/.test(n) ? "talao" : "recibo";
+  if (/recibo|talao|talão/.test(n))
+    return /talao|talão|plano|gateway|multicaixa|unitel/.test(n) ? "talao" : "recibo";
   if (/pauta|notas|boletim|mapa/.test(n)) return "pauta";
   if (/comunic|aviso|circular/.test(n)) return "comunicado";
   if (/aula|material|ficha|powerpoint|apresenta|slides/.test(n)) return "material_aula";
@@ -334,7 +337,12 @@ export function suggestFileArea(
   if (category === "foto" || category === "bilhete" || category === "certificado") {
     return pick(["secretaria", "escola", "pessoal"]);
   }
-  if (category === "fatura" || category === "recibo" || category === "contrato" || category === "talao") {
+  if (
+    category === "fatura" ||
+    category === "recibo" ||
+    category === "contrato" ||
+    category === "talao"
+  ) {
     return pick(["secretaria", "escola", "pessoal"]);
   }
   if (category === "comunicado") {

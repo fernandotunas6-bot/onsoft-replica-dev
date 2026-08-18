@@ -1,126 +1,112 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>{{{css}}}</style>
-</head>
-<body>
-  <main class="document document-diario">
-    <section class="official-topline angola-official">
-      {{#if school.emblemUrl}}
-      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
-      {{else}}
-      <img class="logo" src="{{school.logoUrl}}" alt="" />
-      {{/if}}
-      <div class="school-title">
-        <p class="republic">{{school.ministry}}</p>
-        <p class="republic">{{school.ministryLine}}</p>
-        <h1>{{school.name}}</h1>
-        <p>{{school.address}} | NIF {{school.nif}}</p>
-      </div>
-      <div class="official-right">
-        {{#if school.logoUrl}}
-        <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <main class="document document-diario">
+      <section class="official-topline angola-official">
+        {{#if school.emblemUrl}}
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
         {{else}}
-        {{#if school.flagUrl}}
-        <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
         {{/if}}
-        {{/if}}
-        <div class="document-box">Nº {{document.number}}</div>
-      </div>
-    </section>
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          <p>{{school.address}} | NIF {{school.nif}}</p>
+        </div>
+        <div class="official-right">
+          {{#if school.logoUrl}}
+            <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+          {{else}}
+            {{#if school.flagUrl}}
+              <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+            {{/if}}
+          {{/if}}
+          <div class="document-box">Nº {{document.number}}</div>
+        </div>
+      </section>
 
-    <div class="doc-title">Diário Pedagógico do Professor</div>
+      <div class="doc-title">Diário Pedagógico do Professor</div>
 
-    <section class="meta-grid">
-      <div class="meta-box"><b>Professor:</b> {{teacher.fullName}}</div>
-      <div class="meta-box"><b>Disciplina:</b> {{subject.name}}</div>
-      <div class="meta-box"><b>Turma:</b> {{classGroup.name}}</div>
-      <div class="meta-box"><b>Classe/Curso:</b> {{classGroup.level}}</div>
-      <div class="meta-box"><b>Ano lectivo:</b> {{academicYear.name}}</div>
-      <div class="meta-box"><b>Período:</b> {{period.name}}</div>
-    </section>
+      <section class="meta-grid">
+        <div class="meta-box"><b>Professor:</b> {{teacher.fullName}}</div>
+        <div class="meta-box"><b>Disciplina:</b> {{subject.name}}</div>
+        <div class="meta-box"><b>Turma:</b> {{classGroup.name}}</div>
+        <div class="meta-box"><b>Classe/Curso:</b> {{classGroup.level}}</div>
+        <div class="meta-box"><b>Ano lectivo:</b> {{academicYear.name}}</div>
+        <div class="meta-box"><b>Período:</b> {{period.name}}</div>
+      </section>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Hora/Duração</th>
-          <th class="text-left">Tema</th>
-          <th class="text-left">Objectivos</th>
-          <th class="text-left">Metodologia</th>
-          <th class="text-left">Avaliação</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each lessons}}
-        <tr>
-          <td>{{date}}</td>
-          <td>{{time}}</td>
-          <td class="text-left">{{topic}}</td>
-          <td class="text-left">{{objectives}}</td>
-          <td class="text-left">{{methodology}}</td>
-          <td class="text-left">{{assessment}}</td>
-          <td>{{status}}</td>
-        </tr>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Hora/Duração</th>
+            <th class="text-left">Tema</th>
+            <th class="text-left">Objectivos</th>
+            <th class="text-left">Metodologia</th>
+            <th class="text-left">Avaliação</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each lessons}}
+            <tr>
+              <td>{{date}}</td>
+              <td>{{time}}</td>
+              <td class="text-left">{{topic}}</td>
+              <td class="text-left">{{objectives}}</td>
+              <td class="text-left">{{methodology}}</td>
+              <td class="text-left">{{assessment}}</td>
+              <td>{{status}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+
+      <section class="summary-panel">
+        <div><span>Registos</span><strong>{{summary.totalLessons}}</strong></div>
+        <div><span>Fonte</span><strong>{{summary.source}}</strong></div>
+        <div><span>Escala</span><strong>{{angola.gradingScale}}</strong></div>
+        <div><span>Documento</span><strong>Auditado</strong></div>
+      </section>
+
+      <section class="footer">
+        {{#each signatures}}
+          <div class="signature">{{label}}</div>
         {{/each}}
-      </tbody>
-    </table>
+      </section>
 
-    <section class="summary-panel">
-      <div><span>Registos</span><strong>{{summary.totalLessons}}</strong></div>
-      <div><span>Fonte</span><strong>{{summary.source}}</strong></div>
-      <div><span>Escala</span><strong>{{angola.gradingScale}}</strong></div>
-      <div><span>Documento</span><strong>Auditado</strong></div>
-    </section>
-
-    <section class="footer">
-      {{#each signatures}}
-      <div class="signature">{{label}}</div>
-      {{/each}}
-    </section>
-
-    <section class="validation">
-      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-      <div>
-        Documento nº {{document.number}} | Hash {{document.hash}}<br />
-        Emitido em {{document.issuedAtLabel}} por {{document.issuedBy}}.
-      </div>
-    </section>
-  </main>
-</body>
+      <section class="validation">
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        <div>
+          Documento nº
+          {{document.number}}
+          | Hash
+          {{document.hash}}<br />
+          Emitido em
+          {{document.issuedAtLabel}}
+          por
+          {{document.issuedBy}}.
+        </div>
+      </section>
+    </main>
+  </body>
 </html>

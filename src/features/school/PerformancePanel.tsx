@@ -128,10 +128,16 @@ export function PerformancePanel() {
           <Gauge className="size-4" /> Optimizações activas
         </p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>Pré-carregamento leve: até 4 rotas em idle (uma vez por sessão); dados só ao hover no menu.</li>
+          <li>
+            Pré-carregamento leve: até 4 rotas em idle (uma vez por sessão); dados só ao hover no
+            menu.
+          </li>
           <li>Sem MutationObserver global nem polling contínuo nos painéis.</li>
           <li>Gráficos Recharts em chunk lazy (dashboard e pauta pedagógica).</li>
-          <li>Cache Vite: <code className="rounded bg-muted px-1">npm run siga:clean-cache</code> se o dev ficar pesado.</li>
+          <li>
+            Cache Vite: <code className="rounded bg-muted px-1">npm run siga:clean-cache</code> se o
+            dev ficar pesado.
+          </li>
         </ul>
         <p className="mt-2">
           Consola: <code className="rounded bg-muted px-1">window.__sigaPerf</code> e{" "}

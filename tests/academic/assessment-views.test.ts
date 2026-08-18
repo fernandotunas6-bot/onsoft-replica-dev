@@ -50,7 +50,15 @@ describe("assessment context views", () => {
 
   it("lista histórico sem apagar a nota original", () => {
     const lines = changeHistoryLines(
-      [{ item_id: "i1", enrollment_id: "e1", score: 14, previous_score: 8, updated_at: "2026-08-11" }],
+      [
+        {
+          item_id: "i1",
+          enrollment_id: "e1",
+          score: 14,
+          previous_score: 8,
+          updated_at: "2026-08-11",
+        },
+      ],
       [{ id: "i1", name: "Recurso" }],
       [{ id: "e1", student_name: "Noé Mateus" }],
     );

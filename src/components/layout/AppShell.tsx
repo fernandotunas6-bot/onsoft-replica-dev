@@ -248,15 +248,26 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
 
           <div className="ml-auto flex items-center gap-1">
             <AppLauncher onOpenSettings={openSettings} />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="header-icon-btn"
-              onClick={toggleDark}
-              aria-label="Alternar tema"
-            >
-              {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="header-icon-btn"
+                  aria-label="Seletor de tema"
+                >
+                  {isDark ? <Sun className="size-5 text-warning" /> : <Moon className="size-5 text-primary" />}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuLabel>Tema de Apresentação</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toggleDark()} className="gap-2">
+                  {isDark ? <Sun className="size-4 text-warning" /> : <Moon className="size-4 text-primary" />}
+                  {isDark ? "Modo Claro" : "Modo Escuro"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="ghost"
               size="icon"
@@ -483,7 +494,7 @@ function SchoolAlertRow({
   }
   if (alert.href === "/alunos") {
     return (
-      <Link to="/alunos" className={className} onClick={onClose}>
+      <Link to="/alunos" search={{ action: "confirmar" }} className={className} onClick={onClose}>
         {body}
       </Link>
     );

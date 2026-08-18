@@ -44,6 +44,9 @@ export function validateAngolaNif(value: string): {
   error?: string;
 } {
   const compact = normalizeAngolaIdentity(value);
+  if (!compact) {
+    return { ok: true };
+  }
   const bi = validateAngolaBi(compact);
   if (bi.ok) {
     return { ok: true, ...(bi.compact ? { compact: bi.compact } : {}), kind: "individual" };

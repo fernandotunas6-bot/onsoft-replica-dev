@@ -94,10 +94,7 @@ export function initialsFromName(name: string) {
   );
 }
 
-export function gradeMatchesTeachingLevels(
-  gradeName: string,
-  enabled: readonly string[],
-) {
+export function gradeMatchesTeachingLevels(gradeName: string, enabled: readonly string[]) {
   if (!enabled.length) return true;
   return angolaTeachingLevels.some(
     (level) => enabled.includes(level.id) && level.match.test(gradeName),

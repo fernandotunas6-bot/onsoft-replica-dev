@@ -80,10 +80,7 @@ export function MoveItemsDialog({
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button
-            type="button"
-            onClick={() => onConfirm(parentId === "root" ? null : parentId)}
-          >
+          <Button type="button" onClick={() => onConfirm(parentId === "root" ? null : parentId)}>
             Mover
           </Button>
         </DialogFooter>

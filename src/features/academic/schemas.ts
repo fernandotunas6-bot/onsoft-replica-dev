@@ -124,7 +124,11 @@ export const createAssessmentInputSchema = z.object({
   name: z.string().trim().min(2).max(160),
   kind: assessmentKindSchema.default("teste"),
   component: assessmentComponentSchema.default("NPP"),
-  assessedOn: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  assessedOn: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   maxScore: z.number().min(1).max(20).default(20),
   description: optionalText,
   countsTowardPauta: z.boolean().default(true),
@@ -226,9 +230,7 @@ export const assignClassSubjectTeacherInputSchema = z.object({
   subjectId: z.string().uuid(),
   teacherId: z.string().uuid(),
 });
-export type AssignClassSubjectTeacherInput = z.infer<
-  typeof assignClassSubjectTeacherInputSchema
->;
+export type AssignClassSubjectTeacherInput = z.infer<typeof assignClassSubjectTeacherInputSchema>;
 
 export const unassignClassSubjectTeacherInputSchema = z.object({
   classGroupId: z.string().uuid(),

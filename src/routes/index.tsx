@@ -21,6 +21,8 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { DisciplinePerformanceHeatmap } from "@/features/dashboard/components/DisciplinePerformanceHeatmap";
+import { CashFlowForecastChart } from "@/features/dashboard/components/CashFlowForecastChart";
 import { getDashboardOverview } from "@/features/dashboard/server";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
@@ -157,8 +159,20 @@ function Dashboard() {
       icon: Users,
       tone: "primary" as const,
       hint: capabilities.students
-        ? `${data?.totals.activeStudents ?? 0} com matrícula activa`
+        ? `${data?.totals.activeStudents ?? 0} com matrícula activa${
+            data?.totals.applicants
+              ? ` · ${data.totals.applicants} candidato(s) — confirmar matrícula`
+              : ""
+          }`
         : "Sem permissão de leitura académica",
+      href:
+        capabilities.students && (data?.totals.applicants ?? 0) > 0
+          ? ("/alunos" as const)
+          : undefined,
+      search:
+        capabilities.students && (data?.totals.applicants ?? 0) > 0
+          ? { action: "confirmar" as const }
+          : undefined,
     },
     {
       label: "Estudantes masculinos",
@@ -395,12 +409,13 @@ function Dashboard() {
               <Link
                 key={s.label}
                 to={s.href}
-                className="surface-card block p-5 transition-colors hover:border-primary/40"
+                {...(s.search ? { search: s.search } : {})}
+                className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer"
               >
                 {card}
               </Link>
             ) : (
-              <div key={s.label} className="surface-card p-5">
+              <div key={s.label} className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card">
                 {card}
               </div>
             );
@@ -409,7 +424,7 @@ function Dashboard() {
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {miniStats.map((s) => (
-            <div key={s.label} className="surface-card flex items-center gap-4 p-4">
+            <div key={s.label} className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card">
               <IconChip
                 icon={s.icon}
                 size="md"
@@ -702,6 +717,12 @@ function Dashboard() {
               <p className="text-sm text-muted-foreground">Sem distribuição por curso.</p>
             )}
           </section>
+        </div>
+
+        {/* BI EXECUTIVO 360° — HEATMAP DE DESEMPENHO E FLUXO DE CAIXA */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <DisciplinePerformanceHeatmap />
+          {capabilities.finance ? <CashFlowForecastChart /> : null}
         </div>
 
         <section className="surface-card p-5">

@@ -1,120 +1,110 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>{{{css}}}</style>
-</head>
-<body>
-  <main class="document premium-document" data-watermark="{{document.watermarkText}}">
-    <section class="premium-hero">
-      {{#if school.emblemUrl}}
-      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
-      {{else}}
-      <img class="logo" src="{{school.logoUrl}}" alt="" />
-      {{/if}}
-      <div class="school-title">
-        <p class="republic">{{school.ministry}}</p>
-        <p class="republic">{{school.ministryLine}}</p>
-        <h1>{{school.name}}</h1>
-        <p>{{school.address}} | {{school.email}} | {{school.phone}}</p>
-      </div>
-      <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>
-    </section>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <main class="document premium-document" data-watermark="{{document.watermarkText}}">
+      <section class="premium-hero">
+        {{#if school.emblemUrl}}
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
+        {{else}}
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
+        {{/if}}
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          <p>{{school.address}} | {{school.email}} | {{school.phone}}</p>
+        </div>
+        <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>
+      </section>
 
-    <div class="premium-title">Talão de Matrícula</div>
+      <div class="premium-title">Talão de Matrícula</div>
 
-    <section class="premium-grid">
-      <div class="premium-panel">
-        <h3>Estudante</h3>
-        <div class="premium-kv"><span>Nome</span><b>{{student.fullName}}</b></div>
-        <div class="premium-kv"><span>Nº estudantil</span><b>{{student.academicNumber}}</b></div>
-        <div class="premium-kv"><span>Documento</span><b>{{student.docType}} {{student.docNumber}}</b></div>
-        <div class="premium-kv"><span>Nascimento</span><b>{{student.birthDate}}</b></div>
-        <div class="premium-kv"><span>Nacionalidade</span><b>{{student.nationality}}</b></div>
-      </div>
-      <div class="premium-panel">
-        <h3>Matrícula</h3>
-        <div class="premium-kv"><span>Estado</span><b>{{enrollment.status}}</b></div>
-        <div class="premium-kv"><span>Data</span><b>{{enrollment.date}}</b></div>
-        <div class="premium-kv"><span>Ano lectivo</span><b>{{enrollment.academicYear.name}}</b></div>
-        <div class="premium-kv"><span>Turma</span><b>{{classGroup.name}}</b></div>
-        <div class="premium-kv"><span>Sala/Turno</span><b>{{classGroup.room}} / {{classGroup.shift}}</b></div>
-      </div>
-    </section>
+      <section class="premium-grid">
+        <div class="premium-panel">
+          <h3>Estudante</h3>
+          <div class="premium-kv"><span>Nome</span><b>{{student.fullName}}</b></div>
+          <div class="premium-kv"><span>Nº estudantil</span><b>{{student.academicNumber}}</b></div>
+          <div class="premium-kv"><span>Documento</span><b>{{student.docType}}
+              {{student.docNumber}}</b></div>
+          <div class="premium-kv"><span>Nascimento</span><b>{{student.birthDate}}</b></div>
+          <div class="premium-kv"><span>Nacionalidade</span><b>{{student.nationality}}</b></div>
+        </div>
+        <div class="premium-panel">
+          <h3>Matrícula</h3>
+          <div class="premium-kv"><span>Estado</span><b>{{enrollment.status}}</b></div>
+          <div class="premium-kv"><span>Data</span><b>{{enrollment.date}}</b></div>
+          <div class="premium-kv"><span>Ano lectivo</span><b
+            >{{enrollment.academicYear.name}}</b></div>
+          <div class="premium-kv"><span>Turma</span><b>{{classGroup.name}}</b></div>
+          <div class="premium-kv"><span>Sala/Turno</span><b>{{classGroup.room}}
+              /
+              {{classGroup.shift}}</b></div>
+        </div>
+      </section>
 
-    <section class="premium-grid">
-      <div class="premium-panel">
-        <h3>Credencial e portal</h3>
-        <div class="credential-code">{{credentials.portalId}}</div>
-        <div class="premium-kv"><span>E-mail</span><b>{{credentials.institutionalEmail}}</b></div>
-        <div class="premium-kv"><span>ID compacto</span><b>{{credentials.compactId}}</b></div>
-      </div>
-      <div class="premium-panel">
-        <h3>Financeiro inicial</h3>
-        <div class="premium-kv"><span>Estado</span><b>{{financial.status}}</b></div>
-        <div class="premium-kv"><span>Total</span><b>{{financial.total}}</b></div>
-        <div class="premium-kv"><span>Pago</span><b>{{financial.paid}}</b></div>
-        <div class="premium-kv"><span>Pendente</span><b>{{financial.debt}}</b></div>
-      </div>
-    </section>
+      <section class="premium-grid">
+        <div class="premium-panel">
+          <h3>Credencial e portal</h3>
+          <div class="credential-code">{{credentials.portalId}}</div>
+          <div class="premium-kv"><span>E-mail</span><b>{{credentials.institutionalEmail}}</b></div>
+          <div class="premium-kv"><span>ID compacto</span><b>{{credentials.compactId}}</b></div>
+        </div>
+        <div class="premium-panel">
+          <h3>Financeiro inicial</h3>
+          <div class="premium-kv"><span>Estado</span><b>{{financial.status}}</b></div>
+          <div class="premium-kv"><span>Total</span><b>{{financial.total}}</b></div>
+          <div class="premium-kv"><span>Pago</span><b>{{financial.paid}}</b></div>
+          <div class="premium-kv"><span>Pendente</span><b>{{financial.debt}}</b></div>
+        </div>
+      </section>
 
-    <section class="premium-panel">
-      <h3>Disciplinas vinculadas ao dossiê inicial</h3>
-      <table>
-        <thead><tr><th class="text-left">Disciplina</th><th>Código</th><th>Tipo</th><th>Carga</th><th>Estado</th></tr></thead>
-        <tbody>
-          {{#each subjects}}
-          <tr><td class="text-left">{{name}}</td><td>{{code}}</td><td>{{type}}</td><td>{{workload}}</td><td>{{status}}</td></tr>
-          {{/each}}
-        </tbody>
-      </table>
-    </section>
+      <section class="premium-panel">
+        <h3>Disciplinas vinculadas ao dossiê inicial</h3>
+        <table>
+          <thead><tr><th class="text-left">Disciplina</th><th>Código</th><th>Tipo</th><th
+              >Carga</th><th>Estado</th></tr></thead>
+          <tbody>
+            {{#each subjects}}
+              <tr><td class="text-left">{{name}}</td><td>{{code}}</td><td>{{type}}</td><td
+                >{{workload}}</td><td>{{status}}</td></tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </section>
 
-    <section class="premium-signature-strip">
-      {{#each signatures}}<div class="premium-signature">{{label}}</div>{{/each}}
-    </section>
+      <section class="premium-signature-strip">
+        {{#each signatures}}<div class="premium-signature">{{label}}</div>{{/each}}
+      </section>
 
-    <section class="validation">
-      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-      <div>
-        UUID: {{document.uuid}} | Hash: {{document.hash}}<br />
-        {{document.sourceNote}}<br />
-        Assinatura digital: {{document.digitalSignature}}
-      </div>
-    </section>
-  </main>
-</body>
+      <section class="validation">
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        <div>
+          UUID:
+          {{document.uuid}}
+          | Hash:
+          {{document.hash}}<br />
+          {{document.sourceNote}}<br />
+          Assinatura digital:
+          {{document.digitalSignature}}
+        </div>
+      </section>
+    </main>
+  </body>
 </html>

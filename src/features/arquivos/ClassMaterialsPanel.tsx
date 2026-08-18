@@ -125,11 +125,7 @@ export function ClassMaterialsPanel({
   const shareWhatsApp = async (file: SchoolFileRecord) => {
     const text = schoolFileShareText(file, classLabel);
     await navigator.clipboard.writeText(text);
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(text)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -186,7 +182,9 @@ export function ClassMaterialsPanel({
                   variant="ghost"
                   className="h-7 px-2"
                   title="Copiar referência"
-                  onClick={() => void copyRef(file).catch((error: Error) => toast.error(error.message))}
+                  onClick={() =>
+                    void copyRef(file).catch((error: Error) => toast.error(error.message))
+                  }
                 >
                   <Copy className="size-3.5" />
                 </Button>

@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriter, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriter,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import { spotlightCatalog } from "./catalog";
 import {
   applySpotlightOverrides,
@@ -54,7 +58,9 @@ export const saveSpotlightOverrides = createServerFn({ method: "POST" })
       .eq("domain", DOMAIN)
       .maybeSingle();
     if (existing.error && /schema cache|does not exist|42P01|PGRST/i.test(existing.error.message)) {
-      throw new Error("Não foi possível guardar. Aplique APPLY_IN_SQL_EDITOR.sql (school_settings).");
+      throw new Error(
+        "Não foi possível guardar. Aplique APPLY_IN_SQL_EDITOR.sql (school_settings).",
+      );
     }
     if (existing.data?.id) {
       const { error } = await db

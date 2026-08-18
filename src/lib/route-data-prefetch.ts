@@ -15,7 +15,12 @@ import {
 import { listStaffDirectory, listTeachers, searchPeople } from "@/features/people/server";
 import { listSchoolFiles } from "@/features/arquivos/server";
 import { searchStudents } from "@/features/students/server";
-import { warmDashboardCharts, warmFinanceCharts, warmPedagogicaCharts, warmReportCharts } from "@/lib/warm-charts";
+import {
+  warmDashboardCharts,
+  warmFinanceCharts,
+  warmPedagogicaCharts,
+  warmReportCharts,
+} from "@/lib/warm-charts";
 
 const prefetched = new Set<string>();
 

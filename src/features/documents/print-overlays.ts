@@ -36,7 +36,9 @@ export function overlayBoletim(input: {
     summary: {
       average: input.average ?? "—",
       attendance: input.attendance ?? "—",
-      approved: input.approved ?? input.subjects.filter((row) => !/reprov|não trans/i.test(row.status)).length,
+      approved:
+        input.approved ??
+        input.subjects.filter((row) => !/reprov|não trans/i.test(row.status)).length,
       status: input.status ?? "—",
     },
   };
@@ -99,17 +101,18 @@ export function overlayPauta(input: {
       finalGrade: student.average ?? "—",
       average: student.average ?? "—",
       status: student.status,
-      subjectGrades:
-        student.subjectGrades ?? [student.mac ?? "—", student.npp ?? "—", student.npt ?? "—"],
+      subjectGrades: student.subjectGrades ?? [
+        student.mac ?? "—",
+        student.npp ?? "—",
+        student.npt ?? "—",
+      ],
     })),
     summary: {
       total: input.students.length,
       approved,
       failed: Math.max(0, input.students.length - approved),
       approvalRate:
-        input.students.length === 0
-          ? 0
-          : Math.round((approved / input.students.length) * 100),
+        input.students.length === 0 ? 0 : Math.round((approved / input.students.length) * 100),
     },
   };
 }
@@ -300,9 +303,7 @@ export function overlayActa(input: {
   };
 }
 
-export function overlayValidacao(
-  items: Array<{ item: string; status: string; note?: string }>,
-) {
+export function overlayValidacao(items: Array<{ item: string; status: string; note?: string }>) {
   const ok = items.filter((row) => !/reprov|não trans|pendente/i.test(row.status)).length;
   return {
     validations: items.map((row) => ({
@@ -444,5 +445,142 @@ export function overlayServico(input: {
         ? ["Documento emitido", "Lançamento no caixa"]
         : ["Documento emitido"],
     },
+  };
+}
+
+export function overlayCertificadoHabilitacoes(input: {
+  fullName: string;
+  biNumber: string;
+  birthDate?: string;
+  birthPlace?: string;
+  courseName: string;
+  cycleName: string;
+  academicYear: string;
+  subjects: Array<{
+    name: string;
+    finalGrade: number;
+    qualitative?: string;
+  }>;
+  finalAverage: number;
+  certificateNumber: string;
+}) {
+  const approved = input.finalAverage >= 10;
+  return {
+    certificate: {
+      number: input.certificateNumber,
+      cycle: input.cycleName,
+      course: input.courseName,
+      academicYear: input.academicYear,
+      issueDate: new Date().toLocaleDateString("pt-AO"),
+    },
+    student: {
+      fullName: input.fullName,
+      biNumber: input.biNumber,
+      birthDate: input.birthDate || "—",
+      birthPlace: input.birthPlace || "Luanda",
+    },
+    subjects: input.subjects.map((sub) => ({
+      name: sub.name,
+      finalGrade: sub.finalGrade,
+      qualitative:
+        sub.qualitative ||
+        (sub.finalGrade >= 18
+          ? "Excelente"
+          : sub.finalGrade >= 16
+          ? "Muito Bom"
+          : sub.finalGrade >= 14
+          ? "Bom"
+          : sub.finalGrade >= 10
+          ? "Suficiente"
+          : "Insuficiente"),
+    })),
+    summary: {
+      finalAverage: input.finalAverage.toFixed(1),
+      status: approved ? "Aprovado(a) com Aproveitamento" : "Não Aprovado(a)",
+      legalBasis: "Nos termos do Decreto Executivo n.º 14/21 do MINED Angola",
+    },
+  };
+}
+
+export function overlayDeclaracaoComNotas(input: {
+  fullName: string;
+  processNumber: string;
+  className: string;
+  courseName?: string;
+  academicYear: string;
+  purpose?: string;
+  subjects: Array<{
+    name: string;
+    mac?: number | string;
+    npp?: number | string;
+    npt?: number | string;
+    average?: number | string;
+    status?: string;
+  }>;
+  overallAverage?: number | string;
+}) {
+  return {
+    declaration: {
+      processNumber: input.processNumber,
+      className: input.className,
+      courseName: input.courseName || input.className,
+      academicYear: input.academicYear,
+      purpose: input.purpose || "para os efeitos que julgar convenientes",
+      issueDate: new Date().toLocaleDateString("pt-AO"),
+    },
+    student: {
+      fullName: input.fullName,
+      registrationNumber: input.processNumber,
+    },
+    subjects: input.subjects.map((sub) => ({
+      name: sub.name,
+      mac: sub.mac ?? "—",
+      npp: sub.npp ?? "—",
+      npt: sub.npt ?? "—",
+      average: sub.average ?? "—",
+      status: sub.status ?? (Number(sub.average) >= 10 ? "Transita" : "Pendente"),
+    })),
+    summary: {
+      overallAverage: input.overallAverage ?? "—",
+      issueLocation: "Secretaria Geral da Escola",
+    },
+  };
+}
+
+export function overlayCredencialExame(input: {
+  fullName: string;
+  registrationNumber: string;
+  className: string;
+  courseName?: string;
+  academicYear: string;
+  examSession: string;
+  authorizedDisciplines: string[];
+  seatNumber?: string;
+  roomNumber?: string;
+}) {
+  return {
+    credential: {
+      code: `EXAM-${input.registrationNumber.slice(-6)}-2026`,
+      session: input.examSession,
+      academicYear: input.academicYear,
+      seatNumber: input.seatNumber || "S-01",
+      roomNumber: input.roomNumber || "Sala 01",
+      issueDate: new Date().toLocaleDateString("pt-AO"),
+    },
+    student: {
+      fullName: input.fullName,
+      registrationNumber: input.registrationNumber,
+      className: input.className,
+      courseName: input.courseName || input.className,
+    },
+    authorizedDisciplines: input.authorizedDisciplines.map((name) => ({
+      name,
+      status: "Autorizado para Prova",
+    })),
+    instructions: [
+      "Apresentar obrigatoriamente junto do Bilhete de Identidade original.",
+      "Entrada permitida até 15 minutos antes do início do exame.",
+      "Proibida a entrada com telemóveis ou dispositivos eletrónicos não autorizados.",
+    ],
   };
 }

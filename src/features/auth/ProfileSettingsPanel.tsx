@@ -1,42 +1,23 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Lock, LoaderCircle } from "lucide-react";
+import { Camera, FolderOpen, LoaderCircle, Shield, Sliders, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { CameraCaptureModal } from "@/components/modals/CameraCaptureModal";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeAngolaPhone, validateAngolaPhone } from "@/lib/angola-phone";
-import { formatMutationError } from "@/lib/format-error";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { setCurrentProfileAvatar, updateCurrentProfile } from "./server";
-
-function FormSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-3">
-      <div>
-        <h3 className="text-sm font-bold tracking-tight">{title}</h3>
-        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-      </div>
-      {children}
-    </div>
-  );
-}
+import { setCurrentProfileAvatar, updateCurrentProfile, uploadCurrentProfileAvatar } from "./server";
 
 /**
- * Perfil da conta (foto + nome + telemóvel) — usado no Centro de Configurações
+ * Perfil da conta (foto + câmera + nome + telemóvel) — usado no Centro de Configurações
  * (modal) e na página dedicada /perfil. Uma só fonte, dois pontos de entrada.
  */
 
@@ -64,10 +45,24 @@ function Field({
 const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
 const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const res = String(reader.result ?? "");
+      const base64 = res.split(",")[1] ?? res;
+      resolve(base64);
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
 function ProfileAvatarField() {
   const currentUser = useCurrentAccount();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   const uploadAvatar = async (file: File) => {
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
@@ -80,34 +75,24 @@ function ProfileAvatarField() {
     }
 
     setUploading(true);
-    let uploadedPath: string | null = null;
     try {
-      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${currentUser.id}/avatar-${Date.now()}.${extension}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true, cacheControl: "3600" });
-      if (uploadError) throw uploadError;
-      uploadedPath = path;
+      const base64 = await fileToBase64(file);
+      const profile = await uploadCurrentProfileAvatar({
+        data: {
+          fileName: file.name,
+          contentType: file.type,
+          base64,
+        },
+      });
 
-      const profile = await setCurrentProfileAvatar({ data: { storagePath: path } });
-
-      // useCurrentAccount() lê ["auth", "account-context", id] — não "profile".
-      // Escrever na chave errada deixava o upload a ter sucesso sem o avatar
-      // se actualizar em lado nenhum da app (cabeçalho, menu, /perfil).
-      queryClient.setQueryData(["auth", "account-context", currentUser.id], (prev: unknown) => ({
+      queryClient.setQueryData(["auth", "profile", currentUser.id], (prev: unknown) => ({
         ...(typeof prev === "object" && prev ? prev : {}),
         avatar_url: profile.avatar_url,
-        updated_at: profile.updated_at,
       }));
-      toast.success("Foto de perfil actualizada.");
-    } catch (error) {
-      if (uploadedPath) {
-        await supabase.storage.from("avatars").remove([uploadedPath]);
-      }
-      console.error("[perfil] falha ao carregar avatar", error);
-      toast.error("Não foi possível carregar a imagem", {
-        description: formatMutationError(error),
+      toast.success("Foto de perfil actualizada com sucesso.");
+    } catch (err) {
+      toast.error("Não foi possível carregar a imagem.", {
+        description: err instanceof Error ? err.message : undefined,
       });
     } finally {
       setUploading(false);
@@ -115,42 +100,61 @@ function ProfileAvatarField() {
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
       <UserAvatar
         url={currentUser.avatarUrl}
         initials={currentUser.initials}
-        className="size-16 bg-primary-soft text-xl font-extrabold text-primary ring-1 ring-border"
+        className="size-20 bg-primary-soft text-2xl font-extrabold text-primary ring-2 ring-primary/20 shadow-sm"
       />
-      <div className="space-y-1.5">
-        <Label htmlFor="set-avatar" className="sr-only">
-          Foto de perfil
-        </Label>
-        <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
-          <label htmlFor="set-avatar" className="cursor-pointer">
-            {uploading ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
-            {uploading ? "A carregar…" : "Alterar foto"}
-          </label>
-        </Button>
-        <PickFileButton
-          label="Da biblioteca"
-          area="pessoal"
-          acceptKinds={["png", "jpeg"]}
-          variant="outline"
-          size="sm"
-          onPick={(file) => {
-            void (async () => {
-              try {
-                const blob = await resolveFileBlob(file);
-                const asFile = new File([blob], file.name, { type: file.mime || blob.type });
-                await uploadAvatar(asFile);
-              } catch (error) {
-                toast.error("Não foi possível usar o ficheiro da biblioteca", {
-                  description: error instanceof Error ? error.message : "Tente novamente.",
-                });
-              }
-            })();
-          }}
-        />
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* 1. Escolher Ficheiro */}
+          <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
+            <label htmlFor="set-avatar" className="cursor-pointer">
+              {uploading ? (
+                <LoaderCircle className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 size-4 text-primary" />
+              )}
+              {uploading ? "A carregar…" : "Ficheiro"}
+            </label>
+          </Button>
+
+          {/* 2. Tirar Foto (Câmera) */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading}
+            onClick={() => setCameraOpen(true)}
+          >
+            <Camera className="mr-2 size-4 text-primary" />
+            Tirar Foto (Câmera)
+          </Button>
+
+          {/* 3. Escolher dos Arquivos SIGA */}
+          <PickFileButton
+            label="Da biblioteca"
+            area="pessoal"
+            acceptKinds={["png", "jpeg"]}
+            variant="outline"
+            size="sm"
+            onPick={(file) => {
+              void (async () => {
+                try {
+                  const blob = await resolveFileBlob(file);
+                  const asFile = new File([blob], file.name, { type: file.mime || blob.type });
+                  await uploadAvatar(asFile);
+                } catch (error) {
+                  toast.error("Não foi possível usar o ficheiro da biblioteca", {
+                    description: error instanceof Error ? error.message : "Tente novamente.",
+                  });
+                }
+              })();
+            }}
+          />
+        </div>
+
         <input
           id="set-avatar"
           type="file"
@@ -163,9 +167,17 @@ function ProfileAvatarField() {
             if (file) void uploadAvatar(file);
           }}
         />
+
         <p className="text-xs text-muted-foreground">
-          PNG, JPG ou WebP. Máx. 4 MB. Também pode escolher uma imagem dos Arquivos.
+          Envie um ficheiro PNG, JPG ou WebP (máx. 4 MB), utilize a câmera ao vivo ou escolha dos Arquivos.
         </p>
+
+        {/* WebRTC Camera Capture Dialog */}
+        <CameraCaptureModal
+          open={cameraOpen}
+          onOpenChange={setCameraOpen}
+          onCapture={(file) => void uploadAvatar(file)}
+        />
       </div>
     </div>
   );
@@ -228,68 +240,68 @@ export function ProfileSettingsPanel() {
 
   return (
     <form className="space-y-6" onSubmit={saveProfile}>
-      <FormSection title="Fotografia" description="Visível para os colegas nas mensagens.">
-        <ProfileAvatarField />
-      </FormSection>
-
+      <ProfileAvatarField />
       <Separator />
 
-      <FormSection title="Dados pessoais" description="Pode editar e guardar livremente.">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5 sm:col-span-2">
+          <div className="flex items-center justify-between">
             <Label htmlFor="set-nome">Nome completo</Label>
-            <Input
-              key={currentUser.profile.data?.updated_at ?? "loading"}
-              id="set-nome"
-              name="fullName"
-              defaultValue={currentUser.name}
-              minLength={2}
-              maxLength={160}
-              autoComplete="name"
-              required
-            />
+            {currentUser.isAdmin && (
+              <Badge variant="outline" className="gap-1 border-primary/30 text-primary text-xs">
+                <Shield className="size-3" /> Administrador SIGA
+              </Badge>
+            )}
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="set-phone">Telemóvel</Label>
-            <Input
-              key={`${currentUser.profile.data?.updated_at ?? "loading"}-phone`}
-              id="set-phone"
-              name="phone"
-              defaultValue={currentUser.phone ?? ""}
-              placeholder="+244 9XX XXX XXX"
-              autoComplete="tel"
-            />
-          </div>
-        </div>
-      </FormSection>
-
-      <Separator />
-
-      <FormSection
-        title="Geridos pela administração"
-        description="Só a equipa de gestão de acessos pode alterar estes campos."
-      >
-        <div className="grid gap-4 rounded-lg border border-dashed border-border bg-muted/40 p-4 sm:grid-cols-2">
-          <Field
-            id="set-email"
-            label="E-mail"
-            type="email"
-            defaultValue={currentUser.email}
-            readOnly
+          <Input
+            key={currentUser.profile.data?.updated_at ?? "loading"}
+            id="set-nome"
+            name="fullName"
+            defaultValue={currentUser.name}
+            minLength={2}
+            maxLength={160}
+            autoComplete="name"
+            required
           />
-          <Field id="set-cargo" label="Cargo" defaultValue={currentUser.role} readOnly />
         </div>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Lock className="size-3.5" aria-hidden />
-          Peça a um administrador em Acessos para alterar e-mail ou cargo.
-        </p>
-      </FormSection>
+        <Field
+          id="set-email"
+          label="E-mail"
+          type="email"
+          defaultValue={currentUser.email}
+          readOnly
+        />
+        <div className="space-y-1.5">
+          <Label htmlFor="set-phone">Telemóvel (Angola +244)</Label>
+          <Input
+            key={`${currentUser.profile.data?.updated_at ?? "loading"}-phone`}
+            id="set-phone"
+            name="phone"
+            defaultValue={currentUser.phone ?? ""}
+            placeholder="+244 9XX XXX XXX"
+            autoComplete="tel"
+          />
+        </div>
+        <Field id="set-cargo" label="Cargo / Função" defaultValue={currentUser.role} readOnly />
+      </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={saving || currentUser.profile.isLoading}>
-          {saving ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
-          {saving ? "A guardar…" : "Guardar perfil"}
-        </Button>
+      <p className="text-xs text-muted-foreground">
+        O seu endereço de e-mail e nível de acesso são configurados pela administração central.
+      </p>
+
+      <div className="flex items-center justify-between pt-2">
+        {currentUser.isAdmin && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Sliders className="size-3.5 text-primary" />
+            <span>Centro de Definições avançadas ativo</span>
+          </div>
+        )}
+        <div className="flex justify-end">
+          <Button type="submit" disabled={saving || currentUser.profile.isLoading}>
+            {saving ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
+            {saving ? "A guardar…" : "Guardar perfil"}
+          </Button>
+        </div>
       </div>
     </form>
   );

@@ -1,4 +1,9 @@
-import { installPackageFor, type IntegrationCapability } from "./install";
+import {
+  academicIntegrationCatalog,
+  integrationInstallPackages,
+  type CatalogIntegrationId,
+  type IntegrationCapability,
+} from "./install";
 
 export type CapabilityActionKind =
   | "ics-google"
@@ -38,6 +43,10 @@ export const capabilityActionKind: Record<string, CapabilityActionKind> = {
   "resend.send": "navigate-comunicacoes",
   "resend.invoices": "copy-einvoice",
   "resend.documents": "open-official",
+  "gmail.welcome": "navigate-comunicacoes",
+  "gmail.credentials": "open-official",
+  "firebase.crashlytics": "navigate-notas",
+  "firebase.telemetry": "navigate-comunicacoes",
   "zoom.rooms": "copy-meeting-zoom",
   "zoom.notices": "navigate-comunicacoes",
   "teams.meetings": "copy-meeting-teams",
@@ -48,6 +57,11 @@ export const capabilityActionKind: Record<string, CapabilityActionKind> = {
   "agt.nif": "copy-nif",
   "agt.einvoice": "copy-einvoice",
 };
+
+export function actionForCapability(cap?: { id?: string }): CapabilityActionKind {
+  const id = cap?.id ?? "";
+  return capabilityActionKind[id] ?? "open-official";
+}
 
 export function providerIdFromCapability(capabilityId: string) {
   const aliases: Record<string, string> = {
@@ -61,42 +75,92 @@ export function providerIdFromCapability(capabilityId: string) {
     gcal: "google_calendar",
     apple: "apple_calendar",
     resend: "resend_email",
+    gmail: "gmail_workspace",
+    firebase: "firebase_analytics",
     zoom: "zoom",
     teams: "teams",
     turnitin: "turnitin",
     sige: "sige",
     agt: "agt",
   };
-  const prefix = capabilityId.split(".")[0] ?? capabilityId;
+  const prefix = capabilityId.split(".")[0];
   return aliases[prefix] ?? prefix;
 }
 
-export function officialUrlForCapability(capabilityId: string) {
-  return installPackageFor(providerIdFromCapability(capabilityId))?.installUrl ?? "";
+export function officialUrlForCapability(capabilityId: string): string {
+  const provider = providerIdFromCapability(capabilityId) as CatalogIntegrationId;
+  const pack = integrationInstallPackages[provider];
+  return pack?.installUrl || pack?.docsUrl || "https://siga.escola.ao/";
 }
 
-export function paymentReference(prefix: "EMIS" | "UML") {
-  const body = String(Math.floor(100_000_000 + Math.random() * 900_000_000));
-  return `${prefix}${body}`;
+export function paymentReference(kind: "EMIS" | "UML") {
+  const stamp = Date.now().toString().slice(-9);
+  return `${kind}${stamp}`;
 }
 
-export function whatsappHref(phoneOrEmpty: string, text?: string) {
-  const digits = phoneOrEmpty.replace(/\D/g, "");
-  const query = text ? `?text=${encodeURIComponent(text)}` : "";
-  return digits ? `https://wa.me/${digits}${query}` : `https://wa.me/${query}`;
+export function meetingRoomLink(provider: "zoom" | "teams") {
+  if (provider === "zoom") return "https://zoom.us/j/90011122233";
+  return "https://teams.microsoft.com/l/meetup-join/siga-aula-virtual";
 }
 
-export function meetingRoomLink(kind: "zoom" | "teams") {
-  if (kind === "zoom") {
-    return `https://zoom.us/j/${Math.floor(10_000_000_000 + Math.random() * 89_999_999_999)}`;
+export function whatsappHref(phoneRaw: string, message?: string) {
+  const digits = phoneRaw.replace(/\D/g, "");
+  if (!digits) return "https://wa.me/";
+  if (!message) return `https://wa.me/${digits}`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+}
+
+export async function copyText(text: string): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
   }
-  return `https://teams.microsoft.com/l/meetup-join/siga-${Date.now()}`;
 }
 
-export async function copyText(value: string) {
-  await navigator.clipboard.writeText(value);
+export function classroomCourseHref(codeOrUrl?: string): string {
+  if (!codeOrUrl) return "https://classroom.google.com/";
+  if (codeOrUrl.startsWith("https://")) return codeOrUrl;
+  return `https://classroom.google.com/c/${encodeURIComponent(codeOrUrl)}`;
 }
 
-export function actionForCapability(capability: Pick<IntegrationCapability, "id">) {
-  return capabilityActionKind[capability.id] ?? "open-official";
+export function actionLabelForCapability(cap: IntegrationCapability): string {
+  const kind = capabilityActionKind[cap.id];
+  switch (kind) {
+    case "copy-payment-ref":
+      return "Copiar ref. Multicaixa";
+    case "copy-unitel-ref":
+      return "Copiar ref. Unitel";
+    case "open-whatsapp":
+      return "Abrir grupo WhatsApp";
+    case "navigate-comunicacoes":
+      return "Enviar em Comunicados";
+    case "navigate-notas":
+      return "Ver na pauta";
+    case "navigate-horarios":
+      return "Ver nos horários";
+    case "navigate-arquivos":
+      return "Abrir Biblioteca";
+    case "ics-google":
+      return "Subscrever Google";
+    case "ics-apple":
+      return "Descarregar ICS";
+    case "copy-einvoice":
+      return "Copiar fatura AGT";
+    case "copy-nif":
+      return "Copiar NIF";
+    case "copy-meeting-zoom":
+      return "Copiar link Zoom";
+    case "copy-meeting-teams":
+      return "Copiar link Teams";
+    case "export-sige-classes":
+      return "Exportar turmas SIGE";
+    case "export-sige-students":
+      return "Exportar alunos SIGE";
+    case "open-official":
+    default:
+      return `Abrir ${cap.label}`;
+  }
 }

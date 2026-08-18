@@ -18,6 +18,18 @@ export const academicIntegrationCatalog = [
     description: "API oficial para salas de turma e avisos a encarregados.",
   },
   {
+    id: "resend_email",
+    name: "Email / Resend",
+    group: "Comunicação",
+    description: "Envio transaccional de recibos, avisos e convites.",
+  },
+  {
+    id: "gmail_workspace",
+    name: "Google Gmail Workspace",
+    group: "Comunicação",
+    description: "Envio automático de e-mails de boas-vindas e credenciais via Gmail API.",
+  },
+  {
     id: "google_classroom",
     name: "Google Classroom",
     group: "Académico",
@@ -45,7 +57,7 @@ export const academicIntegrationCatalog = [
     id: "google_calendar",
     name: "Google Calendar",
     group: "Calendário",
-    description: "Sincronização do calendário lectivo com a conta Google.",
+    description: "Sincronização do calendário lectivo e turmas com o Google Calendar.",
   },
   {
     id: "apple_calendar",
@@ -54,10 +66,10 @@ export const academicIntegrationCatalog = [
     description: "Feed ICS para iPhone, iPad e calendário nativo.",
   },
   {
-    id: "resend_email",
-    name: "Email / Resend",
-    group: "Comunicação",
-    description: "Envio transaccional de recibos, avisos e convites.",
+    id: "firebase_analytics",
+    name: "Firebase & Crashlytics",
+    group: "Monitorização",
+    description: "Monitorização de exceções, telemetria de app e analítica híbrida.",
   },
   {
     id: "zoom",
@@ -99,6 +111,7 @@ export const catalogGroupOrder = [
   "Académico",
   "Aulas",
   "Calendário",
+  "Monitorização",
   "Estado",
 ] as const;
 
@@ -124,6 +137,14 @@ export const integrationFieldHints: Record<
     merchant: "Phone number ID",
     callback: "Webhook Meta",
   },
+  resend_email: {
+    merchant: "API key Resend",
+    callback: "Domínio de envio",
+  },
+  gmail_workspace: {
+    merchant: "Client ID OAuth Google",
+    callback: "https://siga.escola.ao/configuracoes",
+  },
   google_classroom: {
     merchant: "Client ID Google",
     callback: "Redirect URI",
@@ -148,9 +169,9 @@ export const integrationFieldHints: Record<
     merchant: "Nome do calendário",
     callback: "URL do feed ICS",
   },
-  resend_email: {
-    merchant: "Referência interna (não liga à Resend nem envia e-mail real)",
-    callback: "Domínio de envio",
+  firebase_analytics: {
+    merchant: "Firebase Project ID",
+    callback: "App ID / Measurement ID",
   },
   zoom: {
     merchant: "Account / Client ID",

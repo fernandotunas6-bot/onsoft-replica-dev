@@ -111,7 +111,7 @@ export const searchStudents = createServerFn({ method: "GET" })
       studentIds.length
         ? db
             .from("enrollments")
-            .select("student_id, class_group_id, academic_year_id, status, payment_status")
+            .select("student_id, class_group_id, academic_year_id, status")
             .in("student_id", studentIds)
             .eq("school_id", membership.schoolId)
             .eq("status", "active")
@@ -121,7 +121,6 @@ export const searchStudents = createServerFn({ method: "GET" })
               class_group_id: string | null;
               academic_year_id: string | null;
               status: string;
-              payment_status: string | null;
             }>,
           }),
       studentIds.length
@@ -256,16 +255,21 @@ export const searchStudents = createServerFn({ method: "GET" })
           ? yearById.get(String(enrollment["academic_year_id"]))
           : null;
         const guardianId = guardianByStudent.get(student.id);
+        const enrollmentStatus = enrollment?.["status"] ? String(enrollment["status"]) : null;
+        const effectiveStatus =
+          enrollmentStatus === "active" && student.status === "applicant"
+            ? "active"
+            : student.status;
         return {
           id: student.id,
           registration_number: student.student_number,
           full_name: String(person?.["full_name"] ?? "—"),
           email: (person?.["email"] as string | null) ?? null,
           phone: (person?.["phone"] as string | null) ?? null,
-          student_status: student.status,
-          payment_status: enrollment?.["payment_status"]
-            ? String(enrollment["payment_status"])
-            : null,
+          // Matrícula activa no SGA implica aluno activo na UI, mesmo se o
+          // registo ainda estiver como "applicant" por seed/legado.
+          student_status: effectiveStatus,
+          payment_status: null,
           grade_name: (grade?.["name"] as string | null) ?? null,
           class_name: (classGroup?.["name"] as string | null) ?? null,
           academic_year: (year?.["name"] as string | null) ?? null,
@@ -275,6 +279,20 @@ export const searchStudents = createServerFn({ method: "GET" })
         };
       },
     );
+
+    const staleApplicantIds = rows
+      .filter((student: { id: string; status: string }) => {
+        const enrollment = enrollmentByStudent.get(student.id);
+        return student.status === "applicant" && String(enrollment?.["status"] ?? "") === "active";
+      })
+      .map((student: { id: string }) => student.id);
+    if (staleApplicantIds.length) {
+      await db
+        .from("students")
+        .update({ status: "active" })
+        .eq("school_id", membership.schoolId)
+        .in("id", staleApplicantIds);
+    }
 
     if (!query) return mapped;
     return mapped.filter(
@@ -335,7 +353,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       db
         .from("enrollments")
         .select(
-          "id, class_group_id, academic_year_id, status, payment_status, enrolled_on, attendance_rate, final_average",
+          "id, class_group_id, academic_year_id, status, enrolled_on, attendance_rate, final_average",
         )
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId)
@@ -357,7 +375,6 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       class_group_id: string | null;
       academic_year_id: string | null;
       status: string;
-      payment_status?: string | null;
       enrolled_on: string | null;
       attendance_rate?: number | null;
       final_average?: number | null;
@@ -436,7 +453,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         email: person?.email ?? null,
         phone: person?.phone ?? null,
         student_status: student.status,
-        payment_status: enrollment?.payment_status ?? null,
+        payment_status: null,
         grade_name: gradeName,
         class_name: className,
         academic_year: academicYear,
@@ -676,104 +693,6 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
     };
   });
 
-async function recordStudentStatusEvent(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  input: {
-    schoolId: string;
-    studentId: string;
-    fromStatus: string | null;
-    toStatus: string;
-    reason: string | null;
-    changedBy: string;
-  },
-) {
-  try {
-    await db.from("student_status_events").insert({
-      school_id: input.schoolId,
-      student_id: input.studentId,
-      from_status: input.fromStatus,
-      to_status: input.toStatus,
-      reason: input.reason,
-      changed_by: input.changedBy,
-    });
-  } catch {
-    // Tabela de auditoria ainda não aplicada neste ambiente — não bloqueia a mudança de estado.
-  }
-}
-
-/**
- * Concluir (graduar) exige nota final aprovada (média ≥ 10, escala 0–20) na
- * matrícula activa e nenhuma fatura em dívida — regra definida com a escola.
- */
-async function assertGraduationEligible(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  schoolId: string,
-  studentId: string,
-) {
-  const { data: enrollment } = await db
-    .from("enrollments")
-    .select("id, final_average")
-    .eq("school_id", schoolId)
-    .eq("student_id", studentId)
-    .eq("status", "active")
-    .order("enrolled_on", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const average = enrollment?.final_average == null ? null : Number(enrollment.final_average);
-  if (average == null || average < 10) {
-    throw new Error(
-      "Só é possível concluir com nota final aprovada (média ≥ 10) lançada na matrícula activa.",
-    );
-  }
-
-  const { data: enrollments } = await db
-    .from("enrollments")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("student_id", studentId);
-  const enrollmentIds = (enrollments ?? []).map((row) => row.id);
-  if (!enrollmentIds.length) return;
-  const { data: contracts } = await db
-    .from("finance_contracts")
-    .select("id")
-    .in("enrollment_id", enrollmentIds);
-  const contractIds = (contracts ?? []).map((row) => row.id);
-  if (!contractIds.length) return;
-  const { data: invoices } = await db
-    .from("finance_invoices")
-    .select("id, amount, discount_amount")
-    .eq("school_id", schoolId)
-    .in("contract_id", contractIds)
-    .neq("status", "cancelled");
-  const invoiceIds = (invoices ?? []).map((row) => row.id);
-  if (!invoiceIds.length) return;
-
-  // Não confiar em finance_invoices.status: só é escrita pelo RPC de
-  // pagamento e por cancelInvoice — uma anulação de recibo (reverseCashEntry)
-  // não a sincroniza de volta. A soma dos recibos não anulados é a mesma
-  // fonte de verdade usada na listagem de faturas.
-  const { data: receipts } = await db
-    .from("finance_receipts")
-    .select("invoice_id, amount, status")
-    .in("invoice_id", invoiceIds);
-  const paidByInvoice = new Map<string, number>();
-  for (const receipt of receipts ?? []) {
-    if (receipt.status === "reversed") continue;
-    paidByInvoice.set(
-      receipt.invoice_id,
-      (paidByInvoice.get(receipt.invoice_id) ?? 0) + Number(receipt.amount ?? 0),
-    );
-  }
-  const hasDebt = (invoices ?? []).some((invoice) => {
-    const total = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
-    const paid = paidByInvoice.get(invoice.id) ?? 0;
-    return paid < total;
-  });
-  if (hasDebt) {
-    throw new Error("Este aluno tem facturas em dívida — regularize antes de concluir.");
-  }
-}
-
 export const changeStudentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => changeStudentStatusInputSchema.parse(input))
@@ -784,53 +703,23 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-
-    if (data.newStatus === "graduated") {
-      await assertGraduationEligible(db, membership.schoolId, data.studentId);
-    }
-
-    const { data: current } = await db
-      .from("students")
-      .select("status")
-      .eq("id", data.studentId)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-
+    const statusMap: Record<string, string> = {
+      active: "active",
+      inactive: "inactive",
+      transferred: "transferred",
+      graduated: "graduated",
+      applicant: "applicant",
+    };
+    const nextStatus = statusMap[data.newStatus] ?? data.newStatus;
     const { data: student, error } = await db
       .from("students")
-      .update({ status: data.newStatus, updated_by: context.userId })
+      .update({ status: nextStatus, updated_by: context.userId })
       .eq("id", data.studentId)
       .eq("school_id", membership.schoolId)
       .select("id, status")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível alterar o estado do aluno.");
     if (!student) throw new Error("Aluno não encontrado");
-
-    // Saída definitiva: fecha a matrícula activa para que deixe de aparecer
-    // em pautas/turmas/roteiros que filtram por enrollments.status = "active",
-    // mantendo o histórico (turma, notas) intacto no registo fechado.
-    const enrollmentCloseStatus: Record<string, "completed" | "transferred"> = {
-      graduated: "completed",
-      transferred: "transferred",
-    };
-    const closeStatus = enrollmentCloseStatus[data.newStatus];
-    if (closeStatus) {
-      await db
-        .from("enrollments")
-        .update({ status: closeStatus, updated_by: context.userId })
-        .eq("student_id", data.studentId)
-        .eq("school_id", membership.schoolId)
-        .eq("status", "active");
-    }
-
-    await recordStudentStatusEvent(db, {
-      schoolId: membership.schoolId,
-      studentId: data.studentId,
-      fromStatus: current?.status ?? null,
-      toStatus: data.newStatus,
-      reason: data.reason ?? null,
-      changedBy: context.userId,
-    });
     return student;
   });
 
@@ -1105,26 +994,33 @@ export const cancelEnrollment = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const { data: enrollment, error } = await db
+    let { data: enrollment, error } = await db
       .from("enrollments")
       .update({
-        status: "cancelled",
+        status: "withdrawn",
         updated_by: context.userId,
       })
       .eq("id", data.enrollmentId)
       .eq("school_id", membership.schoolId)
       .select("id, status, student_id")
       .maybeSingle();
+    if (error && /status|check/i.test(error.message)) {
+      const retry = await db
+        .from("enrollments")
+        .update({
+          status: "inactive",
+          updated_by: context.userId,
+        })
+        .eq("id", data.enrollmentId)
+        .eq("school_id", membership.schoolId)
+        .select("id, status, student_id")
+        .maybeSingle();
+      enrollment = retry.data;
+      error = retry.error;
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível anular a matrícula.");
     if (!enrollment) throw new Error("Matrícula não encontrada.");
-    await recordStudentStatusEvent(db, {
-      schoolId: membership.schoolId,
-      studentId: enrollment.student_id,
-      fromStatus: null,
-      toStatus: "cancelled",
-      reason: data.reason ?? null,
-      changedBy: context.userId,
-    });
+    void data.reason;
     return enrollment;
   });
 
@@ -1236,69 +1132,4 @@ export const removeGuardian = createServerFn({ method: "POST" })
       .eq("school_id", membership.schoolId);
     if (error) throw publicDatabaseError(error, "Não foi possível remover o encarregado.");
     return { studentId: data.studentId, guardianPersonId: data.guardianPersonId };
-  });
-
-export type StudentOutcomesReport = {
-  active: number;
-  graduated: number;
-  transferred: number;
-  inactive: number;
-  completionRatePct: number | null;
-  recentEvents: Array<{
-    toStatus: string;
-    reason: string | null;
-    createdAt: string;
-  }>;
-};
-
-/**
- * Taxa de conclusão/abandono por escola — usa a contagem actual de
- * students.status para o retrato geral, e student_status_events (ciclo 36)
- * para o histórico recente de mudanças, que só existe a partir da data em
- * que a tabela de auditoria foi aplicada.
- */
-export const getStudentOutcomesReport = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<StudentOutcomesReport> => {
-    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
-    const db = await loadSgaAdminClient();
-
-    const { data: rows, error } = await db
-      .from("students")
-      .select("status")
-      .eq("school_id", membership.schoolId);
-    if (error) throw publicDatabaseError(error, "Não foi possível carregar o resumo de alunos.");
-
-    const counts = { active: 0, graduated: 0, transferred: 0, inactive: 0 };
-    for (const row of rows ?? []) {
-      const status = String(row.status ?? "");
-      if (status in counts) counts[status as keyof typeof counts] += 1;
-    }
-
-    const resolved = counts.graduated + counts.transferred + counts.inactive;
-    const completionRatePct = resolved > 0 ? Math.round((counts.graduated / resolved) * 100) : null;
-
-    let recentEvents: StudentOutcomesReport["recentEvents"] = [];
-    try {
-      const { data: events } = await db
-        .from("student_status_events")
-        .select("to_status, reason, created_at")
-        .eq("school_id", membership.schoolId)
-        .in("to_status", ["graduated", "transferred", "inactive"])
-        .order("created_at", { ascending: false })
-        .limit(20);
-      recentEvents = (events ?? []).map((row) => ({
-        toStatus: String(row.to_status),
-        reason: row.reason ? String(row.reason) : null,
-        createdAt: String(row.created_at),
-      }));
-    } catch {
-      // Tabela de auditoria ainda não aplicada neste ambiente.
-    }
-
-    return { ...counts, completionRatePct, recentEvents };
   });

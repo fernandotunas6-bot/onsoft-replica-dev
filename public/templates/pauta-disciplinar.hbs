@@ -1,160 +1,160 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>
-    {{{css}}}
-    @page { size: A4 landscape; margin: 10mm; }
-  </style>
-</head>
-<body>
-  <main class="document document-pauta-disciplina">
-    <section class="official-topline angola-official">
-      {{#if school.emblemUrl}}
-      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
-      {{else}}
-      <img class="logo" src="{{school.logoUrl}}" alt="" />
-      {{/if}}
-      <div class="school-title">
-        <p class="republic">{{school.ministry}}</p>
-        <p class="republic">{{school.ministryLine}}</p>
-        <h1>{{school.name}}</h1>
-        <p>{{school.address}} | NIF {{school.nif}}</p>
-      </div>
-      <div class="official-right">
-        {{#if school.logoUrl}}
-        <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}@page { size: A4 landscape; margin: 10mm; }
+    </style>
+  </head>
+  <body>
+    <main class="document document-pauta-disciplina">
+      <section class="official-topline angola-official">
+        {{#if school.emblemUrl}}
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
         {{else}}
-        {{#if school.flagUrl}}
-        <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
         {{/if}}
-        {{/if}}
-        <div class="document-box">{{subject.name}}</div>
-      </div>
-    </section>
-
-    <section class="discipline-band">
-      <h1>{{school.shortName}}</h1>
-      <span>Documento Oficial — Perfil Curricular Angolano</span>
-    </section>
-
-    <section class="discipline-title">
-      <h2>Pauta — {{subject.name}}</h2>
-      <p>{{classGroup.level}} | {{classGroup.name}} | {{classGroup.shift}} | Ano Lectivo {{academicYear.name}} | {{period.name}}</p>
-    </section>
-
-    <section class="meta-grid">
-      <div class="meta-box"><b>Escola:</b> {{school.name}}</div>
-      <div class="meta-box"><b>Professor:</b> {{teacher.fullName}}</div>
-      <div class="meta-box"><b>Disciplina:</b> {{subject.name}}</div>
-      <div class="meta-box"><b>Sala:</b> {{classGroup.room}}</div>
-      <div class="meta-box"><b>Escala:</b> {{angola.gradingScale}}</div>
-      <div class="meta-box"><b>Nota mínima:</b> {{grading.minimumPass}}</div>
-    </section>
-
-    <table class="discipline-table">
-      <thead>
-        <tr>
-          <th>Nº</th>
-          <th>Foto</th>
-          <th class="student-name">Nome Completo</th>
-          <th>Sexo</th>
-          <th>Nº Aluno</th>
-          <th>NPT 1</th>
-          <th>NPT 2</th>
-          <th>NPT 3</th>
-          <th>CF</th>
-          <th>Exame</th>
-          <th>Recurso</th>
-          <th>NF</th>
-          <th>Situação</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each students}}
-        <tr>
-          <td>{{index}}</td>
-          <td style="width:36px;text-align:center;">
-            {{#if photoUrl}}
-            <img src="{{photoUrl}}" alt="" style="width:28px;height:28px;object-fit:cover;border-radius:999px;border:1px solid #ccc;" />
-            {{else}}
-            <span style="display:inline-block;width:28px;height:28px;border-radius:999px;background:#e5e7eb;"></span>
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          <p>{{school.address}} | NIF {{school.nif}}</p>
+        </div>
+        <div class="official-right">
+          {{#if school.logoUrl}}
+            <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+          {{else}}
+            {{#if school.flagUrl}}
+              <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
             {{/if}}
-          </td>
-          <td class="student-name">{{fullName}}</td>
-          <td>{{gender}}</td>
-          <td>{{academicNumber}}</td>
-          <td>{{npt1}}</td>
-          <td>{{npt2}}</td>
-          <td>{{npt3}}</td>
-          <td><b>{{cf}}</b></td>
-          <td>{{exam}}</td>
-          <td>{{recovery}}</td>
-          <td><b>{{finalGrade}}</b></td>
-          <td data-status="{{status}}">{{status}}</td>
-        </tr>
+          {{/if}}
+          <div class="document-box">{{subject.name}}</div>
+        </div>
+      </section>
+
+      <section class="discipline-band">
+        <h1>{{school.shortName}}</h1>
+        <span>Documento Oficial — Perfil Curricular Angolano</span>
+      </section>
+
+      <section class="discipline-title">
+        <h2>Pauta — {{subject.name}}</h2>
+        <p>{{classGroup.level}}
+          |
+          {{classGroup.name}}
+          |
+          {{classGroup.shift}}
+          | Ano Lectivo
+          {{academicYear.name}}
+          |
+          {{period.name}}</p>
+      </section>
+
+      <section class="meta-grid">
+        <div class="meta-box"><b>Escola:</b> {{school.name}}</div>
+        <div class="meta-box"><b>Professor:</b> {{teacher.fullName}}</div>
+        <div class="meta-box"><b>Disciplina:</b> {{subject.name}}</div>
+        <div class="meta-box"><b>Sala:</b> {{classGroup.room}}</div>
+        <div class="meta-box"><b>Escala:</b> {{angola.gradingScale}}</div>
+        <div class="meta-box"><b>Nota mínima:</b> {{grading.minimumPass}}</div>
+      </section>
+
+      <table class="discipline-table">
+        <thead>
+          <tr>
+            <th>Nº</th>
+            <th>Foto</th>
+            <th class="student-name">Nome Completo</th>
+            <th>Sexo</th>
+            <th>Nº Aluno</th>
+            <th>NPT 1</th>
+            <th>NPT 2</th>
+            <th>NPT 3</th>
+            <th>CF</th>
+            <th>Exame</th>
+            <th>Recurso</th>
+            <th>NF</th>
+            <th>Situação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each students}}
+            <tr>
+              <td>{{index}}</td>
+              <td style="width:36px;text-align:center;">
+                {{#if photoUrl}}
+                  <img
+                    src="{{photoUrl}}"
+                    alt=""
+                    style="width:28px;height:28px;object-fit:cover;border-radius:999px;border:1px solid #ccc;"
+                  />
+                {{else}}
+                  <span
+                    style="display:inline-block;width:28px;height:28px;border-radius:999px;background:#e5e7eb;"
+                  ></span>
+                {{/if}}
+              </td>
+              <td class="student-name">{{fullName}}</td>
+              <td>{{gender}}</td>
+              <td>{{academicNumber}}</td>
+              <td>{{npt1}}</td>
+              <td>{{npt2}}</td>
+              <td>{{npt3}}</td>
+              <td><b>{{cf}}</b></td>
+              <td>{{exam}}</td>
+              <td>{{recovery}}</td>
+              <td><b>{{finalGrade}}</b></td>
+              <td data-status="{{status}}">{{status}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+
+      <section class="summary-panel">
+        <div><span>Total</span><strong>{{summary.total}} alunos</strong></div>
+        <div><span>Aprovados</span><strong>{{summary.approved}}</strong></div>
+        <div><span>Reprovados</span><strong>{{summary.failed}}</strong></div>
+        <div><span>Taxa de aprovação</span><strong>{{summary.approvalRate}}%</strong></div>
+      </section>
+
+      <section class="footer">
+        {{#each signatures}}
+          <div class="signature">{{label}}</div>
         {{/each}}
-      </tbody>
-    </table>
+      </section>
 
-    <section class="summary-panel">
-      <div><span>Total</span><strong>{{summary.total}} alunos</strong></div>
-      <div><span>Aprovados</span><strong>{{summary.approved}}</strong></div>
-      <div><span>Reprovados</span><strong>{{summary.failed}}</strong></div>
-      <div><span>Taxa de aprovação</span><strong>{{summary.approvalRate}}%</strong></div>
-    </section>
+      <section class="validation">
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        <div>
+          <b>Documento derivado:</b>
+          esta pauta foi gerada a partir das notas armazenadas no SIGE e não substitui o Histórico
+          Académico Individual.<br />
+          Nº
+          {{document.number}}
+          | Hash
+          {{document.shortHash}}
+          | Emitido em
+          {{document.issuedAtLabel}}
+          por
+          {{document.issuedBy}}.
+        </div>
+      </section>
 
-    <section class="footer">
-      {{#each signatures}}
-      <div class="signature">{{label}}</div>
-      {{/each}}
-    </section>
-
-    <section class="validation">
-      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-      <div>
-        <b>Documento derivado:</b> esta pauta foi gerada a partir das notas armazenadas no SIGE e não substitui o Histórico Académico Individual.<br />
-        Nº {{document.number}} | Hash {{document.shortHash}} | Emitido em {{document.issuedAtLabel}} por {{document.issuedBy}}.
+      <div class="page-footer">
+        <span>Gerado em {{document.issuedAtLabel}}</span>
+        <span>Página 1</span>
       </div>
-    </section>
-
-    <div class="page-footer">
-      <span>Gerado em {{document.issuedAtLabel}}</span>
-      <span>Página 1</span>
-    </div>
-  </main>
-</body>
+    </main>
+  </body>
 </html>

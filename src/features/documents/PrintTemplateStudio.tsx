@@ -56,7 +56,11 @@ export function PrintTemplateStudio() {
   const defaultIssue = useMemo(() => {
     const issueKey = catalogQuery.data?.issue;
     if (!issueKey) return null;
-    return items.find((item) => item.key === issueKey) ?? catalogQuery.data?.items?.find((item) => item.key === issueKey) ?? null;
+    return (
+      items.find((item) => item.key === issueKey) ??
+      catalogQuery.data?.items?.find((item) => item.key === issueKey) ??
+      null
+    );
   }, [catalogQuery.data?.issue, catalogQuery.data?.items, items]);
 
   const previewHtml = useMemo(() => {
@@ -72,7 +76,8 @@ export function PrintTemplateStudio() {
             email: school?.email,
             address: school?.address,
             directorName: school?.director_name,
-            academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
+            academicYear:
+              selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
           },
           { css: templateQuery.data.css },
         ),
@@ -228,7 +233,11 @@ export function PrintTemplateStudio() {
             <Button variant="ghost" onClick={() => setOpenKey(null)}>
               Fechar
             </Button>
-            <Button variant="outline" disabled={saving || !templateQuery.data} onClick={() => void restoreOriginal()}>
+            <Button
+              variant="outline"
+              disabled={saving || !templateQuery.data}
+              onClick={() => void restoreOriginal()}
+            >
               <RotateCcw className="size-3.5" /> Restaurar
             </Button>
             <Button
@@ -238,7 +247,9 @@ export function PrintTemplateStudio() {
                 try {
                   printOfficialHtml(previewHtml);
                 } catch (error) {
-                  toast.error(error instanceof Error ? error.message : "Não foi possível imprimir.");
+                  toast.error(
+                    error instanceof Error ? error.message : "Não foi possível imprimir.",
+                  );
                 }
               }}
             >

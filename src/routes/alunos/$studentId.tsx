@@ -22,6 +22,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
+import { StudentDigitalCardModal } from "@/features/students/components/StudentDigitalCardModal";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
 import { inferIcon } from "@/lib/auto-icon";
@@ -368,21 +369,6 @@ function StudentDetail() {
       queryClient.invalidateQueries({ queryKey: ["students", "profile", studentId] }),
       queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
     ]);
-    if (newStatus === "graduated") {
-      toast.message("Aluno concluído", {
-        description: "Falta emitir o Certificado de Habilitações para fechar o processo.",
-        action: {
-          label: "Emitir agora",
-          onClick: () => {
-            void downloadCertificado().catch((error) =>
-              toast.error(
-                error instanceof Error ? error.message : "Não foi possível emitir o certificado.",
-              ),
-            );
-          },
-        },
-      });
-    }
   };
 
   const classGroups = workspaceQuery.data?.classGroups ?? [];
@@ -726,6 +712,7 @@ function StudentDetail() {
     .slice(0, 2)
     .map((p) => p[0])
     .join("");
+  const [cardModalOpen, setCardModalOpen] = useState(false);
 
   return (
     <AppShell>
@@ -766,6 +753,7 @@ function StudentDetail() {
                       queryClient.invalidateQueries({
                         queryKey: ["students", "profile", student.id],
                       }),
+                      queryClient.invalidateQueries({ queryKey: ["people", "get", student.person_id] }),
                       queryClient.invalidateQueries({
                         queryKey: ["arquivos", "student-related", student.person_id],
                       }),
@@ -810,12 +798,19 @@ function StudentDetail() {
                         : "bg-warning/20 text-warning-foreground",
                   )}
                 >
-                  {pagamentoLabels[paymentStatus] ?? paymentStatus}
+                  {paymentStatusLabels[paymentStatus] ?? paymentStatus}
                 </span>
               ) : null}
             </div>
           </div>
           <div className="ml-auto flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              className="gap-2 text-primary border-primary/30 bg-primary/5 hover:bg-primary/10 shadow-2xs"
+              onClick={() => setCardModalOpen(true)}
+            >
+              <QrCode className="size-4 text-primary" /> Cartão Digital PWA
+            </Button>
             {turmaOptions.length > 0 ? (
               <QuickFormModal
                 eyebrow={student.registration_number}
@@ -882,22 +877,6 @@ function StudentDetail() {
                 >
                   <FileDown className="size-4" /> Histórico
                 </Button>
-                {student.student_status === "graduated" ? (
-                  <Button
-                    className="gap-2"
-                    onClick={() => {
-                      void downloadCertificado().catch((error) =>
-                        toast.error(
-                          error instanceof Error
-                            ? error.message
-                            : "Não foi possível emitir o certificado.",
-                        ),
-                      );
-                    }}
-                  >
-                    <FileDown className="size-4" /> Certificado de Habilitações
-                  </Button>
-                ) : null}
                 <Button
                   variant="outline"
                   className="gap-2"
@@ -1622,6 +1601,21 @@ function StudentDetail() {
           </section>
         </div>
       </div>
+
+      <StudentDigitalCardModal
+        open={cardModalOpen}
+        onOpenChange={setCardModalOpen}
+        student={{
+          id: student.id,
+          full_name: student.full_name,
+          process_number: student.registration_number,
+          class_name: student.class_name,
+          course_name: student.course_name,
+          academic_year: activeYearLabel,
+          photo_url: student.photo_url,
+          status: estadoLabels[student.student_status] ?? student.student_status,
+        }}
+      />
     </AppShell>
   );
 }

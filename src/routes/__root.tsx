@@ -53,17 +53,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "SIGA — Gestão Escolar" },
+      { title: "Portal de Gestão Escolar" },
       {
         name: "description",
         content:
-          "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
+          "Plataforma integrada de gestão escolar: estudantes, turmas, secretaria académica, contabilidade e relatórios.",
       },
-      { property: "og:title", content: "SIGA — Gestão Escolar" },
+      { property: "og:title", content: "Portal de Gestão Escolar" },
       {
         property: "og:description",
         content:
-          "Plataforma de gestão escolar: estudantes, turmas, secretaria, financeiro e relatórios.",
+          "Plataforma integrada de gestão escolar: estudantes, turmas, secretaria académica, contabilidade e relatórios.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -92,11 +92,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt">
+    <html lang="pt" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <Scripts />
       </body>

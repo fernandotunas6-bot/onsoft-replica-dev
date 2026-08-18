@@ -69,9 +69,7 @@ function createAuthContext(
   rawClaims?: unknown,
 ): SupabaseAuthContext {
   const claims =
-    rawClaims && typeof rawClaims === "object"
-      ? (rawClaims as Record<string, unknown>)
-      : {};
+    rawClaims && typeof rawClaims === "object" ? (rawClaims as Record<string, unknown>) : {};
   const email = claims["email"];
   return {
     supabase,
@@ -84,105 +82,68 @@ function createAuthContext(
   };
 }
 
-export const requireSupabaseAuth = createMiddleware({ type: "function" }).server<SupabaseAuthContext>(
-  async ({ next }) => {
-    const SUPABASE_URL = process.env["SUPABASE_URL"];
-    const SUPABASE_PUBLISHABLE_KEY = process.env["SUPABASE_PUBLISHABLE_KEY"];
+export const requireSupabaseAuth = createMiddleware({
+  type: "function",
+}).server<SupabaseAuthContext>(async ({ next }) => {
+  const SUPABASE_URL = process.env["SUPABASE_URL"];
+  const SUPABASE_PUBLISHABLE_KEY = process.env["SUPABASE_PUBLISHABLE_KEY"];
 
-    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-      const missing = [
-        ...(!SUPABASE_URL ? ["SUPABASE_URL"] : []),
-        ...(!SUPABASE_PUBLISHABLE_KEY ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
-      ];
-      const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Connect Supabase in Lovable Cloud.`;
-      console.error(`[Supabase] ${message}`);
-      throw new Error(message);
-    }
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    const missing = [
+      ...(!SUPABASE_URL ? ["SUPABASE_URL"] : []),
+      ...(!SUPABASE_PUBLISHABLE_KEY ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
+    ];
+    const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Connect Supabase in Lovable Cloud.`;
+    console.error(`[Supabase] ${message}`);
+    throw new Error(message);
+  }
 
-    assertPublishableSupabaseKey(SUPABASE_PUBLISHABLE_KEY, "SUPABASE_PUBLISHABLE_KEY");
+  assertPublishableSupabaseKey(SUPABASE_PUBLISHABLE_KEY, "SUPABASE_PUBLISHABLE_KEY");
 
-    const request = getRequest();
+  const request = getRequest();
 
-    if (!request?.headers) {
-      unauthorized("Unauthorized: pedido sem cabeçalhos.");
-    }
+  if (!request?.headers) {
+    unauthorized("Unauthorized: pedido sem cabeçalhos.");
+  }
 
-    const authHeader = request.headers.get("authorization");
+  const authHeader = request.headers.get("authorization");
 
-    if (!authHeader) {
-      unauthorized("Unauthorized: sessão em falta. Termine e volte a entrar.");
-    }
+  if (!authHeader) {
+    unauthorized("Unauthorized: sessão em falta. Termine e volte a entrar.");
+  }
 
-    if (!authHeader.startsWith("Bearer ")) {
-      unauthorized("Unauthorized: cabeçalho Authorization inválido.");
-    }
+  if (!authHeader.startsWith("Bearer ")) {
+    unauthorized("Unauthorized: cabeçalho Authorization inválido.");
+  }
 
-    const token = authHeader.replace("Bearer ", "");
-    if (!token) {
-      unauthorized("Unauthorized: token vazio.");
-    }
+  const token = authHeader.replace("Bearer ", "");
+  if (!token) {
+    unauthorized("Unauthorized: token vazio.");
+  }
 
-    if (token.split(".").length !== 3) {
-      unauthorized("Unauthorized: token JWT inválido.");
-    }
+  if (token.split(".").length !== 3) {
+    unauthorized("Unauthorized: token JWT inválido.");
+  }
 
-    const supabase = createClient<Database>(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
-      global: {
-        fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY!),
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+  const supabase = createClient<Database>(SUPABASE_URL!, SUPABASE_PUBLISHABLE_KEY!, {
+    global: {
+      fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY!),
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-      auth: {
-        storage: undefined,
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    });
+    },
+    auth: {
+      storage: undefined,
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
 
-    let authApiError: string | undefined;
-    try {
-      const { data, error } = await supabase.auth.getClaims(token);
-      if (data?.claims?.sub) {
-        setResponseHeaders(
-          new Headers({
-            "Cache-Control": "private, no-store",
-            Vary: "Authorization",
-          }),
-        );
-        return next({
-          context: createAuthContext(supabase, data.claims.sub, data.claims),
-        });
-      }
-      authApiError = error?.message;
-    } catch (claimsError) {
-      authApiError = claimsError instanceof Error ? claimsError.message : "getClaims falhou";
-    }
-
-    try {
-      const { data: userData, error: userError } = await supabase.auth.getUser(token);
-      if (userData?.user?.id) {
-        setResponseHeaders(
-          new Headers({
-            "Cache-Control": "private, no-store",
-            Vary: "Authorization",
-          }),
-        );
-        return next({
-          context: createAuthContext(supabase, userData.user.id, { email: userData.user.email }),
-        });
-      }
-      authApiError = authApiError || userError?.message;
-    } catch (userError) {
-      authApiError =
-        authApiError || (userError instanceof Error ? userError.message : "getUser falhou");
-    }
-
-    // Fallback: decode local do JWT quando o Auth API está inacessível no SSR
-    // (ex.: "fetch failed"). Handlers usam service role / membership depois disto.
-    const localClaims = decodeAccessTokenClaims(token);
-    if (localClaims?.sub) {
+  let authApiError: string | undefined;
+  try {
+    const { data, error } = await supabase.auth.getClaims(token);
+    if (data?.claims?.sub) {
       setResponseHeaders(
         new Headers({
           "Cache-Control": "private, no-store",
@@ -190,10 +151,47 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
         }),
       );
       return next({
-        context: createAuthContext(supabase, localClaims.sub, localClaims),
+        context: createAuthContext(supabase, data.claims.sub, data.claims),
       });
     }
+    authApiError = error?.message;
+  } catch (claimsError) {
+    authApiError = claimsError instanceof Error ? claimsError.message : "getClaims falhou";
+  }
 
-    unauthorized(`Unauthorized: ${authApiError || "token rejeitado"}.`);
-  },
-);
+  try {
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userData?.user?.id) {
+      setResponseHeaders(
+        new Headers({
+          "Cache-Control": "private, no-store",
+          Vary: "Authorization",
+        }),
+      );
+      return next({
+        context: createAuthContext(supabase, userData.user.id, { email: userData.user.email }),
+      });
+    }
+    authApiError = authApiError || userError?.message;
+  } catch (userError) {
+    authApiError =
+      authApiError || (userError instanceof Error ? userError.message : "getUser falhou");
+  }
+
+  // Fallback: decode local do JWT quando o Auth API está inacessível no SSR
+  // (ex.: "fetch failed"). Handlers usam service role / membership depois disto.
+  const localClaims = decodeAccessTokenClaims(token);
+  if (localClaims?.sub) {
+    setResponseHeaders(
+      new Headers({
+        "Cache-Control": "private, no-store",
+        Vary: "Authorization",
+      }),
+    );
+    return next({
+      context: createAuthContext(supabase, localClaims.sub, localClaims),
+    });
+  }
+
+  unauthorized(`Unauthorized: ${authApiError || "token rejeitado"}.`);
+});

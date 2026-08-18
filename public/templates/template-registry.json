@@ -10,10 +10,22 @@
     { "key": "pauta-geral-turma", "type": "class_master_sheet", "sourceOfTruth": false },
     { "key": "boletim-escolar", "type": "report_card", "sourceOfTruth": false },
     { "key": "certificado-habilitacoes", "type": "certificate", "sourceOfTruth": false },
-    { "key": "diario-pedagogico-professor", "type": "teacher_pedagogic_log", "sourceOfTruth": false },
+    {
+      "key": "diario-pedagogico-professor",
+      "type": "teacher_pedagogic_log",
+      "sourceOfTruth": false
+    },
     { "key": "acta-conselho-notas", "type": "academic_council_minutes", "sourceOfTruth": false },
     { "key": "declaracao-notas-simples", "type": "simple_grade_statement", "sourceOfTruth": false },
-    { "key": "relatorio-validacao-notas", "type": "grade_validation_report", "sourceOfTruth": false },
-    { "key": "mapa-estatistico-aproveitamento", "type": "academic_statistics", "sourceOfTruth": false }
+    {
+      "key": "relatorio-validacao-notas",
+      "type": "grade_validation_report",
+      "sourceOfTruth": false
+    },
+    {
+      "key": "mapa-estatistico-aproveitamento",
+      "type": "academic_statistics",
+      "sourceOfTruth": false
+    }
   ]
 }

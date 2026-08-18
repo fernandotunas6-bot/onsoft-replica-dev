@@ -46,9 +46,7 @@ function gridRows(slots: ScheduleSlot[]) {
     return {
       range,
       cells: weekdays.map((_, index) =>
-        slots.find(
-          (slot) => slot.weekday === index + 1 && timeValue(slot.starts_at) === start,
-        ),
+        slots.find((slot) => slot.weekday === index + 1 && timeValue(slot.starts_at) === start),
       ),
     };
   });
@@ -80,7 +78,10 @@ export function ScheduleWorkspace({
   const [classGroupId, setClassGroupId] = useState("");
   const [query, setQuery] = useState("");
   const selectedClassGroupId =
-    classGroupId || slots.find((slot) => slot.class_group_id)?.class_group_id || classGroups[0]?.id || "";
+    classGroupId ||
+    slots.find((slot) => slot.class_group_id)?.class_group_id ||
+    classGroups[0]?.id ||
+    "";
   const selectedClassGroup = classGroups.find((group) => group.id === selectedClassGroupId);
   const selectedSlots = slots.filter((slot) => slot.class_group_id === selectedClassGroupId);
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -101,7 +102,9 @@ export function ScheduleWorkspace({
   const createSlot = async (values: Record<string, string | undefined>) => {
     const groupOption = values["turma"] ?? "";
     const subjectOption = values["disciplina"] ?? "";
-    const classGroup = classGroups.find((group) => optionLabel(group.id, group.name) === groupOption);
+    const classGroup = classGroups.find(
+      (group) => optionLabel(group.id, group.name) === groupOption,
+    );
     const subject = subjects.find((item) => optionLabel(item.id, item.name) === subjectOption);
     const weekday = weekdayByLabel.get(values["dia"] ?? "");
     if (!classGroup || !subject || !weekday) throw new Error("Seleccione turma, disciplina e dia.");
@@ -121,7 +124,9 @@ export function ScheduleWorkspace({
 
   return (
     <Panel
-      title={selectedClassGroup ? `Horário semanal — ${selectedClassGroup.name}` : "Horário semanal"}
+      title={
+        selectedClassGroup ? `Horário semanal — ${selectedClassGroup.name}` : "Horário semanal"
+      }
       description={
         scheduleAvailable
           ? "Slots reais da escola, organizados por turma, disciplina e sala."
@@ -141,11 +146,23 @@ export function ScheduleWorkspace({
               submitLabel="Criar slot"
               onSubmit={createSlot}
               fields={[
-                { name: "turma", label: "Turma", type: "select", options: classGroupOptions, full: true },
+                {
+                  name: "turma",
+                  label: "Turma",
+                  type: "select",
+                  options: classGroupOptions,
+                  full: true,
+                },
                 { name: "dia", label: "Dia", type: "select", options: [...weekdays] },
                 { name: "inicio", label: "Início (HH:MM)", placeholder: "07:30" },
                 { name: "fim", label: "Fim (HH:MM)", placeholder: "08:20" },
-                { name: "disciplina", label: "Disciplina", type: "select", options: subjectOptions, full: true },
+                {
+                  name: "disciplina",
+                  label: "Disciplina",
+                  type: "select",
+                  options: subjectOptions,
+                  full: true,
+                },
                 {
                   name: "rotulo",
                   label: "Sala / rótulo",
@@ -310,8 +327,16 @@ export function ScheduleWorkspace({
                             options: [...weekdays],
                             defaultValue: weekdayLabel(slot.weekday),
                           },
-                          { name: "inicio", label: "Início (HH:MM)", defaultValue: timeValue(slot.starts_at) },
-                          { name: "fim", label: "Fim (HH:MM)", defaultValue: timeValue(slot.ends_at) },
+                          {
+                            name: "inicio",
+                            label: "Início (HH:MM)",
+                            defaultValue: timeValue(slot.starts_at),
+                          },
+                          {
+                            name: "fim",
+                            label: "Fim (HH:MM)",
+                            defaultValue: timeValue(slot.ends_at),
+                          },
                           {
                             name: "rotulo",
                             label: "Sala / rótulo",

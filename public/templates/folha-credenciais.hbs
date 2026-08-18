@@ -1,117 +1,106 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>{{{css}}}</style>
-</head>
-<body>
-  <main class="document premium-document" data-watermark="{{document.watermarkText}}">
-    <section class="premium-hero angola-official">
-      {{#if school.emblemUrl}}
-      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
-      {{else}}
-      <img class="logo" src="{{school.logoUrl}}" alt="" />
-      {{/if}}
-      <div class="school-title">
-        <p class="republic">{{school.ministry}}</p>
-        <p class="republic">{{school.ministryLine}}</p>
-        <h1>{{school.name}}</h1>
-        <p>{{school.address}} | {{school.email}}</p>
-      </div>
-      <div class="official-right">
-        {{#if school.logoUrl}}
-        <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <main class="document premium-document" data-watermark="{{document.watermarkText}}">
+      <section class="premium-hero angola-official">
+        {{#if school.emblemUrl}}
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
         {{else}}
-        {{#if school.flagUrl}}
-        <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
         {{/if}}
-        {{/if}}
-        <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>
-      </div>
-    </section>
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          <p>{{school.address}} | {{school.email}}</p>
+        </div>
+        <div class="official-right">
+          {{#if school.logoUrl}}
+            <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+          {{else}}
+            {{#if school.flagUrl}}
+              <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+            {{/if}}
+          {{/if}}
+          <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>
+        </div>
+      </section>
 
-    <div class="premium-title">Folha de Credenciais do Portal</div>
+      <div class="premium-title">Folha de Credenciais do Portal</div>
 
-    <section class="premium-grid">
-      <div class="premium-panel">
-        <h3>Estudante</h3>
-        <div class="premium-kv"><span>Nome</span><b>{{student.fullName}}</b></div>
-        <div class="premium-kv"><span>Nº estudantil</span><b>{{student.academicNumber}}</b></div>
-        <div class="premium-kv"><span>Turma</span><b>{{classGroup.name}}</b></div>
-        <div class="premium-kv"><span>Curso/Classe</span><b>{{classGroup.course}} / {{classGroup.level}}</b></div>
-      </div>
-      <div class="premium-panel">
-        <h3>Credencial oficial</h3>
-        <div class="credential-code">{{credentials.portalId}}</div>
-        <div class="premium-kv"><span>E-mail institucional</span><b>{{credentials.institutionalEmail}}</b></div>
-        <div class="premium-kv"><span>ID institucional</span><b>{{credentials.institutionalId}}</b></div>
-        <div class="premium-kv"><span>Cartão</span><b>{{credentials.cardId}}</b></div>
-      </div>
-    </section>
+      <section class="premium-grid">
+        <div class="premium-panel">
+          <h3>Estudante</h3>
+          <div class="premium-kv"><span>Nome</span><b>{{student.fullName}}</b></div>
+          <div class="premium-kv"><span>Nº estudantil</span><b>{{student.academicNumber}}</b></div>
+          <div class="premium-kv"><span>Turma</span><b>{{classGroup.name}}</b></div>
+          <div class="premium-kv"><span>Curso/Classe</span><b>{{classGroup.course}}
+              /
+              {{classGroup.level}}</b></div>
+        </div>
+        <div class="premium-panel">
+          <h3>Credencial oficial</h3>
+          <div class="credential-code">{{credentials.portalId}}</div>
+          <div class="premium-kv"><span>E-mail institucional</span><b
+            >{{credentials.institutionalEmail}}</b></div>
+          <div class="premium-kv"><span>ID institucional</span><b
+            >{{credentials.institutionalId}}</b></div>
+          <div class="premium-kv"><span>Cartão</span><b>{{credentials.cardId}}</b></div>
+        </div>
+      </section>
 
-    <section class="premium-panel">
-      <h3>Identificadores aceites no login</h3>
-      <div>
-        {{#each credentials.acceptedLoginIdentifiers}}
-          <span class="premium-badge">{{this}}</span>
-        {{/each}}
-      </div>
-      <p class="statement-text">{{credentials.firstPasswordRule}}</p>
-    </section>
+      <section class="premium-panel">
+        <h3>Identificadores aceites no login</h3>
+        <div>
+          {{#each credentials.acceptedLoginIdentifiers}}
+            <span class="premium-badge">{{this}}</span>
+          {{/each}}
+        </div>
+        <p class="statement-text">{{credentials.firstPasswordRule}}</p>
+      </section>
 
-    <section class="premium-panel">
-      <h3>{{recovery.title}}</h3>
-      <ol class="premium-list">
-        {{#each recovery.steps}}<li>{{this}}</li>{{/each}}
-      </ol>
-      <p class="statement-text">{{recovery.warning}}</p>
-    </section>
+      <section class="premium-panel">
+        <h3>{{recovery.title}}</h3>
+        <ol class="premium-list">
+          {{#each recovery.steps}}<li>{{this}}</li>{{/each}}
+        </ol>
+        <p class="statement-text">{{recovery.warning}}</p>
+      </section>
 
-    <section class="premium-signature-strip">
-      {{#each signatures}}<div class="premium-signature">{{label}}</div>{{/each}}
-    </section>
+      <section class="premium-signature-strip">
+        {{#each signatures}}<div class="premium-signature">{{label}}</div>{{/each}}
+      </section>
 
-    <section class="validation">
-      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-      <div>
-        UUID: {{document.uuid}} | Hash: {{document.hash}}<br />
-        Credencial permanente ligada ao person_id; cartão pode ser reemitido sem apagar histórico.<br />
-        Assinatura digital: {{document.digitalSignature}}
-      </div>
-    </section>
-  </main>
-</body>
+      <section class="validation">
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        <div>
+          UUID:
+          {{document.uuid}}
+          | Hash:
+          {{document.hash}}<br />
+          Credencial permanente ligada ao person_id; cartão pode ser reemitido sem apagar histórico.<br
+          />
+          Assinatura digital:
+          {{document.digitalSignature}}
+        </div>
+      </section>
+    </main>
+  </body>
 </html>

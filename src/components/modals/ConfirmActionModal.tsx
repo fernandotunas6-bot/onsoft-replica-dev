@@ -2,7 +2,6 @@ import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { PremiumModal } from "@/components/ui/premium-modal";
 import { Button } from "@/components/ui/button";
-import { formatMutationError } from "@/lib/format-error";
 
 /** Confirmação destructiva (excluir/anular) com feedback toast. */
 export function ConfirmActionModal({
@@ -31,7 +30,7 @@ export function ConfirmActionModal({
       toast.success(title, { description: "Operação concluída." });
     } catch (error) {
       toast.error("Não foi possível concluir", {
-        description: formatMutationError(error),
+        description: error instanceof Error ? error.message : "Tente novamente.",
       });
     } finally {
       setSaving(false);

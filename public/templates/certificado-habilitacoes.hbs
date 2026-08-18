@@ -1,101 +1,89 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>{{{css}}}</style>
-</head>
-<body>
-  <main class="document document-certificado">
-    <section class="official-topline angola-official">
-      {{#if school.emblemUrl}}
-      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
-      {{else}}
-      <img class="logo" src="{{school.logoUrl}}" alt="" />
-      {{/if}}
-      <div class="school-title">
-        <p class="republic">{{school.ministry}}</p>
-        <p class="republic">{{school.ministryLine}}</p>
-        <h1>{{school.name}}</h1>
-        <p>{{school.address}} | NIF {{school.nif}}</p>
-      </div>
-      <div class="official-right">
-        {{#if school.logoUrl}}
-        <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <main class="document document-certificado">
+      <section class="official-topline angola-official">
+        {{#if school.emblemUrl}}
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
         {{else}}
-        {{#if school.flagUrl}}
-        <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
         {{/if}}
-        {{/if}}
-        <div class="document-box">Nº {{document.number}}</div>
-      </div>
-    </section>
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          <p>{{school.address}} | NIF {{school.nif}}</p>
+        </div>
+        <div class="official-right">
+          {{#if school.logoUrl}}
+            <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+          {{else}}
+            {{#if school.flagUrl}}
+              <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+            {{/if}}
+          {{/if}}
+          <div class="document-box">Nº {{document.number}}</div>
+        </div>
+      </section>
 
-    <div class="doc-title">Certificado de Habilitações</div>
+      <div class="doc-title">Certificado de Habilitações</div>
 
-    <p style="font-size:13px; line-height:1.7; text-align:justify; margin:22px 18px;">
-      {{certificateText}} O presente certificado é emitido com base no
-      <b>Histórico Académico Individual</b>, fonte oficial e permanente das
-      classificações do estudante <b>{{student.fullName}}</b>, processo académico
-      nº <b>{{student.academicNumber}}</b>, documento {{student.docType}}
-      <b>{{student.docNumber}}</b>.
-    </p>
+      <p style="font-size:13px; line-height:1.7; text-align:justify; margin:22px 18px;">
+        {{certificateText}}
+        O presente certificado é emitido com base no
+        <b>Histórico Académico Individual</b>, fonte oficial e permanente das classificações do
+        estudante
+        <b>{{student.fullName}}</b>, processo académico nº
+        <b>{{student.academicNumber}}</b>, documento
+        {{student.docType}}
+        <b>{{student.docNumber}}</b>.
+      </p>
 
-    <section class="summary-panel">
-      <div><span>Classe/Curso</span><strong>{{program.name}}</strong></div>
-      <div><span>Ano lectivo</span><strong>{{academicYear.name}}</strong></div>
-      <div><span>Média final</span><strong>{{record.globalAverage}}</strong></div>
-      <div><span>Resultado</span><strong>{{record.finalStatus}}</strong></div>
-    </section>
+      <section class="summary-panel">
+        <div><span>Classe/Curso</span><strong>{{program.name}}</strong></div>
+        <div><span>Ano lectivo</span><strong>{{academicYear.name}}</strong></div>
+        <div><span>Média final</span><strong>{{record.globalAverage}}</strong></div>
+        <div><span>Resultado</span><strong>{{record.finalStatus}}</strong></div>
+      </section>
 
-    <p><b>Escala angolana:</b> {{angola.legalNote}}</p>
+      <p><b>Escala angolana:</b> {{angola.legalNote}}</p>
 
-    <section class="footer">
-      {{#each signatures}}
-      <div class="signature">{{label}}</div>
-      {{/each}}
-    </section>
+      <section class="footer">
+        {{#each signatures}}
+          <div class="signature">{{label}}</div>
+        {{/each}}
+      </section>
 
-    <section class="validation">
-      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-      <div>
-        Código de validação: {{document.hash}}<br />
-        Documento nº {{document.number}}, emitido em {{document.issuedAtLabel}} por {{document.issuedBy}}.<br />
-        A validade pode ser confirmada pelo QR Code ou pelo hash acima.
-      </div>
-    </section>
-  </main>
-</body>
+      <section class="validation">
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        <div>
+          Código de validação:
+          {{document.hash}}<br />
+          Documento nº
+          {{document.number}}, emitido em
+          {{document.issuedAtLabel}}
+          por
+          {{document.issuedBy}}.<br />
+          A validade pode ser confirmada pelo QR Code ou pelo hash acima.
+        </div>
+      </section>
+    </main>
+  </body>
 </html>

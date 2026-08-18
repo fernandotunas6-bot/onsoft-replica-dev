@@ -127,11 +127,7 @@ export function matchPrintTemplateKey(
 
   const fromKeywords = (): PrintTemplateKey | null => {
     if (normalized.includes("boletim")) return "boletim-escolar";
-    if (
-      normalized.includes("certificado") ||
-      normalized.includes("habilita") ||
-      normalized.includes("diploma")
-    ) {
+    if (normalized.includes("certificado") || normalized.includes("habilita")) {
       return "certificado-habilitacoes";
     }
     if (normalized.includes("histórico") || normalized.includes("historico")) {

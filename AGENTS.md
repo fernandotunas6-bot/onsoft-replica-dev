@@ -26,4 +26,3 @@ npm run siga:scaffold -- <modulo> [--route=/caminho] [--with-page]
 ```
 
 No SGA não aplicar migrações Lovable. SQL correcto: `npm run siga:sql`.
-

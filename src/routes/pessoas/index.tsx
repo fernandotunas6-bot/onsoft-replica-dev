@@ -64,6 +64,8 @@ import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
+import { PersonProfile360Modal } from "@/features/people/components/PersonProfile360Modal";
+import { PersonWizardModal } from "@/features/people/components/PersonWizardModal";
 
 export const Route = createFileRoute("/pessoas/")({
   head: () => ({
@@ -125,6 +127,8 @@ function PeoplePage() {
   );
   const deferredQuery = useDeferredValue(filters.q.trim());
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [profile360Id, setProfile360Id] = useState<string | null>(null);
   const [pendingDocFile, setPendingDocFile] = useState<{ id: string; name: string } | null>(null);
 
   const peopleQuery = useQuery({
@@ -444,8 +448,8 @@ function PeoplePage() {
                   options: Object.keys(roleLabels),
                 },
               ]}
-              trigger={(open) => (
-                <Button className="gap-2" onClick={open}>
+              trigger={() => (
+                <Button className="gap-2 shadow-sm" onClick={() => setWizardOpen(true)}>
                   <UserPlus className="size-4" /> Nova Pessoa
                 </Button>
               )}
@@ -811,19 +815,24 @@ function PeoplePage() {
                     <TableRow
                       key={row.id}
                       className="cursor-pointer transition-colors hover:bg-secondary/50"
-                      onClick={() => setSelectedId(row.id)}
+                      onClick={() => setProfile360Id(row.id)}
                       tabIndex={0}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
-                          setSelectedId(row.id);
+                          setProfile360Id(row.id);
                         }
                       }}
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <MediaAvatar alt={row.full_name} className="size-9 rounded-xl" />
-                          <p className="font-semibold">{row.full_name}</p>
+                          <MediaAvatar
+                            src={typeof row.photo_url === "string" ? row.photo_url : null}
+                            alt={row.full_name}
+                            fallback={row.full_name.slice(0, 2).toUpperCase()}
+                            className="size-9 rounded-xl object-cover shadow-2xs"
+                          />
+                          <p className="font-semibold text-foreground">{row.full_name}</p>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -1245,6 +1254,29 @@ function PeoplePage() {
           </div>
         ) : null}
       </PremiumModal>
+
+      <PersonWizardModal
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onPersonCreated={(personId, action) => {
+          if (action === "view") {
+            setProfile360Id(personId);
+          } else if (action === "enroll") {
+            window.location.href = `/alunos?action=matricular&personId=${personId}`;
+          }
+        }}
+      />
+
+      <PersonProfile360Modal
+        personId={profile360Id}
+        open={Boolean(profile360Id)}
+        onOpenChange={(val) => {
+          if (!val) setProfile360Id(null);
+        }}
+        onOpenEnrollment={(pId) => {
+          window.location.href = `/alunos?action=matricular&personId=${pId}`;
+        }}
+      />
     </AppShell>
   );
 }

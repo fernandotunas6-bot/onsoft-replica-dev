@@ -246,22 +246,13 @@ CREATE TABLE IF NOT EXISTS public.calendar_feed_tokens (
 );
 
 ALTER TABLE public.calendar_feed_tokens ENABLE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT, DELETE ON public.calendar_feed_tokens TO authenticated;
+GRANT SELECT, INSERT ON public.calendar_feed_tokens TO authenticated;
 GRANT ALL ON public.calendar_feed_tokens TO service_role;
 
 DROP POLICY IF EXISTS "Read own calendar feed token" ON public.calendar_feed_tokens;
 CREATE POLICY "Read own calendar feed token"
   ON public.calendar_feed_tokens
   FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
-
--- Ciclo 37: sem isto o token nunca podia ser revogado/rodado — um professor
--- desactivado (não apagado, o auth.users cascade nunca dispara) mantinha o
--- feed do calendário a funcionar para sempre.
-DROP POLICY IF EXISTS "Revoke own calendar feed token" ON public.calendar_feed_tokens;
-CREATE POLICY "Revoke own calendar feed token"
-  ON public.calendar_feed_tokens
-  FOR DELETE TO authenticated
   USING (user_id = auth.uid());
 
 CREATE TABLE IF NOT EXISTS public.school_integrations (
@@ -964,75 +955,6 @@ CREATE POLICY "Read school announcements"
   FOR SELECT TO authenticated
   USING (school_id = (SELECT public.current_school_id()));
 
--- Auditoria de mudanças de estado do aluno (ciclo 36 — rigor no percurso
--- até à conclusão/saída). changeStudentStatus e cancelEnrollment em
--- src/features/students/server.ts gravam aqui o motivo, que antes era
--- pedido na interface e depois descartado sem deixar rasto.
-CREATE TABLE IF NOT EXISTS public.student_status_events (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
-  student_id uuid NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
-  from_status text,
-  to_status text NOT NULL,
-  reason text,
-  changed_by uuid REFERENCES auth.users(id),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS student_status_events_student_idx
-  ON public.student_status_events (school_id, student_id, created_at DESC);
-
-ALTER TABLE public.student_status_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.student_status_events FORCE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT ON public.student_status_events TO authenticated;
-GRANT ALL ON public.student_status_events TO service_role;
-
-DROP POLICY IF EXISTS "Read own school student status events" ON public.student_status_events;
-CREATE POLICY "Read own school student status events"
-  ON public.student_status_events
-  FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
-
-DROP POLICY IF EXISTS "Write own school student status events" ON public.student_status_events;
-CREATE POLICY "Write own school student status events"
-  ON public.student_status_events
-  FOR INSERT TO authenticated
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
-
--- Auditoria de cancelamento de faturas (ciclo 37 — mesmo problema do
--- student_status_events: cancelInvoice pedia "Motivo" na interface e
--- descartava-o com void data.reason.
-CREATE TABLE IF NOT EXISTS public.finance_invoice_events (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
-  invoice_id uuid NOT NULL REFERENCES public.finance_invoices(id) ON DELETE CASCADE,
-  from_status text,
-  to_status text NOT NULL,
-  reason text,
-  changed_by uuid REFERENCES auth.users(id),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS finance_invoice_events_invoice_idx
-  ON public.finance_invoice_events (school_id, invoice_id, created_at DESC);
-
-ALTER TABLE public.finance_invoice_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.finance_invoice_events FORCE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT ON public.finance_invoice_events TO authenticated;
-GRANT ALL ON public.finance_invoice_events TO service_role;
-
-DROP POLICY IF EXISTS "Read own school invoice events" ON public.finance_invoice_events;
-CREATE POLICY "Read own school invoice events"
-  ON public.finance_invoice_events
-  FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
-
-DROP POLICY IF EXISTS "Write own school invoice events" ON public.finance_invoice_events;
-CREATE POLICY "Write own school invoice events"
-  ON public.finance_invoice_events
-  FOR INSERT TO authenticated
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
-
 -- Verificação: deve devolver as relações novas.
 SELECT c.relname AS tabela
 FROM pg_class c
@@ -1054,8 +976,6 @@ WHERE n.nspname = 'public'
     'siga_lesson_plans',
     'siga_lesson_plan_components',
     'siga_cash_expenses',
-    'announcements',
-    'student_status_events',
-    'finance_invoice_events'
+    'announcements'
   )
 ORDER BY 1;

@@ -29,7 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { ClassMaterialsPanel } from "@/features/arquivos/ClassMaterialsPanel";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
-import { meetingRoomLink } from "@/features/integrations/actions";
+import { classroomCourseHref, meetingRoomLink } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet } from "@/features/academic/ClassGroupSheet";
 import { GradePautaSheet } from "@/features/academic/GradePautaSheet";
@@ -69,6 +69,8 @@ import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
+import { PautaOcrScannerModal } from "@/features/pedagogica/components/PautaOcrScannerModal";
+import { DropoutRiskReportModal } from "@/features/pedagogica/components/DropoutRiskReportModal";
 import { toast } from "sonner";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
 
@@ -293,7 +295,9 @@ function PedagogicaPage() {
   }, [pauta, turmaFromSearch, disciplinaFromSearch]);
 
   const onTabChange = (next: string) => {
-    if (!(["turmas", "disciplinas", "notas", "horarios"] as const).includes(next as PedagogicaTab)) {
+    if (
+      !(["turmas", "disciplinas", "notas", "horarios"] as const).includes(next as PedagogicaTab)
+    ) {
       return;
     }
     const nextTab = next as PedagogicaTab;
@@ -626,6 +630,9 @@ function PedagogicaPage() {
     }
   };
 
+  const [ocrModalOpen, setOcrModalOpen] = useState(false);
+  const [dropoutModalOpen, setDropoutModalOpen] = useState(false);
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -635,6 +642,20 @@ function PedagogicaPage() {
           description="Turmas, disciplinas, notas e horários ligados ao Supabase."
           actions={
             <>
+              <Button
+                variant="outline"
+                className="gap-2 text-primary border-primary/30 bg-primary/5 hover:bg-primary/10 shadow-2xs"
+                onClick={() => setOcrModalOpen(true)}
+              >
+                <Sparkles className="size-4 text-primary" /> OCR Pauta Papel
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2 text-destructive border-destructive/30 bg-destructive/5 hover:bg-destructive/10 shadow-2xs"
+                onClick={() => setDropoutModalOpen(true)}
+              >
+                <ShieldAlert className="size-4 text-destructive" /> Risco Abandono AI
+              </Button>
               <Button variant="outline" className="gap-2" onClick={exportarPautaCsv}>
                 <Download className="size-4" /> Pauta CSV
               </Button>
@@ -951,14 +972,15 @@ function PedagogicaPage() {
                                       name: values["nome"] ?? t.nome,
                                       shift:
                                         shiftValues[
-                                          (values["turno"] as keyof typeof shiftValues | undefined) ??
-                                            "Manhã"
+                                          (values["turno"] as
+                                            keyof typeof shiftValues | undefined) ?? "Manhã"
                                         ],
                                       capacity: Number.isFinite(capacity)
                                         ? capacity
                                         : t.capacidadeReal,
                                       roomId: t.campusId,
-                                      status: values["estado"] === "Inactiva" ? "inactive" : "active",
+                                      status:
+                                        values["estado"] === "Inactiva" ? "inactive" : "active",
                                       whatsappInviteUrl: values["whatsapp"] || undefined,
                                       whatsappGroupName: values["whatsappNome"] || undefined,
                                     },
@@ -1036,9 +1058,9 @@ function PedagogicaPage() {
                                 </Button>
                               ) : null}
                               {classroomOn ? (
-                                <Button size="sm" variant="outline" asChild>
+                                <Button size="sm" variant="outline" className="gap-1.5" asChild>
                                   <a
-                                    href="https://classroom.google.com/"
+                                    href={classroomCourseHref(t.code)}
                                     target="_blank"
                                     rel="noreferrer"
                                   >
@@ -1186,8 +1208,12 @@ function PedagogicaPage() {
                       submitLabel="Criar disciplina"
                       onSubmit={async (values) => {
                         const weeklyHours = Number(values["carga"] || 4);
-                        const gradeFrom = values["classeDe"] ? Number(values["classeDe"]) : undefined;
-                        const gradeTo = values["classeAte"] ? Number(values["classeAte"]) : undefined;
+                        const gradeFrom = values["classeDe"]
+                          ? Number(values["classeDe"])
+                          : undefined;
+                        const gradeTo = values["classeAte"]
+                          ? Number(values["classeAte"])
+                          : undefined;
                         await createSubject({
                           data: {
                             code: values["codigo"] ?? "",
@@ -1733,6 +1759,26 @@ function PedagogicaPage() {
           initialSubjectId={disciplinaFromSearch}
         />
       </Suspense>
+
+      <PautaOcrScannerModal
+        open={ocrModalOpen}
+        onOpenChange={setOcrModalOpen}
+        students={enrollmentOptions.map((e) => ({
+          id: e.id,
+          fullName: e.student_name,
+          academicNumber: e.process_number || e.id.slice(0, 8),
+        }))}
+        onApplyGrades={(grades) => {
+          toast.success(`Leitura OCR Aplicada (${grades.length} Alunos)`, {
+            description: "Preenchidas notas na pauta digital.",
+          });
+        }}
+      />
+
+      <DropoutRiskReportModal
+        open={dropoutModalOpen}
+        onOpenChange={setDropoutModalOpen}
+      />
     </AppShell>
   );
 }

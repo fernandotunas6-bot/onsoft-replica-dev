@@ -1,170 +1,156 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>{{{css}}}</style>
-</head>
-<body>
-  <main class="document premium-document" data-watermark="{{document.watermarkText}}">
-    <section class="premium-hero">
-      {{#if school.emblemUrl}}
-      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
-      {{else}}
-      <img class="logo" src="{{school.logoUrl}}" alt="" />
-      {{/if}}
-      <div class="school-title">
-        <p class="republic">{{school.ministry}}</p>
-        <p class="republic">{{school.ministryLine}}</p>
-        <h1>{{school.name}}</h1>
-        <p>{{school.address}} | NIF {{school.nif}} | {{school.phone}}</p>
-      </div>
-      <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>
-    </section>
-
-    <div class="premium-title">{{service.name}}</div>
-    {{#if governance}}
-      <section class="premium-governance-band">
-        <div>
-          <span>Risco</span>
-          <b>{{governance.riskLabel}}</b>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <main class="document premium-document" data-watermark="{{document.watermarkText}}">
+      <section class="premium-hero">
+        {{#if school.emblemUrl}}
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
+        {{else}}
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
+        {{/if}}
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          <p>{{school.address}} | NIF {{school.nif}} | {{school.phone}}</p>
         </div>
-        <div>
-          <span>Sensibilidade</span>
-          <b>{{governance.dataSensitivityLabel}}</b>
-        </div>
-        <div>
-          <span>Retenção</span>
-          <b>{{governance.retentionPolicy}}</b>
-        </div>
+        <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>
       </section>
-    {{/if}}
 
-    <section class="premium-grid">
-      <div class="premium-panel">
-        <h3>Contexto do serviço</h3>
-        <div class="premium-kv"><span>Área</span><b>{{service.areaLabel}}</b></div>
-        <div class="premium-kv"><span>Referência</span><b>{{service.reference}}</b></div>
-        <div class="premium-kv"><span>Estado</span><b>{{service.status}}</b></div>
-        <div class="premium-kv"><span>Validade</span><b>{{service.validityLabel}}</b></div>
-      </div>
-      <div class="premium-panel">
-        <h3>Partes envolvidas</h3>
-        {{#each parties}}
-          <div class="premium-kv"><span>{{label}}</span><b>{{value}}</b></div>
-        {{/each}}
-      </div>
-    </section>
+      <div class="premium-title">{{service.name}}</div>
+      {{#if governance}}
+        <section class="premium-governance-band">
+          <div>
+            <span>Risco</span>
+            <b>{{governance.riskLabel}}</b>
+          </div>
+          <div>
+            <span>Sensibilidade</span>
+            <b>{{governance.dataSensitivityLabel}}</b>
+          </div>
+          <div>
+            <span>Retenção</span>
+            <b>{{governance.retentionPolicy}}</b>
+          </div>
+        </section>
+      {{/if}}
 
-    {{#if governance}}
       <section class="premium-grid">
         <div class="premium-panel">
-          <h3>Fluxo de aprovação</h3>
+          <h3>Contexto do serviço</h3>
+          <div class="premium-kv"><span>Área</span><b>{{service.areaLabel}}</b></div>
+          <div class="premium-kv"><span>Referência</span><b>{{service.reference}}</b></div>
+          <div class="premium-kv"><span>Estado</span><b>{{service.status}}</b></div>
+          <div class="premium-kv"><span>Validade</span><b>{{service.validityLabel}}</b></div>
+        </div>
+        <div class="premium-panel">
+          <h3>Partes envolvidas</h3>
+          {{#each parties}}
+            <div class="premium-kv"><span>{{label}}</span><b>{{value}}</b></div>
+          {{/each}}
+        </div>
+      </section>
+
+      {{#if governance}}
+        <section class="premium-grid">
+          <div class="premium-panel">
+            <h3>Fluxo de aprovação</h3>
+            <ul class="premium-list">
+              {{#each governance.approvalFlow}}<li>{{this}}</li>{{/each}}
+            </ul>
+          </div>
+          <div class="premium-panel">
+            <h3>Eventos internos</h3>
+            <ul class="premium-list">
+              {{#each governance.automationEvents}}<li>{{this}}</li>{{/each}}
+            </ul>
+          </div>
+        </section>
+      {{/if}}
+
+      {{#each sections}}
+        <section class="premium-panel">
+          <h3>{{title}}</h3>
+          {{#if rows}}
+            <table>
+              <thead>
+                <tr>
+                  <th class="text-left">Item</th>
+                  <th class="text-left">Valor</th>
+                  <th class="text-left">Observação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each rows}}
+                  <tr>
+                    <td class="text-left">{{label}}</td>
+                    <td class="text-left">{{value}}</td>
+                    <td class="text-left">{{note}}</td>
+                  </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          {{else}}
+            <p class="statement-text">{{text}}</p>
+          {{/if}}
+        </section>
+      {{/each}}
+
+      <section class="premium-grid">
+        <div class="premium-panel">
+          <h3>Regras de emissão e saída</h3>
           <ul class="premium-list">
-            {{#each governance.approvalFlow}}<li>{{this}}</li>{{/each}}
+            {{#each rules}}<li>{{this}}</li>{{/each}}
           </ul>
         </div>
         <div class="premium-panel">
-          <h3>Eventos internos</h3>
+          <h3>Permissões aplicadas</h3>
           <ul class="premium-list">
-            {{#each governance.automationEvents}}<li>{{this}}</li>{{/each}}
+            {{#each permissions}}<li>{{this}}</li>{{/each}}
           </ul>
         </div>
       </section>
-    {{/if}}
 
-    {{#each sections}}
       <section class="premium-panel">
-        <h3>{{title}}</h3>
-        {{#if rows}}
-          <table>
-            <thead>
-              <tr>
-                <th class="text-left">Item</th>
-                <th class="text-left">Valor</th>
-                <th class="text-left">Observação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{#each rows}}
-                <tr>
-                  <td class="text-left">{{label}}</td>
-                  <td class="text-left">{{value}}</td>
-                  <td class="text-left">{{note}}</td>
-                </tr>
-              {{/each}}
-            </tbody>
-          </table>
-        {{else}}
-          <p class="statement-text">{{text}}</p>
-        {{/if}}
+        <h3>Termo de responsabilidade</h3>
+        <p class="statement-text">{{responsibilityTerm}}</p>
       </section>
-    {{/each}}
 
-    <section class="premium-grid">
-      <div class="premium-panel">
-        <h3>Regras de emissão e saída</h3>
-        <ul class="premium-list">
-          {{#each rules}}<li>{{this}}</li>{{/each}}
-        </ul>
-      </div>
-      <div class="premium-panel">
-        <h3>Permissões aplicadas</h3>
-        <ul class="premium-list">
-          {{#each permissions}}<li>{{this}}</li>{{/each}}
-        </ul>
-      </div>
-    </section>
+      <section class="premium-signature-strip">
+        {{#each signatures}}<div class="premium-signature">{{label}}</div>{{/each}}
+      </section>
 
-    <section class="premium-panel">
-      <h3>Termo de responsabilidade</h3>
-      <p class="statement-text">{{responsibilityTerm}}</p>
-    </section>
-
-    <section class="premium-signature-strip">
-      {{#each signatures}}<div class="premium-signature">{{label}}</div>{{/each}}
-    </section>
-
-    <section class="validation">
-      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-      <div>
-        UUID: {{document.uuid}} | Hash: {{document.hash}}<br />
-        QR para validação pública: {{document.qrCodeUrl}}<br />
-        Assinatura digital: {{document.signatureAlgorithm}} {{document.digitalSignature}}
-      </div>
-    </section>
-  </main>
-</body>
+      <section class="validation">
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        <div>
+          UUID:
+          {{document.uuid}}
+          | Hash:
+          {{document.hash}}<br />
+          QR para validação pública:
+          {{document.qrCodeUrl}}<br />
+          Assinatura digital:
+          {{document.signatureAlgorithm}}
+          {{document.digitalSignature}}
+        </div>
+      </section>
+    </main>
+  </body>
 </html>

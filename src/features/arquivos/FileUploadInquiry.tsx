@@ -12,11 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogExpandButton, useExpandableDialog } from "./dialog-expand";
-import {
-  documentCodeSearchHint,
-  generateDocumentCode,
-  prefixForCategory,
-} from "./document-code";
+import { documentCodeSearchHint, generateDocumentCode, prefixForCategory } from "./document-code";
 import {
   defaultVisibilityForArea,
   FILE_DESCRIPTION_MIN,
@@ -93,28 +89,21 @@ export function FileUploadInquiryModal({
     [files, initial?.category],
   );
   const suggestedCategory = useMemo(
-    () =>
-      initial?.category ??
-      suggestFileCategory({ name: firstName, kind: firstKind }),
+    () => initial?.category ?? suggestFileCategory({ name: firstName, kind: firstKind }),
     [firstKind, firstName, initial?.category],
   );
   const suggestedArea = useMemo(
-    () =>
-      initial?.area ??
-      suggestFileArea(suggestedCategory, writableAreas, defaultArea),
+    () => initial?.area ?? suggestFileArea(suggestedCategory, writableAreas, defaultArea),
     [defaultArea, initial?.area, suggestedCategory, writableAreas],
   );
 
   const [title, setTitle] = useState(defaultTitleFromName(firstName));
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<(typeof fileCategoryOptions)[number]>(
-    suggestedCategory,
-  );
+  const [category, setCategory] = useState<(typeof fileCategoryOptions)[number]>(suggestedCategory);
   const [documentDate, setDocumentDate] = useState("");
   const [referenceCode, setReferenceCode] = useState("");
   const [area, setArea] = useState<FileArea>(suggestedArea);
-  const [visibility, setVisibility] =
-    useState<SchoolFileRecord["visibility"]>(defaultVisibility);
+  const [visibility, setVisibility] = useState<SchoolFileRecord["visibility"]>(defaultVisibility);
   const [relatedUserId, setRelatedUserId] = useState("");
   const [relatedPersonId, setRelatedPersonId] = useState("");
   const [personQuery, setPersonQuery] = useState("");
@@ -131,8 +120,7 @@ export function FileUploadInquiryModal({
     const nextCategory =
       initial?.category ??
       (photoLike ? "foto" : suggestFileCategory({ name: firstName, kind: firstKind }));
-    const nextArea =
-      initial?.area ?? suggestFileArea(nextCategory, writableAreas, defaultArea);
+    const nextArea = initial?.area ?? suggestFileArea(nextCategory, writableAreas, defaultArea);
     setTitle(initial?.title?.trim() || defaultTitleFromName(firstName));
     setDescription(initial?.description?.trim() || "");
     setCategory(nextCategory);
@@ -141,9 +129,7 @@ export function FileUploadInquiryModal({
       initial?.referenceCode?.trim() || generateDocumentCode(prefixForCategory(nextCategory)),
     );
     setArea(nextArea);
-    setVisibility(
-      initial?.visibility ?? defaultVisibilityForArea(nextArea) ?? defaultVisibility,
-    );
+    setVisibility(initial?.visibility ?? defaultVisibilityForArea(nextArea) ?? defaultVisibility);
     setRelatedUserId(initial?.relatedUserId || "");
     setRelatedPersonId(initial?.relatedPersonId || "");
     setPersonQuery("");
@@ -192,10 +178,7 @@ export function FileUploadInquiryModal({
     staleTime: 30_000,
   });
 
-  const totalBytes = useMemo(
-    () => files.reduce((sum, file) => sum + file.size, 0),
-    [files],
-  );
+  const totalBytes = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files]);
 
   return (
     <Dialog
@@ -484,7 +467,9 @@ export function FileUploadInquiryModal({
               });
             }}
           >
-            {mode === "organize" ? "Guardar organização" : `Guardar ficheiro${files.length > 1 ? "s" : ""}`}
+            {mode === "organize"
+              ? "Guardar organização"
+              : `Guardar ficheiro${files.length > 1 ? "s" : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>

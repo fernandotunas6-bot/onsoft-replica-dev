@@ -34,15 +34,17 @@ export const enrollmentFormAppearanceSchema = z.object({
     .default("#1d4ed8"),
   logoUrl: optionalText,
   isOpen: z.boolean().default(true),
-  visibleFields: z.array(z.enum(enrollmentVisibleFieldOptions)).default([
-    "birth_date",
-    "sex",
-    "phone_primary",
-    "email",
-    "guardian_name",
-    "guardian_phone",
-    "guardian_relationship",
-  ]),
+  visibleFields: z
+    .array(z.enum(enrollmentVisibleFieldOptions))
+    .default([
+      "birth_date",
+      "sex",
+      "phone_primary",
+      "email",
+      "guardian_name",
+      "guardian_phone",
+      "guardian_relationship",
+    ]),
 });
 export type EnrollmentFormAppearance = z.infer<typeof enrollmentFormAppearanceSchema>;
 

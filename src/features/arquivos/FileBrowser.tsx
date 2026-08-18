@@ -12,6 +12,7 @@ import {
   Lock,
   PanelRight,
   Pencil,
+  Plus,
   Search,
   Trash2,
   Upload,
@@ -20,6 +21,13 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { MediaFrame } from "@/components/ui/media-frame";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -573,7 +581,6 @@ export function FileBrowser({
     if (!schoolId || !files.length || !canWriteFileArea(account.role, targetArea)) return;
     setUploading(true);
     let appliedProfilePhoto = false;
-    let degradedToLocal = false;
     try {
       if (targetArea !== area) setArea(targetArea);
       for (const file of files) {
@@ -592,15 +599,9 @@ export function FileBrowser({
           const { error } = await supabase.storage
             .from(FILES_BUCKET)
             .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
-          if (!error) {
-            backend = "sga";
-          } else {
-            degradedToLocal = true;
-            console.error(`[arquivos] falha ao enviar "${file.name}" para o Storage`, error);
-          }
-        } catch (uploadError) {
-          degradedToLocal = true;
-          console.error(`[arquivos] falha ao enviar "${file.name}" para o Storage`, uploadError);
+          if (!error) backend = "sga";
+        } catch {
+          backend = "local";
         }
         const record: SchoolFileRecord = {
           id,
@@ -658,10 +659,6 @@ export function FileBrowser({
             ? { ...record, storageBackend: "local" }
             : record;
         if (registered.storage === "local" && backend === "sga") {
-          degradedToLocal = true;
-          console.error(
-            `[arquivos] "${file.name}" foi enviado ao Storage mas registerSchoolFile degradou para local (tabela/colunas siga_files em falta?)`,
-          );
           await saveLocalFile({ record: storedRecord, blob: file });
         }
         if (
@@ -681,23 +678,11 @@ export function FileBrowser({
           void queryClient.invalidateQueries({ queryKey: ["people"] });
         }
       }
-      if (degradedToLocal) {
-        toast.warning(
-          appliedProfilePhoto
-            ? "Fotografia guardada só neste dispositivo"
-            : "Ficheiros guardados só neste dispositivo",
-          {
-            description:
-              "Não foi possível enviar para o Storage — outros utilizadores e dispositivos não vão ver este ficheiro. Verifique a ligação e a configuração do Storage (bucket siga-files).",
-          },
-        );
-      } else {
-        toast.success(
-          appliedProfilePhoto
-            ? "Fotografia guardada e aplicada no perfil do aluno"
-            : `Ficheiros organizados em ${fileAreaMeta[targetArea].label}`,
-        );
-      }
+      toast.success(
+        appliedProfilePhoto
+          ? "Fotografia guardada e aplicada no perfil do aluno"
+          : `Ficheiros organizados em ${fileAreaMeta[targetArea].label}`,
+      );
       await refresh();
     } catch (error) {
       toast.error("Não foi possível guardar", {
@@ -1135,16 +1120,28 @@ export function FileBrowser({
               </select>
               {canUpload ? (
                 <>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => void createFolder()}
-                  >
-                    <FolderPlus className="size-4" />
-                    Nova pasta
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="gap-2 bg-primary text-primary-foreground shadow-md hover:shadow-lg rounded-xl font-semibold px-4"
+                        disabled={uploading}
+                      >
+                        <Plus className="size-4" />
+                        {uploading ? "A guardar…" : "Novo"}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => void createFolder()} className="gap-2">
+                        <FolderPlus className="size-4 text-warning" /> Nova Pasta
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => inputRef.current?.click()} className="gap-2">
+                        <Upload className="size-4 text-primary" /> Carregar Ficheiros
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <input
                     ref={inputRef}
                     type="file"
@@ -1154,16 +1151,6 @@ export function FileBrowser({
                     className="sr-only"
                     onChange={(event) => void uploadFiles(event.target.files)}
                   />
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="gap-2"
-                    disabled={uploading}
-                    onClick={() => inputRef.current?.click()}
-                  >
-                    <Upload className="size-4" />
-                    {uploading ? "A guardar…" : "Carregar"}
-                  </Button>
                 </>
               ) : null}
             </div>

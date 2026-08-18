@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -261,4 +262,57 @@ export const signProfileAvatar = createServerFn({ method: "GET" })
     if (!profile) return { url: null };
     const signed = await db.storage.from("avatars").createSignedUrl(storagePath, 120);
     return { url: signed.data?.signedUrl ?? null };
+  });
+
+export const uploadCurrentProfileAvatar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        fileName: z.string(),
+        contentType: z.string(),
+        base64: z.string(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const db = await loadSgaAdminClient();
+    const extension = data.fileName.split(".").pop()?.toLowerCase() || "jpg";
+    const storagePath = `${context.userId}/avatar-${Date.now()}.${extension}`;
+    const buffer = Buffer.from(data.base64, "base64");
+
+    const { error: uploadError } = await db.storage.from("avatars").upload(storagePath, buffer, {
+      contentType: data.contentType,
+      upsert: true,
+      cacheControl: "3600",
+    });
+
+    if (uploadError) {
+      throw publicDatabaseError(uploadError, "Não foi possível carregar a imagem para o armazenamento.");
+    }
+
+    const avatarUrl = `${AVATAR_REFERENCE_PREFIX}${storagePath}`;
+    const { data: previous } = await db
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    const { data: profile, error: updateError } = await db
+      .from("profiles")
+      .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+      .eq("id", context.userId)
+      .select("avatar_url, updated_at")
+      .single();
+
+    if (updateError) {
+      throw publicDatabaseError(updateError, "Não foi possível actualizar o perfil.");
+    }
+
+    const previousPath = previous?.avatar_url ? avatarStoragePathFromUrl(previous.avatar_url) : null;
+    if (previousPath && previousPath !== storagePath && previousPath.startsWith(`${context.userId}/`)) {
+      await db.storage.from("avatars").remove([previousPath]);
+    }
+
+    return profile;
   });

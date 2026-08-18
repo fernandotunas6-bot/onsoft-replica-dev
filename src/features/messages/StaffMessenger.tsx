@@ -4,6 +4,7 @@ import { ArrowLeft, FileText, Paperclip, Search, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
@@ -22,27 +23,10 @@ import {
   RECENT_CONTACT_LIMIT,
   touchRecentContact,
 } from "@/features/messages/recent-contacts";
-import {
-  appendLocalThread,
-  readLocalThread,
-  type LocalDirectMessage,
-} from "@/features/messages/local-thread";
+import { appendLocalThread, readLocalThread } from "@/features/messages/local-thread";
 import { useInboxUnread } from "@/features/messages/use-inbox-unread";
 
 type MessengerView = "menu" | "directory" | "thread";
-
-/**
- * Mensagens enviadas antes de o SQL de sincronização estar aplicado ficam só
- * neste dispositivo. Uma vez sincronizado, junta-as ao histórico real em vez
- * de as esconder — senão pareciam ter desaparecido.
- */
-function mergeThreadMessages(remote: LocalDirectMessage[], local: LocalDirectMessage[]) {
-  if (!local.length) return remote;
-  const remoteIds = new Set(remote.map((item) => item.id));
-  const extra = local.filter((item) => !remoteIds.has(item.id));
-  if (!extra.length) return remote;
-  return [...extra, ...remote].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
-}
 
 function formatMessageTime(iso: string) {
   const date = new Date(iso);
@@ -243,15 +227,46 @@ function openAttachment(fileId: string) {
 }
 
 function MessageAttachment({ fileId, fileName }: { fileId: string; fileName: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const isImage = /\.(png|jpe?g|webp|gif|svg)$/i.test(fileName);
+
+  useEffect(() => {
+    if (isImage) {
+      void signSchoolFile({ data: { id: fileId } })
+        .then((signed) => {
+          if (signed.url) setUrl(signed.url);
+        })
+        .catch(() => undefined);
+    }
+  }, [fileId, isImage]);
+
   return (
-    <button
-      type="button"
-      onClick={() => openAttachment(fileId)}
-      className="mt-1 flex w-full items-center gap-1.5 rounded-lg border border-current/20 bg-black/5 px-2 py-1.5 text-left text-xs font-medium hover:bg-black/10"
-    >
-      <FileText className="size-3.5 shrink-0" />
-      <span className="truncate">{fileName}</span>
-    </button>
+    <div className="mt-1.5 space-y-1">
+      {isImage && url ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="block overflow-hidden rounded-lg max-w-[220px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MediaFrame
+            src={url}
+            alt={fileName}
+            className="h-32 w-full object-cover transition-transform hover:scale-105"
+          />
+        </a>
+      ) : (
+        <button
+          type="button"
+          onClick={() => openAttachment(fileId)}
+          className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-2.5 py-1.5 text-left text-xs font-medium hover:bg-secondary transition-colors"
+        >
+          <FileText className="size-3.5 shrink-0" />
+          <span className="truncate">{fileName}</span>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -274,7 +289,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
 
   const remote = threadQuery.data?.messages ?? [];
   const useLocal = threadQuery.data?.storage === "local" || Boolean(threadQuery.error);
-  const messages = useLocal ? localMessages : mergeThreadMessages(remote, localMessages);
+  const messages = useLocal ? localMessages : remote;
 
   const { markRead } = useInboxUnread();
   const lastIncomingAt = messages.filter((item) => !item.mine).at(-1)?.createdAt ?? null;
@@ -305,17 +320,10 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
       if (result.storage === "local") {
         setLocalMessages(appendLocalThread(currentUser.id, peer.id, result.message));
       } else {
-        // Escreve a mensagem real (já com id/hora do servidor) directamente na
-        // cache em vez de invalidar — evita esperar por um novo pedido só para
-        // ver a própria mensagem aparecer.
-        queryClient.setQueryData(
-          ["messages", "thread", currentUser.id, peer.id],
-          (prev: Awaited<ReturnType<typeof listDirectThread>> | undefined) =>
-            prev
-              ? { ...prev, messages: [...prev.messages, result.message] }
-              : { storage: "sga" as const, messages: [result.message] },
-        );
-        void queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
+          queryKey: ["messages", "thread", currentUser.id, peer.id],
+        });
+        await queryClient.invalidateQueries({
           queryKey: ["messages", "inbox", currentUser.id],
         });
       }

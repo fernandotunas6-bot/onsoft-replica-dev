@@ -1,133 +1,125 @@
-/*
-|--------------------------------------------------------------------------
-| SIGA  — Sistema Integrado de Gestão Escolar
-|--------------------------------------------------------------------------
-|
-| Plataforma académica e administrativa multi-escolas desenvolvida para
-| gestão institucional moderna, segura, inteligente e escalável.
-|
-| Desenvolvido por:
-| Valentino Canguele
-|
-| Contacto:
-| +244 921 428 367
-|
-| Tecnologias:
-| React • Vite • NestJS • PostgreSQL • Supabase • Flutter
-|
-| Recursos:
-| Gestão Académica
-| Gestão Financeira
-| LMS
-| RH & Payroll
-| Biblioteca
-| Relatórios Inteligentes
-| Multi-Campus
-| Multi-Escolas
-| Inteligência Pedagógica
-|
-| Copyright © 2026 Valentino Canguele.
-| Todos os direitos reservados.
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | SIGA — Sistema
+Integrado de Gestão Escolar
+|-------------------------------------------------------------------------- | | Plataforma académica
+e administrativa multi-escolas desenvolvida para | gestão institucional moderna, segura, inteligente
+e escalável. | | Desenvolvido por: | Valentino Canguele | | Contacto: | +244 921 428 367 | |
+Tecnologias: | React • Vite • NestJS • PostgreSQL • Supabase • Flutter | | Recursos: | Gestão
+Académica | Gestão Financeira | LMS | RH & Payroll | Biblioteca | Relatórios Inteligentes |
+Multi-Campus | Multi-Escolas | Inteligência Pedagógica | | Copyright © 2026 Valentino Canguele. |
+Todos os direitos reservados.
+|-------------------------------------------------------------------------- */
 
-<!DOCTYPE html>
+
 <html lang="pt-AO">
-<head>
-  <meta charset="UTF-8" />
-  <style>{{{css}}}</style>
-</head>
-<body>
-  <main class="document premium-document" data-watermark="{{document.watermarkText}}">
-    <section class="premium-hero">
-      {{#if school.emblemUrl}}
-      <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
-      {{else}}
-      <img class="logo" src="{{school.logoUrl}}" alt="" />
-      {{/if}}
-      <div class="school-title">
-        <p class="republic">{{school.ministry}}</p>
-        <p class="republic">{{school.ministryLine}}</p>
-        <h1>{{school.name}}</h1>
-        <p>{{school.address}} | {{school.phone}}</p>
-      </div>
-      <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>
-    </section>
-
-    <div class="premium-title">Dossiê Académico do Estudante</div>
-
-    <section class="premium-grid">
-      <div class="premium-panel">
-        <h3>Estudante</h3>
-        <div class="premium-kv"><span>Nome</span><b>{{student.fullName}}</b></div>
-        <div class="premium-kv"><span>Nº estudantil</span><b>{{student.academicNumber}}</b></div>
-        <div class="premium-kv"><span>Documento</span><b>{{student.docType}} {{student.docNumber}}</b></div>
-        <div class="premium-kv"><span>Estado</span><b>{{student.status}}</b></div>
-      </div>
-      <div class="premium-panel">
-        <h3>Contexto académico</h3>
-        <div class="premium-kv"><span>Matrícula</span><b>{{enrollment.status}}</b></div>
-        <div class="premium-kv"><span>Ano lectivo</span><b>{{enrollment.academicYear.name}}</b></div>
-        <div class="premium-kv"><span>Turma</span><b>{{classGroup.name}}</b></div>
-        <div class="premium-kv"><span>Curso</span><b>{{program.name}}</b></div>
-      </div>
-    </section>
-
-    <section class="premium-panel">
-      <h3>Checklist institucional</h3>
-      <table>
-        <thead><tr><th class="text-left">Item</th><th>Estado</th></tr></thead>
-        <tbody>
-          {{#each dossier.checklist}}
-          <tr><td class="text-left">{{item}}</td><td>{{#if ok}}OK{{else}}Pendente{{/if}}</td></tr>
-          {{/each}}
-        </tbody>
-      </table>
-    </section>
-
-    <section class="premium-panel">
-      <h3>Ciclo documental do estudante</h3>
-      <table>
-        <thead><tr><th class="text-left">Fase</th><th>Estado</th><th>Conclusão</th><th class="text-left">Próxima acção</th></tr></thead>
-        <tbody>
-          {{#each dossier.lifecycle}}
-          <tr>
-            <td class="text-left">{{title}}</td>
-            <td>{{status}}</td>
-            <td>{{completion}}%</td>
-            <td class="text-left">{{nextAction}}</td>
-          </tr>
-          {{/each}}
-        </tbody>
-      </table>
-    </section>
-
-    <section class="premium-panel">
-      <h3>Disciplinas e documentos no dossiê</h3>
-      <div class="premium-grid">
-        <div>
-          <b>Disciplinas vinculadas</b>
-          <ul class="premium-list">{{#each subjects}}<li>{{name}} - {{status}}</li>{{/each}}</ul>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <main class="document premium-document" data-watermark="{{document.watermarkText}}">
+      <section class="premium-hero">
+        {{#if school.emblemUrl}}
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
+        {{else}}
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
+        {{/if}}
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          <p>{{school.address}} | {{school.phone}}</p>
         </div>
-        <div>
-          <b>Documentos carregados</b>
-          <ul class="premium-list">{{#each dossier.documents}}<li>{{name}} - {{type}}</li>{{/each}}</ul>
+        <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>
+      </section>
+
+      <div class="premium-title">Dossiê Académico do Estudante</div>
+
+      <section class="premium-grid">
+        <div class="premium-panel">
+          <h3>Estudante</h3>
+          <div class="premium-kv"><span>Nome</span><b>{{student.fullName}}</b></div>
+          <div class="premium-kv"><span>Nº estudantil</span><b>{{student.academicNumber}}</b></div>
+          <div class="premium-kv"><span>Documento</span><b>{{student.docType}}
+              {{student.docNumber}}</b></div>
+          <div class="premium-kv"><span>Estado</span><b>{{student.status}}</b></div>
         </div>
-      </div>
-    </section>
+        <div class="premium-panel">
+          <h3>Contexto académico</h3>
+          <div class="premium-kv"><span>Matrícula</span><b>{{enrollment.status}}</b></div>
+          <div class="premium-kv"><span>Ano lectivo</span><b
+            >{{enrollment.academicYear.name}}</b></div>
+          <div class="premium-kv"><span>Turma</span><b>{{classGroup.name}}</b></div>
+          <div class="premium-kv"><span>Curso</span><b>{{program.name}}</b></div>
+        </div>
+      </section>
 
-    <section class="premium-signature-strip">
-      {{#each signatures}}<div class="premium-signature">{{label}}</div>{{/each}}
-    </section>
+      <section class="premium-panel">
+        <h3>Checklist institucional</h3>
+        <table>
+          <thead><tr><th class="text-left">Item</th><th>Estado</th></tr></thead>
+          <tbody>
+            {{#each dossier.checklist}}
+              <tr><td class="text-left">{{item}}</td><td>{{#if
+                    ok
+                  }}OK{{else}}Pendente{{/if}}</td></tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </section>
 
-    <section class="validation">
-      {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
-      <div>
-        UUID: {{document.uuid}} | Hash: {{document.hash}}<br />
-        Dossiê evolutivo; histórico académico permanente nunca deve ser apagado.<br />
-        Assinatura digital: {{document.digitalSignature}}
-      </div>
-    </section>
-  </main>
-</body>
+      <section class="premium-panel">
+        <h3>Ciclo documental do estudante</h3>
+        <table>
+          <thead><tr><th class="text-left">Fase</th><th>Estado</th><th>Conclusão</th><th
+                class="text-left"
+              >Próxima acção</th></tr></thead>
+          <tbody>
+            {{#each dossier.lifecycle}}
+              <tr>
+                <td class="text-left">{{title}}</td>
+                <td>{{status}}</td>
+                <td>{{completion}}%</td>
+                <td class="text-left">{{nextAction}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="premium-panel">
+        <h3>Disciplinas e documentos no dossiê</h3>
+        <div class="premium-grid">
+          <div>
+            <b>Disciplinas vinculadas</b>
+            <ul class="premium-list">{{#each subjects}}<li>{{name}} - {{status}}</li>{{/each}}</ul>
+          </div>
+          <div>
+            <b>Documentos carregados</b>
+            <ul class="premium-list">{{#each dossier.documents}}<li>{{name}}
+                  -
+                  {{type}}</li>{{/each}}</ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="premium-signature-strip">
+        {{#each signatures}}<div class="premium-signature">{{label}}</div>{{/each}}
+      </section>
+
+      <section class="validation">
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        <div>
+          UUID:
+          {{document.uuid}}
+          | Hash:
+          {{document.hash}}<br />
+          Dossiê evolutivo; histórico académico permanente nunca deve ser apagado.<br />
+          Assinatura digital:
+          {{document.digitalSignature}}
+        </div>
+      </section>
+    </main>
+  </body>
 </html>

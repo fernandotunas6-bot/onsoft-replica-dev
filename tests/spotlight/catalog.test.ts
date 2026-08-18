@@ -34,7 +34,11 @@ describe("destaques da conta", () => {
   it("esconde destaques sem acesso ao módulo", () => {
     const visible = visibleSpotlights(spotlightCatalog, {
       role: "Professor",
-      canAccess: (path) => path === "/pedagogica" || path === "/calendario" || path === "/comunicacoes" || path === "/relatorios/academicos",
+      canAccess: (path) =>
+        path === "/pedagogica" ||
+        path === "/calendario" ||
+        path === "/comunicacoes" ||
+        path === "/relatorios/academicos",
     });
     expect(visible.some((item) => item.id === "tesouraria")).toBe(false);
     expect(visible.some((item) => item.id === "avaliacao")).toBe(true);

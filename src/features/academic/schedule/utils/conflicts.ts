@@ -25,8 +25,7 @@ export function detectScheduleConflicts(slots: ScheduleSlot[]): ScheduleConflict
       const checks = [
         {
           key: "turma",
-          matches:
-            Boolean(left.class_group_id) && left.class_group_id === right.class_group_id,
+          matches: Boolean(left.class_group_id) && left.class_group_id === right.class_group_id,
           message: `A turma ${left.class_group_name} tem dois slots sobrepostos.`,
         },
         {

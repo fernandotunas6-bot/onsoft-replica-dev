@@ -57,12 +57,7 @@ export function SpotlightCard({
   let action: ReactNode = <span className={ctaClass}>{item.cta}</span>;
   if (item.link.type === "external") {
     action = (
-      <a
-        href={item.link.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={ctaClass}
-      >
+      <a href={item.link.href} target="_blank" rel="noopener noreferrer" className={ctaClass}>
         {item.cta}
       </a>
     );
