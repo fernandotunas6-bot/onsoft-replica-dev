@@ -27,6 +27,7 @@ import {
   recordInvoicePayment,
 } from "@/features/finance/server";
 import { officialReceiptBody } from "@/features/finance/schemas";
+import { buildProformaInvoice } from "@/features/finance/proforma-receipts";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { paymentReference, whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -347,6 +348,69 @@ function FaturasPage() {
     }
   };
 
+  const handleIssueProforma = async (values: Record<string, string>) => {
+    const studentLabel = values.aluno || "";
+    const studentId = studentLabel ? (findOptionId(studentOptions, studentLabel) ?? studentLabel) : "";
+    const selectedStudent = studentMap.get(studentId);
+
+    const proformaNo = `FP-${new Date().getFullYear()}/${String(invoiceCount + 1).padStart(4, "0")}`;
+    const issueDate = new Date().toISOString().slice(0, 10);
+    const dueDate = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
+    const amount = Number(values.valor) || 0;
+
+    const proforma = buildProformaInvoice({
+      documentNumber: proformaNo,
+      issueDate,
+      dueDate,
+      customerName: selectedStudent?.full_name || values.cliente || "Consumidor Final",
+      customerNif: values.nif || undefined,
+      studentName: selectedStudent?.full_name,
+      registrationNumber: selectedStudent?.registration_number,
+      items: [
+        {
+          description: values.descricao || "Propina / Serviços Escolares",
+          quantity: 1,
+          unitPrice: amount,
+          taxRate: 0,
+        },
+      ],
+      banking: schoolBanking,
+    });
+
+    await issuePrintDocument({
+      tipo: "Fatura proforma",
+      school: financeSchool,
+      student: {
+        fullName: proforma.customerName,
+        academicNumber: proforma.registrationNumber || "—",
+        documentTitle: proforma.documentNumber,
+        validationCode: documentValidationCode([proforma.documentNumber, proforma.customerName]),
+      },
+      overlay: overlayServico({
+        name: "Fatura Proforma",
+        reference: proforma.documentNumber,
+        status: "Proforma",
+        parties: [
+          { label: "Cliente", value: proforma.customerName },
+          { label: "NIF", value: proforma.customerNif },
+        ],
+        sections: [
+          {
+            title: "Orçamento de Serviços",
+            rows: proforma.items.map((item) => ({
+              label: item.description,
+              value: item.total.toLocaleString("pt-PT") + " Kz",
+              note: `Qtd: ${item.quantity}`,
+            })),
+          },
+        ],
+        ...(schoolBanking ? { banking: schoolBanking } : {}),
+        term: proforma.agtNotice,
+      }),
+    });
+    toast.success(`Fatura Proforma ${proformaNo} emitida com sucesso!`);
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -368,6 +432,49 @@ function FaturasPage() {
               <Button variant="outline" className="gap-2" onClick={handleExportSaftAo}>
                 <FileText className="size-4" /> SAFT-AO (XML)
               </Button>
+              <QuickFormModal
+                title="Emitir Fatura Proforma"
+                eyebrow="Orçamento"
+                description="Gere uma Fatura Proforma oficial para orçamentar propinas ou serviços escolares."
+                icon={<FileText className="size-5" />}
+                submitLabel="Emitir Proforma"
+                fields={[
+                  {
+                    name: "aluno",
+                    label: "Aluno (opcional)",
+                    type: "select",
+                    options: studentOptions,
+                    full: true,
+                  },
+                  {
+                    name: "cliente",
+                    label: "Nome do Cliente / Entidade",
+                    placeholder: "Ex: Empresa ou Encarregado",
+                  },
+                  {
+                    name: "nif",
+                    label: "NIF do Cliente",
+                    placeholder: "Ex: 5417001234",
+                  },
+                  {
+                    name: "descricao",
+                    label: "Descrição do Serviço",
+                    defaultValue: "Propina / Serviços Escolares",
+                    full: true,
+                  },
+                  {
+                    name: "valor",
+                    label: "Valor Total (Kz)",
+                    type: "number",
+                  },
+                ]}
+                onSubmit={handleIssueProforma}
+                trigger={(open) => (
+                  <Button variant="outline" className="gap-2" onClick={open}>
+                    <FileText className="size-4" /> Proforma
+                  </Button>
+                )}
+              />
               <QuickFormModal
                 title="Emitir fatura"
                 eyebrow="Financeiro"
