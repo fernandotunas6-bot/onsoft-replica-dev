@@ -326,6 +326,27 @@ function FaturasPage() {
     });
   };
 
+  const handleExportSaftAo = async () => {
+    try {
+      const { exportSaftAoXml } = await import("@/features/finance/server");
+      const res = await exportSaftAoXml({ data: { fiscalYear: new Date().getFullYear() } });
+      if (res.success && res.xml) {
+        const blob = new Blob([res.xml], { type: "application/xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = res.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success(`Ficheiro ${res.filename} descarregado (${res.invoiceCount} faturas).`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao gerar SAFT-AO.");
+    }
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -343,6 +364,9 @@ function FaturasPage() {
               </Button>
               <Button variant="outline" className="gap-2" onClick={exportarFaturasOficial}>
                 <Award className="size-4" /> Oficial
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={handleExportSaftAo}>
+                <FileText className="size-4" /> SAFT-AO (XML)
               </Button>
               <QuickFormModal
                 title="Emitir fatura"

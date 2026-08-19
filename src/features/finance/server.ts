@@ -1198,3 +1198,72 @@ export const cancelPaymentPlan = createServerFn({ method: "POST" })
     if (!plan) throw new Error("Plano não encontrado.");
     return plan;
   });
+
+export const exportSaftAoXml = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => {
+    const { generateSaftInputSchema } = require("./saft-generator");
+    return generateSaftInputSchema.parse(input);
+  })
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Tesouraria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    // Load school settings
+    const { data: schoolSetting } = await db
+      .from("school_settings")
+      .select("value")
+      .eq("school_id", membership.schoolId)
+      .eq("domain", "school")
+      .maybeSingle();
+
+    const schoolVal = (schoolSetting?.value as Record<string, any>) ?? {};
+    const schoolInfo = {
+      nif: String(schoolVal.nif ?? schoolVal.taxId ?? "999999999"),
+      name: String(schoolVal.name ?? schoolVal.schoolName ?? "Instituição Escolar SIGA"),
+      address: String(schoolVal.address ?? "Luanda"),
+      city: String(schoolVal.city ?? "Luanda"),
+    };
+
+    // Load invoices
+    const { data: invoices, error } = await db
+      .from("invoices")
+      .select("id, document_number, issue_date, amount, status, student_id")
+      .eq("school_id", membership.schoolId)
+      .order("issue_date", { ascending: true });
+
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível carregar as faturas para o SAFT-AO.");
+    }
+
+    const studentIds = [...new Set((invoices ?? []).map((inv: any) => inv.student_id).filter(Boolean))];
+    const studentNames = studentIds.length ? await loadPersonNamesById(db, studentIds) : new Map();
+
+    const formattedInvoices = (invoices ?? []).map((inv: any) => ({
+      id: inv.id,
+      invoiceNo: inv.document_number || `FT ${data.fiscalYear}/${inv.id.slice(0, 4)}`,
+      invoiceType: "FT" as const,
+      date: inv.issue_date ? String(inv.issue_date).slice(0, 10) : `${data.fiscalYear}-01-01`,
+      customerName: studentNames.get(inv.student_id) || "Estudante SIGA",
+      studentId: inv.student_id,
+      description: "Propina e Serviços Escolares",
+      amount: Number(inv.amount) || 0,
+      status: inv.status === "cancelled" ? ("A" as const) : ("N" as const),
+    }));
+
+    const { buildSaftAoXml } = await import("./saft-generator");
+    const xml = buildSaftAoXml(schoolInfo, formattedInvoices, data);
+
+    return {
+      success: true,
+      filename: `SAFT-AO_${schoolInfo.nif}_${data.fiscalYear}.xml`,
+      xml,
+      invoiceCount: formattedInvoices.length,
+    };
+  });
+
