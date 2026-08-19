@@ -14,6 +14,7 @@ import {
   Wallet,
   Pencil,
   Phone,
+  Smartphone,
   Trash2,
   UserCheck,
   UserPlus,
@@ -186,6 +187,7 @@ function NotFoundOrError({ title }: { title: string }) {
 function StudentDetail() {
   const { studentId } = Route.useParams();
   const queryClient = useQueryClient();
+  const [cardModalOpen, setCardModalOpen] = useState(false);
   const { activeYearLabel, selectedYearId, school, selectedYearLabel } = useSchoolSettings();
   const account = useCurrentAccount();
   const canIssueInvoice =
@@ -845,6 +847,13 @@ function StudentDetail() {
                 </Link>
               </Button>
             )}
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setCardModalOpen(true)}
+            >
+              <Smartphone className="size-4" /> Cartão Digital
+            </Button>
             {student.enrollment_id ? (
               <>
                 <Button
