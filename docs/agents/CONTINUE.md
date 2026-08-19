@@ -180,6 +180,11 @@ Registo canónico: `scripts/siga/modules.json`.
 - O cartão «Relatórios avançados» mantém o visual original; os outros usam o mesmo molde com tons e ícones diferentes.
 - Ligações internas, externas (Portal AGT) e painéis de Definições. Filtra por cargo.
 
+## Ciclo 43 — Emissão de Faturas Proforma (`4bc7265`)
+
+- **Faturas Proforma (`4bc7265`)**: Integrada a emissão de Fatura Proforma em [src/routes/faturas.tsx](file:///Users/valentinocanguele/edu/onsoft-replica-dev/src/routes/faturas.tsx) com `buildProformaInvoice` de `proforma-receipts.ts`, dados bancários IBAN da instituição e aviso legal AGT.
+- **Validação Workspace**: `npm run siga:check` 100% verde em todos os 13 módulos e 41/41 suítes de teste a passar (248 testes).
+
 ## Ciclo 42 — Refinamento de UX do Modal OCR (`732940f`)
 
 - **Refinamento do Modal OCR (`732940f`)**: Atualizado [PautaOcrScannerModal.tsx](file:///Users/valentinocanguele/edu/onsoft-replica-dev/src/features/pedagogica/components/PautaOcrScannerModal.tsx) com painel duplo de pré-visualização de imagem original e grelha de edição manual direta de notas (MAC, NPP, NPT) antes da importação para a pauta.
