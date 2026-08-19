@@ -244,14 +244,17 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setSubmitting(true);
     setError(null);
     setInfo(null);
-    const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") ?? "")
-      .trim()
-      .toLowerCase();
+    const inputIdentifier = String(form.get("email") ?? "").trim();
+    let email = inputIdentifier.toLowerCase();
     const password = String(form.get("password") ?? "");
     const remember = String(form.get("remember") ?? "") === "on";
     try {
-      if (remember) localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+      if (!email.includes("@") && email.length >= 3) {
+        const { resolveBiOrEmailToUserEmail } = await import("@/features/access/bi-login");
+        email = await resolveBiOrEmailToUserEmail(inputIdentifier);
+      }
+
+      if (remember) localStorage.setItem(REMEMBERED_EMAIL_KEY, inputIdentifier);
       else localStorage.removeItem(REMEMBERED_EMAIL_KEY);
 
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -477,18 +480,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
               hidden={Boolean(mfaFactorId)}
             >
               <div className="space-y-1.5">
-                <Label htmlFor="login-email" className="text-xs font-medium">Email</Label>
+                <Label htmlFor="login-email" className="text-xs font-medium">Email ou Nº de BI / NIF</Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="login-email"
                     name="email"
-                    type="email"
+                    type="text"
                     autoComplete="username"
                     required
                     defaultValue={rememberedEmail}
                     className="pl-9 h-10 text-sm"
-                    placeholder="utilizador@escola.ao"
+                    placeholder="utilizador@escola.ao ou 004212984LA042"
                   />
                 </div>
               </div>

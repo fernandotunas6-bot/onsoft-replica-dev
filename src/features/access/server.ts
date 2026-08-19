@@ -322,3 +322,15 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
     if (!actionLink) throw new Error("O servidor não devolveu um link de acesso.");
     return { email, kind, actionLink };
   });
+
+export const resolveBiToEmailFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => {
+    const { resolveBiToEmailInputSchema } = require("./bi-login");
+    return resolveBiToEmailInputSchema.parse(input);
+  })
+  .handler(async ({ data }) => {
+    const { resolveBiOrEmailToUserEmail } = await import("./bi-login");
+    const resolvedEmail = await resolveBiOrEmailToUserEmail(data.identifier);
+    return { email: resolvedEmail };
+  });
+
