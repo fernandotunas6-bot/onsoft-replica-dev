@@ -20,6 +20,7 @@ export function PautaOcrScannerModal({
   onApplyGrades,
 }: PautaOcrScannerModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<OcrScanResult | null>(null);
 
@@ -27,6 +28,7 @@ export function PautaOcrScannerModal({
     const file = e.target.files?.[0];
     if (!file) return;
     setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
     setIsScanning(true);
     try {
       const res = await scanPaperPautaImage(file, students);
@@ -41,6 +43,20 @@ export function PautaOcrScannerModal({
     } finally {
       setIsScanning(false);
     }
+  };
+
+  const handleUpdateItemGrade = (
+    academicNumber: string,
+    field: "mac" | "npp" | "npt",
+    value: number | undefined,
+  ) => {
+    if (!scanResult) return;
+    setScanResult({
+      ...scanResult,
+      items: scanResult.items.map((item) =>
+        item.academicNumber === academicNumber ? { ...item, [field]: value } : item,
+      ),
+    });
   };
 
   const handleConfirmAndImport = () => {
@@ -67,7 +83,7 @@ export function PautaOcrScannerModal({
       eyebrow="Leitura Ótica Inteligente"
       description="Tire uma fotografia da pauta física em papel para preencher as notas (MAC, NPP, NPT) automaticamente."
       icon={<Sparkles className="size-5" />}
-      size="lg"
+      size="xl"
     >
       <div className="space-y-6">
         {/* ÁREA DE UPLOAD DA FOTO DA PAUTA */}
@@ -105,63 +121,146 @@ export function PautaOcrScannerModal({
           </div>
         ) : null}
 
-        {/* REVISÃO DAS NOTAS EXTRAÍDAS */}
+        {/* REVISÃO E PRE-VISUALIZAÇÃO COMPACTA */}
         {scanResult && !isScanning ? (
-          <div className="space-y-4 surface-card p-5 rounded-2xl border border-border">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <FileSpreadsheet className="size-4 text-primary" />
-                Notas Extraídas da Imagem ({scanResult.totalStudentsFound} Alunos)
-              </h4>
-              <span className="text-[11px] font-semibold text-success flex items-center gap-1">
-                <CheckCircle2 className="size-3.5" /> Leitura Válida
-              </span>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* PRÉ-VISUALIZAÇÃO DA FOTOGRAFIA DA PAUTA */}
+            {previewUrl ? (
+              <div className="col-span-1 surface-card p-3 rounded-2xl border border-border space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Imagem Original
+                </p>
+                <div className="overflow-hidden rounded-xl border border-border bg-black/5 max-h-72">
+                  <img
+                    src={previewUrl}
+                    alt="Foto da pauta"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+            ) : null}
 
-            <div className="overflow-x-auto no-scrollbar max-h-60 border border-border rounded-xl">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-secondary/40 text-muted-foreground font-bold uppercase sticky top-0 border-b border-border">
-                  <tr>
-                    <th className="p-2.5">Aluno</th>
-                    <th className="p-2.5 text-center">MAC</th>
-                    <th className="p-2.5 text-center">NPP</th>
-                    <th className="p-2.5 text-center">NPT</th>
-                    <th className="p-2.5 text-center">Confiança</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border bg-card">
-                  {scanResult.items.map((item) => (
-                    <tr key={item.academicNumber} className="hover:bg-secondary/20 transition-colors">
-                      <td className="p-2.5 font-semibold text-foreground">{item.studentName}</td>
-                      <td className="p-2.5 text-center font-mono font-bold">{item.mac ?? "—"}</td>
-                      <td className="p-2.5 text-center font-mono font-bold">{item.npp ?? "—"}</td>
-                      <td className="p-2.5 text-center font-mono font-bold">{item.npt ?? "—"}</td>
-                      <td className="p-2.5 text-center">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            item.status === "warning"
-                              ? "bg-warning/20 text-warning-strong"
-                              : "bg-success/15 text-success-strong"
-                          }`}
-                        >
-                          {item.status === "warning" ? <AlertTriangle className="size-3" /> : null}
-                          {item.confidence}%
-                        </span>
-                      </td>
+            {/* TABELA DE EDICÃO DE NOTAS EXTRAÍDAS */}
+            <div
+              className={`space-y-4 surface-card p-5 rounded-2xl border border-border ${
+                previewUrl ? "col-span-1 md:col-span-2" : "col-span-1 md:col-span-3"
+              }`}
+            >
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <FileSpreadsheet className="size-4 text-primary" />
+                  Notas Extraídas ({scanResult.totalStudentsFound} Alunos)
+                </h4>
+                <span className="text-[11px] font-semibold text-success flex items-center gap-1">
+                  <CheckCircle2 className="size-3.5" /> Edição Direta Disponível
+                </span>
+              </div>
+
+              <div className="overflow-x-auto no-scrollbar max-h-64 border border-border rounded-xl">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-secondary/40 text-muted-foreground font-bold uppercase sticky top-0 border-b border-border">
+                    <tr>
+                      <th className="p-2.5">Aluno</th>
+                      <th className="p-2.5 text-center w-20">MAC</th>
+                      <th className="p-2.5 text-center w-20">NPP</th>
+                      <th className="p-2.5 text-center w-20">NPT</th>
+                      <th className="p-2.5 text-center">Confiança</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border bg-card">
+                    {scanResult.items.map((item) => (
+                      <tr
+                        key={item.academicNumber}
+                        className="hover:bg-secondary/20 transition-colors"
+                      >
+                        <td className="p-2.5 font-semibold text-foreground">{item.studentName}</td>
+                        <td className="p-1 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            value={item.mac ?? ""}
+                            onChange={(e) =>
+                              handleUpdateItemGrade(
+                                item.academicNumber,
+                                "mac",
+                                e.target.value ? Number(e.target.value) : undefined,
+                              )
+                            }
+                            className="w-14 text-center font-mono font-bold rounded-lg border border-border bg-background p-1 text-xs focus:ring-1 focus:ring-primary"
+                          />
+                        </td>
+                        <td className="p-1 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            value={item.npp ?? ""}
+                            onChange={(e) =>
+                              handleUpdateItemGrade(
+                                item.academicNumber,
+                                "npp",
+                                e.target.value ? Number(e.target.value) : undefined,
+                              )
+                            }
+                            className="w-14 text-center font-mono font-bold rounded-lg border border-border bg-background p-1 text-xs focus:ring-1 focus:ring-primary"
+                          />
+                        </td>
+                        <td className="p-1 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            value={item.npt ?? ""}
+                            onChange={(e) =>
+                              handleUpdateItemGrade(
+                                item.academicNumber,
+                                "npt",
+                                e.target.value ? Number(e.target.value) : undefined,
+                              )
+                            }
+                            className="w-14 text-center font-mono font-bold rounded-lg border border-border bg-background p-1 text-xs focus:ring-1 focus:ring-primary"
+                          />
+                        </td>
+                        <td className="p-2.5 text-center">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              item.status === "warning"
+                                ? "bg-warning/20 text-warning-strong"
+                                : "bg-success/15 text-success-strong"
+                            }`}
+                          >
+                            {item.status === "warning" ? (
+                              <AlertTriangle className="size-3" />
+                            ) : null}
+                            {item.confidence}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="pt-2 flex justify-end gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="button" size="sm" onClick={handleConfirmAndImport} className="gap-2 shadow-sm">
-                <CheckCircle2 className="size-4" />
-                Importar para Pauta Digital
-              </Button>
+              <div className="pt-2 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleConfirmAndImport}
+                  className="gap-2 shadow-sm"
+                >
+                  <CheckCircle2 className="size-4" />
+                  Importar para Pauta Digital
+                </Button>
+              </div>
             </div>
           </div>
         ) : null}
