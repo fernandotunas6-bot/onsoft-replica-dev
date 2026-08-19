@@ -180,6 +180,13 @@ Registo canónico: `scripts/siga/modules.json`.
 - O cartão «Relatórios avançados» mantém o visual original; os outros usam o mesmo molde com tons e ícones diferentes.
 - Ligações internas, externas (Portal AGT) e painéis de Definições. Filtra por cargo.
 
+## Ciclo 40 — Avaliações, Login por BI e SAFT-AO (2026-08-19)
+
+- **Edição/Remoção de Avaliações (`26dda5e`)**: Modal `CreateAssessmentDialog` estendido em `AssessmentCenter.tsx` com `updateAssessmentItem` e `deleteAssessmentItem` (`force: true` remove atomicamente notas associadas).
+- **Login por Bilhete de Identidade / NIF (`bf271a1`)**: Novo módulo `bi-login.ts` e `resolveBiToEmailFn` em `access/server.ts`; `AuthGate.tsx` aceita BI ou E-mail e resolve para a conta correspondente antes de iniciar sessão.
+- **Gerador SAFT-AO AGT (`21368ef`)**: Criado `saft-generator.ts` (conforme Decreto Presidencial 312/18 AGT e isenção M00 art. 12º CIVA), com Server Function `exportSaftAoXml` e botão de exportação XML no ecrã de faturas (`/faturas`).
+- **Testes**: 248/248 testes a passar (41 suítes Vitest).
+
 ## Ciclo 16 — gerir destaques
 
 - Definições → **Destaques**: Administrador liga/desliga, reordena e edita título/texto/botão. Ligações ficam no catálogo.
