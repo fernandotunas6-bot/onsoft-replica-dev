@@ -136,6 +136,29 @@ export const createAssessmentInputSchema = z.object({
 });
 export type CreateAssessmentInput = z.infer<typeof createAssessmentInputSchema>;
 
+export const updateAssessmentInputSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(2).max(160),
+  kind: assessmentKindSchema,
+  component: assessmentComponentSchema,
+  assessedOn: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  maxScore: z.number().min(1).max(20).default(20),
+  description: optionalText,
+  countsTowardPauta: z.boolean().default(true),
+  allowRecovery: z.boolean().default(true),
+});
+export type UpdateAssessmentInput = z.infer<typeof updateAssessmentInputSchema>;
+
+export const deleteAssessmentInputSchema = z.object({
+  itemId: z.string().uuid(),
+  force: z.boolean().optional().default(false),
+});
+export type DeleteAssessmentInput = z.infer<typeof deleteAssessmentInputSchema>;
+
 export const listAssessmentsInputSchema = z.object({
   classGroupId: z.string().uuid().optional(),
   subjectId: z.string().uuid().optional(),

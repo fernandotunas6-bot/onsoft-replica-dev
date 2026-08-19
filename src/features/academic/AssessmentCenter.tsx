@@ -7,8 +7,10 @@ import {
   FilePlus2,
   History,
   Lock,
+  Pencil,
   Printer,
   Save,
+  Trash2,
   Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +34,8 @@ import {
 } from "@/features/academic/assessment-views";
 import {
   createAssessment,
+  updateAssessmentItem,
+  deleteAssessmentItem,
   listAssessments,
   upsertAssessmentScores,
   upsertTermGradesBatch,
@@ -1886,6 +1890,7 @@ function CreateAssessmentDialog({
   subjectId,
   term,
   onCreated,
+  editingItem,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -1893,6 +1898,7 @@ function CreateAssessmentDialog({
   subjectId?: string | undefined;
   term: 1 | 2 | 3;
   onCreated: () => void;
+  editingItem?: any | null;
 }) {
   const [name, setName] = useState("");
   const [kind, setKind] = useState("teste");
@@ -1903,6 +1909,29 @@ function CreateAssessmentDialog({
   const [counts, setCounts] = useState(true);
   const [recovery, setRecovery] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (editingItem) {
+      setName(editingItem.name ?? "");
+      setKind(editingItem.kind ?? "teste");
+      setComponent(editingItem.component ?? "NPP");
+      setDate(editingItem.assessed_on ?? "");
+      setMaxScore(String(editingItem.max_score ?? "20"));
+      setDescription(editingItem.description ?? "");
+      setCounts(editingItem.counts_toward_pauta ?? true);
+      setRecovery(editingItem.allow_recovery ?? true);
+    } else {
+      setName("");
+      setKind("teste");
+      setComponent("NPP");
+      setDate("");
+      setMaxScore("20");
+      setDescription("");
+      setCounts(true);
+      setRecovery(true);
+    }
+  }, [editingItem, open]);
 
   const submit = async () => {
     if (!classGroupId || !subjectId) {
@@ -1911,29 +1940,69 @@ function CreateAssessmentDialog({
     }
     setSaving(true);
     try {
-      await createAssessment({
-        data: {
-          classGroupId,
-          subjectId,
-          term,
-          name,
-          kind: kind as (typeof assessmentKinds)[number]["id"],
-          component: component as (typeof assessmentComponents)[number]["id"],
-          assessedOn: date || undefined,
-          maxScore: Number(maxScore) || 20,
-          description: description || undefined,
-          countsTowardPauta: counts,
-          allowRecovery: recovery,
-        },
-      });
-      toast.success("Avaliação criada.");
+      if (editingItem) {
+        await updateAssessmentItem({
+          data: {
+            id: editingItem.id,
+            name,
+            kind: kind as (typeof assessmentKinds)[number]["id"],
+            component: component as (typeof assessmentComponents)[number]["id"],
+            assessedOn: date || undefined,
+            maxScore: Number(maxScore) || 20,
+            description: description || undefined,
+            countsTowardPauta: counts,
+            allowRecovery: recovery,
+          },
+        });
+        toast.success("Avaliação actualizada.");
+      } else {
+        await createAssessment({
+          data: {
+            classGroupId,
+            subjectId,
+            term,
+            name,
+            kind: kind as (typeof assessmentKinds)[number]["id"],
+            component: component as (typeof assessmentComponents)[number]["id"],
+            assessedOn: date || undefined,
+            maxScore: Number(maxScore) || 20,
+            description: description || undefined,
+            countsTowardPauta: counts,
+            allowRecovery: recovery,
+          },
+        });
+        toast.success("Avaliação criada.");
+      }
       setName("");
       onOpenChange(false);
       onCreated();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível criar.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editingItem?.id) return;
+    if (!confirm(`Tem a certeza que pretende eliminar a avaliação "${editingItem.name}"?`)) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await deleteAssessmentItem({
+        data: {
+          itemId: editingItem.id,
+          force: true,
+        },
+      });
+      toast.success("Avaliação eliminada.");
+      onOpenChange(false);
+      onCreated();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível eliminar.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1942,18 +2011,34 @@ function CreateAssessmentDialog({
       open={open}
       onOpenChange={onOpenChange}
       eyebrow="Avaliação"
-      title="Criar avaliação"
+      title={editingItem ? "Editar avaliação" : "Criar avaliação"}
       description="A pauta calcula MAC, NPP e NPT a partir destas avaliações."
       icon={<Calculator className="size-5" />}
       footer={
-        <>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={() => void submit()} disabled={saving || name.trim().length < 2}>
-            {saving ? "A criar…" : "Criar avaliação"}
-          </Button>
-        </>
+        <div className="flex w-full items-center justify-between gap-2">
+          {editingItem ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void handleDelete()}
+              disabled={deleting || saving}
+              className="gap-1.5"
+            >
+              <Trash2 className="size-3.5" />
+              {deleting ? "A eliminar…" : "Eliminar"}
+            </Button>
+          ) : (
+            <div />
+          )}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void submit()} disabled={saving || deleting || name.trim().length < 2}>
+              {saving ? "A guardar…" : editingItem ? "Guardar alterações" : "Criar avaliação"}
+            </Button>
+          </div>
+        </div>
       }
     >
       <div className="grid gap-3 sm:grid-cols-2">

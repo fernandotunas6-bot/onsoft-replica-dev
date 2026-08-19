@@ -32,6 +32,8 @@ import {
   upsertTermGradeInputSchema,
   upsertTermGradesBatchInputSchema,
   createAssessmentInputSchema,
+  updateAssessmentInputSchema,
+  deleteAssessmentInputSchema,
   listAssessmentsInputSchema,
   upsertAssessmentScoresInputSchema,
   assignClassSubjectTeacherInputSchema,
@@ -1817,3 +1819,96 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
     }
     return { saved: data.rows.length };
   });
+
+export const updateAssessmentItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => updateAssessmentInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { data: updated, error } = await db
+      .from("siga_assessment_items")
+      .update({
+        name: data.name,
+        kind: data.kind,
+        component: data.component,
+        assessed_on: data.assessedOn ?? null,
+        max_score: data.maxScore,
+        counts_toward_pauta: data.countsTowardPauta,
+        allow_recovery: data.allowRecovery,
+        description: data.description ?? null,
+        updated_by: context.userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.id)
+      .eq("school_id", membership.schoolId)
+      .select("id, name, kind, component, term")
+      .single();
+
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível atualizar a avaliação.");
+    }
+    return { success: true, item: updated };
+  });
+
+export const deleteAssessmentItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => deleteAssessmentInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    // Check if assessment scores exist
+    const { count, error: countErr } = await db
+      .from("siga_assessment_scores")
+      .select("*", { count: "exact", head: true })
+      .eq("item_id", data.itemId)
+      .eq("school_id", membership.schoolId);
+
+    if (countErr && !isMissingRelation(countErr)) {
+      throw publicDatabaseError(countErr, "Não foi possível verificar as notas da avaliação.");
+    }
+
+    if ((count ?? 0) > 0 && !data.force) {
+      throw new Error(
+        `Esta avaliação possui ${count} nota(s) lançada(s). Confirme que pretende eliminar todas as notas associadas.`,
+      );
+    }
+
+    // Delete scores first if any exist
+    if ((count ?? 0) > 0) {
+      const { error: delScoresErr } = await db
+        .from("siga_assessment_scores")
+        .delete()
+        .eq("item_id", data.itemId)
+        .eq("school_id", membership.schoolId);
+
+      if (delScoresErr) {
+        throw publicDatabaseError(delScoresErr, "Não foi possível eliminar as notas associadas.");
+      }
+    }
+
+    // Delete item
+    const { error: delItemErr } = await db
+      .from("siga_assessment_items")
+      .delete()
+      .eq("id", data.itemId)
+      .eq("school_id", membership.schoolId);
+
+    if (delItemErr) {
+      throw publicDatabaseError(delItemErr, "Não foi possível eliminar a avaliação.");
+    }
+
+    return { success: true, deletedScoresCount: count ?? 0 };
+  });
+
