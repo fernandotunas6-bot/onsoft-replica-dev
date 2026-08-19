@@ -180,6 +180,12 @@ Registo canónico: `scripts/siga/modules.json`.
 - O cartão «Relatórios avançados» mantém o visual original; os outros usam o mesmo molde com tons e ícones diferentes.
 - Ligações internas, externas (Portal AGT) e painéis de Definições. Filtra por cargo.
 
+## Ciclo 41 — Cartão Digital PWA e Ferramentas Pedagógicas (2026-08-19)
+
+- **Cartão Digital de Estudante (`922eca0`)**: Adicionado botão e ligação do modal `StudentDigitalCardModal` na ficha do aluno (`src/routes/alunos/$studentId.tsx`), com passe escolar, assinatura digital e QR Code dinâmico com atualização a cada 30s.
+- **Ferramentas Pedagógicas Avançadas**: Integração do scanner OCR de pautas em papel (`PautaOcrScannerModal`) e do relatório preditivo de risco de abandono escolar (`DropoutRiskReportModal`) com botões na Área Pedagógica (`/pedagogica`).
+- **Sanidade do Workspace**: `npm run siga:check` válido para todos os 13 módulos e 41/41 suítes de teste a passar (248 testes).
+
 ## Ciclo 40 — Avaliações, Login por BI e SAFT-AO (2026-08-19)
 
 - **Edição/Remoção de Avaliações (`26dda5e`)**: Modal `CreateAssessmentDialog` estendido em `AssessmentCenter.tsx` com `updateAssessmentItem` e `deleteAssessmentItem` (`force: true` remove atomicamente notas associadas).
