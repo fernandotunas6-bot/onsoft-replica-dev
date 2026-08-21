@@ -563,13 +563,14 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       toStructureSummary(year),
     );
 
+    const enrollmentByIdMap = new Map(
+      (enrollments.data ?? []).map((row) => [String(row["id"]), row]),
+    );
     const subjectPassRates = new Map<string, { pass: number; total: number }>();
     const termGrades = gradesMissing
       ? []
       : termGradeRows.map((grade) => {
-          const enrollment = (enrollments.data ?? []).find(
-            (row) => String(row["id"]) === grade.enrollment_id,
-          );
+          const enrollment = enrollmentByIdMap.get(grade.enrollment_id);
           const group = enrollment
             ? groupById.get(String(enrollment.class_group_id))
             : grade.class_group_id
@@ -1588,8 +1589,18 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
       (studentRows ?? []).map((row) => [row.id, personNameById.get(row.person_id) ?? "Aluno"]),
     );
 
+    const groupMap = new Map((groups ?? []).map((item) => [item.id, item]));
+    const assignmentByIdMap = new Map(
+      (assignments ?? []).map((row) => [String(row.id), row]),
+    );
+    const enrollmentCountByClass = new Map<string, number>();
+    for (const enrollment of enrollments ?? []) {
+      const cId = String(enrollment.class_group_id);
+      enrollmentCountByClass.set(cId, (enrollmentCountByClass.get(cId) ?? 0) + 1);
+    }
+
     const classes = (assignments ?? []).map((row) => {
-      const group = (groups ?? []).find((item) => item.id === String(row.class_group_id));
+      const group = groupMap.get(String(row.class_group_id));
       const grade = group?.grade_level_id ? gradeById.get(String(group.grade_level_id)) : null;
       return {
         id: String(row.class_group_id),
@@ -1598,9 +1609,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
         course_name: grade?.program_id ? (programById.get(String(grade.program_id)) ?? "—") : "—",
         subject_id: String(row.subject_id ?? ""),
         subject_name: subjectById.get(String(row.subject_id)) ?? "Disciplina",
-        enrolled_count: (enrollments ?? []).filter(
-          (enrollment) => String(enrollment.class_group_id) === String(row.class_group_id),
-        ).length,
+        enrolled_count: enrollmentCountByClass.get(String(row.class_group_id)) ?? 0,
       };
     });
 
@@ -1618,9 +1627,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
     });
 
     const schedule = (slots ?? []).map((slot) => {
-      const assignment = (assignments ?? []).find(
-        (row) => String(row.id) === String(slot.class_subject_id),
-      );
+      const assignment = assignmentByIdMap.get(String(slot.class_subject_id));
       const weekday = Number(slot.weekday);
       return {
         id: String(slot.id),

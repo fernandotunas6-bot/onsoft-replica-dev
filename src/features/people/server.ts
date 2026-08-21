@@ -67,20 +67,20 @@ async function insertPersonDocuments(
     expires_at?: string | undefined;
   }>,
 ) {
-  for (const document of documents) {
-    const { error } = await db.from("person_documents").insert({
-      school_id: schoolId,
-      person_id: personId,
-      document_type: document.document_type,
-      document_number: document.document_number,
-      issued_at: document.issued_at || null,
-      expires_at: document.expires_at || null,
-      created_by: userId,
-      updated_by: userId,
-    });
-    if (error) {
-      throw publicDatabaseError(error, "Não foi possível guardar o documento da pessoa.");
-    }
+  if (!documents.length) return;
+  const payload = documents.map((document) => ({
+    school_id: schoolId,
+    person_id: personId,
+    document_type: document.document_type,
+    document_number: document.document_number,
+    issued_at: document.issued_at || null,
+    expires_at: document.expires_at || null,
+    created_by: userId,
+    updated_by: userId,
+  }));
+  const { error } = await db.from("person_documents").insert(payload);
+  if (error) {
+    throw publicDatabaseError(error, "Não foi possível guardar o documento da pessoa.");
   }
 }
 
