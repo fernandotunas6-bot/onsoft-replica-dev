@@ -180,6 +180,12 @@ Registo canónico: `scripts/siga/modules.json`.
 - O cartão «Relatórios avançados» mantém o visual original; os outros usam o mesmo molde com tons e ícones diferentes.
 - Ligações internas, externas (Portal AGT) e painéis de Definições. Filtra por cargo.
 
+## Ciclo 44 — Limpeza de Dados Falsos e Preparação para Produção (`e68f5b4`)
+
+- **Expurgo de Dados Fictícios (`e68f5b4`)**: Removidas todas as instâncias de dados mock estáticos em `CashFlowForecastChart.tsx`, `DisciplinePerformanceHeatmap.tsx`, `DropoutRiskReportModal.tsx`, `dropout-risk-predictor.ts` e `sga-grades.ts`.
+- **Script SQL de Produção**: Criado `supabase/PURGE_DEMO_DATA.sql` para expurgar dados de teste mantendo intactas as escolas, turmas, disciplinas, permissões RBAC e modelos oficiais.
+- **Validação Global**: `npm run siga:check` 100% verde em todos os 13 módulos, 41/41 suítes de teste a passar (248 testes) e `npm run build` de produção concluído.
+
 ## Ciclo 43 — Emissão de Faturas Proforma (`4bc7265`)
 
 - **Faturas Proforma (`4bc7265`)**: Integrada a emissão de Fatura Proforma em [src/routes/faturas.tsx](file:///Users/valentinocanguele/edu/onsoft-replica-dev/src/routes/faturas.tsx) com `buildProformaInvoice` de `proforma-receipts.ts`, dados bancários IBAN da instituição e aviso legal AGT.
