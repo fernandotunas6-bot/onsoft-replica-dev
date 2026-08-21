@@ -714,7 +714,6 @@ function StudentDetail() {
     .slice(0, 2)
     .map((p) => p[0])
     .join("");
-  const [cardModalOpen, setCardModalOpen] = useState(false);
 
   return (
     <AppShell>

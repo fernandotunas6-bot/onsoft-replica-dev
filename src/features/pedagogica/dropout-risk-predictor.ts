@@ -64,38 +64,18 @@ export function calculateDropoutRiskScore(
   };
 }
 
-export function generateDropoutRiskReport(): DropoutRiskStudent[] {
-  const mockStudents = [
-    {
-      studentId: "s1",
-      studentName: "António Manuel Neto",
-      className: "10ª Classe A",
-      processNumber: "2024-0012",
-      attendanceRate: 68,
-      averageGrade: 7.5,
-      tuitionOverdueDays: 45,
-    },
-    {
-      studentId: "s2",
-      studentName: "Beatriz dos Santos",
-      className: "11ª Classe B",
-      processNumber: "2024-0045",
-      attendanceRate: 72,
-      averageGrade: 9.1,
-      tuitionOverdueDays: 62,
-    },
-    {
-      studentId: "s3",
-      studentName: "Carlos Eduardo Cambuta",
-      className: "10ª Classe B",
-      processNumber: "2024-0089",
-      attendanceRate: 81,
-      averageGrade: 8.8,
-      tuitionOverdueDays: 15,
-    },
-  ];
+export interface RawStudentRiskInput {
+  studentId: string;
+  studentName: string;
+  className: string;
+  processNumber: string;
+  attendanceRate: number;
+  averageGrade: number;
+  tuitionOverdueDays: number;
+}
 
-  return mockStudents.map((s) => {
+export function generateDropoutRiskReport(inputStudents: RawStudentRiskInput[] = []): DropoutRiskStudent[] {
+  return inputStudents.map((s) => {
     const risk = calculateDropoutRiskScore(s.attendanceRate, s.averageGrade, s.tuitionOverdueDays);
     return {
       ...s,

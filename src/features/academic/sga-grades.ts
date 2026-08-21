@@ -34,7 +34,7 @@ async function ensureTerm(db: Db, schoolId: string, academicYearId: string, term
   return created;
 }
 
-export async function ensureDefaultTeacher(db: Db, schoolId: string, userId: string) {
+export async function ensureDefaultTeacher(db: Db, schoolId: string, _userId: string) {
   const { data: existing, error } = await db
     .from("teachers")
     .select("id")
@@ -45,42 +45,7 @@ export async function ensureDefaultTeacher(db: Db, schoolId: string, userId: str
   if (error) throw publicDatabaseError(error, "Não foi possível carregar professores.");
   if (existing?.id) return existing.id as string;
 
-  const { count } = await db
-    .from("teachers")
-    .select("id", { count: "exact", head: true })
-    .eq("school_id", schoolId);
-  const seq = String((count ?? 0) + 1).padStart(6, "0");
-
-  const { data: person, error: personError } = await db
-    .from("people")
-    .insert({
-      school_id: schoolId,
-      full_name: "Professor Demonstração",
-      status: "active",
-      created_by: userId,
-      updated_by: userId,
-    })
-    .select("id")
-    .single();
-  if (personError) throw publicDatabaseError(personError, "Não foi possível criar o professor.");
-
-  const { data: teacher, error: teacherError } = await db
-    .from("teachers")
-    .insert({
-      school_id: schoolId,
-      person_id: person.id,
-      employee_number: `DOC-${seq}`,
-      hired_on: new Date().toISOString().slice(0, 10),
-      employment_type: "permanent",
-      highest_qualification: "bachelor",
-      status: "active",
-      created_by: userId,
-      updated_by: userId,
-    })
-    .select("id")
-    .single();
-  if (teacherError) throw publicDatabaseError(teacherError, "Não foi possível criar o professor.");
-  return teacher.id as string;
+  throw new Error("Nenhum professor activo cadastrado na instituição. Cadastre um docente no módulo Pessoas primeiro.");
 }
 
 async function ensureClassSubject(

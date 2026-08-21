@@ -2,34 +2,40 @@ import { useState } from "react";
 import { TrendingUp, DollarSign, Calendar, ArrowUpRight, ArrowDownRight, ShieldCheck } from "lucide-react";
 import { IconChip } from "@/components/ui/icon-chip";
 
-interface CashFlowMonthData {
+export interface CashFlowMonthData {
   month: string;
   expectedAmount: number;
   actualAmount: number;
   forecastAmount: number;
 }
 
-const mockCashFlow: CashFlowMonthData[] = [
-  { month: "Set", expectedAmount: 4500000, actualAmount: 4350000, forecastAmount: 4400000 },
-  { month: "Out", expectedAmount: 4500000, actualAmount: 4200000, forecastAmount: 4300000 },
-  { month: "Nov", expectedAmount: 4500000, actualAmount: 4480000, forecastAmount: 4450000 },
-  { month: "Dez", expectedAmount: 4800000, actualAmount: 4750000, forecastAmount: 4700000 },
-  { month: "Jan", expectedAmount: 4500000, actualAmount: 0, forecastAmount: 4380000 },
-  { month: "Fev", expectedAmount: 4500000, actualAmount: 0, forecastAmount: 4420000 },
-  { month: "Mar", expectedAmount: 4500000, actualAmount: 0, forecastAmount: 4490000 },
-];
+interface CashFlowForecastChartProps {
+  data?: CashFlowMonthData[];
+  averageCollectionRate?: number;
+  forecastInadimplenciaRate?: number;
+  mainPaymentChannel?: string;
+}
 
-export function CashFlowForecastChart() {
+export function CashFlowForecastChart({
+  data = [],
+  averageCollectionRate,
+  forecastInadimplenciaRate,
+  mainPaymentChannel,
+}: CashFlowForecastChartProps) {
   const formatKz = (val: number) =>
     new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA", maximumFractionDigits: 0 }).format(
       val,
     );
 
-  const totalForecastNext3Months = mockCashFlow
-    .slice(4, 7)
-    .reduce((sum, item) => sum + item.forecastAmount, 0);
+  const hasData = data.length > 0;
 
-  const averageCollectionRate = 96.2; // %
+  const totalForecastNext3Months = hasData
+    ? data.slice(Math.max(0, data.length - 3)).reduce((sum, item) => sum + item.forecastAmount, 0)
+    : 0;
+
+  const maxVal = hasData
+    ? Math.max(...data.map((d) => Math.max(d.expectedAmount, d.actualAmount, d.forecastAmount)), 1)
+    : 1;
 
   return (
     <div className="surface-card p-6 space-y-5 rounded-2xl border border-border shadow-sm">
@@ -39,7 +45,7 @@ export function CashFlowForecastChart() {
           <IconChip icon={TrendingUp} tone="warning" size="md" />
           <div>
             <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
-              Projeção de Fluxo de Caixa (Próximos 6 Meses)
+              Projeção de Fluxo de Caixa
             </h3>
             <p className="text-xs text-muted-foreground">
               Estimativa de receita com base no comportamento de pagamento das turmas e matrículas ativas
@@ -48,7 +54,7 @@ export function CashFlowForecastChart() {
         </div>
 
         <div className="text-right">
-          <span className="text-xs text-muted-foreground uppercase font-bold block">Previsão 3 Meses</span>
+          <span className="text-xs text-muted-foreground uppercase font-bold block">Previsão Período</span>
           <span className="text-lg font-extrabold text-primary font-mono">{formatKz(totalForecastNext3Months)}</span>
         </div>
       </div>
@@ -58,9 +64,8 @@ export function CashFlowForecastChart() {
         <div className="p-3.5 rounded-xl border border-border bg-card space-y-1">
           <span className="text-xs text-muted-foreground font-semibold">Taxa Média de Liquidação</span>
           <div className="flex items-center justify-between">
-            <span className="text-xl font-extrabold text-foreground font-mono">{averageCollectionRate}%</span>
-            <span className="text-xs text-success font-bold flex items-center">
-              <ArrowUpRight className="size-3.5" /> +2.4%
+            <span className="text-xl font-extrabold text-foreground font-mono">
+              {averageCollectionRate !== undefined ? `${averageCollectionRate}%` : "—"}
             </span>
           </div>
         </div>
@@ -68,9 +73,8 @@ export function CashFlowForecastChart() {
         <div className="p-3.5 rounded-xl border border-border bg-card space-y-1">
           <span className="text-xs text-muted-foreground font-semibold">Inadimplência Prevista</span>
           <div className="flex items-center justify-between">
-            <span className="text-xl font-extrabold text-foreground font-mono">3.8%</span>
-            <span className="text-xs text-success font-bold flex items-center">
-              <ArrowDownRight className="size-3.5" /> -1.1%
+            <span className="text-xl font-extrabold text-foreground font-mono">
+              {forecastInadimplenciaRate !== undefined ? `${forecastInadimplenciaRate}%` : "—"}
             </span>
           </div>
         </div>
@@ -78,7 +82,9 @@ export function CashFlowForecastChart() {
         <div className="p-3.5 rounded-xl border border-border bg-card space-y-1">
           <span className="text-xs text-muted-foreground font-semibold">Canal Mais Utilizado</span>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-extrabold text-primary">Multicaixa Express (78%)</span>
+            <span className="text-sm font-extrabold text-primary">
+              {mainPaymentChannel ?? "Aguardando lançamentos"}
+            </span>
             <ShieldCheck className="size-4 text-primary" />
           </div>
         </div>
@@ -98,31 +104,36 @@ export function CashFlowForecastChart() {
           </div>
         </div>
 
-        <div className="space-y-3">
-          {mockCashFlow.map((item) => {
-            const isFuture = item.actualAmount === 0;
-            const displayVal = isFuture ? item.forecastAmount : item.actualAmount;
-            const maxVal = 5000000;
-            const percent = Math.min(100, Math.round((displayVal / maxVal) * 100));
+        {!hasData ? (
+          <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
+            Sem dados suficientes de caixa ou faturas emitidas para gerar gráfico de projeção.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {data.map((item) => {
+              const isFuture = item.actualAmount === 0;
+              const displayVal = isFuture ? item.forecastAmount : item.actualAmount;
+              const percent = Math.min(100, Math.round((displayVal / maxVal) * 100));
 
-            return (
-              <div key={item.month} className="space-y-1 text-xs">
-                <div className="flex items-center justify-between font-mono">
-                  <span className="font-bold text-foreground w-10">{item.month}</span>
-                  <span className="text-muted-foreground">{formatKz(displayVal)}</span>
+              return (
+                <div key={item.month} className="space-y-1 text-xs">
+                  <div className="flex items-center justify-between font-mono">
+                    <span className="font-bold text-foreground w-10">{item.month}</span>
+                    <span className="text-muted-foreground">{formatKz(displayVal)}</span>
+                  </div>
+                  <div className="h-3 w-full rounded-full bg-secondary/50 overflow-hidden">
+                    <div
+                      style={{ width: `${percent}%` }}
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isFuture ? "bg-warning" : "bg-primary"
+                      }`}
+                    />
+                  </div>
                 </div>
-                <div className="h-3 w-full rounded-full bg-secondary/50 overflow-hidden">
-                  <div
-                    style={{ width: `${percent}%` }}
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      isFuture ? "bg-warning" : "bg-primary"
-                    }`}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
