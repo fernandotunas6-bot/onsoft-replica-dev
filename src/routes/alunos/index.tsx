@@ -8,6 +8,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   Award,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -20,6 +21,12 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -408,37 +415,37 @@ function StudentsPage() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2" onClick={exportarAlunosCsv}>
-              <Download className="size-4" /> CSV
-            </Button>
-            <Button variant="outline" className="gap-2" onClick={exportarAlunosPdf}>
-              <FileDown className="size-4" /> PDF
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={exportarAlunosOficial}
-              disabled={!filtered.length}
-            >
-              <Award className="size-4" /> Oficial
-            </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
+                  <Download className="size-3.5" /> Exportar Lista <ChevronDown className="size-3.5 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={exportarAlunosOficial} disabled={!filtered.length} className="gap-2 text-xs cursor-pointer">
+                  <Award className="size-3.5 text-primary" /> Lista Oficial PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportarAlunosPdf} className="gap-2 text-xs cursor-pointer">
+                  <FileDown className="size-3.5" /> Lista Simples PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportarAlunosCsv} className="gap-2 text-xs cursor-pointer">
+                  <Download className="size-3.5" /> Exportar Ficheiro CSV
+                </DropdownMenuItem>
+                {sigeOn ? (
+                  <DropdownMenuItem onClick={exportarAlunosCsv} disabled={!filtered.length} className="gap-2 text-xs cursor-pointer">
+                    <AppMark id="sige" className="size-3.5" /> Formato SIGE
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <PickFileButton
               area="secretaria"
               onPick={(file) =>
                 toast.success(file.name, { description: "Ficheiro da ficha / matrícula." })
               }
             />
-            {sigeOn ? (
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarAlunosCsv}
-                disabled={!filtered.length}
-              >
-                <AppMark id="sige" className="size-4" /> SIGE
-              </Button>
-            ) : null}
             <StudentEnrollmentSheet
               autoOpen={action === "matricular"}
               classGroups={classGroups.map((group) => ({

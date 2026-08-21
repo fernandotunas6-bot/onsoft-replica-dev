@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, KeyRound, MailPlus, ShieldCheck, UserPlus, Award } from "lucide-react";
+import { Download, KeyRound, MailPlus, ShieldCheck, UserPlus, Award, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -9,6 +9,12 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Switch } from "@/components/ui/switch";
@@ -366,39 +372,28 @@ function AcessosPage() {
           title="Gestão de Acessos"
           description="Convide contas de login, ajuste cargos e mantenha a equipa escolar no registo de pessoas."
           actions={
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarContas}
-                disabled={!filteredAccounts.length}
-              >
-                <Download className="size-4" /> CSV contas
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarContasOficial}
-                disabled={!filteredAccounts.length}
-              >
-                <Award className="size-4" /> Oficial contas
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarEquipa}
-                disabled={!filteredStaff.length}
-              >
-                <Download className="size-4" /> CSV equipa
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarEquipaOficial}
-                disabled={!filteredStaff.length}
-              >
-                <Award className="size-4" /> Oficial equipa
-              </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
+                    <Download className="size-3.5" /> Exportar Acessos <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={exportarContasOficial} disabled={!filteredAccounts.length} className="gap-2 text-xs cursor-pointer">
+                    <Award className="size-3.5 text-primary" /> Relatório Contas PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarContas} disabled={!filteredAccounts.length} className="gap-2 text-xs cursor-pointer">
+                    <Download className="size-3.5" /> Ficheiro CSV Contas
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarEquipaOficial} disabled={!filteredStaff.length} className="gap-2 text-xs cursor-pointer">
+                    <Award className="size-3.5 text-primary" /> Relatório Equipa PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarEquipa} disabled={!filteredStaff.length} className="gap-2 text-xs cursor-pointer">
+                    <Download className="size-3.5" /> Ficheiro CSV Equipa
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <QuickFormModal
                 title="Convidar utilizador"
                 eyebrow="Contas de sistema"

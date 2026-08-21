@@ -10,12 +10,20 @@ import {
   Pencil,
   Plus,
   Sparkles,
+  ShieldAlert,
+  ChevronDown,
   Trash2,
   UserPlus,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import {
   Table,
@@ -642,35 +650,46 @@ function PedagogicaPage() {
           description="Turmas, disciplinas, notas e horários ligados ao Supabase."
           actions={
             <>
-              <Button
-                variant="outline"
-                className="gap-2 text-primary border-primary/30 bg-primary/5 hover:bg-primary/10 shadow-2xs"
-                onClick={() => setOcrModalOpen(true)}
-              >
-                <Sparkles className="size-4 text-primary" /> OCR Pauta Papel
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2 text-destructive border-destructive/30 bg-destructive/5 hover:bg-destructive/10 shadow-2xs"
-                onClick={() => setDropoutModalOpen(true)}
-              >
-                <ShieldAlert className="size-4 text-destructive" /> Risco Abandono AI
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarPautaCsv}>
-                <Download className="size-4" /> Pauta CSV
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarPautaPdf}>
-                <FileDown className="size-4" /> Pauta PDF
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarPautaOficial}>
-                <Award className="size-4" /> Pauta Oficial
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarTurmasCsv}>
-                <Download className="size-4" /> Turmas CSV
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarTurmasOficial}>
-                <Award className="size-4" /> Turmas Oficial
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
+                    <Sparkles className="size-3.5 text-primary" /> Ferramentas AI <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={() => setOcrModalOpen(true)} className="gap-2 text-xs cursor-pointer">
+                    <Sparkles className="size-3.5 text-primary" /> Scanner OCR Pauta Papel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDropoutModalOpen(true)} className="gap-2 text-xs text-destructive cursor-pointer">
+                    <ShieldAlert className="size-3.5 text-destructive" /> Relatório Risco Abandono
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
+                    <Download className="size-3.5" /> Exportação & Pautas <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={exportarPautaOficial} className="gap-2 text-xs cursor-pointer">
+                    <Award className="size-3.5 text-primary" /> Pauta Oficial PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarPautaPdf} className="gap-2 text-xs cursor-pointer">
+                    <FileDown className="size-3.5" /> Pauta Simples PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarPautaCsv} className="gap-2 text-xs cursor-pointer">
+                    <Download className="size-3.5" /> Exportar Pauta CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarTurmasOficial} className="gap-2 text-xs cursor-pointer">
+                    <Award className="size-3.5 text-primary" /> Turmas Oficial PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarTurmasCsv} className="gap-2 text-xs cursor-pointer">
+                    <Download className="size-3.5" /> Exportar Turmas CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {canManageAcademic && structureReady ? (
                 <ClassGroupSheet
                   yearOptions={yearOptions}

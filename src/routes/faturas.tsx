@@ -1,12 +1,18 @@
 import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Award, Download, FileDown, FileText, Plus, Wallet, X } from "lucide-react";
+import { AlertCircle, Award, ChevronDown, Download, FileDown, FileText, Plus, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import {
@@ -420,18 +426,27 @@ function FaturasPage() {
           description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação."
           actions={
             <>
-              <Button variant="outline" className="gap-2" onClick={exportarFaturasCsv}>
-                <Download className="size-4" /> CSV
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarFaturasPdf}>
-                <FileDown className="size-4" /> PDF
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarFaturasOficial}>
-                <Award className="size-4" /> Oficial
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={handleExportSaftAo}>
-                <FileText className="size-4" /> SAFT-AO (XML)
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
+                    <Download className="size-3.5" /> Exportar & SAFT-AO <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={handleExportSaftAo} className="gap-2 text-xs cursor-pointer">
+                    <FileText className="size-3.5 text-primary" /> Ficheiro SAFT-AO (XML)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarFaturasOficial} className="gap-2 text-xs cursor-pointer">
+                    <Award className="size-3.5 text-primary" /> Relatório Oficial PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarFaturasPdf} className="gap-2 text-xs cursor-pointer">
+                    <FileDown className="size-3.5" /> Lista Simples PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarFaturasCsv} className="gap-2 text-xs cursor-pointer">
+                    <Download className="size-3.5" /> Ficheiro CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <QuickFormModal
                 title="Emitir Fatura Proforma"
                 eyebrow="Orçamento"
