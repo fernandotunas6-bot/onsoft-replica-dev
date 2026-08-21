@@ -71,7 +71,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
 
   const [open, setOpen] = useState(false);
-  const [pinnedCollapsed, setPinnedCollapsed] = useState(true);
+  const [pinnedCollapsed, setPinnedCollapsed] = useState(false);
   const [hoverOpen, setHoverOpen] = useState(false);
   const hoverLeaveTimer = useRef<number>(0);
   const { isDark, toggleDark } = useAppearance();
@@ -87,7 +87,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(COLLAPSE_KEY) === "0") setPinnedCollapsed(false);
+    // O sidebar deve sempre iniciar expandido
+    const stored = localStorage.getItem(COLLAPSE_KEY);
+    if (stored === "1") {
+      setPinnedCollapsed(true);
+    } else {
+      setPinnedCollapsed(false);
+    }
     return () => window.clearTimeout(hoverLeaveTimer.current);
   }, []);
 
@@ -200,7 +206,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 bg-transparent px-4 py-3 backdrop-blur-xl md:px-6 lg:px-5 lg:py-2.5">
+        <header className="sticky top-0 z-30 flex items-center gap-3 bg-transparent px-4 py-2.5 backdrop-blur-xl md:px-6 lg:px-4 lg:py-2">
           <Button
             variant="ghost"
             size="icon"
@@ -416,7 +422,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         <main
           id="conteudo-principal"
           tabIndex={-1}
-          className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6 md:py-8 lg:px-5 lg:py-6 [content-visibility:auto]"
+          className="mx-auto w-full max-w-[1360px] flex-1 px-4 py-5 md:px-6 md:py-6 lg:px-4 lg:py-4 [content-visibility:auto]"
         >
           {children}
         </main>
