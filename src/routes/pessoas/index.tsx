@@ -1211,8 +1211,10 @@ function PeoplePage() {
         onOpenChange={(val) => {
           if (!val) setProfile360Id(null);
         }}
-        onOpenEnrollment={(pId) => {
-          window.location.href = `/alunos?action=matricular&personId=${pId}`;
+        onAction={(action, person) => {
+          if (action === "enroll") {
+            window.location.href = `/alunos?action=matricular&personId=${person.id}`;
+          }
         }}
       />
     </AppShell>

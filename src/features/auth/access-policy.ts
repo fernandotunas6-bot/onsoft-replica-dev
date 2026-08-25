@@ -34,6 +34,7 @@ export const accessModules = [
   },
   { key: "gestao", label: "Acessos / Config", prefixes: ["/acessos", "/configuracoes"] },
   { key: "arquivos", label: "Arquivos", prefixes: ["/arquivos"] },
+  { key: "importacao", label: "Importar Dados", prefixes: ["/importar"] },
 ] as const;
 
 const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
@@ -65,6 +66,12 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   {
     prefixes: ["/arquivos"],
     roles: ["Administrador", "Secretaria", "Tesouraria", "Professor"],
+  },
+  {
+    // Gate de página — o módulo pedido (pessoas, alunos, pagamentos...) é
+    // validado à parte no servidor por rolesForModule() em import/server.ts.
+    prefixes: ["/importar"],
+    roles: ["Administrador", "Secretaria", "Tesouraria"],
   },
 ];
 

@@ -79,6 +79,7 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { PautaOcrScannerModal } from "@/features/pedagogica/components/PautaOcrScannerModal";
 import { DropoutRiskReportModal } from "@/features/pedagogica/components/DropoutRiskReportModal";
+import { PautasWorkspaceModule } from "@/features/pedagogica/components/pautas/PautasWorkspaceModule";
 import { toast } from "sonner";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
 
@@ -96,7 +97,7 @@ const AssessmentCenter = lazy(() =>
 
 const pedagogicaSearchSchema = z
   .object({
-    tab: z.enum(["turmas", "disciplinas", "notas", "horarios"]).optional(),
+    tab: z.enum(["turmas", "disciplinas", "notas", "horarios", "pautas"]).optional(),
     turma: z.string().uuid().optional(),
     disciplina: z.string().uuid().optional(),
     pauta: z.enum(["1"]).optional(),
@@ -788,6 +789,7 @@ function PedagogicaPage() {
             <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
             <TabsTrigger value="notas">Notas</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
+            <TabsTrigger value="pautas">Modelos de Pauta</TabsTrigger>
           </TabsList>
           <div className="mt-4">
             <InstalledModuleTools
@@ -1778,6 +1780,10 @@ function PedagogicaPage() {
                 await refreshAcademic();
               }}
             />
+          </TabsContent>
+
+          <TabsContent value="pautas" className="mt-5 space-y-6">
+            <PautasWorkspaceModule workspace={workspace} />
           </TabsContent>
         </Tabs>
       </div>

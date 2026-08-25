@@ -9,7 +9,9 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
+import { MediaAvatar } from "@/components/ui/media-frame";
 
 interface StudentDigitalCardModalProps {
   open: boolean;

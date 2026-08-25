@@ -6,6 +6,7 @@ import {
   requireSgaWriter,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
+import { resolvePersonContext } from "./person-context";
 import {
   addPersonDocumentInputSchema,
   createPersonInputSchema,
@@ -256,6 +257,15 @@ export const getPerson = createServerFn({ method: "GET" })
       .eq("person_id", person.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: true });
+    let resolvedDocuments: Array<{
+      id: string;
+      document_type: string;
+      document_number: string;
+      issued_at: string | null;
+      expires_at: string | null;
+      file_id?: string | null;
+      file_name?: string | null;
+    }> = documents ?? [];
     if (documentsError && /file_id|file_name|42703|schema cache/i.test(documentsError.message)) {
       const fallback = await db
         .from("person_documents")
@@ -264,26 +274,31 @@ export const getPerson = createServerFn({ method: "GET" })
         .eq("person_id", person.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: true });
-      return {
-        ...person,
-        phone_primary: person.phone,
-        birth_date: person.date_of_birth,
-        nif: person.national_id,
-        documents: fallback.data ?? [],
-      };
-    }
-    if (
+      resolvedDocuments = fallback.data ?? [];
+    } else if (
       documentsError &&
       !/schema cache|does not exist|42P01|PGRST/i.test(documentsError.message)
     ) {
       throw publicDatabaseError(documentsError, "Não foi possível carregar os documentos.");
     }
+
+    const personContext = await resolvePersonContext(
+      db,
+      membership.schoolId,
+      person.id,
+      Boolean(person.email),
+    );
+
     return {
       ...person,
       phone_primary: person.phone,
       birth_date: person.date_of_birth,
       nif: person.national_id,
-      documents: documents ?? [],
+      documents: resolvedDocuments,
+      roles: personContext.roles,
+      academic_summary: personContext.academic_summary,
+      financial_summary: personContext.financial_summary,
+      has_contact_email: personContext.has_contact_email,
     };
   });
 

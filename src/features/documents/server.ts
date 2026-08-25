@@ -6,9 +6,23 @@ import {
   requireSgaWriter,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { loadPersonNamesById } from "@/features/people/lookup";
+import baseCss from "../../../public/templates/base.css?raw";
+import talaoCandidaturaHbs from "../../../public/templates/talao-candidatura.hbs?raw";
+import talaoMatriculaHbs from "../../../public/templates/talao-matricula.hbs?raw";
+import folhaCredenciaisHbs from "../../../public/templates/folha-credenciais.hbs?raw";
+import dossieAcademicoHbs from "../../../public/templates/dossie-academico.hbs?raw";
+import serviceDocumentHbs from "../../../public/templates/service-document.hbs?raw";
+import historicoAcademicoIndividualHbs from "../../../public/templates/historico-academico-individual.hbs?raw";
+import pautaDisciplinarHbs from "../../../public/templates/pauta-disciplinar.hbs?raw";
+import pautaGeralTurmaHbs from "../../../public/templates/pauta-geral-turma.hbs?raw";
+import boletimEscolarHbs from "../../../public/templates/boletim-escolar.hbs?raw";
+import certificadoHabilitacoesHbs from "../../../public/templates/certificado-habilitacoes.hbs?raw";
+import diarioPedagogicoProfessorHbs from "../../../public/templates/diario-pedagogico-professor.hbs?raw";
+import actaConselhoNotasHbs from "../../../public/templates/acta-conselho-notas.hbs?raw";
+import declaracaoNotasSimplesHbs from "../../../public/templates/declaracao-notas-simples.hbs?raw";
+import relatorioValidacaoNotasHbs from "../../../public/templates/relatorio-validacao-notas.hbs?raw";
+import mapaEstatisticoAproveitamentoHbs from "../../../public/templates/mapa-estatistico-aproveitamento.hbs?raw";
 import {
   createDocumentRequestInputSchema,
   getPrintTemplateInputSchema,
@@ -318,16 +332,33 @@ function assertPrintKey(key: string): PrintTemplateKey {
   return key;
 }
 
+// Os .hbs são importados como texto em bundle (?raw) em vez de lidos do
+// disco em runtime: o Cloudflare Workers não tem sistema de ficheiros, e
+// process.cwd()/readFile só funcionavam em `vite dev` local.
+const BUNDLED_TEMPLATES: Record<PrintTemplateKey, string> = {
+  "talao-candidatura": talaoCandidaturaHbs,
+  "talao-matricula": talaoMatriculaHbs,
+  "folha-credenciais": folhaCredenciaisHbs,
+  "dossie-academico": dossieAcademicoHbs,
+  "service-document": serviceDocumentHbs,
+  "historico-academico-individual": historicoAcademicoIndividualHbs,
+  "pauta-disciplinar": pautaDisciplinarHbs,
+  "pauta-geral-turma": pautaGeralTurmaHbs,
+  "boletim-escolar": boletimEscolarHbs,
+  "certificado-habilitacoes": certificadoHabilitacoesHbs,
+  "diario-pedagogico-professor": diarioPedagogicoProfessorHbs,
+  "acta-conselho-notas": actaConselhoNotasHbs,
+  "declaracao-notas-simples": declaracaoNotasSimplesHbs,
+  "relatorio-validacao-notas": relatorioValidacaoNotasHbs,
+  "mapa-estatistico-aproveitamento": mapaEstatisticoAproveitamentoHbs,
+};
+
 async function readBundledTemplate(key: PrintTemplateKey) {
-  const root = join(process.cwd(), "public/templates");
-  const [source, css] = await Promise.all([
-    readFile(join(root, `${key}.hbs`), "utf8"),
-    readFile(join(root, "base.css"), "utf8"),
-  ]);
+  const source = BUNDLED_TEMPLATES[key];
   if (source.length > MAX_TEMPLATE_CHARS) {
     throw new Error("O modelo original excede o tamanho permitido.");
   }
-  return { source, css };
+  return { source, css: baseCss };
 }
 
 export const listPrintTemplates = createServerFn({ method: "GET" })

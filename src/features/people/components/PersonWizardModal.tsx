@@ -4,19 +4,28 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  CheckCircle2,
   FileCheck,
+  GraduationCap,
   IdCard,
   Phone,
+  ShieldCheck,
+  UserCheck,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ModalShell, ModalHeader } from "@/components/ui/modal-system";
 import { createPerson, findPersonDuplicates } from "@/features/people/server";
+import { personRoleOptions } from "@/features/people/schemas";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
+
+type PersonRole = (typeof personRoleOptions)[number];
 
 export function PersonWizardModal({
   open,
@@ -53,8 +62,12 @@ export function PersonWizardModal({
   const [address, setAddress] = useState("");
   const [docType, setDocType] = useState<"bi" | "passaporte" | "cedula" | "nif">("bi");
   const [docNumber, setDocNumber] = useState("");
-  const [roles, setRoles] = useState<Array<"aluno" | "encarregado" | "professor" | "funcionario">>(["aluno"]);
+  const [roles, setRoles] = useState<PersonRole[]>(["aluno"]);
   const [createdPersonId, setCreatedPersonId] = useState<string | null>(null);
+
+  const handleRoleToggle = (role: PersonRole) => {
+    setRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
+  };
 
   const resetForm = () => {
     setStep(1);
@@ -410,14 +423,16 @@ export function PersonWizardModal({
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                {[
-                  { key: "aluno", label: "Aluno (Candidato a Matrícula)" },
-                  { key: "encarregado", label: "Encarregado de Educação" },
-                  { key: "professor", label: "Professor / Docente" },
-                  { key: "funcionario", label: "Funcionário Administrativo" },
-                  { key: "coordenador", label: "Coordenador Pedagógico" },
-                  { key: "diretor", label: "Diretor Escolar" },
-                ].map((r) => (
+                {(
+                  [
+                    { key: "aluno", label: "Aluno (Candidato a Matrícula)" },
+                    { key: "encarregado", label: "Encarregado de Educação" },
+                    { key: "professor", label: "Professor / Docente" },
+                    { key: "funcionario", label: "Funcionário Administrativo" },
+                    { key: "coordenador", label: "Coordenador Pedagógico" },
+                    { key: "diretor", label: "Diretor Escolar" },
+                  ] as const
+                ).map((r) => (
                   <label
                     key={r.key}
                     className="flex items-center gap-3 p-3 rounded-lg border border-border bg-secondary/20 hover:bg-secondary/40 cursor-pointer text-xs font-medium"

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-AO">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pauta Final — Angola</title>
+<style>
+*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#eee;color:#111}.toolbar{padding:12px;text-align:center}.toolbar button{padding:8px 14px;font-weight:700}.sheet{background:white;width:420mm;min-height:297mm;margin:0 auto 20px;padding:10mm}.identity{text-align:center;text-transform:uppercase;font-size:11px;line-height:1.35}.identity h1{font-size:17px;margin:7px}.meta{border:1px solid #000;padding:5px 7px;display:flex;flex-wrap:wrap;gap:5px 18px;font-size:10px}.wrap{overflow:auto;margin-top:7px}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:8px}th,td{border:1px solid #000;padding:2px 3px;text-align:center;height:18px}th{background:#f3f3f3}.name{text-align:left;width:155px;min-width:155px}.obs{text-align:left;width:125px;min-width:125px}.computed{font-weight:700;background:#fafafa}.negative{color:#b00020;font-weight:700}.legend{font-size:8px;margin-top:6px}.footer{display:grid;grid-template-columns:1fr 2fr;gap:24px;margin-top:16px;font-size:9px}.jury{display:flex;flex-direction:column;gap:7px}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:24px;text-align:center}.line{display:block;border-top:1px solid #111;margin:24px auto 0;width:75%}@media print{body{background:white}.toolbar{display:none}.sheet{width:auto;min-height:auto;margin:0;padding:0}.wrap{overflow:visible}.negative{color:#b00020!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}@page{size:A3 landscape;margin:8mm}
+</style>
+</head>
+<body>
+<div class="toolbar"><button onclick="window.print()">Imprimir / Guardar PDF</button></div>
+<section class="sheet">
+<header class="identity">
+<strong>REPÚBLICA DE ANGOLA</strong><br>GOVERNO PROVINCIAL DE LUANDA<br>ADMINISTRAÇÃO MUNICIPAL DE __________________<br>DIRECÇÃO MUNICIPAL DA EDUCAÇÃO<br>COMPLEXO ESCOLAR Nº __________________
+<h1>PAUTA FINAL N.º _____/2026</h1>
+</header>
+<div class="meta"><span><b>Professor(a):</b> __________________</span><span><b>Período:</b> Manhã</span><span><b>Classe:</b> 7.ª Classe</span><span><b>Turma:</b> A</span><span><b>Sala:</b> 12</span><span><b>Ano Lectivo:</b> 2026/2027</span></div>
+<div class="wrap"><table id="pauta"><thead></thead><tbody></tbody></table></div>
+<div class="legend"><b>Fórmula base:</b> MFD = (MT1 + MT2 + MT3) ÷ 3. O resultado final deve ser fornecido pelo motor pedagógico/conselho de notas, não inferido apenas pela grelha.</div>
+<div class="footer"><div class="jury"><b>O CORPO DE JÚRI</b><span>1. __________________________________</span><span>2. __________________________________</span><span>3. __________________________________</span></div><div class="signatures"><div>O(A) Subdirector(a) Pedagógico(a)<span class="line"></span></div><div>O(A) Director(a) da Escola<span class="line"></span></div></div></div>
+</section>
+<script>
+const subjects=[['lp','L. PORTUGUESA'],['mat','MATEMÁTICA'],['cn','C. NATUREZA'],['geo','GEOGRAFIA'],['hist','HISTÓRIA'],['emc','E.M.C.'],['ef','ED. FÍSICA']];
+const avg=(a,b,c)=>[a,b,c].every(Number.isFinite)?Math.round((a+b+c)/3):'';
+const mk=(base)=>Object.fromEntries(subjects.map(([id],i)=>[id,[base+(i%2),base+1+(i%2),base+2+(i%2)]]));
+const students=[
+ {n:1,code:'000001',name:'Ana Manuel António',g:'F',r:'TRANSITA',obs:'',grades:mk(12)},
+ {n:2,code:'000002',name:'Carlos João Mateus',g:'M',r:'TRANSITA',obs:'',grades:mk(10)},
+ {n:3,code:'000003',name:'Domingas Paulo José',g:'F',r:'NÃO TRANSITA',obs:'Situação definida pelo conselho de notas.',grades:mk(7)}
+];
+const negative=new Set(['NÃO TRANSITA','REPROVADO','NÃO ADMITIDO','NÃO APTO','RETIDO','EXCLUÍDO']);
+const thead=document.querySelector('#pauta thead');
+thead.innerHTML=`<tr><th rowspan="2">N.º</th><th rowspan="2">Código</th><th rowspan="2">Nome Completo</th><th rowspan="2">Gén.</th>${subjects.map(([,n])=>`<th colspan="4">${n}</th>`).join('')}<th rowspan="2">Resultado</th><th rowspan="2">Observação</th></tr><tr>${subjects.map(()=>'<th>MT1</th><th>MT2</th><th>MT3</th><th>MFD</th>').join('')}</tr>`;
+document.querySelector('#pauta tbody').innerHTML=students.map(s=>`<tr><td>${s.n}</td><td>${s.code}</td><td class="name">${s.name}</td><td>${s.g}</td>${subjects.map(([id])=>{const [a,b,c]=s.grades[id];return `<td>${a}</td><td>${b}</td><td>${c}</td><td class="computed">${avg(a,b,c)}</td>`}).join('')}<td class="${negative.has(s.r)?'negative':''}">${s.r}</td><td class="obs">${s.obs}</td></tr>`).join('');
+</script>
+</body></html>
