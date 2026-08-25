@@ -5,6 +5,19 @@ import { toast } from "sonner";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
+import { cn } from "@/lib/utils";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+import {
+  getPrintTemplate,
+  listPrintTemplates,
+  resetPrintTemplate,
+  savePrintTemplate,
+  setActivePrintTemplate,
+} from "@/features/documents/server";
+import { renderHandlebars } from "@/features/documents/render-hbs";
+import { buildPrintSamplePayload } from "@/features/documents/print-catalog";
+import { printOfficialHtml } from "@/lib/print-html";
 
 export function PrintTemplateStudio() {
   const queryClient = useQueryClient();

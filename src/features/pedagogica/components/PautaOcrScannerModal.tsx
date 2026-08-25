@@ -59,12 +59,12 @@ export function PautaOcrScannerModal({
   const handleUpdateItemGrade = (
     academicNumber: string,
     field: "mac" | "npp" | "npt",
-    val: number,
+    val: number | undefined,
   ) => {
     if (!scanResult) return;
     setScanResult({
       ...scanResult,
-      extractedGrades: scanResult.extractedGrades.map((item) =>
+      items: scanResult.items.map((item) =>
         item.academicNumber === academicNumber ? { ...item, [field]: val } : item,
       ),
     });
@@ -73,7 +73,7 @@ export function PautaOcrScannerModal({
   const handleConfirmAndApply = () => {
     if (!scanResult) return;
     onApplyGrades(
-      scanResult.extractedGrades.map((item) => ({
+      scanResult.items.map((item) => ({
         academicNumber: item.academicNumber,
         ...(item.mac !== undefined ? { mac: item.mac } : {}),
         ...(item.npp !== undefined ? { npp: item.npp } : {}),

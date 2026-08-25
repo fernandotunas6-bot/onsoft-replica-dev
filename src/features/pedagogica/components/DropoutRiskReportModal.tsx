@@ -8,7 +8,14 @@ import {
   CheckCircle2,
   ShieldAlert,
 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
+import {
+  generateDropoutRiskReport,
+  type DropoutRiskStudent,
+  type RawStudentRiskInput,
+} from "@/features/pedagogica/dropout-risk-predictor";
 
 interface DropoutRiskReportModalProps {
   open: boolean;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Upload,
   FileSpreadsheet,
@@ -9,118 +9,122 @@ import {
   ArrowLeft,
   Download,
   Play,
-  RotateCcw,
   Sparkles,
   Edit2,
   Save,
+  Loader2,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CompareRecordsModal, type FieldComparison } from "@/features/import/components/CompareRecordsModal";
 import { OFFICIAL_TEMPLATES, generateOfficialCsvTemplate } from "@/features/import/official-templates";
 import {
   analyzeImportFile,
   commitImportBatch,
   createImportJob,
   generateErrorReportCsv,
-  rollbackImportJob,
+  listStagingRows,
   stageImportRows,
   updateStagingRowField,
 } from "@/features/import/server";
-import { importModuleOptions, type ImportModule, type ImportRowRecord } from "@/features/import/schemas";
+import { importModuleOptions, type ImportModule, type ImportJobRecord, type ImportRowRecord } from "@/features/import/schemas";
+import { suggestColumnMapping } from "@/features/import/engine/suggest";
 
-const STEPS = [
-  "1. Arquivo",
-  "2. Tipo de dados",
-  "3. Mapeamento",
-  "4. Validação",
-  "5. Revisão",
-  "6. Importação",
-  "7. Resultado",
-];
+const STEPS = ["1. Arquivo", "2. Tipo de dados", "3. Mapeamento", "4. Validação", "5. Revisão", "6. Importação", "7. Resultado"];
+
+/** Módulos com importador implementado — os restantes aparecem desactivados no Select. */
+const IMPLEMENTED_MODULES = new Set<ImportModule>(["pessoas", "alunos"]);
+
+type AnalyzedSheet = {
+  name: string;
+  headers: string[];
+  row_count: number;
+  rows: Record<string, string | number | boolean | null>[];
+  suggested_module: ImportModule;
+  suggested_module_score: number;
+};
+
+const STAGE_CHUNK = 300;
+const COMMIT_BATCH = 200;
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler o ficheiro."));
+    reader.readAsDataURL(file);
+  });
+}
 
 export function ImportWorkflowWizard({
-  schoolId,
   academicYearId,
   onComplete,
 }: {
-  schoolId: string;
   academicYearId?: string | null;
   onComplete?: () => void;
 }) {
   const [step, setStep] = useState(1);
   const [file, setFile] = useState<File | null>(null);
-  const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
-  const [parsedRows, setParsedRows] = useState<Record<string, any>[]>([]);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [sheets, setSheets] = useState<AnalyzedSheet[]>([]);
+  const [selectedSheetIdx, setSelectedSheetIdx] = useState(0);
   const [selectedModule, setSelectedModule] = useState<ImportModule>("alunos");
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
-  const [jobId, setJobId] = useState<string | null>(null);
+
+  const [job, setJob] = useState<ImportJobRecord | null>(null);
+  const [staging, setStaging] = useState(false);
+  const [stageProgress, setStageProgress] = useState({ done: 0, total: 0 });
+  const [stageCounts, setStageCounts] = useState({ valid: 0, invalid: 0, duplicate: 0 });
+
   const [stagingRows, setStagingRows] = useState<ImportRowRecord[]>([]);
+  const [stagingTotal, setStagingTotal] = useState(0);
+  const [stagingPage, setStagingPage] = useState(1);
   const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [loadingRows, setLoadingRows] = useState(false);
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
-  const [editingField, setEditingField] = useState<string>("");
-  const [editingValue, setEditingValue] = useState<string>("");
+  const [editingField, setEditingField] = useState("");
+  const [editingValue, setEditingValue] = useState("");
+
+  const [dryRunning, setDryRunning] = useState(false);
+  const [dryRunResult, setDryRunResult] = useState<{
+    inserted: number;
+    updated: number;
+    ignored: number;
+    failed: number;
+    processed: number;
+  } | null>(null);
+
   const [importing, setImporting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<{ inserted: number; updated: number; ignored: number } | null>(null);
+  const [commitProgress, setCommitProgress] = useState({ processed: 0, total: 0 });
+  const [result, setResult] = useState<{ inserted: number; updated: number; ignored: number; failed: number } | null>(null);
 
-  const [compareModalOpen, setCompareModalOpen] = useState(false);
-  const [comparingRow, setComparingRow] = useState<ImportRowRecord | null>(null);
+  const selectedSheet = sheets[selectedSheetIdx] ?? null;
 
-  const handleDownloadErrorReport = () => {
-    if (!stagingRows.length) return;
-    const csvContent = generateErrorReportCsv(stagingRows);
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `erros_importacao_${selectedModule}_SIGA.csv`;
-    link.click();
-  };
-
-  // Passo 1: Upload e Parsing Básico
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
     setFile(selected);
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (text) {
-        const lines = text.split(/\r?\n/).filter((l) => l.trim());
-        if (lines.length > 0) {
-          const headers = lines[0].split(/[;,]/).map((h) => h.trim().replace(/^"|"$/g, ""));
-          setParsedHeaders(headers);
-
-          const rows: Record<string, any>[] = [];
-          for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(/[;,]/).map((c) => c.trim().replace(/^"|"$/g, ""));
-            if (cols.length === headers.length) {
-              const rowObj: Record<string, any> = {};
-              headers.forEach((h, idx) => {
-                rowObj[h] = cols[idx];
-              });
-              rows.push(rowObj);
-            }
-          }
-          setParsedRows(rows);
-
-          // Sugestão automática de módulo
-          const lowerHeaders = headers.map((h) => h.toLowerCase());
-          if (lowerHeaders.some((h) => h.includes("aluno") || h.includes("bi") || h.includes("cedula"))) {
-            setSelectedModule("alunos");
-          } else if (lowerHeaders.some((h) => h.includes("valor") || h.includes("mes") || h.includes("propina"))) {
-            setSelectedModule("pagamentos");
-          } else if (lowerHeaders.some((h) => h.includes("professor") || h.includes("disciplina"))) {
-            setSelectedModule("professores");
-          }
-        }
+    setAnalyzing(true);
+    setSheets([]);
+    try {
+      const file_base64 = await readFileAsBase64(selected);
+      const res = await analyzeImportFile({ data: { file_base64, file_name: selected.name } });
+      const firstSheet = res.sheets[0];
+      if (!firstSheet) {
+        toast.error("Não foi possível encontrar folhas com dados neste ficheiro.");
+        return;
       }
-    };
-    reader.readAsText(selected);
+      setSheets(res.sheets);
+      setSelectedSheetIdx(0);
+      setSelectedModule(firstSheet.suggested_module);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao analisar o ficheiro.");
+      setFile(null);
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleDownloadTemplate = () => {
@@ -131,150 +135,171 @@ export function ImportWorkflowWizard({
     link.href = url;
     link.download = `Modelo_${selectedModule}_SIGA.csv`;
     link.click();
+    URL.revokeObjectURL(url);
   };
 
-  // Passo 3: Inicializar Mapeamento De/Para
-  const handleProceedToMapping = async () => {
-    if (!file || !parsedRows.length) {
-      toast.error("Por favor selecione um ficheiro válido.");
-      return;
-    }
-    const mapping: Record<string, string> = {};
-    const targetFields = OFFICIAL_TEMPLATES[selectedModule]?.columns || [];
-
-    parsedHeaders.forEach((src) => {
-      const normalizedSrc = src.toLowerCase();
-      const match = targetFields.find(
-        (tf) => tf.header.toLowerCase().includes(normalizedSrc) || tf.key.toLowerCase().includes(normalizedSrc)
-      );
-      if (match) {
-        mapping[src] = match.key;
-      } else {
-        mapping[src] = src;
-      }
-    });
-
-    setColumnMapping(mapping);
+  const handleProceedToMapping = () => {
+    if (!selectedSheet) return;
+    setColumnMapping(suggestColumnMapping(selectedSheet.headers, selectedModule));
     setStep(3);
   };
 
-  // Passo 4: Submeter para Staging
   const handleProceedToStaging = async () => {
+    if (!file || !selectedSheet) return;
+    if (!IMPLEMENTED_MODULES.has(selectedModule)) {
+      toast.error(`O módulo "${selectedModule}" ainda não está disponível para importação.`);
+      return;
+    }
+    setStaging(true);
+    setStageProgress({ done: 0, total: selectedSheet.rows.length });
+    setStageCounts({ valid: 0, invalid: 0, duplicate: 0 });
     try {
-      const job = await createImportJob({
+      const createdJob = await createImportJob({
         data: {
           module: selectedModule,
-          file_name: file?.name || "importacao.csv",
-          total_rows: parsedRows.length,
-          academic_year_id: academicYearId || undefined,
+          file_name: file.name,
+          academic_year_id: academicYearId ?? null,
+          total_rows: selectedSheet.rows.length,
         },
       });
+      setJob(createdJob);
 
-      setJobId(job.id);
-      await stageImportRows({
-        data: {
-          job_id: job.id,
-          sheet_name: "Sheet1",
-          column_mapping: columnMapping,
-          rows: parsedRows,
-        },
-      });
+      const rows = selectedSheet.rows;
+      for (let i = 0; i < rows.length; i += STAGE_CHUNK) {
+        const chunk = rows.slice(i, i + STAGE_CHUNK);
+        const res = await stageImportRows({
+          data: {
+            job_id: createdJob.id,
+            sheet_name: selectedSheet.name,
+            rows: chunk,
+            column_mapping: columnMapping,
+          },
+        });
+        setStageProgress({ done: Math.min(i + chunk.length, rows.length), total: rows.length });
+        setStageCounts({ valid: res.total_valid, invalid: res.total_invalid, duplicate: res.total_duplicate });
+      }
 
-      // Visualização de staging
-      const sampleStaging: ImportRowRecord[] = parsedRows.map((raw, idx) => ({
-        id: crypto.randomUUID(),
-        import_job_id: job.id,
-        sheet_name: "Sheet1",
-        row_number: idx + 1,
-        raw_data: raw,
-        normalized_data: raw,
-        status: idx % 7 === 0 ? "duplicate" : idx % 11 === 0 ? "error" : "valid",
-        warnings: idx % 7 === 0 ? ["Possível registo duplicado detectado (94%)"] : [],
-        errors: idx % 11 === 0 ? ["Campo obrigatório ausente ou inválido"] : [],
-        created_at: new Date().toISOString(),
-      }));
-
-      setStagingRows(sampleStaging);
+      await loadStagingPage(createdJob.id, 1, "todos");
       setStep(4);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao preparar staging.");
+    } finally {
+      setStaging(false);
     }
   };
 
-  // Edição inline de célula no Staging
+  const loadStagingPage = async (jobId: string, page: number, status: string) => {
+    setLoadingRows(true);
+    try {
+      const res = await listStagingRows({
+        data: { job_id: jobId, page, page_size: 20, status_filter: status === "todos" ? undefined : status },
+      });
+      setStagingRows(res.rows);
+      setStagingTotal(res.total);
+      setStagingPage(page);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao carregar linhas de staging.");
+    } finally {
+      setLoadingRows(false);
+    }
+  };
+
+  const handleFilterChange = (value: string) => {
+    setFilterStatus(value);
+    if (job) void loadStagingPage(job.id, 1, value);
+  };
+
   const handleSaveInlineEdit = async (rowId: string) => {
-    if (!editingField) return;
+    if (!editingField || !job) return;
     try {
-      await updateStagingRowField({
-        data: {
-          row_id: rowId,
-          field_name: editingField,
-          new_value: editingValue,
-        },
-      });
-
-      setStagingRows((prev) =>
-        prev.map((r) => {
-          if (r.id === rowId) {
-            return {
-              ...r,
-              normalized_data: { ...r.normalized_data, [editingField]: editingValue },
-              status: "valid",
-              errors: [],
-            };
-          }
-          return r;
-        })
-      );
-
+      await updateStagingRowField({ data: { row_id: rowId, field_name: editingField, new_value: editingValue } });
+      await loadStagingPage(job.id, stagingPage, filterStatus);
       setEditingRowId(null);
-      toast.success("Valor corrigido diretamente no staging!");
+      toast.success("Linha corrigida.");
     } catch (err) {
-      toast.error("Erro ao guardar alteração inline.");
+      toast.error(err instanceof Error ? err.message : "Erro ao guardar alteração.");
     }
   };
 
-  // Execução final de importação em Lote
-  const handleRunCommit = async (dryRun = false) => {
-    if (!jobId) return;
-    setImporting(true);
-    setProgress(20);
+  const handleDownloadErrorReport = async () => {
+    if (!job) return;
+    const res = await listStagingRows({ data: { job_id: job.id, page: 1, page_size: 500, status_filter: undefined } });
+    const csvContent = generateErrorReportCsv(res.rows);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `erros_importacao_${selectedModule}_SIGA.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
+  const handleDryRun = async () => {
+    if (!job) return;
+    setDryRunning(true);
+    const totals = { inserted: 0, updated: 0, ignored: 0, failed: 0, processed: 0 };
     try {
-      setProgress(70);
-      const res = await commitImportBatch({
-        data: {
-          job_id: jobId,
-          duplicate_strategy: "update",
-          dry_run: dryRun,
-        },
-      });
-
-      setProgress(100);
-      setResult({ inserted: res.inserted, updated: res.updated, ignored: res.ignored });
-      setImporting(false);
-      setStep(7);
-
-      if (dryRun) {
-        toast.info("Simulação concluída com sucesso sem alterar o banco.");
-      } else {
-        toast.success("Importação concluída com sucesso!");
-        if (onComplete) onComplete();
+      let afterRow = 0;
+      // Amostra limitada — simula até 1000 linhas para não bloquear a UI num ficheiro enorme.
+      for (let guard = 0; guard < 5; guard++) {
+        const res = await commitImportBatch({
+          data: { job_id: job.id, dry_run: true, batch_size: COMMIT_BATCH, after_row_number: afterRow, duplicate_strategy: "update" },
+        });
+        totals.inserted += res.inserted;
+        totals.updated += res.updated;
+        totals.ignored += res.ignored;
+        totals.failed += res.failed;
+        totals.processed += res.processed;
+        afterRow = res.next_after_row_number;
+        if (res.processed === 0 || res.remaining === 0) break;
       }
+      setDryRunResult(totals);
+      toast.info(`Simulação: ${totals.processed} linha(s) analisadas, sem alterar o SIGA.`);
     } catch (err) {
-      setImporting(false);
-      toast.error(err instanceof Error ? err.message : "Falha durante a importação.");
+      toast.error(err instanceof Error ? err.message : "Erro na simulação.");
+    } finally {
+      setDryRunning(false);
     }
   };
 
-  const filteredStaging = stagingRows.filter((row) => {
-    if (filterStatus === "todos") return true;
-    return row.status === filterStatus;
-  });
+  const handleRunCommit = async () => {
+    if (!job) return;
+    setImporting(true);
+    setCommitProgress({ processed: 0, total: job.total_rows });
+    const totals = { inserted: 0, updated: 0, ignored: 0, failed: 0 };
+    try {
+      let completed = false;
+      let guard = 0;
+      while (!completed && guard < 200) {
+        guard += 1;
+        const res = await commitImportBatch({
+          data: { job_id: job.id, dry_run: false, batch_size: COMMIT_BATCH, after_row_number: 0, duplicate_strategy: "update" },
+        });
+        totals.inserted += res.inserted;
+        totals.updated += res.updated;
+        totals.ignored += res.ignored;
+        totals.failed += res.failed;
+        setCommitProgress((prev) => ({ processed: prev.processed + res.processed, total: prev.processed + res.processed + res.remaining }));
+        completed = res.completed || res.processed === 0;
+      }
+      setResult(totals);
+      setStep(7);
+      toast.success("Importação concluída.");
+      onComplete?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha durante a importação.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const progressPercent = useMemo(() => {
+    if (!commitProgress.total) return 0;
+    return Math.round((commitProgress.processed / commitProgress.total) * 100);
+  }, [commitProgress]);
 
   return (
     <div className="space-y-6">
-      {/* Wizard Steps Header */}
       <div className="no-scrollbar overflow-x-auto border-b border-border pb-3">
         <div className="flex min-w-[640px] items-center justify-between gap-2">
           {STEPS.map((label, idx) => {
@@ -285,16 +310,12 @@ export function ImportWorkflowWizard({
               <div
                 key={label}
                 className={`flex items-center gap-1.5 text-xs font-semibold ${
-                  isActive ? "text-primary font-bold" : isDone ? "text-emerald-600" : "text-muted-foreground opacity-60"
+                  isActive ? "font-bold text-primary" : isDone ? "text-emerald-600" : "text-muted-foreground opacity-60"
                 }`}
               >
                 <span
                   className={`flex size-6 items-center justify-center rounded-full text-[11px] ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : isDone
-                      ? "bg-emerald-500/20 text-emerald-600"
-                      : "bg-muted text-muted-foreground"
+                    isActive ? "bg-primary text-primary-foreground" : isDone ? "bg-emerald-500/20 text-emerald-600" : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {num}
@@ -306,37 +327,66 @@ export function ImportWorkflowWizard({
         </div>
       </div>
 
-      {/* Passo 1: Seleção de Arquivo */}
       {step === 1 ? (
         <div className="space-y-4">
           <div className="rounded-xl border-2 border-dashed border-border p-8 text-center hover:border-primary/50">
             <Upload className="mx-auto size-10 text-muted-foreground/70" />
-            <h4 className="mt-3 text-sm font-semibold">Selecione o ficheiro Excel (.xlsx, .xls) ou CSV</h4>
-            <p className="mt-1 text-xs text-muted-foreground">Suporta tabelas escolares até 20.000 linhas por ficheiro.</p>
-            <Input type="file" accept=".xlsx,.xls,.csv" className="mx-auto mt-4 max-w-xs cursor-pointer text-xs" onChange={handleFileChange} />
+            <h4 className="mt-3 text-sm font-semibold">Selecione o ficheiro Excel (.xlsx) ou CSV</h4>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Suporta tabelas escolares até 25 000 linhas por folha. .xls (Excel 97-2003) ainda não é suportado — grave como .xlsx.
+            </p>
+            <Input
+              type="file"
+              accept=".xlsx,.xlsm,.csv"
+              className="mx-auto mt-4 max-w-xs cursor-pointer text-xs"
+              onChange={handleFileChange}
+              disabled={analyzing}
+            />
           </div>
 
-          {file ? (
-            <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 text-xs">
-              <div className="flex items-center gap-2">
-                <FileSpreadsheet className="size-5 text-emerald-600" />
-                <div>
-                  <p className="font-semibold">{file.name}</p>
-                  <p className="text-muted-foreground">{parsedRows.length} linhas de dados detetadas</p>
-                </div>
+          {analyzing ? (
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card p-4 text-xs text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> A analisar o ficheiro…
+            </div>
+          ) : null}
+
+          {file && sheets.length ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold">Folhas encontradas</p>
+              <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                {sheets.map((sheet, idx) => (
+                  <button
+                    key={sheet.name}
+                    type="button"
+                    onClick={() => {
+                      setSelectedSheetIdx(idx);
+                      setSelectedModule(sheet.suggested_module);
+                    }}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-xs transition-colors ${
+                      idx === selectedSheetIdx ? "bg-primary/5" : "hover:bg-muted/40"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2 font-medium">
+                      <FileSpreadsheet className="size-4 text-emerald-600" />
+                      {sheet.name}
+                    </span>
+                    <span className="text-muted-foreground">{sheet.row_count} linhas</span>
+                  </button>
+                ))}
               </div>
-              <Button size="sm" onClick={() => setStep(2)}>
-                Continuar <ArrowRight className="ml-1 size-3.5" />
-              </Button>
+              <div className="flex justify-end">
+                <Button size="sm" onClick={() => setStep(2)}>
+                  Continuar <ArrowRight className="ml-1 size-3.5" />
+                </Button>
+              </div>
             </div>
           ) : null}
         </div>
       ) : null}
 
-      {/* Passo 2: Tipo de Dados & Sugestão Inteligente */}
-      {step === 2 ? (
+      {step === 2 && selectedSheet ? (
         <div className="space-y-4">
-          <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+          <div className="space-y-3 rounded-lg border border-border bg-card p-4">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-foreground">Tipo de Dados a Importar:</label>
               <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={handleDownloadTemplate}>
@@ -350,8 +400,9 @@ export function ImportWorkflowWizard({
               </SelectTrigger>
               <SelectContent>
                 {importModuleOptions.map((mod) => (
-                  <SelectItem key={mod} value={mod} className="capitalize text-xs">
-                    {mod.replace("_", " ")}
+                  <SelectItem key={mod} value={mod} disabled={!IMPLEMENTED_MODULES.has(mod)} className="text-xs capitalize">
+                    {mod.replace(/_/g, " ")}
+                    {!IMPLEMENTED_MODULES.has(mod) ? " (em breve)" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -359,7 +410,11 @@ export function ImportWorkflowWizard({
 
             <div className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 p-2.5 text-xs text-primary">
               <Sparkles className="size-4 shrink-0" />
-              <span>Sugestão Inteligente: Com base nos cabeçalhos ({parsedHeaders.slice(0, 4).join(", ")}), sugerimos o módulo <strong>{selectedModule}</strong>.</span>
+              <span>
+                Sugestão automática, com base nos cabeçalhos ({selectedSheet.headers.slice(0, 4).join(", ")}
+                {selectedSheet.headers.length > 4 ? "…" : ""}): <strong>{selectedSheet.suggested_module}</strong> (
+                {Math.round(selectedSheet.suggested_module_score * 100)}% de confiança). Confirme ou corrija.
+              </span>
             </div>
           </div>
 
@@ -367,31 +422,32 @@ export function ImportWorkflowWizard({
             <Button variant="outline" size="sm" onClick={() => setStep(1)}>
               <ArrowLeft className="mr-1 size-3.5" /> Voltar
             </Button>
-            <Button size="sm" onClick={handleProceedToMapping}>
+            <Button size="sm" onClick={handleProceedToMapping} disabled={!IMPLEMENTED_MODULES.has(selectedModule)}>
               Avançar ao Mapeamento <ArrowRight className="ml-1 size-3.5" />
             </Button>
           </div>
         </div>
       ) : null}
 
-      {/* Passo 3: Mapeamento de Colunas (De/Para) */}
-      {step === 3 ? (
+      {step === 3 && selectedSheet ? (
         <div className="space-y-4">
           <h4 className="text-sm font-semibold">Mapeamento de Colunas (Ficheiro → SIGA)</h4>
           <div className="divide-y divide-border rounded-lg border border-border bg-card">
-            {parsedHeaders.map((header) => (
-              <div key={header} className="flex items-center justify-between px-4 py-2.5 text-xs">
+            {selectedSheet.headers.map((header) => (
+              <div key={header} className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs">
                 <span className="font-medium text-foreground">{header}</span>
-                <ArrowRight className="size-3.5 text-muted-foreground" />
+                <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
                 <Select
-                  value={columnMapping[header] || ""}
+                  value={columnMapping[header] || "ignore"}
                   onValueChange={(val) => setColumnMapping((prev) => ({ ...prev, [header]: val }))}
                 >
                   <SelectTrigger className="h-8 w-56 text-xs">
                     <SelectValue placeholder="Ignorar coluna" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ignore" className="text-xs text-muted-foreground">Ignorar coluna</SelectItem>
+                    <SelectItem value="ignore" className="text-xs text-muted-foreground">
+                      Ignorar coluna
+                    </SelectItem>
                     {OFFICIAL_TEMPLATES[selectedModule]?.columns.map((col) => (
                       <SelectItem key={col.key} value={col.key} className="text-xs">
                         {col.header} {col.required ? "*" : ""}
@@ -407,45 +463,53 @@ export function ImportWorkflowWizard({
             <Button variant="outline" size="sm" onClick={() => setStep(2)}>
               <ArrowLeft className="mr-1 size-3.5" /> Voltar
             </Button>
-            <Button size="sm" onClick={handleProceedToStaging}>
-              Processar Validação <ArrowRight className="ml-1 size-3.5" />
+            <Button size="sm" onClick={handleProceedToStaging} disabled={staging}>
+              {staging ? (
+                <>
+                  <Loader2 className="mr-1 size-3.5 animate-spin" /> A preparar {stageProgress.done}/{stageProgress.total}…
+                </>
+              ) : (
+                <>
+                  Processar Validação <ArrowRight className="ml-1 size-3.5" />
+                </>
+              )}
             </Button>
           </div>
         </div>
       ) : null}
 
-      {/* Passo 4 & 5: Validação & Revisão com Edição Inline no Staging */}
-      {step === 4 || step === 5 ? (
+      {(step === 4 || step === 5) && job ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-lg border border-border bg-card p-3 text-center">
               <p className="text-[11px] text-muted-foreground">Total de Linhas</p>
-              <p className="text-lg font-bold">{stagingRows.length}</p>
+              <p className="text-lg font-bold">{stagingTotal}</p>
             </div>
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-center">
-              <p className="text-[11px] text-emerald-600 font-medium">Válidos / Novos</p>
-              <p className="text-lg font-bold text-emerald-600">{stagingRows.filter((r) => r.status === "valid").length}</p>
+              <p className="text-[11px] font-medium text-emerald-600">Válidos</p>
+              <p className="text-lg font-bold text-emerald-600">{stageCounts.valid}</p>
             </div>
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-center">
-              <p className="text-[11px] text-amber-600 font-medium">Duplicados</p>
-              <p className="text-lg font-bold text-amber-600">{stagingRows.filter((r) => r.status === "duplicate").length}</p>
+              <p className="text-[11px] font-medium text-amber-600">Duplicados</p>
+              <p className="text-lg font-bold text-amber-600">{stageCounts.duplicate}</p>
             </div>
             <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3 text-center">
-              <p className="text-[11px] text-rose-600 font-medium">Erros</p>
-              <p className="text-lg font-bold text-rose-600">{stagingRows.filter((r) => r.status === "error").length}</p>
+              <p className="text-[11px] font-medium text-rose-600">Erros</p>
+              <p className="text-lg font-bold text-rose-600">{stageCounts.invalid}</p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-muted-foreground">Filtrar:</span>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="h-8 w-36 text-xs">
+              <Select value={filterStatus} onValueChange={handleFilterChange}>
+                <SelectTrigger className="h-8 w-40 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos" className="text-xs">Todos</SelectItem>
                   <SelectItem value="valid" className="text-xs">Válidos</SelectItem>
+                  <SelectItem value="warning" className="text-xs">Com avisos</SelectItem>
                   <SelectItem value="duplicate" className="text-xs">Duplicados</SelectItem>
                   <SelectItem value="error" className="text-xs">Erros</SelectItem>
                 </SelectContent>
@@ -453,7 +517,7 @@ export function ImportWorkflowWizard({
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={handleDownloadErrorReport}>
-                <Download className="size-3.5" /> Baixar Relatório de Erros
+                <Download className="size-3.5" /> Relatório de Erros
               </Button>
               {step === 4 ? (
                 <Button size="sm" variant="secondary" onClick={() => setStep(5)}>
@@ -468,71 +532,133 @@ export function ImportWorkflowWizard({
               <thead className="border-b border-border bg-muted/40 text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">#</th>
-                  <th className="px-3 py-2 font-medium">Dados do Excel</th>
+                  <th className="px-3 py-2 font-medium">Dados normalizados</th>
                   <th className="px-3 py-2 font-medium">Estado</th>
-                  <th className="px-3 py-2 text-right font-medium">Ação Inline</th>
+                  <th className="px-3 py-2 text-right font-medium">Acção Inline</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredStaging.slice(0, 10).map((row) => (
-                  <tr key={row.id} className="hover:bg-muted/30">
-                    <td className="px-3 py-2 font-mono text-[11px]">{row.row_number}</td>
-                    <td className="px-3 py-2">
-                      <div className="max-w-md space-y-1">
-                        {Object.entries(row.normalized_data).map(([k, v]) => (
-                          <span key={k} className="mr-2 inline-block text-[11px]">
-                            <span className="text-muted-foreground">{k}:</span> <strong>{String(v)}</strong>
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      {row.status === "valid" ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-600 font-medium text-[11px]">
-                          <CheckCircle className="size-3.5" /> Pronto
-                        </span>
-                      ) : row.status === "duplicate" ? (
-                        <span className="inline-flex items-center gap-1 text-amber-600 font-medium text-[11px]">
-                          <AlertTriangle className="size-3.5" /> Duplicado (94%)
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-rose-600 font-medium text-[11px]">
-                          <XCircle className="size-3.5" /> Erro
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {editingRowId === row.id ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <Input
-                            className="h-7 w-28 text-xs"
-                            value={editingValue}
-                            onChange={(e) => setEditingValue(e.target.value)}
-                          />
-                          <Button size="icon" className="size-7" onClick={() => handleSaveInlineEdit(row.id)}>
-                            <Save className="size-3.5" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-[11px]"
-                          onClick={() => {
-                            setEditingRowId(row.id);
-                            const firstKey = Object.keys(row.normalized_data)[0] || "";
-                            setEditingField(firstKey);
-                            setEditingValue(String(row.normalized_data[firstKey] || ""));
-                          }}
-                        >
-                          <Edit2 className="mr-1 size-3" /> Corrigir
-                        </Button>
-                      )}
+                {loadingRows ? (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                      <Loader2 className="mx-auto size-4 animate-spin" />
                     </td>
                   </tr>
-                ))}
+                ) : stagingRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                      Sem linhas para este filtro.
+                    </td>
+                  </tr>
+                ) : (
+                  stagingRows.map((row) => (
+                    <tr key={row.id} className="hover:bg-muted/30">
+                      <td className="px-3 py-2 font-mono text-[11px]">{row.row_number}</td>
+                      <td className="px-3 py-2">
+                        <div className="max-w-md space-y-1">
+                          {Object.entries(row.normalized_data).map(([k, v]) => (
+                            <span key={k} className="mr-2 inline-block text-[11px]">
+                              <span className="text-muted-foreground">{k}:</span> <strong>{String(v ?? "—")}</strong>
+                            </span>
+                          ))}
+                        </div>
+                        {row.warnings.length ? (
+                          <p className="mt-1 text-[11px] text-amber-600">{row.warnings.join(" · ")}</p>
+                        ) : null}
+                        {row.errors.length ? <p className="mt-1 text-[11px] text-rose-600">{row.errors.join(" · ")}</p> : null}
+                      </td>
+                      <td className="px-3 py-2">
+                        {row.status === "valid" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+                            <CheckCircle className="size-3.5" /> Pronto
+                          </span>
+                        ) : row.status === "warning" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600">
+                            <AlertTriangle className="size-3.5" /> Aviso
+                          </span>
+                        ) : row.status === "duplicate" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600">
+                            <Copy className="size-3.5" /> Duplicado
+                          </span>
+                        ) : row.status === "error" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600">
+                            <XCircle className="size-3.5" /> Erro
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">{row.status}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {editingRowId === row.id ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <Select value={editingField} onValueChange={setEditingField}>
+                              <SelectTrigger className="h-7 w-28 text-[11px]">
+                                <SelectValue placeholder="Campo" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.keys(row.normalized_data).map((k) => (
+                                  <SelectItem key={k} value={k} className="text-[11px]">
+                                    {k}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              className="h-7 w-28 text-xs"
+                              value={editingValue}
+                              onChange={(e) => setEditingValue(e.target.value)}
+                            />
+                            <Button size="icon" className="size-7" onClick={() => handleSaveInlineEdit(row.id)}>
+                              <Save className="size-3.5" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-[11px]"
+                            onClick={() => {
+                              setEditingRowId(row.id);
+                              const firstKey = Object.keys(row.normalized_data)[0] ?? "";
+                              setEditingField(firstKey);
+                              setEditingValue(String(row.normalized_data[firstKey] ?? ""));
+                            }}
+                          >
+                            <Edit2 className="mr-1 size-3" /> Corrigir
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              Página {stagingPage} de {Math.max(1, Math.ceil(stagingTotal / 20))}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={stagingPage <= 1 || loadingRows}
+                onClick={() => loadStagingPage(job.id, stagingPage - 1, filterStatus)}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={stagingPage * 20 >= stagingTotal || loadingRows}
+                onClick={() => loadStagingPage(job.id, stagingPage + 1, filterStatus)}
+              >
+                Seguinte
+              </Button>
+            </div>
           </div>
 
           <div className="flex justify-between pt-2">
@@ -540,74 +666,84 @@ export function ImportWorkflowWizard({
               <ArrowLeft className="mr-1 size-3.5" /> Voltar
             </Button>
             <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm" onClick={() => handleRunCommit(true)}>
+              <Button variant="secondary" size="sm" onClick={handleDryRun} disabled={dryRunning}>
+                {dryRunning ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : null}
                 Simular (Dry-Run)
               </Button>
               <Button size="sm" onClick={() => setStep(6)}>
-                Confirmar & Importar <ArrowRight className="ml-1 size-3.5" />
+                Confirmar &amp; Importar <ArrowRight className="ml-1 size-3.5" />
               </Button>
             </div>
           </div>
+
+          {dryRunResult ? (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
+              <p className="font-semibold">
+                Simulação (amostra de {dryRunResult.processed} linha{dryRunResult.processed === 1 ? "" : "s"}) — nada foi gravado:
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {dryRunResult.inserted} nova(s) · {dryRunResult.updated} associada(s) a existentes · {dryRunResult.ignored} ignorada(s) ·{" "}
+                {dryRunResult.failed} com erro
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      {/* Passo 6: Execução em Lote */}
-      {step === 6 ? (
+      {step === 6 && job ? (
         <div className="space-y-4 rounded-xl border border-border bg-card p-6 text-center">
-          <Play className="mx-auto size-10 text-primary animate-pulse" />
-          <h4 className="text-base font-semibold">Pronto para Importar {stagingRows.length} registos</h4>
+          <Play className={`mx-auto size-10 text-primary ${importing ? "animate-pulse" : ""}`} />
+          <h4 className="text-base font-semibold">Pronto para Importar {stagingTotal} registo(s)</h4>
           <p className="text-xs text-muted-foreground">
-            A operação será processada em lotes protegidos por transações auditadas.
+            A operação é processada em lotes de {COMMIT_BATCH} linhas, com auditoria de cada registo criado ou alterado.
           </p>
 
           {importing ? (
             <div className="mx-auto max-w-xs space-y-2">
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+                <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progressPercent}%` }} />
               </div>
-              <p className="text-xs font-semibold text-primary">{progress}% Concluído</p>
+              <p className="text-xs font-semibold text-primary">
+                {commitProgress.processed}/{commitProgress.total} ({progressPercent}%)
+              </p>
             </div>
           ) : (
-            <Button size="lg" className="mx-auto gap-2" onClick={() => handleRunCommit(false)}>
+            <Button size="lg" className="mx-auto gap-2" onClick={handleRunCommit}>
               <Play className="size-4" /> Iniciar Importação Definitiva
             </Button>
           )}
         </div>
       ) : null}
 
-      {/* Passo 7: Resultado Auditado */}
       {step === 7 && result ? (
         <div className="space-y-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
           <CheckCircle className="mx-auto size-12 text-emerald-600" />
-          <h4 className="text-lg font-bold text-foreground">Importação Concluída com Sucesso!</h4>
-          <div className="mx-auto max-w-sm justify-center gap-4 text-xs font-medium text-muted-foreground flex">
-            <span className="text-emerald-600 font-bold">{result.inserted} inseridos</span>
-            <span className="text-blue-600 font-bold">{result.updated} atualizados</span>
+          <h4 className="text-lg font-bold text-foreground">Importação Concluída</h4>
+          <div className="mx-auto flex max-w-sm flex-wrap justify-center gap-4 text-xs font-medium text-muted-foreground">
+            <span className="font-bold text-emerald-600">{result.inserted} inseridos</span>
+            <span className="font-bold text-blue-600">{result.updated} associados</span>
+            {result.ignored ? <span className="font-bold text-muted-foreground">{result.ignored} ignorados</span> : null}
+            {result.failed ? <span className="font-bold text-rose-600">{result.failed} com erro</span> : null}
           </div>
 
           <div className="flex justify-center gap-3 pt-4">
-            <Button variant="outline" size="sm" onClick={() => setStep(1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setStep(1);
+                setFile(null);
+                setSheets([]);
+                setJob(null);
+                setStagingRows([]);
+                setDryRunResult(null);
+                setResult(null);
+              }}
+            >
               Importar Outro Ficheiro
             </Button>
           </div>
         </div>
-      ) : null}
-
-      {comparingRow ? (
-        <CompareRecordsModal
-          open={compareModalOpen}
-          onOpenChange={setCompareModalOpen}
-          recordName={String(comparingRow.normalized_data.full_name || comparingRow.normalized_data.nome || "Registo")}
-          similarity={94}
-          comparisons={[
-            { field: "full_name", label: "Nome Completo", sigaValue: "João Manuel António", excelValue: String(comparingRow.normalized_data.full_name || comparingRow.normalized_data.nome || "João M. António"), chosen: "siga" },
-            { field: "phone", label: "Telefone", sigaValue: "+244 923 112 233", excelValue: String(comparingRow.normalized_data.phone || comparingRow.normalized_data.telefone || "+244 924 556 677"), chosen: "excel" },
-          ]}
-          onConfirmChoice={(merged) => {
-            toast.success("Escolha de fusão gravada para o staging!");
-            setCompareModalOpen(false);
-          }}
-        />
       ) : null}
     </div>
   );

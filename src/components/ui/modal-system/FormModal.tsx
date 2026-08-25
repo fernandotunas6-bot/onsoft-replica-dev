@@ -57,7 +57,7 @@ export function FormModal({
     >
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         <ModalHeader
-          icon={icon}
+          {...(icon ? { icon } : {})}
           title={title}
           subtitle={subtitle}
           badge={badge}

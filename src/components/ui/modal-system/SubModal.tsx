@@ -48,7 +48,7 @@ export function SubModal({
     <ModalShell open={open} onOpenChange={onOpenChange} size={size} className="z-70">
       <form onSubmit={handleSubmit} className="flex flex-col">
         <ModalHeader
-          icon={icon}
+          {...(icon ? { icon } : {})}
           title={title}
           subtitle={subtitle}
           onClose={() => onOpenChange(false)}

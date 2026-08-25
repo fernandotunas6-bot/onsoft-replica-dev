@@ -63,7 +63,7 @@ export function ImportarDadosPage() {
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-emerald-600" />
             <span>
-              Escola: <strong>{school?.school_name || "—"}</strong>
+              Escola: <strong>{school?.name || "—"}</strong>
             </span>
           </div>
           <div>

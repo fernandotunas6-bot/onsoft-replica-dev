@@ -6,10 +6,18 @@ import ExcelJS from "exceljs";
 import Papa from "papaparse";
 import { isBlankRow, normalizeText } from "./normalize";
 
+/**
+ * TanStack Start valida em tempo de compilação que tudo o que uma server
+ * function devolve é serializável — `unknown` falha essa validação, por
+ * isso o valor de cada célula fica sempre limitado a isto (datas viram
+ * ISO string aqui mesmo, em cellToPrimitive).
+ */
+export type ImportCellValue = string | number | boolean | null;
+
 export type ParsedSheet = {
   name: string;
   headers: string[];
-  rows: Record<string, unknown>[];
+  rows: Record<string, ImportCellValue>[];
 };
 
 export type ParsedFile = {
@@ -55,11 +63,11 @@ async function parseXlsxBuffer(buffer: Buffer): Promise<ParsedFile> {
     const cleanHeaders = headers.map((h, idx) => h || `Coluna ${idx + 1}`);
     if (cleanHeaders.length === 0) return;
 
-    const rows: Record<string, unknown>[] = [];
+    const rows: Record<string, ImportCellValue>[] = [];
     worksheet.eachRow({ includeEmpty: false }, (row, rn) => {
       if (rn === 1) return;
       if (rows.length >= MAX_ROWS_PER_SHEET) return;
-      const obj: Record<string, unknown> = {};
+      const obj: Record<string, ImportCellValue> = {};
       cleanHeaders.forEach((header, idx) => {
         const cell = row.getCell(idx + 1);
         obj[header] = cellToPrimitive(cell.value);
@@ -73,24 +81,28 @@ async function parseXlsxBuffer(buffer: Buffer): Promise<ParsedFile> {
   return { sheets };
 }
 
-function cellToPrimitive(value: unknown): unknown {
+function cellToPrimitive(value: unknown): ImportCellValue {
   if (value === null || value === undefined) return null;
-  if (value instanceof Date) return value;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (typeof value === "object") {
     const v = value as Record<string, unknown>;
     if ("richText" in v && Array.isArray(v["richText"])) {
       return (v["richText"] as Array<{ text?: string }>).map((t) => t.text ?? "").join("");
     }
-    if ("text" in v && "hyperlink" in v) return v["text"];
-    if ("result" in v) return v["result"];
+    if ("text" in v && "hyperlink" in v) return cellToPrimitive(v["text"]);
+    if ("result" in v) return cellToPrimitive(v["result"]);
     if ("error" in v) return null;
+    return null;
   }
-  return value;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  return null;
 }
 
 function parseCsvSheet(buffer: Buffer, sheetName: string): ParsedSheet {
   const text = decodeCsvText(buffer);
-  const parsed = Papa.parse<Record<string, unknown>>(text, {
+  const parsed = Papa.parse<Record<string, ImportCellValue>>(text, {
     header: true,
     skipEmptyLines: true,
     transformHeader: (h: string) => normalizeText(h),

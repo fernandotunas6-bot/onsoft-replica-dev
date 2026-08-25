@@ -18,6 +18,7 @@ export interface QuickModalProps {
   isSubmitting?: boolean;
   submitVariant?: "default" | "destructive" | "outline" | "secondary";
   size?: "xs" | "sm" | "md";
+  extraActions?: React.ReactNode;
 }
 
 export function QuickModal({
@@ -33,6 +34,7 @@ export function QuickModal({
   isSubmitting = false,
   submitVariant = "default",
   size = "sm",
+  extraActions,
 }: QuickModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +47,7 @@ export function QuickModal({
     <ModalShell open={open} onOpenChange={onOpenChange} size={size}>
       <form onSubmit={handleSubmit} className="flex flex-col">
         <ModalHeader
-          icon={icon}
+          {...(icon ? { icon } : {})}
           title={title}
           subtitle={subtitle}
           onClose={() => onOpenChange(false)}
@@ -57,6 +59,7 @@ export function QuickModal({
           cancelLabel={cancelLabel}
           isSubmitting={isSubmitting}
           submitVariant={submitVariant}
+          extraActions={extraActions}
         />
       </form>
     </ModalShell>
