@@ -198,18 +198,18 @@
   }
 
   html {
-    font-size: 87.5%;
+    font-size: 81.25%;
   }
 
   @media (min-width: 1024px) {
     html {
-      font-size: 84.375%;
+      font-size: 75%;
     }
   }
 
   @media (min-width: 1536px) {
     html {
-      font-size: 87.5%;
+      font-size: 78.125%;
     }
   }
 
