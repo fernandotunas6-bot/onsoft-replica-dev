@@ -298,6 +298,8 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
     if (lastIncomingAt) markRead(peer.id, lastIncomingAt);
   }, [lastIncomingAt, markRead, peer.id]);
 
+  const [sending, setSending] = useState(false);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length, peer.id]);
@@ -306,6 +308,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
     event.preventDefault();
     const body = draft.trim();
     if (!body && !attachment) return;
+    setSending(true);
     setDraft("");
     setAttachment(null);
     try {
@@ -344,12 +347,14 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
             ? error.message
             : "Aplique APPLY_ENROLLMENT_AND_PREMIUM.sql para sincronizar no SGA.",
       });
+    } finally {
+      setSending(false);
     }
   };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-border px-3 py-3">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
         <Button
           type="button"
           variant="ghost"
@@ -366,7 +371,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
           className="size-8 bg-primary-soft text-[11px] font-bold text-primary"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{peer.full_name}</p>
+          <p className="truncate text-xs font-semibold md:text-sm">{peer.full_name}</p>
           {peer.cargo ? (
             <p className="truncate text-[11px] text-muted-foreground">{peer.cargo}</p>
           ) : null}
@@ -379,14 +384,14 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
       ) : null}
       <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
         {!messages.length ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
+          <p className="py-8 text-center text-xs text-muted-foreground">
             Ainda não há mensagens. Escreva a primeira.
           </p>
         ) : null}
         {messages.map((item) => (
           <div key={item.id} className={`flex ${item.mine ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+              className={`max-w-[85%] rounded-xl px-3 py-2 text-xs md:text-sm ${
                 item.mine
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground"
@@ -413,7 +418,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
         ))}
         <div ref={bottomRef} />
       </div>
-      <form className="border-t border-border px-3 py-3" onSubmit={send}>
+      <form className="border-t border-border px-3 py-2.5" onSubmit={send}>
         {attachment ? (
           <span className="mb-2 flex w-fit items-center gap-1.5 rounded-full border border-border bg-secondary/50 px-2.5 py-1 text-xs">
             <FileText className="size-3.5" />
@@ -444,11 +449,13 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Escrever mensagem…"
             maxLength={2000}
+            className="h-9 text-xs md:text-sm"
           />
           <Button
             type="submit"
             size="icon"
             className="size-9 shrink-0"
+            loading={sending}
             disabled={!draft.trim() && !attachment}
             aria-label="Enviar mensagem"
           >

@@ -169,12 +169,7 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
         "Abrir o painel da turma no Google Classroom.",
         "pedagogica",
       ),
-      cap(
-        "classroom.work",
-        "Trabalhos de turma",
-        "Organizar entregas no Classroom.",
-        "pedagogica",
-      ),
+      cap("classroom.work", "Trabalhos de turma", "Organizar entregas no Classroom.", "pedagogica"),
     ],
   },
   moodle: {
@@ -229,12 +224,7 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
         "Abrir nova mensagem no Outlook Web.",
         "comunicacoes",
       ),
-      cap(
-        "m365.onedrive",
-        "OneDrive da Escola",
-        "Navegar na biblioteca de ficheiros.",
-        "arquivos",
-      ),
+      cap("m365.onedrive", "OneDrive da Escola", "Navegar na biblioteca de ficheiros.", "arquivos"),
     ],
   },
   google_calendar: {
@@ -414,7 +404,11 @@ export function publicSchoolEmail(
   email: string | null | undefined,
   installedProviders: readonly string[],
 ) {
-  if (!installedProviders.includes("resend_email") && !installedProviders.includes("gmail_workspace")) return null;
+  if (
+    !installedProviders.includes("resend_email") &&
+    !installedProviders.includes("gmail_workspace")
+  )
+    return null;
   const trimmed = email?.trim();
   return trimmed || null;
 }

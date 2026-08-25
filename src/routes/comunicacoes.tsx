@@ -423,7 +423,7 @@ function ComunicacoesPage() {
 
         <InstalledModuleTools module="comunicacoes" />
 
-        <StatGrid
+        <StatGrid collapsible storageKey="comunicacoes"
           items={[
             {
               label: "Comunicados",

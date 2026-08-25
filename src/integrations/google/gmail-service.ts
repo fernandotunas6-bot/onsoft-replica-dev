@@ -36,12 +36,9 @@ function base64UrlEncode(str: string): string {
   const bytes = new TextEncoder().encode(str);
   let binary = "";
   for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
+    binary += String.fromCharCode(bytes[i] ?? 0);
   }
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 /**
@@ -53,7 +50,9 @@ export function buildStudentWelcomeTemplate(data: StudentWelcomeEmailData): {
   text: string;
 } {
   const subject = `🎓 Confirmação de Matrícula: ${data.studentName} - ${data.schoolName}`;
-  const portalUrl = data.portalUrl || (typeof window !== "undefined" ? window.location.origin : "https://portal-siga.com");
+  const portalUrl =
+    data.portalUrl ||
+    (typeof window !== "undefined" ? window.location.origin : "https://portal-siga.com");
 
   const html = `
 <!DOCTYPE html>
@@ -148,7 +147,7 @@ export async function sendGmailMessage(
   // Construct MIME message
   const boundary = `siga_boundary_${Date.now()}`;
   const utf8Subject = `=?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
-  
+
   const rawMessage = [
     `To: ${to}`,
     `Subject: ${utf8Subject}`,

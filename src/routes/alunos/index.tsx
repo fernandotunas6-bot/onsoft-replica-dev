@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
   Download,
   FileDown,
   FileText,
+  FileUp,
   Search,
   ArrowRightLeft,
   UserPlus,
@@ -38,6 +39,44 @@ import { StudentEnrollmentSheet } from "@/features/students/StudentEnrollmentShe
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
 import { inferIcon } from "@/lib/auto-icon";
+import {
+  isPrivateSigaFile,
+  prefetchPersonPhotoUrls,
+  resolvePersonPhotoUrl,
+} from "@/features/arquivos/person-photo-url";
+
+/**
+ * Resolve a `photo_url` de uma pessoa para uma URL directa:
+ * - URLs normais (http) são usadas tal como estão.
+ * - Referências privadas `siga-file://ID` são assinadas on-demand com cache TTL de 100s.
+ * Devolve `null` enquanto assina ou se falhar — o avatar usa iniciais como fallback.
+ */
+function useSignedPhotoUrl(photoUrl: string | null): string | null {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!photoUrl) { setSignedUrl(null); return; }
+    let cancelled = false;
+    resolvePersonPhotoUrl(photoUrl)
+      .then((url) => { if (!cancelled) setSignedUrl(url); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [photoUrl]);
+
+  return signedUrl;
+}
+
+/**
+ * Avatar da linha do aluno: carrega a foto do perfil (privada ou pública)
+ * com fallback para iniciais col oridas.
+ */
+function StudentAvatar({ photoUrl, name }: { photoUrl: string | null; name: string }) {
+  const src = useSignedPhotoUrl(photoUrl);
+  return (
+    <MediaAvatar src={src} alt={name} className="size-9 shrink-0 rounded-xl object-cover" />
+  );
+}
+
 
 import {
   Table,
@@ -141,10 +180,12 @@ type StudentRow = {
   full_name: string;
   email: string | null;
   phone: string | null;
+  photo_url: string | null;
   student_status: string;
   payment_status: string | null;
   grade_name: string | null;
   class_name: string | null;
+  class_group_id: string | null;
   academic_year: string | null;
   primary_guardian_name: string | null;
 };
@@ -277,6 +318,13 @@ function StudentsPage() {
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * pageSize;
   const paged = filtered.slice(start, start + pageSize);
+
+  const pagedPhotoUrls = paged.map((s) => s.photo_url).filter(Boolean) as string[];
+  const pagedPhotoKey = pagedPhotoUrls.join("|");
+  useEffect(() => {
+    if (!pagedPhotoKey) return;
+    void prefetchPersonPhotoUrls(pagedPhotoKey.split("|"));
+  }, [pagedPhotoKey]);
 
   const alunoExportColumns = [
     {
@@ -419,21 +467,36 @@ function StudentsPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                  <Download className="size-3.5" /> Exportar Lista <ChevronDown className="size-3.5 text-muted-foreground" />
+                  <Download className="size-3.5" /> Exportar Lista{" "}
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={exportarAlunosOficial} disabled={!filtered.length} className="gap-2 text-xs cursor-pointer">
+                <DropdownMenuItem
+                  onClick={exportarAlunosOficial}
+                  disabled={!filtered.length}
+                  className="gap-2 text-xs cursor-pointer"
+                >
                   <Award className="size-3.5 text-primary" /> Lista Oficial PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={exportarAlunosPdf} className="gap-2 text-xs cursor-pointer">
+                <DropdownMenuItem
+                  onClick={exportarAlunosPdf}
+                  className="gap-2 text-xs cursor-pointer"
+                >
                   <FileDown className="size-3.5" /> Lista Simples PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={exportarAlunosCsv} className="gap-2 text-xs cursor-pointer">
+                <DropdownMenuItem
+                  onClick={exportarAlunosCsv}
+                  className="gap-2 text-xs cursor-pointer"
+                >
                   <Download className="size-3.5" /> Exportar Ficheiro CSV
                 </DropdownMenuItem>
                 {sigeOn ? (
-                  <DropdownMenuItem onClick={exportarAlunosCsv} disabled={!filtered.length} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarAlunosCsv}
+                    disabled={!filtered.length}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <AppMark id="sige" className="size-3.5" /> Formato SIGE
                   </DropdownMenuItem>
                 ) : null}
@@ -471,6 +534,11 @@ function StudentsPage() {
                 </Button>
               )}
             />
+            <Link to="/importar">
+              <Button variant="outline" className="gap-1.5">
+                <FileUp className="size-4" /> Importar Excel
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -681,12 +749,28 @@ function StudentsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <MediaAvatar alt={s.full_name} className="size-9 rounded-xl" />
+                        <StudentAvatar photoUrl={s.photo_url} name={s.full_name} />
                           <div className="min-w-0">
                             <p className="whitespace-nowrap font-semibold">{s.full_name}</p>
                             <p className="text-xs text-muted-foreground">
                               {s.grade_name ?? "Sem classe"}
-                              {s.class_name ? ` · Turma ${s.class_name}` : ""}
+                              {s.class_name ? (
+                                <>
+                                  {" · "}
+                                  {s.class_group_id ? (
+                                    <Link
+                                      to="/pedagogica"
+                                      search={{ tab: "turmas", turma: s.class_group_id }}
+                                      onClick={(event) => event.stopPropagation()}
+                                      className="rounded font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                                    >
+                                      Turma {s.class_name}
+                                    </Link>
+                                  ) : (
+                                    `Turma ${s.class_name}`
+                                  )}
+                                </>
+                              ) : null}
                             </p>
                           </div>
                         </div>

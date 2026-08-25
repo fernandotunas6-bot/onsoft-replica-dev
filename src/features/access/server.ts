@@ -8,6 +8,7 @@ import { ensureTeacherHrRecord } from "@/features/people/server";
 import {
   inviteUserInputSchema,
   resendSystemInviteInputSchema,
+  resetStaffPasswordInputSchema,
   setAccountDisabledInputSchema,
   updateAccountCargoInputSchema,
 } from "./schemas";
@@ -20,8 +21,8 @@ type AuthedContext = {
 async function requireAdminContext(context: AuthedContext) {
   const membership = await resolveSgaMembershipAdmin(context.userId);
   if (!membership) throw new Error("Não foi possível determinar a escola actual.");
-  if (membership.appRole !== "Administrador") {
-    throw new Error("Apenas Administrador pode gerir contas de acesso.");
+  if (membership.appRole !== "Administrador" && membership.appRole !== "Secretaria") {
+    throw new Error("Apenas Administrador e Secretaria podem gerir contas de acesso.");
   }
   return { schoolId: membership.schoolId, adminUserId: context.userId };
 }
@@ -334,3 +335,30 @@ export const resolveBiToEmailFn = createServerFn({ method: "POST" })
     return { email: resolvedEmail };
   });
 
+export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => resetStaffPasswordInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const { schoolId } = await requireAdminContext(context);
+    const admin = await loadAdminClient();
+
+    const { data: membership, error: membershipError } = await admin
+      .from("school_memberships")
+      .select("id")
+      .eq("user_id", data.userId)
+      .eq("school_id", schoolId)
+      .maybeSingle();
+    if (membershipError || !membership) {
+      throw new Error("Conta de funcionário não encontrada nesta escola.");
+    }
+
+    const { error } = await admin.auth.admin.updateUserById(data.userId, {
+      password: data.newPassword,
+    });
+    if (error) {
+      throw new Error(error.message || "Não foi possível redefinir a senha do funcionário.");
+    }
+
+    return { success: true, userId: data.userId };
+  });

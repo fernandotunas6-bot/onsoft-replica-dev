@@ -1,11 +1,15 @@
 /* style-check: exempt — cartão digital físico de estudante com elementos gráficos de passe escolar */
 import { useState, useEffect } from "react";
-import { QrCode, ShieldCheck, Download, Smartphone, GraduationCap, X, RefreshCw } from "lucide-react";
-import { PremiumModal } from "@/components/ui/premium-modal";
-import { Button } from "@/components/ui/button";
-import { IconChip } from "@/components/ui/icon-chip";
-import { MediaAvatar } from "@/components/ui/media-frame";
-import { toast } from "sonner";
+import {
+  QrCode,
+  ShieldCheck,
+  Download,
+  Smartphone,
+  GraduationCap,
+  X,
+  RefreshCw,
+} from "lucide-react";
+import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 
 interface StudentDigitalCardModalProps {
   open: boolean;
@@ -45,22 +49,22 @@ export function StudentDigitalCardModal({
   const handleInstallPwa = () => {
     setIsInstallingPwa(true);
     toast.message("Portal PWA Móvel", {
-      description: "Utilize a opção 'Adicionar ao Ecrã Principal' do seu navegador para ter o cartão de estudante sempre à mão.",
+      description:
+        "Utilize a opção 'Adicionar ao Ecrã Principal' do seu navegador para ter o cartão de estudante sempre à mão.",
     });
     setTimeout(() => setIsInstallingPwa(false), 2000);
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Cartão Digital de Estudante"
-      eyebrow="Portal Móvel PWA"
-      description="Acesso ao portão da escola, biblioteca e validação de frequência com QR Code dinâmico."
-      icon={<GraduationCap className="size-5" />}
-      size="md"
-    >
-      <div className="space-y-6">
+    <ModalShell open={open} onOpenChange={onOpenChange} size="md">
+      <div className="flex flex-col h-full">
+        <ModalHeader
+          icon={GraduationCap}
+          title="Cartão Digital de Estudante"
+          subtitle="Validação de acessos, biblioteca e frequência."
+          onClose={() => onOpenChange(false)}
+        />
+        <ModalContent>
         {/* PASSE ESCOLAR DIGITAL STYLE WALLET */}
         <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/95 via-primary to-primary-strong p-6 text-primary-foreground shadow-xl">
           {/* Fundo Decorativo de Padrão */}
@@ -72,7 +76,9 @@ export function StudentDigitalCardModal({
               <p className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/80">
                 República de Angola · Ministério da Educação
               </p>
-              <h3 className="text-base font-extrabold tracking-tight">Cartão de Estudante Digital</h3>
+              <h3 className="text-base font-extrabold tracking-tight">
+                Cartão de Estudante Digital
+              </h3>
             </div>
             <span className="inline-flex items-center rounded-full bg-primary-foreground/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
               {student.status || "Ativo"}
@@ -84,7 +90,7 @@ export function StudentDigitalCardModal({
             {/* Foto Avatar */}
             <div className="col-span-1 text-center space-y-1">
               <MediaAvatar
-                src={student.photo_url}
+                src={student.photo_url || undefined}
                 alt={student.full_name}
                 className="size-20 rounded-2xl border-2 border-primary-foreground/80 shadow-md mx-auto object-cover"
               />
@@ -96,17 +102,25 @@ export function StudentDigitalCardModal({
             {/* Dados do Estudante */}
             <div className="col-span-2 space-y-2 text-xs">
               <div>
-                <span className="text-[10px] uppercase tracking-wider text-primary-foreground/70">Nome Completo</span>
-                <p className="font-extrabold text-sm leading-tight text-primary-foreground">{student.full_name}</p>
+                <span className="text-[10px] uppercase tracking-wider text-primary-foreground/70">
+                  Nome Completo
+                </span>
+                <p className="font-extrabold text-sm leading-tight text-primary-foreground">
+                  {student.full_name}
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div>
-                  <span className="text-[9px] uppercase tracking-wider text-primary-foreground/70">Turma</span>
+                  <span className="text-[9px] uppercase tracking-wider text-primary-foreground/70">
+                    Turma
+                  </span>
                   <p className="font-bold">{student.class_name || "Geral"}</p>
                 </div>
                 <div>
-                  <span className="text-[9px] uppercase tracking-wider text-primary-foreground/70">Curso</span>
+                  <span className="text-[9px] uppercase tracking-wider text-primary-foreground/70">
+                    Curso
+                  </span>
                   <p className="font-bold truncate">{student.course_name || "Geral"}</p>
                 </div>
               </div>
@@ -146,7 +160,9 @@ export function StudentDigitalCardModal({
                     ))}
                   </div>
                 </div>
-                <p className="font-mono text-[9px] text-muted-foreground break-all">{qrSignature.slice(0, 36)}...</p>
+                <p className="font-mono text-[9px] text-muted-foreground break-all">
+                  {qrSignature.slice(0, 36)}...
+                </p>
               </div>
             </div>
 
@@ -158,32 +174,12 @@ export function StudentDigitalCardModal({
             </div>
           </div>
         </div>
-
-        {/* OPÇÕES DE INSTALAÇÃO PWA */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleInstallPwa}
-            disabled={isInstallingPwa}
-            className="gap-2 shadow-sm"
-          >
-            <Smartphone className="size-4 text-primary" />
-            Adicionar ao Ecrã Principal (PWA)
-          </Button>
-
-          <Button
-            type="button"
-            variant="default"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            className="gap-2"
-          >
-            Concluído
-          </Button>
-        </div>
+        </ModalContent>
+        <ModalFooter
+          onCancel={() => onOpenChange(false)}
+          cancelLabel="Fechar"
+        />
       </div>
-    </PremiumModal>
+    </ModalShell>
   );
 }

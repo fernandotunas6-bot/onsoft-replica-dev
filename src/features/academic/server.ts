@@ -1590,9 +1590,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
     );
 
     const groupMap = new Map((groups ?? []).map((item) => [item.id, item]));
-    const assignmentByIdMap = new Map(
-      (assignments ?? []).map((row) => [String(row.id), row]),
-    );
+    const assignmentByIdMap = new Map((assignments ?? []).map((row) => [String(row.id), row]));
     const enrollmentCountByClass = new Map<string, number>();
     for (const enrollment of enrollments ?? []) {
       const cId = String(enrollment.class_group_id);
@@ -1918,4 +1916,3 @@ export const deleteAssessmentItem = createServerFn({ method: "POST" })
 
     return { success: true, deletedScoresCount: count ?? 0 };
   });
-

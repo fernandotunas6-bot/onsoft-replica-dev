@@ -3,11 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PremiumModal } from "@/components/ui/premium-modal";
-import { AppMark } from "./app-marks";
+import { FormModal } from "@/components/ui/modal-system";
+import { installSchoolIntegration } from "./server";
 import { academicIntegrationCatalog } from "./catalog";
 import { installPackageFor } from "./install";
-import { installSchoolIntegration } from "./server";
 
 export function InstallConsentModal({
   provider,
@@ -56,28 +55,20 @@ export function InstallConsentModal({
   };
 
   return (
-    <PremiumModal
+    <FormModal
       open={open && Boolean(pack)}
       onOpenChange={onOpenChange}
       size="md"
-      eyebrow="Instalar aplicativo"
       title={meta ? `Permitir ${meta.name}` : "Permitir aplicativo"}
-      description={
+      subtitle={
         pack
           ? `${pack.summary} Ao permitir, este aplicativo pode adicionar funções nos módulos abaixo.`
           : undefined
       }
-      icon={provider ? <AppMark id={provider} className="size-11" /> : undefined}
-      footer={
-        <>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
-            Agora não
-          </Button>
-          <Button onClick={() => void allow()} disabled={saving || selected.length === 0}>
-            {saving ? "A instalar…" : "Permitir e instalar"}
-          </Button>
-        </>
-      }
+      submitLabel="Permitir e instalar"
+      isSubmitting={saving}
+      disabled={selected.length === 0}
+      onSubmit={allow}
     >
       {pack ? (
         <div className="space-y-4">
@@ -126,6 +117,6 @@ export function InstallConsentModal({
           </ul>
         </div>
       ) : null}
-    </PremiumModal>
+    </FormModal>
   );
 }

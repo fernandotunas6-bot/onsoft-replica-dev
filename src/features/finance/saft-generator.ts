@@ -1,9 +1,20 @@
 import { z } from "zod";
 
 export const generateSaftInputSchema = z.object({
-  fiscalYear: z.number().int().min(2020).max(2100).default(() => new Date().getFullYear()),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  fiscalYear: z
+    .number()
+    .int()
+    .min(2020)
+    .max(2100)
+    .default(() => new Date().getFullYear()),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 export type GenerateSaftInput = z.infer<typeof generateSaftInputSchema>;
 

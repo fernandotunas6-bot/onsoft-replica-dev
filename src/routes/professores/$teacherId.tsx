@@ -4,6 +4,7 @@ import { FileDown, GraduationCap, Pencil, UserPlus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { listTeachers, updateTeacher } from "@/features/people/server";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -68,6 +69,16 @@ function TeacherProfilePage() {
           group="Corpo docente"
           title={teacher?.full_name ?? "Professor"}
           description="Perfil, turmas atribuídas, matrículas e sincronização do horário com o calendário móvel."
+          avatar={
+            teacher ? (
+              <MediaAvatar
+                src={teacher.photo_url}
+                alt={teacher.full_name}
+                className="size-16 rounded-2xl object-cover shadow-2xs"
+                textClassName="text-lg"
+              />
+            ) : null
+          }
           actions={
             <div className="flex flex-wrap gap-2">
               {teacher ? (

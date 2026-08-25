@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { AlertTriangle, BookOpen, ChevronRight, Layers, Trophy } from "lucide-react";
 import { IconChip } from "@/components/ui/icon-chip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface HeatmapSubjectGrade {
   discipline: string;
@@ -41,7 +47,8 @@ export function DisciplinePerformanceHeatmap({ data = [] }: DisciplinePerformanc
               Heatmap de Desempenho por Disciplina
             </h3>
             <p className="text-xs text-muted-foreground">
-              Matriz visual de médias com destaque de disciplinas abaixo do nível de aprovação (10 v.)
+              Matriz visual de médias com destaque de disciplinas abaixo do nível de aprovação (10
+              v.)
             </p>
           </div>
         </div>
@@ -115,7 +122,10 @@ export function DisciplinePerformanceHeatmap({ data = [] }: DisciplinePerformanc
                     const match = cGroup.grades.find((g) => g.discipline === disc);
                     if (!match) {
                       return (
-                        <td key={disc} className="p-3 text-center text-muted-foreground/40 font-mono">
+                        <td
+                          key={disc}
+                          className="p-3 text-center text-muted-foreground/40 font-mono"
+                        >
                           —
                         </td>
                       );
@@ -126,9 +136,11 @@ export function DisciplinePerformanceHeatmap({ data = [] }: DisciplinePerformanc
                     const isWarning = avg >= 10 && avg < 14;
                     const isGood = avg >= 14 && avg < 18;
 
-                    let cellClass = "bg-success/15 text-success-strong font-extrabold border-success/30";
+                    let cellClass =
+                      "bg-success/15 text-success-strong font-extrabold border-success/30";
                     if (isFail) {
-                      cellClass = "bg-destructive/20 text-destructive font-black border-destructive/40";
+                      cellClass =
+                        "bg-destructive/20 text-destructive font-black border-destructive/40";
                     } else if (isWarning) {
                       cellClass = "bg-warning/20 text-warning-strong font-bold border-warning/40";
                     } else if (isGood) {

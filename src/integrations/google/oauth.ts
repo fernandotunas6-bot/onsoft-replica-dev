@@ -39,7 +39,7 @@ export function buildGoogleAuthUrl(options?: {
 }): string {
   const clientId =
     options?.clientId ||
-    (typeof process !== "undefined" ? process.env?.GOOGLE_CLIENT_ID : undefined) ||
+    (typeof process !== "undefined" ? process.env?.["GOOGLE_CLIENT_ID"] : undefined) ||
     "445079520865-7jlrh1du2vjp1o1ro3p8o7ms2qo7e8b8.apps.googleusercontent.com";
 
   const redirectUri =
@@ -140,6 +140,6 @@ export function checkGooglePermissions(): {
     hasSheets: scopes.includes("spreadsheets"),
     hasTasks: scopes.includes("tasks"),
     isConnected: true,
-    email: token.email,
+    ...(token.email !== undefined ? { email: token.email } : {}),
   };
 }

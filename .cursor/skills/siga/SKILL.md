@@ -34,20 +34,20 @@ Depois do scaffold: ligar tabela SGA real, path em `access-policy.ts`, teste Zod
 
 Abrir o skill do módulo antes de editar (`.cursor/skills/siga-<id>/SKILL.md`).
 
-| Módulo | Skill |
-| --- | --- |
-| Dashboard / professor | `siga-dashboard` |
-| Alunos | `siga-alunos` |
-| Pessoas / docentes | `siga-pessoas` |
-| Pedagógica / turmas | `siga-pedagogica` |
-| Tesouraria | `siga-financeiro` |
-| Documentos | `siga-documentos` |
-| Calendário / ICS | `siga-calendario` |
-| Comunicações | `siga-comunicacoes` |
-| Acessos / 2FA | `siga-acessos` |
-| Matrícula pública | `siga-matricula` |
-| Integrações | `siga-integracoes` |
-| Arquivos | `siga-arquivos` |
+| Módulo                | Skill               |
+| --------------------- | ------------------- |
+| Dashboard / professor | `siga-dashboard`    |
+| Alunos                | `siga-alunos`       |
+| Pessoas / docentes    | `siga-pessoas`      |
+| Pedagógica / turmas   | `siga-pedagogica`   |
+| Tesouraria            | `siga-financeiro`   |
+| Documentos            | `siga-documentos`   |
+| Calendário / ICS      | `siga-calendario`   |
+| Comunicações          | `siga-comunicacoes` |
+| Acessos / 2FA         | `siga-acessos`      |
+| Matrícula pública     | `siga-matricula`    |
+| Integrações           | `siga-integracoes`  |
+| Arquivos              | `siga-arquivos`     |
 
 ## Stack
 

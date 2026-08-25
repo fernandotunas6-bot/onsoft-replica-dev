@@ -45,7 +45,9 @@ export async function ensureDefaultTeacher(db: Db, schoolId: string, _userId: st
   if (error) throw publicDatabaseError(error, "Não foi possível carregar professores.");
   if (existing?.id) return existing.id as string;
 
-  throw new Error("Nenhum professor activo cadastrado na instituição. Cadastre um docente no módulo Pessoas primeiro.");
+  throw new Error(
+    "Nenhum professor activo cadastrado na instituição. Cadastre um docente no módulo Pessoas primeiro.",
+  );
 }
 
 async function ensureClassSubject(

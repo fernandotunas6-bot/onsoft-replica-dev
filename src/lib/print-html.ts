@@ -1,23 +1,41 @@
-/** Abre o documento HTML oficial numa janela própria e inicia a impressão. */
+/** Imprime o documento HTML oficial diretamente através de um iframe oculto no DOM, sem abrir abas about:blank. */
 export function printOfficialHtml(html: string) {
-  const popup = window.open("", "_blank", "noopener,noreferrer,width=920,height=1100");
-  if (!popup) {
-    throw new Error("Permita janelas pop-up para pré-visualizar ou imprimir o modelo.");
+  // Garantir que existe um iframe de impressão isolado no DOM
+  let iframe = document.getElementById("siga-print-frame") as HTMLIFrameElement | null;
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.id = "siga-print-frame";
+    iframe.style.position = "fixed";
+    iframe.style.right = "-9999px";
+    iframe.style.bottom = "-9999px";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.setAttribute("aria-hidden", "true");
+    document.body.appendChild(iframe);
   }
-  popup.document.open();
-  popup.document.write(html);
-  popup.document.close();
-  popup.focus();
-  const trigger = () => {
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!iframeDoc) {
+    throw new Error("Não foi possível aceder ao motor de impressão.");
+  }
+
+  iframeDoc.open();
+  iframeDoc.write(html);
+  iframeDoc.close();
+
+  const doPrint = () => {
     try {
-      popup.print();
+      iframe?.contentWindow?.focus();
+      iframe?.contentWindow?.print();
     } catch {
-      /* o utilizador pode imprimir manualmente */
+      /* fallback se o utilitário de impressão falhar */
     }
   };
-  if (popup.document.readyState === "complete") {
-    window.setTimeout(trigger, 250);
+
+  if (iframeDoc.readyState === "complete") {
+    setTimeout(doPrint, 250);
   } else {
-    popup.addEventListener("load", trigger, { once: true });
+    iframe.onload = () => setTimeout(doPrint, 250);
   }
 }

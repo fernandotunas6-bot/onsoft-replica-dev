@@ -26,13 +26,11 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { ModalShell } from "@/components/ui/modal-system";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { DialogExpandButton, useExpandableDialog } from "@/features/arquivos/dialog-expand";
-import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { getPerson, updatePersonStatus, updatePerson } from "@/features/people/server";
 import { whatsappHref } from "@/features/integrations/actions";
 import { formatAngolaBi } from "@/lib/angola-identity";
@@ -59,13 +57,27 @@ export type PersonRecord = {
     id: string;
     document_type: string;
     document_number: string;
-    issued_at?: string | null;
-    expires_at?: string | null;
-    file_id?: string | null;
-    file_name?: string | null;
+    issue_date?: string | null;
+    expiry_date?: string | null;
+    is_primary?: boolean;
   }>;
-  created_at?: string | null;
-  updated_at?: string | null;
+  academic_summary?: {
+    total_enrollments: number;
+    active_enrollment?: {
+      id: string;
+      school_class_id: string;
+      class_name: string;
+      course_name: string;
+      academic_year_name: string;
+      status: string;
+    } | null;
+  };
+  financial_summary?: {
+    balance: number;
+    overdue_count: number;
+    currency: string;
+  };
+  created_at?: string;
 };
 
 const roleLabels: Record<string, string> = {
@@ -79,7 +91,10 @@ const roleLabels: Record<string, string> = {
   fornecedor: "Fornecedor Institucional",
 };
 
-const roleBadges: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+const roleBadges: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
+> = {
   aluno: { label: "Aluno", variant: "default" },
   encarregado: { label: "Encarregado", variant: "secondary" },
   professor: { label: "Professor", variant: "outline" },
@@ -102,18 +117,17 @@ function calculateAge(birthDate?: string | null): string {
 }
 
 export function PersonProfile360Modal({
-  personId,
   open,
   onOpenChange,
-  onOpenEnrollment,
+  personId,
+  onAction,
 }: {
-  personId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onOpenEnrollment?: (personId: string) => void;
+  personId: string | null;
+  onAction?: (action: "enroll" | "edit" | "print", person: PersonRecord) => void;
 }) {
   const queryClient = useQueryClient();
-  const { expanded, toggleExpanded, contentClassName } = useExpandableDialog();
   const [activeTab, setActiveTab] = useState("visao_geral");
 
   const personQuery = useQuery({
@@ -122,7 +136,7 @@ export function PersonProfile360Modal({
     queryFn: () => (personId ? getPerson({ data: { id: personId } }) : null),
   });
 
-  const person = personQuery.data;
+  const person = personQuery.data as PersonRecord | undefined;
 
   if (!open || !personId) return null;
 
@@ -134,14 +148,8 @@ export function PersonProfile360Modal({
   const photoUrl = person?.photo_url || null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={contentClassName(
-          "flex max-h-[min(94vh,860px)] w-[min(1080px,calc(100vw-1.5rem))] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl",
-        )}
-      >
-        <DialogExpandButton expanded={expanded} onToggle={toggleExpanded} />
-
+    <ModalShell open={open} onOpenChange={onOpenChange} size="2xl">
+      <div className="flex flex-col h-full overflow-y-auto max-h-[88vh]">
         {/* CABEÇALHO 360° PREMIUM */}
         <div className="border-b border-border bg-gradient-to-r from-card via-card to-secondary/30 px-6 py-5 pr-20">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -161,7 +169,9 @@ export function PersonProfile360Modal({
                   </Badge>
                 </div>
                 <DialogDescription className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  <span className="font-mono font-medium">ID: {personId.slice(0, 8).toUpperCase()}</span>
+                  <span className="font-mono font-medium">
+                    ID: {personId.slice(0, 8).toUpperCase()}
+                  </span>
                   <span>·</span>
                   <span>{calculateAge(person?.birth_date || person?.date_of_birth)}</span>
                   {nifOrBi ? (
@@ -174,8 +184,12 @@ export function PersonProfile360Modal({
                 {/* PAPÉIS E VÍNCULOS ACUMULADOS */}
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {roles.length > 0 ? (
-                    roles.map((r) => (
-                      <Badge key={r} variant={roleBadges[r]?.variant ?? "outline"} className="text-[10px]">
+                    roles.map((r: string) => (
+                      <Badge
+                        key={r}
+                        variant={roleBadges[r]?.variant ?? "outline"}
+                        className="text-[10px]"
+                      >
                         {roleLabels[r] ?? r}
                       </Badge>
                     ))
@@ -205,13 +219,13 @@ export function PersonProfile360Modal({
                 </Button>
               ) : null}
               {phone ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  asChild
-                >
-                  <a href={whatsappHref(phone, `Olá ${person?.full_name}, contacto do SIGA.`)} target="_blank" rel="noreferrer" className="gap-1.5">
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <a
+                    href={whatsappHref(phone, `Olá ${person?.full_name}, contacto do SIGA.`)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="gap-1.5"
+                  >
                     <MessageSquare className="size-4 text-primary" />
                     WhatsApp
                   </a>
@@ -314,7 +328,9 @@ export function PersonProfile360Modal({
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Data de Nascimento</dt>
-                    <dd className="font-medium text-sm mt-0.5">{person?.birth_date || person?.date_of_birth || "—"}</dd>
+                    <dd className="font-medium text-sm mt-0.5">
+                      {person?.birth_date || person?.date_of_birth || "—"}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Telefone Principal</dt>
@@ -342,21 +358,31 @@ export function PersonProfile360Modal({
                   </div>
                   <div>
                     <span className="text-muted-foreground block">Nome Preferencial</span>
-                    <span className="font-medium text-sm block mt-1">{person?.preferred_name || "—"}</span>
+                    <span className="font-medium text-sm block mt-1">
+                      {person?.preferred_name || "—"}
+                    </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block">Sexo / Género</span>
                     <span className="font-medium text-sm block mt-1">
-                      {person?.sex === "male" || person?.sex === "M" ? "Masculino" : person?.sex === "female" || person?.sex === "F" ? "Feminino" : "Outro / Não especificado"}
+                      {person?.sex === "male" || person?.sex === "M"
+                        ? "Masculino"
+                        : person?.sex === "female" || person?.sex === "F"
+                          ? "Feminino"
+                          : "Outro / Não especificado"}
                     </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block">Data de Nascimento</span>
-                    <span className="font-medium text-sm block mt-1">{person?.birth_date || person?.date_of_birth || "—"}</span>
+                    <span className="font-medium text-sm block mt-1">
+                      {person?.birth_date || person?.date_of_birth || "—"}
+                    </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block">Idade Calculada</span>
-                    <span className="font-medium text-sm block mt-1">{calculateAge(person?.birth_date || person?.date_of_birth)}</span>
+                    <span className="font-medium text-sm block mt-1">
+                      {calculateAge(person?.birth_date || person?.date_of_birth)}
+                    </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block">Nacionalidade</span>
@@ -380,8 +406,12 @@ export function PersonProfile360Modal({
                     {person.documents.map((doc) => (
                       <div key={doc.id} className="flex items-center justify-between p-3 text-xs">
                         <div>
-                          <p className="font-bold text-sm uppercase">{doc.document_type} — {doc.document_number}</p>
-                          <p className="text-muted-foreground">Emissão: {doc.issued_at || "—"} · Validade: {doc.expires_at || "—"}</p>
+                          <p className="font-bold text-sm uppercase">
+                            {doc.document_type} — {doc.document_number}
+                          </p>
+                          <p className="text-muted-foreground">
+                            Emissão: {doc.issued_at || "—"} · Validade: {doc.expires_at || "—"}
+                          </p>
                         </div>
                         <Badge variant="outline">Verificado</Badge>
                       </div>
@@ -407,14 +437,18 @@ export function PersonProfile360Modal({
                     <Phone className="size-5 text-primary" />
                     <div>
                       <span className="text-muted-foreground block">Telefone Principal</span>
-                      <span className="font-bold text-sm">{phone || "Sem telefone registrado"}</span>
+                      <span className="font-bold text-sm">
+                        {phone || "Sem telefone registrado"}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-secondary/20">
                     <Mail className="size-5 text-primary" />
                     <div>
                       <span className="text-muted-foreground block">Correio Eletrónico</span>
-                      <span className="font-bold text-sm truncate">{email || "Sem e-mail registrado"}</span>
+                      <span className="font-bold text-sm truncate">
+                        {email || "Sem e-mail registrado"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -447,7 +481,8 @@ export function PersonProfile360Modal({
                 <div className="rounded-lg border border-border bg-secondary/10 p-4 text-xs text-muted-foreground space-y-2">
                   <p className="font-semibold text-foreground">Regra Padrão Ed-Fi & OneRoster:</p>
                   <p>
-                    A matrícula cria o vínculo temporal com o ano letivo e turma. Históricos de matrículas passadas são preservados e nunca sobrescritos.
+                    A matrícula cria o vínculo temporal com o ano letivo e turma. Históricos de
+                    matrículas passadas são preservados e nunca sobrescritos.
                   </p>
                 </div>
               </div>
@@ -461,7 +496,8 @@ export function PersonProfile360Modal({
                   Relações Familiares & Encarregados de Educação
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  Sem duplicação de dados: encarregados são cadastrados como Pessoas únicas e vinculados.
+                  Sem duplicação de dados: encarregados são cadastrados como Pessoas únicas e
+                  vinculados.
                 </p>
               </div>
             </TabsContent>
@@ -475,15 +511,21 @@ export function PersonProfile360Modal({
                 </h4>
                 <div className="space-y-3 border-l-2 border-primary/30 pl-4 text-xs">
                   <div>
-                    <span className="font-bold block text-foreground">Pessoa Registada no SIGA</span>
-                    <span className="text-muted-foreground">{person?.created_at ? new Date(person.created_at).toLocaleDateString("pt-AO") : "Data inicial"}</span>
+                    <span className="font-bold block text-foreground">
+                      Pessoa Registada no SIGA
+                    </span>
+                    <span className="text-muted-foreground">
+                      {person?.created_at
+                        ? new Date(person.created_at).toLocaleDateString("pt-AO")
+                        : "Data inicial"}
+                    </span>
                   </div>
                 </div>
               </div>
             </TabsContent>
           </Tabs>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ModalShell>
   );
 }

@@ -42,6 +42,7 @@ const relatoriosFilterDefaults = {
   q: "",
   trimestre: "todos",
   turma: "todas",
+  resultado: "todos",
 };
 
 export const Route = createFileRoute("/relatorios/academicos")({
@@ -109,9 +110,12 @@ function RelatoriosAcademicos() {
       const matchTrimestre =
         filters.trimestre === "todos" || String(nota.term) === filters.trimestre;
       const matchTurma = filters.turma === "todas" || nota.class_group_name === filters.turma;
-      return matchQ && matchTrimestre && matchTurma;
+      const matchResultado =
+        filters.resultado === "todos" ||
+        (filters.resultado === "aprovados" ? nota.average >= 10 : nota.average < 10);
+      return matchQ && matchTrimestre && matchTurma && matchResultado;
     });
-  }, [filters.q, filters.trimestre, filters.turma, termGradesAll]);
+  }, [filters.q, filters.trimestre, filters.turma, filters.resultado, termGradesAll]);
 
   const mediaGeral =
     termGrades.length > 0
@@ -158,6 +162,7 @@ function RelatoriosAcademicos() {
     const mediaTurma = matchingNotas.length
       ? matchingNotas.reduce((sum, nota) => sum + nota.average, 0) / matchingNotas.length
       : (turma.average_score ?? 0);
+    const aprovadosTurma = matchingNotas.filter((nota) => nota.average >= 10).length;
     return {
       id: turma.id,
       nome: turma.name,
@@ -165,6 +170,9 @@ function RelatoriosAcademicos() {
       director: "—",
       alunosActuais: turma.enrolled_count,
       mediaReal: mediaTurma,
+      aproveitamento: matchingNotas.length
+        ? Math.round((aprovadosTurma / matchingNotas.length) * 100)
+        : null,
     };
   });
 
@@ -410,6 +418,17 @@ function RelatoriosAcademicos() {
                     ...classGroups.map((group) => ({ value: group.name, label: group.name })),
                   ],
                 },
+                {
+                  name: "resultado",
+                  type: "select",
+                  label: "Resultado",
+                  emptyValue: "todos",
+                  options: [
+                    { value: "todos", label: "Todos" },
+                    { value: "aprovados", label: "Aprovados" },
+                    { value: "reprovados", label: "Reprovados" },
+                  ],
+                },
               ]}
             />
             {!gradesAvailable || !subjectsAvailable ? (
@@ -424,6 +443,8 @@ function RelatoriosAcademicos() {
             ) : (
               <>
                 <StatGrid
+                  collapsible
+                  storageKey="rel-academicos"
                   items={[
                     {
                       label: "Média geral",
@@ -476,6 +497,7 @@ function RelatoriosAcademicos() {
                             <TableHead>Director de turma</TableHead>
                             <TableHead className="text-right">Alunos</TableHead>
                             <TableHead className="text-right">Média</TableHead>
+                            <TableHead className="min-w-[140px]">Aproveitamento</TableHead>
                             <TableHead className="text-right">Classificação</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -499,6 +521,34 @@ function RelatoriosAcademicos() {
                                 <TableCell className="text-right">{t.alunosActuais}</TableCell>
                                 <TableCell className="text-right font-bold">
                                   {t.mediaReal > 0 ? t.mediaReal.toFixed(1) : "—"}
+                                </TableCell>
+                                <TableCell>
+                                  {t.aproveitamento == null ? (
+                                    <span className="text-sm text-muted-foreground">—</span>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="h-2 w-full min-w-[64px] overflow-hidden rounded-full bg-secondary"
+                                        role="img"
+                                        aria-label={`Aproveitamento de ${t.aproveitamento}%`}
+                                      >
+                                        <div
+                                          className={cn(
+                                            "h-full rounded-full",
+                                            t.aproveitamento >= 85
+                                              ? "bg-success"
+                                              : t.aproveitamento >= 75
+                                                ? "bg-primary"
+                                                : "bg-destructive",
+                                          )}
+                                          style={{ width: `${t.aproveitamento}%` }}
+                                        />
+                                      </div>
+                                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                                        {t.aproveitamento}%
+                                      </span>
+                                    </div>
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {t.mediaReal > 0 ? (

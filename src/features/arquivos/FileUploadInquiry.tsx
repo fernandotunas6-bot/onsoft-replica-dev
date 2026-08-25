@@ -44,7 +44,12 @@ export type UploadInquiryResult = FileMetaFields & {
   applyAsProfilePhoto?: boolean | undefined;
 };
 
+/**
+ * PDFs circulam pelo nome completo (é assim que a secretaria os referencia), por
+ * isso mantém-se a extensão; nos restantes formatos sugere-se o nome sem sufixo.
+ */
 function defaultTitleFromName(name: string) {
+  if (/\.pdf$/i.test(name)) return name.trim() || name;
   return name.replace(/\.[^.]+$/, "").trim() || name;
 }
 
@@ -110,13 +115,14 @@ export function FileUploadInquiryModal({
   const [debouncedPersonQuery, setDebouncedPersonQuery] = useState("");
   const [applyAsProfilePhoto, setApplyAsProfilePhoto] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const isPhotoCategory = category === "foto";
   const areas = writableAreas.length ? writableAreas : ([defaultArea] as FileArea[]);
   const { expanded, toggleExpanded, contentClassName } = useExpandableDialog();
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     const nextCategory =
       initial?.category ??
       (photoLike ? "foto" : suggestFileCategory({ name: firstName, kind: firstKind }));
@@ -135,6 +141,15 @@ export function FileUploadInquiryModal({
     setPersonQuery("");
     setApplyAsProfilePhoto(initial?.applyAsProfilePhoto ?? true);
     setFormError(null);
+
+    if (files[0] && (files[0].type === "image/png" || files[0].type === "image/jpeg" || files[0].type === "image/webp")) {
+      const url = URL.createObjectURL(files[0]);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+      return undefined;
+    }
   }, [
     defaultArea,
     defaultVisibility,
@@ -144,6 +159,7 @@ export function FileUploadInquiryModal({
     open,
     photoLike,
     writableAreas,
+    files,
   ]);
 
   useEffect(() => {
@@ -193,26 +209,35 @@ export function FileUploadInquiryModal({
         )}
       >
         <DialogExpandButton expanded={expanded} onToggle={toggleExpanded} />
-        <div className="border-b border-border px-5 py-4 pr-20">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <ClipboardList className="size-5 text-primary" />
-            {mode === "organize"
-              ? "Organizar ficheiro"
-              : isPhotoCategory
-                ? "Fotografia do aluno"
-                : "Inquérito do documento"}
-          </DialogTitle>
-          <DialogDescription className="mt-1 text-sm">
-            {mode === "organize"
-              ? "Complete a descrição e o destino da área. Nenhum media fica fora do padrão SIGA."
-              : isPhotoCategory
-                ? "Associe a imagem a um aluno e indique a área de destino."
-                : `Descreva o ficheiro e escolha a área${
-                    files.length > 1
-                      ? ` (${files.length} ficheiros · ${formatFileSize(totalBytes)})`
-                      : ""
-                  }.`}
-          </DialogDescription>
+        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 pr-20">
+          <div>
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+              <ClipboardList className="size-5 text-primary" />
+              {mode === "organize"
+                ? "Organizar ficheiro"
+                : isPhotoCategory
+                  ? "Fotografia do aluno"
+                  : "Inquérito do documento"}
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-sm">
+              {mode === "organize"
+                ? "Complete a descrição e o destino da área. Nenhum media fica fora do padrão SIGA."
+                : isPhotoCategory
+                  ? "Associe a imagem a um aluno e indique a área de destino."
+                  : `Descreva o ficheiro e escolha a área${
+                      files.length > 1
+                        ? ` (${files.length} ficheiros · ${formatFileSize(totalBytes)})`
+                        : ""
+                    }.`}
+            </DialogDescription>
+          </div>
+          {previewUrl && (
+            <img
+              src={previewUrl}
+              alt="Pré-visualização"
+              className="size-24 shrink-0 rounded-lg border border-border object-cover shadow-sm sm:size-30"
+            />
+          )}
         </div>
         <div className="max-h-[min(58vh,480px)] space-y-3 overflow-y-auto px-5 py-4">
           <div className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-xs text-muted-foreground">

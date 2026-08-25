@@ -1,7 +1,15 @@
 import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, KeyRound, MailPlus, ShieldCheck, UserPlus, Award, ChevronDown } from "lucide-react";
+import {
+  Download,
+  KeyRound,
+  MailPlus,
+  ShieldCheck,
+  UserPlus,
+  Award,
+  ChevronDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -43,6 +51,7 @@ import {
   inviteSystemUser,
   listSystemAccounts,
   resendSystemInvite,
+  resetStaffPasswordDirect,
   setSystemAccountDisabled,
   updateSystemAccountCargo,
 } from "@/features/access/server";
@@ -376,20 +385,37 @@ function AcessosPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                    <Download className="size-3.5" /> Exportar Acessos <ChevronDown className="size-3.5 text-muted-foreground" />
+                    <Download className="size-3.5" /> Exportar Acessos{" "}
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem onClick={exportarContasOficial} disabled={!filteredAccounts.length} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarContasOficial}
+                    disabled={!filteredAccounts.length}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Award className="size-3.5 text-primary" /> Relatório Contas PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarContas} disabled={!filteredAccounts.length} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarContas}
+                    disabled={!filteredAccounts.length}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Download className="size-3.5" /> Ficheiro CSV Contas
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarEquipaOficial} disabled={!filteredStaff.length} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarEquipaOficial}
+                    disabled={!filteredStaff.length}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Award className="size-3.5 text-primary" /> Relatório Equipa PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarEquipa} disabled={!filteredStaff.length} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarEquipa}
+                    disabled={!filteredStaff.length}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Download className="size-3.5" /> Ficheiro CSV Equipa
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -503,7 +529,7 @@ function AcessosPage() {
 
         <InstalledModuleTools module="comunicacoes" />
 
-        <StatGrid
+        <StatGrid collapsible storageKey="acessos"
           items={[
             {
               label: "Contas de login",
@@ -733,6 +759,48 @@ function AcessosPage() {
                             />
                             {!account.is_self && account.email ? (
                               <>
+                                <QuickFormModal
+                                  eyebrow="Segurança e Acessos"
+                                  title={`Definir Nova Senha · ${account.full_name}`}
+                                  description="Redefina diretamente a senha de acesso deste funcionário para restabelecer o seu login no sistema."
+                                  icon={<KeyRound className="size-5" />}
+                                  submitLabel="Guardar Nova Senha"
+                                  successDescription="Senha redefinida com sucesso. O funcionário já pode entrar com a nova senha."
+                                  onSubmit={async (values) => {
+                                    const newPassword = String(values["novaSenha"] ?? "").trim();
+                                    if (newPassword.length < 8) {
+                                      throw new Error(
+                                        "A senha deve conter pelo menos 8 caracteres.",
+                                      );
+                                    }
+                                    await resetStaffPasswordDirect({
+                                      data: {
+                                        userId: account.id,
+                                        newPassword,
+                                      },
+                                    });
+                                    toast.success(`Senha de ${account.full_name} redefinida!`);
+                                  }}
+                                  fields={[
+                                    {
+                                      name: "novaSenha",
+                                      label: "Nova senha (mínimo 8 caracteres)",
+                                      type: "password",
+                                      placeholder: "Ex.: Siga@Pass2026!",
+                                      defaultValue: "Siga@Pass2026!",
+                                    },
+                                  ]}
+                                  trigger={(open) => (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={open}
+                                      className="h-8 gap-1 text-xs"
+                                    >
+                                      <KeyRound className="size-3 text-primary" /> Nova Senha
+                                    </Button>
+                                  )}
+                                />
                                 <Button
                                   size="sm"
                                   variant="ghost"

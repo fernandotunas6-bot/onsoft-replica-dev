@@ -4,20 +4,7 @@ import { Check, Eye, FileStack, Pencil, Printer, RotateCcw } from "lucide-react"
 import { toast } from "sonner";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { PremiumModal } from "@/components/ui/premium-modal";
-import { cn } from "@/lib/utils";
-import { printOfficialHtml } from "@/lib/print-html";
-import { useSchoolSettings } from "@/features/auth/use-school-settings";
-import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import {
-  getPrintTemplate,
-  listPrintTemplates,
-  resetPrintTemplate,
-  savePrintTemplate,
-  setActivePrintTemplate,
-} from "./server";
-import { buildPrintSamplePayload } from "./print-catalog";
-import { renderHandlebars } from "./render-hbs";
+import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 
 export function PrintTemplateStudio() {
   const queryClient = useQueryClient();
@@ -218,97 +205,86 @@ export function PrintTemplateStudio() {
         )}
       </Panel>
 
-      <PremiumModal
+      <ModalShell
         open={Boolean(openKey)}
         onOpenChange={(open) => {
           if (!open) setOpenKey(null);
         }}
-        eyebrow="Modelos oficiais"
-        title={templateQuery.data?.title ?? "Modelo de impressão"}
-        description="Altere o HTML do modelo. A pré-visualização usa dados de exemplo da escola."
-        icon={<FileStack className="size-5" />}
         size="full"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOpenKey(null)}>
-              Fechar
-            </Button>
-            <Button
-              variant="outline"
-              disabled={saving || !templateQuery.data}
-              onClick={() => void restoreOriginal()}
-            >
-              <RotateCcw className="size-3.5" /> Restaurar
-            </Button>
-            <Button
-              variant="outline"
-              disabled={!previewHtml}
-              onClick={() => {
-                try {
-                  printOfficialHtml(previewHtml);
-                } catch (error) {
-                  toast.error(
-                    error instanceof Error ? error.message : "Não foi possível imprimir.",
-                  );
-                }
-              }}
-            >
-              <Printer className="size-3.5" /> Imprimir amostra
-            </Button>
-            {resendDocuments && templateQuery.data ? (
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(
-                    `${templateQuery.data.title} — ${school?.name ?? "Escola"}\n\nDocumento de exemplo pronto para envio.`,
-                  );
-                  toast.success("Texto copiado para e-mail Resend");
-                }}
-              >
-                E-mail Resend
-              </Button>
-            ) : null}
-            <Button disabled={saving || !openKey} onClick={() => void saveDraft()}>
-              {saving ? "A guardar…" : "Guardar alterações"}
-            </Button>
-            <Button
-              disabled={!openKey}
-              onClick={() => {
-                if (openKey) void applyTemplate(openKey);
-              }}
-            >
-              <Check className="size-3.5" /> Usar no sistema
-            </Button>
-          </>
-        }
       >
-        <div className="grid min-h-[68vh] gap-4 lg:grid-cols-2">
-          <label className="flex min-h-[320px] flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Fonte do modelo
-            </span>
-            <textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              spellCheck={false}
-              className={cn(
-                "min-h-[320px] flex-1 resize-none rounded-lg border border-input bg-muted/30 p-3",
-                "font-mono text-[12px] leading-5",
-              )}
-            />
-          </label>
-          <div className="flex min-h-[320px] flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Pré-visualização
-            </span>
-            <iframe
-              title="Pré-visualização do modelo"
-              className="siga-print-preview min-h-[320px] flex-1 rounded-lg border border-border"
-              srcDoc={previewHtml}
-            />
-          </div>
+        <div className="flex flex-col h-full">
+          <ModalHeader
+            icon={FileStack}
+            title={templateQuery.data?.title ?? "Modelo de impressão"}
+            subtitle="Altere o HTML do modelo. A pré-visualização usa dados de exemplo da escola."
+            onClose={() => setOpenKey(null)}
+          />
+          <ModalContent>
+            <div className="grid min-h-[68vh] gap-4 lg:grid-cols-2">
+              <label className="flex min-h-[320px] flex-col gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Fonte do modelo
+                </span>
+                <textarea
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  spellCheck={false}
+                  className={cn(
+                    "min-h-[320px] flex-1 resize-none rounded-lg border border-input bg-muted/30 p-3",
+                    "font-mono text-[12px] leading-5",
+                  )}
+                />
+              </label>
+              <div className="flex min-h-[320px] flex-col gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Pré-visualização
+                </span>
+                <iframe
+                  title="Pré-visualização do modelo"
+                  className="siga-print-preview min-h-[320px] flex-1 rounded-lg border border-border"
+                  srcDoc={previewHtml}
+                />
+              </div>
+            </div>
+          </ModalContent>
+          <ModalFooter
+            onCancel={() => setOpenKey(null)}
+            onSubmit={async () => {
+              if (openKey) await saveDraft();
+            }}
+            isSubmitting={saving}
+            submitLabel="Guardar alterações"
+            extraActions={
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={saving || !templateQuery.data}
+                  onClick={() => void restoreOriginal()}
+                >
+                  <RotateCcw className="size-3.5" /> Restaurar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!previewHtml}
+                  onClick={() => {
+                    try {
+                      printOfficialHtml(previewHtml);
+                    } catch (error) {
+                      toast.error(
+                        error instanceof Error ? error.message : "Não foi possível imprimir.",
+                      );
+                    }
+                  }}
+                >
+                  <Printer className="size-3.5" /> Imprimir amostra
+                </Button>
+              </>
+            }
+          />
         </div>
-      </PremiumModal>
+      </ModalShell>
     </div>
   );
 }

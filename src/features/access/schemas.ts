@@ -24,3 +24,9 @@ export const resendSystemInviteInputSchema = z.object({
   userId: z.string().uuid(),
 });
 export type ResendSystemInviteInput = z.infer<typeof resendSystemInviteInputSchema>;
+
+export const resetStaffPasswordInputSchema = z.object({
+  userId: z.string().uuid(),
+  newPassword: z.string().min(8),
+});
+export type ResetStaffPasswordInput = z.infer<typeof resetStaffPasswordInputSchema>;

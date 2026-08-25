@@ -15,11 +15,7 @@ interface CameraCaptureModalProps {
   onCapture: (file: File) => void;
 }
 
-export function CameraCaptureModal({
-  open,
-  onOpenChange,
-  onCapture,
-}: CameraCaptureModalProps) {
+export function CameraCaptureModal({ open, onOpenChange, onCapture }: CameraCaptureModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
@@ -111,7 +107,7 @@ export function CameraCaptureModal({
           onOpenChange(false);
         },
         "image/jpeg",
-        0.92
+        0.92,
       );
     } catch (err) {
       setCapturing(false);

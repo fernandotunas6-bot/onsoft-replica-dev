@@ -372,7 +372,7 @@ function CalendarioPage() {
 
         <InstalledModuleTools module="calendario" />
 
-        <StatGrid
+        <StatGrid collapsible storageKey="calendario"
           items={[
             {
               label: "Períodos futuros",

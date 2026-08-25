@@ -4,26 +4,17 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   FileCheck,
-  GraduationCap,
   IdCard,
-  Mail,
   Phone,
-  UserCheck,
   UserPlus,
-  Users,
-  ShieldCheck,
-  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { DialogExpandButton, useExpandableDialog } from "@/features/arquivos/dialog-expand";
+import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { createPerson, findPersonDuplicates } from "@/features/people/server";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 
@@ -37,41 +28,36 @@ export function PersonWizardModal({
   onPersonCreated?: (personId: string, action?: "enroll" | "view" | "close") => void;
 }) {
   const queryClient = useQueryClient();
-  const { expanded, toggleExpanded, contentClassName } = useExpandableDialog();
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const [duplicateCheck, setDuplicateCheck] = useState<Array<{
-    id: string;
-    full_name: string;
-    score: number;
-    match_reason: string;
-    status: string;
-  }>>([]);
+  const [duplicateCheck, setDuplicateCheck] = useState<
+    Array<{
+      id: string;
+      full_name: string;
+      score: number;
+      match_reason: string;
+      status: string;
+    }>
+  >([]);
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
 
-  // Form State
   const [fullName, setFullName] = useState("");
   const [preferredName, setPreferredName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [sex, setSex] = useState<"M" | "F" | "outro">("M");
   const [nifOrBi, setNifOrBi] = useState("");
-
   const [phonePrimary, setPhonePrimary] = useState("");
   const [phoneAlt, setPhoneAlt] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-
-  const [docType, setDocType] = useState<"bi" | "passaporte" | "cedula" | "outro">("bi");
+  const [docType, setDocType] = useState<"bi" | "passaporte" | "cedula" | "nif">("bi");
   const [docNumber, setDocNumber] = useState("");
-
-  const [roles, setRoles] = useState<string[]>(["aluno"]);
+  const [roles, setRoles] = useState<Array<"aluno" | "encarregado" | "professor" | "funcionario">>(["aluno"]);
   const [createdPersonId, setCreatedPersonId] = useState<string | null>(null);
 
   const resetForm = () => {
     setStep(1);
-    setSubmitting(false);
-    setDuplicateCheck([]);
     setFullName("");
     setPreferredName("");
     setBirthDate("");
@@ -85,6 +71,7 @@ export function PersonWizardModal({
     setDocNumber("");
     setRoles(["aluno"]);
     setCreatedPersonId(null);
+    setDuplicateCheck([]);
   };
 
   const handleNextStep1 = async () => {
@@ -113,106 +100,101 @@ export function PersonWizardModal({
     setStep(2);
   };
 
-  const handleRoleToggle = (roleKey: string) => {
-    setRoles((prev) =>
-      prev.includes(roleKey) ? prev.filter((r) => r !== roleKey) : [...prev, roleKey],
-    );
+  const toggleRole = (r: "aluno" | "encarregado" | "professor" | "funcionario") => {
+    setRoles((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
   };
 
   const handleSavePerson = async () => {
+    if (!fullName.trim()) {
+      toast.error("Nome completo é obrigatório.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const result = await createPerson({
+      const res = await createPerson({
         data: {
-          person: {
-            full_name: fullName.trim(),
-            preferred_name: preferredName.trim() || undefined,
-            birth_date: birthDate || undefined,
-            sex,
-            nif: nifOrBi.trim() || undefined,
-            phone_primary: phonePrimary || undefined,
-            phone_alternative: phoneAlt || undefined,
-            email: email.trim() || undefined,
-            address: address.trim() || undefined,
-          },
-          roles: roles as any,
+          fullName: fullName.trim(),
+          preferredName: preferredName.trim() || undefined,
+          birthDate: birthDate || undefined,
+          sex,
+          nif: nifOrBi.trim() || undefined,
+          phonePrimary: phonePrimary.trim() || undefined,
+          phoneAlt: phoneAlt.trim() || undefined,
+          email: email.trim() || undefined,
+          address: address.trim() || undefined,
+          roles,
           documents: docNumber.trim()
-            ? [
-                {
-                  document_type: docType,
-                  document_number: docNumber.trim(),
-                },
-              ]
-            : [],
+            ? [{ type: docType, number: docNumber.trim(), isPrimary: true }]
+            : undefined,
         },
       });
 
       await queryClient.invalidateQueries({ queryKey: ["people"] });
-      setCreatedPersonId(result.id);
-      toast.success("Pessoa cadastrada com sucesso no núcleo de identidade!");
+      setCreatedPersonId(res.id);
       setStep(7);
+      toast.success("Pessoa criada com sucesso no Núcleo Unificado de Identidade!");
     } catch (err) {
-      toast.error("Não foi possível criar a pessoa.", {
-        description: err instanceof Error ? err.message : undefined,
-      });
+      toast.error(err instanceof Error ? err.message : "Não foi possível criar a pessoa.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const hasUnsavedChanges = Boolean(fullName.trim() && !createdPersonId);
+
   return (
-    <Dialog
+    <ModalShell
       open={open}
       onOpenChange={(val) => {
         if (!val) resetForm();
         onOpenChange(val);
       }}
+      size="xl"
+      hasUnsavedChanges={hasUnsavedChanges}
     >
-      <DialogContent
-        className={contentClassName(
-          "flex max-h-[min(94vh,820px)] w-[min(880px,calc(100vw-1.5rem))] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl",
-        )}
-      >
-        <DialogExpandButton expanded={expanded} onToggle={toggleExpanded} />
+      <div className="flex flex-col h-full">
+        <ModalHeader
+          icon={UserPlus}
+          title="Nova Pessoa — Núcleo de Identidade"
+          subtitle={`Passo ${step} de 7: Cadastro único universal transparente.`}
+          onClose={() => {
+            resetForm();
+            onOpenChange(false);
+          }}
+        />
 
-        {/* CABEÇALHO DO WIZARD */}
-        <div className="border-b border-border bg-card px-6 py-4 pr-20">
-          <div className="flex items-center gap-3">
-            <UserPlus className="size-6 text-primary" />
-            <div>
-              <DialogTitle className="text-lg font-bold">
-                Nova Pessoa — Núcleo de Identidade
-              </DialogTitle>
-              <DialogDescription className="text-xs mt-0.5">
-                Passo {step} de 7: Cadastro único universal independente de vínculo escolar.
-              </DialogDescription>
-            </div>
-          </div>
-
+        <div className="border-b border-border bg-card px-6 py-2">
           {/* PROGRESSO EM PASSOS */}
-          <div className="mt-4 flex items-center justify-between gap-1 overflow-x-auto text-[11px] font-semibold text-muted-foreground">
-            {["Identificação", "Contactos", "Documentos", "Relações", "Vínculos", "Revisão", "Conclusão"].map(
-              (label, idx) => {
-                const s = idx + 1;
-                const active = step === s;
-                const done = step > s;
-                return (
-                  <span
-                    key={label}
-                    className={`flex items-center gap-1 shrink-0 px-2 py-1 rounded-full ${
-                      active
-                        ? "bg-primary text-primary-foreground font-bold"
-                        : done
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "bg-secondary text-muted-foreground"
-                    }`}
-                  >
-                    <span>{s}.</span>
-                    <span>{label}</span>
-                  </span>
-                );
-              },
-            )}
+          <div className="flex items-center justify-between gap-1 overflow-x-auto text-[11px] font-semibold text-muted-foreground">
+            {[
+              "Identificação",
+              "Contactos",
+              "Documentos",
+              "Relações",
+              "Vínculos",
+              "Revisão",
+              "Conclusão",
+            ].map((label, idx) => {
+              const s = idx + 1;
+              const active = step === s;
+              const done = step > s;
+              return (
+                <span
+                  key={label}
+                  className={`flex items-center gap-1 shrink-0 px-2 py-1 rounded-full ${
+                    active
+                      ? "bg-primary text-primary-foreground font-bold"
+                      : done
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  <span>{s}.</span>
+                  <span>{label}</span>
+                </span>
+              );
+            })}
           </div>
         </div>
 
@@ -303,16 +285,17 @@ export function PersonWizardModal({
                       <div key={dup.id} className="flex items-center justify-between p-3 text-xs">
                         <div>
                           <p className="font-bold text-foreground">{dup.full_name}</p>
-                          <p className="text-muted-foreground">Correspondência por: {dup.match_reason}</p>
+                          <p className="text-muted-foreground">
+                            Correspondência por: {dup.match_reason}
+                          </p>
                         </div>
-                        <Badge variant="secondary">
-                          {Math.round(dup.score * 100)}% Confiança
-                        </Badge>
+                        <Badge variant="secondary">{Math.round(dup.score * 100)}% Confiança</Badge>
                       </div>
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Se for a mesma pessoa, cancele este cadastro e adicione o novo vínculo na ficha existente.
+                    Se for a mesma pessoa, cancele este cadastro e adicione o novo vínculo na ficha
+                    existente.
                   </p>
                 </div>
               ) : null}
@@ -335,11 +318,7 @@ export function PersonWizardModal({
 
                   <div className="space-y-1.5">
                     <Label htmlFor="wiz_phone_alt">Telefone Alternativo / Encarregado</Label>
-                    <AngolaPhoneField
-                      id="wiz_phone_alt"
-                      value={phoneAlt}
-                      onChange={setPhoneAlt}
-                    />
+                    <AngolaPhoneField id="wiz_phone_alt" value={phoneAlt} onChange={setPhoneAlt} />
                   </div>
 
                   <div className="sm:col-span-2 space-y-1.5">
@@ -412,7 +391,8 @@ export function PersonWizardModal({
                 Relações Familiares & Encarregados
               </h4>
               <p className="text-xs text-muted-foreground">
-                As relações podem ser adicionadas ou vinculadas a pessoas já cadastradas imediatamente após concluir o registo inicial.
+                As relações podem ser adicionadas ou vinculadas a pessoas já cadastradas
+                imediatamente após concluir o registo inicial.
               </p>
             </div>
           ) : null}
@@ -425,7 +405,8 @@ export function PersonWizardModal({
                 Atribuição de Papéis e Vínculos Iniciais
               </h4>
               <p className="text-xs text-muted-foreground">
-                Uma pessoa pode possuir múltiplos vínculos simultâneos. Selecione os papéis iniciais:
+                Uma pessoa pode possuir múltiplos vínculos simultâneos. Selecione os papéis
+                iniciais:
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -467,7 +448,9 @@ export function PersonWizardModal({
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Nascimento / Sexo</dt>
-                  <dd className="font-bold text-sm mt-0.5">{birthDate || "—"} ({sex})</dd>
+                  <dd className="font-bold text-sm mt-0.5">
+                    {birthDate || "—"} ({sex})
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Telefone Principal</dt>
@@ -575,7 +558,7 @@ export function PersonWizardModal({
             )}
           </div>
         ) : null}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ModalShell>
   );
 }

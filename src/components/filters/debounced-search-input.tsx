@@ -27,18 +27,20 @@ function DebouncedSearchInput({
   }, [draft, value, field.name, onChange]);
 
   return (
-    <div className="relative min-w-[220px] flex-1">
+    <div className="min-w-[200px] flex-1">
       {field.label ? (
         <p className="mb-1 text-xs font-semibold text-muted-foreground">{field.label}</p>
       ) : null}
-      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        placeholder={field.placeholder ?? "Pesquisar…"}
-        className="pl-9"
-        aria-label={field["aria-label"] ?? field.placeholder ?? "Pesquisar"}
-      />
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={field.placeholder ?? "Pesquisar…"}
+          className="h-9 pl-8.5 text-xs md:text-sm"
+          aria-label={field["aria-label"] ?? field.placeholder ?? "Pesquisar"}
+        />
+      </div>
     </div>
   );
 }

@@ -653,14 +653,21 @@ function PedagogicaPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                    <Sparkles className="size-3.5 text-primary" /> Ferramentas AI <ChevronDown className="size-3.5 text-muted-foreground" />
+                    <Sparkles className="size-3.5 text-primary" /> Ferramentas AI{" "}
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem onClick={() => setOcrModalOpen(true)} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={() => setOcrModalOpen(true)}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Sparkles className="size-3.5 text-primary" /> Scanner OCR Pauta Papel
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setDropoutModalOpen(true)} className="gap-2 text-xs text-destructive cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={() => setDropoutModalOpen(true)}
+                    className="gap-2 text-xs text-destructive cursor-pointer"
+                  >
                     <ShieldAlert className="size-3.5 text-destructive" /> Relatório Risco Abandono
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -669,23 +676,39 @@ function PedagogicaPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                    <Download className="size-3.5" /> Exportação & Pautas <ChevronDown className="size-3.5 text-muted-foreground" />
+                    <Download className="size-3.5" /> Exportação & Pautas{" "}
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={exportarPautaOficial} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarPautaOficial}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Award className="size-3.5 text-primary" /> Pauta Oficial PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarPautaPdf} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarPautaPdf}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <FileDown className="size-3.5" /> Pauta Simples PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarPautaCsv} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarPautaCsv}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Download className="size-3.5" /> Exportar Pauta CSV
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarTurmasOficial} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarTurmasOficial}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Award className="size-3.5 text-primary" /> Turmas Oficial PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarTurmasCsv} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarTurmasCsv}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Download className="size-3.5" /> Exportar Turmas CSV
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -718,6 +741,8 @@ function PedagogicaPage() {
         />
 
         <StatGrid
+          collapsible
+          storageKey="pedagogica"
           items={[
             {
               label: "Turmas activas",
@@ -1785,7 +1810,7 @@ function PedagogicaPage() {
         students={enrollmentOptions.map((e) => ({
           id: e.id,
           fullName: e.student_name,
-          academicNumber: e.process_number || e.id.slice(0, 8),
+          academicNumber: e.id.slice(0, 8),
         }))}
         onApplyGrades={(grades) => {
           toast.success(`Leitura OCR Aplicada (${grades.length} Alunos)`, {
@@ -1794,10 +1819,7 @@ function PedagogicaPage() {
         }}
       />
 
-      <DropoutRiskReportModal
-        open={dropoutModalOpen}
-        onOpenChange={setDropoutModalOpen}
-      />
+      <DropoutRiskReportModal open={dropoutModalOpen} onOpenChange={setDropoutModalOpen} />
     </AppShell>
   );
 }

@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { TrendingUp, DollarSign, Calendar, ArrowUpRight, ArrowDownRight, ShieldCheck } from "lucide-react";
+import {
+  TrendingUp,
+  DollarSign,
+  Calendar,
+  ArrowUpRight,
+  ArrowDownRight,
+  ShieldCheck,
+} from "lucide-react";
 import { IconChip } from "@/components/ui/icon-chip";
 
 export interface CashFlowMonthData {
@@ -23,9 +30,11 @@ export function CashFlowForecastChart({
   mainPaymentChannel,
 }: CashFlowForecastChartProps) {
   const formatKz = (val: number) =>
-    new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA", maximumFractionDigits: 0 }).format(
-      val,
-    );
+    new Intl.NumberFormat("pt-AO", {
+      style: "currency",
+      currency: "AOA",
+      maximumFractionDigits: 0,
+    }).format(val);
 
   const hasData = data.length > 0;
 
@@ -48,21 +57,28 @@ export function CashFlowForecastChart({
               Projeção de Fluxo de Caixa
             </h3>
             <p className="text-xs text-muted-foreground">
-              Estimativa de receita com base no comportamento de pagamento das turmas e matrículas ativas
+              Estimativa de receita com base no comportamento de pagamento das turmas e matrículas
+              ativas
             </p>
           </div>
         </div>
 
         <div className="text-right">
-          <span className="text-xs text-muted-foreground uppercase font-bold block">Previsão Período</span>
-          <span className="text-lg font-extrabold text-primary font-mono">{formatKz(totalForecastNext3Months)}</span>
+          <span className="text-xs text-muted-foreground uppercase font-bold block">
+            Previsão Período
+          </span>
+          <span className="text-lg font-extrabold text-primary font-mono">
+            {formatKz(totalForecastNext3Months)}
+          </span>
         </div>
       </div>
 
       {/* MÉTRICAS CHAVE */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3.5 rounded-xl border border-border bg-card space-y-1">
-          <span className="text-xs text-muted-foreground font-semibold">Taxa Média de Liquidação</span>
+          <span className="text-xs text-muted-foreground font-semibold">
+            Taxa Média de Liquidação
+          </span>
           <div className="flex items-center justify-between">
             <span className="text-xl font-extrabold text-foreground font-mono">
               {averageCollectionRate !== undefined ? `${averageCollectionRate}%` : "—"}
@@ -71,7 +87,9 @@ export function CashFlowForecastChart({
         </div>
 
         <div className="p-3.5 rounded-xl border border-border bg-card space-y-1">
-          <span className="text-xs text-muted-foreground font-semibold">Inadimplência Prevista</span>
+          <span className="text-xs text-muted-foreground font-semibold">
+            Inadimplência Prevista
+          </span>
           <div className="flex items-center justify-between">
             <span className="text-xl font-extrabold text-foreground font-mono">
               {forecastInadimplenciaRate !== undefined ? `${forecastInadimplenciaRate}%` : "—"}

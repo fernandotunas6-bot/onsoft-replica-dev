@@ -5,8 +5,11 @@ import {
   CalendarDays,
   ChevronDown,
   CreditCard,
+  Download,
   FileText,
+  FileUp,
   GraduationCap,
+  History,
   LayoutGrid,
   Lock,
   LogOut,
@@ -100,6 +103,30 @@ const groups: Group[] = [
     items: [
       { label: "Pessoas", icon: UserCog, to: "/pessoas" },
       {
+        label: "Importação de Dados",
+        icon: FileUp,
+        children: [
+          {
+            label: "Nova Importação",
+            icon: FileUp,
+            to: "/importar",
+            search: { tab: "novo" },
+          },
+          {
+            label: "Histórico & Auditoria",
+            icon: History,
+            to: "/importar",
+            search: { tab: "historico" },
+          },
+          {
+            label: "Modelos Oficiais Excel",
+            icon: Download,
+            to: "/importar",
+            search: { tab: "modelos" },
+          },
+        ],
+      },
+      {
         label: "Gestão de Alunos",
         icon: Users,
         children: [
@@ -154,10 +181,6 @@ const groups: Group[] = [
       { label: "Gestão de Acessos", icon: UserCog, to: "/acessos" },
       { label: "Comunicações", icon: Megaphone, to: "/comunicacoes" },
     ],
-  },
-  {
-    title: "Conta",
-    items: [{ label: "Alterar Senha", icon: Lock, to: "/alterar-senha" }],
   },
 ];
 
@@ -231,21 +254,21 @@ export function AppSidebar({
       data-sidebar="siga"
       className={cn(
         "flex h-full shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-        collapsed ? "w-[68px]" : "w-[256px]",
+        collapsed ? "w-[64px]" : "w-[240px]",
         className,
       )}
     >
       <div
-        className={cn("flex items-center gap-3 py-4", collapsed ? "justify-center px-3" : "px-4")}
+        className={cn("flex h-14 items-center gap-3 border-b border-sidebar-border/40", collapsed ? "justify-center px-2.5" : "px-3.5")}
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-          <GraduationCap className="size-5" />
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+          <GraduationCap className="size-4.5" />
         </span>
         {!collapsed ? (
           <div className="min-w-0 leading-tight">
-            <p className="font-display text-base font-extrabold tracking-tight">SIGA</p>
-            <p className="truncate text-[11px] text-sidebar-muted">
-              Sistema Integrado de Gestão Académica
+            <p className="font-display text-sm font-extrabold tracking-tight">SIGA</p>
+            <p className="truncate text-[10px] text-sidebar-muted">
+              Gestão Escolar Integrada
             </p>
           </div>
         ) : null}

@@ -133,7 +133,7 @@ export const searchPeople = createServerFn({ method: "GET" })
     const { data: people, error } = await db
       .from("people")
       .select(
-        "id, full_name, preferred_name, email, phone, national_id, status, date_of_birth, updated_at",
+        "id, full_name, preferred_name, email, phone, national_id, status, date_of_birth, photo_url, updated_at",
       )
       .eq("school_id", membership.schoolId)
       .order("full_name")
@@ -149,6 +149,7 @@ export const searchPeople = createServerFn({ method: "GET" })
       status: person["status"] as string,
       birth_date: (person["date_of_birth"] as string | null) ?? null,
       nif: (person["national_id"] as string | null) ?? null,
+      photo_url: (person["photo_url"] as string | null) ?? null,
       updated_at: person["updated_at"] as string,
       roles: [] as string[],
     }));
@@ -619,13 +620,14 @@ export const listTeachers = createServerFn({ method: "GET" })
 
     const personIds = [...new Set((teachers ?? []).map((row) => row.person_id))];
     const { data: people } = personIds.length
-      ? await db.from("people").select("id, full_name, email, phone").in("id", personIds)
+      ? await db.from("people").select("id, full_name, email, phone, photo_url").in("id", personIds)
       : {
           data: [] as Array<{
             id: string;
             full_name: string;
             email: string | null;
             phone: string | null;
+            photo_url: string | null;
           }>,
         };
     const peopleById = new Map((people ?? []).map((row) => [row.id, row]));
@@ -644,6 +646,7 @@ export const listTeachers = createServerFn({ method: "GET" })
           full_name: person?.full_name ?? "Professor",
           email: person?.email ?? null,
           phone: person?.phone ?? null,
+          photo_url: (person?.photo_url as string | null | undefined) ?? null,
           updated_at: teacher.updated_at as string,
         };
       })

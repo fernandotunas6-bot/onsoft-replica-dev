@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DebouncedSearchInput } from "@/components/filters/debounced-search-input";
 
-const selectClass = "h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground";
+const selectClass = "h-9 rounded-md border border-input bg-background px-3 text-xs md:text-sm text-foreground";
 
 export type ListFilterOption = { value: string; label: string };
 
@@ -39,7 +39,7 @@ export function ListFilterBar({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card p-4 shadow-soft", className)}>
+    <div className={cn("rounded-lg border border-border bg-card p-3 sm:p-3.5 shadow-xs", className)}>
       <div className="flex flex-wrap items-end gap-2">
         {fields.map((field) => {
           const value = values[field.name] ?? "";

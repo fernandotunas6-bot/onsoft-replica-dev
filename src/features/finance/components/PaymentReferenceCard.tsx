@@ -97,7 +97,11 @@ export function PaymentReferenceCard({
               onClick={() => copyToClipboard(referenceData.entity, "Entidade")}
               className="text-muted-foreground hover:text-primary transition-colors"
             >
-              {copiedField === "Entidade" ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
+              {copiedField === "Entidade" ? (
+                <Check className="size-4 text-primary" />
+              ) : (
+                <Copy className="size-4" />
+              )}
             </button>
           </div>
         </div>
@@ -110,10 +114,16 @@ export function PaymentReferenceCard({
             <span>{referenceData.reference}</span>
             <button
               type="button"
-              onClick={() => copyToClipboard(referenceData.reference.replace(/\s+/g, ""), "Referência")}
+              onClick={() =>
+                copyToClipboard(referenceData.reference.replace(/\s+/g, ""), "Referência")
+              }
               className="text-muted-foreground hover:text-primary transition-colors"
             >
-              {copiedField === "Referência" ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
+              {copiedField === "Referência" ? (
+                <Check className="size-4 text-primary" />
+              ) : (
+                <Copy className="size-4" />
+              )}
             </button>
           </div>
         </div>
@@ -129,7 +139,11 @@ export function PaymentReferenceCard({
               onClick={() => copyToClipboard(String(referenceData.amountNumber), "Montante")}
               className="text-muted-foreground hover:text-primary transition-colors"
             >
-              {copiedField === "Montante" ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
+              {copiedField === "Montante" ? (
+                <Check className="size-4 text-primary" />
+              ) : (
+                <Copy className="size-4" />
+              )}
             </button>
           </div>
         </div>

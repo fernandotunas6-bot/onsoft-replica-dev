@@ -207,127 +207,129 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         }
 
         const students = studentsResult.data ?? [];
-      const personIds = [...new Set(students.map((row) => row.person_id).filter(Boolean))];
-      const { data: people } = personIds.length
-        ? await db.from("people").select("id, sex, date_of_birth").in("id", personIds)
-        : { data: [] as Array<{ id: string; sex: string | null; date_of_birth: string | null }> };
-      const peopleById = new Map((people ?? []).map((row) => [row.id, row]));
+        const personIds = [...new Set(students.map((row) => row.person_id).filter(Boolean))];
+        const { data: people } = personIds.length
+          ? await db.from("people").select("id, sex, date_of_birth").in("id", personIds)
+          : { data: [] as Array<{ id: string; sex: string | null; date_of_birth: string | null }> };
+        const peopleById = new Map((people ?? []).map((row) => [row.id, row]));
 
-      let male = 0;
-      let female = 0;
-      const ageEntries: string[] = [];
-      for (const student of students) {
-        const person = peopleById.get(student.person_id);
-        const sex = String(person?.sex ?? "").toLowerCase();
-        if (sex.startsWith("m") || sex === "male" || sex === "masculino") male += 1;
-        else if (sex.startsWith("f") || sex === "female" || sex === "feminino") female += 1;
-        const band = ageBand(person?.date_of_birth);
-        if (band) ageEntries.push(band);
-      }
+        let male = 0;
+        let female = 0;
+        const ageEntries: string[] = [];
+        for (const student of students) {
+          const person = peopleById.get(student.person_id);
+          const sex = String(person?.sex ?? "").toLowerCase();
+          if (sex.startsWith("m") || sex === "male" || sex === "masculino") male += 1;
+          else if (sex.startsWith("f") || sex === "female" || sex === "feminino") female += 1;
+          const band = ageBand(person?.date_of_birth);
+          if (band) ageEntries.push(band);
+        }
 
-      const groups = (groupsResult.data ?? []) as Array<{
-        id: string;
-        name: string;
-        grade_level_id: string | null;
-      }>;
-      const gradeLevelIds = [
-        ...new Set(groups.map((row) => row.grade_level_id).filter(Boolean)),
-      ] as string[];
-      const { data: grades } = gradeLevelIds.length
-        ? await db.from("grade_levels").select("id, name, program_id").in("id", gradeLevelIds)
-        : { data: [] as Array<{ id: string; name: string; program_id: string | null }> };
-      const gradeById = new Map((grades ?? []).map((row) => [row.id, row]));
-      const programIds = [
-        ...new Set((grades ?? []).map((row) => row.program_id).filter(Boolean)),
-      ] as string[];
-      const { data: programs } = programIds.length
-        ? await db.from("programs").select("id, name").in("id", programIds)
-        : { data: [] as Array<{ id: string; name: string }> };
-      const programById = new Map((programs ?? []).map((row) => [row.id, row.name]));
+        const groups = (groupsResult.data ?? []) as Array<{
+          id: string;
+          name: string;
+          grade_level_id: string | null;
+        }>;
+        const gradeLevelIds = [
+          ...new Set(groups.map((row) => row.grade_level_id).filter(Boolean)),
+        ] as string[];
+        const { data: grades } = gradeLevelIds.length
+          ? await db.from("grade_levels").select("id, name, program_id").in("id", gradeLevelIds)
+          : { data: [] as Array<{ id: string; name: string; program_id: string | null }> };
+        const gradeById = new Map((grades ?? []).map((row) => [row.id, row]));
+        const programIds = [
+          ...new Set((grades ?? []).map((row) => row.program_id).filter(Boolean)),
+        ] as string[];
+        const { data: programs } = programIds.length
+          ? await db.from("programs").select("id, name").in("id", programIds)
+          : { data: [] as Array<{ id: string; name: string }> };
+        const programById = new Map((programs ?? []).map((row) => [row.id, row.name]));
 
-      const activeEnrollments = enrollments.filter((row) => row.status === "active");
-      const classCount = new Map<string, number>();
-      const courseCount = new Map<string, number>();
-      const groupById = new Map(groups.map((row) => [row.id, row]));
-      for (const enrollment of activeEnrollments) {
-        const group = groupById.get(String(enrollment.class_group_id));
-        const className = group?.name ?? "Sem turma";
-        classCount.set(className, (classCount.get(className) ?? 0) + 1);
-        const grade = group?.grade_level_id ? gradeById.get(String(group.grade_level_id)) : null;
-        const courseName = grade?.program_id
-          ? (programById.get(String(grade.program_id)) ?? "Sem curso")
-          : "Sem curso";
-        courseCount.set(courseName, (courseCount.get(courseName) ?? 0) + 1);
-      }
+        const activeEnrollments = enrollments.filter((row) => row.status === "active");
+        const classCount = new Map<string, number>();
+        const courseCount = new Map<string, number>();
+        const groupById = new Map(groups.map((row) => [row.id, row]));
+        for (const enrollment of activeEnrollments) {
+          const group = groupById.get(String(enrollment.class_group_id));
+          const className = group?.name ?? "Sem turma";
+          classCount.set(className, (classCount.get(className) ?? 0) + 1);
+          const grade = group?.grade_level_id ? gradeById.get(String(group.grade_level_id)) : null;
+          const courseName = grade?.program_id
+            ? (programById.get(String(grade.program_id)) ?? "Sem curso")
+            : "Sem curso";
+          courseCount.set(courseName, (courseCount.get(courseName) ?? 0) + 1);
+        }
 
-      const monthMap = new Map<string, number>();
-      for (const enrollment of enrollments) {
-        const month = String(enrollment.enrolled_on ?? "").slice(0, 7);
-        if (!month) continue;
-        monthMap.set(month, (monthMap.get(month) ?? 0) + 1);
-      }
+        const monthMap = new Map<string, number>();
+        for (const enrollment of enrollments) {
+          const month = String(enrollment.enrolled_on ?? "").slice(0, 7);
+          if (!month) continue;
+          monthMap.set(month, (monthMap.get(month) ?? 0) + 1);
+        }
 
-      overview.totals = {
-        students: students.length,
-        activeStudents: students.filter((row) => String(row.status) === "active").length,
-        applicants: students.filter((row) => String(row.status) === "applicant").length,
-        male,
-        female,
-        courses: programsResult.count ?? 0,
-        classGroups: groups.length,
-        rooms: campusesResult.count ?? 0,
-        documentIssued: 0,
-        documentPending: 0,
-        documentTotal: 0,
-        attendanceAverage: averagePercent(
-          activeEnrollments.map((row) =>
-            "attendance_rate" in row ? Number(row.attendance_rate) : null,
+        overview.totals = {
+          students: students.length,
+          activeStudents: students.filter((row) => String(row.status) === "active").length,
+          applicants: students.filter((row) => String(row.status) === "applicant").length,
+          male,
+          female,
+          courses: programsResult.count ?? 0,
+          classGroups: groups.length,
+          rooms: campusesResult.count ?? 0,
+          documentIssued: 0,
+          documentPending: 0,
+          documentTotal: 0,
+          attendanceAverage: averagePercent(
+            activeEnrollments.map((row) =>
+              "attendance_rate" in row ? Number(row.attendance_rate) : null,
+            ),
           ),
-        ),
-      };
-      overview.studentsByClass = [...classCount.entries()]
-        .map(([classe, alunos]) => ({ classe, alunos }))
-        .sort((a, b) => b.alunos - a.alunos || a.classe.localeCompare(b.classe, "pt"));
-      overview.studentsByCourse = [...courseCount.entries()]
-        .map(([curso, alunos]) => ({ curso, alunos }))
-        .sort((a, b) => b.alunos - a.alunos || a.curso.localeCompare(b.curso, "pt"));
-      overview.topClasses = overview.studentsByClass.slice(0, 4).map((row) => {
-        const group = groups.find((item) => item.name === row.classe);
-        const grade = group?.grade_level_id ? gradeById.get(String(group.grade_level_id)) : null;
-        const curso = grade?.program_id ? (programById.get(String(grade.program_id)) ?? "—") : "—";
-        return {
-          classe: row.classe,
-          curso,
-          turma: row.classe,
-          alunos: row.alunos,
         };
-      });
-      overview.genderSplit = [
-        { name: "Masculino", value: male },
-        { name: "Feminino", value: female },
-        {
-          name: "Não indicado",
-          value: Math.max(students.length - male - female, 0),
-        },
-      ].filter((row) => row.value > 0);
-      overview.enrollmentsByMonth = [...monthMap.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(-8)
-        .map(([month, matriculas]) => ({
-          mes: new Date(`${month}-01T00:00:00`).toLocaleDateString("pt-PT", {
-            month: "short",
-            year: "2-digit",
-          }),
-          matriculas,
+        overview.studentsByClass = [...classCount.entries()]
+          .map(([classe, alunos]) => ({ classe, alunos }))
+          .sort((a, b) => b.alunos - a.alunos || a.classe.localeCompare(b.classe, "pt"));
+        overview.studentsByCourse = [...courseCount.entries()]
+          .map(([curso, alunos]) => ({ curso, alunos }))
+          .sort((a, b) => b.alunos - a.alunos || a.curso.localeCompare(b.curso, "pt"));
+        overview.topClasses = overview.studentsByClass.slice(0, 4).map((row) => {
+          const group = groups.find((item) => item.name === row.classe);
+          const grade = group?.grade_level_id ? gradeById.get(String(group.grade_level_id)) : null;
+          const curso = grade?.program_id
+            ? (programById.get(String(grade.program_id)) ?? "—")
+            : "—";
+          return {
+            classe: row.classe,
+            curso,
+            turma: row.classe,
+            alunos: row.alunos,
+          };
+        });
+        overview.genderSplit = [
+          { name: "Masculino", value: male },
+          { name: "Feminino", value: female },
+          {
+            name: "Não indicado",
+            value: Math.max(students.length - male - female, 0),
+          },
+        ].filter((row) => row.value > 0);
+        overview.enrollmentsByMonth = [...monthMap.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .slice(-8)
+          .map(([month, matriculas]) => ({
+            mes: new Date(`${month}-01T00:00:00`).toLocaleDateString("pt-PT", {
+              month: "short",
+              year: "2-digit",
+            }),
+            matriculas,
+          }));
+        overview.ageDistribution = countMap(ageEntries).map((row) => ({
+          faixa: row.label,
+          alunos: row.total,
         }));
-      overview.ageDistribution = countMap(ageEntries).map((row) => ({
-        faixa: row.label,
-        alunos: row.total,
-      }));
-      overview.enrollmentStatus = countMap(enrollments.map((row) => row.status)).map((row) => ({
-        estado: row.label,
-        total: row.total,
-      }));
+        overview.enrollmentStatus = countMap(enrollments.map((row) => row.status)).map((row) => ({
+          estado: row.label,
+          total: row.total,
+        }));
       } catch {
         /* degradação graciosa caso tabelas de estudantes falhem */
       }

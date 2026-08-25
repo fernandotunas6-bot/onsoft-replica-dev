@@ -38,7 +38,8 @@ export const accessModules = [
 
 const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   { prefixes: ["/"], roles: ["Administrador", "Secretaria", "Tesouraria", "Professor"] },
-  { prefixes: ["/configuracoes", "/acessos"], roles: ["Administrador"] },
+  { prefixes: ["/acessos"], roles: ["Administrador", "Secretaria"] },
+  { prefixes: ["/configuracoes"], roles: ["Administrador"] },
   {
     prefixes: ["/financeiro", "/faturas", "/relatorios/financeiros"],
     roles: ["Administrador", "Tesouraria"],

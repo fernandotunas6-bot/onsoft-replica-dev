@@ -29,7 +29,9 @@ export async function requestPushNotificationPermission(): Promise<NotificationP
   }
 }
 
-export async function sendLocalPushNotification(payload: SchoolNotificationPayload): Promise<boolean> {
+export async function sendLocalPushNotification(
+  payload: SchoolNotificationPayload,
+): Promise<boolean> {
   const perm = await requestPushNotificationPermission();
   if (perm !== "granted") return false;
 

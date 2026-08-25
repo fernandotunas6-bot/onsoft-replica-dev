@@ -65,7 +65,7 @@ export function mapSupabaseClassToGoogleEvent(
 
   const event: GoogleCalendarEvent = {
     summary: `[SIGA] ${classData.disciplineName} - Turma ${classData.turmaName}`,
-    location: classData.roomName ? `Sala: ${classData.roomName}` : undefined,
+    ...(classData.roomName ? { location: `Sala: ${classData.roomName}` } : {}),
     description: [
       `Aula da disciplina: ${classData.disciplineName}`,
       classData.teacherName ? `Professor(a): ${classData.teacherName}` : "",
@@ -83,7 +83,7 @@ export function mapSupabaseClassToGoogleEvent(
       dateTime: endDateTime,
       timeZone,
     },
-    attendees: attendees.length > 0 ? attendees : undefined,
+    ...(attendees.length > 0 ? { attendees } : {}),
     reminders: {
       useDefault: false,
       overrides: [
@@ -148,7 +148,8 @@ export async function createGoogleCalendarClassEvent(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Erro inesperado ao criar evento no Google Calendar",
+      error:
+        err instanceof Error ? err.message : "Erro inesperado ao criar evento no Google Calendar",
     };
   }
 }

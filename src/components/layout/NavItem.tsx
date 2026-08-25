@@ -23,8 +23,8 @@ export const NAV_ROW_ACTIVE =
   "bg-primary/16 font-semibold text-sidebar-active hover:bg-primary/20 hover:text-sidebar-active";
 
 const depthClass: Record<NavDepth, string> = {
-  root: "min-h-11 px-3 text-sm",
-  sub: "min-h-9 px-3 text-[13px]",
+  root: "min-h-9 px-2.5 py-1.5 text-xs font-medium",
+  sub: "min-h-8 px-2.5 py-1 text-[12px]",
 };
 
 export function NavIcon({

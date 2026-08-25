@@ -409,7 +409,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     let openCount = 0;
     let overdueCount = 0;
     const billedStudents = new Set<string>();
-    const monthlyMap = new Map<string, { billed: number; received: number }>();
+    const monthlyMap = new Map<string, { billed: number; received: number; expense: number }>();
     const categoryMap = new Map<string, number>();
     const expenseCategoryMap = new Map<string, number>();
     const feeById = new Map(
@@ -434,7 +434,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
       if (enrollment?.student_id) billedStudents.add(String(enrollment.student_id));
       const month = String(invoice.competence_month || invoice.created_at || "").slice(0, 7);
       if (month) {
-        const current = monthlyMap.get(month) ?? { billed: 0, received: 0 };
+        const current = monthlyMap.get(month) ?? { billed: 0, received: 0, expense: 0 };
         current.billed += amount;
         current.received += Math.min(paid, amount);
         monthlyMap.set(month, current);
@@ -446,12 +446,16 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
 
     for (const expense of expenses) {
       if (expense.status === "reversed") continue;
-      cashOut += Number(expense.amount ?? 0);
+      const expenseAmount = Number(expense.amount ?? 0);
+      cashOut += expenseAmount;
       const category = String(expense.category ?? "Despesa");
-      expenseCategoryMap.set(
-        category,
-        (expenseCategoryMap.get(category) ?? 0) + Number(expense.amount ?? 0),
-      );
+      expenseCategoryMap.set(category, (expenseCategoryMap.get(category) ?? 0) + expenseAmount);
+      const expenseMonth = String(expense.occurred_at ?? "").slice(0, 7);
+      if (expenseMonth) {
+        const current = monthlyMap.get(expenseMonth) ?? { billed: 0, received: 0, expense: 0 };
+        current.expense += expenseAmount;
+        monthlyMap.set(expenseMonth, current);
+      }
     }
 
     return {
@@ -475,6 +479,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
           month_start: `${month}-01`,
           billed: values.billed,
           received: values.received,
+          expense: values.expense,
         })),
       categories: [
         ...[...categoryMap.entries()].map(([category, total]) => ({
@@ -756,9 +761,8 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
 export const generateInvoicePaymentReference = createServerFn({ method: "POST" })
   .validator((data: { invoiceId: string; amount: number; entity?: string }) => data)
   .handler(async ({ data }) => {
-    const { generateMulticaixaReference, generateMobileWalletOptions } = await import(
-      "./emiss-multicaixa"
-    );
+    const { generateMulticaixaReference, generateMobileWalletOptions } =
+      await import("./emiss-multicaixa");
     const mcx = generateMulticaixaReference(data.entity ?? "99824", data.invoiceId, data.amount);
     const wallets = generateMobileWalletOptions(data.amount, data.invoiceId);
     return {
@@ -768,10 +772,12 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
   });
 
 export const simulateEmisPaymentNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator(
     (data: { invoiceId: string; amount: number; reference: string; method?: string }) => data,
   )
   .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
@@ -1224,10 +1230,10 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
 
     const schoolVal = (schoolSetting?.value as Record<string, any>) ?? {};
     const schoolInfo = {
-      nif: String(schoolVal.nif ?? schoolVal.taxId ?? "999999999"),
-      name: String(schoolVal.name ?? schoolVal.schoolName ?? "Instituição Escolar SIGA"),
-      address: String(schoolVal.address ?? "Luanda"),
-      city: String(schoolVal.city ?? "Luanda"),
+      nif: String(schoolVal["nif"] ?? schoolVal["taxId"] ?? "999999999"),
+      name: String(schoolVal["name"] ?? schoolVal["schoolName"] ?? "Instituição Escolar SIGA"),
+      address: String(schoolVal["address"] ?? "Luanda"),
+      city: String(schoolVal["city"] ?? "Luanda"),
     };
 
     // Load invoices
@@ -1241,8 +1247,12 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       throw publicDatabaseError(error, "Não foi possível carregar as faturas para o SAFT-AO.");
     }
 
-    const studentIds = [...new Set((invoices ?? []).map((inv: any) => inv.student_id).filter(Boolean))];
-    const studentNames = studentIds.length ? await loadPersonNamesById(db, studentIds) : new Map();
+    const studentIds = [
+      ...new Set((invoices ?? []).map((inv: any) => inv.student_id).filter(Boolean)),
+    ];
+    const studentNames = studentIds.length
+      ? await loadPersonNamesById(db, membership.schoolId, studentIds)
+      : new Map();
 
     const formattedInvoices = (invoices ?? []).map((inv: any) => ({
       id: inv.id,
@@ -1266,4 +1276,3 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       invoiceCount: formattedInvoices.length,
     };
   });
-

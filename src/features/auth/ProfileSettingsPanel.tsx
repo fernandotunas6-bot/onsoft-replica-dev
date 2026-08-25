@@ -14,7 +14,11 @@ import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeAngolaPhone, validateAngolaPhone } from "@/lib/angola-phone";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { setCurrentProfileAvatar, updateCurrentProfile, uploadCurrentProfileAvatar } from "./server";
+import {
+  setCurrentProfileAvatar,
+  updateCurrentProfile,
+  uploadCurrentProfileAvatar,
+} from "./server";
 
 /**
  * Perfil da conta (foto + câmera + nome + telemóvel) — usado no Centro de Configurações
@@ -169,7 +173,8 @@ function ProfileAvatarField() {
         />
 
         <p className="text-xs text-muted-foreground">
-          Envie um ficheiro PNG, JPG ou WebP (máx. 4 MB), utilize a câmera ao vivo ou escolha dos Arquivos.
+          Envie um ficheiro PNG, JPG ou WebP (máx. 4 MB), utilize a câmera ao vivo ou escolha dos
+          Arquivos.
         </p>
 
         {/* WebRTC Camera Capture Dialog */}
@@ -247,7 +252,7 @@ export function ProfileSettingsPanel() {
         <div className="space-y-1.5 sm:col-span-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="set-nome">Nome completo</Label>
-            {currentUser.isAdmin && (
+            {currentUser.role === "Administrador" && (
               <Badge variant="outline" className="gap-1 border-primary/30 text-primary text-xs">
                 <Shield className="size-3" /> Administrador SIGA
               </Badge>
@@ -290,7 +295,7 @@ export function ProfileSettingsPanel() {
       </p>
 
       <div className="flex items-center justify-between pt-2">
-        {currentUser.isAdmin && (
+        {currentUser.role === "Administrador" && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Sliders className="size-3.5 text-primary" />
             <span>Centro de Definições avançadas ativo</span>

@@ -487,7 +487,7 @@ function DocumentosPage() {
 
         <InstalledModuleTools module="documentos" />
 
-        <StatGrid
+        <StatGrid collapsible storageKey="documentos-1"
           items={[
             {
               label: "Pedidos registados",
@@ -512,7 +512,7 @@ function DocumentosPage() {
           ]}
         />
 
-        <StatGrid
+        <StatGrid collapsible storageKey="documentos-2"
           items={[
             {
               label: "Taxa média",

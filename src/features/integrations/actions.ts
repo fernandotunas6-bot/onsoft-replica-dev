@@ -1,9 +1,5 @@
-import {
-  academicIntegrationCatalog,
-  integrationInstallPackages,
-  type CatalogIntegrationId,
-  type IntegrationCapability,
-} from "./install";
+import { academicIntegrationCatalog, type CatalogIntegrationId } from "./catalog";
+import { integrationInstallPackages, type IntegrationCapability } from "./install";
 
 export type CapabilityActionKind =
   | "ics-google"
@@ -83,7 +79,7 @@ export function providerIdFromCapability(capabilityId: string) {
     sige: "sige",
     agt: "agt",
   };
-  const prefix = capabilityId.split(".")[0];
+  const prefix = capabilityId.split(".")[0] ?? capabilityId;
   return aliases[prefix] ?? prefix;
 }
 

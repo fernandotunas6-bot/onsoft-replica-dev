@@ -37,12 +37,9 @@ function encodeBase64Url(str: string): string {
   const bytes = new TextEncoder().encode(str);
   let binary = "";
   for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
+    binary += String.fromCharCode(bytes[i] ?? 0);
   }
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 /**
@@ -161,7 +158,8 @@ export async function sendWelcomeEmailOnStudentEnrolled(
   if (!token) {
     return {
       success: false,
-      error: "Sessão Google Workspace não autenticada. Autentique o Gmail nas configurações do SIGA.",
+      error:
+        "Sessão Google Workspace não autenticada. Autentique o Gmail nas configurações do SIGA.",
     };
   }
 

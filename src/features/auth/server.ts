@@ -288,7 +288,10 @@ export const uploadCurrentProfileAvatar = createServerFn({ method: "POST" })
     });
 
     if (uploadError) {
-      throw publicDatabaseError(uploadError, "Não foi possível carregar a imagem para o armazenamento.");
+      throw publicDatabaseError(
+        uploadError,
+        "Não foi possível carregar a imagem para o armazenamento.",
+      );
     }
 
     const avatarUrl = `${AVATAR_REFERENCE_PREFIX}${storagePath}`;
@@ -309,8 +312,14 @@ export const uploadCurrentProfileAvatar = createServerFn({ method: "POST" })
       throw publicDatabaseError(updateError, "Não foi possível actualizar o perfil.");
     }
 
-    const previousPath = previous?.avatar_url ? avatarStoragePathFromUrl(previous.avatar_url) : null;
-    if (previousPath && previousPath !== storagePath && previousPath.startsWith(`${context.userId}/`)) {
+    const previousPath = previous?.avatar_url
+      ? avatarStoragePathFromUrl(previous.avatar_url)
+      : null;
+    if (
+      previousPath &&
+      previousPath !== storagePath &&
+      previousPath.startsWith(`${context.userId}/`)
+    ) {
       await db.storage.from("avatars").remove([previousPath]);
     }
 

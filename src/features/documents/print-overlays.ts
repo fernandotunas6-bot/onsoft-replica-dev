@@ -487,12 +487,12 @@ export function overlayCertificadoHabilitacoes(input: {
         (sub.finalGrade >= 18
           ? "Excelente"
           : sub.finalGrade >= 16
-          ? "Muito Bom"
-          : sub.finalGrade >= 14
-          ? "Bom"
-          : sub.finalGrade >= 10
-          ? "Suficiente"
-          : "Insuficiente"),
+            ? "Muito Bom"
+            : sub.finalGrade >= 14
+              ? "Bom"
+              : sub.finalGrade >= 10
+                ? "Suficiente"
+                : "Insuficiente"),
     })),
     summary: {
       finalAverage: input.finalAverage.toFixed(1),

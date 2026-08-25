@@ -70,7 +70,13 @@ export function getGoogleOAuthUrl(options?: {
 
 let memoryStorage: Record<string, string> = {};
 
-function getStorage(): Storage | { getItem: (k: string) => string | null; setItem: (k: string, v: string) => void; removeItem: (k: string) => void } {
+function getStorage():
+  | Storage
+  | {
+      getItem: (k: string) => string | null;
+      setItem: (k: string, v: string) => void;
+      removeItem: (k: string) => void;
+    } {
   if (typeof window !== "undefined" && window.localStorage) {
     return window.localStorage;
   }
@@ -79,8 +85,12 @@ function getStorage(): Storage | { getItem: (k: string) => string | null; setIte
   }
   return {
     getItem: (k: string) => memoryStorage[k] ?? null,
-    setItem: (k: string, v: string) => { memoryStorage[k] = v; },
-    removeItem: (k: string) => { delete memoryStorage[k]; },
+    setItem: (k: string, v: string) => {
+      memoryStorage[k] = v;
+    },
+    removeItem: (k: string) => {
+      delete memoryStorage[k];
+    },
   };
 }
 

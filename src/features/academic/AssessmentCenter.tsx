@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
-import { PremiumModal } from "@/components/ui/premium-modal";
+import { QuickModal, FormModal } from "@/components/ui/modal-system";
 import { AngolaEmblem } from "@/features/academic/AngolaEmblem";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
 import {
@@ -1652,37 +1652,39 @@ export function AssessmentCenter({
           </div>
         </div>
 
-        <PremiumModal
+        <QuickModal
           open={saveOpen}
           onOpenChange={setSaveOpen}
-          eyebrow="Guardar"
           title="Guardar alterações"
-          description={contextLabel}
-          icon={<Save className="size-5" />}
-          footer={
+          subtitle={contextLabel}
+          submitLabel={
+            saving
+              ? "A guardar…"
+              : contextKind === "aluno"
+                ? "Guardar avaliação do aluno"
+                : contextKind === "disciplina"
+                  ? "Guardar pauta da disciplina"
+                  : "Guardar pauta da turma"
+          }
+          isSubmitting={saving}
+          onSubmit={async () => {
+            await saveChanges();
+          }}
+          extraActions={
             <>
-              <Button variant="outline" onClick={() => exportDocument("pdf")}>
+              <Button variant="outline" size="sm" onClick={() => exportDocument("pdf")}>
                 PDF
               </Button>
-              <Button variant="outline" onClick={() => exportDocument("excel")}>
+              <Button variant="outline" size="sm" onClick={() => exportDocument("excel")}>
                 Excel
-              </Button>
-              <Button onClick={() => void saveChanges()} disabled={saving}>
-                {saving
-                  ? "A guardar…"
-                  : contextKind === "aluno"
-                    ? "Guardar avaliação do aluno"
-                    : contextKind === "disciplina"
-                      ? "Guardar pauta da disciplina"
-                      : "Guardar pauta da turma"}
               </Button>
             </>
           }
         >
-          <p className="text-sm">
+          <p className="text-xs text-muted-foreground">
             {visibleRows.length} alunos · {dirtyCount} alterações neste contexto.
           </p>
-        </PremiumModal>
+        </QuickModal>
 
         <CreateAssessmentDialog
           open={createOpen}
@@ -2007,38 +2009,28 @@ function CreateAssessmentDialog({
   };
 
   return (
-    <PremiumModal
+    <FormModal
       open={open}
       onOpenChange={onOpenChange}
-      eyebrow="Avaliação"
       title={editingItem ? "Editar avaliação" : "Criar avaliação"}
-      description="A pauta calcula MAC, NPP e NPT a partir destas avaliações."
-      icon={<Calculator className="size-5" />}
-      footer={
-        <div className="flex w-full items-center justify-between gap-2">
-          {editingItem ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => void handleDelete()}
-              disabled={deleting || saving}
-              className="gap-1.5"
-            >
-              <Trash2 className="size-3.5" />
-              {deleting ? "A eliminar…" : "Eliminar"}
-            </Button>
-          ) : (
-            <div />
-          )}
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => void submit()} disabled={saving || deleting || name.trim().length < 2}>
-              {saving ? "A guardar…" : editingItem ? "Guardar alterações" : "Criar avaliação"}
-            </Button>
-          </div>
-        </div>
+      subtitle="A pauta calcula MAC, NPP e NPT a partir destas avaliações."
+      submitLabel={editingItem ? "Guardar alterações" : "Criar avaliação"}
+      isSubmitting={saving}
+      disabled={deleting || name.trim().length < 2}
+      onSubmit={submit}
+      extraActions={
+        editingItem ? (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => void handleDelete()}
+            disabled={deleting || saving}
+            className="gap-1.5"
+          >
+            <Trash2 className="size-3.5" />
+            {deleting ? "A eliminar…" : "Eliminar"}
+          </Button>
+        ) : undefined
       }
     >
       <div className="grid gap-3 sm:grid-cols-2">
@@ -2108,6 +2100,6 @@ function CreateAssessmentDialog({
           <Switch checked={recovery} onCheckedChange={setRecovery} /> Permitir recuperação
         </label>
       </div>
-    </PremiumModal>
+    </FormModal>
   );
 }

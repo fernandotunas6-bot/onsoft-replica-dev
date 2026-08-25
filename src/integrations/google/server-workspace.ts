@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/features/auth/auth-middleware";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export interface GoogleConnectionStatus {
   connected: boolean;
@@ -78,10 +78,12 @@ export const getGoogleWorkspaceStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async (): Promise<GoogleConnectionStatus> => {
     // Check if OAuth tokens exist in process environment or user session
-    const hasGoogleOauth = Boolean(process.env.GOOGLE_OAUTH_TOKEN || process.env.GOOGLE_CLIENT_ID);
+    const hasGoogleOauth = Boolean(
+      process.env["GOOGLE_OAUTH_TOKEN"] || process.env["GOOGLE_CLIENT_ID"],
+    );
     return {
       connected: hasGoogleOauth,
-      userEmail: process.env.GOOGLE_ACCOUNT_EMAIL || null,
+      userEmail: process.env["GOOGLE_ACCOUNT_EMAIL"] || null,
       services: {
         calendar: true,
         gmail: true,
@@ -108,7 +110,8 @@ export const syncCalendarEvent = createServerFn({ method: "POST" })
     } catch (error) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : "Erro ao sincronizar com Google Calendar.",
+        message:
+          error instanceof Error ? error.message : "Erro ao sincronizar com Google Calendar.",
       };
     }
   });
@@ -136,20 +139,23 @@ export const sendGmailNotification = createServerFn({ method: "POST" })
 export const exportToGoogleSheets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleSheetExportInput) => data)
-  .handler(async ({ data }): Promise<{ success: boolean; spreadsheetUrl?: string; message: string }> => {
-    try {
-      return {
-        success: true,
-        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/siga-export-${Date.now()}`,
-        message: `Pauta "${data.title}" exportada com sucesso para o Google Sheets.`,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : "Erro ao exportar folha para Google Sheets.",
-      };
-    }
-  });
+  .handler(
+    async ({ data }): Promise<{ success: boolean; spreadsheetUrl?: string; message: string }> => {
+      try {
+        return {
+          success: true,
+          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/siga-export-${Date.now()}`,
+          message: `Pauta "${data.title}" exportada com sucesso para o Google Sheets.`,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message:
+            error instanceof Error ? error.message : "Erro ao exportar folha para Google Sheets.",
+        };
+      }
+    },
+  );
 
 // Criar tarefa administrativa no Google Tasks
 export const createGoogleTask = createServerFn({ method: "POST" })

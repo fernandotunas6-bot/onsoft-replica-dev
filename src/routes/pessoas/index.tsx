@@ -1,4 +1,4 @@
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { applyLibraryPhotoToPerson } from "@/features/arquivos/apply-person-photo";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { resolveFileUrl } from "@/features/arquivos/resolve-file";
+import { prefetchPersonPhotoUrls } from "@/features/arquivos/person-photo-url";
 import { signSchoolFile } from "@/features/arquivos/server";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { AppShell } from "@/components/layout/AppShell";
@@ -38,7 +39,7 @@ import {
 } from "@/components/ui/table";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
-import { PremiumModal } from "@/components/ui/premium-modal";
+import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import {
   addPersonDocument,
@@ -136,6 +137,15 @@ function PeoplePage() {
     queryFn: () => searchPeople({ data: { query: deferredQuery, limit: 50 } }),
     placeholderData: (previous) => previous,
   });
+
+  const peoplePhotoKey = (peopleQuery.data ?? [])
+    .map((row) => (typeof row.photo_url === "string" ? row.photo_url : ""))
+    .filter(Boolean)
+    .join("|");
+  useEffect(() => {
+    if (!peoplePhotoKey) return;
+    void prefetchPersonPhotoUrls(peoplePhotoKey.split("|"));
+  }, [peoplePhotoKey]);
 
   const teachersQuery = useQuery({
     queryKey: ["people", "teachers", filters.q, filters.teacherStatus],
@@ -880,7 +890,7 @@ function PeoplePage() {
         </div>
       </div>
 
-      <PremiumModal
+      <ModalShell
         open={Boolean(selectedId)}
         onOpenChange={(open) => {
           if (!open) {
@@ -888,101 +898,20 @@ function PeoplePage() {
             setPendingDocFile(null);
           }
         }}
-        eyebrow="Registo central"
-        title={person?.full_name ?? "Ficha da pessoa"}
-        description="Consulta rápida dos dados pessoais guardados."
-        icon={<User className="size-5" />}
-        footer={
-          <>
-            {person ? (
-              <QuickFormModal
-                title="Editar pessoa"
-                description="Actualiza o nome e os contactos desta ficha."
-                icon={<Pencil className="size-5" />}
-                submitLabel="Guardar"
-                successDescription="Ficha actualizada."
-                onSubmit={async (values) => {
-                  await updatePerson({
-                    data: {
-                      personId: person.id,
-                      fullName: values["nome"] ?? person.full_name,
-                      email: values["email"] || undefined,
-                      phone: values["telefone"] || undefined,
-                      nif: values["nif"] || undefined,
-                    },
-                  });
-                  await Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ["people", "search"] }),
-                    queryClient.invalidateQueries({ queryKey: ["people", "detail"] }),
-                    queryClient.invalidateQueries({ queryKey: ["people", "teachers"] }),
-                  ]);
-                }}
-                fields={[
-                  {
-                    name: "nome",
-                    label: "Nome",
-                    defaultValue: person.full_name,
-                    full: true,
-                  },
-                  {
-                    name: "email",
-                    label: "Email",
-                    defaultValue: person.email ?? "",
-                    required: false,
-                  },
-                  {
-                    name: "telefone",
-                    label: "Telefone",
-                    defaultValue: person.phone_primary ?? "",
-                    required: false,
-                  },
-                  {
-                    name: "nif",
-                    label: "NIF / BI",
-                    type: "angola-identity",
-                    defaultValue: person.nif ?? "",
-                    required: false,
-                    full: true,
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button variant="outline" className="gap-1.5" onClick={open}>
-                    <Pencil className="size-3.5" /> Editar
-                  </Button>
-                )}
-              />
-            ) : null}
-            {person ? (
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    const next = person.status === "inactive" ? "active" : "inactive";
-                    await updatePersonStatus({
-                      data: { personId: person.id, status: next },
-                    });
-                    await Promise.all([
-                      queryClient.invalidateQueries({ queryKey: ["people", "search"] }),
-                      queryClient.invalidateQueries({ queryKey: ["people", "detail"] }),
-                    ]);
-                    toast.success(next === "inactive" ? "Pessoa desactivada" : "Pessoa reactivada");
-                  } catch (error) {
-                    toast.error(
-                      error instanceof Error ? error.message : "Não foi possível alterar o estado.",
-                    );
-                  }
-                }}
-              >
-                {person.status === "inactive" ? "Reactivar" : "Desactivar"}
-              </Button>
-            ) : null}
-            <Button variant="ghost" onClick={() => setSelectedId(null)}>
-              Fechar
-            </Button>
-          </>
-        }
+        size="lg"
       >
-        {personQuery.isLoading ? (
+        <div className="flex flex-col h-full">
+          <ModalHeader
+            icon={User}
+            title={person?.full_name ?? "Ficha da pessoa"}
+            subtitle="Consulta rápida dos dados pessoais guardados."
+            onClose={() => {
+              setSelectedId(null);
+              setPendingDocFile(null);
+            }}
+          />
+          <ModalContent>
+            {personQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">A carregar ficha…</p>
         ) : personQuery.isError ? (
           <p className="text-sm text-destructive">
@@ -1253,7 +1182,16 @@ function PeoplePage() {
             </dl>
           </div>
         ) : null}
-      </PremiumModal>
+        </ModalContent>
+          <ModalFooter
+            onCancel={() => {
+              setSelectedId(null);
+              setPendingDocFile(null);
+            }}
+            cancelLabel="Fechar"
+          />
+        </div>
+      </ModalShell>
 
       <PersonWizardModal
         open={wizardOpen}

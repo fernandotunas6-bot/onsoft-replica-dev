@@ -74,7 +74,9 @@ export interface RawStudentRiskInput {
   tuitionOverdueDays: number;
 }
 
-export function generateDropoutRiskReport(inputStudents: RawStudentRiskInput[] = []): DropoutRiskStudent[] {
+export function generateDropoutRiskReport(
+  inputStudents: RawStudentRiskInput[] = [],
+): DropoutRiskStudent[] {
   return inputStudents.map((s) => {
     const risk = calculateDropoutRiskScore(s.attendanceRate, s.averageGrade, s.tuitionOverdueDays);
     return {

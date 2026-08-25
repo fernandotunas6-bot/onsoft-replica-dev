@@ -288,7 +288,9 @@ function Dashboard() {
     );
   };
 
-  const [activeTab, setActiveTab] = useState<"geral" | "pedagogico" | "financeiro" | "auditoria">("geral");
+  const [activeTab, setActiveTab] = useState<"geral" | "pedagogico" | "financeiro" | "auditoria">(
+    "geral",
+  );
 
   return (
     <AppShell>
@@ -459,7 +461,10 @@ function Dashboard() {
                 {card}
               </Link>
             ) : (
-              <div key={s.label} className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card">
+              <div
+                key={s.label}
+                className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
+              >
                 {card}
               </div>
             );
@@ -468,7 +473,10 @@ function Dashboard() {
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {miniStats.map((s) => (
-            <div key={s.label} className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card">
+            <div
+              key={s.label}
+              className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
+            >
               <IconChip
                 icon={s.icon}
                 size="md"
@@ -764,7 +772,7 @@ function Dashboard() {
         </div>
 
         {/* BI EXECUTIVO 360° — HEATMAP DE DESEMPENHO E FLUXO DE CAIXA */}
-        {(activeTab === "geral" || activeTab === "pedagogico") ? (
+        {activeTab === "geral" || activeTab === "pedagogico" ? (
           <div className="space-y-6">
             <DisciplinePerformanceHeatmap />
           </div>
@@ -785,28 +793,39 @@ function Dashboard() {
                   Painel de Auditoria de Produtividade & Integridade
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Monitorização contínua do estado dos serviços, banco de dados SGA e resiliência de relatórios
+                  Monitorização contínua do estado dos serviços, banco de dados SGA e resiliência de
+                  relatórios
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div className="p-4 rounded-xl border border-success/30 bg-success/10 space-y-1">
-                <span className="font-semibold text-success-strong">Estado da Base de Dados SGA</span>
+                <span className="font-semibold text-success-strong">
+                  Estado da Base de Dados SGA
+                </span>
                 <p className="text-xl font-bold text-foreground font-mono">Conectado / 100%</p>
-                <span className="text-[11px] text-muted-foreground">xodgfmxiaunpamctfeea.supabase.co</span>
+                <span className="text-[11px] text-muted-foreground">
+                  xodgfmxiaunpamctfeea.supabase.co
+                </span>
               </div>
 
               <div className="p-4 rounded-xl border border-primary/30 bg-primary/10 space-y-1">
                 <span className="font-semibold text-primary">Registo de Auditoria (Logs)</span>
                 <p className="text-xl font-bold text-foreground font-mono">Ativo</p>
-                <span className="text-[11px] text-muted-foreground">Resiliência contra falhas ativada</span>
+                <span className="text-[11px] text-muted-foreground">
+                  Resiliência contra falhas ativada
+                </span>
               </div>
 
               <div className="p-4 rounded-xl border border-warning/30 bg-warning/10 space-y-1">
-                <span className="font-semibold text-warning-strong">Taxa de Integridade Operacional</span>
+                <span className="font-semibold text-warning-strong">
+                  Taxa de Integridade Operacional
+                </span>
                 <p className="text-xl font-bold text-foreground font-mono">100% Estável</p>
-                <span className="text-[11px] text-muted-foreground">13 Módulos operacionais integrados</span>
+                <span className="text-[11px] text-muted-foreground">
+                  13 Módulos operacionais integrados
+                </span>
               </div>
             </div>
           </section>

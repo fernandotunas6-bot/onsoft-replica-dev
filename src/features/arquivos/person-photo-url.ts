@@ -1,4 +1,4 @@
-import { signSchoolFile } from "./server";
+import { signSchoolFile, signSchoolFiles } from "./server";
 
 const PRIVATE_PHOTO_PREFIX = "siga-file://";
 const SIGNED_URL_TTL_MS = 100_000;
@@ -14,6 +14,9 @@ function privatePhotoFileId(value: string) {
 export function isPrivatePersonPhotoUrl(value?: string | null) {
   return Boolean(value?.startsWith(PRIVATE_PHOTO_PREFIX) && privatePhotoFileId(value));
 }
+
+export const isPrivateSigaFile = isPrivatePersonPhotoUrl;
+
 
 /** Resolve fotos privadas da biblioteca e reutiliza a URL assinada por 100 segundos. */
 export async function resolvePersonPhotoUrl(value?: string | null): Promise<string | null> {
@@ -38,4 +41,42 @@ export async function resolvePersonPhotoUrl(value?: string | null): Promise<stri
     pendingUrls.set(value, pending);
   }
   return pending;
+}
+
+/**
+ * Pré-assina numa só chamada todas as fotos privadas de uma listagem e enche a
+ * mesma cache usada por `resolvePersonPhotoUrl` — os avatares por linha passam a
+ * acertar na cache em vez de dispararem um pedido cada um.
+ */
+export async function prefetchPersonPhotoUrls(values: Array<string | null | undefined>) {
+  const now = Date.now();
+  const byFileId = new Map<string, string>();
+  for (const value of values) {
+    if (!value || !value.startsWith(PRIVATE_PHOTO_PREFIX)) continue;
+    const cached = cachedUrls.get(value);
+    if (cached && cached.expiresAt > now) continue;
+    if (pendingUrls.has(value)) continue;
+    const fileId = privatePhotoFileId(value);
+    if (fileId) byFileId.set(fileId, value);
+  }
+  if (!byFileId.size) return;
+
+  const ids = [...byFileId.keys()];
+  const pending = signSchoolFiles({ data: { ids } })
+    .then((result) => result.urls ?? {})
+    .catch(() => ({}) as Record<string, string>);
+
+  for (const [fileId, value] of byFileId) {
+    pendingUrls.set(
+      value,
+      pending.then((urls) => urls[fileId] ?? null),
+    );
+  }
+
+  const urls = await pending;
+  const expiresAt = Date.now() + SIGNED_URL_TTL_MS;
+  for (const [fileId, value] of byFileId) {
+    cachedUrls.set(value, { url: urls[fileId] ?? null, expiresAt });
+    pendingUrls.delete(value);
+  }
 }

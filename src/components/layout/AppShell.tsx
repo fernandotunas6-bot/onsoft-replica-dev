@@ -9,6 +9,7 @@ import {
   Maximize2,
   Menu,
   Moon,
+  Search,
   Sun,
   Users,
   Wallet,
@@ -206,7 +207,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 bg-transparent px-4 py-2.5 backdrop-blur-xl md:px-6 lg:px-4 lg:py-2">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/50 bg-background/80 px-3.5 backdrop-blur-md md:px-5">
           <Button
             variant="ghost"
             size="icon"
@@ -231,13 +232,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex min-w-0 items-center gap-2 rounded-full border border-border bg-secondary/70 px-3.5 py-1.5 text-sm font-medium text-secondary-foreground transition-colors hover:border-primary/40"
+                className="flex min-w-0 items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
               >
                 <span className="truncate whitespace-nowrap">
                   {selectedYearLabel}
                   {selectedYearId && selectedYearId === activeYear?.id ? " (Atual)" : ""}
                 </span>
-                <ChevronDown className="size-4 shrink-0 opacity-60" />
+                <ChevronDown className="size-3.5 shrink-0 opacity-60" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
@@ -252,6 +253,27 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(
+                new KeyboardEvent("keydown", {
+                  key: "k",
+                  metaKey: true,
+                  bubbles: true,
+                }),
+              );
+            }}
+            className="hidden md:flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
+          >
+            <Search className="size-3.5 opacity-60" />
+            <span>Pesquisar no SIGA…</span>
+            <kbd className="pointer-events-none ml-1.5 inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/60 px-1 font-mono text-[10px] font-medium text-muted-foreground">
+              <span className="text-[9px]">⌘</span>K
+            </kbd>
+          </button>
+
           <div className="ml-auto flex items-center gap-1">
             <AppLauncher onOpenSettings={openSettings} />
             <DropdownMenu>
@@ -262,14 +284,22 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   className="header-icon-btn"
                   aria-label="Seletor de tema"
                 >
-                  {isDark ? <Sun className="size-5 text-warning" /> : <Moon className="size-5 text-primary" />}
+                  {isDark ? (
+                    <Sun className="size-5 text-warning" />
+                  ) : (
+                    <Moon className="size-5 text-primary" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuLabel>Tema de Apresentação</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => toggleDark()} className="gap-2">
-                  {isDark ? <Sun className="size-4 text-warning" /> : <Moon className="size-4 text-primary" />}
+                  {isDark ? (
+                    <Sun className="size-4 text-warning" />
+                  ) : (
+                    <Moon className="size-4 text-primary" />
+                  )}
                   {isDark ? "Modo Claro" : "Modo Escuro"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -422,12 +452,12 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         <main
           id="conteudo-principal"
           tabIndex={-1}
-          className="mx-auto w-full max-w-[1360px] flex-1 px-4 py-5 md:px-6 md:py-6 lg:px-4 lg:py-4 [content-visibility:auto]"
+          className="mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
         >
           {children}
         </main>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/60 px-4 py-5 text-xs text-muted-foreground backdrop-blur md:px-6 lg:py-4">
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:px-5">
           <div className="flex items-center gap-4">
             <span className="inline-flex items-center gap-2 font-semibold text-foreground">
               <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[10px] font-extrabold text-primary">

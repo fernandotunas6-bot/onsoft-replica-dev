@@ -227,6 +227,7 @@ export function FileBrowser({
     (typeof fileCategoryOptions)[number] | "all"
   >("all");
   const [relatedUserFilter, setRelatedUserFilter] = useState<string>("all");
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const driveOn = installed.hasCapability("m365.onedrive");
   const canWrite = canWriteFileArea(account.role, area);
@@ -580,12 +581,22 @@ export function FileBrowser({
     const targetArea = meta.area;
     if (!schoolId || !files.length || !canWriteFileArea(account.role, targetArea)) return;
     setUploading(true);
+    setUploadProgress(files.reduce((acc, f) => ({ ...acc, [f.name]: 0 }), {}));
     let appliedProfilePhoto = false;
     try {
       if (targetArea !== area) setArea(targetArea);
       for (const file of files) {
         const kind = kindFromFile(file.name, file.type);
         if (!kind) continue;
+        // O SDK do Storage não expõe progresso real: aproximamos com uma rampa
+        // que abranda perto dos 90% e só fecha em 100% quando o envio termina.
+        const ramp = setInterval(() => {
+          setUploadProgress((prev) => {
+            const current = prev[file.name] ?? 0;
+            if (current >= 90) return prev;
+            return { ...prev, [file.name]: Math.min(90, current + Math.max(1, (90 - current) / 8)) };
+          });
+        }, 180);
         const id = crypto.randomUUID();
         const storagePath = localStoragePath({
           schoolId,
@@ -602,6 +613,8 @@ export function FileBrowser({
           if (!error) backend = "sga";
         } catch {
           backend = "local";
+        } finally {
+          clearInterval(ramp);
         }
         const record: SchoolFileRecord = {
           id,
@@ -677,6 +690,7 @@ export function FileBrowser({
           void queryClient.invalidateQueries({ queryKey: ["students"] });
           void queryClient.invalidateQueries({ queryKey: ["people"] });
         }
+        setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
       }
       toast.success(
         appliedProfilePhoto
@@ -820,7 +834,41 @@ export function FileBrowser({
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+    <div
+      className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft"
+      onDragEnter={(event) => {
+        if (!canUpload) return;
+        event.preventDefault();
+        setDragging(true);
+      }}
+      onDragOver={(event) => {
+        if (!canUpload) return;
+        event.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+          setDragging(false);
+        }
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        if (!canUpload) return;
+        void uploadFiles(event.dataTransfer.files);
+      }}
+    >
+      {dragging && canUpload ? (
+        <div className="pointer-events-none absolute inset-0 z-50 flex animate-in fade-in items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex h-[calc(100%-2rem)] w-[calc(100%-2rem)] animate-pulse flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary bg-primary/5 text-primary">
+            <Upload className="size-10" aria-hidden />
+            <p className="text-lg font-semibold">Soltar para carregar</p>
+            <p className="text-xs font-medium opacity-80">
+              Os ficheiros são enviados para {fileAreaMeta[area].label}
+            </p>
+          </div>
+        </div>
+      ) : null}
       <header className="space-y-0 border-b border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <nav className="flex min-w-0 items-center gap-1.5 text-sm" aria-label="Localização">
@@ -1120,6 +1168,16 @@ export function FileBrowser({
               </select>
               {canUpload ? (
                 <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 font-semibold px-4"
+                    disabled={uploading}
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    <Upload className="size-4" /> Carregar
+                  </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -1200,33 +1258,8 @@ export function FileBrowser({
           <div
             className={cn(
               "relative min-h-0 flex-1 overflow-auto p-0",
-              dragging && "ring-2 ring-inset ring-primary",
             )}
-            onDragEnter={(event) => {
-              if (!canUpload) return;
-              event.preventDefault();
-              setDragging(true);
-            }}
-            onDragOver={(event) => {
-              if (!canUpload) return;
-              event.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={(event) => {
-              if (event.currentTarget === event.target) setDragging(false);
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              setDragging(false);
-              if (!canUpload) return;
-              void uploadFiles(event.dataTransfer.files);
-            }}
           >
-            {dragging && canUpload ? (
-              <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-primary-soft/80 text-sm font-semibold text-primary">
-                Largar para carregar — o inquérito define a área de destino
-              </div>
-            ) : null}
             {localOnly ? (
               <p className="m-4 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
                 Tabela SGA ainda não aplicada. Os ficheiros ficam neste dispositivo até correr
@@ -1279,6 +1312,14 @@ export function FileBrowser({
                             : undefined
                         }
                       />
+                      {(uploadProgress[file.name] ?? 100) < 100 && (
+                        <div className="absolute inset-x-2 bottom-10 h-1.5 overflow-hidden rounded-full bg-secondary">
+                          <div
+                            className="h-full bg-primary transition-all duration-300"
+                            style={{ width: `${uploadProgress[file.name] ?? 0}%` }}
+                          />
+                        </div>
+                      )}
                       <p className="mt-1 truncate px-1 text-xs font-medium">
                         {file.title || file.name}
                       </p>
@@ -1361,6 +1402,14 @@ export function FileBrowser({
                                 {file.classGroupId ? " · turma" : ""}
                                 {file.relatedUserName ? ` · ${file.relatedUserName}` : ""}
                               </span>
+                              {(uploadProgress[file.name] ?? 100) < 100 && (
+                                <div className="mt-1 h-1.5 w-full max-w-[12rem] overflow-hidden rounded-full bg-secondary">
+                                  <div
+                                    className="h-full bg-primary transition-all duration-300"
+                                    style={{ width: `${uploadProgress[file.name] ?? 0}%` }}
+                                  />
+                                </div>
+                              )}
                             </span>
                           </div>
                         </td>

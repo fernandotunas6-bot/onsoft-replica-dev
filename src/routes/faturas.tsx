@@ -1,7 +1,17 @@
 import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Award, ChevronDown, Download, FileDown, FileText, Plus, Wallet, X } from "lucide-react";
+import {
+  AlertCircle,
+  Award,
+  ChevronDown,
+  Download,
+  FileDown,
+  FileText,
+  Plus,
+  Wallet,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -355,32 +365,36 @@ function FaturasPage() {
   };
 
   const handleIssueProforma = async (values: Record<string, string>) => {
-    const studentLabel = values.aluno || "";
-    const studentId = studentLabel ? (findOptionId(studentOptions, studentLabel) ?? studentLabel) : "";
-    const selectedStudent = studentMap.get(studentId);
+    const studentLabel = values["aluno"] || "";
+    const selectedStudent = financeStudents.find(
+      (s) => `${s.registration_number} · ${s.full_name}` === studentLabel || s.student_id === studentLabel,
+    );
 
     const proformaNo = `FP-${new Date().getFullYear()}/${String(invoiceCount + 1).padStart(4, "0")}`;
     const issueDate = new Date().toISOString().slice(0, 10);
     const dueDate = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
-    const amount = Number(values.valor) || 0;
+    const amount = Number(values["valor"]) || 0;
+    const nif = values["nif"];
 
     const proforma = buildProformaInvoice({
       documentNumber: proformaNo,
       issueDate,
       dueDate,
-      customerName: selectedStudent?.full_name || values.cliente || "Consumidor Final",
-      customerNif: values.nif || undefined,
-      studentName: selectedStudent?.full_name,
-      registrationNumber: selectedStudent?.registration_number,
+      customerName: selectedStudent?.full_name || values["cliente"] || "Consumidor Final",
+      ...(nif ? { customerNif: nif } : {}),
+      ...(selectedStudent?.full_name ? { studentName: selectedStudent.full_name } : {}),
+      ...(selectedStudent?.registration_number
+        ? { registrationNumber: selectedStudent.registration_number }
+        : {}),
       items: [
         {
-          description: values.descricao || "Propina / Serviços Escolares",
+          description: values["descricao"] || "Propina / Serviços Escolares",
           quantity: 1,
           unitPrice: amount,
           taxRate: 0,
         },
       ],
-      banking: schoolBanking,
+      ...(schoolBanking ? { banking: schoolBanking } : {}),
     });
 
     await issuePrintDocument({
@@ -429,20 +443,33 @@ function FaturasPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                    <Download className="size-3.5" /> Exportar & SAFT-AO <ChevronDown className="size-3.5 text-muted-foreground" />
+                    <Download className="size-3.5" /> Exportar & SAFT-AO{" "}
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem onClick={handleExportSaftAo} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={handleExportSaftAo}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <FileText className="size-3.5 text-primary" /> Ficheiro SAFT-AO (XML)
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarFaturasOficial} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarFaturasOficial}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Award className="size-3.5 text-primary" /> Relatório Oficial PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarFaturasPdf} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarFaturasPdf}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <FileDown className="size-3.5" /> Lista Simples PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarFaturasCsv} className="gap-2 text-xs cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={exportarFaturasCsv}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
                     <Download className="size-3.5" /> Ficheiro CSV
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -610,7 +637,7 @@ function FaturasPage() {
           </Alert>
         ) : null}
 
-        <StatGrid
+        <StatGrid collapsible storageKey="faturas-1"
           items={[
             { label: "Facturado", value: kwanza(total), hint: `${invoiceCount} documentos` },
             { label: "Liquidado", value: kwanza(pago), hint: "Recebido em caixa" },
@@ -627,7 +654,7 @@ function FaturasPage() {
           ]}
         />
 
-        <StatGrid
+        <StatGrid collapsible storageKey="faturas-2"
           items={[
             {
               label: "Taxa de liquidação",

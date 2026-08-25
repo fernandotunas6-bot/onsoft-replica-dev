@@ -179,6 +179,22 @@
       "tests": ["tests/lesson-plans/schemas.test.ts"],
       "accessKey": "pedagogica",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+    },
+    {
+      "id": "importar",
+      "skill": "siga-importar",
+      "label": "Motor Central de Importação",
+      "routes": ["src/routes/importar.tsx"],
+      "feature": [
+        "src/features/import/schemas.ts",
+        "src/features/import/server.ts",
+        "src/features/import/official-templates.ts",
+        "src/features/import/components/ImportWorkflowWizard.tsx",
+        "src/features/import/components/ImportHistoryPanel.tsx"
+      ],
+      "tests": ["tests/import/schemas.test.ts"],
+      "accessKey": "pessoas",
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
     }
   ]
 }

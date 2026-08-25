@@ -1,7 +1,7 @@
+import { useState, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ReactNode } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -14,11 +14,19 @@ import {
   Wallet,
   Pencil,
   Phone,
+  QrCode,
   Smartphone,
   Trash2,
   UserCheck,
   UserPlus,
 } from "lucide-react";
+
+const paymentStatusLabels: Record<string, string> = {
+  paid: "Regular",
+  pending: "Pendente",
+  overdue: "Atrasado",
+  partial: "Parcial",
+};
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
@@ -754,7 +762,9 @@ function StudentDetail() {
                       queryClient.invalidateQueries({
                         queryKey: ["students", "profile", student.id],
                       }),
-                      queryClient.invalidateQueries({ queryKey: ["people", "get", student.person_id] }),
+                      queryClient.invalidateQueries({
+                        queryKey: ["people", "get", student.person_id],
+                      }),
                       queryClient.invalidateQueries({
                         queryKey: ["arquivos", "student-related", student.person_id],
                       }),
@@ -846,11 +856,7 @@ function StudentDetail() {
                 </Link>
               </Button>
             )}
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => setCardModalOpen(true)}
-            >
+            <Button variant="outline" className="gap-2" onClick={() => setCardModalOpen(true)}>
               <Smartphone className="size-4" /> Cartão Digital
             </Button>
             {student.enrollment_id ? (
@@ -1617,10 +1623,10 @@ function StudentDetail() {
           id: student.id,
           full_name: student.full_name,
           process_number: student.registration_number,
-          class_name: student.class_name,
-          course_name: student.course_name,
+          ...(student.class_name ? { class_name: student.class_name } : {}),
+          ...(student.course_name ? { course_name: student.course_name } : {}),
           academic_year: activeYearLabel,
-          photo_url: student.photo_url,
+          photo_url: student.photo_url ?? null,
           status: estadoLabels[student.student_status] ?? student.student_status,
         }}
       />

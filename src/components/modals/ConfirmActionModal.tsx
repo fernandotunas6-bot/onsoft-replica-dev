@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { PremiumModal } from "@/components/ui/premium-modal";
-import { Button } from "@/components/ui/button";
+import { QuickModal } from "@/components/ui/modal-system";
 
 /** Confirmação destructiva (excluir/anular) com feedback toast. */
 export function ConfirmActionModal({
@@ -40,28 +39,21 @@ export function ConfirmActionModal({
   return (
     <>
       {trigger(() => setOpen(true))}
-      <PremiumModal
+      <QuickModal
         open={open}
         onOpenChange={setOpen}
-        eyebrow={eyebrow}
         title={title}
-        description={description}
+        subtitle={description ?? eyebrow}
+        submitLabel={confirmLabel}
+        submitVariant="destructive"
+        isSubmitting={saving}
+        onSubmit={run}
         size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={run} disabled={saving}>
-              {saving ? "A processar…" : confirmLabel}
-            </Button>
-          </>
-        }
       >
         <p className="text-sm text-muted-foreground">
           Esta acção fica registada no histórico da escola e pode afectar listas e pautas.
         </p>
-      </PremiumModal>
+      </QuickModal>
     </>
   );
 }

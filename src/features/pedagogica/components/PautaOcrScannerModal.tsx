@@ -1,8 +1,17 @@
 import { useState } from "react";
-import { Camera, Upload, CheckCircle2, AlertTriangle, Sparkles, FileSpreadsheet, LoaderCircle } from "lucide-react";
-import { PremiumModal } from "@/components/ui/premium-modal";
+import {
+  Camera,
+  Upload,
+  CheckCircle2,
+  AlertTriangle,
+  Sparkles,
+  FileSpreadsheet,
+  LoaderCircle,
+} from "lucide-react";
+import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { scanPaperPautaImage, type OcrScanResult } from "../pauta-ocr-scanner";
 import { toast } from "sonner";
 
@@ -10,7 +19,9 @@ interface PautaOcrScannerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   students: Array<{ id: string; fullName: string; academicNumber: string }>;
-  onApplyGrades: (grades: Array<{ academicNumber: string; mac?: number; npp?: number; npt?: number }>) => void;
+  onApplyGrades: (
+    grades: Array<{ academicNumber: string; mac?: number; npp?: number; npt?: number }>,
+  ) => void;
 }
 
 export function PautaOcrScannerModal({
@@ -48,25 +59,25 @@ export function PautaOcrScannerModal({
   const handleUpdateItemGrade = (
     academicNumber: string,
     field: "mac" | "npp" | "npt",
-    value: number | undefined,
+    val: number,
   ) => {
     if (!scanResult) return;
     setScanResult({
       ...scanResult,
-      items: scanResult.items.map((item) =>
-        item.academicNumber === academicNumber ? { ...item, [field]: value } : item,
+      extractedGrades: scanResult.extractedGrades.map((item) =>
+        item.academicNumber === academicNumber ? { ...item, [field]: val } : item,
       ),
     });
   };
 
-  const handleConfirmAndImport = () => {
+  const handleConfirmAndApply = () => {
     if (!scanResult) return;
     onApplyGrades(
-      scanResult.items.map((item) => ({
+      scanResult.extractedGrades.map((item) => ({
         academicNumber: item.academicNumber,
-        mac: item.mac,
-        npp: item.npp,
-        npt: item.npt,
+        ...(item.mac !== undefined ? { mac: item.mac } : {}),
+        ...(item.npp !== undefined ? { npp: item.npp } : {}),
+        ...(item.npt !== undefined ? { npt: item.npt } : {}),
       })),
     );
     toast.success("Pauta Digital Atualizada!", {
@@ -76,27 +87,26 @@ export function PautaOcrScannerModal({
   };
 
   return (
-    <PremiumModal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="OCR de Pautas em Papel (AI Co-Pilot)"
-      eyebrow="Leitura Ótica Inteligente"
-      description="Tire uma fotografia da pauta física em papel para preencher as notas (MAC, NPP, NPT) automaticamente."
-      icon={<Sparkles className="size-5" />}
-      size="xl"
-    >
-      <div className="space-y-6">
-        {/* ÁREA DE UPLOAD DA FOTO DA PAUTA */}
-        <div className="p-6 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-center space-y-3">
-          <IconChip icon={Camera} tone="primary" size="lg" className="mx-auto" />
-          <div>
-            <h4 className="font-extrabold text-sm text-foreground">
-              Fotografia ou Foto da Pauta Física
-            </h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Suporta PNG, JPG ou captura direta pela câmera do telemóvel.
-            </p>
-          </div>
+    <ModalShell open={open} onOpenChange={onOpenChange} size="xl">
+      <div className="flex flex-col h-full">
+        <ModalHeader
+          icon={Sparkles}
+          title="OCR de Pautas em Papel (AI Co-Pilot)"
+          subtitle="Tire foto da pauta em papel para preencher notas automaticamente."
+          onClose={() => onOpenChange(false)}
+        />
+        <ModalContent>
+          {/* ÁREA DE UPLOAD DA FOTO DA PAUTA */}
+          <div className="p-6 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-center space-y-3">
+            <IconChip icon={Camera} tone="primary" size="lg" className="mx-auto" />
+            <div>
+              <h4 className="font-extrabold text-sm text-foreground">
+                Fotografia ou Foto da Pauta Física
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Suporta PNG, JPG ou captura direta pela câmera do telemóvel.
+              </p>
+            </div>
 
           <label className="inline-flex items-center gap-2 cursor-pointer bg-primary text-primary-foreground px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-primary-strong transition-colors">
             <Upload className="size-4" />
@@ -130,8 +140,8 @@ export function PautaOcrScannerModal({
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Imagem Original
                 </p>
-                <div className="overflow-hidden rounded-xl border border-border bg-black/5 max-h-72">
-                  <img
+                <div className="overflow-hidden rounded-xl border border-border bg-secondary max-h-72">
+                  <MediaFrame
                     src={previewUrl}
                     alt="Foto da pauta"
                     className="w-full h-full object-contain"
@@ -241,30 +251,17 @@ export function PautaOcrScannerModal({
                   </tbody>
                 </table>
               </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleConfirmAndImport}
-                  className="gap-2 shadow-sm"
-                >
-                  <CheckCircle2 className="size-4" />
-                  Importar para Pauta Digital
-                </Button>
-              </div>
             </div>
           </div>
         ) : null}
+        </ModalContent>
+        <ModalFooter
+          onCancel={() => onOpenChange(false)}
+          onSubmit={handleConfirmAndApply}
+          submitLabel="Importar para Pauta Digital"
+          disabled={!scanResult}
+        />
       </div>
-    </PremiumModal>
+    </ModalShell>
   );
 }

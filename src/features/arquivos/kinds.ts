@@ -310,7 +310,7 @@ export function suggestFileCategory(input: { name: string; kind: FileKind | null
     return "foto";
   }
   if (/bilhete|bi[-_\s]|passaporte|nif|identifica/.test(n)) return "bilhete";
-  if (/certific|diploma|habilita/.test(n)) return "certificado";
+  if (/certific|diploma|habilita|matricula|matrícula|declara/.test(n)) return "certificado";
   if (/contrato|acordo/.test(n)) return "contrato";
   if (/fatura|factura|invoice/.test(n)) return "fatura";
   if (/recibo|talao|talão/.test(n))

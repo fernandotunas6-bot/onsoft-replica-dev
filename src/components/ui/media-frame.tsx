@@ -69,11 +69,11 @@ export function MediaAvatar({
   className,
   textClassName,
 }: {
-  src?: string | null;
+  src?: string | null | undefined;
   alt: string;
-  fallback?: string;
-  className?: string;
-  textClassName?: string;
+  fallback?: string | undefined;
+  className?: string | undefined;
+  textClassName?: string | undefined;
 }) {
   const initials = (fallback ?? alt)
     .split(" ")

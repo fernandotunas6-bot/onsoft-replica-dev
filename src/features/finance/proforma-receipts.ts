@@ -69,9 +69,12 @@ export function buildProformaInvoice(input: ProformaInvoiceInput): ProformaInvoi
   const netTotal = Math.max(0, subtotal + taxTotal - retentionTotal);
 
   const bankingRows: Array<{ label: string; value: string }> = [];
-  if (input.banking?.bank_name) bankingRows.push({ label: "Banco", value: input.banking.bank_name });
-  if (input.banking?.account_holder) bankingRows.push({ label: "Titular", value: input.banking.account_holder });
-  if (input.banking?.iban) bankingRows.push({ label: "IBAN", value: formatAngolaIban(input.banking.iban) });
+  if (input.banking?.bank_name)
+    bankingRows.push({ label: "Banco", value: input.banking.bank_name });
+  if (input.banking?.account_holder)
+    bankingRows.push({ label: "Titular", value: input.banking.account_holder });
+  if (input.banking?.iban)
+    bankingRows.push({ label: "IBAN", value: formatAngolaIban(input.banking.iban) });
   if (input.banking?.multicaixa_merchant) {
     bankingRows.push({ label: "Multicaixa Express", value: input.banking.multicaixa_merchant });
   }
@@ -82,9 +85,11 @@ export function buildProformaInvoice(input: ProformaInvoiceInput): ProformaInvoi
     dueDate: input.dueDate,
     customerName: input.customerName,
     customerNif: input.customerNif || "Consumidor Final",
-    studentName: input.studentName,
-    registrationNumber: input.registrationNumber,
-    className: input.className,
+    ...(input.studentName !== undefined ? { studentName: input.studentName } : {}),
+    ...(input.registrationNumber !== undefined
+      ? { registrationNumber: input.registrationNumber }
+      : {}),
+    ...(input.className !== undefined ? { className: input.className } : {}),
     items: itemsWithTotal,
     subtotal,
     taxTotal,
@@ -95,7 +100,8 @@ export function buildProformaInvoice(input: ProformaInvoiceInput): ProformaInvoi
     formattedRetentionTotal: kwanza(retentionTotal),
     formattedNetTotal: kwanza(netTotal),
     bankingRows,
-    agtNotice: "Esta Proforma não serve de fatura e não quita qualquer pagamento. Válida por 15 dias.",
+    agtNotice:
+      "Esta Proforma não serve de fatura e não quita qualquer pagamento. Válida por 15 dias.",
   };
 }
 

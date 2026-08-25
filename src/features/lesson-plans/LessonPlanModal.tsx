@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ClipboardCheck, FileText, Plus, Sparkles, Trash2 } from "lucide-react";
-import { PremiumModal } from "@/components/ui/premium-modal";
+import { FormModal } from "@/components/ui/modal-system";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,24 +149,15 @@ export function LessonPlanModal({
   };
 
   return (
-    <PremiumModal
+    <FormModal
       open={open}
       onOpenChange={onOpenChange}
-      eyebrow="Área Pedagógica"
       title={isEdit ? "Editar plano de aula" : "Novo plano de aula"}
-      description="Título, conteúdo e a estrutura de avaliações/provas do trimestre — pronta a entrar no Centro de Avaliação."
-      icon={<ClipboardCheck className="size-5" />}
+      subtitle="Título, conteúdo e a estrutura de avaliações/provas do trimestre."
+      submitLabel={isEdit ? "Guardar alterações" : "Criar plano"}
+      isSubmitting={saving}
+      onSubmit={submit}
       size="lg"
-      footer={
-        <>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? "A guardar…" : isEdit ? "Guardar alterações" : "Criar plano"}
-          </Button>
-        </>
-      }
     >
       <div className="space-y-5">
         <div className="grid gap-3 sm:grid-cols-3">
@@ -235,7 +226,10 @@ export function LessonPlanModal({
               size="sm"
               onClick={() => {
                 const selectedSubj = subjects.find((s) => s.id === subjectId)?.name ?? "Disciplina";
-                const generated = generateAiLessonPlanInide(selectedSubj, title || "Unidade Curricular");
+                const generated = generateAiLessonPlanInide(
+                  selectedSubj,
+                  title || "Unidade Curricular",
+                );
                 setContent(
                   `SUMÁRIO:\n${generated.summary}\n\nOBJETIVOS GERAIS:\n- ${generated.generalObjectives.join("\n- ")}\n\nMETODOLOGIA:\n${generated.methodology}\n\nRECURSOS DIDÁTICOS:\n- ${generated.didacticResources.join("\n- ")}\n\nAVALIAÇÃO:\n${generated.evaluationMethod}`,
                 );
@@ -323,7 +317,7 @@ export function LessonPlanModal({
 
         {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
       </div>
-    </PremiumModal>
+    </FormModal>
   );
 }
 

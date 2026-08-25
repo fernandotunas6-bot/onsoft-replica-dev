@@ -1,9 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import { supabase } from "@/integrations/supabase/client";
 import { getFirebaseApp, getCrashlytics, firebaseConfig } from "@/lib/firebase";
-import { getGoogleOAuthUrl, saveGoogleOAuthToken, getStoredGoogleOAuthToken, clearGoogleOAuthToken } from "@/lib/google-oauth";
+import {
+  getGoogleOAuthUrl,
+  saveGoogleOAuthToken,
+  getStoredGoogleOAuthToken,
+  clearGoogleOAuthToken,
+} from "@/lib/google-oauth";
 import { buildStudentWelcomeTemplate, sendWelcomeEmailOnStudentEnrolled } from "@/lib/google-gmail";
-import { mapSupabaseClassToGoogleEvent, createGoogleCalendarClassEvent } from "@/lib/google-calendar";
+import {
+  mapSupabaseClassToGoogleEvent,
+  createGoogleCalendarClassEvent,
+} from "@/lib/google-calendar";
 
 describe("Supabase Auth & Third-Party Integration Isolation", () => {
   it("initializes Supabase client using production Supabase credentials", () => {

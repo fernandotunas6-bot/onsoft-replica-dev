@@ -32,14 +32,17 @@ export function generateMulticaixaReference(
   expiryDays: number = 30,
 ): MulticaixaReference {
   // Limpa o ID para extrair apenas dígitos ou hash determinístico
-  const cleanId = invoiceId.replace(/[^0-9]/g, "").padEnd(6, "0").slice(0, 6);
+  const cleanId = invoiceId
+    .replace(/[^0-9]/g, "")
+    .padEnd(6, "0")
+    .slice(0, 6);
   const randomSuffix = Math.floor(10 + Math.random() * 89).toString();
   const raw8 = `${cleanId.slice(0, 7)}${randomSuffix}`.padEnd(8, "1").slice(0, 8);
-  
+
   // Cálculo de dígito de controlo Luhn-Mod10 simplificado para referências EMIS
   let sum = 0;
   for (let i = 0; i < raw8.length; i++) {
-    const digit = parseInt(raw8[i], 10);
+    const digit = parseInt(raw8[i] ?? "0", 10);
     const weight = i % 2 === 0 ? 2 : 1;
     const prod = digit * weight;
     sum += prod > 9 ? prod - 9 : prod;
@@ -58,9 +61,11 @@ export function generateMulticaixaReference(
   return {
     entity,
     reference: formattedRef,
-    amountFormatted: new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(amount),
+    amountFormatted: new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(
+      amount,
+    ),
     amountNumber: amount,
-    expiresAt: expDate.toISOString().split("T")[0],
+    expiresAt: expDate.toISOString().split("T")[0] ?? expDate.toISOString(),
     status: "pending",
     qrCodeText,
   };

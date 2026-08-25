@@ -5,7 +5,12 @@
  */
 
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getAnalytics as getSdkAnalytics, isSupported, logEvent, type Analytics } from "firebase/analytics";
+import {
+  getAnalytics as getSdkAnalytics,
+  isSupported,
+  logEvent,
+  type Analytics,
+} from "firebase/analytics";
 import configJson from "../../firebase-applet-config.json";
 
 export interface FirebaseClientConfig {
@@ -25,10 +30,15 @@ export const firebaseConfig: FirebaseClientConfig = {
   appId: configJson.appId || "1:445079520865:web:a45d9ac25a5c7b1570cc20",
   apiKey: configJson.apiKey || "AIzaSyCy6DNTJp1HRhUJpjPHor5qxkhln049cuU",
   authDomain: configJson.authDomain || "gen-lang-client-0509105360.firebaseapp.com",
-  storageBucket: (configJson as { storageBucket?: string }).storageBucket || "gen-lang-client-0509105360.firebasestorage.app",
-  messagingSenderId: (configJson as { messagingSenderId?: string }).messagingSenderId || "445079520865",
+  storageBucket:
+    (configJson as { storageBucket?: string }).storageBucket ||
+    "gen-lang-client-0509105360.firebasestorage.app",
+  messagingSenderId:
+    (configJson as { messagingSenderId?: string }).messagingSenderId || "445079520865",
   measurementId: (configJson as { measurementId?: string }).measurementId || "",
-  oAuthClientId: (configJson as { oAuthClientId?: string }).oAuthClientId || "445079520865-7jlrh1du2vjp1o1ro3p8o7ms2qo7e8b8.apps.googleusercontent.com",
+  oAuthClientId:
+    (configJson as { oAuthClientId?: string }).oAuthClientId ||
+    "445079520865-7jlrh1du2vjp1o1ro3p8o7ms2qo7e8b8.apps.googleusercontent.com",
   recaptchaSiteKey: (configJson as { recaptchaSiteKey?: string }).recaptchaSiteKey || "",
 };
 
@@ -129,17 +139,19 @@ class MobileCrashlytics implements CrashlyticsService {
     console.error("[Crashlytics] Recorded exception:", payload);
 
     if (typeof window !== "undefined") {
-      getAnalyticsInstance().then((analytics) => {
-        if (analytics) {
-          logEvent(analytics, "app_exception", {
-            description: err.message.slice(0, 100),
-            fatal: false,
-            ...context,
-          });
-        }
-      }).catch(() => {
-        // silent catch
-      });
+      getAnalyticsInstance()
+        .then((analytics) => {
+          if (analytics) {
+            logEvent(analytics, "app_exception", {
+              description: err.message.slice(0, 100),
+              fatal: false,
+              ...context,
+            });
+          }
+        })
+        .catch(() => {
+          // silent catch
+        });
     }
   }
 
@@ -150,11 +162,13 @@ class MobileCrashlytics implements CrashlyticsService {
   setUserId(userId: string | null): void {
     this.userId = userId;
     if (userId && typeof window !== "undefined") {
-      getAnalyticsInstance().then((analytics) => {
-        if (analytics) {
-          logEvent(analytics, "set_user_id", { userId });
-        }
-      }).catch(() => {});
+      getAnalyticsInstance()
+        .then((analytics) => {
+          if (analytics) {
+            logEvent(analytics, "set_user_id", { userId });
+          }
+        })
+        .catch(() => {});
     }
   }
 

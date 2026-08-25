@@ -81,7 +81,7 @@ export async function createCalendarEventFromClassSchedule(
   };
 
   if (schedule.attendeeEmails && schedule.attendeeEmails.length > 0) {
-    eventPayload.attendees = schedule.attendeeEmails.map((email) => ({ email }));
+    eventPayload["attendees"] = schedule.attendeeEmails.map((email) => ({ email }));
   }
 
   // If weekly recurring schedule
@@ -89,9 +89,9 @@ export async function createCalendarEventFromClassSchedule(
     const daysMap = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
     const dayCode = schedule.dayOfWeek !== undefined ? daysMap[schedule.dayOfWeek] : undefined;
     const untilDateFormatted = schedule.endDate.replace(/-/g, "") + "T235959Z";
-    
+
     if (dayCode) {
-      eventPayload.recurrence = [`RRULE:FREQ=WEEKLY;BYDAY=${dayCode};UNTIL=${untilDateFormatted}`];
+      eventPayload["recurrence"] = [`RRULE:FREQ=WEEKLY;BYDAY=${dayCode};UNTIL=${untilDateFormatted}`];
     }
   }
 
@@ -121,7 +121,8 @@ export async function createCalendarEventFromClassSchedule(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Erro inesperado ao conectar à Google Calendar API",
+      error:
+        err instanceof Error ? err.message : "Erro inesperado ao conectar à Google Calendar API",
     };
   }
 }

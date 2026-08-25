@@ -39,7 +39,8 @@ export type AttendanceAlertInput = GuardianContact & {
  */
 export function buildGuardianTuitionAlert(input: TuitionAlertInput) {
   const amountFormatted = kwanza(input.amount);
-  const text = `Estimado(a) Encarregado(a) ${input.guardianName},\n\n` +
+  const text =
+    `Estimado(a) Encarregado(a) ${input.guardianName},\n\n` +
     `Lembramos que a propina referente a ${input.monthName} do(a) estudante ${input.studentName} (${input.registrationNumber}${input.className ? `, Turma ${input.className}` : ""}) tem o valor de ${amountFormatted} com vencimento a ${input.dueDate}.\n` +
     (input.iban ? `\nIBAN para pagamento: ${input.iban}\n` : "") +
     `Por favor, envie o comprovativo para a secretaria da escola.\n\n` +
@@ -64,7 +65,8 @@ export function buildGuardianGradeAlert(input: GradeAlertInput) {
   const averageStr = input.average.toFixed(1);
   const statusLabel = input.average >= 10 ? "Aproveitamento Positivo" : "Necessita de Recuperação";
 
-  const text = `Estimado(a) Encarregado(a) ${input.guardianName},\n\n` +
+  const text =
+    `Estimado(a) Encarregado(a) ${input.guardianName},\n\n` +
     `Informamos as notas de ${input.subjectName} do(a) estudante ${input.studentName} no ${input.termName}:\n` +
     `• MAC (Contínua): ${macStr}\n` +
     `• NPP (Professor): ${nppStr}\n` +
@@ -86,7 +88,8 @@ export function buildGuardianGradeAlert(input: GradeAlertInput) {
  * Gera mensagem formatada para falta injustificada.
  */
 export function buildGuardianAttendanceAlert(input: AttendanceAlertInput) {
-  const text = `Estimado(a) Encarregado(a) ${input.guardianName},\n\n` +
+  const text =
+    `Estimado(a) Encarregado(a) ${input.guardianName},\n\n` +
     `Informamos que o(a) estudante ${input.studentName} registou uma falta injustificada no dia ${input.absenceDate}${input.subjectName ? ` na aula de ${input.subjectName}` : ""}.\n\n` +
     `Pedimos a gentileza de justificar a ausência junto da secretaria escolar.\n\n` +
     `Atenciosamente,\n${input.schoolName}`;

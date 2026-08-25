@@ -62,10 +62,12 @@ type StudentListRow = {
   full_name: string;
   email: string | null;
   phone: string | null;
+  photo_url: string | null;
   student_status: string;
   payment_status: string | null;
   grade_name: string | null;
   class_name: string | null;
+  class_group_id: string | null;
   academic_year: string | null;
   primary_guardian_name: string | null;
   person_id: string;
@@ -97,7 +99,7 @@ export const searchStudents = createServerFn({ method: "GET" })
       personIds.length
         ? db
             .from("people")
-            .select("id, full_name, email, phone")
+            .select("id, full_name, email, phone, photo_url")
             .eq("school_id", membership.schoolId)
             .in("id", personIds)
         : Promise.resolve({
@@ -106,6 +108,7 @@ export const searchStudents = createServerFn({ method: "GET" })
               full_name: string;
               email: string | null;
               phone: string | null;
+              photo_url?: string | null;
             }>,
           }),
       studentIds.length
@@ -266,12 +269,14 @@ export const searchStudents = createServerFn({ method: "GET" })
           full_name: String(person?.["full_name"] ?? "—"),
           email: (person?.["email"] as string | null) ?? null,
           phone: (person?.["phone"] as string | null) ?? null,
+          photo_url: (person?.["photo_url"] as string | null) ?? null,
           // Matrícula activa no SGA implica aluno activo na UI, mesmo se o
           // registo ainda estiver como "applicant" por seed/legado.
           student_status: effectiveStatus,
           payment_status: null,
           grade_name: (grade?.["name"] as string | null) ?? null,
           class_name: (classGroup?.["name"] as string | null) ?? null,
+          class_group_id: (classGroup?.["id"] as string | null) ?? null,
           academic_year: (year?.["name"] as string | null) ?? null,
           primary_guardian_name: guardianId ? (guardianNameById.get(guardianId) ?? null) : null,
           person_id: student.person_id,

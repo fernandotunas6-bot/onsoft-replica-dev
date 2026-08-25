@@ -90,3 +90,47 @@ export function RelatoriosFinanceirosCategoryCharts({
     </div>
   );
 }
+
+export function RelatoriosFinanceirosMonthlyChart({
+  monthly,
+}: {
+  monthly: Array<{ mes: string; receita: number; despesa: number }>;
+}) {
+  return (
+    <Panel title="Receitas vs Despesas" description="Evolução mensal do caixa">
+      <div className="h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={monthly}>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="mes" {...axis} />
+            <YAxis {...axis} tickFormatter={(v: number) => `${Math.round(v / 1_000_000)}M`} />
+            <Tooltip
+              formatter={(v) => kwanza(Number(v))}
+              contentStyle={{
+                borderRadius: 12,
+                border: "1px solid var(--border)",
+                background: "var(--popover)",
+                color: "var(--popover-foreground)",
+              }}
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Bar
+              dataKey="receita"
+              name="Receitas"
+              fill="var(--success)"
+              radius={[6, 6, 0, 0]}
+              maxBarSize={32}
+            />
+            <Bar
+              dataKey="despesa"
+              name="Despesas"
+              fill="var(--destructive)"
+              radius={[6, 6, 0, 0]}
+              maxBarSize={32}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </Panel>
+  );
+}

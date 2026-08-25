@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { PremiumModal } from "@/components/ui/premium-modal";
+import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ export type QuickField = {
   name: string;
   label: string;
   placeholder?: string | undefined;
-  type?: "text" | "number" | "date" | "textarea" | "select" | "angola-identity";
+  type?: "text" | "number" | "date" | "textarea" | "select" | "angola-identity" | "password";
   options?: string[] | undefined;
   full?: boolean | undefined;
   required?: boolean | undefined;
@@ -59,113 +59,112 @@ export function QuickFormModal({
     setOpen(true);
   }, [autoOpen]);
 
-  const submit = async () => {
-    if (!formRef.current?.reportValidity()) return;
+  async function submit() {
+    if (!formRef.current) return;
+    if (!formRef.current.reportValidity()) return;
+
+    const data = new FormData(formRef.current);
+    const values: Record<string, string> = {};
+    for (const [key, val] of data.entries()) {
+      values[key] = String(val ?? "").trim();
+    }
+
     setSaving(true);
     try {
-      const values = Object.fromEntries(new FormData(formRef.current).entries()) as Record<
-        string,
-        string
-      >;
       await onSubmit(values);
+      toast.success(title, { description: successDescription });
       setOpen(false);
-      formRef.current?.reset();
-      toast.success(`${title} concluído`, {
-        description: successDescription,
-      });
-    } catch (error) {
-      toast.error("Não foi possível guardar", {
-        description: error instanceof Error ? error.message : "Tenta novamente.",
+    } catch (err) {
+      toast.error("Erro ao guardar", {
+        description: err instanceof Error ? err.message : "Ocorreu uma falha ao guardar.",
       });
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   return (
     <>
       {trigger(() => setOpen(true))}
-      <PremiumModal
-        open={open}
-        onOpenChange={setOpen}
-        eyebrow={eyebrow}
-        title={title}
-        description={description}
-        icon={icon}
-        size={size}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={submit} disabled={saving}>
-              {saving ? "A guardar…" : submitLabel}
-            </Button>
-          </>
-        }
-      >
-        <form
-          ref={formRef}
-          className="grid gap-4 sm:grid-cols-2"
-          onSubmit={(event) => event.preventDefault()}
-        >
-          {fields.map((field) => (
-            <div key={field.name} className={field.full ? "sm:col-span-2" : undefined}>
-              <Label htmlFor={field.name} className="text-xs font-semibold">
-                {field.label}
-              </Label>
-              {field.type === "textarea" ? (
-                <Textarea
-                  id={field.name}
-                  name={field.name}
-                  placeholder={field.placeholder}
-                  required={field.required ?? true}
-                  defaultValue={field.defaultValue}
-                  className="mt-1.5"
-                />
-              ) : field.type === "select" ? (
-                <select
-                  id={field.name}
-                  name={field.name}
-                  required={field.required ?? true}
-                  className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  defaultValue={
-                    field.defaultValue ??
-                    (field.required === false ? "" : (field.options?.[0] ?? ""))
-                  }
-                >
-                  {field.required === false ? <option value="">—</option> : null}
-                  {(field.options ?? []).map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              ) : field.type === "angola-identity" ? (
-                <AngolaIdentityField
-                  id={field.name}
-                  name={field.name}
-                  defaultValue={field.defaultValue != null ? String(field.defaultValue) : ""}
-                  disabled={false}
-                  placeholder={field.placeholder ?? ""}
-                  className="mt-1.5"
-                />
-              ) : (
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  type={field.type ?? "text"}
-                  placeholder={field.placeholder}
-                  required={field.required ?? true}
-                  defaultValue={field.defaultValue}
-                  className="mt-1.5"
-                />
-              )}
-            </div>
-          ))}
-        </form>
-        {note ? <p className="mt-4 text-xs text-muted-foreground">{note}</p> : null}
-      </PremiumModal>
+
+      <ModalShell open={open} onOpenChange={setOpen} size={size}>
+        <div className="flex flex-col h-full">
+          <ModalHeader
+            title={title}
+            subtitle={description ?? eyebrow}
+            onClose={() => setOpen(false)}
+          />
+          <ModalContent>
+            <form
+              ref={formRef}
+              className="grid gap-3 sm:grid-cols-2"
+              onSubmit={(event) => event.preventDefault()}
+            >
+              {fields.map((field) => (
+                <div key={field.name} className={field.full ? "sm:col-span-2" : undefined}>
+                  <Label htmlFor={field.name} className="text-xs font-semibold">
+                    {field.label}
+                  </Label>
+                  {field.type === "textarea" ? (
+                    <Textarea
+                      id={field.name}
+                      name={field.name}
+                      placeholder={field.placeholder}
+                      required={field.required ?? true}
+                      defaultValue={field.defaultValue}
+                      className="mt-1"
+                    />
+                  ) : field.type === "select" ? (
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      required={field.required ?? true}
+                      className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-xs md:text-sm"
+                      defaultValue={
+                        field.defaultValue ??
+                        (field.required === false ? "" : (field.options?.[0] ?? ""))
+                      }
+                    >
+                      {field.required === false ? <option value="">—</option> : null}
+                      {(field.options ?? []).map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : field.type === "angola-identity" ? (
+                    <AngolaIdentityField
+                      id={field.name}
+                      name={field.name}
+                      defaultValue={field.defaultValue != null ? String(field.defaultValue) : ""}
+                      disabled={false}
+                      placeholder={field.placeholder ?? ""}
+                      className="mt-1.5"
+                    />
+                  ) : (
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      type={field.type ?? "text"}
+                      placeholder={field.placeholder}
+                      required={field.required ?? true}
+                      defaultValue={field.defaultValue}
+                      className="mt-1.5"
+                    />
+                  )}
+                </div>
+              ))}
+            </form>
+            {note ? <p className="mt-4 text-xs text-muted-foreground">{note}</p> : null}
+          </ModalContent>
+          <ModalFooter
+            onCancel={() => setOpen(false)}
+            onSubmit={submit}
+            submitLabel={submitLabel}
+            isSubmitting={saving}
+          />
+        </div>
+      </ModalShell>
     </>
   );
 }

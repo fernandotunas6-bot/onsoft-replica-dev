@@ -27,8 +27,8 @@ import { Label } from "@/components/ui/label";
 const AuthSessionContext = createContext<Session | null>(null);
 const IDLE_TIMEOUT_MS = 30 * 60_000;
 const ACTIVITY_WRITE_INTERVAL_MS = 15_000;
-const LOGIN_REQUIRED = false; // Desabilitado temporariamente a pedido do utilizador
-const AUTH_DISABLED = !LOGIN_REQUIRED || import.meta.env["VITE_AUTH_DISABLED"] === "true";
+const LOGIN_REQUIRED = true;
+const AUTH_DISABLED = !LOGIN_REQUIRED && import.meta.env["VITE_AUTH_DISABLED"] === "true";
 const REMEMBERED_EMAIL_KEY = "portal:login-email";
 
 const activityKey = (userId: string) => `portal:last-activity:${userId}`;
@@ -94,6 +94,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       window.addEventListener("beforeinstallprompt", handleBeforeInstall);
       return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
     }
+    return undefined;
   }, []);
 
   const handleInstallApp = async () => {
@@ -124,10 +125,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
         if (AUTH_DISABLED) {
           try {
-            const { data: adminLogin, error: autoLoginError } = await supabase.auth.signInWithPassword({
-              email: "admin@escola.ao",
-              password: "Admin@Escola2026!",
-            });
+            const { data: adminLogin, error: autoLoginError } =
+              await supabase.auth.signInWithPassword({
+                email: "admin@escola.ao",
+                password: "Admin@Escola2026!",
+              });
             if (!autoLoginError && adminLogin?.session) {
               localStorage.setItem(activityKey(adminLogin.session.user.id), String(Date.now()));
               setSession(adminLogin.session);
@@ -244,14 +246,19 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setSubmitting(true);
     setError(null);
     setInfo(null);
+    const form = new FormData(event.currentTarget);
     const inputIdentifier = String(form.get("email") ?? "").trim();
     let email = inputIdentifier.toLowerCase();
     const password = String(form.get("password") ?? "");
     const remember = String(form.get("remember") ?? "") === "on";
     try {
       if (!email.includes("@") && email.length >= 3) {
-        const { resolveBiOrEmailToUserEmail } = await import("@/features/access/bi-login");
-        email = await resolveBiOrEmailToUserEmail(inputIdentifier);
+        // Server function: resolve BI/telefone -> email corre no servidor, nunca
+        // no browser — não trocar por um import directo de "@/features/access/bi-login",
+        // que arrastaria o cliente admin (chave service_role) para o bundle do cliente.
+        const { resolveBiToEmailFn } = await import("@/features/access/server");
+        const resolved = await resolveBiToEmailFn({ data: { identifier: inputIdentifier } });
+        email = resolved.email;
       }
 
       if (remember) localStorage.setItem(REMEMBERED_EMAIL_KEY, inputIdentifier);
@@ -355,7 +362,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
               A instituição em pleno controlo operacional.
             </h1>
             <p className="mt-4 max-w-lg text-sm leading-6 opacity-85">
-              Secretaria académica, estudantes, turmas, contabilidade, propinas e relatórios integrados com segurança e rapidez.
+              Secretaria académica, estudantes, turmas, contabilidade, propinas e relatórios
+              integrados com segurança e rapidez.
             </p>
           </div>
           <div className="relative flex items-center justify-between text-xs opacity-80">
@@ -389,10 +397,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
               )}
             </div>
 
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Acesso Institucional</p>
-            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">
-              Iniciar sessão
-            </h2>
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+              Acesso Institucional
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">Iniciar sessão</h2>
             <p className="mt-1.5 text-xs text-muted-foreground">
               Introduza as credenciais fornecidas pela administração.
             </p>
@@ -480,7 +488,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
               hidden={Boolean(mfaFactorId)}
             >
               <div className="space-y-1.5">
-                <Label htmlFor="login-email" className="text-xs font-medium">Email ou Nº de BI / NIF</Label>
+                <Label htmlFor="login-email" className="text-xs font-medium">
+                  Email ou Nº de BI / NIF
+                </Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -497,7 +507,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="login-password" className="text-xs font-medium">Senha</Label>
+                  <Label htmlFor="login-password" className="text-xs font-medium">
+                    Senha
+                  </Label>
                   <button
                     type="button"
                     className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
@@ -539,7 +551,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 />
                 Lembrar email neste dispositivo
               </label>
-              <Button type="submit" className="w-full gap-2 h-10 text-sm font-semibold" disabled={submitting}>
+              <Button
+                type="submit"
+                className="w-full gap-2 h-10 text-sm font-semibold"
+                disabled={submitting}
+              >
                 {submitting ? (
                   <LoaderCircle className="size-4 animate-spin" />
                 ) : (
@@ -549,9 +565,128 @@ export function AuthGate({ children }: { children: ReactNode }) {
               </Button>
             </form>
 
+            {/* Acesso Rápido — Contas Demo da Escola */}
+            <div className="mt-6 pt-5 border-t border-border/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Escola Demo — Acesso Rápido
+                </p>
+                <span className="text-[10px] font-semibold text-primary">1-Clique</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const emailInput = document.getElementById(
+                      "login-email",
+                    ) as HTMLInputElement | null;
+                    const passInput = document.getElementById(
+                      "login-password",
+                    ) as HTMLInputElement | null;
+                    if (emailInput) emailInput.value = "diretor@siga-demo.ao";
+                    if (passInput) passInput.value = "Demo@Siga2026!";
+                    setError(null);
+                    setInfo("Conta de Direção selecionada. Clique em 'Entrar no Portal'.");
+                  }}
+                  className="p-2 text-left rounded-xl border border-border bg-secondary/50 hover:bg-primary/10 hover:border-primary/40 transition-colors"
+                >
+                  <p className="font-bold text-[11px] text-foreground">🛡️ Direção</p>
+                  <p className="text-[10px] text-muted-foreground truncate">diretor@siga-demo.ao</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const emailInput = document.getElementById(
+                      "login-email",
+                    ) as HTMLInputElement | null;
+                    const passInput = document.getElementById(
+                      "login-password",
+                    ) as HTMLInputElement | null;
+                    if (emailInput) emailInput.value = "secretaria@siga-demo.ao";
+                    if (passInput) passInput.value = "Demo@Siga2026!";
+                    setError(null);
+                    setInfo("Conta de Secretaria selecionada. Clique em 'Entrar no Portal'.");
+                  }}
+                  className="p-2 text-left rounded-xl border border-border bg-secondary/50 hover:bg-primary/10 hover:border-primary/40 transition-colors"
+                >
+                  <p className="font-bold text-[11px] text-foreground">📑 Secretaria</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    secretaria@siga-demo.ao
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const emailInput = document.getElementById(
+                      "login-email",
+                    ) as HTMLInputElement | null;
+                    const passInput = document.getElementById(
+                      "login-password",
+                    ) as HTMLInputElement | null;
+                    if (emailInput) emailInput.value = "tesouraria@siga-demo.ao";
+                    if (passInput) passInput.value = "Demo@Siga2026!";
+                    setError(null);
+                    setInfo("Conta de Tesouraria selecionada. Clique em 'Entrar no Portal'.");
+                  }}
+                  className="p-2 text-left rounded-xl border border-border bg-secondary/50 hover:bg-primary/10 hover:border-primary/40 transition-colors"
+                >
+                  <p className="font-bold text-[11px] text-foreground">💳 Tesouraria</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    tesouraria@siga-demo.ao
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const emailInput = document.getElementById(
+                      "login-email",
+                    ) as HTMLInputElement | null;
+                    const passInput = document.getElementById(
+                      "login-password",
+                    ) as HTMLInputElement | null;
+                    if (emailInput) emailInput.value = "prof.alberto@siga-demo.ao";
+                    if (passInput) passInput.value = "Demo@Siga2026!";
+                    setError(null);
+                    setInfo("Conta de Professor selecionada. Clique em 'Entrar no Portal'.");
+                  }}
+                  className="p-2 text-left rounded-xl border border-border bg-secondary/50 hover:bg-primary/10 hover:border-primary/40 transition-colors"
+                >
+                  <p className="font-bold text-[11px] text-foreground">👨‍🏫 Professor</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    prof.alberto@siga-demo.ao
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const emailInput = document.getElementById(
+                      "login-email",
+                    ) as HTMLInputElement | null;
+                    const passInput = document.getElementById(
+                      "login-password",
+                    ) as HTMLInputElement | null;
+                    if (emailInput) emailInput.value = "pais.demo@siga-demo.ao";
+                    if (passInput) passInput.value = "Demo@Siga2026!";
+                    setError(null);
+                    setInfo("Conta de Encarregado selecionada. Clique em 'Entrar no Portal'.");
+                  }}
+                  className="p-2 text-left rounded-xl border border-border bg-secondary/50 hover:bg-primary/10 hover:border-primary/40 transition-colors col-span-2 sm:col-span-1"
+                >
+                  <p className="font-bold text-[11px] text-foreground">👨‍👩‍👧 Encarregado</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    pais.demo@siga-demo.ao
+                  </p>
+                </button>
+              </div>
+            </div>
+
             {/* PWA Direct Installation Prompt on Desktop/Mobile */}
             {installPrompt && (
-              <div className="mt-6 pt-5 border-t border-border/60">
+              <div className="mt-4 pt-3 border-t border-border/60">
                 <Button
                   type="button"
                   variant="outline"

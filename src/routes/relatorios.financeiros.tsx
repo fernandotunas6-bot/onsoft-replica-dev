@@ -36,11 +36,30 @@ const RelatoriosFinanceirosCategoryCharts = lazy(() =>
     default: module.RelatoriosFinanceirosCategoryCharts,
   })),
 );
+const RelatoriosFinanceirosMonthlyChart = lazy(() =>
+  import("@/features/finance/RelatoriosFinanceirosCategoryCharts").then((module) => ({
+    default: module.RelatoriosFinanceirosMonthlyChart,
+  })),
+);
 
 const relatorioFinanceiroFilterDefaults = {
   sentido: "todos",
+  periodo: "todos",
   q: "",
 };
+
+/** Filtra as chaves de mês (YYYY-MM) elegíveis para o período seleccionado. */
+function monthKeysForPeriodo(periodo: string): Set<string> | null {
+  if (periodo === "todos") return null;
+  const now = new Date();
+  const keys = new Set<string>();
+  const monthsBack = periodo === "mes" ? 1 : periodo === "trimestre" ? 3 : 12;
+  for (let i = 0; i < monthsBack; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    keys.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  return keys;
+}
 
 type CollectionReportRow = {
   mes: string;
@@ -91,6 +110,7 @@ function RelatoriosFinanceiros() {
     relatorioFinanceiroFilterDefaults,
   );
   const sentido = filters.sentido;
+  const periodo = filters.periodo;
   const query = filters.q.trim().toLowerCase();
   const reportingQuery = useQuery({
     queryKey: ["finance", "reporting"],
@@ -104,14 +124,20 @@ function RelatoriosFinanceiros() {
   const billed = Number(summary?.billed ?? 0);
   const received = Number(summary?.received ?? 0);
   const eficienciaMedia = billed ? Math.round((received / billed) * 100) : 0;
-  const mensalidadesPorMes = (reportingQuery.data?.monthly ?? []).map((month) => ({
-    mes: new Date(`${month.month_start}T00:00:00`).toLocaleDateString("pt-PT", {
-      month: "short",
-      year: "2-digit",
-    }),
-    cobrado: Number(month.billed),
-    recebido: Number(month.received),
-  }));
+  const periodoMonthKeys = monthKeysForPeriodo(periodo);
+  const mensalidadesPorMes = (reportingQuery.data?.monthly ?? [])
+    .filter(
+      (month) => !periodoMonthKeys || periodoMonthKeys.has(month.month_start.slice(0, 7)),
+    )
+    .map((month) => ({
+      mes: new Date(`${month.month_start}T00:00:00`).toLocaleDateString("pt-PT", {
+        month: "short",
+        year: "2-digit",
+      }),
+      cobrado: Number(month.billed),
+      recebido: Number(month.received),
+      despesa: Number(month.expense ?? 0),
+    }));
   const receitaPorCategoria = (reportingQuery.data?.categories ?? [])
     .filter((category) => category.direction === "in")
     .map((category) => ({ categoria: category.category, valor: Number(category.amount) }));
@@ -434,6 +460,8 @@ function RelatoriosFinanceiros() {
         <InstalledModuleTools module="financeiro" />
 
         <StatGrid
+          collapsible
+          storageKey="rel-financeiros"
           items={[
             { label: "Receita total", value: kwanza(receita), hint: "Lançamentos confirmados" },
             { label: "Despesa total", value: kwanza(despesa), hint: "Lançamentos confirmados" },
@@ -441,11 +469,13 @@ function RelatoriosFinanceiros() {
               label: "Resultado",
               value: kwanza(resultado),
               hint: `Margem de ${receita ? Math.round((resultado / receita) * 100) : 0}%`,
+              tone: resultado >= 0 ? "success" : "destructive",
             },
             {
               label: "Dívida acumulada",
               value: kwanza(dividaAcumulada),
               hint: `${eficienciaMedia}% de eficiência média`,
+              tone: dividaAcumulada > 0 ? "warning" : "success",
             },
           ]}
         />
@@ -472,8 +502,30 @@ function RelatoriosFinanceiros() {
                 { value: "despesa", label: "Só despesas" },
               ],
             },
+            {
+              name: "periodo",
+              type: "select",
+              label: "Período",
+              emptyValue: "todos",
+              options: [
+                { value: "todos", label: "Todo o histórico" },
+                { value: "mes", label: "Último mês" },
+                { value: "trimestre", label: "Último trimestre" },
+                { value: "ano", label: "Último ano" },
+              ],
+            },
           ]}
         />
+
+        <Suspense fallback={<div className="surface-card h-[300px] animate-pulse bg-muted/40" />}>
+          <RelatoriosFinanceirosMonthlyChart
+            monthly={mensalidadesPorMes.map((m) => ({
+              mes: m.mes,
+              receita: m.recebido,
+              despesa: m.despesa,
+            }))}
+          />
+        </Suspense>
 
         <Suspense
           fallback={
