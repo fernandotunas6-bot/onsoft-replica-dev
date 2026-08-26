@@ -26,6 +26,9 @@ import {
   angolaGradeScale,
   annualAverage,
   formatScore,
+  getPeriodsForCycle,
+  getPeriodNoun,
+  inferTeachingCycle,
   initialsFromName,
   scoreAverage,
   situacaoPauta,
@@ -142,6 +145,13 @@ export function GradePautaSheet({
 
   const selectedGroup = classGroups.find((group) => group.id === classGroupId);
   const selectedSubject = subjects.find((subject) => subject.id === subjectId);
+  const selectedCycle = inferTeachingCycle(selectedGroup?.grade_name, selectedGroup?.course_name);
+  const periodOptions = getPeriodsForCycle(selectedCycle);
+  const periodNoun = getPeriodNoun(selectedCycle);
+
+  useEffect(() => {
+    if (!periodOptions.includes(term)) setTerm(periodOptions[0] ?? 1);
+  }, [periodOptions, term]);
   const termClosed = closedTerms.includes(term);
   const canEdit = canLaunch && !termClosed;
 
@@ -238,7 +248,11 @@ export function GradePautaSheet({
     try {
       await setTermLock({ data: { term, closed: !termClosed } });
       await queryClient.invalidateQueries({ queryKey: ["school", "settings"] });
-      toast.success(termClosed ? `${term}º trimestre reaberto.` : `${term}º trimestre fechado.`);
+      toast.success(
+        termClosed
+          ? `${term}º ${periodNoun.toLowerCase()} reaberto.`
+          : `${term}º ${periodNoun.toLowerCase()} fechado.`,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível alterar o fecho.");
     } finally {
@@ -280,7 +294,7 @@ export function GradePautaSheet({
             situacao: average == null ? "Pendente" : situacaoPauta(average, passingGrade).label,
           };
         }),
-        `${schoolName} · ${academicYear} · ${turma} · ${selectedSubject?.name ?? ""} · ${term}º trimestre`,
+        `${schoolName} · ${academicYear} · ${turma} · ${selectedSubject?.name ?? ""} · ${term}º ${periodNoun.toLowerCase()}`,
       );
       return;
     }
@@ -318,7 +332,7 @@ export function GradePautaSheet({
               mediaGeral == null ? "Pendente" : situacaoPauta(mediaGeral, passingGrade).label,
           };
         }),
-        `${schoolName} · ${academicYear} · ${turma} · ${term}º trimestre`,
+        `${schoolName} · ${academicYear} · ${turma} · ${term}º ${periodNoun.toLowerCase()}`,
       );
       return;
     }
@@ -407,7 +421,7 @@ export function GradePautaSheet({
         school: printSchool,
         overlay: overlayPauta({
           ...(selectedSubject?.name ? { subjectName: selectedSubject.name } : {}),
-          periodName: `${term}º trimestre`,
+          periodName: `${term}º ${periodNoun.toLowerCase()}`,
           className: turma,
           ...((selectedGroup?.course_name ?? selectedGroup?.grade_name)
             ? { courseName: selectedGroup?.course_name ?? selectedGroup?.grade_name }
@@ -467,7 +481,7 @@ export function GradePautaSheet({
         tipo: "Pauta geral da turma",
         school: printSchool,
         overlay: overlayPauta({
-          periodName: `${term}º trimestre`,
+          periodName: `${term}º ${periodNoun.toLowerCase()}`,
           className: turma,
           ...((selectedGroup?.course_name ?? selectedGroup?.grade_name)
             ? { courseName: selectedGroup?.course_name ?? selectedGroup?.grade_name }
@@ -571,8 +585,8 @@ export function GradePautaSheet({
           {view === "anual"
             ? `Pauta anual · ${academicYear}`
             : view === "geral"
-              ? `Pauta geral da turma · ${academicYear} · ${term}º trimestre`
-              : `Pauta de avaliação contínua · ${academicYear} · ${term}º trimestre`}
+              ? `Pauta geral da turma · ${academicYear} · ${term}º ${periodNoun.toLowerCase()}`
+              : `Pauta de avaliação contínua · ${academicYear} · ${term}º ${periodNoun.toLowerCase()}`}
         </p>
         <p className="mt-1 text-sm font-semibold">
           {selectedGroup?.grade_name ?? "Classe"} · {selectedGroup?.name ?? "Turma"} ·{" "}
@@ -581,7 +595,7 @@ export function GradePautaSheet({
         </p>
         <p className="mt-2 text-[11px] text-muted-foreground">
           Escala 0–20 · MAC + NPP + NPT / 3 · Transita com média ≥ {passingGrade}
-          {termClosed ? " · Trimestre fechado" : ""}
+          {termClosed ? ` · ${periodNoun} fechado` : ""}
         </p>
       </div>
 
@@ -642,16 +656,18 @@ export function GradePautaSheet({
         ) : null}
         {view !== "anual" ? (
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">
-            Trimestre
+            {periodNoun}
             <select
-              aria-label="Trimestre"
+              aria-label={periodNoun}
               className="flex h-9 min-w-[100px] rounded-lg border border-input bg-background px-3 text-sm text-foreground"
               value={term}
               onChange={(event) => setTerm(Number(event.target.value) as 1 | 2 | 3)}
             >
-              <option value={1}>1º</option>
-              <option value={2}>2º</option>
-              <option value={3}>3º</option>
+              {periodOptions.map((p) => (
+                <option key={p} value={p}>
+                  {p}º
+                </option>
+              ))}
             </select>
           </label>
         ) : null}
@@ -758,7 +774,9 @@ export function GradePautaSheet({
             onClick={() => void toggleTermLock()}
           >
             {termClosed ? <Unlock className="size-3.5" /> : <Lock className="size-3.5" />}
-            {termClosed ? "Reabrir trimestre" : "Fechar trimestre"}
+            {termClosed
+              ? `Reabrir ${periodNoun.toLowerCase()}`
+              : `Fechar ${periodNoun.toLowerCase()}`}
           </Button>
         ) : null}
         {canEdit && view === "disciplina" ? (

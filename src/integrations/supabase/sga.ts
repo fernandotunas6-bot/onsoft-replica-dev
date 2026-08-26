@@ -21,6 +21,8 @@ const roleCodeToAppRole: Record<string, ApplicationRole> = {
   guardian: "Encarregado",
   encarregado: "Encarregado",
   parent: "Encarregado",
+  student: "Aluno",
+  aluno: "Aluno",
 };
 
 export function mapSgaRoleCode(code: string | null | undefined): ApplicationRole {
@@ -40,6 +42,8 @@ export function mapAppRoleToSgaCodes(role: ApplicationRole): string[] {
       return ["teacher", "professor"];
     case "Encarregado":
       return ["guardian", "encarregado", "parent"];
+    case "Aluno":
+      return ["student", "aluno"];
     default:
       return [];
   }
@@ -50,6 +54,7 @@ export type SgaMembershipContext = {
   membershipId: string;
   roleCode: string;
   appRole: ApplicationRole;
+  allAppRoles: ApplicationRole[];
   roleName: string;
 };
 
@@ -78,6 +83,8 @@ export async function resolveSgaMembership(
   const roleIds = (memberRoles ?? []).map((row: { role_id: string }) => row.role_id);
   let roleCode = "member";
   let roleName = "Utilizador";
+  const allAppRoles: ApplicationRole[] = [];
+
   if (roleIds.length) {
     const { data: roles, error: rolesError } = await db
       .from("roles")
@@ -92,6 +99,15 @@ export async function resolveSgaMembership(
       roleCode = preferred.code;
       roleName = preferred.name;
     }
+    for (const roleItem of roles ?? []) {
+      const appR = mapSgaRoleCode(roleItem.code);
+      if (!allAppRoles.includes(appR)) allAppRoles.push(appR);
+    }
+  }
+
+  const primaryRole = mapSgaRoleCode(roleCode);
+  if (!allAppRoles.includes(primaryRole)) {
+    allAppRoles.push(primaryRole);
   }
 
   return {
@@ -99,6 +115,7 @@ export async function resolveSgaMembership(
     membershipId: membership.id,
     roleCode,
     roleName,
-    appRole: mapSgaRoleCode(roleCode),
+    appRole: primaryRole,
+    allAppRoles,
   };
 }

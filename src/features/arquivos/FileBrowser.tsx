@@ -594,7 +594,10 @@ export function FileBrowser({
           setUploadProgress((prev) => {
             const current = prev[file.name] ?? 0;
             if (current >= 90) return prev;
-            return { ...prev, [file.name]: Math.min(90, current + Math.max(1, (90 - current) / 8)) };
+            return {
+              ...prev,
+              [file.name]: Math.min(90, current + Math.max(1, (90 - current) / 8)),
+            };
           });
         }, 180);
         const id = crypto.randomUUID();
@@ -775,6 +778,13 @@ export function FileBrowser({
 
   const removeSelected = async () => {
     if (!selected) return;
+    if (
+      !window.confirm(
+        `Apagar "${selected.name}" definitivamente? Esta acção não pode ser desfeita.`,
+      )
+    ) {
+      return;
+    }
     try {
       await deleteLocalFile(selected.id);
       await deleteSchoolFile({ data: { id: selected.id } });
@@ -1255,11 +1265,7 @@ export function FileBrowser({
             </div>
           </div>
 
-          <div
-            className={cn(
-              "relative min-h-0 flex-1 overflow-auto p-0",
-            )}
-          >
+          <div className={cn("relative min-h-0 flex-1 overflow-auto p-0")}>
             {localOnly ? (
               <p className="m-4 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
                 Tabela SGA ainda não aplicada. Os ficheiros ficam neste dispositivo até correr

@@ -25,9 +25,15 @@ export type SchoolSettingsRow = {
   passing_grade: number;
   preferences: unknown;
   pedagogy?: {
-    teachingLevels: Array<"pre_escolar" | "primario" | "i_ciclo" | "ii_ciclo">;
+    teachingLevels: Array<
+      "pre_escolar" | "primario" | "i_ciclo" | "ii_ciclo" | "tecnico" | "adultos" | "superior"
+    >;
     courses: Array<"cfb" | "cej" | "letras" | "tecnico">;
     closedTerms?: Array<1 | 2 | 3>;
+    gradingProfile?: {
+      scale: "20_ects" | "gpa4";
+      components: "frequencia_exame" | "so_exame";
+    } | null;
   };
   version: number;
   branding?: { logo_url: string | null };

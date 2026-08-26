@@ -31,12 +31,12 @@ import {
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ModalShell } from "@/components/ui/modal-system";
+import { ModalShell, ModalSidebar, type ModalSidebarItem } from "@/components/ui/modal-system";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getPerson, updatePersonStatus, updatePerson } from "@/features/people/server";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -158,6 +158,17 @@ export function PersonProfile360Modal({
   const nifOrBi = person?.nif || person?.national_id || "";
   const photoUrl = person?.photo_url || null;
 
+  const sidebarItems: ModalSidebarItem[] = [
+    { value: "visao_geral", label: "Visão Geral", icon: UserCheck },
+    { value: "dados_pessoais", label: "Dados Pessoais", icon: IdCard },
+    { value: "identificacao", label: "Documentos & BI", icon: FileCheck },
+    { value: "contactos", label: "Contactos", icon: Phone },
+    { value: "vinculos", label: "Vínculos & Matrículas", icon: GraduationCap },
+    ...(hasStudentRole ? [{ value: "financeiro", label: "Financeiro", icon: Wallet }] : []),
+    { value: "relacoes", label: "Relações", icon: Users },
+    { value: "timeline", label: "Linha do Tempo", icon: History },
+  ];
+
   const handleStartEdit = () => {
     if (!person) return;
     setEditValues({
@@ -200,7 +211,7 @@ export function PersonProfile360Modal({
 
   return (
     <ModalShell open={open} onOpenChange={onOpenChange} size="2xl" hasUnsavedChanges={editing}>
-      <div className="flex flex-col h-full overflow-y-auto max-h-[88vh]">
+      <div className="flex h-full max-h-[88vh] flex-col overflow-hidden">
         {/* CABEÇALHO 360° PREMIUM */}
         <div className="border-b border-border bg-gradient-to-r from-card via-card to-secondary/30 px-6 py-5 pr-20">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -299,7 +310,10 @@ export function PersonProfile360Modal({
         <button
           type="button"
           onClick={() => {
-            if (editing && !window.confirm("Existem alterações não guardadas. Fechar sem guardar?")) {
+            if (
+              editing &&
+              !window.confirm("Existem alterações não guardadas. Fechar sem guardar?")
+            ) {
               return;
             }
             setEditing(false);
@@ -311,38 +325,27 @@ export function PersonProfile360Modal({
           <X className="size-4" />
         </button>
 
-        {/* CONTEÚDO PRINCIPAL EM ABAS 360° */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-6 bg-secondary/10">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="w-full flex flex-wrap h-auto p-1 bg-card border border-border rounded-xl">
-              <TabsTrigger value="visao_geral" className="gap-1.5 text-xs py-2">
-                <UserCheck className="size-3.5" /> Visão Geral
-              </TabsTrigger>
-              <TabsTrigger value="dados_pessoais" className="gap-1.5 text-xs py-2">
-                <IdCard className="size-3.5" /> Dados Pessoais
-              </TabsTrigger>
-              <TabsTrigger value="identificacao" className="gap-1.5 text-xs py-2">
-                <FileCheck className="size-3.5" /> Documentos & BI
-              </TabsTrigger>
-              <TabsTrigger value="contactos" className="gap-1.5 text-xs py-2">
-                <Phone className="size-3.5" /> Contactos
-              </TabsTrigger>
-              <TabsTrigger value="vinculos" className="gap-1.5 text-xs py-2">
-                <GraduationCap className="size-3.5" /> Vínculos & Matrículas
-              </TabsTrigger>
-              {hasStudentRole ? (
-                <TabsTrigger value="financeiro" className="gap-1.5 text-xs py-2">
-                  <Wallet className="size-3.5" /> Financeiro
-                </TabsTrigger>
-              ) : null}
-              <TabsTrigger value="relacoes" className="gap-1.5 text-xs py-2">
-                <Users className="size-3.5" /> Relações
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="gap-1.5 text-xs py-2">
-                <History className="size-3.5" /> Linha do Tempo
-              </TabsTrigger>
-            </TabsList>
-
+        {/* CORPO: SIDEBAR CONTEXTUAL + CONTEÚDO (PROMPT MASTER §5/§6) */}
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          orientation="vertical"
+          className="flex min-h-0 flex-1 flex-col sm:flex-row"
+        >
+          <ModalSidebar
+            items={sidebarItems}
+            header={
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-foreground">
+                  {person?.full_name ?? "Pessoa"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {roles.length ? roles.map((r) => roleLabels[r] ?? r).join(" · ") : "Sem vínculo"}
+                </p>
+              </div>
+            }
+          />
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-secondary/10 p-6">
             {/* ABA 1: VISÃO GERAL */}
             <TabsContent value="visao_geral" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -464,51 +467,82 @@ export function PersonProfile360Modal({
               {editing ? (
                 <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm space-y-4">
                   <h4 className="text-sm font-bold flex items-center gap-2">
-                    <Pencil className="size-4 text-primary" />
-                    A editar ficha
+                    <Pencil className="size-4 text-primary" />A editar ficha
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="edit-full-name" className="text-xs">Nome completo</Label>
+                      <Label htmlFor="edit-full-name" className="text-xs">
+                        Nome completo
+                      </Label>
                       <Input
                         id="edit-full-name"
                         value={editValues.fullName}
-                        onChange={(e) => setEditValues((prev) => ({ ...prev, fullName: e.target.value }))}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, fullName: e.target.value }))
+                        }
                         required
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="edit-phone" className="text-xs">Telefone</Label>
+                      <Label htmlFor="edit-phone" className="text-xs">
+                        Telefone
+                      </Label>
                       <Input
                         id="edit-phone"
                         value={editValues.phone}
-                        onChange={(e) => setEditValues((prev) => ({ ...prev, phone: e.target.value }))}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, phone: e.target.value }))
+                        }
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="edit-email" className="text-xs">E-mail</Label>
+                      <Label htmlFor="edit-email" className="text-xs">
+                        E-mail
+                      </Label>
                       <Input
                         id="edit-email"
                         type="email"
                         value={editValues.email}
-                        onChange={(e) => setEditValues((prev) => ({ ...prev, email: e.target.value }))}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, email: e.target.value }))
+                        }
                       />
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="edit-nif" className="text-xs">BI / NIF</Label>
+                      <Label htmlFor="edit-nif" className="text-xs">
+                        BI / NIF
+                      </Label>
                       <Input
                         id="edit-nif"
                         value={editValues.nif}
-                        onChange={(e) => setEditValues((prev) => ({ ...prev, nif: e.target.value }))}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, nif: e.target.value }))
+                        }
                       />
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-2 pt-2">
-                    <Button type="button" variant="outline" size="sm" onClick={handleCancelEdit} disabled={saving}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                    >
                       Cancelar
                     </Button>
-                    <Button type="button" size="sm" onClick={handleSaveEdit} disabled={saving} className="gap-1.5">
-                      {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleSaveEdit}
+                      disabled={saving}
+                      className="gap-1.5"
+                    >
+                      {saving ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Save className="size-3.5" />
+                      )}
                       Guardar
                     </Button>
                   </div>
@@ -652,7 +686,10 @@ export function PersonProfile360Modal({
                       <CheckCircle2 className="size-3.5 text-primary" /> Matrícula activa
                     </p>
                     <p className="text-muted-foreground">
-                      Turma: <strong className="text-foreground">{person.academic_summary.active_enrollment.class_name ?? "—"}</strong>
+                      Turma:{" "}
+                      <strong className="text-foreground">
+                        {person.academic_summary.active_enrollment.class_name ?? "—"}
+                      </strong>
                       {person.academic_summary.active_enrollment.course_name
                         ? ` · Curso: ${person.academic_summary.active_enrollment.course_name}`
                         : ""}
@@ -688,7 +725,8 @@ export function PersonProfile360Modal({
                   </div>
                 ) : (
                   <div className="rounded-lg border border-border bg-secondary/10 p-4 text-xs text-muted-foreground">
-                    Esta pessoa ainda não tem vínculo de aluno. Use "Matricular Aluno" para criar um.
+                    Esta pessoa ainda não tem vínculo de aluno. Use "Matricular Aluno" para criar
+                    um.
                   </div>
                 )}
               </div>
@@ -716,7 +754,9 @@ export function PersonProfile360Modal({
                           {kwanza(person.financial_summary.balance)}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {person.financial_summary.balance > 0 ? "Valor pendente de pagamento." : "Sem valores pendentes."}
+                          {person.financial_summary.balance > 0
+                            ? "Valor pendente de pagamento."
+                            : "Sem valores pendentes."}
                         </span>
                       </div>
                       <div
@@ -726,7 +766,9 @@ export function PersonProfile360Modal({
                             : "border-border bg-secondary/10"
                         }`}
                       >
-                        <span className="text-xs text-muted-foreground block">Facturas Vencidas</span>
+                        <span className="text-xs text-muted-foreground block">
+                          Facturas Vencidas
+                        </span>
                         <span className="text-lg font-bold block">
                           {person.financial_summary.overdue_count}
                         </span>
@@ -738,7 +780,9 @@ export function PersonProfile360Modal({
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Sem dados financeiros disponíveis.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sem dados financeiros disponíveis.
+                    </p>
                   )}
                 </div>
               </TabsContent>
@@ -779,8 +823,8 @@ export function PersonProfile360Modal({
                 </div>
               </div>
             </TabsContent>
-          </Tabs>
-        </div>
+          </div>
+        </Tabs>
       </div>
     </ModalShell>
   );

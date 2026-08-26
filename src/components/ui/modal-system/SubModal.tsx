@@ -4,6 +4,7 @@ import { ModalShell } from "./ModalShell";
 import { ModalHeader } from "./ModalHeader";
 import { ModalContent } from "./ModalContent";
 import { ModalFooter } from "./ModalFooter";
+import { confirmDiscardChanges } from "./confirm-close";
 
 export interface SubModalProps {
   open: boolean;
@@ -16,6 +17,7 @@ export interface SubModalProps {
   cancelLabel?: string;
   onSubmit?: () => void | Promise<void>;
   isSubmitting?: boolean;
+  hasUnsavedChanges?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
 }
 
@@ -35,6 +37,7 @@ export function SubModal({
   cancelLabel = "Cancelar",
   onSubmit,
   isSubmitting = false,
+  hasUnsavedChanges = false,
   size = "md",
 }: SubModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,18 +47,28 @@ export function SubModal({
     }
   };
 
+  const guardedClose = () => {
+    if (confirmDiscardChanges(hasUnsavedChanges)) onOpenChange(false);
+  };
+
   return (
-    <ModalShell open={open} onOpenChange={onOpenChange} size={size} className="z-70">
+    <ModalShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size={size}
+      className="z-70"
+      hasUnsavedChanges={hasUnsavedChanges}
+    >
       <form onSubmit={handleSubmit} className="flex flex-col">
         <ModalHeader
           {...(icon ? { icon } : {})}
           title={title}
           subtitle={subtitle}
-          onClose={() => onOpenChange(false)}
+          onClose={guardedClose}
         />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
-          onCancel={() => onOpenChange(false)}
+          onCancel={guardedClose}
           submitLabel={submitLabel}
           cancelLabel={cancelLabel}
           isSubmitting={isSubmitting}

@@ -150,7 +150,7 @@ export function overlayMapa(
   };
 }
 
-export function overlayHistorico(input: {
+type HistoricoPeriod = {
   subjects: Array<{
     name: string;
     t1: string | number;
@@ -162,34 +162,42 @@ export function overlayHistorico(input: {
   periodName: string;
   average?: string | number;
   status?: string;
-}) {
-  const failed = input.subjects.filter((row) => /reprov|não trans/i.test(row.status)).length;
+};
+
+/**
+ * Histórico académico — aceita um período por ano lectivo (o template já suporta múltiplos via
+ * `{{#each periods}}`). `record` resume o ano mais recente, como um resumo de transcript.
+ */
+export function overlayHistorico(input: { periods: HistoricoPeriod[] }) {
+  const lastPeriod = input.periods[input.periods.length - 1];
+  const failedInLast = lastPeriod
+    ? lastPeriod.subjects.filter((row) => /reprov|não trans/i.test(row.status)).length
+    : 0;
+
   return {
-    periods: [
-      {
-        name: input.periodName,
-        average: input.average ?? "—",
-        status: input.status ?? "—",
-        subjects: input.subjects.map((subject) => ({
-          name: subject.name,
-          type: "Nuclear",
-          workload: "—",
-          mac: subject.t1,
-          npp: subject.t2 ?? "—",
-          pt: subject.t3 ?? "—",
-          mt: subject.mfa,
-          exam: "—",
-          finalGrade: subject.mfa,
-          status: subject.status,
-        })),
-      },
-    ],
+    periods: input.periods.map((period) => ({
+      name: period.periodName,
+      average: period.average ?? "—",
+      status: period.status ?? "—",
+      subjects: period.subjects.map((subject) => ({
+        name: subject.name,
+        type: "Nuclear",
+        workload: "—",
+        mac: subject.t1,
+        npp: subject.t2 ?? "—",
+        pt: subject.t3 ?? "—",
+        mt: subject.mfa,
+        exam: "—",
+        finalGrade: subject.mfa,
+        status: subject.status,
+      })),
+    })),
     record: {
       status: "Activo",
-      globalAverage: input.average ?? "—",
-      totalSubjects: input.subjects.length,
-      failedSubjects: failed,
-      finalStatus: input.status ?? "—",
+      globalAverage: lastPeriod?.average ?? "—",
+      totalSubjects: lastPeriod?.subjects.length ?? 0,
+      failedSubjects: failedInLast,
+      finalStatus: lastPeriod?.status ?? "—",
     },
   };
 }

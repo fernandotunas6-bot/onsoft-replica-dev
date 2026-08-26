@@ -27,8 +27,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 const DEFAULT_SUPABASE_URL = "https://xodgfmxiaunpamctfeea.supabase.co";
-const DEFAULT_SUPABASE_PUBLISHABLE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvZGdmbXhpYXVucGFtY3RmZWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NjIxOTYsImV4cCI6MjEwMTMzODE5Nn0.5f5dpoKP_Yu3y4ZaWhAEDLmWpGmVDq4KtuG38kGvDIM";
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td";
 
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)

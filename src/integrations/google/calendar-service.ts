@@ -91,7 +91,9 @@ export async function createCalendarEventFromClassSchedule(
     const untilDateFormatted = schedule.endDate.replace(/-/g, "") + "T235959Z";
 
     if (dayCode) {
-      eventPayload["recurrence"] = [`RRULE:FREQ=WEEKLY;BYDAY=${dayCode};UNTIL=${untilDateFormatted}`];
+      eventPayload["recurrence"] = [
+        `RRULE:FREQ=WEEKLY;BYDAY=${dayCode};UNTIL=${untilDateFormatted}`,
+      ];
     }
   }
 

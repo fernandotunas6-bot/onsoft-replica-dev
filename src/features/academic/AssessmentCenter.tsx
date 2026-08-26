@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { QuickModal, FormModal } from "@/components/ui/modal-system";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { AngolaEmblem } from "@/features/academic/AngolaEmblem";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
 import {
@@ -40,6 +41,7 @@ import {
   upsertAssessmentScores,
   upsertTermGradesBatch,
 } from "@/features/academic/server";
+import { runAcademicConsistencyCheck } from "@/features/academic/consistency-check";
 import { setTermLock } from "@/features/school/server";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { exportCsv } from "@/lib/export-csv";
@@ -58,6 +60,9 @@ import {
   assessmentComponents,
   assessmentKinds,
   formatScore,
+  getPeriodsForCycle,
+  getPeriodNoun,
+  inferTeachingCycle,
   parsePautaScore,
   pautaSituations,
   recursoFinal,
@@ -114,6 +119,12 @@ type ClassGroupOption = {
   name: string;
   course_name?: string;
   grade_name?: string;
+};
+
+type ClassSubjectRow = {
+  class_group_id: string;
+  subject_id: string;
+  teacher_id?: string | null;
 };
 
 type SubjectOption = {
@@ -178,6 +189,7 @@ export function AssessmentCenter({
   subjects,
   enrollments,
   termGrades,
+  classSubjects,
   passingGrade,
   canLaunch,
   canLockTerm,
@@ -195,6 +207,7 @@ export function AssessmentCenter({
   subjects: SubjectOption[];
   enrollments: EnrollmentRow[];
   termGrades: TermGradeRow[];
+  classSubjects?: ClassSubjectRow[] | undefined;
   passingGrade: number;
   canLaunch: boolean;
   canLockTerm: boolean;
@@ -256,6 +269,9 @@ export function AssessmentCenter({
     filters.turma !== "todas"
       ? (classGroups.find((group) => group.id === filters.turma) ?? null)
       : (classGroups[0] ?? null);
+  const selectedCycle = inferTeachingCycle(selectedGroup?.grade_name, selectedGroup?.course_name);
+  const periodOptions = getPeriodsForCycle(selectedCycle);
+  const periodNoun = getPeriodNoun(selectedCycle);
   const selectedSubject =
     filters.disciplina !== "todas"
       ? (subjects.find((subject) => subject.id === filters.disciplina) ?? null)
@@ -465,7 +481,7 @@ export function AssessmentCenter({
     selectedGroup?.grade_name,
     selectedGroup?.name,
     selectedSubject?.name,
-    `${term}º trimestre`,
+    `${term}º ${periodNoun.toLowerCase()}`,
     selectedStudent?.student.student_name,
   ]
     .filter(Boolean)
@@ -547,6 +563,34 @@ export function AssessmentCenter({
     invalid: invalidCount,
     closed: termClosed,
   });
+
+  // Verificação de consistência por turma (academic/consistency-check.ts) — o fecho de trimestre
+  // continua a ser por escola+trimestre (não há ainda bloqueio por turma), mas só se habilita
+  // quando NENHUMA turma tem docentes por atribuir ou notas pendentes nesse trimestre.
+  const termReadiness = useMemo(() => {
+    const reports = classGroups.map((group) =>
+      runAcademicConsistencyCheck({
+        classGroupId: group.id,
+        classGroupName: group.name,
+        gradeName: group.grade_name,
+        enrollments: enrollments
+          .filter((e) => e.class_group_id === group.id)
+          .map((e) => ({ id: e.id, student_name: e.student_name, status: "active" })),
+        subjects: subjects.map((s) => ({ id: s.id, name: s.name })),
+        classSubjects: (classSubjects ?? []).filter((cs) => cs.class_group_id === group.id),
+        termGrades: termGrades.map((g) => ({
+          enrollment_id: g.enrollment_id,
+          subject_id: g.subject_id,
+          term: g.term,
+          mac: g.mac,
+          npt: g.npt,
+        })),
+        term,
+      }),
+    );
+    const notReady = reports.filter((report) => report.totalStudents > 0 && !report.isReadyToLock);
+    return { reports, notReady, allReady: notReady.length === 0 };
+  }, [classGroups, subjects, enrollments, termGrades, classSubjects, term]);
   const validationCode = documentValidationCode([
     schoolName,
     academicYear,
@@ -629,7 +673,7 @@ export function AssessmentCenter({
     ...(selectedGroup?.course_name ? { courseName: selectedGroup.course_name } : {}),
     ...(selectedGroup?.name ? { className: selectedGroup.name } : {}),
     ...(selectedSubject?.name ? { subjectName: selectedSubject.name } : {}),
-    termLabel: `${term}º trimestre`,
+    termLabel: `${term}º ${periodNoun.toLowerCase()}`,
     ...(directorName ? { directorName } : {}),
     validationCode,
   };
@@ -942,7 +986,7 @@ export function AssessmentCenter({
       return grade ? [{ id: student.id, grade }] : [];
     });
     if (previous.length === 0) {
-      toast.error("Não há notas do trimestre anterior nesta disciplina.");
+      toast.error(`Não há notas do ${periodNoun.toLowerCase()} anterior nesta disciplina.`);
       return;
     }
     setValues((current) => {
@@ -959,7 +1003,7 @@ export function AssessmentCenter({
       return next;
     });
     toast.success(
-      `Copiámos ${previous.length} aluno(s) do ${term - 1}º trimestre. Revise e guarde.`,
+      `Copiámos ${previous.length} aluno(s) do ${term - 1}º ${periodNoun.toLowerCase()}. Revise e guarde.`,
     );
   };
 
@@ -1014,8 +1058,17 @@ export function AssessmentCenter({
     new Set(classGroups.map((group) => group.course_name).filter(Boolean)),
   );
 
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      onOpenChange(true);
+      return;
+    }
+    if (!confirmDiscardChanges(dirtyCount > 0)) return;
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex h-[96vh] w-[98vw] max-w-[98vw] flex-col gap-0 overflow-hidden p-0 sm:rounded-xl">
         <div className="flex items-center justify-between border-b px-5 py-3 print:hidden">
           <div>
@@ -1130,13 +1183,9 @@ export function AssessmentCenter({
                 },
                 {
                   name: "trimestre",
-                  label: "Trimestre",
+                  label: periodNoun,
                   type: "select",
-                  options: [
-                    { value: "1", label: "1º" },
-                    { value: "2", label: "2º" },
-                    { value: "3", label: "3º" },
-                  ],
+                  options: periodOptions.map((p) => ({ value: String(p), label: `${p}º` })),
                 },
                 {
                   name: "situacao",
@@ -1167,7 +1216,7 @@ export function AssessmentCenter({
             onClick={copyPreviousTerm}
             disabled={!canEdit || term < 2}
           >
-            Copiar trimestre anterior
+            Copiar {periodNoun.toLowerCase()} anterior
           </Button>
           <Button size="sm" variant="outline" onClick={undo} disabled={!history.length}>
             Desfazer
@@ -1291,7 +1340,12 @@ export function AssessmentCenter({
               size="sm"
               variant="outline"
               className="gap-1.5"
-              disabled={!termClosed && !closeChecklist.ready}
+              disabled={!termClosed && (!closeChecklist.ready || !termReadiness.allReady)}
+              title={
+                !termClosed && !termReadiness.allReady
+                  ? `${termReadiness.notReady.length} turma(s) com pendências neste trimestre.`
+                  : undefined
+              }
               onClick={() =>
                 void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
                   queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
@@ -1519,10 +1573,47 @@ export function AssessmentCenter({
                     </span>
                   </li>
                 ))}
+                <li className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm">
+                  <span>Todas as turmas com docentes atribuídos e sem notas pendentes</span>
+                  <span
+                    className={
+                      termReadiness.allReady
+                        ? "font-semibold text-primary"
+                        : "font-semibold text-destructive"
+                    }
+                  >
+                    {termReadiness.allReady
+                      ? "Pronto"
+                      : `Bloqueia (${termReadiness.notReady.length} turma(s))`}
+                  </span>
+                </li>
               </ul>
+              {!termReadiness.allReady && termReadiness.notReady.length > 0 ? (
+                <ul className="space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+                  {termReadiness.notReady.slice(0, 6).map((report) => (
+                    <li key={report.classGroupId}>
+                      <b className="text-foreground">{report.classGroupName}:</b>{" "}
+                      {report.summary.unassignedSubjectsCount > 0
+                        ? `${report.summary.unassignedSubjectsCount} disciplina(s) sem docente. `
+                        : ""}
+                      {report.summary.pendingGradesCount > 0
+                        ? `${report.summary.pendingGradesCount} nota(s) pendente(s). `
+                        : ""}
+                      {report.issues.some((issue) => issue.code === "MULTIPLE_TEACHERS_MONODOCENTE")
+                        ? "Turma monodocente com mais do que um professor atribuído."
+                        : ""}
+                    </li>
+                  ))}
+                  {termReadiness.notReady.length > 6 ? (
+                    <li className="italic">
+                      + {termReadiness.notReady.length - 6} outra(s) turma(s).
+                    </li>
+                  ) : null}
+                </ul>
+              ) : null}
               {canLockTerm ? (
                 <Button
-                  disabled={!termClosed && !closeChecklist.ready}
+                  disabled={!termClosed && (!closeChecklist.ready || !termReadiness.allReady)}
                   onClick={() =>
                     void setTermLock({ data: { term, closed: !termClosed } }).then(() =>
                       queryClient.invalidateQueries({ queryKey: ["school", "settings"] }),
@@ -1844,7 +1935,7 @@ function OfficialPautaView({
         <p>Curso: {meta.courseName ?? "—"}</p>
         <p>Turma: {meta.className ?? "—"}</p>
         <p>Disciplina: {meta.subjectName ?? "—"}</p>
-        <p>Trimestre: {meta.termLabel ?? "—"}</p>
+        <p>Período: {meta.termLabel ?? "—"}</p>
       </div>
       <table className="mt-6 w-full border-collapse text-sm">
         <thead>
@@ -1992,12 +2083,17 @@ function CreateAssessmentDialog({
     }
     setDeleting(true);
     try {
-      await deleteAssessmentItem({
-        data: {
-          itemId: editingItem.id,
-          force: true,
-        },
-      });
+      try {
+        await deleteAssessmentItem({ data: { itemId: editingItem.id, force: false } });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        if (!message.includes("nota(s) lançada(s)")) throw error;
+        if (!confirm(`${message} Eliminar mesmo assim?`)) {
+          setDeleting(false);
+          return;
+        }
+        await deleteAssessmentItem({ data: { itemId: editingItem.id, force: true } });
+      }
       toast.success("Avaliação eliminada.");
       onOpenChange(false);
       onCreated();

@@ -7,11 +7,17 @@ import { listImportJobs, rollbackImportJob } from "@/features/import/server";
 import type { ImportJobRecord } from "@/features/import/schemas";
 
 const statusBadge: Record<string, { label: string; class: string }> = {
-  completed: { label: "Concluído", class: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  completed: {
+    label: "Concluído",
+    class: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  },
   rolled_back: { label: "Revertido", class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   failed: { label: "Falhou", class: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
   ready: { label: "Pronto", class: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  importing: { label: "Em Processamento", class: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  importing: {
+    label: "Em Processamento",
+    class: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+  },
   uploaded: { label: "Carregado", class: "bg-muted text-muted-foreground" },
 };
 
@@ -41,7 +47,9 @@ export function ImportHistoryPanel() {
     <div className="space-y-4">
       <div>
         <h3 className="text-base font-semibold">Histórico de Importações</h3>
-        <p className="text-xs text-muted-foreground">Auditoria completa das importações realizadas na escola.</p>
+        <p className="text-xs text-muted-foreground">
+          Auditoria completa das importações realizadas na escola.
+        </p>
       </div>
 
       {jobsQuery.isLoading ? (
@@ -51,7 +59,9 @@ export function ImportHistoryPanel() {
       ) : !jobs.length ? (
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
           <History className="mx-auto size-8 text-muted-foreground/60" />
-          <p className="mt-2 text-xs text-muted-foreground">Ainda não foram realizadas importações nesta escola.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Ainda não foram realizadas importações nesta escola.
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
@@ -68,7 +78,10 @@ export function ImportHistoryPanel() {
             </thead>
             <tbody className="divide-y divide-border">
               {jobs.map((job) => {
-                const badge = statusBadge[job.status] ?? { label: job.status, class: "bg-muted text-muted-foreground" };
+                const badge = statusBadge[job.status] ?? {
+                  label: job.status,
+                  class: "bg-muted text-muted-foreground",
+                };
                 return (
                   <tr key={job.id} className="hover:bg-muted/30">
                     <td className="whitespace-nowrap px-3 py-2.5 text-xs">
@@ -81,8 +94,12 @@ export function ImportHistoryPanel() {
                     <td className="px-3 py-2.5 font-medium text-foreground">{job.file_name}</td>
                     <td className="px-3 py-2.5 capitalize">{job.module}</td>
                     <td className="px-3 py-2.5">
-                      <span className="font-semibold text-emerald-600">{job.inserted_rows} inseridos</span>
-                      {job.updated_rows ? <span className="ml-1 text-blue-600">/ {job.updated_rows} atualizados</span> : null}
+                      <span className="font-semibold text-emerald-600">
+                        {job.inserted_rows} inseridos
+                      </span>
+                      {job.updated_rows ? (
+                        <span className="ml-1 text-blue-600">/ {job.updated_rows} atualizados</span>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2.5">
                       <span

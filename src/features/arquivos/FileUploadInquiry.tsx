@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { DialogExpandButton, useExpandableDialog } from "./dialog-expand";
 import { documentCodeSearchHint, generateDocumentCode, prefixForCategory } from "./document-code";
 import {
@@ -120,6 +121,18 @@ export function FileUploadInquiryModal({
   const isPhotoCategory = category === "foto";
   const areas = writableAreas.length ? writableAreas : ([defaultArea] as FileArea[]);
   const { expanded, toggleExpanded, contentClassName } = useExpandableDialog();
+  const baselineRef = useRef({
+    title: "",
+    description: "",
+    category: suggestedCategory,
+    documentDate: "",
+    referenceCode: "",
+    area: suggestedArea,
+    visibility: defaultVisibility,
+    relatedUserId: "",
+    relatedPersonId: "",
+    applyAsProfilePhoto: true,
+  });
 
   useEffect(() => {
     if (!open) return undefined;
@@ -127,22 +140,47 @@ export function FileUploadInquiryModal({
       initial?.category ??
       (photoLike ? "foto" : suggestFileCategory({ name: firstName, kind: firstKind }));
     const nextArea = initial?.area ?? suggestFileArea(nextCategory, writableAreas, defaultArea);
-    setTitle(initial?.title?.trim() || defaultTitleFromName(firstName));
-    setDescription(initial?.description?.trim() || "");
+    const nextTitle = initial?.title?.trim() || defaultTitleFromName(firstName);
+    const nextDescription = initial?.description?.trim() || "";
+    const nextDocumentDate = initial?.documentDate || "";
+    const nextReferenceCode =
+      initial?.referenceCode?.trim() || generateDocumentCode(prefixForCategory(nextCategory));
+    const nextVisibility =
+      initial?.visibility ?? defaultVisibilityForArea(nextArea) ?? defaultVisibility;
+    const nextRelatedUserId = initial?.relatedUserId || "";
+    const nextRelatedPersonId = initial?.relatedPersonId || "";
+    const nextApplyAsProfilePhoto = initial?.applyAsProfilePhoto ?? true;
+    setTitle(nextTitle);
+    setDescription(nextDescription);
     setCategory(nextCategory);
-    setDocumentDate(initial?.documentDate || "");
-    setReferenceCode(
-      initial?.referenceCode?.trim() || generateDocumentCode(prefixForCategory(nextCategory)),
-    );
+    setDocumentDate(nextDocumentDate);
+    setReferenceCode(nextReferenceCode);
     setArea(nextArea);
-    setVisibility(initial?.visibility ?? defaultVisibilityForArea(nextArea) ?? defaultVisibility);
-    setRelatedUserId(initial?.relatedUserId || "");
-    setRelatedPersonId(initial?.relatedPersonId || "");
+    setVisibility(nextVisibility);
+    setRelatedUserId(nextRelatedUserId);
+    setRelatedPersonId(nextRelatedPersonId);
     setPersonQuery("");
-    setApplyAsProfilePhoto(initial?.applyAsProfilePhoto ?? true);
+    setApplyAsProfilePhoto(nextApplyAsProfilePhoto);
     setFormError(null);
+    baselineRef.current = {
+      title: nextTitle,
+      description: nextDescription,
+      category: nextCategory,
+      documentDate: nextDocumentDate,
+      referenceCode: nextReferenceCode,
+      area: nextArea,
+      visibility: nextVisibility,
+      relatedUserId: nextRelatedUserId,
+      relatedPersonId: nextRelatedPersonId,
+      applyAsProfilePhoto: nextApplyAsProfilePhoto,
+    };
 
-    if (files[0] && (files[0].type === "image/png" || files[0].type === "image/jpeg" || files[0].type === "image/webp")) {
+    if (
+      files[0] &&
+      (files[0].type === "image/png" ||
+        files[0].type === "image/jpeg" ||
+        files[0].type === "image/webp")
+    ) {
       const url = URL.createObjectURL(files[0]);
       setPreviewUrl(url);
       return () => URL.revokeObjectURL(url);
@@ -166,6 +204,22 @@ export function FileUploadInquiryModal({
     const timer = window.setTimeout(() => setDebouncedPersonQuery(personQuery), 220);
     return () => window.clearTimeout(timer);
   }, [personQuery]);
+
+  const dirty =
+    title !== baselineRef.current.title ||
+    description !== baselineRef.current.description ||
+    category !== baselineRef.current.category ||
+    documentDate !== baselineRef.current.documentDate ||
+    referenceCode !== baselineRef.current.referenceCode ||
+    area !== baselineRef.current.area ||
+    visibility !== baselineRef.current.visibility ||
+    relatedUserId !== baselineRef.current.relatedUserId ||
+    relatedPersonId !== baselineRef.current.relatedPersonId ||
+    applyAsProfilePhoto !== baselineRef.current.applyAsProfilePhoto;
+
+  const guardedCancel = () => {
+    if (confirmDiscardChanges(dirty)) onCancel();
+  };
 
   const usersQuery = useQuery({
     queryKey: ["arquivos", "user-options"],
@@ -200,7 +254,7 @@ export function FileUploadInquiryModal({
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!next) onCancel();
+        if (!next) guardedCancel();
       }}
     >
       <DialogContent
@@ -452,7 +506,7 @@ export function FileUploadInquiryModal({
           {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
         </div>
         <DialogFooter className="border-t border-border bg-secondary/30 px-5 py-3">
-          <Button type="button" variant="ghost" onClick={onCancel}>
+          <Button type="button" variant="ghost" onClick={guardedCancel}>
             Cancelar
           </Button>
           <Button

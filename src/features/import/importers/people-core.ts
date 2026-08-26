@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { findBestPersonMatch, type DuplicateMatch } from "../engine/dedupe";
-import { normalizeDate, normalizeGender, normalizePhoneDigits, normalizeText } from "../engine/normalize";
+import {
+  normalizeDate,
+  normalizeGender,
+  normalizePhoneDigits,
+  normalizeText,
+} from "../engine/normalize";
 import type { AuditEntry, ImportCommitContext } from "../engine/types";
 import { normalizePersonNif } from "@/lib/angola-identity";
 
@@ -50,7 +55,9 @@ export function personCandidateFromRow(row: Record<string, unknown>): PersonCand
     national_id: idRaw ? (normalizePersonNif(idRaw) ?? idRaw) : null,
     email: normalizeText(row["email"] ?? row["e-mail"] ?? row["E-mail"]) || null,
     phone: normalizePhoneDigits(row["phone"] ?? row["telefone"] ?? row["Telefone"]),
-    birth_date: normalizeDate(row["birth_date"] ?? row["data_nascimento"] ?? row["Data de Nascimento"]),
+    birth_date: normalizeDate(
+      row["birth_date"] ?? row["data_nascimento"] ?? row["Data de Nascimento"],
+    ),
     gender: normalizeGender(row["gender"] ?? row["genero"] ?? row["Gênero"] ?? row["sexo"]),
   };
 }

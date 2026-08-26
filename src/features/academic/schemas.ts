@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { gradingProfileSchema } from "@/features/school/schemas";
 
 const optionalText = z
   .string()
@@ -16,7 +17,8 @@ export type ListPedagogicalWorkspaceInput = z.infer<typeof listPedagogicalWorksp
 
 export const createClassGroupInputSchema = z.object({
   academicYearId: z.string().uuid(),
-  courseId: z.string().uuid(),
+  // Curso/Programa liga-se pela classe (grade_levels.program_id), não pela
+  // turma directamente — ver comentário em createClassGroup() no server.ts.
   gradeLevelId: z.string().uuid(),
   roomId: z.string().uuid().optional(),
   code: z.string().trim().min(1).max(40),
@@ -261,4 +263,45 @@ export const unassignClassSubjectTeacherInputSchema = z.object({
 });
 export type UnassignClassSubjectTeacherInput = z.infer<
   typeof unassignClassSubjectTeacherInputSchema
+>;
+
+export const getStudentAcademicHistoryInputSchema = z.object({
+  studentId: z.string().uuid(),
+});
+export type GetStudentAcademicHistoryInput = z.infer<typeof getStudentAcademicHistoryInputSchema>;
+
+// Currículo do Curso (Ensino Superior) — program_subjects, ver
+// supabase/migrations/20260811151500_program_subjects_curriculum.sql
+export const listProgramCurriculumInputSchema = z.object({
+  programId: z.string().uuid(),
+});
+export type ListProgramCurriculumInput = z.infer<typeof listProgramCurriculumInputSchema>;
+
+export const addProgramSubjectInputSchema = z.object({
+  programId: z.string().uuid(),
+  subjectId: z.string().uuid(),
+  semester: z.number().int().min(1).max(12),
+  credits: z.number().positive().max(60).default(6),
+});
+export type AddProgramSubjectInput = z.infer<typeof addProgramSubjectInputSchema>;
+
+export const removeProgramSubjectInputSchema = z.object({
+  id: z.string().uuid(),
+});
+export type RemoveProgramSubjectInput = z.infer<typeof removeProgramSubjectInputSchema>;
+
+export const updateProgramGradingProfileInputSchema = z.object({
+  programId: z.string().uuid(),
+  gradingProfile: gradingProfileSchema.nullable(),
+});
+export type UpdateProgramGradingProfileInput = z.infer<
+  typeof updateProgramGradingProfileInputSchema
+>;
+
+export const applyCurriculumToClassGroupInputSchema = z.object({
+  classGroupId: z.string().uuid(),
+  programId: z.string().uuid(),
+});
+export type ApplyCurriculumToClassGroupInput = z.infer<
+  typeof applyCurriculumToClassGroupInputSchema
 >;

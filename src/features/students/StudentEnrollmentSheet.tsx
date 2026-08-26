@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,21 @@ type ClassGroupOption = {
 
 type PersonOption = { id: string; full_name: string; status?: string };
 
+const emptyValues = {
+  nome: "",
+  nascimento: "",
+  genero: "",
+  nif: "",
+  telefone: "",
+  email: "",
+  morada: "",
+  obs: "",
+  processo: "",
+  turmaId: "",
+  encarregadoId: "",
+  parentesco: "encarregado",
+};
+
 export function StudentEnrollmentSheet({
   trigger,
   autoOpen = false,
@@ -63,20 +78,17 @@ export function StudentEnrollmentSheet({
   const [open, setOpen] = useState(autoOpen);
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.send");
-  const [values, setValues] = useState({
-    nome: "",
-    nascimento: "",
-    genero: "",
-    nif: "",
-    telefone: "",
-    email: "",
-    morada: "",
-    obs: "",
-    processo: "",
-    turmaId: "",
-    encarregadoId: "",
-    parentesco: "encarregado",
-  });
+  const [values, setValues] = useState(emptyValues);
+
+  // Fecho sem gravar (cancelado ou X) não deve deixar dados da tentativa
+  // anterior visíveis da próxima vez que a folha abrir.
+  const wasOpen = useRef(open);
+  useEffect(() => {
+    if (wasOpen.current && !open) setValues(emptyValues);
+    wasOpen.current = open;
+  }, [open]);
+
+  const hasUnsavedChanges = values.nome.trim() !== "";
 
   const turmaOptions = useMemo(
     () =>
@@ -120,9 +132,16 @@ export function StudentEnrollmentSheet({
           });
           const strong = duplicates.find((item) => item.score >= 0.9);
           if (strong) {
-            throw new Error(
-              `Possível duplicado: ${strong.full_name}. Confirme no registo de pessoas antes de criar.`,
+            // Aviso, não bloqueio: a 90% pode mesmo ser a mesma pessoa (então
+            // o correcto é ir à ficha existente), mas também pode ser um
+            // irmão com nome parecido — a decisão é do utilizador, nunca
+            // perde os 5 passos já preenchidos por um bloqueio sem saída.
+            const proceed = window.confirm(
+              `Possível duplicado: ${strong.full_name} (${Math.round(strong.score * 100)}% de confiança, ${strong.match_reason}).\n\nSe for a mesma pessoa, cancele e use a ficha existente em Pessoas.\n\nContinuar e criar esta matrícula mesmo assim?`,
             );
+            if (!proceed) {
+              throw new Error("Matrícula cancelada — verifique o registo existente em Pessoas.");
+            }
           }
           const turma = classGroups.find((group) => group.id === values.turmaId);
           const relationship = values.parentesco || "encarregado";
@@ -162,21 +181,9 @@ export function StudentEnrollmentSheet({
             },
           });
           await onCreated();
-          setValues({
-            nome: "",
-            nascimento: "",
-            genero: "",
-            nif: "",
-            telefone: "",
-            email: "",
-            morada: "",
-            obs: "",
-            processo: "",
-            turmaId: "",
-            encarregadoId: "",
-            parentesco: "encarregado",
-          });
+          setValues(emptyValues);
         }}
+        hasUnsavedChanges={hasUnsavedChanges}
       >
         {({ stepId }) => {
           if (stepId === "identidade") {

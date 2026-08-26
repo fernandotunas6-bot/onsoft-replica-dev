@@ -66,10 +66,23 @@ export const updateBillingSettingsInputSchema = z.object({
 });
 export type UpdateBillingSettingsInput = z.infer<typeof updateBillingSettingsInputSchema>;
 
+/** Perfil de notas do Ensino Superior — valor por omissão da escola; cada curso pode sobrepor-se
+ * (ver migração 20260811150000_program_grading_profile.sql, coluna programs.grading_profile). */
+export const gradingProfileSchema = z.object({
+  scale: z.enum(["20_ects", "gpa4"]),
+  components: z.enum(["frequencia_exame", "so_exame"]),
+});
+export type GradingProfileInput = z.infer<typeof gradingProfileSchema>;
+
 export const pedagogySettingsSchema = z.object({
-  teachingLevels: z.array(z.enum(["pre_escolar", "primario", "i_ciclo", "ii_ciclo"])).default([]),
+  teachingLevels: z
+    .array(
+      z.enum(["pre_escolar", "primario", "i_ciclo", "ii_ciclo", "tecnico", "adultos", "superior"]),
+    )
+    .default([]),
   courses: z.array(z.enum(["cfb", "cej", "letras", "tecnico"])).default([]),
   closedTerms: z.array(z.union([z.literal(1), z.literal(2), z.literal(3)])).default([]),
+  gradingProfile: gradingProfileSchema.nullable().default(null),
 });
 export type PedagogySettings = z.infer<typeof pedagogySettingsSchema>;
 

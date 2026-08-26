@@ -18,8 +18,17 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { OFFICIAL_TEMPLATES, generateOfficialCsvTemplate } from "@/features/import/official-templates";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  OFFICIAL_TEMPLATES,
+  generateOfficialCsvTemplate,
+} from "@/features/import/official-templates";
 import {
   analyzeImportFile,
   commitImportBatch,
@@ -29,10 +38,23 @@ import {
   stageImportRows,
   updateStagingRowField,
 } from "@/features/import/server";
-import { importModuleOptions, type ImportModule, type ImportJobRecord, type ImportRowRecord } from "@/features/import/schemas";
+import {
+  importModuleOptions,
+  type ImportModule,
+  type ImportJobRecord,
+  type ImportRowRecord,
+} from "@/features/import/schemas";
 import { suggestColumnMapping } from "@/features/import/engine/suggest";
 
-const STEPS = ["1. Arquivo", "2. Tipo de dados", "3. Mapeamento", "4. Validação", "5. Revisão", "6. Importação", "7. Resultado"];
+const STEPS = [
+  "1. Arquivo",
+  "2. Tipo de dados",
+  "3. Mapeamento",
+  "4. Validação",
+  "5. Revisão",
+  "6. Importação",
+  "7. Resultado",
+];
 
 /** Módulos com importador implementado — os restantes aparecem desactivados no Select. */
 const IMPLEMENTED_MODULES = new Set<ImportModule>(["pessoas", "alunos"]);
@@ -98,7 +120,12 @@ export function ImportWorkflowWizard({
 
   const [importing, setImporting] = useState(false);
   const [commitProgress, setCommitProgress] = useState({ processed: 0, total: 0 });
-  const [result, setResult] = useState<{ inserted: number; updated: number; ignored: number; failed: number } | null>(null);
+  const [result, setResult] = useState<{
+    inserted: number;
+    updated: number;
+    ignored: number;
+    failed: number;
+  } | null>(null);
 
   const selectedSheet = sheets[selectedSheetIdx] ?? null;
 
@@ -176,7 +203,11 @@ export function ImportWorkflowWizard({
           },
         });
         setStageProgress({ done: Math.min(i + chunk.length, rows.length), total: rows.length });
-        setStageCounts({ valid: res.total_valid, invalid: res.total_invalid, duplicate: res.total_duplicate });
+        setStageCounts({
+          valid: res.total_valid,
+          invalid: res.total_invalid,
+          duplicate: res.total_duplicate,
+        });
       }
 
       await loadStagingPage(createdJob.id, 1, "todos");
@@ -192,7 +223,12 @@ export function ImportWorkflowWizard({
     setLoadingRows(true);
     try {
       const res = await listStagingRows({
-        data: { job_id: jobId, page, page_size: 20, status_filter: status === "todos" ? undefined : status },
+        data: {
+          job_id: jobId,
+          page,
+          page_size: 20,
+          status_filter: status === "todos" ? undefined : status,
+        },
       });
       setStagingRows(res.rows);
       setStagingTotal(res.total);
@@ -212,7 +248,9 @@ export function ImportWorkflowWizard({
   const handleSaveInlineEdit = async (rowId: string) => {
     if (!editingField || !job) return;
     try {
-      await updateStagingRowField({ data: { row_id: rowId, field_name: editingField, new_value: editingValue } });
+      await updateStagingRowField({
+        data: { row_id: rowId, field_name: editingField, new_value: editingValue },
+      });
       await loadStagingPage(job.id, stagingPage, filterStatus);
       setEditingRowId(null);
       toast.success("Linha corrigida.");
@@ -223,7 +261,9 @@ export function ImportWorkflowWizard({
 
   const handleDownloadErrorReport = async () => {
     if (!job) return;
-    const res = await listStagingRows({ data: { job_id: job.id, page: 1, page_size: 500, status_filter: undefined } });
+    const res = await listStagingRows({
+      data: { job_id: job.id, page: 1, page_size: 500, status_filter: undefined },
+    });
     const csvContent = generateErrorReportCsv(res.rows);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -243,7 +283,13 @@ export function ImportWorkflowWizard({
       // Amostra limitada — simula até 1000 linhas para não bloquear a UI num ficheiro enorme.
       for (let guard = 0; guard < 5; guard++) {
         const res = await commitImportBatch({
-          data: { job_id: job.id, dry_run: true, batch_size: COMMIT_BATCH, after_row_number: afterRow, duplicate_strategy: "update" },
+          data: {
+            job_id: job.id,
+            dry_run: true,
+            batch_size: COMMIT_BATCH,
+            after_row_number: afterRow,
+            duplicate_strategy: "update",
+          },
         });
         totals.inserted += res.inserted;
         totals.updated += res.updated;
@@ -273,13 +319,22 @@ export function ImportWorkflowWizard({
       while (!completed && guard < 200) {
         guard += 1;
         const res = await commitImportBatch({
-          data: { job_id: job.id, dry_run: false, batch_size: COMMIT_BATCH, after_row_number: 0, duplicate_strategy: "update" },
+          data: {
+            job_id: job.id,
+            dry_run: false,
+            batch_size: COMMIT_BATCH,
+            after_row_number: 0,
+            duplicate_strategy: "update",
+          },
         });
         totals.inserted += res.inserted;
         totals.updated += res.updated;
         totals.ignored += res.ignored;
         totals.failed += res.failed;
-        setCommitProgress((prev) => ({ processed: prev.processed + res.processed, total: prev.processed + res.processed + res.remaining }));
+        setCommitProgress((prev) => ({
+          processed: prev.processed + res.processed,
+          total: prev.processed + res.processed + res.remaining,
+        }));
         completed = res.completed || res.processed === 0;
       }
       setResult(totals);
@@ -310,12 +365,20 @@ export function ImportWorkflowWizard({
               <div
                 key={label}
                 className={`flex items-center gap-1.5 text-xs font-semibold ${
-                  isActive ? "font-bold text-primary" : isDone ? "text-emerald-600" : "text-muted-foreground opacity-60"
+                  isActive
+                    ? "font-bold text-primary"
+                    : isDone
+                      ? "text-emerald-600"
+                      : "text-muted-foreground opacity-60"
                 }`}
               >
                 <span
                   className={`flex size-6 items-center justify-center rounded-full text-[11px] ${
-                    isActive ? "bg-primary text-primary-foreground" : isDone ? "bg-emerald-500/20 text-emerald-600" : "bg-muted text-muted-foreground"
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : isDone
+                        ? "bg-emerald-500/20 text-emerald-600"
+                        : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {num}
@@ -331,9 +394,12 @@ export function ImportWorkflowWizard({
         <div className="space-y-4">
           <div className="rounded-xl border-2 border-dashed border-border p-8 text-center hover:border-primary/50">
             <Upload className="mx-auto size-10 text-muted-foreground/70" />
-            <h4 className="mt-3 text-sm font-semibold">Selecione o ficheiro Excel (.xlsx) ou CSV</h4>
+            <h4 className="mt-3 text-sm font-semibold">
+              Selecione o ficheiro Excel (.xlsx) ou CSV
+            </h4>
             <p className="mt-1 text-xs text-muted-foreground">
-              Suporta tabelas escolares até 25 000 linhas por folha. .xls (Excel 97-2003) ainda não é suportado — grave como .xlsx.
+              Suporta tabelas escolares até 25 000 linhas por folha. .xls (Excel 97-2003) ainda não
+              é suportado — grave como .xlsx.
             </p>
             <Input
               type="file"
@@ -388,19 +454,34 @@ export function ImportWorkflowWizard({
         <div className="space-y-4">
           <div className="space-y-3 rounded-lg border border-border bg-card p-4">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-foreground">Tipo de Dados a Importar:</label>
-              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={handleDownloadTemplate}>
+              <label className="text-xs font-semibold text-foreground">
+                Tipo de Dados a Importar:
+              </label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs"
+                onClick={handleDownloadTemplate}
+              >
                 <Download className="size-3.5" /> Baixar Modelo Oficial
               </Button>
             </div>
 
-            <Select value={selectedModule} onValueChange={(val) => setSelectedModule(val as ImportModule)}>
+            <Select
+              value={selectedModule}
+              onValueChange={(val) => setSelectedModule(val as ImportModule)}
+            >
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="Selecione o módulo" />
               </SelectTrigger>
               <SelectContent>
                 {importModuleOptions.map((mod) => (
-                  <SelectItem key={mod} value={mod} disabled={!IMPLEMENTED_MODULES.has(mod)} className="text-xs capitalize">
+                  <SelectItem
+                    key={mod}
+                    value={mod}
+                    disabled={!IMPLEMENTED_MODULES.has(mod)}
+                    className="text-xs capitalize"
+                  >
                     {mod.replace(/_/g, " ")}
                     {!IMPLEMENTED_MODULES.has(mod) ? " (em breve)" : ""}
                   </SelectItem>
@@ -411,9 +492,12 @@ export function ImportWorkflowWizard({
             <div className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 p-2.5 text-xs text-primary">
               <Sparkles className="size-4 shrink-0" />
               <span>
-                Sugestão automática, com base nos cabeçalhos ({selectedSheet.headers.slice(0, 4).join(", ")}
-                {selectedSheet.headers.length > 4 ? "…" : ""}): <strong>{selectedSheet.suggested_module}</strong> (
-                {Math.round(selectedSheet.suggested_module_score * 100)}% de confiança). Confirme ou corrija.
+                Sugestão automática, com base nos cabeçalhos (
+                {selectedSheet.headers.slice(0, 4).join(", ")}
+                {selectedSheet.headers.length > 4 ? "…" : ""}):{" "}
+                <strong>{selectedSheet.suggested_module}</strong> (
+                {Math.round(selectedSheet.suggested_module_score * 100)}% de confiança). Confirme ou
+                corrija.
               </span>
             </div>
           </div>
@@ -422,7 +506,11 @@ export function ImportWorkflowWizard({
             <Button variant="outline" size="sm" onClick={() => setStep(1)}>
               <ArrowLeft className="mr-1 size-3.5" /> Voltar
             </Button>
-            <Button size="sm" onClick={handleProceedToMapping} disabled={!IMPLEMENTED_MODULES.has(selectedModule)}>
+            <Button
+              size="sm"
+              onClick={handleProceedToMapping}
+              disabled={!IMPLEMENTED_MODULES.has(selectedModule)}
+            >
               Avançar ao Mapeamento <ArrowRight className="ml-1 size-3.5" />
             </Button>
           </div>
@@ -434,7 +522,10 @@ export function ImportWorkflowWizard({
           <h4 className="text-sm font-semibold">Mapeamento de Colunas (Ficheiro → SIGA)</h4>
           <div className="divide-y divide-border rounded-lg border border-border bg-card">
             {selectedSheet.headers.map((header) => (
-              <div key={header} className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs">
+              <div
+                key={header}
+                className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs"
+              >
                 <span className="font-medium text-foreground">{header}</span>
                 <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
                 <Select
@@ -466,7 +557,8 @@ export function ImportWorkflowWizard({
             <Button size="sm" onClick={handleProceedToStaging} disabled={staging}>
               {staging ? (
                 <>
-                  <Loader2 className="mr-1 size-3.5 animate-spin" /> A preparar {stageProgress.done}/{stageProgress.total}…
+                  <Loader2 className="mr-1 size-3.5 animate-spin" /> A preparar {stageProgress.done}
+                  /{stageProgress.total}…
                 </>
               ) : (
                 <>
@@ -507,16 +599,31 @@ export function ImportWorkflowWizard({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos" className="text-xs">Todos</SelectItem>
-                  <SelectItem value="valid" className="text-xs">Válidos</SelectItem>
-                  <SelectItem value="warning" className="text-xs">Com avisos</SelectItem>
-                  <SelectItem value="duplicate" className="text-xs">Duplicados</SelectItem>
-                  <SelectItem value="error" className="text-xs">Erros</SelectItem>
+                  <SelectItem value="todos" className="text-xs">
+                    Todos
+                  </SelectItem>
+                  <SelectItem value="valid" className="text-xs">
+                    Válidos
+                  </SelectItem>
+                  <SelectItem value="warning" className="text-xs">
+                    Com avisos
+                  </SelectItem>
+                  <SelectItem value="duplicate" className="text-xs">
+                    Duplicados
+                  </SelectItem>
+                  <SelectItem value="error" className="text-xs">
+                    Erros
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={handleDownloadErrorReport}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                onClick={handleDownloadErrorReport}
+              >
                 <Download className="size-3.5" /> Relatório de Erros
               </Button>
               {step === 4 ? (
@@ -558,14 +665,19 @@ export function ImportWorkflowWizard({
                         <div className="max-w-md space-y-1">
                           {Object.entries(row.normalized_data).map(([k, v]) => (
                             <span key={k} className="mr-2 inline-block text-[11px]">
-                              <span className="text-muted-foreground">{k}:</span> <strong>{String(v ?? "—")}</strong>
+                              <span className="text-muted-foreground">{k}:</span>{" "}
+                              <strong>{String(v ?? "—")}</strong>
                             </span>
                           ))}
                         </div>
                         {row.warnings.length ? (
-                          <p className="mt-1 text-[11px] text-amber-600">{row.warnings.join(" · ")}</p>
+                          <p className="mt-1 text-[11px] text-amber-600">
+                            {row.warnings.join(" · ")}
+                          </p>
                         ) : null}
-                        {row.errors.length ? <p className="mt-1 text-[11px] text-rose-600">{row.errors.join(" · ")}</p> : null}
+                        {row.errors.length ? (
+                          <p className="mt-1 text-[11px] text-rose-600">{row.errors.join(" · ")}</p>
+                        ) : null}
                       </td>
                       <td className="px-3 py-2">
                         {row.status === "valid" ? (
@@ -608,7 +720,11 @@ export function ImportWorkflowWizard({
                               value={editingValue}
                               onChange={(e) => setEditingValue(e.target.value)}
                             />
-                            <Button size="icon" className="size-7" onClick={() => handleSaveInlineEdit(row.id)}>
+                            <Button
+                              size="icon"
+                              className="size-7"
+                              onClick={() => handleSaveInlineEdit(row.id)}
+                            >
                               <Save className="size-3.5" />
                             </Button>
                           </div>
@@ -679,11 +795,12 @@ export function ImportWorkflowWizard({
           {dryRunResult ? (
             <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
               <p className="font-semibold">
-                Simulação (amostra de {dryRunResult.processed} linha{dryRunResult.processed === 1 ? "" : "s"}) — nada foi gravado:
+                Simulação (amostra de {dryRunResult.processed} linha
+                {dryRunResult.processed === 1 ? "" : "s"}) — nada foi gravado:
               </p>
               <p className="mt-1 text-muted-foreground">
-                {dryRunResult.inserted} nova(s) · {dryRunResult.updated} associada(s) a existentes · {dryRunResult.ignored} ignorada(s) ·{" "}
-                {dryRunResult.failed} com erro
+                {dryRunResult.inserted} nova(s) · {dryRunResult.updated} associada(s) a existentes ·{" "}
+                {dryRunResult.ignored} ignorada(s) · {dryRunResult.failed} com erro
               </p>
             </div>
           ) : null}
@@ -693,15 +810,21 @@ export function ImportWorkflowWizard({
       {step === 6 && job ? (
         <div className="space-y-4 rounded-xl border border-border bg-card p-6 text-center">
           <Play className={`mx-auto size-10 text-primary ${importing ? "animate-pulse" : ""}`} />
-          <h4 className="text-base font-semibold">Pronto para Importar {stagingTotal} registo(s)</h4>
+          <h4 className="text-base font-semibold">
+            Pronto para Importar {stagingTotal} registo(s)
+          </h4>
           <p className="text-xs text-muted-foreground">
-            A operação é processada em lotes de {COMMIT_BATCH} linhas, com auditoria de cada registo criado ou alterado.
+            A operação é processada em lotes de {COMMIT_BATCH} linhas, com auditoria de cada registo
+            criado ou alterado.
           </p>
 
           {importing ? (
             <div className="mx-auto max-w-xs space-y-2">
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                />
               </div>
               <p className="text-xs font-semibold text-primary">
                 {commitProgress.processed}/{commitProgress.total} ({progressPercent}%)
@@ -722,8 +845,12 @@ export function ImportWorkflowWizard({
           <div className="mx-auto flex max-w-sm flex-wrap justify-center gap-4 text-xs font-medium text-muted-foreground">
             <span className="font-bold text-emerald-600">{result.inserted} inseridos</span>
             <span className="font-bold text-blue-600">{result.updated} associados</span>
-            {result.ignored ? <span className="font-bold text-muted-foreground">{result.ignored} ignorados</span> : null}
-            {result.failed ? <span className="font-bold text-rose-600">{result.failed} com erro</span> : null}
+            {result.ignored ? (
+              <span className="font-bold text-muted-foreground">{result.ignored} ignorados</span>
+            ) : null}
+            {result.failed ? (
+              <span className="font-bold text-rose-600">{result.failed} com erro</span>
+            ) : null}
           </div>
 
           <div className="flex justify-center gap-3 pt-4">

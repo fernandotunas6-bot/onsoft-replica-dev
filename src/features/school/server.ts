@@ -144,6 +144,7 @@ async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
       teachingLevels: [],
       courses: [],
       closedTerms: [],
+      gradingProfile: null,
     },
     version: Number(academicSettings?.version ?? 1),
     billing: {
@@ -405,6 +406,7 @@ export const updatePedagogySettings = createServerFn({ method: "POST" })
         teachingLevels: data.teachingLevels,
         courses: data.courses,
         closedTerms: data.closedTerms,
+        gradingProfile: data.gradingProfile,
       },
       context.userId,
     );

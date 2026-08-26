@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileDown, GraduationCap, Pencil, UserPlus } from "lucide-react";
@@ -13,6 +14,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { TeacherWorkspacePanel } from "@/features/academic/TeacherWorkspacePanel";
 import {
   assignClassSubjectTeacher,
+  getTeacherWorkspace,
   listPedagogicalWorkspace,
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
@@ -22,6 +24,8 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { overlayCredenciais } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
+import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
+import { mapTeacherWorkspaceToSnapshot } from "@/features/intelligence/teachers/teacher-relations-adapter";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/professores/$teacherId")({
@@ -57,6 +61,26 @@ function TeacherProfilePage() {
     enabled: canManage,
   });
   const teacher = (teachersQuery.data ?? []).find((row) => row.id === teacherId);
+  const teacherWorkspaceQuery = useQuery({
+    queryKey: ["academic", "teacher-workspace", teacherId ?? "me"],
+    queryFn: () => getTeacherWorkspace({ data: teacherId ? { teacherId } : {} }),
+    retry: false,
+  });
+  const teacherRelationsSnapshot = useMemo(
+    () => (teacher ? mapTeacherWorkspaceToSnapshot(teacher, teacherWorkspaceQuery.data) : null),
+    [teacher, teacherWorkspaceQuery.data],
+  );
+  const focusedTeacherEntity = useMemo(() => {
+    if (!teacher || !teacherRelationsSnapshot) return null;
+    return {
+      type: "teacher" as const,
+      id: teacher.id,
+      label: teacher.full_name,
+      schoolId: school?.id ?? "",
+      data: teacherRelationsSnapshot,
+    };
+  }, [teacher, teacherRelationsSnapshot, school?.id]);
+  useDeclareEntityFocus(focusedTeacherEntity);
   const classGroups = workspaceQuery.data?.classGroups ?? [];
   const subjects = workspaceQuery.data?.subjects ?? [];
   const turmaOptions = classGroups.map((group) => optionLabel(group.id, group.name));

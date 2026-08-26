@@ -55,12 +55,19 @@ function useSignedPhotoUrl(photoUrl: string | null): string | null {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!photoUrl) { setSignedUrl(null); return; }
+    if (!photoUrl) {
+      setSignedUrl(null);
+      return;
+    }
     let cancelled = false;
     resolvePersonPhotoUrl(photoUrl)
-      .then((url) => { if (!cancelled) setSignedUrl(url); })
+      .then((url) => {
+        if (!cancelled) setSignedUrl(url);
+      })
       .catch(() => undefined);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [photoUrl]);
 
   return signedUrl;
@@ -72,11 +79,8 @@ function useSignedPhotoUrl(photoUrl: string | null): string | null {
  */
 function StudentAvatar({ photoUrl, name }: { photoUrl: string | null; name: string }) {
   const src = useSignedPhotoUrl(photoUrl);
-  return (
-    <MediaAvatar src={src} alt={name} className="size-9 shrink-0 rounded-xl object-cover" />
-  );
+  return <MediaAvatar src={src} alt={name} className="size-9 shrink-0 rounded-xl object-cover" />;
 }
-
 
 import {
   Table,
@@ -749,7 +753,7 @@ function StudentsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                        <StudentAvatar photoUrl={s.photo_url} name={s.full_name} />
+                          <StudentAvatar photoUrl={s.photo_url} name={s.full_name} />
                           <div className="min-w-0">
                             <p className="whitespace-nowrap font-semibold">{s.full_name}</p>
                             <p className="text-xs text-muted-foreground">

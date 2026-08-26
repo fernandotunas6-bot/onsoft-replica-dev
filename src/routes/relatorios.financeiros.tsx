@@ -126,9 +126,7 @@ function RelatoriosFinanceiros() {
   const eficienciaMedia = billed ? Math.round((received / billed) * 100) : 0;
   const periodoMonthKeys = monthKeysForPeriodo(periodo);
   const mensalidadesPorMes = (reportingQuery.data?.monthly ?? [])
-    .filter(
-      (month) => !periodoMonthKeys || periodoMonthKeys.has(month.month_start.slice(0, 7)),
-    )
+    .filter((month) => !periodoMonthKeys || periodoMonthKeys.has(month.month_start.slice(0, 7)))
     .map((month) => ({
       mes: new Date(`${month.month_start}T00:00:00`).toLocaleDateString("pt-PT", {
         month: "short",

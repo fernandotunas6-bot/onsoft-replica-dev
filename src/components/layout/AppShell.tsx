@@ -17,6 +17,7 @@ import {
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
+import { DesktopTitleBar } from "./DesktopTitleBar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -54,6 +55,11 @@ const SettingsCenter = lazy(() =>
   import("@/components/modals/SettingsCenter").then(({ SettingsCenter }) => ({
     default: SettingsCenter,
   })),
+);
+const ContextualActionsPanelHost = lazy(() =>
+  import("@/features/intelligence/components/ContextualActionsPanelHost").then(
+    ({ ContextualActionsPanelHost }) => ({ default: ContextualActionsPanelHost }),
+  ),
 );
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -178,311 +184,320 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <a href="#conteudo-principal" className="skip-link">
-        Saltar para o conteúdo principal
-      </a>
+    <div className="flex flex-col min-h-screen bg-background">
+      <DesktopTitleBar />
+      <div className="flex flex-1 min-h-0">
+        <a href="#conteudo-principal" className="skip-link">
+          Saltar para o conteúdo principal
+        </a>
 
-      <div
-        className="sticky top-0 z-40 hidden h-screen lg:block"
-        onMouseEnter={() => {
-          window.clearTimeout(hoverLeaveTimer.current);
-          setHoverOpen(true);
-        }}
-        onMouseLeave={() => {
-          hoverLeaveTimer.current = window.setTimeout(() => setHoverOpen(false), 220);
-        }}
-      >
-        <AppSidebar
-          collapsed={collapsed}
-          className="h-full"
-          onOpenSettings={() => openSettings()}
-        />
-      </div>
+        <div
+          className="sticky top-0 z-40 hidden h-screen lg:block"
+          onMouseEnter={() => {
+            window.clearTimeout(hoverLeaveTimer.current);
+            setHoverOpen(true);
+          }}
+          onMouseLeave={() => {
+            hoverLeaveTimer.current = window.setTimeout(() => setHoverOpen(false), 220);
+          }}
+        >
+          <AppSidebar
+            collapsed={collapsed}
+            className="h-full"
+            onOpenSettings={() => openSettings()}
+          />
+        </div>
 
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-[260px] border-none p-0">
-          <AppSidebar onOpenSettings={() => openSettings()} />
-        </SheetContent>
-      </Sheet>
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent side="left" className="w-[260px] border-none p-0">
+            <AppSidebar onOpenSettings={() => openSettings()} />
+          </SheetContent>
+        </Sheet>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/50 bg-background/80 px-3.5 backdrop-blur-md md:px-5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="header-icon-btn lg:hidden"
-            onClick={() => setOpen(true)}
-            aria-label="Abrir menu"
-          >
-            <Menu className="size-5" />
-          </Button>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/50 bg-background/80 px-3.5 backdrop-blur-md md:px-5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="header-icon-btn lg:hidden"
+              onClick={() => setOpen(true)}
+              aria-label="Abrir menu"
+            >
+              <Menu className="size-5" />
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="header-icon-btn hidden lg:inline-flex"
-            onClick={toggleCollapsed}
-            aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
-          >
-            <Menu className="size-5" />
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="header-icon-btn hidden lg:inline-flex"
+              onClick={toggleCollapsed}
+              aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+            >
+              <Menu className="size-5" />
+            </Button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="flex min-w-0 items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
-              >
-                <span className="truncate whitespace-nowrap">
-                  {selectedYearLabel}
-                  {selectedYearId && selectedYearId === activeYear?.id ? " (Atual)" : ""}
-                </span>
-                <ChevronDown className="size-3.5 shrink-0 opacity-60" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuLabel>Ano lectivo</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {yearOptions.map((y) => (
-                <DropdownMenuItem key={y.id} onClick={() => selectYear(y.id)}>
-                  {y.label}
-                  {y.id === activeYear?.id || y.label === activeYearLabel ? " (Atual)" : ""}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <button
-            type="button"
-            onClick={() => {
-              window.dispatchEvent(
-                new KeyboardEvent("keydown", {
-                  key: "k",
-                  metaKey: true,
-                  bubbles: true,
-                }),
-              );
-            }}
-            className="hidden md:flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
-          >
-            <Search className="size-3.5 opacity-60" />
-            <span>Pesquisar no SIGA…</span>
-            <kbd className="pointer-events-none ml-1.5 inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/60 px-1 font-mono text-[10px] font-medium text-muted-foreground">
-              <span className="text-[9px]">⌘</span>K
-            </kbd>
-          </button>
-
-          <div className="ml-auto flex items-center gap-1">
-            <AppLauncher onOpenSettings={openSettings} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="header-icon-btn"
-                  aria-label="Seletor de tema"
+                <button
+                  type="button"
+                  className="flex min-w-0 items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
                 >
-                  {isDark ? (
-                    <Sun className="size-5 text-warning" />
-                  ) : (
-                    <Moon className="size-5 text-primary" />
-                  )}
-                </Button>
+                  <span className="truncate whitespace-nowrap">
+                    {selectedYearLabel}
+                    {selectedYearId && selectedYearId === activeYear?.id ? " (Atual)" : ""}
+                  </span>
+                  <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuLabel>Tema de Apresentação</DropdownMenuLabel>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Ano lectivo</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => toggleDark()} className="gap-2">
-                  {isDark ? (
-                    <Sun className="size-4 text-warning" />
-                  ) : (
-                    <Moon className="size-4 text-primary" />
-                  )}
-                  {isDark ? "Modo Claro" : "Modo Escuro"}
-                </DropdownMenuItem>
+                {yearOptions.map((y) => (
+                  <DropdownMenuItem key={y.id} onClick={() => selectYear(y.id)}>
+                    {y.label}
+                    {y.id === activeYear?.id || y.label === activeYearLabel ? " (Atual)" : ""}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="header-icon-btn relative"
-              aria-label="Notificações"
-              aria-haspopup="dialog"
-              onClick={() => setNotificationsOpen(true)}
+
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(
+                  new KeyboardEvent("keydown", {
+                    key: "k",
+                    metaKey: true,
+                    bubbles: true,
+                  }),
+                );
+              }}
+              className="hidden md:flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
             >
-              <Bell className="size-5" />
-              {noticeCount ? (
-                <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive ring-2 ring-background" />
-              ) : null}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="header-icon-btn hidden sm:inline-flex"
-              aria-label={isFullscreen ? "Sair do ecrã inteiro" : "Ecrã inteiro"}
-              onClick={toggleFullscreen}
-            >
-              <Maximize2 className="size-5" />
-            </Button>
-          </div>
+              <Search className="size-3.5 opacity-60" />
+              <span>Pesquisar no SIGA…</span>
+              <kbd className="pointer-events-none ml-1.5 inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/60 px-1 font-mono text-[10px] font-medium text-muted-foreground">
+                <span className="text-[9px]">⌘</span>K
+              </kbd>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setAccountOpen(true)}
-            data-account-trigger=""
-            aria-label="Abrir painel da conta"
-            aria-haspopup="dialog"
-            aria-expanded={accountOpen}
-            className="flex items-center gap-3 rounded-full px-1.5 py-1 transition-colors hover:bg-secondary"
-          >
-            <span className="relative">
-              <UserAvatar
-                url={currentUser.avatarUrl}
-                initials={currentUser.initials}
-                className="size-9 bg-primary text-sm font-semibold text-primary-foreground ring-2 ring-primary/20"
-              />
-              {unreadCount ? (
-                <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-destructive px-1 text-center text-[10px] font-bold leading-4 text-destructive-foreground">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              ) : null}
-            </span>
-            <span className="hidden text-left leading-tight sm:block">
-              <span className="block text-sm font-semibold">{currentUser.name}</span>
-              <span className="block text-xs text-muted-foreground">{currentUser.role}</span>
-            </span>
-            <ChevronDown className="hidden size-4 opacity-60 sm:block" />
-          </button>
-
-          <AccountDrawer
-            open={accountOpen}
-            onOpenChange={setAccountOpen}
-            onOpenSettings={(panelId) => {
-              setAccountOpen(false);
-              openSettings(panelId);
-            }}
-          />
-
-          <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-            <SheetContent side="right" className="w-[320px] sm:w-[360px]">
-              <SheetHeader>
-                <SheetTitle>Notificações</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6 space-y-3">
-                {alerts.map((alert) => (
-                  <SchoolAlertRow
-                    key={alert.id}
-                    alert={alert}
-                    onClose={() => setNotificationsOpen(false)}
-                    onOpenSettings={(panelId) => {
-                      setNotificationsOpen(false);
-                      openSettings(panelId);
-                    }}
-                  />
-                ))}
-                {unread.map((row) => (
-                  <button
-                    key={row.peerId}
-                    type="button"
-                    className="flex w-full items-start gap-3 rounded-2xl border border-border bg-secondary/40 px-3 py-3 text-left transition-colors hover:bg-secondary"
-                    onClick={() => {
-                      setNotificationsOpen(false);
-                      setAccountOpen(true);
-                      requestOpenDirectMessage(row.peerId);
-                    }}
+            <div className="ml-auto flex items-center gap-1">
+              <AppLauncher onOpenSettings={openSettings} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="header-icon-btn"
+                    aria-label="Seletor de tema"
                   >
-                    <UserAvatar
-                      url={row.avatar_url}
-                      initials={initialsFromName(row.full_name)}
-                      className="size-9 bg-primary-soft text-xs font-bold text-primary"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold">{row.full_name}</span>
-                      <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                        {row.lastBody}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-                {!alerts.length && !unread.length ? (
-                  <p className="rounded-2xl border border-border bg-secondary/40 px-4 py-5 text-sm text-muted-foreground">
-                    Sem notificações novas. Candidaturas, documentos, faturas em atraso e mensagens
-                    internas aparecem aqui.
-                  </p>
-                ) : null}
-                {canAccessPath("/comunicacoes", currentUser.role) ? (
-                  <Button asChild variant="outline" className="w-full">
-                    <Link to="/comunicacoes" onClick={() => setNotificationsOpen(false)}>
-                      Abrir comunicações
-                    </Link>
+                    {isDark ? (
+                      <Sun className="size-5 text-warning" />
+                    ) : (
+                      <Moon className="size-5 text-primary" />
+                    )}
                   </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuLabel>Tema de Apresentação</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => toggleDark()} className="gap-2">
+                    {isDark ? (
+                      <Sun className="size-4 text-warning" />
+                    ) : (
+                      <Moon className="size-4 text-primary" />
+                    )}
+                    {isDark ? "Modo Claro" : "Modo Escuro"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="header-icon-btn relative"
+                aria-label="Notificações"
+                aria-haspopup="dialog"
+                onClick={() => setNotificationsOpen(true)}
+              >
+                <Bell className="size-5" />
+                {noticeCount ? (
+                  <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive ring-2 ring-background" />
                 ) : null}
-              </div>
-            </SheetContent>
-          </Sheet>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="header-icon-btn hidden sm:inline-flex"
+                aria-label={isFullscreen ? "Sair do ecrã inteiro" : "Ecrã inteiro"}
+                onClick={toggleFullscreen}
+              >
+                <Maximize2 className="size-5" />
+              </Button>
+            </div>
 
-          <Dialog open={legalDoc !== null} onOpenChange={(next) => !next && setLegalDoc(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {legalDoc === "termos" ? "Termos de uso" : "Políticas de privacidade"}
-                </DialogTitle>
-                <DialogDescription>
-                  {legalDoc === "termos"
-                    ? "O SIGA é destinado à gestão académica da escola. Os utilizadores devem proteger as suas credenciais e usar apenas os módulos autorizados pelo seu perfil."
-                    : "Os dados pessoais de alunos, encarregados e colaboradores são tratados apenas para fins escolares, com acesso controlado por função e auditoria de alterações sensíveis."}
-                </DialogDescription>
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
-
-          {settingsOpen && canAccessPath("/configuracoes", currentUser.role) ? (
-            <Suspense fallback={null}>
-              <SettingsCenter
-                open={settingsOpen}
-                onOpenChange={setSettingsOpen}
-                initialPanelId={settingsPanelId}
-              />
-            </Suspense>
-          ) : null}
-        </header>
-
-        <main
-          id="conteudo-principal"
-          tabIndex={-1}
-          className="mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
-        >
-          {children}
-        </main>
-
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:px-5">
-          <div className="flex items-center gap-4">
-            <span className="inline-flex items-center gap-2 font-semibold text-foreground">
-              <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[10px] font-extrabold text-primary">
-                S
+            <button
+              type="button"
+              onClick={() => setAccountOpen(true)}
+              data-account-trigger=""
+              aria-label="Abrir painel da conta"
+              aria-haspopup="dialog"
+              aria-expanded={accountOpen}
+              className="flex items-center gap-3 rounded-full px-1.5 py-1 transition-colors hover:bg-secondary"
+            >
+              <span className="relative">
+                <UserAvatar
+                  url={currentUser.avatarUrl}
+                  initials={currentUser.initials}
+                  className="size-9 bg-primary text-sm font-semibold text-primary-foreground ring-2 ring-primary/20"
+                />
+                {unreadCount ? (
+                  <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-destructive px-1 text-center text-[10px] font-bold leading-4 text-destructive-foreground">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                ) : null}
               </span>
-              SIGA
-            </span>
-            <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
-            <button
-              type="button"
-              onClick={() => setLegalDoc("politicas")}
-              className="transition-colors hover:text-foreground"
-            >
-              Políticas
+              <span className="hidden text-left leading-tight sm:block">
+                <span className="block text-sm font-semibold">{currentUser.name}</span>
+                <span className="block text-xs text-muted-foreground">{currentUser.role}</span>
+              </span>
+              <ChevronDown className="hidden size-4 opacity-60 sm:block" />
             </button>
-            <button
-              type="button"
-              onClick={() => setLegalDoc("termos")}
-              className="transition-colors hover:text-foreground"
-            >
-              Termos de uso
-            </button>
-          </div>
-          <span>© SIGA — Sistema Integrado de Gestão Académica</span>
-        </footer>
+
+            <AccountDrawer
+              open={accountOpen}
+              onOpenChange={setAccountOpen}
+              onOpenSettings={(panelId) => {
+                setAccountOpen(false);
+                openSettings(panelId);
+              }}
+            />
+
+            <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+              <SheetContent side="right" className="w-[320px] sm:w-[360px]">
+                <SheetHeader>
+                  <SheetTitle>Notificações</SheetTitle>
+                </SheetHeader>
+                <div className="mt-6 space-y-3">
+                  {alerts.map((alert) => (
+                    <SchoolAlertRow
+                      key={alert.id}
+                      alert={alert}
+                      onClose={() => setNotificationsOpen(false)}
+                      onOpenSettings={(panelId) => {
+                        setNotificationsOpen(false);
+                        openSettings(panelId);
+                      }}
+                    />
+                  ))}
+                  {unread.map((row) => (
+                    <button
+                      key={row.peerId}
+                      type="button"
+                      className="flex w-full items-start gap-3 rounded-2xl border border-border bg-secondary/40 px-3 py-3 text-left transition-colors hover:bg-secondary"
+                      onClick={() => {
+                        setNotificationsOpen(false);
+                        setAccountOpen(true);
+                        requestOpenDirectMessage(row.peerId);
+                      }}
+                    >
+                      <UserAvatar
+                        url={row.avatar_url}
+                        initials={initialsFromName(row.full_name)}
+                        className="size-9 bg-primary-soft text-xs font-bold text-primary"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">
+                          {row.full_name}
+                        </span>
+                        <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                          {row.lastBody}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                  {!alerts.length && !unread.length ? (
+                    <p className="rounded-2xl border border-border bg-secondary/40 px-4 py-5 text-sm text-muted-foreground">
+                      Sem notificações novas. Candidaturas, documentos, faturas em atraso e
+                      mensagens internas aparecem aqui.
+                    </p>
+                  ) : null}
+                  {canAccessPath("/comunicacoes", currentUser.role) ? (
+                    <Button asChild variant="outline" className="w-full">
+                      <Link to="/comunicacoes" onClick={() => setNotificationsOpen(false)}>
+                        Abrir comunicações
+                      </Link>
+                    </Button>
+                  ) : null}
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <Dialog open={legalDoc !== null} onOpenChange={(next) => !next && setLegalDoc(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {legalDoc === "termos" ? "Termos de uso" : "Políticas de privacidade"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {legalDoc === "termos"
+                      ? "O SIGA é destinado à gestão académica da escola. Os utilizadores devem proteger as suas credenciais e usar apenas os módulos autorizados pelo seu perfil."
+                      : "Os dados pessoais de alunos, encarregados e colaboradores são tratados apenas para fins escolares, com acesso controlado por função e auditoria de alterações sensíveis."}
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
+
+            {settingsOpen && canAccessPath("/configuracoes", currentUser.role) ? (
+              <Suspense fallback={null}>
+                <SettingsCenter
+                  open={settingsOpen}
+                  onOpenChange={setSettingsOpen}
+                  initialPanelId={settingsPanelId}
+                />
+              </Suspense>
+            ) : null}
+          </header>
+
+          <main
+            id="conteudo-principal"
+            tabIndex={-1}
+            className="mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
+          >
+            {children}
+          </main>
+
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card/40 px-3.5 py-3 text-xs text-muted-foreground backdrop-blur-xs md:px-5">
+            <div className="flex items-center gap-4">
+              <span className="inline-flex items-center gap-2 font-semibold text-foreground">
+                <span className="inline-flex size-6 items-center justify-center rounded-lg bg-primary-soft text-[10px] font-extrabold text-primary">
+                  S
+                </span>
+                SIGA
+              </span>
+              <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
+              <button
+                type="button"
+                onClick={() => setLegalDoc("politicas")}
+                className="transition-colors hover:text-foreground"
+              >
+                Políticas
+              </button>
+              <button
+                type="button"
+                onClick={() => setLegalDoc("termos")}
+                className="transition-colors hover:text-foreground"
+              >
+                Termos de uso
+              </button>
+            </div>
+            <span>© SIGA — Sistema Integrado de Gestão Académica</span>
+          </footer>
+        </div>
+
+        <Suspense fallback={null}>
+          <ContextualActionsPanelHost />
+        </Suspense>
       </div>
     </div>
   );

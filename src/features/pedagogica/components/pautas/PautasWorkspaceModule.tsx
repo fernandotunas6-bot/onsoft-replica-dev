@@ -1,158 +1,370 @@
-import { useMemo, useState } from 'react';
-import { Award, Download, Printer, CheckCircle2, FileText, Layers, Copy, FileSpreadsheet, ShieldCheck, GraduationCap, Calendar, Search, Filter, Share2, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Panel } from '@/components/layout/PageHeader';
-import { toast } from 'sonner';
-import type { PedagogicalWorkspace } from '@/features/academic/server';
-import { exportCsv } from '@/lib/export-csv';
-import { documentValidationCode } from '@/features/academic/assessment-views';
-import { whatsappHref } from '@/features/integrations/actions';
-import { MiniPautaView } from './MiniPautaView';
-import { FinalPautaView } from './FinalPautaView';
-import { TrimesterPautaView } from './TrimesterPautaView';
-import { ExamPautaView } from './ExamPautaView';
-import { finalPautaDemo, miniPautaDemo, trimesterPautaDemo, examPautaDemo } from './pautas-demo';
-import type { FinalPautaDocument, MiniPautaDocument, PautaMode, AngolaTeachingCycle, TrimesterPautaDocument, ExamPautaDocument } from './types';
-import { calculateFinalDisciplineAverage, calculateTrimesterAverage, evaluateAngolanStatus } from './assessment';
-import { buildClassAcademicSummaries } from '@/features/academic/assessment-engine';
+import { useEffect, useMemo, useState } from "react";
+import {
+  Award,
+  Printer,
+  CheckCircle2,
+  FileText,
+  Layers,
+  Copy,
+  FileSpreadsheet,
+  ShieldCheck,
+  GraduationCap,
+  Calendar,
+  Search,
+  Filter,
+  MessageSquare,
+  AlertTriangle,
+  Users,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import type { PedagogicalWorkspace } from "@/features/academic/server";
+import { exportCsv } from "@/lib/export-csv";
+import { documentValidationCode } from "@/features/academic/assessment-views";
+import { whatsappHref } from "@/features/integrations/actions";
+import { useSchoolSettings, type SchoolSettingsRow } from "@/features/auth/use-school-settings";
+import {
+  inferTeachingCycle,
+  subjectShortCode,
+  getPeriodsForCycle,
+  getPeriodNoun,
+} from "@/lib/angola-academic";
+import {
+  buildClassAcademicSummaries,
+  decidePromotionStatus,
+  type StudentAcademicSummary,
+} from "@/features/academic/assessment-engine";
+import {
+  runAcademicConsistencyCheck,
+  type ConsistencyCheckReport,
+} from "@/features/academic/consistency-check";
+import { MiniPautaView } from "./MiniPautaView";
+import { FinalPautaView } from "./FinalPautaView";
+import { TrimesterPautaView } from "./TrimesterPautaView";
+import { ExamPautaView } from "./ExamPautaView";
+import { finalPautaDemo, miniPautaDemo, trimesterPautaDemo, examPautaDemo } from "./pautas-demo";
+import type {
+  FinalPautaDocument,
+  MiniPautaDocument,
+  MiniPautaStudent,
+  FinalPautaStudent,
+  TrimesterPautaStudent,
+  PautaMode,
+  AngolaTeachingCycle,
+  TrimesterPautaDocument,
+  ExamPautaDocument,
+  SchoolIdentity,
+  ClassContext,
+  StudentStatus,
+  Gender,
+} from "./types";
+import type { PromotionStatus } from "@/features/academic/assessment-engine";
 
-interface PautasWorkspaceModuleProps {
-  workspace?: PedagogicalWorkspace | null;
-  onSelectClassGroup?: (classGroupId: string) => void;
+/** PromotionStatus tem "PENDENTE" (sem notas ainda), que a Pauta impressa mostra como estado vazio. */
+function toStudentStatus(status: PromotionStatus): StudentStatus {
+  return status === "PENDENTE" ? "" : status;
 }
 
-export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasWorkspaceModuleProps) {
-  const [modelType, setModelType] = useState<PautaMode>('mini');
-  const [selectedCycle, setSelectedCycle] = useState<AngolaTeachingCycle>('i_ciclo');
-  const [selectedTerm, setSelectedTerm] = useState<number>(1);
-  const [selectedClassId, setSelectedClassId] = useState<string>('demo');
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('demo');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pass' | 'fail'>('all');
+/** people.sex guarda "male"/"female" em inglês; a Pauta usa a inicial em português (M/F). */
+function toGender(sex: string | null | undefined): Gender {
+  if (sex === "male") return "M";
+  if (sex === "female") return "F";
+  return "";
+}
 
+interface PautasWorkspaceModuleProps {
+  workspace?: PedagogicalWorkspace | null | undefined;
+  onSelectClassGroup?: ((classGroupId: string) => void) | undefined;
+}
+
+type WorkspaceClassGroup = PedagogicalWorkspace["classGroups"][number];
+
+const shiftLabels: Record<string, string> = {
+  morning: "Manhã",
+  afternoon: "Tarde",
+  evening: "Noite",
+};
+
+/** Cabeçalho da escola — fonte única para os quatro modelos de pauta. */
+function buildSchoolIdentity(school: SchoolSettingsRow | null): SchoolIdentity {
+  return {
+    republic: "REPÚBLICA DE ANGOLA",
+    province: "GOVERNO PROVINCIAL",
+    municipality: "ADMINISTRAÇÃO MUNICIPAL",
+    educationOffice: "DIRECÇÃO MUNICIPAL DA EDUCAÇÃO",
+    schoolName: school?.name || "COMPLEXO ESCOLAR",
+  };
+}
+
+/** Contexto de turma — fonte única para os quatro modelos de pauta. */
+function buildClassContext(params: {
+  currentClass?: WorkspaceClassGroup | undefined;
+  academicYear: string;
+  cycle: AngolaTeachingCycle;
+  pautaNumber: string;
+  teacherName?: string | undefined;
+  term?: number | undefined;
+}): ClassContext {
+  return {
+    academicYear: params.academicYear,
+    className: params.currentClass?.grade_name || "Classe",
+    classGroup: params.currentClass?.name || "Turma",
+    period: (params.currentClass?.shift && shiftLabels[params.currentClass.shift]) || "Manhã",
+    pautaNumber: params.pautaNumber,
+    cycle: params.cycle,
+    ...(params.currentClass?.course_name ? { courseName: params.currentClass.course_name } : {}),
+    ...(params.teacherName ? { teacher: params.teacherName } : {}),
+    ...(params.term !== undefined ? { term: params.term } : {}),
+  };
+}
+
+export function PautasWorkspaceModule({
+  workspace,
+  onSelectClassGroup,
+}: PautasWorkspaceModuleProps) {
+  const { school: schoolSettings, activeYearLabel } = useSchoolSettings();
+  const [modelType, setModelType] = useState<PautaMode>("mini");
+  const [selectedCycle, setSelectedCycle] = useState<AngolaTeachingCycle>("i_ciclo");
+  const [selectedTerm, setSelectedTerm] = useState<number>(1);
+  const [selectedClassId, setSelectedClassId] = useState<string>("demo");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("demo");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
+
+  const isRealClass = selectedClassId !== "demo" && Boolean(workspace);
   const classGroups = workspace?.classGroups ?? [];
-  const subjects = workspace?.subjects ?? [];
-  const schoolProfile = workspace?.schoolProfile;
+  const enrollmentOptions = workspace?.enrollmentOptions ?? [];
+  const classSubjectNav = workspace?.classSubjects ?? [];
+  const allTermGrades = workspace?.termGrades ?? [];
+
+  const currentClass = useMemo(
+    () => classGroups.find((cg) => cg.id === selectedClassId),
+    [classGroups, selectedClassId],
+  );
+
+  // Disciplinas realmente atribuídas a esta turma (não o catálogo inteiro da escola).
+  const classSubjectsForSelected = useMemo(
+    () => classSubjectNav.filter((cs) => cs.class_group_id === selectedClassId),
+    [classSubjectNav, selectedClassId],
+  );
+  const realSubjectsForClass = useMemo(
+    () => classSubjectsForSelected.map((cs) => ({ id: cs.subject_id, name: cs.subject_name })),
+    [classSubjectsForSelected],
+  );
+  const enrollmentsForClass = useMemo(
+    () => enrollmentOptions.filter((e) => e.class_group_id === selectedClassId),
+    [enrollmentOptions, selectedClassId],
+  );
+  const genderByEnrollmentId = useMemo(
+    () => new Map(enrollmentsForClass.map((e) => [e.id, toGender(e.student_gender)])),
+    [enrollmentsForClass],
+  );
+  const termGradesForClass = useMemo(() => {
+    const enrollmentIds = new Set(enrollmentsForClass.map((e) => e.id));
+    return allTermGrades.filter((g) => enrollmentIds.has(g.enrollment_id));
+  }, [allTermGrades, enrollmentsForClass]);
+
+  const isRealClassEmpty = isRealClass && enrollmentsForClass.length === 0;
+
+  // Ciclo por omissão a partir da classe/curso real; o dropdown continua a permitir override manual.
+  useEffect(() => {
+    if (isRealClass && currentClass) {
+      setSelectedCycle(inferTeachingCycle(currentClass.grade_name, currentClass.course_name));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClassId]);
+
+  const effectiveSubjectId = useMemo(() => {
+    if (!isRealClass) return selectedSubjectId;
+    if (realSubjectsForClass.some((s) => s.id === selectedSubjectId)) return selectedSubjectId;
+    return realSubjectsForClass[0]?.id ?? "";
+  }, [isRealClass, realSubjectsForClass, selectedSubjectId]);
+
+  // Fonte única de médias/estado da turma: um único cálculo (Decreto 424/25) alimenta os quatro
+  // modelos de pauta abaixo, em vez de cada um recalcular por si.
+  const classSummaries: StudentAcademicSummary[] = useMemo(() => {
+    if (!isRealClass) return [];
+    return buildClassAcademicSummaries({
+      enrollments: enrollmentsForClass.map((e) => ({
+        id: e.id,
+        student_name: e.student_name,
+        registration_number: e.registration_number,
+      })),
+      subjects: realSubjectsForClass,
+      termGrades: termGradesForClass.map((g) => ({
+        id: g.id,
+        enrollment_id: g.enrollment_id,
+        subject_id: g.subject_id,
+        term: g.term as 1 | 2 | 3,
+        mac: g.mac,
+        npp: g.npp,
+        npt: g.npt,
+      })),
+      cycle: selectedCycle,
+    });
+  }, [isRealClass, enrollmentsForClass, realSubjectsForClass, termGradesForClass, selectedCycle]);
+
+  const consistencyReport: ConsistencyCheckReport | null = useMemo(() => {
+    if (!isRealClass || !currentClass) return null;
+    return runAcademicConsistencyCheck({
+      classGroupId: selectedClassId,
+      classGroupName: currentClass.name,
+      gradeName: currentClass.grade_name,
+      enrollments: enrollmentsForClass.map((e) => ({
+        id: e.id,
+        student_name: e.student_name,
+        status: "active",
+      })),
+      subjects: realSubjectsForClass,
+      classSubjects: classSubjectsForSelected.map((cs) => ({
+        subject_id: cs.subject_id,
+        teacher_id: cs.teacher_id,
+      })),
+      termGrades: termGradesForClass.map((g) => ({
+        enrollment_id: g.enrollment_id,
+        subject_id: g.subject_id,
+        term: g.term,
+        mac: g.mac,
+        npt: g.npt,
+      })),
+      term: selectedTerm,
+    });
+  }, [
+    isRealClass,
+    currentClass,
+    selectedClassId,
+    enrollmentsForClass,
+    realSubjectsForClass,
+    classSubjectsForSelected,
+    termGradesForClass,
+    selectedTerm,
+  ]);
 
   // Verification code for document authenticity
-  const validationCode = useMemo(() => documentValidationCode(`PAUTA-${modelType.toUpperCase()}`), [selectedClassId, selectedSubjectId, modelType, selectedTerm]);
+  const validationCode = useMemo(
+    () => documentValidationCode([`PAUTA-${modelType.toUpperCase()}`]),
+    [modelType],
+  );
 
   // Mini Pauta Document
   const rawMiniDocument: MiniPautaDocument = useMemo(() => {
-    if (selectedClassId === 'demo' || !workspace) {
+    if (!isRealClass) {
       return { ...miniPautaDemo, context: { ...miniPautaDemo.context, cycle: selectedCycle } };
     }
 
-    const currentClass = classGroups.find((cg) => cg.id === selectedClassId);
-    const currentSubject = subjects.find((s) => s.id === selectedSubjectId) ?? subjects[0];
-    const enrollments = workspace.enrollments.filter((e) => e.class_group_id === selectedClassId);
+    const subject = realSubjectsForClass.find((s) => s.id === effectiveSubjectId);
+    const teacherName =
+      classSubjectsForSelected.find((cs) => cs.subject_id === effectiveSubjectId)?.teacher_name ??
+      "";
 
-    const students = enrollments.map((e, index) => {
-      const studentGrades = workspace.termGrades.filter(
-        (g) => g.enrollment_id === e.id && (currentSubject ? g.subject_id === currentSubject.id : true)
-      );
-
-      const g1 = studentGrades.find((g) => g.term === 1);
-      const g2 = studentGrades.find((g) => g.term === 2);
-      const g3 = studentGrades.find((g) => g.term === 3);
-
-      const t1 = {
-        mact: g1?.mac ?? null,
-        npp: g1?.npp ?? null,
-        npt: g1?.npt ?? null,
-        mt: calculateTrimesterAverage(g1?.mac, g1?.npt),
-      };
-      const t2 = {
-        mact: g2?.mac ?? null,
-        npp: g2?.npp ?? null,
-        npt: g2?.npt ?? null,
-        mt: calculateTrimesterAverage(g2?.mac, g2?.npt),
-      };
-      const t3 = {
-        mact: g3?.mac ?? null,
-        npp: g3?.npp ?? null,
-        npt: g3?.npt ?? null,
-        mt: calculateTrimesterAverage(g3?.mac, g3?.npt),
-      };
-
-      const mfd = calculateFinalDisciplineAverage(t1.mt, t2.mt, t3.mt);
-      const status = evaluateAngolanStatus(mfd, 0, selectedCycle);
-
+    const students: MiniPautaStudent[] = classSummaries.map((summary, index) => {
+      const subjSummary = summary.subjects.find((s) => s.subjectId === effectiveSubjectId);
+      const rawFor = (term: number) =>
+        termGradesForClass.find(
+          (g) =>
+            g.enrollment_id === summary.enrollmentId &&
+            g.subject_id === effectiveSubjectId &&
+            g.term === term,
+        );
+      const g1 = rawFor(1);
+      const g2 = rawFor(2);
+      const g3 = rawFor(3);
       return {
-        id: e.id,
-        code: e.registration_number ?? `EST-${index + 1}`,
+        id: summary.enrollmentId,
+        code: summary.registrationNumber ?? `EST-${index + 1}`,
         number: index + 1,
-        name: e.student_name,
-        gender: '' as const,
-        t1,
-        t2,
-        t3,
-        mfd,
-        status,
-        observation: '',
+        name: summary.studentName,
+        gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
+        t1: {
+          mact: g1?.mac ?? null,
+          npp: g1?.npp ?? null,
+          npt: g1?.npt ?? null,
+          mt: subjSummary?.mt1 ?? null,
+        },
+        t2: {
+          mact: g2?.mac ?? null,
+          npp: g2?.npp ?? null,
+          npt: g2?.npt ?? null,
+          mt: subjSummary?.mt2 ?? null,
+        },
+        t3: {
+          mact: g3?.mac ?? null,
+          npp: g3?.npp ?? null,
+          npt: g3?.npt ?? null,
+          mt: subjSummary?.mt3 ?? null,
+        },
+        mfd: subjSummary?.mfd ?? null,
+        status: toStudentStatus(summary.status),
+        observation: "",
       };
     });
 
     return {
-      school: {
-        republic: 'REPÚBLICA DE ANGOLA',
-        province: schoolProfile?.province || 'GOVERNO PROVINCIAL',
-        municipality: schoolProfile?.municipality || 'ADMINISTRAÇÃO MUNICIPAL',
-        educationOffice: 'DIRECÇÃO MUNICIPAL DA EDUCAÇÃO',
-        schoolName: schoolProfile?.name || 'COMPLEXO ESCOLAR',
-      },
-      context: {
-        academicYear: workspace.schoolSettings?.current_year || '2025/2026',
-        className: currentClass?.grade_name || 'Classe',
-        classGroup: currentClass?.name || 'Turma',
-        period: currentClass?.shift || 'Manhã',
-        teacher: 'Docente Responsável',
-        pautaNumber: `P-${currentClass?.name ?? '01'}`,
+      school: buildSchoolIdentity(schoolSettings),
+      context: buildClassContext({
+        currentClass,
+        academicYear: activeYearLabel.replace(/^Ano Lectivo\s+/i, ""),
         cycle: selectedCycle,
-      },
-      subject: currentSubject?.name || 'Disciplina Geral',
-      students: students.length > 0 ? students : miniPautaDemo.students,
-      signatures: { teacher: '', pedagogicalDeputy: '', director: '' },
+        teacherName,
+        pautaNumber: `P-${currentClass?.name ?? "01"}`,
+      }),
+      subject: subject?.name ?? "Disciplina",
+      students,
+      signatures: { teacher: teacherName, pedagogicalDeputy: "", director: "" },
     };
-  }, [selectedClassId, selectedSubjectId, selectedCycle, workspace, classGroups, subjects, schoolProfile]);
+  }, [
+    isRealClass,
+    selectedCycle,
+    realSubjectsForClass,
+    effectiveSubjectId,
+    classSubjectsForSelected,
+    classSummaries,
+    termGradesForClass,
+    schoolSettings,
+    currentClass,
+    activeYearLabel,
+  ]);
 
   // Trimester Pauta Document
   const rawTrimesterDocument: TrimesterPautaDocument = useMemo(() => {
-    if (selectedClassId === 'demo' || !workspace) {
-      return { ...trimesterPautaDemo, context: { ...trimesterPautaDemo.context, term: selectedTerm, cycle: selectedCycle } };
+    if (!isRealClass) {
+      return {
+        ...trimesterPautaDemo,
+        context: { ...trimesterPautaDemo.context, term: selectedTerm, cycle: selectedCycle },
+      };
     }
 
-    const currentClass = classGroups.find((cg) => cg.id === selectedClassId);
-    const classSubjects = subjects.length > 0 ? subjects.slice(0, 8) : trimesterPautaDemo.subjects;
-    const enrollments = workspace.enrollments.filter((e) => e.class_group_id === selectedClassId);
-
-    const students = enrollments.map((e, index) => {
+    const students: TrimesterPautaStudent[] = classSummaries.map((summary, index) => {
       const gradesMap: Record<string, number | null> = {};
       let total = 0;
       let count = 0;
-
-      classSubjects.forEach((sub) => {
-        const grade = workspace.termGrades.find(
-          (g) => g.enrollment_id === e.id && g.subject_id === sub.id && g.term === selectedTerm
-        );
-        const mt = calculateTrimesterAverage(grade?.mac, grade?.npt);
-        gradesMap[sub.id] = mt;
-        if (mt !== null) {
+      let failing = 0;
+      realSubjectsForClass.forEach((sub) => {
+        const subjSummary = summary.subjects.find((s) => s.subjectId === sub.id);
+        const mt =
+          selectedTerm === 1
+            ? subjSummary?.mt1
+            : selectedTerm === 2
+              ? subjSummary?.mt2
+              : subjSummary?.mt3;
+        gradesMap[sub.id] = mt ?? null;
+        if (mt !== null && mt !== undefined) {
           total += mt;
           count += 1;
+          if (mt < 10) failing += 1;
         }
       });
-
       const avg = count > 0 ? Math.round((total / count) * 10) / 10 : null;
-      const status = evaluateAngolanStatus(avg, 0, selectedCycle);
+      const status: StudentStatus =
+        avg === null ? "" : toStudentStatus(decidePromotionStatus(avg, failing, selectedCycle));
 
       return {
-        id: e.id,
-        code: e.registration_number ?? `EST-${index + 1}`,
+        id: summary.enrollmentId,
+        code: summary.registrationNumber ?? `EST-${index + 1}`,
         number: index + 1,
-        name: e.student_name,
-        gender: '' as const,
+        name: summary.studentName,
+        gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
         subjectGrades: gradesMap,
         average: avg,
         status,
@@ -160,214 +372,227 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
     });
 
     return {
-      school: {
-        republic: 'REPÚBLICA DE ANGOLA',
-        province: schoolProfile?.province || 'GOVERNO PROVINCIAL',
-        municipality: schoolProfile?.municipality || 'ADMINISTRAÇÃO MUNICIPAL',
-        educationOffice: 'DIRECÇÃO MUNICIPAL DA EDUCAÇÃO',
-        schoolName: schoolProfile?.name || 'COMPLEXO ESCOLAR',
-      },
-      context: {
-        academicYear: workspace.schoolSettings?.current_year || '2025/2026',
-        className: currentClass?.grade_name || 'Classe',
-        classGroup: currentClass?.name || 'Turma',
-        period: currentClass?.shift || 'Manhã',
-        term: selectedTerm,
+      school: buildSchoolIdentity(schoolSettings),
+      context: buildClassContext({
+        currentClass,
+        academicYear: activeYearLabel.replace(/^Ano Lectivo\s+/i, ""),
         cycle: selectedCycle,
-      },
-      subjects: classSubjects.map((s) => ({ id: s.id, name: s.name, shortName: s.name.substring(0, 10).toUpperCase() })),
-      students: students.length > 0 ? students : trimesterPautaDemo.students,
-      signatures: { classCoordinator: '', pedagogicalDeputy: '', director: '' },
+        pautaNumber: `PT-${currentClass?.name ?? "01"}`,
+        term: selectedTerm,
+      }),
+      subjects: realSubjectsForClass.map((s) => ({
+        id: s.id,
+        name: s.name,
+        shortName: subjectShortCode(s.name),
+      })),
+      students,
+      signatures: { classCoordinator: "", pedagogicalDeputy: "", director: "" },
     };
-  }, [selectedClassId, selectedTerm, selectedCycle, workspace, classGroups, subjects, schoolProfile]);
+  }, [
+    isRealClass,
+    selectedTerm,
+    selectedCycle,
+    classSummaries,
+    realSubjectsForClass,
+    schoolSettings,
+    currentClass,
+    activeYearLabel,
+  ]);
 
   // Final Pauta Document
   const rawFinalDocument: FinalPautaDocument = useMemo(() => {
-    if (selectedClassId === 'demo' || !workspace) {
+    if (!isRealClass) {
       return { ...finalPautaDemo, context: { ...finalPautaDemo.context, cycle: selectedCycle } };
     }
 
-    const currentClass = classGroups.find((cg) => cg.id === selectedClassId);
-    const classSubjects = subjects.length > 0 ? subjects.slice(0, 7) : finalPautaDemo.subjects;
-    const enrollments = workspace.enrollments.filter((e) => e.class_group_id === selectedClassId);
-
-    const students = enrollments.map((e, index) => {
-      let fails = 0;
-      const studentSubjectResults = classSubjects.map((sub) => {
-        const studentGrades = workspace.termGrades.filter(
-          (g) => g.enrollment_id === e.id && g.subject_id === sub.id
-        );
-        const g1 = studentGrades.find((g) => g.term === 1);
-        const g2 = studentGrades.find((g) => g.term === 2);
-        const g3 = studentGrades.find((g) => g.term === 3);
-
-        const mt1 = calculateTrimesterAverage(g1?.mac, g1?.npt);
-        const mt2 = calculateTrimesterAverage(g2?.mac, g2?.npt);
-        const mt3 = calculateTrimesterAverage(g3?.mac, g3?.npt);
-        const mfd = calculateFinalDisciplineAverage(mt1, mt2, mt3);
-
-        if (mfd !== null && mfd < 10) fails += 1;
-
-        return {
-          subjectId: sub.id,
-          subjectName: sub.name,
-          mt1,
-          mt2,
-          mt3,
-          mfd,
-        };
-      });
-
-      const globalAvgArr = studentSubjectResults.map((x) => x.mfd).filter((x): x is number => x !== null);
-      const globalMfd = globalAvgArr.length > 0 ? globalAvgArr.reduce((a, b) => a + b, 0) / globalAvgArr.length : null;
-      const status = evaluateAngolanStatus(globalMfd, fails, selectedCycle);
-
-      return {
-        id: e.id,
-        code: e.registration_number ?? `EST-${index + 1}`,
-        number: index + 1,
-        name: e.student_name,
-        gender: '' as const,
-        subjects: studentSubjectResults,
-        status,
-      };
-    });
+    const students: FinalPautaStudent[] = classSummaries.map((summary, index) => ({
+      id: summary.enrollmentId,
+      code: summary.registrationNumber ?? `EST-${index + 1}`,
+      number: index + 1,
+      name: summary.studentName,
+      gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
+      subjects: summary.subjects.map((s) => ({
+        subjectId: s.subjectId,
+        subjectName: s.subjectName,
+        mt1: s.mt1,
+        mt2: s.mt2,
+        mt3: s.mt3,
+        mfd: s.mfd,
+      })),
+      status: toStudentStatus(summary.status),
+    }));
 
     return {
-      school: {
-        republic: 'REPÚBLICA DE ANGOLA',
-        province: schoolProfile?.province || 'GOVERNO PROVINCIAL',
-        municipality: schoolProfile?.municipality || 'ADMINISTRAÇÃO MUNICIPAL',
-        educationOffice: 'DIRECÇÃO MUNICIPAL DA EDUCAÇÃO',
-        schoolName: schoolProfile?.name || 'COMPLEXO ESCOLAR',
-      },
-      context: {
-        academicYear: workspace.schoolSettings?.current_year || '2025/2026',
-        className: currentClass?.grade_name || 'Classe',
-        classGroup: currentClass?.name || 'Turma',
-        period: currentClass?.shift || 'Manhã',
-        pautaNumber: `PF-${currentClass?.name ?? '01'}`,
+      school: buildSchoolIdentity(schoolSettings),
+      context: buildClassContext({
+        currentClass,
+        academicYear: activeYearLabel.replace(/^Ano Lectivo\s+/i, ""),
         cycle: selectedCycle,
-      },
-      subjects: classSubjects.map((s) => ({ id: s.id, name: s.name, shortName: s.name.substring(0, 10).toUpperCase() })),
-      students: students.length > 0 ? students : finalPautaDemo.students,
-      signatures: { jury: ['', '', ''], pedagogicalDeputy: '', director: '' },
+        pautaNumber: `PF-${currentClass?.name ?? "01"}`,
+      }),
+      subjects: realSubjectsForClass.map((s) => ({
+        id: s.id,
+        name: s.name,
+        shortName: subjectShortCode(s.name),
+      })),
+      students,
+      signatures: { jury: ["", "", ""], pedagogicalDeputy: "", director: "" },
     };
-  }, [selectedClassId, selectedCycle, workspace, classGroups, subjects, schoolProfile]);
+  }, [
+    isRealClass,
+    selectedCycle,
+    classSummaries,
+    realSubjectsForClass,
+    schoolSettings,
+    currentClass,
+    activeYearLabel,
+  ]);
 
-  // Exam Pauta Document
+  // Exam Pauta Document — o SIGA ainda não regista notas de PAP/Estágio/Exame Nacional; para
+  // turmas reais mostramos o cabeçalho real mas sem misturar alunos de demonstração na lista.
   const rawExamDocument: ExamPautaDocument = useMemo(() => {
-    if (selectedClassId === 'demo' || !workspace) {
-      return { ...examPautaDemo, isTechnical: selectedCycle === 'tecnico' };
+    if (!isRealClass) {
+      return { ...examPautaDemo, isTechnical: selectedCycle === "tecnico" };
     }
-
     return {
-      school: {
-        republic: 'REPÚBLICA DE ANGOLA',
-        province: schoolProfile?.province || 'GOVERNO PROVINCIAL',
-        municipality: schoolProfile?.municipality || 'ADMINISTRAÇÃO MUNICIPAL',
-        educationOffice: 'DIRECÇÃO MUNICIPAL DA EDUCAÇÃO',
-        schoolName: schoolProfile?.name || 'INSTITUTO TÉCNICO',
-      },
-      context: {
-        academicYear: workspace.schoolSettings?.current_year || '2025/2026',
-        className: '12.ª/13.ª Classe',
-        classGroup: 'Turma de Exame',
-        period: 'Manhã',
+      school: buildSchoolIdentity(schoolSettings),
+      context: buildClassContext({
+        currentClass,
+        academicYear: activeYearLabel.replace(/^Ano Lectivo\s+/i, ""),
         cycle: selectedCycle,
-      },
-      isTechnical: selectedCycle === 'tecnico',
-      subject: selectedCycle === 'tecnico' ? 'Prova de Aptidão Profissional (PAP) & Estágio' : 'Exame Nacional de Fim de Ciclo',
-      students: examPautaDemo.students,
-      signatures: { jury: ['', '', ''], pedagogicalDeputy: '', director: '' },
+        pautaNumber: `PE-${currentClass?.name ?? "01"}`,
+      }),
+      isTechnical: selectedCycle === "tecnico",
+      subject:
+        selectedCycle === "tecnico"
+          ? "Prova de Aptidão Profissional (PAP) & Estágio"
+          : "Exame Nacional de Fim de Ciclo",
+      students: [],
+      signatures: { jury: ["", "", ""], pedagogicalDeputy: "", director: "" },
     };
-  }, [selectedClassId, selectedCycle, workspace, schoolProfile]);
+  }, [isRealClass, selectedCycle, schoolSettings, currentClass, activeYearLabel]);
 
   // Filtered Documents based on search query and status filter
-  const filterStudentList = <T extends { name: string; code?: string; status?: string }>(list: T[]): T[] => {
+  const filterStudentList = <T extends { name: string; code?: string; status?: string }>(
+    list: T[],
+  ): T[] => {
     return list.filter((item) => {
       const q = searchQuery.toLowerCase().trim();
-      const matchSearch = !q || item.name.toLowerCase().includes(q) || (item.code && item.code.toLowerCase().includes(q));
+      const matchSearch =
+        !q ||
+        item.name.toLowerCase().includes(q) ||
+        (item.code && item.code.toLowerCase().includes(q));
 
       if (!matchSearch) return false;
 
-      if (statusFilter === 'pass') {
-        return item.status === 'TRANSITA' || item.status === 'APROVADO' || item.status === 'APTO' || item.status === 'APTO (PAP)';
+      if (statusFilter === "pass") {
+        return (
+          item.status === "TRANSITA" ||
+          item.status === "APROVADO" ||
+          item.status === "APTO" ||
+          item.status === "APTO (PAP)"
+        );
       }
-      if (statusFilter === 'fail') {
-        return item.status === 'NÃO TRANSITA' || item.status === 'REPROVADO' || item.status === 'NÃO APTO' || item.status === 'NÃO APTO (PAP)' || item.status === 'RECURSO';
+      if (statusFilter === "fail") {
+        return (
+          item.status === "NÃO TRANSITA" ||
+          item.status === "REPROVADO" ||
+          item.status === "NÃO APTO" ||
+          item.status === "NÃO APTO (PAP)" ||
+          item.status === "RECURSO"
+        );
       }
       return true;
     });
   };
 
-  const filteredMiniDocument = useMemo(() => ({ ...rawMiniDocument, students: filterStudentList(rawMiniDocument.students) }), [rawMiniDocument, searchQuery, statusFilter]);
-  const filteredTrimesterDocument = useMemo(() => ({ ...rawTrimesterDocument, students: filterStudentList(rawTrimesterDocument.students) }), [rawTrimesterDocument, searchQuery, statusFilter]);
-  const filteredFinalDocument = useMemo(() => ({ ...rawFinalDocument, students: filterStudentList(rawFinalDocument.students) }), [rawFinalDocument, searchQuery, statusFilter]);
-  const filteredExamDocument = useMemo(() => ({ ...rawExamDocument, students: filterStudentList(rawExamDocument.students) }), [rawExamDocument, searchQuery, statusFilter]);
+  const filteredMiniDocument = useMemo(
+    () => ({ ...rawMiniDocument, students: filterStudentList(rawMiniDocument.students) }),
+    [rawMiniDocument, searchQuery, statusFilter],
+  );
+  const filteredTrimesterDocument = useMemo(
+    () => ({ ...rawTrimesterDocument, students: filterStudentList(rawTrimesterDocument.students) }),
+    [rawTrimesterDocument, searchQuery, statusFilter],
+  );
+  const filteredFinalDocument = useMemo(
+    () => ({ ...rawFinalDocument, students: filterStudentList(rawFinalDocument.students) }),
+    [rawFinalDocument, searchQuery, statusFilter],
+  );
+  const filteredExamDocument = useMemo(
+    () => ({ ...rawExamDocument, students: filterStudentList(rawExamDocument.students) }),
+    [rawExamDocument, searchQuery, statusFilter],
+  );
 
   // Active student list based on selected view mode
   const currentStudents = useMemo(() => {
-    if (modelType === 'mini') return filteredMiniDocument.students;
-    if (modelType === 'trimestre') return filteredTrimesterDocument.students;
-    if (modelType === 'final') return filteredFinalDocument.students;
+    if (modelType === "mini") return filteredMiniDocument.students;
+    if (modelType === "trimestre") return filteredTrimesterDocument.students;
+    if (modelType === "final") return filteredFinalDocument.students;
     return filteredExamDocument.students;
-  }, [modelType, filteredMiniDocument, filteredTrimesterDocument, filteredFinalDocument, filteredExamDocument]);
+  }, [
+    modelType,
+    filteredMiniDocument,
+    filteredTrimesterDocument,
+    filteredFinalDocument,
+    filteredExamDocument,
+  ]);
 
   const passCount = currentStudents.filter(
-    (s) => s.status === 'TRANSITA' || s.status === 'APROVADO' || s.status === 'APTO' || s.status === 'APTO (PAP)'
+    (s) => s.status === "TRANSITA" || s.status === "APROVADO" || s.status === "APTO (PAP)",
   ).length;
-  const passRate = currentStudents.length > 0 ? Math.round((passCount / currentStudents.length) * 100) : 0;
+  const passRate =
+    currentStudents.length > 0 ? Math.round((passCount / currentStudents.length) * 100) : 0;
 
   const handlePrint = () => {
     window.print();
   };
 
   const handleExportCsv = () => {
-    const columns = [
-      { key: 'number', label: 'N.º' },
-      { key: 'code', label: 'Código' },
-      { key: 'name', label: 'Nome Completo' },
-      { key: 'status', label: 'Resultado' },
-    ];
     const rows = currentStudents.map((s) => ({
       number: s.number,
-      code: s.code ?? '',
+      code: s.code ?? "",
       name: s.name,
-      status: s.status ?? '',
+      status: s.status ?? "",
     }));
+    const columns = [
+      { label: "N.º", value: (row: (typeof rows)[number]) => row.number },
+      { label: "Código", value: (row: (typeof rows)[number]) => row.code },
+      { label: "Nome Completo", value: (row: (typeof rows)[number]) => row.name },
+      { label: "Resultado", value: (row: (typeof rows)[number]) => row.status },
+    ];
     exportCsv(`pauta-${modelType}-${selectedCycle}`, columns, rows);
-    toast.success('Pauta exportada em ficheiro CSV.');
+    toast.success("Pauta exportada em ficheiro CSV.");
   };
 
   const handleCopyTsv = async () => {
     try {
-      let tsvText = 'N.º\tCódigo\tNome Completo\tResultado\n';
+      let tsvText = "N.º\tCódigo\tNome Completo\tResultado\n";
       currentStudents.forEach((s) => {
         tsvText += `${s.number}\t${s.code}\t${s.name}\t${s.status}\n`;
       });
       await navigator.clipboard.writeText(tsvText);
-      toast.success('Grelha copiada para a área de transferência! Cole no Excel.');
+      toast.success("Grelha copiada para a área de transferência! Cole no Excel.");
     } catch {
-      toast.error('Não foi possível copiar os dados.');
+      toast.error("Não foi possível copiar os dados.");
     }
   };
 
   const handleShareWhatsapp = () => {
-    const text = `*RESUMO DA PAUTA SIGA* (${modelType.toUpperCase()})\n` +
+    const text =
+      `*RESUMO DA PAUTA SIGA* (${modelType.toUpperCase()})\n` +
       `Escola: ${rawMiniDocument.school.schoolName}\n` +
       `Turma: ${rawMiniDocument.context.classGroup} (${rawMiniDocument.context.className})\n` +
       `Total de Alunos: ${currentStudents.length}\n` +
       `Aprovados/Transitam: ${passCount} (${passRate}%)\n` +
       `Código de Autenticidade: ${validationCode}`;
 
-    window.open(whatsappHref(text), '_blank');
+    window.open(whatsappHref(text), "_blank");
   };
 
   return (
     <div className="space-y-6">
       {/* Header Panel */}
-      <Panel className="p-5 space-y-4">
+      <div className="rounded-xl border border-border bg-card shadow-xs p-5 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -381,9 +606,12 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
                 <ShieldCheck className="size-3.5 text-primary" /> {validationCode}
               </span>
             </div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground">Modelos de Pauta Escolar — Contextos de Ensino em Angola</h2>
+            <h2 className="text-xl font-bold tracking-tight text-foreground">
+              Modelos de Pauta Escolar — Contextos de Ensino em Angola
+            </h2>
             <p className="text-xs text-muted-foreground">
-              Estruturas normativas para Ensino Primário, I Ciclo, II Ciclo / Liceu, Técnico-Profissional (PAP) e EJA / Adultos.
+              Estruturas normativas para Ensino Primário, I Ciclo, II Ciclo / Liceu,
+              Técnico-Profissional (PAP) e EJA / Adultos.
             </p>
           </div>
 
@@ -394,7 +622,12 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportCsv}>
               <FileSpreadsheet className="size-4" /> Exportar CSV
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" onClick={handleShareWhatsapp}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+              onClick={handleShareWhatsapp}
+            >
               <MessageSquare className="size-4" /> Partilhar WhatsApp
             </Button>
             <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleCopyTsv}>
@@ -419,7 +652,9 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
           </div>
           <div className="rounded-lg border border-border bg-card p-2.5">
             <p className="text-[11px] font-medium text-muted-foreground">Não Transitam / Retidos</p>
-            <p className="text-lg font-bold text-destructive">{currentStudents.length - passCount}</p>
+            <p className="text-lg font-bold text-destructive">
+              {currentStudents.length - passCount}
+            </p>
           </div>
         </div>
 
@@ -443,27 +678,33 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
               <button
                 type="button"
                 className={`px-2.5 py-1 rounded font-medium text-[11px] transition-all ${
-                  statusFilter === 'all' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground'
+                  statusFilter === "all"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground"
                 }`}
-                onClick={() => setStatusFilter('all')}
+                onClick={() => setStatusFilter("all")}
               >
                 Todos
               </button>
               <button
                 type="button"
                 className={`px-2.5 py-1 rounded font-medium text-[11px] transition-all ${
-                  statusFilter === 'pass' ? 'bg-background text-emerald-600 font-bold shadow-xs' : 'text-muted-foreground'
+                  statusFilter === "pass"
+                    ? "bg-background text-emerald-600 font-bold shadow-xs"
+                    : "text-muted-foreground"
                 }`}
-                onClick={() => setStatusFilter('pass')}
+                onClick={() => setStatusFilter("pass")}
               >
                 Aprovados
               </button>
               <button
                 type="button"
                 className={`px-2.5 py-1 rounded font-medium text-[11px] transition-all ${
-                  statusFilter === 'fail' ? 'bg-background text-destructive font-bold shadow-xs' : 'text-muted-foreground'
+                  statusFilter === "fail"
+                    ? "bg-background text-destructive font-bold shadow-xs"
+                    : "text-muted-foreground"
                 }`}
-                onClick={() => setStatusFilter('fail')}
+                onClick={() => setStatusFilter("fail")}
               >
                 Não Transitam
               </button>
@@ -475,41 +716,52 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 no-print pt-2">
           {/* Tipo / Âmbito de Pauta */}
           <div className="space-y-1 sm:col-span-2">
-            <label className="text-xs font-semibold text-muted-foreground block">Âmbito / Estrutura da Pauta</label>
+            <label className="text-xs font-semibold text-muted-foreground block">
+              Âmbito / Estrutura da Pauta
+            </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 rounded-lg border border-border p-1 bg-muted/40 gap-1">
               <button
                 type="button"
                 className={`text-[11px] font-semibold py-1.5 px-2 rounded-md transition-all text-center ${
-                  modelType === 'mini' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                  modelType === "mini"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
-                onClick={() => setModelType('mini')}
+                onClick={() => setModelType("mini")}
               >
                 <FileText className="size-3 inline mr-1" /> Mini-Pauta
               </button>
               <button
                 type="button"
                 className={`text-[11px] font-semibold py-1.5 px-2 rounded-md transition-all text-center ${
-                  modelType === 'trimestre' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                  modelType === "trimestre"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
-                onClick={() => setModelType('trimestre')}
+                onClick={() => setModelType("trimestre")}
               >
-                <Calendar className="size-3 inline mr-1" /> Trimestral
+                <Calendar className="size-3 inline mr-1" />{" "}
+                {getPeriodNoun(selectedCycle) === "Semestre" ? "Semestral" : "Trimestral"}
               </button>
               <button
                 type="button"
                 className={`text-[11px] font-semibold py-1.5 px-2 rounded-md transition-all text-center ${
-                  modelType === 'final' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                  modelType === "final"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
-                onClick={() => setModelType('final')}
+                onClick={() => setModelType("final")}
               >
                 <Layers className="size-3 inline mr-1" /> Pauta Final
               </button>
               <button
                 type="button"
                 className={`text-[11px] font-semibold py-1.5 px-2 rounded-md transition-all text-center ${
-                  modelType === 'exames' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                  modelType === "exames"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
-                onClick={() => setModelType('exames')}
+                onClick={() => setModelType("exames")}
               >
                 <GraduationCap className="size-3 inline mr-1" /> Exames/PAP
               </button>
@@ -518,7 +770,9 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
 
           {/* Nível de Ensino / Ciclo */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted-foreground block">Nível de Ensino</label>
+            <label className="text-xs font-semibold text-muted-foreground block">
+              Nível de Ensino
+            </label>
             <select
               className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary font-medium"
               value={selectedCycle}
@@ -540,7 +794,7 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
               value={selectedClassId}
               onChange={(e) => {
                 setSelectedClassId(e.target.value);
-                if (e.target.value !== 'demo' && onSelectClassGroup) {
+                if (e.target.value !== "demo" && onSelectClassGroup) {
                   onSelectClassGroup(e.target.value);
                 }
               }}
@@ -548,23 +802,25 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
               <option value="demo">Demonstrativo (Modelo Angola)</option>
               {classGroups.map((cg) => (
                 <option key={cg.id} value={cg.id}>
-                  {cg.name} ({cg.grade_name || 'Sem classe'})
+                  {cg.name} ({cg.grade_name || "Sem classe"})
                 </option>
               ))}
             </select>
           </div>
 
           {/* Seleção de Disciplina / Trimestre */}
-          {modelType === 'mini' && (
+          {modelType === "mini" && (
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground block">Disciplina</label>
+              <label className="text-xs font-semibold text-muted-foreground block">
+                Disciplina
+              </label>
               <select
                 className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary font-medium"
-                value={selectedSubjectId}
+                value={effectiveSubjectId}
                 onChange={(e) => setSelectedSubjectId(e.target.value)}
               >
-                <option value="demo">Língua Portuguesa (Demonstrativa)</option>
-                {subjects.map((s) => (
+                {!isRealClass && <option value="demo">Língua Portuguesa (Demonstrativa)</option>}
+                {realSubjectsForClass.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
@@ -573,30 +829,96 @@ export function PautasWorkspaceModule({ workspace, onSelectClassGroup }: PautasW
             </div>
           )}
 
-          {modelType === 'trimestre' && (
+          {modelType === "trimestre" && (
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground block">Trimestre Lectivo</label>
+              <label className="text-xs font-semibold text-muted-foreground block">
+                {getPeriodNoun(selectedCycle)} Lectivo
+              </label>
               <select
                 className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary font-medium"
                 value={selectedTerm}
                 onChange={(e) => setSelectedTerm(Number(e.target.value))}
               >
-                <option value={1}>1.º Trimestre</option>
-                <option value={2}>2.º Trimestre</option>
-                <option value={3}>3.º Trimestre</option>
+                {getPeriodsForCycle(selectedCycle).map((p) => (
+                  <option key={p} value={p}>
+                    {p}.º {getPeriodNoun(selectedCycle)}
+                  </option>
+                ))}
               </select>
             </div>
           )}
         </div>
-      </Panel>
-
-      {/* Render Area */}
-      <div className="w-full">
-        {modelType === 'mini' && <MiniPautaView data={filteredMiniDocument} />}
-        {modelType === 'trimestre' && <TrimesterPautaView data={filteredTrimesterDocument} />}
-        {modelType === 'final' && <FinalPautaView data={filteredFinalDocument} />}
-        {modelType === 'exames' && <ExamPautaView data={filteredExamDocument} />}
       </div>
+
+      {/* Consistency Check Panel — só para turmas reais */}
+      {isRealClass && consistencyReport && consistencyReport.issues.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-xs p-4 space-y-2 border-l-4 border-l-amber-500 no-print">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <AlertTriangle className="size-4 text-amber-500" />
+              Verificação de consistência — {consistencyReport.totalStudents} aluno(s),{" "}
+              {consistencyReport.totalSubjects} disciplina(s)
+            </div>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                consistencyReport.isReadyToLock
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              }`}
+            >
+              {consistencyReport.isReadyToLock ? "Pronta para fechar" : "Pendências por resolver"}
+            </span>
+          </div>
+          <ul className="space-y-1 text-xs text-muted-foreground">
+            {consistencyReport.issues.slice(0, 8).map((issue, index) => (
+              <li key={`${issue.code}-${index}`} className="flex items-start gap-1.5">
+                <span className="mt-0.5 size-1.5 rounded-full bg-amber-500 shrink-0" />
+                {issue.message}
+              </li>
+            ))}
+            {consistencyReport.issues.length > 8 && (
+              <li className="text-[11px] italic">
+                + {consistencyReport.issues.length - 8} outro(s) aviso(s).
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+
+      {/* Empty state — turma real sem alunos matriculados */}
+      {isRealClassEmpty ? (
+        <div className="rounded-xl border border-border bg-card shadow-xs p-10 flex flex-col items-center justify-center text-center gap-2">
+          <Users className="size-8 text-muted-foreground" />
+          <p className="text-sm font-semibold text-foreground">
+            Esta turma ainda não tem alunos matriculados
+          </p>
+          <p className="text-xs text-muted-foreground max-w-md">
+            Matricule alunos nesta turma para gerar a pauta com dados reais. Escolha "Demonstrativo"
+            no selector de turma para ver um modelo de referência.
+          </p>
+        </div>
+      ) : (
+        <div className="w-full">
+          {modelType === "mini" && <MiniPautaView data={filteredMiniDocument} />}
+          {modelType === "trimestre" && <TrimesterPautaView data={filteredTrimesterDocument} />}
+          {modelType === "final" && <FinalPautaView data={filteredFinalDocument} />}
+          {modelType === "exames" &&
+            (isRealClass && filteredExamDocument.students.length === 0 ? (
+              <div className="rounded-xl border border-border bg-card shadow-xs p-10 flex flex-col items-center justify-center text-center gap-2">
+                <GraduationCap className="size-8 text-muted-foreground" />
+                <p className="text-sm font-semibold text-foreground">
+                  Sem dados de exame/PAP para esta turma
+                </p>
+                <p className="text-xs text-muted-foreground max-w-md">
+                  O SIGA ainda não regista notas de Exame Nacional, PAP ou Estágio para turmas
+                  reais. Escolha "Demonstrativo" para ver um modelo de referência.
+                </p>
+              </div>
+            ) : (
+              <ExamPautaView data={filteredExamDocument} />
+            ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -48,6 +48,8 @@ import { documentValidationCode } from "@/features/academic/assessment-views";
 import { paymentReference, whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
+import { mapInvoicesToFinanceOverviewSnapshot } from "@/features/intelligence/finance/finance-overview-adapter";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { AppMark } from "@/features/integrations/app-marks";
 import { kwanza } from "@/lib/currency";
@@ -174,6 +176,22 @@ function FaturasPage() {
       })),
     [invoicesQuery.data],
   );
+
+  const financeOverviewSnapshot = useMemo(
+    () => mapInvoicesToFinanceOverviewSnapshot(faturas),
+    [faturas],
+  );
+  const focusedFinanceOverviewEntity = useMemo(
+    () => ({
+      type: "finance-overview" as const,
+      id: "overview",
+      label: "Faturas",
+      schoolId: school?.id ?? "",
+      data: financeOverviewSnapshot,
+    }),
+    [financeOverviewSnapshot, school?.id],
+  );
+  useDeclareEntityFocus(focusedFinanceOverviewEntity);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -367,7 +385,9 @@ function FaturasPage() {
   const handleIssueProforma = async (values: Record<string, string>) => {
     const studentLabel = values["aluno"] || "";
     const selectedStudent = financeStudents.find(
-      (s) => `${s.registration_number} · ${s.full_name}` === studentLabel || s.student_id === studentLabel,
+      (s) =>
+        `${s.registration_number} · ${s.full_name}` === studentLabel ||
+        s.student_id === studentLabel,
     );
 
     const proformaNo = `FP-${new Date().getFullYear()}/${String(invoiceCount + 1).padStart(4, "0")}`;
@@ -637,7 +657,9 @@ function FaturasPage() {
           </Alert>
         ) : null}
 
-        <StatGrid collapsible storageKey="faturas-1"
+        <StatGrid
+          collapsible
+          storageKey="faturas-1"
           items={[
             { label: "Facturado", value: kwanza(total), hint: `${invoiceCount} documentos` },
             { label: "Liquidado", value: kwanza(pago), hint: "Recebido em caixa" },
@@ -654,7 +676,9 @@ function FaturasPage() {
           ]}
         />
 
-        <StatGrid collapsible storageKey="faturas-2"
+        <StatGrid
+          collapsible
+          storageKey="faturas-2"
           items={[
             {
               label: "Taxa de liquidação",

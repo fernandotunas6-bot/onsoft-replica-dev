@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ImportWorkflowWizard } from "@/features/import/components/ImportWorkflowWizard";
 import { ImportHistoryPanel } from "@/features/import/components/ImportHistoryPanel";
-import { OFFICIAL_TEMPLATES, generateOfficialCsvTemplate } from "@/features/import/official-templates";
+import {
+  OFFICIAL_TEMPLATES,
+  generateOfficialCsvTemplate,
+} from "@/features/import/official-templates";
 
 const importarSearchSchema = z.object({
   tab: z.enum(["novo", "historico", "modelos"]).optional(),
@@ -71,8 +74,14 @@ export function ImportarDadosPage() {
           </div>
         </div>
 
-        <Panel title="Motor de Importação" description="Excel/CSV → validação → staging → confirmação → auditoria">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "novo" | "historico" | "modelos")}>
+        <Panel
+          title="Motor de Importação"
+          description="Excel/CSV → validação → staging → confirmação → auditoria"
+        >
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as "novo" | "historico" | "modelos")}
+          >
             <TabsList className="mb-4">
               <TabsTrigger value="novo" className="gap-1.5">
                 <FileUp className="size-3.5" /> Nova Importação

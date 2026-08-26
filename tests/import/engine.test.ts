@@ -79,7 +79,11 @@ describe("Motor de Importação — deduplicação de pessoas", () => {
 
   it("nome exacto + BI + data de nascimento pontua muito acima do limiar", () => {
     const { score, reasons } = scorePersonDuplicate(
-      { full_name: "João Manuel António", national_id: "005432190LA048", date_of_birth: "2012-05-14" },
+      {
+        full_name: "João Manuel António",
+        national_id: "005432190LA048",
+        date_of_birth: "2012-05-14",
+      },
       existing[0],
     );
     expect(score).toBeGreaterThanOrEqual(PERSON_DUPLICATE_THRESHOLD);
@@ -102,7 +106,7 @@ describe("Motor de Importação — deduplicação de pessoas", () => {
 });
 
 describe("Motor de Importação — correspondência de turmas/entidades", () => {
-  it("\"7ª A\" e \"7A\" resolvem à mesma chave canónica", () => {
+  it('"7ª A" e "7A" resolvem à mesma chave canónica', () => {
     expect(canonicalEntityKey("7ª A")).toBe(canonicalEntityKey("7A"));
   });
 
@@ -131,7 +135,10 @@ describe("Motor de Importação — sugestão de módulo e mapeamento", () => {
   });
 
   it("mapeia cabeçalhos do ficheiro para as chaves oficiais do módulo", () => {
-    const mapping = suggestColumnMapping(["Nome Completo", "Data de Nascimento", "Coluna Estranha"], "alunos");
+    const mapping = suggestColumnMapping(
+      ["Nome Completo", "Data de Nascimento", "Coluna Estranha"],
+      "alunos",
+    );
     expect(mapping["Nome Completo"]).toBe("full_name");
     expect(mapping["Data de Nascimento"]).toBe("birth_date");
     expect(mapping["Coluna Estranha"]).toBe("ignore");

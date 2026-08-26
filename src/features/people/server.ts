@@ -7,6 +7,7 @@ import {
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { resolvePersonContext } from "./person-context";
+import { mapSgaGuardianRelationship } from "@/features/students/schemas";
 import {
   addPersonDocumentInputSchema,
   createPersonInputSchema,
@@ -382,6 +383,10 @@ export const createPerson = createServerFn({ method: "POST" })
       }
     }
     if (roles.includes("aluno")) {
+      // 1º vínculo em data.relationships (se o wizard tiver ligado um
+      // encarregado já existente) — antes disto ia sempre null, mesmo
+      // quando o utilizador escolhia um encarregado no passo "Relações".
+      const firstRelationship = data.relationships[0];
       // register_student gera o número de processo por sequência própria (nunca
       // duplica sob pedidos simultâneos, ao contrário do `EST-${Date.now()}` anterior,
       // que podia colidir em dois pedidos no mesmo milissegundo).
@@ -389,10 +394,12 @@ export const createPerson = createServerFn({ method: "POST" })
         school_id: membership.schoolId,
         person_id: person.id,
         admission_date: new Date().toISOString().slice(0, 10),
-        guardian_person_id: null,
-        relationship: null,
-        primary_guardian: false,
-        financial_responsibility: false,
+        guardian_person_id: firstRelationship?.related_person_id ?? null,
+        relationship: firstRelationship
+          ? mapSgaGuardianRelationship(firstRelationship.relationship_type)
+          : null,
+        primary_guardian: Boolean(firstRelationship),
+        financial_responsibility: firstRelationship?.relationship_type === "responsavel_financeiro",
         pickup_authorization: true,
       });
       if (registerError) {

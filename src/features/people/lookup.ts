@@ -6,6 +6,7 @@ export type PersonLite = {
   id: string;
   full_name: string;
   photo_url: string | null;
+  sex: string | null;
 };
 
 /**
@@ -41,7 +42,13 @@ export async function loadPeopleLite(
 ): Promise<Map<string, PersonLite>> {
   const map = new Map<string, PersonLite>();
   if (!personIds.length) return map;
-  const attempts = ["id, full_name, photo_url", "id, full_name, avatar_url", "id, full_name"];
+  const attempts = [
+    "id, full_name, photo_url, sex",
+    "id, full_name, avatar_url, sex",
+    "id, full_name, photo_url",
+    "id, full_name, avatar_url",
+    "id, full_name",
+  ];
   for (const columns of attempts) {
     const { data, error } = await db
       .from("people")
@@ -58,6 +65,7 @@ export async function loadPeopleLite(
           (typeof record["photo_url"] === "string" && record["photo_url"]) ||
           (typeof record["avatar_url"] === "string" && record["avatar_url"]) ||
           null,
+        sex: typeof record["sex"] === "string" ? record["sex"] : null,
       });
     }
     return map;

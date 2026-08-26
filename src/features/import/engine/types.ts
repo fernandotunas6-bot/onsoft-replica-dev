@@ -46,7 +46,9 @@ export type ImportRefCache = {
 export type RowImporter = {
   module: ImportModule;
   /** Carrega, UMA VEZ por lote, tudo o que analyzeRow/commitRow precisam para não repetir queries por linha. */
-  loadRefCache(ctx: Pick<ImportCommitContext, "db" | "schoolId" | "academicYearId">): Promise<ImportRefCache>;
+  loadRefCache(
+    ctx: Pick<ImportCommitContext, "db" | "schoolId" | "academicYearId">,
+  ): Promise<ImportRefCache>;
   /** Valida + calcula o estado provável da linha sem gravar nada (staging). */
   analyzeRow(
     normalized: Record<string, unknown>,

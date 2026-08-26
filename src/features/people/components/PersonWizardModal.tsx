@@ -1,18 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  ExternalLink,
   FileCheck,
   GraduationCap,
   IdCard,
+  Loader2,
   Phone,
+  Search,
   ShieldCheck,
   UserCheck,
   UserPlus,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,11 +25,42 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ModalShell, ModalHeader } from "@/components/ui/modal-system";
-import { createPerson, findPersonDuplicates } from "@/features/people/server";
-import { personRoleOptions } from "@/features/people/schemas";
+import { createPerson, findPersonDuplicates, searchPeople } from "@/features/people/server";
+import { personRelationshipTypeOptions, personRoleOptions } from "@/features/people/schemas";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 
 type PersonRole = (typeof personRoleOptions)[number];
+type RelationshipType = (typeof personRelationshipTypeOptions)[number];
+
+const relationshipLabels: Record<RelationshipType, string> = {
+  pai: "Pai",
+  mae: "Mãe",
+  encarregado: "Encarregado de Educação",
+  tutor: "Tutor",
+  conjuge: "Cônjuge",
+  irmao: "Irmão/Irmã",
+  contacto_emergencia: "Contacto de Emergência",
+  responsavel_financeiro: "Responsável Financeiro",
+  responsavel_autorizado_buscar: "Autorizado a Buscar",
+};
+
+/**
+ * Erros de validação do servidor (Zod) chegam como `.message` em JSON com
+ * todos os issues — mostrar isso directamente ao utilizador violaria a
+ * regra de nunca expor erros técnicos. Extrai só a primeira mensagem legível.
+ */
+function firstReadableErrorMessage(err: unknown): string {
+  if (!(err instanceof Error)) return "Não foi possível criar a pessoa.";
+  try {
+    const parsed = JSON.parse(err.message);
+    if (Array.isArray(parsed) && parsed[0]?.message) {
+      return String(parsed[0].message);
+    }
+  } catch {
+    // não era JSON — é uma mensagem normal, usar tal como está
+  }
+  return err.message || "Não foi possível criar a pessoa.";
+}
 
 export function PersonWizardModal({
   open,
@@ -60,14 +95,49 @@ export function PersonWizardModal({
   const [phoneAlt, setPhoneAlt] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-  const [docType, setDocType] = useState<"bi" | "passaporte" | "cedula" | "nif">("bi");
+  const [docType, setDocType] = useState<"bi" | "passaporte" | "cedula" | "outro">("bi");
   const [docNumber, setDocNumber] = useState("");
   const [roles, setRoles] = useState<PersonRole[]>(["aluno"]);
   const [createdPersonId, setCreatedPersonId] = useState<string | null>(null);
 
+  const [guardianQuery, setGuardianQuery] = useState("");
+  const [guardianResults, setGuardianResults] = useState<
+    Array<{ id: string; full_name: string; phone_primary: string | null; nif: string | null }>
+  >([]);
+  const [searchingGuardian, setSearchingGuardian] = useState(false);
+  const [selectedGuardian, setSelectedGuardian] = useState<{
+    id: string;
+    full_name: string;
+  } | null>(null);
+  const [guardianRelationship, setGuardianRelationship] = useState<RelationshipType>("encarregado");
+
   const handleRoleToggle = (role: PersonRole) => {
     setRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
   };
+
+  useEffect(() => {
+    const query = guardianQuery.trim();
+    if (query.length < 2 || selectedGuardian) {
+      setGuardianResults([]);
+      return;
+    }
+    let cancelled = false;
+    setSearchingGuardian(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchPeople({ data: { query, limit: 8 } });
+        if (!cancelled) setGuardianResults(results);
+      } catch {
+        if (!cancelled) setGuardianResults([]);
+      } finally {
+        if (!cancelled) setSearchingGuardian(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [guardianQuery, selectedGuardian]);
 
   const resetForm = () => {
     setStep(1);
@@ -85,6 +155,10 @@ export function PersonWizardModal({
     setRoles(["aluno"]);
     setCreatedPersonId(null);
     setDuplicateCheck([]);
+    setGuardianQuery("");
+    setGuardianResults([]);
+    setSelectedGuardian(null);
+    setGuardianRelationship("encarregado");
   };
 
   const handleNextStep1 = async () => {
@@ -113,10 +187,6 @@ export function PersonWizardModal({
     setStep(2);
   };
 
-  const toggleRole = (r: "aluno" | "encarregado" | "professor" | "funcionario") => {
-    setRoles((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
-  };
-
   const handleSavePerson = async () => {
     if (!fullName.trim()) {
       toast.error("Nome completo é obrigatório.");
@@ -127,19 +197,30 @@ export function PersonWizardModal({
     try {
       const res = await createPerson({
         data: {
-          fullName: fullName.trim(),
-          preferredName: preferredName.trim() || undefined,
-          birthDate: birthDate || undefined,
-          sex,
-          nif: nifOrBi.trim() || undefined,
-          phonePrimary: phonePrimary.trim() || undefined,
-          phoneAlt: phoneAlt.trim() || undefined,
-          email: email.trim() || undefined,
-          address: address.trim() || undefined,
+          person: {
+            full_name: fullName.trim(),
+            preferred_name: preferredName.trim() || undefined,
+            birth_date: birthDate || undefined,
+            sex,
+            nif: nifOrBi.trim() || undefined,
+            phone_primary: phonePrimary.trim() || undefined,
+            phone_alternative: phoneAlt.trim() || undefined,
+            email: email.trim() || undefined,
+            address: address.trim() || undefined,
+          },
           roles,
           documents: docNumber.trim()
-            ? [{ type: docType, number: docNumber.trim(), isPrimary: true }]
-            : undefined,
+            ? [{ document_type: docType, document_number: docNumber.trim() }]
+            : [],
+          relationships: selectedGuardian
+            ? [
+                {
+                  related_person_id: selectedGuardian.id,
+                  relationship_type: guardianRelationship,
+                  authorized: true,
+                },
+              ]
+            : [],
         },
       });
 
@@ -148,7 +229,7 @@ export function PersonWizardModal({
       setStep(7);
       toast.success("Pessoa criada com sucesso no Núcleo Unificado de Identidade!");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível criar a pessoa.");
+      toast.error(firstReadableErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -172,6 +253,12 @@ export function PersonWizardModal({
           title="Nova Pessoa — Núcleo de Identidade"
           subtitle={`Passo ${step} de 7: Cadastro único universal transparente.`}
           onClose={() => {
+            if (
+              hasUnsavedChanges &&
+              !window.confirm("Existem alterações não guardadas. Fechar sem guardar?")
+            ) {
+              return;
+            }
             resetForm();
             onOpenChange(false);
           }}
@@ -259,7 +346,7 @@ export function PersonWizardModal({
                     <select
                       id="wiz_sex"
                       value={sex}
-                      onChange={(e) => setSex(e.target.value as any)}
+                      onChange={(e) => setSex(e.target.value as "M" | "F" | "outro")}
                       className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                     >
                       <option value="M">Masculino (M)</option>
@@ -295,20 +382,40 @@ export function PersonWizardModal({
                   </div>
                   <div className="divide-y divide-border rounded-lg border border-border bg-card">
                     {duplicateCheck.map((dup) => (
-                      <div key={dup.id} className="flex items-center justify-between p-3 text-xs">
-                        <div>
-                          <p className="font-bold text-foreground">{dup.full_name}</p>
+                      <div
+                        key={dup.id}
+                        className="flex items-center justify-between gap-3 p-3 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-foreground">{dup.full_name}</p>
                           <p className="text-muted-foreground">
                             Correspondência por: {dup.match_reason}
                           </p>
                         </div>
-                        <Badge variant="secondary">{Math.round(dup.score * 100)}% Confiança</Badge>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge variant="secondary">
+                            {Math.round(dup.score * 100)}% Confiança
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 text-[11px]"
+                            onClick={() => {
+                              onOpenChange(false);
+                              resetForm();
+                              onPersonCreated?.(dup.id, "view");
+                            }}
+                          >
+                            <ExternalLink className="size-3" /> Ver ficha
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Se for a mesma pessoa, cancele este cadastro e adicione o novo vínculo na ficha
-                    existente.
+                    Se for a mesma pessoa, use "Ver ficha" e adicione o novo vínculo na ficha
+                    existente em vez de continuar este cadastro.
                   </p>
                 </div>
               ) : null}
@@ -373,7 +480,9 @@ export function PersonWizardModal({
                   <select
                     id="wiz_doctype"
                     value={docType}
-                    onChange={(e) => setDocType(e.target.value as any)}
+                    onChange={(e) =>
+                      setDocType(e.target.value as "bi" | "passaporte" | "cedula" | "outro")
+                    }
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                   >
                     <option value="bi">Bilhete de Identidade (BI)</option>
@@ -403,10 +512,107 @@ export function PersonWizardModal({
                 <Users className="size-4 text-primary" />
                 Relações Familiares & Encarregados
               </h4>
-              <p className="text-xs text-muted-foreground">
-                As relações podem ser adicionadas ou vinculadas a pessoas já cadastradas
-                imediatamente após concluir o registo inicial.
-              </p>
+
+              {roles.includes("aluno") ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Procure e associe um encarregado de educação já cadastrado — opcional, pode ser
+                    feito depois na ficha da pessoa.
+                  </p>
+
+                  {selectedGuardian ? (
+                    <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-foreground">
+                          {selectedGuardian.full_name}
+                        </p>
+                        <p className="text-muted-foreground">Será associado como encarregado</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 shrink-0"
+                        aria-label="Remover encarregado seleccionado"
+                        onClick={() => setSelectedGuardian(null)}
+                      >
+                        <X className="size-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={guardianQuery}
+                          onChange={(e) => setGuardianQuery(e.target.value)}
+                          placeholder="Pesquisar por nome, telefone ou BI…"
+                          className="pl-8"
+                        />
+                        {searchingGuardian ? (
+                          <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+                        ) : null}
+                      </div>
+                      {guardianResults.length > 0 ? (
+                        <div className="max-h-48 divide-y divide-border overflow-y-auto rounded-lg border border-border bg-card">
+                          {guardianResults.map((candidate) => (
+                            <button
+                              key={candidate.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedGuardian({
+                                  id: candidate.id,
+                                  full_name: candidate.full_name,
+                                });
+                                setGuardianQuery("");
+                                setGuardianResults([]);
+                              }}
+                              className="flex w-full items-center justify-between gap-2 p-3 text-left text-xs hover:bg-secondary/50"
+                            >
+                              <span className="min-w-0 truncate font-medium text-foreground">
+                                {candidate.full_name}
+                              </span>
+                              <span className="shrink-0 text-muted-foreground">
+                                {candidate.phone_primary || candidate.nif || ""}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : guardianQuery.trim().length >= 2 && !searchingGuardian ? (
+                        <p className="px-1 text-[11px] text-muted-foreground">
+                          Nenhuma pessoa encontrada com esse nome.
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {selectedGuardian ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="wiz_guardian_rel">Tipo de Relação</Label>
+                      <select
+                        id="wiz_guardian_rel"
+                        value={guardianRelationship}
+                        onChange={(e) =>
+                          setGuardianRelationship(e.target.value as RelationshipType)
+                        }
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        {personRelationshipTypeOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {relationshipLabels[option]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  As relações aplicam-se a pessoas com o papel de Aluno. Assinale esse papel no
+                  passo seguinte para associar um encarregado aqui, ou faça-o depois na ficha da
+                  pessoa.
+                </p>
+              )}
             </div>
           ) : null}
 

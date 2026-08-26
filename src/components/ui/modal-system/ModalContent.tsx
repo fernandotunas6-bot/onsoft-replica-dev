@@ -13,7 +13,7 @@ export function ModalContent({ children, className, noPadding = false }: ModalCo
       className={cn(
         "flex-1 overflow-y-auto max-h-[calc(85vh-110px)] focus:outline-hidden",
         !noPadding && "p-5 space-y-4",
-        className
+        className,
       )}
     >
       {children}

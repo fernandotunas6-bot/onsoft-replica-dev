@@ -27,22 +27,18 @@ const shiftValues = {
 export function ClassGroupSheet({
   trigger,
   yearOptions,
-  courseOptions,
   gradeOptions,
   roomOptions,
   yearIds,
-  courseIds,
   gradeIds,
   roomIds,
   onCreated,
 }: {
   trigger: (open: () => void) => ReactNode;
   yearOptions: string[];
-  courseOptions: string[];
   gradeOptions: string[];
   roomOptions: string[];
   yearIds: string[];
-  courseIds: string[];
   gradeIds: string[];
   roomIds: string[];
   onCreated: () => Promise<void>;
@@ -55,7 +51,6 @@ export function ClassGroupSheet({
     nome: "",
     codigo: "",
     classe: gradeOptions[0] ?? "",
-    curso: courseOptions[0] ?? "",
     sala: "Sem sala",
     turno: "Manhã",
     capacidade: "35",
@@ -90,7 +85,6 @@ export function ClassGroupSheet({
         successDescription="Turma guardada na base de dados."
         onSubmit={async () => {
           const academicYearId = resolveId(yearOptions, values.ano, yearIds);
-          const courseId = resolveId(courseOptions, values.curso, courseIds);
           const gradeLevelId = resolveId(gradeOptions, values.classe, gradeIds);
           const roomId =
             values.sala === "Sem sala"
@@ -100,14 +94,13 @@ export function ClassGroupSheet({
                   values.sala,
                   roomIds,
                 );
-          if (!academicYearId || !courseId || !gradeLevelId) {
-            throw new Error("Seleccione ano lectivo, curso e classe.");
+          if (!academicYearId || !gradeLevelId) {
+            throw new Error("Seleccione ano lectivo e classe.");
           }
           const capacity = Number(values.capacidade || 35);
           await createClassGroup({
             data: {
               academicYearId,
-              courseId,
               gradeLevelId,
               roomId,
               code: values.codigo,
@@ -170,18 +163,6 @@ export function ClassGroupSheet({
                     onChange={(event) => set("classe", event.target.value)}
                   >
                     {gradeOptions.map((option) => (
-                      <option key={option}>{option}</option>
-                    ))}
-                  </select>
-                </SheetCell>
-                <SheetCell label="Curso">
-                  <select
-                    aria-label="Curso"
-                    className={fieldClass}
-                    value={values.curso}
-                    onChange={(event) => set("curso", event.target.value)}
-                  >
-                    {courseOptions.map((option) => (
                       <option key={option}>{option}</option>
                     ))}
                   </select>
@@ -266,7 +247,7 @@ export function ClassGroupSheet({
                     <strong>{values.nome || "Sem nome"}</strong> · {values.codigo || "sem código"}
                   </li>
                   <li>
-                    {values.classe} · {values.curso} · {values.turno}
+                    {values.classe} · {values.turno}
                   </li>
                   <li>
                     Sala: {values.sala} · Capacidade: {values.capacidade}

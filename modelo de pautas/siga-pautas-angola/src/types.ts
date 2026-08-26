@@ -1,16 +1,16 @@
-export type Gender = 'M' | 'F' | '';
+export type Gender = "M" | "F" | "";
 export type StudentStatus =
-  | 'TRANSITA'
-  | 'NÃO TRANSITA'
-  | 'APROVADO'
-  | 'REPROVADO'
-  | 'ADMITIDO'
-  | 'NÃO ADMITIDO'
-  | 'APTO'
-  | 'NÃO APTO'
-  | 'RETIDO'
-  | 'EXCLUÍDO'
-  | '';
+  | "TRANSITA"
+  | "NÃO TRANSITA"
+  | "APROVADO"
+  | "REPROVADO"
+  | "ADMITIDO"
+  | "NÃO ADMITIDO"
+  | "APTO"
+  | "NÃO APTO"
+  | "RETIDO"
+  | "EXCLUÍDO"
+  | "";
 
 export interface SchoolIdentity {
   republic?: string;

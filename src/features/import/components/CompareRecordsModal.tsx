@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Check, ArrowRight, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export interface FieldComparison {
   field: string;
@@ -27,7 +33,7 @@ export function CompareRecordsModal({
   onConfirmChoice: (mergedFields: Record<string, string>) => void;
 }) {
   const [choices, setChoices] = useState<Record<string, "siga" | "excel">>(
-    comparisons.reduce((acc, curr) => ({ ...acc, [curr.field]: curr.chosen }), {})
+    comparisons.reduce((acc, curr) => ({ ...acc, [curr.field]: curr.chosen }), {}),
   );
 
   const handleToggle = (field: string, choice: "siga" | "excel") => {
@@ -53,7 +59,8 @@ export function CompareRecordsModal({
             Comparação Campo-a-Campo: {recordName}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
-            Possível duplicado identificado com <strong>{similarity}%</strong> de similaridade. Escolha os valores a manter.
+            Possível duplicado identificado com <strong>{similarity}%</strong> de similaridade.
+            Escolha os valores a manter.
           </p>
         </DialogHeader>
 
@@ -73,10 +80,14 @@ export function CompareRecordsModal({
                 return (
                   <tr key={item.field} className="hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium text-foreground">{item.label}</td>
-                    <td className={`px-3 py-2 ${currentChoice === "siga" ? "font-bold text-emerald-600" : "text-muted-foreground"}`}>
+                    <td
+                      className={`px-3 py-2 ${currentChoice === "siga" ? "font-bold text-emerald-600" : "text-muted-foreground"}`}
+                    >
                       {item.sigaValue || <span className="italic opacity-60">vazio</span>}
                     </td>
-                    <td className={`px-3 py-2 ${currentChoice === "excel" ? "font-bold text-blue-600" : "text-muted-foreground"}`}>
+                    <td
+                      className={`px-3 py-2 ${currentChoice === "excel" ? "font-bold text-blue-600" : "text-muted-foreground"}`}
+                    >
                       {item.excelValue || <span className="italic opacity-60">vazio</span>}
                     </td>
                     <td className="px-3 py-2 text-right">
@@ -84,7 +95,9 @@ export function CompareRecordsModal({
                         <button
                           type="button"
                           className={`rounded px-2 py-0.5 text-[11px] font-medium transition-all ${
-                            currentChoice === "siga" ? "bg-emerald-500 text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
+                            currentChoice === "siga"
+                              ? "bg-emerald-500 text-white shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
                           }`}
                           onClick={() => handleToggle(item.field, "siga")}
                         >
@@ -93,7 +106,9 @@ export function CompareRecordsModal({
                         <button
                           type="button"
                           className={`rounded px-2 py-0.5 text-[11px] font-medium transition-all ${
-                            currentChoice === "excel" ? "bg-blue-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
+                            currentChoice === "excel"
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
                           }`}
                           onClick={() => handleToggle(item.field, "excel")}
                         >

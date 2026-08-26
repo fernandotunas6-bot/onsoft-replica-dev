@@ -771,7 +771,12 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
     };
   });
 
-export const simulateEmisPaymentNotification = createServerFn({ method: "POST" })
+/**
+ * Confirmação manual de um pagamento por referência Multicaixa/carteira móvel.
+ * Não existe integração real com um webhook EMIS — quem chama esta função está a
+ * atestar que viu o comprovativo do pagamento. Continua gated a Administrador/Tesouraria.
+ */
+export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(
     (data: { invoiceId: string; amount: number; reference: string; method?: string }) => data,
@@ -788,7 +793,7 @@ export const simulateEmisPaymentNotification = createServerFn({ method: "POST" }
         invoiceId: data.invoiceId,
         amount: data.amount,
         method: data.method ?? "multicaixa_express",
-        receiptNumber: `EMIS-WEBHOOK-${data.reference.replace(/\s+/g, "")}`,
+        receiptNumber: `MCX-CONF-${data.reference.replace(/\s+/g, "")}`,
       },
     });
 
@@ -797,7 +802,7 @@ export const simulateEmisPaymentNotification = createServerFn({ method: "POST" }
       paidAt: new Date().toISOString(),
       receiptId: payResult.id,
       receiptNumber: payResult.receipt_number,
-      message: `Pagamento de ${data.amount} AOA confirmado via Webhook EMIS. Recibo oficial ${payResult.receipt_number} emitido automaticamente.`,
+      message: `Pagamento de ${data.amount} AOA confirmado manualmente pela tesouraria. Recibo oficial ${payResult.receipt_number} emitido.`,
     };
   });
 

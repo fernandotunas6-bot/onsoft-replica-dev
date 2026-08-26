@@ -25,7 +25,7 @@ export function ModalHeader({
     <div
       className={cn(
         "flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3.5",
-        className
+        className,
       )}
     >
       <div className="flex items-center gap-3 min-w-0 pr-2">
@@ -36,12 +36,12 @@ export function ModalHeader({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-sm tracking-tight text-foreground truncate">{title}</h2>
+            <h2 className="font-semibold text-sm tracking-tight text-foreground truncate">
+              {title}
+            </h2>
             {badge}
           </div>
-          {subtitle && (
-            <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
-          )}
+          {subtitle && <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>}
         </div>
       </div>
 

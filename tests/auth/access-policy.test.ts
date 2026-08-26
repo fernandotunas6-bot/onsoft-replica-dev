@@ -34,7 +34,8 @@ describe("access policy", () => {
   it("keeps account maintenance available without exposing operational modules", () => {
     expect(canAccessPath("/alterar-senha", "Utilizador")).toBe(true);
     expect(canAccessPath("/", "Utilizador")).toBe(false);
-    expect(canAccessPath("/", "Encarregado")).toBe(false);
+    expect(canAccessPath("/", "Encarregado")).toBe(true);
+    expect(canAccessPath("/", "Aluno")).toBe(true);
     expect(canAccessPath("/alunos", "cargo-invalido")).toBe(false);
     expect(canAccessPath("/modulo-futuro", "Administrador")).toBe(false);
   });

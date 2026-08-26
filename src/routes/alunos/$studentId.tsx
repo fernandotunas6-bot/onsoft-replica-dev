@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -56,7 +56,11 @@ import {
 import { searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
 import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
-import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
+import {
+  listPedagogicalWorkspace,
+  getStudentAcademicHistory,
+  type PedagogicalWorkspace,
+} from "@/features/academic/server";
 import { createDocumentRequest, listDocumentWorkspace } from "@/features/documents/server";
 import {
   overlayBoletim,
@@ -72,7 +76,9 @@ import { officialReceiptBody, paymentStatusFromInvoices } from "@/features/finan
 import { kwanza } from "@/lib/currency";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { formatScore } from "@/lib/angola-academic";
+import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
+import { mapStudentProfileToSnapshot } from "@/features/intelligence/students/student-relations-adapter";
+import { formatScore, angolaGradeScale } from "@/lib/angola-academic";
 import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
 import { cn } from "@/lib/utils";
 
@@ -228,6 +234,10 @@ function StudentDetail() {
         data: selectedYearId ? { academicYearId: selectedYearId } : {},
       }) as Promise<PedagogicalWorkspace>,
   });
+  const historyQuery = useQuery({
+    queryKey: ["academic", "history", studentId],
+    queryFn: () => getStudentAcademicHistory({ data: { studentId } }),
+  });
   const peopleQuery = useQuery({
     queryKey: ["people", "search", ""],
     queryFn: () => searchPeople({ data: { query: "", limit: 50 } }),
@@ -247,6 +257,33 @@ function StudentDetail() {
     retry: false,
   });
 
+  const profileData = profileQuery.data as
+    { student: StudentProfile | null; guardians: StudentGuardian[] } | undefined;
+  const relationsSnapshot = useMemo(
+    () =>
+      profileData?.student
+        ? mapStudentProfileToSnapshot(
+            profileData.student,
+            profileData.guardians,
+            invoicesQuery.data,
+            documentsQuery.data,
+            historyQuery.data,
+          )
+        : null,
+    [profileData, invoicesQuery.data, documentsQuery.data, historyQuery.data],
+  );
+  const focusedStudentEntity = useMemo(() => {
+    if (!profileData?.student || !relationsSnapshot) return null;
+    return {
+      type: "student" as const,
+      id: profileData.student.id,
+      label: profileData.student.full_name,
+      schoolId: profileData.student.school_id,
+      data: relationsSnapshot,
+    };
+  }, [profileData, relationsSnapshot]);
+  useDeclareEntityFocus(focusedStudentEntity);
+
   if (profileQuery.isLoading) {
     return (
       <AppShell>
@@ -261,10 +298,7 @@ function StudentDetail() {
     return <NotFoundOrError title="Não foi possível carregar a ficha" />;
   }
 
-  const { student, guardians } = profileQuery.data! as {
-    student: StudentProfile | null;
-    guardians: StudentGuardian[];
-  };
+  const { student, guardians } = profileData!;
   if (!student) return <NotFoundOrError title="Aluno não encontrado" />;
 
   const studentInvoices = (invoicesQuery.data ?? []).filter(
@@ -466,6 +500,35 @@ function StudentDetail() {
     }));
   };
 
+  /**
+   * Histórico multi-ano: um período por ano lectivo (matrícula), a partir do mesmo motor de
+   * cálculo (assessment-engine.ts) que alimenta a Pauta Final — nunca diverge dela.
+   */
+  const historicoPeriods = () => {
+    const years = historyQuery.data?.years ?? [];
+    if (years.length === 0) {
+      throw new Error("Ainda não há histórico académico registado para este aluno.");
+    }
+    return years.map((year) => ({
+      periodName: year.academicYearName,
+      ...(year.overallMfd != null ? { average: formatScore(year.overallMfd) } : {}),
+      status: year.status || "Pendente",
+      subjects: year.subjects.map((subject) => ({
+        name: subject.subjectName,
+        t1: formatScore(subject.mt1),
+        t2: formatScore(subject.mt2),
+        t3: formatScore(subject.mt3),
+        mfa: formatScore(subject.mfd),
+        status:
+          subject.mfd == null
+            ? "Pendente"
+            : subject.mfd >= angolaGradeScale.passing
+              ? "Aprovado"
+              : "Reprovado",
+      })),
+    }));
+  };
+
   const downloadBoletim = async () => {
     const rows = studentDossierRows();
     const academicYear = studentPrintSchool.academicYear || "";
@@ -531,7 +594,7 @@ function StudentDetail() {
   };
 
   const downloadHistorico = async () => {
-    const rows = studentDossierRows();
+    const periods = historicoPeriods();
     const academicYear = studentPrintSchool.academicYear || "";
     await issuePrintDocument({
       tipo: "Histórico académico",
@@ -548,12 +611,7 @@ function StudentDetail() {
           academicYear,
         ]),
       },
-      overlay: overlayHistorico({
-        subjects: rows,
-        periodName: academicYear || "Ano lectivo",
-        ...(rows[0]?.mfa ? { average: rows[0].mfa } : {}),
-        status: rows.every((row) => !/reprov|não trans/i.test(row.status)) ? "Apto" : "Pendente",
-      }),
+      overlay: overlayHistorico({ periods }),
     });
   };
 
@@ -620,7 +678,9 @@ function StudentDetail() {
   };
 
   const downloadCertificado = async () => {
-    const rows = studentDossierRows();
+    // Certificado deriva do Histórico, mas certifica apenas o ano lectivo mais recente concluído
+    // (o Histórico completo mostra a trajectória multi-ano; ver historicoPeriods()).
+    const periods = historicoPeriods().slice(-1);
     const academicYear = studentPrintSchool.academicYear || "";
     await issuePrintDocument({
       tipo: "Certificado de habilitações",
@@ -637,12 +697,7 @@ function StudentDetail() {
           academicYear,
         ]),
       },
-      overlay: overlayHistorico({
-        subjects: rows,
-        periodName: academicYear || "Ano lectivo",
-        ...(rows[0]?.mfa ? { average: rows[0].mfa } : {}),
-        status: rows.every((row) => !/reprov|não trans/i.test(row.status)) ? "Apto" : "Pendente",
-      }),
+      overlay: overlayHistorico({ periods }),
     });
   };
 

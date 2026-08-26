@@ -7,7 +7,7 @@ import {
   generateMobileWalletOptions,
   type MulticaixaReference,
 } from "../emiss-multicaixa";
-import { simulateEmisPaymentNotification } from "../server";
+import { confirmManualMulticaixaPayment } from "../server";
 import { toast } from "sonner";
 
 interface PaymentReferenceCardProps {
@@ -24,7 +24,7 @@ export function PaymentReferenceCard({
   onPaymentSuccess,
 }: PaymentReferenceCardProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const referenceData: MulticaixaReference = generateMulticaixaReference(
     "99824",
@@ -40,10 +40,17 @@ export function PaymentReferenceCard({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleSimulateWebhook = async () => {
-    setIsSimulating(true);
+  const handleConfirmManualPayment = async () => {
+    if (
+      !window.confirm(
+        `Confirma que viu o comprovativo deste pagamento (${referenceData.amountFormatted}, referência ${referenceData.reference})? Esta acção marca a fatura como paga.`,
+      )
+    ) {
+      return;
+    }
+    setIsConfirming(true);
     try {
-      const res = await simulateEmisPaymentNotification({
+      const res = await confirmManualMulticaixaPayment({
         data: {
           invoiceId,
           amount,
@@ -51,16 +58,16 @@ export function PaymentReferenceCard({
           method: "multicaixa_express",
         },
       });
-      toast.success("Pagamento EMIS Recebido!", {
+      toast.success("Pagamento confirmado", {
         description: res.message,
       });
       onPaymentSuccess?.();
     } catch (err) {
-      toast.error("Erro na simulação EMIS Webhook", {
+      toast.error("Erro ao confirmar pagamento", {
         description: err instanceof Error ? err.message : "Tente novamente.",
       });
     } finally {
-      setIsSimulating(false);
+      setIsConfirming(false);
     }
   };
 
@@ -175,22 +182,22 @@ export function PaymentReferenceCard({
         </div>
       </div>
 
-      {/* SIMULADOR DE CONFIRMAÇÃO DE WEBHOOK (TEMPO REAL) */}
+      {/* CONFIRMAÇÃO MANUAL — não há integração automática com o EMIS */}
       <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <ShieldCheck className="size-4 text-primary" />
-          Conexão direta com Webhook EMIS Ativa (Confirmação Automática de Recibo AGT)
+          Referência gerada localmente. Confirme aqui só depois de ver o comprovativo do pagamento.
         </div>
 
         <Button
           type="button"
           size="sm"
-          disabled={isSimulating}
-          onClick={handleSimulateWebhook}
+          disabled={isConfirming}
+          onClick={() => void handleConfirmManualPayment()}
           className="gap-2 shadow-sm"
         >
           <Zap className="size-3.5" />
-          {isSimulating ? "A Confirmar Webhook..." : "Simular Liquidação Instantânea EMIS"}
+          {isConfirming ? "A confirmar…" : "Confirmar pagamento manualmente"}
         </Button>
       </div>
     </div>

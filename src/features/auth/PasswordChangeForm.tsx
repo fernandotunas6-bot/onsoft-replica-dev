@@ -5,11 +5,13 @@ import { useAuthSession } from "@/components/auth/AuthGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useOptionalStackNav } from "@/components/ui/stacked-modal";
 import { supabase } from "@/integrations/supabase/client";
 
 export function PasswordChangeForm({ compact = false }: { compact?: boolean }) {
   const session = useAuthSession();
   const [saving, setSaving] = useState(false);
+  const stackNav = useOptionalStackNav();
 
   if (!session) return null;
 
@@ -55,6 +57,7 @@ export function PasswordChangeForm({ compact = false }: { compact?: boolean }) {
       if (updateError) throw updateError;
 
       form.reset();
+      stackNav?.reportDirty(false);
       toast.success("Senha actualizada com sucesso.");
     } catch {
       toast.error("Não foi possível actualizar a senha. Tente novamente.");
@@ -64,7 +67,11 @@ export function PasswordChangeForm({ compact = false }: { compact?: boolean }) {
   };
 
   return (
-    <form className="space-y-4" onSubmit={updatePassword}>
+    <form
+      className="space-y-4"
+      onSubmit={updatePassword}
+      onChange={() => stackNav?.reportDirty(true)}
+    >
       <div className={compact ? "grid gap-4" : "space-y-4"}>
         <PasswordField
           id={compact ? "set-pass-old" : "atual"}

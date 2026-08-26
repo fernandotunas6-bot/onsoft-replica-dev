@@ -4,6 +4,7 @@ import { ModalShell } from "./ModalShell";
 import { ModalHeader } from "./ModalHeader";
 import { ModalContent } from "./ModalContent";
 import { ModalFooter } from "./ModalFooter";
+import { confirmDiscardChanges } from "./confirm-close";
 
 export interface FormModalProps {
   open: boolean;
@@ -48,6 +49,10 @@ export function FormModal({
     }
   };
 
+  const guardedClose = () => {
+    if (confirmDiscardChanges(hasUnsavedChanges)) onOpenChange(false);
+  };
+
   return (
     <ModalShell
       open={open}
@@ -61,11 +66,11 @@ export function FormModal({
           title={title}
           subtitle={subtitle}
           badge={badge}
-          onClose={() => onOpenChange(false)}
+          onClose={guardedClose}
         />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
-          onCancel={() => onOpenChange(false)}
+          onCancel={guardedClose}
           submitLabel={submitLabel}
           cancelLabel={cancelLabel}
           isSubmitting={isSubmitting}

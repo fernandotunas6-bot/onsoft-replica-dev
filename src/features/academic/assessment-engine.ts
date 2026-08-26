@@ -3,9 +3,32 @@
  * Camada unificada para cálculo de médias, avaliações e regras de promoção escolar em Angola (Decreto 424/25 e MINED).
  */
 
-import { angolaGradeScale } from "@/lib/angola-academic";
+import {
+  angolaGradeScale,
+  normalizeScore,
+  calculateTrimesterAverage,
+  calculateDisciplineFinalAverage,
+  getPeriodCountForCycle,
+  getPeriodsForCycle,
+  getPeriodNoun,
+  getPeriodLabel,
+  getPeriodLabelUpper,
+  type AngolaTeachingCycle,
+} from "@/lib/angola-academic";
 
-export type AngolaTeachingCycle = "primario" | "i_ciclo" | "ii_ciclo" | "tecnico" | "adultos";
+// Reexportadas para compatibilidade — a matemática e os ciclos de ensino vivem em
+// lib/angola-academic.ts (fonte única, partilhada com
+// src/features/pedagogica/components/pautas/assessment.ts) para nunca reimplementar a fórmula do
+// Decreto 424/25 nem a lista de ciclos em vários sítios.
+export { normalizeScore, calculateTrimesterAverage, calculateDisciplineFinalAverage };
+export {
+  getPeriodCountForCycle,
+  getPeriodsForCycle,
+  getPeriodNoun,
+  getPeriodLabel,
+  getPeriodLabelUpper,
+};
+export type { AngolaTeachingCycle };
 
 export type PromotionStatus =
   | "TRANSITA"
@@ -41,71 +64,55 @@ export interface StudentSubjectSummary {
 export interface StudentAcademicSummary {
   enrollmentId: string;
   studentName: string;
-  registrationNumber?: string;
+  registrationNumber?: string | undefined;
   subjects: StudentSubjectSummary[];
   overallMfd: number | null;
   status: PromotionStatus;
   failingSubjectsCount: number;
 }
 
-export function normalizeScore(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  const num = Number(value);
-  if (!Number.isFinite(num) || num < 0 || num > 20) return null;
-  return Math.round((num + Number.EPSILON) * 10) / 10;
-}
-
 /**
- * Cálculo da Média Trimestral (MT) segundo o Decreto Executivo n.º 424/25:
- * MT = (MACT + NPT) / 2
- * Se NPT for omitido, degrada temporariamente para MACT ou Média Simples se houver NPP.
+ * Decide o estado de promoção a partir de uma média já calculada e do número de disciplinas
+ * reprovadas — partilhado por `evaluateStudentPromotion` (que deriva estes valores a partir de
+ * `subjectResults`) e por `evaluateAngolanStatus` em
+ * src/features/pedagogica/components/pautas/assessment.ts (que já os recebe calculados), para não
+ * duplicar as regras por ciclo em dois sítios.
  */
-export function calculateTrimesterAverage(
-  mac: number | null | undefined,
-  npt: number | null | undefined,
-  npp?: number | null | undefined,
-): number | null {
-  const normMac = normalizeScore(mac);
-  const normNpt = normalizeScore(npt);
-  const normNpp = normalizeScore(npp);
-
-  if (normMac !== null && normNpt !== null) {
-    return Math.round(((normMac + normNpt) / 2 + Number.EPSILON) * 10) / 10;
+export function decidePromotionStatus(
+  overallAvg: number,
+  failingCount: number,
+  cycle: AngolaTeachingCycle = "i_ciclo",
+  papGrade?: number | null,
+): PromotionStatus {
+  if (cycle === "primario") {
+    return overallAvg >= angolaGradeScale.passing ? "TRANSITA" : "NÃO TRANSITA";
   }
 
-  if (normMac !== null && normNpp !== null && normNpt !== null) {
-    return Math.round(((normMac + normNpp + normNpt) / 3 + Number.EPSILON) * 10) / 10;
+  if (cycle === "tecnico") {
+    if (papGrade !== undefined && papGrade !== null && papGrade < angolaGradeScale.passing) {
+      return "NÃO APTO (PAP)";
+    }
+    if (overallAvg >= angolaGradeScale.passing && failingCount <= 2) {
+      return "APTO (PAP)";
+    }
+    return "NÃO TRANSITA";
   }
 
-  if (normMac !== null) return normMac;
-  if (normNpt !== null) return normNpt;
-  return null;
-}
-
-/**
- * Média Final da Disciplina (MFD):
- * MFD = (MT1 + MT2 + MT3) / 3
- */
-export function calculateDisciplineFinalAverage(
-  mt1: number | null | undefined,
-  mt2: number | null | undefined,
-  mt3: number | null | undefined,
-): number | null {
-  const v1 = normalizeScore(mt1);
-  const v2 = normalizeScore(mt2);
-  const v3 = normalizeScore(mt3);
-
-  const valid = [v1, v2, v3].filter((x): x is number => x !== null);
-  if (valid.length === 0) return null;
-
-  // Se os 3 trimestres estiverem presentes:
-  if (valid.length === 3) {
-    return Math.round(((v1! + v2! + v3!) / 3 + Number.EPSILON) * 10) / 10;
+  if (cycle === "ii_ciclo") {
+    if (overallAvg >= angolaGradeScale.passing && failingCount === 0) {
+      return "TRANSITA";
+    }
+    if (overallAvg >= 9) {
+      return "ADMITIDO A EXAME";
+    }
+    return "NÃO TRANSITA";
   }
 
-  // Média parcial dos trimestres disponíveis
-  const sum = valid.reduce((a, b) => a + b, 0);
-  return Math.round((sum / valid.length + Number.EPSILON) * 10) / 10;
+  // Default: I Ciclo
+  if (overallAvg >= angolaGradeScale.passing && failingCount <= 2) {
+    return "TRANSITA";
+  }
+  return "NÃO TRANSITA";
 }
 
 /**
@@ -126,41 +133,12 @@ export function evaluateStudentPromotion({
     return { status: "PENDENTE", failingCount: 0 };
   }
 
-  const failingCount = subjectResults.filter((s) => s.mfd !== null && s.mfd < angolaGradeScale.passing).length;
+  const failingCount = subjectResults.filter(
+    (s) => s.mfd !== null && s.mfd < angolaGradeScale.passing,
+  ).length;
   const overallAvg = mfds.reduce((a, b) => a + b, 0) / mfds.length;
 
-  if (cycle === "primario") {
-    return {
-      status: overallAvg >= angolaGradeScale.passing ? "TRANSITA" : "NÃO TRANSITA",
-      failingCount,
-    };
-  }
-
-  if (cycle === "tecnico") {
-    if (papGrade !== undefined && papGrade !== null && papGrade < angolaGradeScale.passing) {
-      return { status: "NÃO APTO (PAP)", failingCount };
-    }
-    if (overallAvg >= angolaGradeScale.passing && failingCount <= 2) {
-      return { status: "APTO (PAP)", failingCount };
-    }
-    return { status: "NÃO TRANSITA", failingCount };
-  }
-
-  if (cycle === "ii_ciclo") {
-    if (overallAvg >= angolaGradeScale.passing && failingCount === 0) {
-      return { status: "TRANSITA", failingCount };
-    }
-    if (overallAvg >= 9) {
-      return { status: "ADMITIDO A EXAME", failingCount };
-    }
-    return { status: "NÃO TRANSITA", failingCount };
-  }
-
-  // Default: I Ciclo
-  if (overallAvg >= angolaGradeScale.passing && failingCount <= 2) {
-    return { status: "TRANSITA", failingCount };
-  }
-  return { status: "NÃO TRANSITA", failingCount };
+  return { status: decidePromotionStatus(overallAvg, failingCount, cycle, papGrade), failingCount };
 }
 
 /**
@@ -180,7 +158,7 @@ export function buildClassAcademicSummaries({
   return enrollments.map((e) => {
     const studentSubjectSummaries: StudentSubjectSummary[] = subjects.map((sub) => {
       const studentGrades = termGrades.filter(
-        (g) => g.enrollment_id === e.id && g.subject_id === sub.id
+        (g) => g.enrollment_id === e.id && g.subject_id === sub.id,
       );
 
       const g1 = studentGrades.find((g) => g.term === 1);
@@ -202,10 +180,15 @@ export function buildClassAcademicSummaries({
       };
     });
 
-    const validMfds = studentSubjectSummaries.map((s) => s.mfd).filter((x): x is number => x !== null);
-    const overallMfd = validMfds.length > 0
-      ? Math.round((validMfds.reduce((a, b) => a + b, 0) / validMfds.length + Number.EPSILON) * 10) / 10
-      : null;
+    const validMfds = studentSubjectSummaries
+      .map((s) => s.mfd)
+      .filter((x): x is number => x !== null);
+    const overallMfd =
+      validMfds.length > 0
+        ? Math.round(
+            (validMfds.reduce((a, b) => a + b, 0) / validMfds.length + Number.EPSILON) * 10,
+          ) / 10
+        : null;
 
     const { status, failingCount } = evaluateStudentPromotion({
       subjectResults: studentSubjectSummaries,

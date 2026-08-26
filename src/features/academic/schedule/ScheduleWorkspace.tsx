@@ -154,8 +154,8 @@ export function ScheduleWorkspace({
                   full: true,
                 },
                 { name: "dia", label: "Dia", type: "select", options: [...weekdays] },
-                { name: "inicio", label: "Início (HH:MM)", placeholder: "07:30" },
-                { name: "fim", label: "Fim (HH:MM)", placeholder: "08:20" },
+                { name: "inicio", label: "Início", type: "time", defaultValue: "07:30" },
+                { name: "fim", label: "Fim", type: "time", defaultValue: "08:20" },
                 {
                   name: "disciplina",
                   label: "Disciplina",
@@ -329,12 +329,14 @@ export function ScheduleWorkspace({
                           },
                           {
                             name: "inicio",
-                            label: "Início (HH:MM)",
+                            label: "Início",
+                            type: "time",
                             defaultValue: timeValue(slot.starts_at),
                           },
                           {
                             name: "fim",
-                            label: "Fim (HH:MM)",
+                            label: "Fim",
+                            type: "time",
                             defaultValue: timeValue(slot.ends_at),
                           },
                           {

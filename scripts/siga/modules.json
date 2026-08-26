@@ -195,6 +195,21 @@
       "tests": ["tests/import/schemas.test.ts"],
       "accessKey": "pessoas",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+    },
+    {
+      "id": "catracas",
+      "skill": "siga-catracas",
+      "label": "Catracas e Cartão Virtual",
+      "routes": ["src/routes/catracas.tsx"],
+      "feature": [
+        "src/features/catracas/schemas.ts",
+        "src/features/catracas/server.ts",
+        "src/features/catracas/components/TurnstileAccessPanel.tsx",
+        "src/features/catracas/components/VirtualCardModal.tsx"
+      ],
+      "tests": ["tests/catracas/schemas.test.ts"],
+      "accessKey": "gestao",
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
     }
   ]
 }

@@ -26,9 +26,7 @@ export function PageHeader({
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {group}
           </p>
-          <h1 className="font-display text-xl font-bold tracking-tight md:text-2xl">
-            {title}
-          </h1>
+          <h1 className="font-display text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
           <p className="mt-0.5 max-w-2xl text-xs text-muted-foreground md:text-sm">{description}</p>
         </div>
       </div>
@@ -138,14 +136,11 @@ export function StatGrid({
           visible ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
         )}
       >
-        <div className="overflow-hidden">
-          {grid}
-        </div>
+        <div className="overflow-hidden">{grid}</div>
       </div>
     </div>
   );
 }
-
 
 export function Panel({
   title,
@@ -171,8 +166,12 @@ export function Panel({
         <div className="flex min-w-0 items-center gap-2.5">
           <IconChip icon={Icon} tone={chipTone} size="sm" />
           <div className="min-w-0">
-            <h2 className="font-display text-sm font-semibold tracking-tight sm:text-base">{title}</h2>
-            {description ? <p className="text-[11px] text-muted-foreground sm:text-xs">{description}</p> : null}
+            <h2 className="font-display text-sm font-semibold tracking-tight sm:text-base">
+              {title}
+            </h2>
+            {description ? (
+              <p className="text-[11px] text-muted-foreground sm:text-xs">{description}</p>
+            ) : null}
           </div>
         </div>
         {action}

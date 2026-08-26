@@ -407,10 +407,11 @@ summary,
 
 /* Feedback instantâneo de toque (Processar ao Toque) */
 @utility touch-feedback {
-  transition: transform 75ms ease-out, opacity 75ms ease-out;
+  transition:
+    transform 75ms ease-out,
+    opacity 75ms ease-out;
   &:active {
     transform: scale(0.97);
     opacity: 0.92;
   }
 }
-

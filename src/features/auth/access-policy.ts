@@ -4,6 +4,7 @@ export const applicationRoles = [
   "Tesouraria",
   "Professor",
   "Encarregado",
+  "Aluno",
   "Utilizador",
 ] as const;
 
@@ -38,16 +39,23 @@ export const accessModules = [
 ] as const;
 
 const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
-  { prefixes: ["/"], roles: ["Administrador", "Secretaria", "Tesouraria", "Professor"] },
-  { prefixes: ["/acessos"], roles: ["Administrador", "Secretaria"] },
+  {
+    prefixes: ["/"],
+    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Encarregado", "Aluno"],
+  },
+  { prefixes: ["/acessos", "/catracas"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/configuracoes"], roles: ["Administrador"] },
   {
-    prefixes: ["/financeiro", "/faturas", "/relatorios/financeiros"],
+    prefixes: ["/faturas", "/relatorios/financeiros"],
     roles: ["Administrador", "Tesouraria"],
   },
   {
+    prefixes: ["/financeiro"],
+    roles: ["Administrador", "Tesouraria", "Encarregado", "Aluno"],
+  },
+  {
     prefixes: ["/pessoas", "/alunos", "/documentos"],
-    roles: ["Administrador", "Secretaria"],
+    roles: ["Administrador", "Secretaria", "Encarregado", "Aluno"],
   },
   {
     prefixes: ["/professores"],
@@ -61,11 +69,11 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
       "/comunicacoes",
       "/planos-aula",
     ],
-    roles: ["Administrador", "Secretaria", "Professor"],
+    roles: ["Administrador", "Secretaria", "Professor", "Encarregado", "Aluno"],
   },
   {
     prefixes: ["/arquivos"],
-    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor"],
+    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Aluno"],
   },
   {
     // Gate de página — o módulo pedido (pessoas, alunos, pagamentos...) é

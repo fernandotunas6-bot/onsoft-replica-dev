@@ -26,10 +26,7 @@ export type ParsedFile = {
 
 const MAX_ROWS_PER_SHEET = 25_000;
 
-export async function parseImportFile(
-  buffer: Buffer,
-  fileName: string,
-): Promise<ParsedFile> {
+export async function parseImportFile(buffer: Buffer, fileName: string): Promise<ParsedFile> {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".csv")) {
     return { sheets: [parseCsvSheet(buffer, "Sheet1")] };
@@ -108,9 +105,7 @@ function parseCsvSheet(buffer: Buffer, sheetName: string): ParsedSheet {
     transformHeader: (h: string) => normalizeText(h),
   });
   const headers = (parsed.meta.fields ?? []).map((h) => normalizeText(h));
-  const rows = (parsed.data ?? [])
-    .filter((row) => !isBlankRow(row))
-    .slice(0, MAX_ROWS_PER_SHEET);
+  const rows = (parsed.data ?? []).filter((row) => !isBlankRow(row)).slice(0, MAX_ROWS_PER_SHEET);
   return { name: sheetName, headers, rows };
 }
 

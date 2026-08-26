@@ -17,7 +17,6 @@ export function isPrivatePersonPhotoUrl(value?: string | null) {
 
 export const isPrivateSigaFile = isPrivatePersonPhotoUrl;
 
-
 /** Resolve fotos privadas da biblioteca e reutiliza a URL assinada por 100 segundos. */
 export async function resolvePersonPhotoUrl(value?: string | null): Promise<string | null> {
   if (!value) return null;

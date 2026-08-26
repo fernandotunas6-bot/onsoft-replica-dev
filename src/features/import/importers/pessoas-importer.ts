@@ -22,7 +22,9 @@ export const pessoasImporter: RowImporter = {
     if (match) {
       return {
         status: "duplicate",
-        warnings: [`Possível duplicado (${Math.round(match.score * 100)}%): ${match.reasons.join(", ")}`],
+        warnings: [
+          `Possível duplicado (${Math.round(match.score * 100)}%): ${match.reasons.join(", ")}`,
+        ],
         errors: [],
         duplicate_of: match.record.id,
       };
@@ -33,13 +35,20 @@ export const pessoasImporter: RowImporter = {
   async commitRow(normalized, ctx, cache) {
     const candidate = personCandidateFromRow(normalized);
     if (!candidate) {
-      return { status: "error", warnings: [], errors: ["Nome completo é obrigatório."], audits: [] };
+      return {
+        status: "error",
+        warnings: [],
+        errors: ["Nome completo é obrigatório."],
+        audits: [],
+      };
     }
     const result = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
     return {
       status: ctx.dryRun ? (result.created ? "will_insert" : "will_update") : "imported",
       target_record_id: result.personId,
-      warnings: result.match ? [`Associado a pessoa existente (${Math.round(result.match.score * 100)}%)`] : [],
+      warnings: result.match
+        ? [`Associado a pessoa existente (${Math.round(result.match.score * 100)}%)`]
+        : [],
       errors: [],
       audits: result.audits,
     };

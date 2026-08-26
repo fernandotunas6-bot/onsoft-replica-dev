@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,8 @@ export type QuickField = {
   name: string;
   label: string;
   placeholder?: string | undefined;
-  type?: "text" | "number" | "date" | "textarea" | "select" | "angola-identity" | "password";
+  type?:
+    "text" | "number" | "date" | "time" | "textarea" | "select" | "angola-identity" | "password";
   options?: string[] | undefined;
   full?: boolean | undefined;
   required?: boolean | undefined;
@@ -50,6 +52,7 @@ export function QuickFormModal({
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const didAutoOpen = useRef(false);
 
@@ -58,6 +61,14 @@ export function QuickFormModal({
     didAutoOpen.current = true;
     setOpen(true);
   }, [autoOpen]);
+
+  useEffect(() => {
+    if (!open) setDirty(false);
+  }, [open]);
+
+  const guardedClose = () => {
+    if (confirmDiscardChanges(dirty)) setOpen(false);
+  };
 
   async function submit() {
     if (!formRef.current) return;
@@ -87,18 +98,15 @@ export function QuickFormModal({
     <>
       {trigger(() => setOpen(true))}
 
-      <ModalShell open={open} onOpenChange={setOpen} size={size}>
+      <ModalShell open={open} onOpenChange={setOpen} size={size} hasUnsavedChanges={dirty}>
         <div className="flex flex-col h-full">
-          <ModalHeader
-            title={title}
-            subtitle={description ?? eyebrow}
-            onClose={() => setOpen(false)}
-          />
+          <ModalHeader title={title} subtitle={description ?? eyebrow} onClose={guardedClose} />
           <ModalContent>
             <form
               ref={formRef}
               className="grid gap-3 sm:grid-cols-2"
               onSubmit={(event) => event.preventDefault()}
+              onChange={() => setDirty(true)}
             >
               {fields.map((field) => (
                 <div key={field.name} className={field.full ? "sm:col-span-2" : undefined}>
@@ -158,7 +166,7 @@ export function QuickFormModal({
             {note ? <p className="mt-4 text-xs text-muted-foreground">{note}</p> : null}
           </ModalContent>
           <ModalFooter
-            onCancel={() => setOpen(false)}
+            onCancel={guardedClose}
             onSubmit={submit}
             submitLabel={submitLabel}
             isSubmitting={saving}

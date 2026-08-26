@@ -30,6 +30,7 @@ export type AcademicNavBranch = {
 };
 
 const LEVEL_RESOLVE_ORDER: AngolaTeachingLevelId[] = [
+  "superior",
   "ii_ciclo",
   "i_ciclo",
   "pre_escolar",
@@ -61,7 +62,8 @@ export function gradeClassLabel(gradeName: string) {
 function hasNamedCourse(courseName: string | null | undefined, gradeName: string) {
   const name = String(courseName ?? "").trim();
   if (!name || name === "—") return false;
-  return resolveTeachingLevelId(gradeName) === "ii_ciclo";
+  const level = resolveTeachingLevelId(gradeName);
+  return level === "ii_ciclo" || level === "superior";
 }
 
 export function buildAcademicNavTree(assignments: AcademicNavAssignment[]): AcademicNavBranch[] {

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { CameraCaptureModal } from "@/components/modals/CameraCaptureModal";
+import { useOptionalStackNav } from "@/components/ui/stacked-modal";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,6 +193,7 @@ export function ProfileSettingsPanel() {
   const currentUser = useCurrentAccount();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const stackNav = useOptionalStackNav();
 
   const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -235,6 +237,7 @@ export function ProfileSettingsPanel() {
         updated_at: data.updated_at,
       }));
       await currentUser.profile.refetch();
+      stackNav?.reportDirty(false);
       toast.success("Perfil actualizado com segurança.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível actualizar o perfil.");
@@ -244,7 +247,7 @@ export function ProfileSettingsPanel() {
   };
 
   return (
-    <form className="space-y-6" onSubmit={saveProfile}>
+    <form className="space-y-6" onSubmit={saveProfile} onChange={() => stackNav?.reportDirty(true)}>
       <ProfileAvatarField />
       <Separator />
 

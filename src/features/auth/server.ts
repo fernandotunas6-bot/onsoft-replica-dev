@@ -27,6 +27,167 @@ function avatarStoragePathFromUrl(value: string) {
   }
 }
 
+export type LinkedStudentSummary = {
+  student_id: string;
+  full_name: string;
+  registration_number: string | null;
+  photo_url: string | null;
+  class_group_id: string | null;
+  class_name: string | null;
+  course_name: string | null;
+  attendance_rate: number | null;
+  average_grade: number | null;
+};
+
+export type UserLinkedEntities = {
+  person_id: string | null;
+  student_id: string | null;
+  teacher_id: string | null;
+  guardian_person_id: string | null;
+  linked_students: LinkedStudentSummary[];
+};
+
+export async function resolveUserLinkedEntities(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  userId: string,
+  userEmail?: string | null,
+): Promise<UserLinkedEntities> {
+  let personId: string | null = null;
+
+  try {
+    const { data: personByUserId } = await db
+      .from("people")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (personByUserId) personId = personByUserId.id;
+  } catch {
+    /* ignore */
+  }
+
+  if (!personId && userEmail) {
+    try {
+      const { data: personByEmail } = await db
+        .from("people")
+        .select("id")
+        .eq("school_id", schoolId)
+        .eq("email", userEmail.trim().toLowerCase())
+        .maybeSingle();
+      if (personByEmail) personId = personByEmail.id;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  let studentId: string | null = null;
+  try {
+    let studentQuery = db.from("students").select("id").eq("school_id", schoolId);
+    if (personId) {
+      studentQuery = studentQuery.or(`person_id.eq.${personId},id.eq.${userId}`);
+    } else {
+      studentQuery = studentQuery.eq("id", userId);
+    }
+    const { data: studentRow } = await studentQuery.limit(1).maybeSingle();
+    if (studentRow) studentId = studentRow.id;
+  } catch {
+    /* ignore */
+  }
+
+  let teacherId: string | null = null;
+  try {
+    let teacherQuery = db.from("teachers").select("id").eq("school_id", schoolId);
+    if (personId) {
+      teacherQuery = teacherQuery.or(`person_id.eq.${personId},user_id.eq.${userId}`);
+    } else {
+      teacherQuery = teacherQuery.eq("user_id", userId);
+    }
+    const { data: teacherRow } = await teacherQuery.limit(1).maybeSingle();
+    if (teacherRow) teacherId = teacherRow.id;
+  } catch {
+    /* ignore */
+  }
+
+  let guardianPersonId: string | null = personId;
+  const linkedStudents: LinkedStudentSummary[] = [];
+
+  try {
+    const { data: guardianLinks } = await db
+      .from("student_guardians")
+      .select("student_id, guardian_person_id")
+      .eq("school_id", schoolId)
+      .eq("guardian_person_id", personId ?? userId);
+
+    if (guardianLinks && guardianLinks.length > 0) {
+      guardianPersonId = guardianLinks[0]?.guardian_person_id ?? personId;
+      const targetStudentIds = guardianLinks.map((l: { student_id: string }) => l.student_id);
+
+      const { data: studentRows } = await db
+        .from("students")
+        .select("id, student_number, person_id")
+        .in("id", targetStudentIds);
+
+      const studentPersonIds = (studentRows ?? []).map((s: { person_id: string }) => s.person_id);
+      const { loadPeopleLite } = await import("@/features/people/lookup");
+      const peopleMap = await loadPeopleLite(db, schoolId, studentPersonIds);
+
+      const { data: enrollments } = await db
+        .from("enrollments")
+        .select("id, student_id, class_group_id, attendance_rate, final_average")
+        .eq("school_id", schoolId)
+        .in("student_id", targetStudentIds)
+        .eq("status", "active");
+
+      const classGroupIds = [
+        ...new Set(
+          (enrollments ?? [])
+            .map((e: { class_group_id: string | null }) => e.class_group_id)
+            .filter(Boolean),
+        ),
+      ] as string[];
+
+      const { data: classGroups } = classGroupIds.length
+        ? await db.from("class_groups").select("id, name, grade_level_id").in("id", classGroupIds)
+        : { data: [] as Array<{ id: string; name: string; grade_level_id: string | null }> };
+
+      const classGroupMap = new Map(
+        (classGroups ?? []).map((cg: { id: string; name: string }) => [cg.id, cg]),
+      );
+      const enrollmentMap = new Map(
+        (enrollments ?? []).map((e: { student_id: string }) => [e.student_id, e]),
+      );
+
+      for (const st of studentRows ?? []) {
+        const p = peopleMap.get(st.person_id);
+        const en = enrollmentMap.get(st.id);
+        const cg = en?.class_group_id ? classGroupMap.get(en.class_group_id) : null;
+        linkedStudents.push({
+          student_id: st.id,
+          full_name: p?.full_name ?? "Educando",
+          registration_number: st.student_number ?? null,
+          photo_url: p?.photo_url ?? null,
+          class_group_id: en?.class_group_id ?? null,
+          class_name: cg?.name ?? null,
+          course_name: null,
+          attendance_rate: en?.attendance_rate ? Number(en.attendance_rate) : null,
+          average_grade: en?.final_average ? Number(en.final_average) : null,
+        });
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return {
+    person_id: personId,
+    student_id: studentId,
+    teacher_id: teacherId,
+    guardian_person_id: guardianPersonId,
+    linked_students: linkedStudents,
+  };
+}
+
 export const getCurrentAccountContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -62,9 +223,11 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
     let metaName = "";
     let metaPhone = "";
     let emailName = "";
+    let authEmail = "";
     try {
       const { data } = await db.auth.admin.getUserById(context.userId);
       const authUser = data.user;
+      authEmail = authUser?.email ?? "";
       metaName =
         typeof authUser?.user_metadata?.["full_name"] === "string"
           ? String(authUser.user_metadata["full_name"]).trim()
@@ -76,6 +239,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
       emailName = authUser?.email?.split("@")[0]?.replace(/[._]+/g, " ").trim() ?? "";
     } catch {
       const claimsEmail = typeof context.claims?.email === "string" ? context.claims.email : "";
+      authEmail = claimsEmail;
       emailName = claimsEmail.split("@")[0]?.replace(/[._]+/g, " ").trim() ?? "";
     }
 
@@ -117,6 +281,39 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
       }
     }
 
+    let linkedEntities: UserLinkedEntities = {
+      person_id: null,
+      student_id: null,
+      teacher_id: null,
+      guardian_person_id: null,
+      linked_students: [],
+    };
+    if (membership?.schoolId) {
+      linkedEntities = await resolveUserLinkedEntities(
+        db,
+        membership.schoolId,
+        context.userId,
+        authEmail,
+      );
+    }
+
+    const allAppRoles = [...(membership?.allAppRoles ?? [])];
+    if (linkedEntities.student_id && !allAppRoles.includes("Aluno")) {
+      allAppRoles.push("Aluno");
+    }
+    if (linkedEntities.teacher_id && !allAppRoles.includes("Professor")) {
+      allAppRoles.push("Professor");
+    }
+    if (linkedEntities.linked_students.length > 0 && !allAppRoles.includes("Encarregado")) {
+      allAppRoles.push("Encarregado");
+    }
+
+    const primaryCargo = membership?.appRole ?? ("Utilizador" as const);
+    let resolvedCargo = primaryCargo;
+    if (primaryCargo === "Utilizador" && allAppRoles.length > 0) {
+      resolvedCargo = allAppRoles[0]!;
+    }
+
     return {
       full_name: fullName || null,
       avatar_url: profileRow?.avatar_url ?? null,
@@ -125,8 +322,10 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
       school_id: membership?.schoolId ?? null,
       role_code: membership?.roleCode ?? null,
       role_name: membership?.roleName ?? null,
-      cargo: membership?.appRole ?? ("Utilizador" as const),
+      cargo: resolvedCargo,
+      roles: allAppRoles,
       grants,
+      linkedEntities,
     };
   });
 

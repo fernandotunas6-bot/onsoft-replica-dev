@@ -67,7 +67,10 @@ async function loadJobWithModuleGate(
 
 function base64ToBuffer(base64: string): Buffer {
   const commaIdx = base64.indexOf(",");
-  const raw = commaIdx >= 0 && base64.slice(0, commaIdx).includes("base64") ? base64.slice(commaIdx + 1) : base64;
+  const raw =
+    commaIdx >= 0 && base64.slice(0, commaIdx).includes("base64")
+      ? base64.slice(commaIdx + 1)
+      : base64;
   return Buffer.from(raw, "base64");
 }
 
@@ -103,7 +106,11 @@ export const createImportJob = createServerFn({ method: "POST" })
   .validator((input: unknown) => createImportJobSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, rolesForModule(data.module));
+    const membership = await requireSgaWriter(
+      context.supabase,
+      context.userId,
+      rolesForModule(data.module),
+    );
     if (!isModuleImplemented(data.module)) {
       throw new Error(
         `O módulo "${data.module}" ainda não está disponível para importação nesta versão do motor.`,
@@ -165,7 +172,12 @@ export const stageImportRows = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const db = await loadSgaAdminClient();
-    const { job, membership } = await loadJobWithModuleGate(db, context.supabase, context.userId, data.job_id);
+    const { job, membership } = await loadJobWithModuleGate(
+      db,
+      context.supabase,
+      context.userId,
+      data.job_id,
+    );
     const importer = getImporter(job.module);
     const cache = await importer.loadRefCache({
       db,
@@ -226,7 +238,8 @@ export const stageImportRows = createServerFn({ method: "POST" })
         updated_at: new Date().toISOString(),
       })
       .eq("id", job.id);
-    if (updateError) throw publicDatabaseError(updateError, "Não foi possível actualizar o processo.");
+    if (updateError)
+      throw publicDatabaseError(updateError, "Não foi possível actualizar o processo.");
 
     return {
       staged: staged.length,
@@ -240,7 +253,12 @@ export const stageImportRows = createServerFn({ method: "POST" })
 export const listStagingRows = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => {
-    const parsed = input as { job_id: string; page?: number; page_size?: number; status_filter?: string };
+    const parsed = input as {
+      job_id: string;
+      page?: number;
+      page_size?: number;
+      status_filter?: string;
+    };
     if (!parsed?.job_id) throw new Error("job_id é obrigatório.");
     return {
       job_id: parsed.job_id,
@@ -263,7 +281,11 @@ export const listStagingRows = createServerFn({ method: "GET" })
     }
     const from = (data.page - 1) * data.page_size;
     const to = from + data.page_size - 1;
-    const { data: rows, count, error } = await query.order("row_number", { ascending: true }).range(from, to);
+    const {
+      data: rows,
+      count,
+      error,
+    } = await query.order("row_number", { ascending: true }).range(from, to);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as linhas de staging.");
     return { rows: (rows ?? []) as ImportRowRecord[], total: count ?? 0 };
   });
@@ -323,10 +345,21 @@ export const commitImportBatch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const db = await loadSgaAdminClient();
-    const { job, membership } = await loadJobWithModuleGate(db, context.supabase, context.userId, data.job_id);
+    const { job, membership } = await loadJobWithModuleGate(
+      db,
+      context.supabase,
+      context.userId,
+      data.job_id,
+    );
     const importer = getImporter(job.module);
 
-    const PENDING_STATUSES = ["valid", "warning", "duplicate", "will_insert", "will_update"] as const;
+    const PENDING_STATUSES = [
+      "valid",
+      "warning",
+      "duplicate",
+      "will_insert",
+      "will_update",
+    ] as const;
 
     let pendingQuery = db
       .from("import_rows")
@@ -341,7 +374,8 @@ export const commitImportBatch = createServerFn({ method: "POST" })
       pendingQuery = pendingQuery.gt("row_number", data.after_row_number);
     }
     const { data: pendingRows, error: pendingError } = await pendingQuery;
-    if (pendingError) throw publicDatabaseError(pendingError, "Não foi possível carregar linhas para importar.");
+    if (pendingError)
+      throw publicDatabaseError(pendingError, "Não foi possível carregar linhas para importar.");
 
     const { count: remainingAfterThis } = await db
       .from("import_rows")
@@ -379,7 +413,11 @@ export const commitImportBatch = createServerFn({ method: "POST" })
     const allAudits: Array<Record<string, unknown>> = [];
 
     for (const row of pendingRows ?? []) {
-      const result = await importer.commitRow(row.normalized_data as Record<string, unknown>, commitCtx, cache);
+      const result = await importer.commitRow(
+        row.normalized_data as Record<string, unknown>,
+        commitCtx,
+        cache,
+      );
       if (result.status === "imported") inserted += 1;
       else if (result.status === "will_update") updated += 1;
       else if (result.status === "ignored") ignored += 1;
@@ -426,7 +464,9 @@ export const commitImportBatch = createServerFn({ method: "POST" })
         .eq("id", job.id);
     }
 
-    const lastRow = (pendingRows ?? [])[pendingRows && pendingRows.length > 0 ? pendingRows.length - 1 : -1];
+    const lastRow = (pendingRows ?? [])[
+      pendingRows && pendingRows.length > 0 ? pendingRows.length - 1 : -1
+    ];
     return {
       processed: pendingRows?.length ?? 0,
       remaining: Math.max(remaining, 0),

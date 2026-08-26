@@ -6,14 +6,15 @@ import { calculateTrimesterAverage } from "./assessment";
 interface GradeAuditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  studentName?: string;
-  subjectName?: string;
-  term?: number;
-  mac?: number | null;
-  npp?: number | null;
-  npt?: number | null;
-  teacherName?: string;
-  updatedAt?: string;
+  studentName?: string | undefined;
+  subjectName?: string | undefined;
+  term?: number | undefined;
+  mac?: number | null | undefined;
+  npp?: number | null | undefined;
+  npt?: number | null | undefined;
+  teacherName?: string | undefined;
+  updatedAt?: string | undefined;
+  periodNoun?: "Trimestre" | "Semestre" | undefined;
 }
 
 export function GradeAuditModal({
@@ -27,8 +28,9 @@ export function GradeAuditModal({
   npt = null,
   teacherName = "Docente Responsável",
   updatedAt,
+  periodNoun = "Trimestre",
 }: GradeAuditModalProps) {
-  const mt = calculateTrimesterAverage(mac, npt, npp);
+  const mt = calculateTrimesterAverage(mac, npt);
 
   return (
     <FormModal
@@ -36,7 +38,7 @@ export function GradeAuditModal({
       onOpenChange={onOpenChange}
       size="md"
       title={`Origem da Nota — ${subjectName}`}
-      subtitle={`Auditoria pedagógica de notas de ${studentName} no ${term}.º Trimestre`}
+      subtitle={`Auditoria pedagógica de notas de ${studentName} no ${term}.º ${periodNoun}`}
       submitLabel="Fechar"
       onSubmit={() => onOpenChange(false)}
     >
@@ -44,7 +46,9 @@ export function GradeAuditModal({
         {/* Card de Resumo */}
         <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
           <div>
-            <span className="block text-muted-foreground font-medium">Média do Trimestre (MT)</span>
+            <span className="block text-muted-foreground font-medium">
+              Média do {periodNoun} (MT)
+            </span>
             <span className="text-xl font-extrabold text-foreground">{mt !== null ? mt : "—"}</span>
           </div>
           <div className="text-right">
@@ -56,24 +60,34 @@ export function GradeAuditModal({
 
         {/* Detalhe dos Lançamentos */}
         <div className="space-y-2">
-          <p className="font-semibold text-foreground uppercase tracking-wider text-[11px]">Componentes de Avaliação</p>
+          <p className="font-semibold text-foreground uppercase tracking-wider text-[11px]">
+            Componentes de Avaliação
+          </p>
           <div className="grid grid-cols-3 gap-2">
             <div className="p-2.5 rounded-md border border-border bg-card">
               <span className="block text-[10px] text-muted-foreground font-medium">MACT</span>
               <span className="text-sm font-bold text-foreground">{mac !== null ? mac : "—"}</span>
-              <span className="block text-[9px] text-muted-foreground mt-0.5">Avaliação Contínua</span>
+              <span className="block text-[9px] text-muted-foreground mt-0.5">
+                Avaliação Contínua
+              </span>
             </div>
 
             <div className="p-2.5 rounded-md border border-border bg-card">
               <span className="block text-[10px] text-muted-foreground font-medium">NPP*</span>
-              <span className="text-sm font-bold text-muted-foreground">{npp !== null ? npp : "—"}</span>
-              <span className="block text-[9px] text-muted-foreground mt-0.5">Prova do Professor</span>
+              <span className="text-sm font-bold text-muted-foreground">
+                {npp !== null ? npp : "—"}
+              </span>
+              <span className="block text-[9px] text-muted-foreground mt-0.5">
+                Prova do Professor
+              </span>
             </div>
 
             <div className="p-2.5 rounded-md border border-border bg-card">
               <span className="block text-[10px] text-muted-foreground font-medium">NPT</span>
               <span className="text-sm font-bold text-foreground">{npt !== null ? npt : "—"}</span>
-              <span className="block text-[9px] text-muted-foreground mt-0.5">Prova Trimestral</span>
+              <span className="block text-[9px] text-muted-foreground mt-0.5">
+                Prova {periodNoun === "Semestre" ? "Semestral" : "Trimestral"}
+              </span>
             </div>
           </div>
         </div>
@@ -82,11 +96,16 @@ export function GradeAuditModal({
         <div className="space-y-2 pt-2 border-t border-border">
           <div className="flex items-center gap-2 text-muted-foreground">
             <UserCheck className="size-3.5 text-primary" />
-            <span>Lançado por: <b className="text-foreground">{teacherName}</b></span>
+            <span>
+              Lançado por: <b className="text-foreground">{teacherName}</b>
+            </span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="size-3.5 text-primary" />
-            <span>Última atualização: <b className="text-foreground">{updatedAt || "Data oficial da sessão"}</b></span>
+            <span>
+              Última atualização:{" "}
+              <b className="text-foreground">{updatedAt || "Data oficial da sessão"}</b>
+            </span>
           </div>
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
             <ShieldCheck className="size-3.5" />

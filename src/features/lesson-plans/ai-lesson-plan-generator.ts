@@ -1,7 +1,8 @@
 /**
- * Gerador de Planos de Aula e Sumários AI (INIDE / MED Angola).
- * Gera automaticamente sugestões pedagógicas de objetivos, metodologias e recursos
- * alinhadas ao programa curricular nacional do Ministério da Educação de Angola.
+ * Gerador de estrutura inicial para planos de aula e sumários.
+ * Produz um modelo genérico (objectivos, metodologia, recursos) a partir do nome da
+ * disciplina e do tema — texto de rascunho para o professor rever e adaptar, não
+ * conteúdo verificado ou alinhado automaticamente ao currículo do INIDE/MED.
  */
 
 export interface AiGeneratedLessonPlan {
@@ -24,7 +25,7 @@ export function generateAiLessonPlanInide(
 
   return {
     title: `${cleanTopic} · ${subjectName} (${gradeLevel})`,
-    summary: `Estudo aprofundado de ${cleanTopic} segundo o programa curricular nacional do INIDE/MED. Análise de conceitos fundamentais, aplicações práticas no contexto angolano e resolução de exercícios de consolidação.`,
+    summary: `Estudo de ${cleanTopic}: conceitos fundamentais, aplicações práticas no contexto angolano e resolução de exercícios de consolidação. Reveja e ajuste ao programa curricular da disciplina.`,
     generalObjectives: [
       `Compreender a relevância de ${cleanTopic} no desenvolvimento técnico e científico.`,
       `Aplicar os princípios de ${cleanTopic} na resolução de problemas do quotidiano.`,

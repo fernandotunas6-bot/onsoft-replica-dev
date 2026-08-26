@@ -17,7 +17,11 @@ async function loadStudentsByPersonId(
     .select("id, student_number, person_id")
     .eq("school_id", schoolId);
   const map = new Map<string, { id: string; student_number: string }>();
-  for (const row of (data ?? []) as Array<{ id: string; student_number: string; person_id: string }>) {
+  for (const row of (data ?? []) as Array<{
+    id: string;
+    student_number: string;
+    person_id: string;
+  }>) {
     map.set(row.person_id, { id: row.id, student_number: row.student_number });
   }
   return map;
@@ -35,7 +39,9 @@ async function loadClassGroups(
 }
 
 function guardianNameOf(normalized: Record<string, unknown>): string {
-  return normalizeText(normalized["guardian_name"] ?? normalized["encarregado"] ?? normalized["Encarregado"]);
+  return normalizeText(
+    normalized["guardian_name"] ?? normalized["encarregado"] ?? normalized["Encarregado"],
+  );
 }
 
 function classNameOf(normalized: Record<string, unknown>): string {
@@ -96,7 +102,12 @@ export const alunosImporter: RowImporter = {
   async commitRow(normalized, ctx, cache) {
     const candidate = personCandidateFromRow(normalized);
     if (!candidate) {
-      return { status: "error", warnings: [], errors: ["Nome completo do aluno é obrigatório."], audits: [] };
+      return {
+        status: "error",
+        warnings: [],
+        errors: ["Nome completo do aluno é obrigatório."],
+        audits: [],
+      };
     }
 
     const personResult = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
@@ -107,7 +118,9 @@ export const alunosImporter: RowImporter = {
       return {
         status: personResult.created ? "will_insert" : "will_update",
         target_record_id: personResult.personId,
-        warnings: personResult.created ? ["Novo aluno seria criado."] : ["Aluno existente seria reutilizado."],
+        warnings: personResult.created
+          ? ["Novo aluno seria criado."]
+          : ["Aluno existente seria reutilizado."],
         errors: [],
         audits,
       };
@@ -115,16 +128,19 @@ export const alunosImporter: RowImporter = {
 
     let student = cache.studentByPersonId.get(personResult.personId) ?? null;
     if (!student) {
-      const { data: registered, error: registerError } = await ctx.sessionSupabase.rpc("register_student", {
-        school_id: ctx.schoolId,
-        person_id: personResult.personId,
-        admission_date: new Date().toISOString().slice(0, 10),
-        guardian_person_id: null,
-        relationship: null,
-        primary_guardian: false,
-        financial_responsibility: false,
-        pickup_authorization: true,
-      });
+      const { data: registered, error: registerError } = await ctx.sessionSupabase.rpc(
+        "register_student",
+        {
+          school_id: ctx.schoolId,
+          person_id: personResult.personId,
+          admission_date: new Date().toISOString().slice(0, 10),
+          guardian_person_id: null,
+          relationship: null,
+          primary_guardian: false,
+          financial_responsibility: false,
+          pickup_authorization: true,
+        },
+      );
       if (registerError) {
         if (rpcAuthError(registerError)) {
           return {
@@ -134,12 +150,22 @@ export const alunosImporter: RowImporter = {
             audits,
           };
         }
-        return { status: "error", warnings: [], errors: [`Falha ao registar aluno: ${registerError.message}`], audits };
+        return {
+          status: "error",
+          warnings: [],
+          errors: [`Falha ao registar aluno: ${registerError.message}`],
+          audits,
+        };
       }
       const outcome = registered as { studentId: string; studentNumber: string };
       student = { id: outcome.studentId, student_number: outcome.studentNumber };
       cache.studentByPersonId.set(personResult.personId, student);
-      audits.push({ table_name: "students", target_id: student.id, action_type: "inserted", after_data: student });
+      audits.push({
+        table_name: "students",
+        target_id: student.id,
+        action_type: "inserted",
+        after_data: student,
+      });
     }
 
     const guardianName = guardianNameOf(normalized);
@@ -183,9 +209,13 @@ export const alunosImporter: RowImporter = {
           enrolled_on: new Date().toISOString().slice(0, 10),
         });
         if (enrollError && !rpcAuthError(enrollError)) {
-          warnings.push(`Não foi possível matricular na turma "${className}": ${enrollError.message}`);
+          warnings.push(
+            `Não foi possível matricular na turma "${className}": ${enrollError.message}`,
+          );
         } else if (enrollError) {
-          warnings.push("Esta conta precisa de 2FA activo para matricular numa turma (enroll_student).");
+          warnings.push(
+            "Esta conta precisa de 2FA activo para matricular numa turma (enroll_student).",
+          );
         } else {
           audits.push({
             table_name: "enrollments",
@@ -195,7 +225,9 @@ export const alunosImporter: RowImporter = {
           });
         }
       } else {
-        warnings.push(`Turma "${className}" não encontrada — aluno não foi matriculado numa turma.`);
+        warnings.push(
+          `Turma "${className}" não encontrada — aluno não foi matriculado numa turma.`,
+        );
       }
     }
 

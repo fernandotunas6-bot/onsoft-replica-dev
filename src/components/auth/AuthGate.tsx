@@ -23,6 +23,7 @@ import { ensureDevBypassSession } from "@/features/auth/dev-bypass.server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SigaLogo } from "@/components/ui/siga-logo";
 
 const AuthSessionContext = createContext<Session | null>(null);
 const IDLE_TIMEOUT_MS = 30 * 60_000;
@@ -348,11 +349,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.25), transparent 45%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.15), transparent 40%)",
             }}
           />
-          <div className="relative flex items-center gap-3 text-lg font-bold tracking-tight">
-            <span className="grid size-10 place-items-center rounded-xl bg-primary-foreground/15">
-              <Building2 className="size-5" />
-            </span>
-            Portal de Gestão Escolar
+          <div className="relative flex items-center justify-start">
+            <SigaLogo variant="login" size="xl" />
           </div>
           <div className="relative max-w-xl">
             <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
@@ -381,28 +379,25 @@ export function AuthGate({ children }: { children: ReactNode }) {
         {/* Formulário de Login */}
         <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-7 shadow-sm sm:p-9">
-            <div className="mb-6 lg:hidden flex items-center justify-between">
-              <span className="inline-flex items-center gap-2 font-display text-lg font-bold">
-                <Building2 className="size-5 text-primary" /> Portal Escolar
-              </span>
+            <div className="mb-6 flex flex-col items-center justify-center text-center pb-4 border-b border-border">
+              <SigaLogo variant="horizontal" size="lg" />
               {installPrompt && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={handleInstallApp}
-                  className="h-8 gap-1.5 text-xs"
+                  className="mt-3 h-8 gap-1.5 text-xs rounded-full"
                 >
-                  <Download className="size-3.5" /> Instalar App
+                  <Download className="size-3.5" /> Instalar App SIGA Plus
                 </Button>
               )}
             </div>
 
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-              Acesso Institucional
-            </p>
-            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">Iniciar sessão</h2>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Introduza as credenciais fornecidas pela administração.
+            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-center">
+              Iniciar sessão
+            </h2>
+            <p className="mt-1.5 text-xs text-muted-foreground text-center">
+              Introduza as credenciais da conta no portal SIGA.
             </p>
 
             {AUTH_DISABLED ? (

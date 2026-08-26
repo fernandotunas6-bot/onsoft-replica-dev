@@ -2,6 +2,8 @@ export * from "./ModalShell";
 export * from "./ModalHeader";
 export * from "./ModalContent";
 export * from "./ModalFooter";
+export * from "./ModalSidebar";
+export * from "./confirm-close";
 export * from "./QuickModal";
 export * from "./FormModal";
 export * from "./WizardModal";

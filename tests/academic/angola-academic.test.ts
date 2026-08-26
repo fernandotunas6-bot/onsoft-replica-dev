@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   annualAverage,
+  calculateDisciplineFinalAverage,
   formatScore,
+  getPeriodCountForCycle,
+  getPeriodLabel,
+  getPeriodLabelUpper,
+  getPeriodNoun,
+  getPeriodsForCycle,
   gradeMatchesTeachingLevels,
   initialsFromName,
   parsePautaScore,
@@ -13,8 +19,10 @@ import {
 import { pedagogySettingsSchema } from "@/features/school/schemas";
 
 describe("angola academic pauta", () => {
-  it("calcula a média MAC/NPP/NPT na escala 0–20", () => {
-    expect(scoreAverage(12, 10, 14)).toBeCloseTo(12);
+  it("calcula a média trimestral MT = (MACT + NPT) / 2 segundo o Decreto 424/25", () => {
+    // scoreAverage(mac, npp, npt) delega em calculateTrimesterAverage — a NPP não entra no
+    // cálculo oficial, só é exibida por compatibilidade com pautas antigas.
+    expect(scoreAverage(12, 10, 14)).toBeCloseTo(13);
     expect(situacaoPauta(10).label).toBe("Transita");
     expect(situacaoPauta(9.9).label).toBe("Não transita");
   });
@@ -58,5 +66,26 @@ describe("angola academic pauta", () => {
     expect(parsePautaScore("")).toBeNull();
     expect(recursoFinal(8.5, 14)).toBeCloseTo(11.25);
     expect(recursoFinal(8.5, null)).toBe(8.5);
+  });
+
+  it("resolve 3 trimestres para os ciclos angolanos e 2 semestres para o Ensino Superior", () => {
+    expect(getPeriodCountForCycle("i_ciclo")).toBe(3);
+    expect(getPeriodCountForCycle("primario")).toBe(3);
+    expect(getPeriodCountForCycle("superior")).toBe(2);
+    expect(getPeriodCountForCycle(null)).toBe(3);
+    expect(getPeriodsForCycle("superior")).toEqual([1, 2]);
+    expect(getPeriodsForCycle("ii_ciclo")).toEqual([1, 2, 3]);
+    expect(getPeriodNoun("superior")).toBe("Semestre");
+    expect(getPeriodNoun("tecnico")).toBe("Trimestre");
+    expect(getPeriodLabel("superior", 2)).toBe("2º Semestre");
+    expect(getPeriodLabel("primario", 1)).toBe("1º Trimestre");
+    expect(getPeriodLabelUpper("superior", 1)).toBe("I SEMESTRE");
+    expect(getPeriodLabelUpper("i_ciclo", 3)).toBe("III TRIMESTRE");
+  });
+
+  it("calcula a MFD com apenas 2 períodos válidos (Ensino Superior), sem exigir um 3º trimestre inexistente", () => {
+    expect(calculateDisciplineFinalAverage(12, 14, null)).toBeCloseTo(13);
+    expect(calculateDisciplineFinalAverage(12, 14, undefined)).toBeCloseTo(13);
+    expect(calculateDisciplineFinalAverage(12, 14, 16)).toBeCloseTo(14);
   });
 });

@@ -1,11 +1,7 @@
 import * as React from "react";
 import { describe, it, expect } from "vitest";
 import { renderToString } from "react-dom/server";
-import {
-  ModalHeader,
-  ModalFooter,
-  ModalContent,
-} from "@/components/ui/modal-system";
+import { ModalHeader, ModalFooter, ModalContent } from "@/components/ui/modal-system";
 
 describe("Unified Modal System Subcomponents", () => {
   it("renders ModalHeader cleanly", () => {
@@ -13,7 +9,7 @@ describe("Unified Modal System Subcomponents", () => {
       React.createElement(ModalHeader, {
         title: "Criar Matrícula de Aluno",
         subtitle: "Ano Letivo 2026",
-      })
+      }),
     );
     expect(html).toContain("Criar Matrícula de Aluno");
     expect(html).toContain("Ano Letivo 2026");
@@ -27,7 +23,7 @@ describe("Unified Modal System Subcomponents", () => {
         cancelLabel: "Cancelar Operação",
         submitLabel: "Confirmar Matrícula",
         isSubmitting: false,
-      })
+      }),
     );
     expect(html).toContain("Cancelar Operação");
     expect(html).toContain("Confirmar Matrícula");
@@ -38,8 +34,8 @@ describe("Unified Modal System Subcomponents", () => {
       React.createElement(
         ModalContent,
         null,
-        React.createElement("div", null, "Dados Pessoais do Estudante")
-      )
+        React.createElement("div", null, "Dados Pessoais do Estudante"),
+      ),
     );
     expect(html).toContain("Dados Pessoais do Estudante");
   });

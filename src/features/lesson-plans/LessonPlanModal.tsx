@@ -233,14 +233,14 @@ export function LessonPlanModal({
                 setContent(
                   `SUMÁRIO:\n${generated.summary}\n\nOBJETIVOS GERAIS:\n- ${generated.generalObjectives.join("\n- ")}\n\nMETODOLOGIA:\n${generated.methodology}\n\nRECURSOS DIDÁTICOS:\n- ${generated.didacticResources.join("\n- ")}\n\nAVALIAÇÃO:\n${generated.evaluationMethod}`,
                 );
-                toast.success("Sumário AI Gerado (INIDE/MED)", {
-                  description: "Conteúdo preenchido com base no programa curricular nacional.",
+                toast.success("Modelo de sumário preenchido", {
+                  description: "Reveja e adapte o texto ao programa curricular da disciplina.",
                 });
               }}
               className="gap-1.5 text-xs h-7 text-primary border-primary/30 bg-primary/5 hover:bg-primary/10 shadow-2xs"
             >
               <Sparkles className="size-3.5 text-primary" />
-              Gerar com AI (INIDE/MED)
+              Gerar modelo de sumário
             </Button>
           </div>
           <Textarea

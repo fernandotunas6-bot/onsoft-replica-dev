@@ -1,10 +1,12 @@
-export type CalculationProfile = 'MED_424_25_TRANSITION' | 'MANUAL';
+export type CalculationProfile = "MED_424_25_TRANSITION" | "MANUAL";
 
 export const MAX_GRADE = 20;
 export const MIN_GRADE = 0;
 
 export function isGrade(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= MIN_GRADE && value <= MAX_GRADE;
+  return (
+    typeof value === "number" && Number.isFinite(value) && value >= MIN_GRADE && value <= MAX_GRADE
+  );
 }
 
 export function normalizeGrade(value: number | null | undefined): number | null {
@@ -50,12 +52,17 @@ export function calculateFinalDisciplineAverage(
 }
 
 export function formatGrade(value: number | null | undefined): string {
-  return value === null || value === undefined ? '' : String(value);
+  return value === null || value === undefined ? "" : String(value);
 }
 
 export function deriveElectronicStatusClass(status?: string): string {
   const negative = new Set([
-    'NÃO TRANSITA', 'REPROVADO', 'NÃO ADMITIDO', 'NÃO APTO', 'RETIDO', 'EXCLUÍDO',
+    "NÃO TRANSITA",
+    "REPROVADO",
+    "NÃO ADMITIDO",
+    "NÃO APTO",
+    "RETIDO",
+    "EXCLUÍDO",
   ]);
-  return status && negative.has(status.toUpperCase()) ? 'status-negative' : 'status-positive';
+  return status && negative.has(status.toUpperCase()) ? "status-negative" : "status-positive";
 }

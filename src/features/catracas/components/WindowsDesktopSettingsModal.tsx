@@ -1,0 +1,267 @@
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Monitor, Cpu, Printer, Bell, Check, RefreshCw, ShieldCheck, Wifi } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  isTauriDesktop,
+  triggerTurnstileRelay,
+  printThermalReceiptNative,
+} from "@/lib/tauri-bridge";
+
+const STORAGE_KEY = "siga-desktop-settings";
+
+interface DesktopSettings {
+  turnstileIp: string;
+  printerIp: string;
+  autoStartWindows: boolean;
+  nativeNotifications: boolean;
+}
+
+const defaultSettings: DesktopSettings = {
+  turnstileIp: "192.168.1.201",
+  printerIp: "192.168.1.205",
+  autoStartWindows: true,
+  nativeNotifications: true,
+};
+
+function loadDesktopSettings(): DesktopSettings {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultSettings;
+    return { ...defaultSettings, ...JSON.parse(raw) };
+  } catch {
+    return defaultSettings;
+  }
+}
+
+function saveDesktopSettings(settings: DesktopSettings) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // Armazenamento indisponível (privado/bloqueado) — as definições ficam só nesta sessão.
+  }
+}
+
+export function WindowsDesktopSettingsModal({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [turnstileIp, setTurnstileIp] = useState(defaultSettings.turnstileIp);
+  const [printerIp, setPrinterIp] = useState(defaultSettings.printerIp);
+  const [autoStartWindows, setAutoStartWindows] = useState(defaultSettings.autoStartWindows);
+  const [nativeNotifications, setNativeNotifications] = useState(
+    defaultSettings.nativeNotifications,
+  );
+  const [isTestingHardware, setIsTestingHardware] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const stored = loadDesktopSettings();
+    setTurnstileIp(stored.turnstileIp);
+    setPrinterIp(stored.printerIp);
+    setAutoStartWindows(stored.autoStartWindows);
+    setNativeNotifications(stored.nativeNotifications);
+  }, [open]);
+
+  const handleTestTurnstile = async () => {
+    setIsTestingHardware(true);
+    try {
+      const res = await triggerTurnstileRelay({
+        ipAddress: turnstileIp,
+        gate: 1,
+        direction: "entry",
+      });
+      toast.success("Comando Enviado com Sucesso!", {
+        description: res.message || `Pulso enviado para ${turnstileIp} via ${res.source}`,
+      });
+    } catch (err) {
+      toast.error("Falha ao testar catraca", {
+        description: err instanceof Error ? err.message : "Verifique o IP e a ligação da catraca.",
+      });
+    } finally {
+      setIsTestingHardware(false);
+    }
+  };
+
+  const handleTestPrinter = async () => {
+    setIsTestingHardware(true);
+    try {
+      const res = await printThermalReceiptNative({
+        printerIp: printerIp,
+        receiptText:
+          "========================================\n       TESTE SIGA DESKTOP TAURI 2       \n========================================\nImpressora Termica Conectada!",
+      });
+      toast.success("Recibo de Teste Enviado!", {
+        description: res.message || `Dados enviados para ${printerIp}`,
+      });
+    } catch (err) {
+      toast.error("Falha ao testar impressora", {
+        description: err instanceof Error ? err.message : "Verifique a impressora de rede.",
+      });
+    } finally {
+      setIsTestingHardware(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold">
+              <Monitor className="size-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-extrabold">
+                Configurações do SIGA Desktop (Windows / macOS)
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Ajuste os parâmetros nativos de relés, catracas, impressoras e notificações.
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2 text-xs">
+          {/* MODO DE FUNCIONAMENTO */}
+          <div className="p-3 rounded-xl bg-secondary/50 border border-border flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="size-5 text-primary shrink-0" />
+              <div>
+                <p className="font-bold text-foreground">Ambiente de Execução</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {isTauriDesktop()
+                    ? "Tauri 2 Rust Nativo (Máxima Velocidade)"
+                    : "Modo Web com Daemon Python HTTP"}
+                </p>
+              </div>
+            </div>
+            <span className="font-mono text-[10px] bg-primary/10 text-primary px-2 py-1 rounded font-bold">
+              {isTauriDesktop() ? "RUST NATIVE" : "WEB HTTP"}
+            </span>
+          </div>
+
+          {/* CONFIGURAÇÃO DA CATRACA IP */}
+          <div className="surface-card p-4 space-y-3">
+            <h4 className="font-bold text-xs flex items-center gap-2">
+              <Cpu className="size-4 text-primary" /> Catraca & Relé de Entrada/Saída
+            </h4>
+            <div className="grid gap-2 sm:grid-cols-3 items-end">
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-[11px] font-semibold">
+                  Endereço IP da Controladora (TCP 4370)
+                </Label>
+                <Input
+                  value={turnstileIp}
+                  onChange={(e) => setTurnstileIp(e.target.value)}
+                  placeholder="Ex: 192.168.1.201"
+                  className="text-xs h-9 font-mono"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isTestingHardware}
+                onClick={handleTestTurnstile}
+                className="h-9 gap-1.5 text-xs font-bold"
+              >
+                <Wifi className="size-3.5" /> Testar Relé
+              </Button>
+            </div>
+          </div>
+
+          {/* CONFIGURAÇÃO DA IMPRESSORA TÉRMICA */}
+          <div className="surface-card p-4 space-y-3">
+            <h4 className="font-bold text-xs flex items-center gap-2">
+              <Printer className="size-4 text-primary" /> Impressora Térmica de Recibos (ESC/POS
+              9100)
+            </h4>
+            <div className="grid gap-2 sm:grid-cols-3 items-end">
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-[11px] font-semibold">
+                  Endereço IP da Impressora de Rede
+                </Label>
+                <Input
+                  value={printerIp}
+                  onChange={(e) => setPrinterIp(e.target.value)}
+                  placeholder="Ex: 192.168.1.205"
+                  className="text-xs h-9 font-mono"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isTestingHardware}
+                onClick={handleTestPrinter}
+                className="h-9 gap-1.5 text-xs font-bold"
+              >
+                <Printer className="size-3.5" /> Imprimir Teste
+              </Button>
+            </div>
+          </div>
+
+          {/* OPÇÕES DO SISTEMA OPERATIVO */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-foreground">Notificações Nativas do Windows</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Alertas de catraca no Centro de Ações do SO
+                </p>
+              </div>
+              <Switch checked={nativeNotifications} onCheckedChange={setNativeNotifications} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-foreground">Iniciar com o Windows</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Abrir o SIGA Desktop automaticamente ao ligar o PC
+                </p>
+              </div>
+              <Switch checked={autoStartWindows} onCheckedChange={setAutoStartWindows} />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              saveDesktopSettings({
+                turnstileIp,
+                printerIp,
+                autoStartWindows,
+                nativeNotifications,
+              });
+              toast.success("Configurações do SIGA Desktop guardadas com sucesso!");
+              onOpenChange(false);
+            }}
+            className="gap-2 font-bold"
+          >
+            <Check className="size-4" /> Guardar Configurações
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

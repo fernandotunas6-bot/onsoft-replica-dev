@@ -529,7 +529,9 @@ function AcessosPage() {
 
         <InstalledModuleTools module="comunicacoes" />
 
-        <StatGrid collapsible storageKey="acessos"
+        <StatGrid
+          collapsible
+          storageKey="acessos"
           items={[
             {
               label: "Contas de login",
@@ -787,7 +789,6 @@ function AcessosPage() {
                                       label: "Nova senha (mínimo 8 caracteres)",
                                       type: "password",
                                       placeholder: "Ex.: Siga@Pass2026!",
-                                      defaultValue: "Siga@Pass2026!",
                                     },
                                   ]}
                                   trigger={(open) => (

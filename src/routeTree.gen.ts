@@ -14,6 +14,7 @@ import { Route as AcessosRouteImport } from './routes/acessos'
 import { Route as AlterarSenhaRouteImport } from './routes/alterar-senha'
 import { Route as ArquivosRouteImport } from './routes/arquivos'
 import { Route as CalendarioRouteImport } from './routes/calendario'
+import { Route as CatracasRouteImport } from './routes/catracas'
 import { Route as ComunicacoesRouteImport } from './routes/comunicacoes'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as DocumentosRouteImport } from './routes/documentos'
@@ -23,6 +24,7 @@ import { Route as ImportarRouteImport } from './routes/importar'
 import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
+import { Route as SaasAdminRouteImport } from './routes/saas-admin'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
 import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
@@ -55,6 +57,11 @@ const ArquivosRoute = ArquivosRouteImport.update({
 const CalendarioRoute = CalendarioRouteImport.update({
   id: '/calendario',
   path: '/calendario',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatracasRoute = CatracasRouteImport.update({
+  id: '/catracas',
+  path: '/catracas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComunicacoesRoute = ComunicacoesRouteImport.update({
@@ -100,6 +107,11 @@ const PerfilRoute = PerfilRouteImport.update({
 const PlanosAulaRoute = PlanosAulaRouteImport.update({
   id: '/planos-aula',
   path: '/planos-aula',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SaasAdminRoute = SaasAdminRouteImport.update({
+  id: '/saas-admin',
+  path: '/saas-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlunosIndexRoute = AlunosIndexRouteImport.update({
@@ -149,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/alterar-senha': typeof AlterarSenhaRoute
   '/arquivos': typeof ArquivosRoute
   '/calendario': typeof CalendarioRouteWithChildren
+  '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
@@ -158,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
+  '/saas-admin': typeof SaasAdminRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -173,6 +187,7 @@ export interface FileRoutesByTo {
   '/alterar-senha': typeof AlterarSenhaRoute
   '/arquivos': typeof ArquivosRoute
   '/calendario': typeof CalendarioRouteWithChildren
+  '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
@@ -182,6 +197,7 @@ export interface FileRoutesByTo {
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
+  '/saas-admin': typeof SaasAdminRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -198,6 +214,7 @@ export interface FileRoutesById {
   '/alterar-senha': typeof AlterarSenhaRoute
   '/arquivos': typeof ArquivosRoute
   '/calendario': typeof CalendarioRouteWithChildren
+  '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentos': typeof DocumentosRoute
@@ -207,6 +224,7 @@ export interface FileRoutesById {
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
+  '/saas-admin': typeof SaasAdminRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -224,6 +242,7 @@ export interface FileRouteTypes {
     | '/alterar-senha'
     | '/arquivos'
     | '/calendario'
+    | '/catracas'
     | '/comunicacoes'
     | '/configuracoes'
     | '/documentos'
@@ -233,6 +252,7 @@ export interface FileRouteTypes {
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
+    | '/saas-admin'
     | '/alunos/$studentId'
     | '/calendario/ics'
     | '/matricula/$slug'
@@ -248,6 +268,7 @@ export interface FileRouteTypes {
     | '/alterar-senha'
     | '/arquivos'
     | '/calendario'
+    | '/catracas'
     | '/comunicacoes'
     | '/configuracoes'
     | '/documentos'
@@ -257,6 +278,7 @@ export interface FileRouteTypes {
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
+    | '/saas-admin'
     | '/alunos/$studentId'
     | '/calendario/ics'
     | '/matricula/$slug'
@@ -272,6 +294,7 @@ export interface FileRouteTypes {
     | '/alterar-senha'
     | '/arquivos'
     | '/calendario'
+    | '/catracas'
     | '/comunicacoes'
     | '/configuracoes'
     | '/documentos'
@@ -281,6 +304,7 @@ export interface FileRouteTypes {
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
+    | '/saas-admin'
     | '/alunos/$studentId'
     | '/calendario/ics'
     | '/matricula/$slug'
@@ -297,6 +321,7 @@ export interface RootRouteChildren {
   AlterarSenhaRoute: typeof AlterarSenhaRoute
   ArquivosRoute: typeof ArquivosRoute
   CalendarioRoute: typeof CalendarioRouteWithChildren
+  CatracasRoute: typeof CatracasRoute
   ComunicacoesRoute: typeof ComunicacoesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   DocumentosRoute: typeof DocumentosRoute
@@ -306,6 +331,7 @@ export interface RootRouteChildren {
   PedagogicaRoute: typeof PedagogicaRoute
   PerfilRoute: typeof PerfilRoute
   PlanosAulaRoute: typeof PlanosAulaRoute
+  SaasAdminRoute: typeof SaasAdminRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
@@ -350,6 +376,13 @@ declare module '@tanstack/react-router' {
       path: '/calendario'
       fullPath: '/calendario'
       preLoaderRoute: typeof CalendarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catracas': {
+      id: '/catracas'
+      path: '/catracas'
+      fullPath: '/catracas'
+      preLoaderRoute: typeof CatracasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comunicacoes': {
@@ -413,6 +446,13 @@ declare module '@tanstack/react-router' {
       path: '/planos-aula'
       fullPath: '/planos-aula'
       preLoaderRoute: typeof PlanosAulaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/saas-admin': {
+      id: '/saas-admin'
+      path: '/saas-admin'
+      fullPath: '/saas-admin'
+      preLoaderRoute: typeof SaasAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alunos/': {
@@ -492,6 +532,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlterarSenhaRoute: AlterarSenhaRoute,
   ArquivosRoute: ArquivosRoute,
   CalendarioRoute: CalendarioRouteWithChildren,
+  CatracasRoute: CatracasRoute,
   ComunicacoesRoute: ComunicacoesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   DocumentosRoute: DocumentosRoute,
@@ -501,6 +542,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedagogicaRoute: PedagogicaRoute,
   PerfilRoute: PerfilRoute,
   PlanosAulaRoute: PlanosAulaRoute,
+  SaasAdminRoute: SaasAdminRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,

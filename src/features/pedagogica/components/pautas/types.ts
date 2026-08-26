@@ -1,23 +1,27 @@
-export type Gender = 'M' | 'F' | '';
+import type { AngolaTeachingCycle } from "@/lib/angola-academic";
+
+// Reexportado para compatibilidade — os ciclos de ensino vivem em lib/angola-academic.ts (fonte
+// única) para nunca divergir da lista usada pelo motor de avaliação e pela navegação lateral.
+export type { AngolaTeachingCycle };
+
+export type Gender = "M" | "F" | "";
 
 export type StudentStatus =
-  | 'TRANSITA'
-  | 'NÃO TRANSITA'
-  | 'APROVADO'
-  | 'REPROVADO'
-  | 'ADMITIDO'
-  | 'NÃO ADMITIDO'
-  | 'ADMITIDO A EXAME'
-  | 'RECURSO'
-  | 'APTO (PAP)'
-  | 'NÃO APTO (PAP)'
-  | 'RETIDO'
-  | 'EXCLUÍDO'
-  | '';
+  | "TRANSITA"
+  | "NÃO TRANSITA"
+  | "APROVADO"
+  | "REPROVADO"
+  | "ADMITIDO"
+  | "NÃO ADMITIDO"
+  | "ADMITIDO A EXAME"
+  | "RECURSO"
+  | "APTO (PAP)"
+  | "NÃO APTO (PAP)"
+  | "RETIDO"
+  | "EXCLUÍDO"
+  | "";
 
-export type AngolaTeachingCycle = 'primario' | 'i_ciclo' | 'ii_ciclo' | 'tecnico' | 'adultos';
-
-export type PautaMode = 'mini' | 'trimestre' | 'final' | 'exames';
+export type PautaMode = "mini" | "trimestre" | "final" | "exames";
 
 export interface SchoolIdentity {
   republic?: string;

@@ -26,6 +26,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SigaLogo } from "@/components/ui/siga-logo";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   DropdownMenu,
@@ -39,6 +40,7 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
+import { getPortalNavigation } from "@/features/auth/portal-engine";
 import { AcademicNavTree } from "./AcademicNavTree";
 import { NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
 
@@ -199,25 +201,9 @@ export function AppSidebar({
   const currentUser = useCurrentAccount();
   const { activeYearLabel } = useSchoolSettings();
   const { signOut, signingOut } = useSignOut();
+
   const visibleGroups = useMemo(
-    () =>
-      groups
-        .map((group) => ({
-          ...group,
-          items: group.items
-            .map((item) => ({
-              ...item,
-              children: item.children?.filter((child) =>
-                canAccessPath(child.to, currentUser.role, currentUser.grants),
-              ),
-            }))
-            .filter(
-              (item) =>
-                (item.to ? canAccessPath(item.to, currentUser.role, currentUser.grants) : false) ||
-                Boolean(item.children?.length),
-            ),
-        }))
-        .filter((group) => group.items.length > 0),
+    () => getPortalNavigation(currentUser.role, currentUser.grants),
     [currentUser.role, currentUser.grants],
   );
   const parentsOfActive = visibleGroups
@@ -259,19 +245,16 @@ export function AppSidebar({
       )}
     >
       <div
-        className={cn("flex h-14 items-center gap-3 border-b border-sidebar-border/40", collapsed ? "justify-center px-2.5" : "px-3.5")}
+        className={cn(
+          "flex h-14 items-center border-b border-sidebar-border/40",
+          collapsed ? "justify-center px-2.5" : "px-3.5",
+        )}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-          <GraduationCap className="size-4.5" />
-        </span>
-        {!collapsed ? (
-          <div className="min-w-0 leading-tight">
-            <p className="font-display text-sm font-extrabold tracking-tight">SIGA</p>
-            <p className="truncate text-[10px] text-sidebar-muted">
-              Gestão Escolar Integrada
-            </p>
-          </div>
-        ) : null}
+        {collapsed ? (
+          <SigaLogo variant="icon" size="sm" />
+        ) : (
+          <SigaLogo variant="full" size="sm" badgeText="Plus" />
+        )}
       </div>
 
       <nav
@@ -449,6 +432,28 @@ export function AppSidebar({
                   <Lock className="size-4" /> Alterar senha
                 </Link>
               </DropdownMenuItem>
+            ) : null}
+            {currentUser.roles && currentUser.roles.length > 1 ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                  Mudar Área (Perfil)
+                </DropdownMenuLabel>
+                {currentUser.roles.map((r) => (
+                  <DropdownMenuItem
+                    key={r}
+                    onClick={() => currentUser.setActiveRole(r)}
+                    className={`text-xs flex items-center justify-between ${
+                      r === currentUser.role ? "font-bold text-primary bg-primary/5" : ""
+                    }`}
+                  >
+                    <span>{r}</span>
+                    {r === currentUser.role ? (
+                      <span className="text-primary font-bold">✓</span>
+                    ) : null}
+                  </DropdownMenuItem>
+                ))}
+              </>
             ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem

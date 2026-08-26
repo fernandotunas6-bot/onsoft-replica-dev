@@ -30,10 +30,18 @@ export function DropoutRiskReportModal({
 }: DropoutRiskReportModalProps) {
   const riskStudents: DropoutRiskStudent[] = generateDropoutRiskReport(rawStudents);
 
-  const handleContactGuardian = (studentName: string) => {
-    toast.success(`Contacto Iniciado`, {
-      description: `Mensagem de alerta enviada ao encarregado de ${studentName}.`,
-    });
+  const handleContactGuardian = async (student: DropoutRiskStudent) => {
+    const text = `Alerta SIGA — Risco de desistência: ${student.studentName} (${student.className}, proc. ${student.processNumber}). Motivo: ${student.primaryRiskReason}. Pedimos que contacte a secretaria para uma reunião pedagógica urgente.`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Texto do alerta copiado", {
+        description: "Cole na conversa de WhatsApp ou e-mail do encarregado para enviar.",
+      });
+    } catch {
+      toast.error("Não foi possível copiar o texto", {
+        description: "Copie manualmente os dados do aluno para contactar o encarregado.",
+      });
+    }
   };
 
   return (
@@ -162,7 +170,7 @@ export function DropoutRiskReportModal({
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => handleContactGuardian(student.studentName)}
+                          onClick={() => void handleContactGuardian(student)}
                           className="gap-1.5 text-xs shadow-2xs"
                         >
                           <PhoneCall className="size-3.5 text-primary" />
@@ -176,10 +184,7 @@ export function DropoutRiskReportModal({
             </div>
           </div>
         </ModalContent>
-        <ModalFooter
-          onCancel={() => onOpenChange(false)}
-          cancelLabel="Fechar"
-        />
+        <ModalFooter onCancel={() => onOpenChange(false)} cancelLabel="Fechar" />
       </div>
     </ModalShell>
   );

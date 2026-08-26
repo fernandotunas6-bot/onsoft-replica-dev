@@ -1,0 +1,419 @@
+import { z } from "zod";
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import {
+  loadSgaAdminClient,
+  requireSgaWriter,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
+import { resolveUserLinkedEntities } from "@/features/auth/server";
+import {
+  issueAccessCardInputSchema,
+  validateGatePassTokenInputSchema,
+  registerTurnstileDeviceInputSchema,
+  listAccessLogsInputSchema,
+} from "./schemas";
+
+export interface GateEntryRecord {
+  student_id: string | null;
+  person_id: string | null;
+  created_at: string;
+}
+
+export type AttendanceAnomaly = {
+  studentId: string;
+  studentName: string;
+  gateEntryTime: string;
+  issueType: "present_at_gate_absent_in_class" | "late_gate_entry";
+  severity: "high" | "medium";
+  description: string;
+};
+
+/**
+ * Cruza entradas na catraca com o registo de presença da sala de aula do mesmo dia. Um aluno que
+ * entrou no recinto mas foi marcado ausente na aula, ou que só bateu o cartão depois das 08:00,
+ * é sinalizado como anomalia para a secretaria investigar.
+ */
+export function detectAttendanceAnomalies(
+  gateEntries: GateEntryRecord[],
+  classStatusByStudentId: Map<string, string>,
+  personNameByPersonId: Map<string, string>,
+): AttendanceAnomaly[] {
+  const enteredStudentIds = [
+    ...new Set(gateEntries.filter((g) => g.student_id).map((g) => g.student_id!)),
+  ];
+
+  return enteredStudentIds
+    .map((stId): AttendanceAnomaly | null => {
+      const entry = gateEntries.find((g) => g.student_id === stId);
+      const classStatus = classStatusByStudentId.get(stId);
+      const personName = entry?.person_id
+        ? (personNameByPersonId.get(entry.person_id) ?? "Estudante")
+        : "Estudante";
+      const gateEntryTime = entry ? new Date(entry.created_at).toLocaleTimeString("pt-PT") : "—";
+
+      if (classStatus === "absent") {
+        return {
+          studentId: stId,
+          studentName: personName,
+          gateEntryTime,
+          issueType: "present_at_gate_absent_in_class",
+          severity: "high",
+          description: "Entrou no recinto da escola mas foi marcado Ausente na sala de aula.",
+        };
+      }
+
+      const entryHour = entry ? new Date(entry.created_at).getHours() : 0;
+      if (entryHour >= 8) {
+        return {
+          studentId: stId,
+          studentName: personName,
+          gateEntryTime,
+          issueType: "late_gate_entry",
+          severity: "medium",
+          description: "Entrou na portaria após o início das aulas (depois das 08:00).",
+        };
+      }
+
+      return null;
+    })
+    .filter((x): x is AttendanceAnomaly => x !== null);
+}
+
+export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        studentId: z.string().uuid().optional(),
+        personId: z.string().uuid().optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+    let personId = data.personId || linked.person_id;
+    let studentId = data.studentId || linked.student_id;
+
+    if (membership.appRole === "Encarregado") {
+      const allowedIds = linked.linked_students.map((s) => s.student_id);
+      if (studentId && !allowedIds.includes(studentId)) {
+        throw new Error("Sem permissão para consultar o cartão deste educando.");
+      }
+      if (!studentId && allowedIds.length > 0) {
+        studentId = allowedIds[0] ?? null;
+      }
+    }
+
+    if (studentId && !personId) {
+      const { data: st } = await db
+        .from("students")
+        .select("person_id")
+        .eq("id", studentId)
+        .single();
+      if (st) personId = st.person_id;
+    }
+
+    if (!personId) throw new Error("Pessoa não identificada para emissão de cartão.");
+
+    const { data: existingCard } = await db
+      .from("siga_access_cards")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .eq("person_id", personId)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (existingCard) {
+      return existingCard;
+    }
+
+    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+    const cardNumber = `CARD-${new Date().getFullYear()}-${randomSuffix}`;
+    const barcode = `STU${new Date().getFullYear()}${randomSuffix}`;
+    const qrSecret = crypto.randomUUID();
+
+    const { data: created, error } = await db
+      .from("siga_access_cards")
+      .insert({
+        school_id: membership.schoolId,
+        person_id: personId,
+        student_id: studentId ?? null,
+        card_number: cardNumber,
+        barcode,
+        qr_secret: qrSecret,
+        status: "active",
+      })
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível gerar o cartão virtual.");
+    return created;
+  });
+
+export const validateGatePassToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => validateGatePassTokenInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const cleanToken = data.token.trim();
+
+    const { data: card } = await db
+      .from("siga_access_cards")
+      .select("*, students!inner(id, student_number, person_id, status)")
+      .eq("school_id", membership.schoolId)
+      .or(
+        `card_number.eq.${cleanToken},barcode.eq.${cleanToken},qr_secret.eq.${cleanToken},rfid_tag.eq.${cleanToken}`,
+      )
+      .maybeSingle();
+
+    let deviceName = "Catraca Portaria";
+    if (data.deviceId) {
+      const { data: dev } = await db
+        .from("siga_turnstile_devices")
+        .select("name")
+        .eq("id", data.deviceId)
+        .maybeSingle();
+      if (dev) deviceName = dev.name;
+    }
+
+    if (!card) {
+      await db.from("siga_access_logs").insert({
+        school_id: membership.schoolId,
+        device_id: data.deviceId ?? null,
+        device_name: deviceName,
+        direction: data.direction,
+        status: "denied",
+        denial_reason: "Cartão / Token não reconhecido.",
+      });
+
+      return {
+        granted: false,
+        reason: "Cartão ou QR Code não reconhecido pelo sistema de catracas.",
+      };
+    }
+
+    if (card.status !== "active") {
+      await db.from("siga_access_logs").insert({
+        school_id: membership.schoolId,
+        person_id: card.person_id,
+        student_id: card.student_id,
+        card_id: card.id,
+        device_id: data.deviceId ?? null,
+        device_name: deviceName,
+        direction: data.direction,
+        status: "denied",
+        denial_reason: `Cartão com estado: ${card.status}`,
+      });
+
+      return {
+        granted: false,
+        reason: `Acesso negado: cartão ${card.status === "suspended" ? "suspenso" : "inativo"}.`,
+      };
+    }
+
+    const { loadPeopleLite } = await import("@/features/people/lookup");
+    const peopleMap = await loadPeopleLite(db, membership.schoolId, [card.person_id]);
+    const person = peopleMap.get(card.person_id);
+
+    await db.from("siga_access_logs").insert({
+      school_id: membership.schoolId,
+      person_id: card.person_id,
+      student_id: card.student_id,
+      card_id: card.id,
+      device_id: data.deviceId ?? null,
+      device_name: deviceName,
+      direction: data.direction,
+      status: "granted",
+    });
+
+    return {
+      granted: true,
+      personName: person?.full_name ?? "Estudante",
+      photoUrl: person?.photo_url ?? null,
+      cardNumber: card.card_number,
+      direction: data.direction,
+      timestamp: new Date().toISOString(),
+    };
+  });
+
+export const listTurnstileDevices = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const { data: devices, error } = await db
+      .from("siga_turnstile_devices")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw publicDatabaseError(error, "Não foi possível listar as catracas.");
+    return devices ?? [];
+  });
+
+export const registerTurnstileDevice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => registerTurnstileDeviceInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: created, error } = await db
+      .from("siga_turnstile_devices")
+      .insert({
+        school_id: membership.schoolId,
+        name: data.name.trim(),
+        location: data.location.trim(),
+        device_type: data.deviceType,
+        direction_capability: data.directionCapability,
+        ip_address: data.ipAddress ?? null,
+        mac_address: data.macAddress ?? null,
+        api_key: `KEY-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+        status: "online",
+        last_ping_at: new Date().toISOString(),
+      })
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível registar o dispositivo.");
+    return created;
+  });
+
+export const listAccessLogs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => listAccessLogsInputSchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    let query = db
+      .from("siga_access_logs")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+
+    if (data.studentId) query = query.eq("student_id", data.studentId);
+    if (data.status) query = query.eq("status", data.status);
+
+    const { data: logs, error } = await query;
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar os registos de acesso.");
+
+    const personIds = [
+      ...new Set((logs ?? []).filter((l) => l.person_id).map((l) => l.person_id!)),
+    ];
+    const { loadPeopleLite } = await import("@/features/people/lookup");
+    const peopleMap = personIds.length
+      ? await loadPeopleLite(db, membership.schoolId, personIds)
+      : new Map();
+
+    return (logs ?? []).map((l) => ({
+      id: l.id,
+      person_name: l.person_id
+        ? (peopleMap.get(l.person_id)?.full_name ?? "Pessoa")
+        : "Desconhecido",
+      direction: l.direction,
+      status: l.status,
+      denial_reason: l.denial_reason,
+      device_name: l.device_name ?? "Portaria",
+      timestamp: l.created_at,
+    }));
+  });
+
+export const exportGatePassOfflineList = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const { data: cards, error } = await db
+      .from("siga_access_cards")
+      .select(
+        "id, person_id, student_id, card_number, barcode, qr_secret, rfid_tag, status, expires_at",
+      )
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active");
+
+    if (error)
+      throw publicDatabaseError(error, "Não foi possível exportar a lista offline de catracas.");
+
+    return {
+      schoolId: membership.schoolId,
+      exportedAt: new Date().toISOString(),
+      totalCards: cards?.length ?? 0,
+      cards: cards ?? [],
+    };
+  });
+
+export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const { data: gateEntries } = await db
+      .from("siga_access_logs")
+      .select("student_id, person_id, created_at, direction, status")
+      .eq("school_id", membership.schoolId)
+      .eq("direction", "entry")
+      .eq("status", "granted")
+      .gte("created_at", `${todayStr}T00:00:00.000Z`);
+
+    const { data: classRecords } = await db
+      .from("siga_attendance_records")
+      .select("student_id, status, attendance_session_id")
+      .eq("school_id", membership.schoolId)
+      .eq("date", todayStr);
+
+    const { loadPeopleLite } = await import("@/features/people/lookup");
+    const personIds = (gateEntries ?? []).filter((g) => g.person_id).map((g) => g.person_id!);
+    const peopleMap = personIds.length
+      ? await loadPeopleLite(db, membership.schoolId, personIds)
+      : new Map();
+    const personNameByPersonId = new Map(
+      [...peopleMap].map(([id, person]) => [id, person.full_name]),
+    );
+
+    const classStatusMap = new Map<string, string>();
+    (classRecords ?? []).forEach((r) => {
+      classStatusMap.set(r.student_id, r.status);
+    });
+
+    const anomalies = detectAttendanceAnomalies(gateEntries ?? [], classStatusMap, personNameByPersonId);
+    const totalCampusEntriesToday = new Set(
+      (gateEntries ?? []).filter((g) => g.student_id).map((g) => g.student_id!),
+    ).size;
+
+    return {
+      date: todayStr,
+      totalCampusEntriesToday,
+      anomaliesFound: anomalies.length,
+      anomalies,
+    };
+  });

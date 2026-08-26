@@ -56,18 +56,21 @@ export function ModalShell({
   };
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={(next) => (next ? onOpenChange(true) : handleRequestClose())}>
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(next) => (next ? onOpenChange(true) : handleRequestClose())}
+    >
       <DialogPrimitive.Portal>
         {/* Backdrop escuro com blur suave */}
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        
+
         <DialogPrimitive.Content
           onPointerDownOutside={handlePointerDownOutside}
           onEscapeKeyDown={handleEscapeKeyDown}
           className={cn(
             "fixed left-1/2 top-1/2 z-50 flex w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-border bg-card p-0 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 focus:outline-hidden sm:w-full",
             sizeClasses[size],
-            className
+            className,
           )}
         >
           {children}
@@ -83,7 +86,8 @@ export function ModalShell({
               <div className="space-y-1.5 text-left">
                 <h3 className="font-semibold text-sm text-foreground">Alterações não guardadas</h3>
                 <p className="text-xs text-muted-foreground">
-                  Possui alterações não guardadas no formulário. Tem a certeza que deseja sair e descartar?
+                  Possui alterações não guardadas no formulário. Tem a certeza que deseja sair e
+                  descartar?
                 </p>
               </div>
               <div className="flex items-center justify-end gap-2 pt-2">

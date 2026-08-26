@@ -19,8 +19,10 @@ import { AppearanceProvider } from "@/lib/appearance";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { RouteAccessGate } from "@/components/auth/RouteAccessGate";
 import { SchoolYearProvider } from "@/features/auth/use-school-settings";
+import { EntityFocusProvider } from "@/features/intelligence/entity-focus-context";
 import { isPublicAppPath } from "@/lib/public-paths";
 import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
+import { TenantProvider } from "@/features/saas/tenant-context";
 
 function NotFoundComponent() {
   return (
@@ -125,21 +127,25 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppearanceProvider>
-        {isPublic ? (
-          <Outlet />
-        ) : (
-          <AuthGate>
-            <SchoolYearProvider>
-              <RouteAccessGate>
-                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                <Outlet />
-              </RouteAccessGate>
-            </SchoolYearProvider>
-          </AuthGate>
-        )}
-        <Toaster position="top-right" richColors />
-      </AppearanceProvider>
+      <TenantProvider>
+        <AppearanceProvider>
+          {isPublic ? (
+            <Outlet />
+          ) : (
+            <AuthGate>
+              <SchoolYearProvider>
+                <EntityFocusProvider>
+                  <RouteAccessGate>
+                    {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                    <Outlet />
+                  </RouteAccessGate>
+                </EntityFocusProvider>
+              </SchoolYearProvider>
+            </AuthGate>
+          )}
+          <Toaster position="top-right" richColors />
+        </AppearanceProvider>
+      </TenantProvider>
     </QueryClientProvider>
   );
 }

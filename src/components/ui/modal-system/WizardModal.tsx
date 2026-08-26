@@ -4,6 +4,7 @@ import { ModalShell } from "./ModalShell";
 import { ModalHeader } from "./ModalHeader";
 import { ModalContent } from "./ModalContent";
 import { ModalFooter } from "./ModalFooter";
+import { confirmDiscardChanges } from "./confirm-close";
 import { Button } from "@/components/ui/button";
 
 export interface StepItem {
@@ -69,6 +70,10 @@ export function WizardModal({
     }
   };
 
+  const guardedClose = () => {
+    if (confirmDiscardChanges(hasUnsavedChanges)) onOpenChange(false);
+  };
+
   return (
     <ModalShell
       open={open}
@@ -81,7 +86,7 @@ export function WizardModal({
           {...(icon ? { icon } : {})}
           title={title}
           subtitle={subtitle}
-          onClose={() => onOpenChange(false)}
+          onClose={guardedClose}
         />
 
         {/* Stepper Progress Bar */}
@@ -103,8 +108,8 @@ export function WizardModal({
                         isCompleted
                           ? "bg-emerald-600 text-white"
                           : isCurrent
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "bg-muted text-muted-foreground"
+                            ? "bg-primary text-primary-foreground shadow-xs"
+                            : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {isCompleted ? <Check className="size-3.5" /> : idx + 1}
@@ -114,8 +119,8 @@ export function WizardModal({
                         isCurrent
                           ? "text-foreground font-semibold"
                           : isCompleted
-                          ? "text-muted-foreground"
-                          : "text-muted-foreground/60"
+                            ? "text-muted-foreground"
+                            : "text-muted-foreground/60"
                       }`}
                     >
                       {step.label}
@@ -137,7 +142,7 @@ export function WizardModal({
         <ModalContent>{children}</ModalContent>
 
         <ModalFooter
-          onCancel={() => onOpenChange(false)}
+          onCancel={guardedClose}
           cancelLabel="Cancelar"
           onSubmit={handleSubmit}
           submitLabel={isLastStep ? "Concluir" : "Avançar"}
@@ -145,7 +150,13 @@ export function WizardModal({
           isSubmitting={isSubmitting}
           extraActions={
             !isFirstStep ? (
-              <Button type="button" variant="outline" size="sm" onClick={handlePrev} className="text-xs">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePrev}
+                className="text-xs"
+              >
                 Anterior
               </Button>
             ) : null

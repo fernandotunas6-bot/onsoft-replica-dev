@@ -15,10 +15,7 @@ export function normalizeText(value: unknown): string {
 
 /** Versão sem acentos, minúsculas — só para comparação, nunca para gravar. */
 export function foldForCompare(value: unknown): string {
-  return normalizeText(value)
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
+  return normalizeText(value).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
 const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);

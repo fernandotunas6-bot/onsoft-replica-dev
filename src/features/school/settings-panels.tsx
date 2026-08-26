@@ -21,8 +21,14 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
+import { useOptionalStackNav } from "@/components/ui/stacked-modal";
 import { emptyInstitution, schoolSettingDefaults } from "@/lib/school-config";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import {
+  resolveGradingProfile,
+  DEFAULT_SUPERIOR_GRADING_PROFILE,
+} from "@/features/academic/grading-profiles";
+import { ProgramCurriculumPanel } from "@/features/school/ProgramCurriculumPanel";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getSchoolSettings,
@@ -165,6 +171,7 @@ const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 
 export function SchoolSettingsPanel() {
   const currentUser = useCurrentAccount();
+  const stackNav = useOptionalStackNav();
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const resendOn = installed.hasCapability("resend.send");
@@ -263,6 +270,10 @@ export function SchoolSettingsPanel() {
     toggles,
     logoUrl,
   ]);
+
+  useEffect(() => {
+    stackNav?.reportDirty(dirty);
+  }, [dirty, stackNav]);
 
   const update = (id: keyof Institution, value: string) => {
     setInstitution((prev) => ({ ...prev, [id]: value }));
@@ -713,6 +724,7 @@ export function BillingParametersSummary() {
 
 export function BillingSettingsForm() {
   const currentUser = useCurrentAccount();
+  const stackNav = useOptionalStackNav();
   const queryClient = useQueryClient();
   const installed = useInstalledIntegrations();
   const multicaixaOn = installed.isInstalled("multicaixa_express");
@@ -736,6 +748,18 @@ export function BillingSettingsForm() {
       discount: String(billingQuery.data.sibling_discount_percent),
     });
   }, [billingQuery.data]);
+
+  const billingDirty = Boolean(
+    billingQuery.data &&
+    (values.due !== String(billingQuery.data.due_day) ||
+      values.fee !== String(billingQuery.data.late_fee_percent) ||
+      values.grace !== String(billingQuery.data.grace_days) ||
+      values.discount !== String(billingQuery.data.sibling_discount_percent)),
+  );
+
+  useEffect(() => {
+    stackNav?.reportDirty(billingDirty);
+  }, [billingDirty, stackNav]);
 
   const saveBilling = async () => {
     const due = Number(values.due);
@@ -1666,6 +1690,12 @@ export function PedagogicalSettingsPanel() {
   const [teachingLevels, setTeachingLevels] = useState<string[]>([]);
   const [courses, setCourses] = useState<string[]>([]);
   const [closedTerms, setClosedTerms] = useState<Array<1 | 2 | 3>>([]);
+  const [gradingScale, setGradingScale] = useState<"20_ects" | "gpa4">(
+    DEFAULT_SUPERIOR_GRADING_PROFILE.scale,
+  );
+  const [gradingComponents, setGradingComponents] = useState<"frequencia_exame" | "so_exame">(
+    DEFAULT_SUPERIOR_GRADING_PROFILE.components,
+  );
   const [saving, setSaving] = useState(false);
   const [creatingCode, setCreatingCode] = useState<string | null>(null);
   const [lockingTerm, setLockingTerm] = useState<1 | 2 | 3 | null>(null);
@@ -1676,6 +1706,9 @@ export function PedagogicalSettingsPanel() {
     setTeachingLevels(pedagogy.teachingLevels ?? []);
     setCourses(pedagogy.courses ?? []);
     setClosedTerms(pedagogy.closedTerms ?? []);
+    const resolved = resolveGradingProfile({ schoolDefault: pedagogy.gradingProfile ?? null });
+    setGradingScale(resolved.scale);
+    setGradingComponents(resolved.components);
   }, [schoolQuery.data?.pedagogy]);
 
   const existingSubjects = workspaceQuery.data?.subjects ?? [];
@@ -1696,10 +1729,13 @@ export function PedagogicalSettingsPanel() {
       await updatePedagogySettings({
         data: {
           teachingLevels: teachingLevels as Array<
-            "pre_escolar" | "primario" | "i_ciclo" | "ii_ciclo"
+            "pre_escolar" | "primario" | "i_ciclo" | "ii_ciclo" | "tecnico" | "adultos" | "superior"
           >,
           courses: courses as Array<"cfb" | "cej" | "letras" | "tecnico">,
           closedTerms,
+          gradingProfile: teachingLevels.includes("superior")
+            ? { scale: gradingScale, components: gradingComponents }
+            : null,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["school", "settings"] });
@@ -1781,6 +1817,90 @@ export function PedagogicalSettingsPanel() {
           ))}
         </div>
       </div>
+
+      {teachingLevels.includes("superior") ? (
+        <>
+          <Separator />
+          <div>
+            <h4 className="font-display text-base font-extrabold">
+              Motor de notas — Ensino Superior
+            </h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Valor por omissão da escola; cada curso pode ter a sua própria regra nas definições do
+              curso. Sugestão do sistema:{" "}
+              {DEFAULT_SUPERIOR_GRADING_PROFILE.scale === "20_ects"
+                ? "0–20 com créditos ECTS"
+                : "GPA 0–4"}{" "}
+              +{" "}
+              {DEFAULT_SUPERIOR_GRADING_PROFILE.components === "frequencia_exame"
+                ? "Frequência + Exame Final"
+                : "Só Exame Final"}
+              .
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground">
+                  Escala de notas
+                </Label>
+                {[
+                  { id: "20_ects" as const, label: "0–20 com créditos ECTS" },
+                  { id: "gpa4" as const, label: "GPA 0–4 (notas-letra)" },
+                ].map((option) => (
+                  <label
+                    key={option.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5"
+                  >
+                    <Switch
+                      checked={gradingScale === option.id}
+                      disabled={!canEdit}
+                      onCheckedChange={() => setGradingScale(option.id)}
+                    />
+                    <span className="text-sm font-semibold">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground">
+                  Estrutura de avaliação
+                </Label>
+                {[
+                  { id: "frequencia_exame" as const, label: "Frequência + Exame Final" },
+                  { id: "so_exame" as const, label: "Só Exame Final" },
+                ].map((option) => (
+                  <label
+                    key={option.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5"
+                  >
+                    <Switch
+                      checked={gradingComponents === option.id}
+                      disabled={!canEdit}
+                      onCheckedChange={() => setGradingComponents(option.id)}
+                    />
+                    <span className="text-sm font-semibold">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <h4 className="font-display text-base font-extrabold">Currículo dos Cursos</h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Disciplinas de cada curso, organizadas por semestre, com créditos ECTS. Usado para
+              aplicar automaticamente as disciplinas certas a uma turma desse curso.
+            </p>
+            <div className="mt-3">
+              <ProgramCurriculumPanel
+                courses={workspaceQuery.data?.courses ?? []}
+                subjects={workspaceQuery.data?.subjects ?? []}
+                canEdit={canEdit}
+              />
+            </div>
+          </div>
+        </>
+      ) : null}
 
       <Separator />
 

@@ -5,7 +5,10 @@ import {
   rollbackImportJobSchema,
   importModuleOptions,
 } from "@/features/import/schemas";
-import { generateOfficialCsvTemplate, OFFICIAL_TEMPLATES } from "@/features/import/official-templates";
+import {
+  generateOfficialCsvTemplate,
+  OFFICIAL_TEMPLATES,
+} from "@/features/import/official-templates";
 
 describe("Motor de Importação SIGA — Schemas & Templates", () => {
   it("valida criação de job de importação com módulo válido", () => {

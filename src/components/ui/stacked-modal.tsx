@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { ElementType } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { ChipTone } from "@/components/ui/icon-chip";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { cn } from "@/lib/utils";
 
 /**
@@ -41,6 +42,8 @@ export type StackNav = {
   reset: () => void;
   close: () => void;
   depth: number;
+  /** Painéis com formulários chamam isto para proteger o fecho do modal contra perda de dados. */
+  reportDirty: (dirty: boolean) => void;
 };
 
 const NavContext = createContext<StackNav | null>(null);
@@ -49,6 +52,11 @@ export function useStackNav() {
   const ctx = useContext(NavContext);
   if (!ctx) throw new Error("useStackNav deve ser usado dentro de <StackedModal>");
   return ctx;
+}
+
+/** Variante seguro para componentes partilhados que também renderizam fora do StackedModal. */
+export function useOptionalStackNav() {
+  return useContext(NavContext);
 }
 
 export function StackedModal({
@@ -86,6 +94,11 @@ export function StackedModal({
   };
 
   const [activeId, setActiveId] = useState(() => resolveTopId(initialPanelId));
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    setDirty(false);
+  }, [activeId]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -101,10 +114,19 @@ export function StackedModal({
   }, [open, initialPanelId]);
 
   const push = (id: string) => byId.has(id) && setActiveId(resolveTopId(id));
-  const close = () => onOpenChange(false);
+  const close = () => {
+    if (confirmDiscardChanges(dirty)) onOpenChange(false);
+  };
 
   const nav: StackNav = useMemo(
-    () => ({ push, back: () => {}, reset: () => setActiveId(resolveTopId()), close, depth: 1 }),
+    () => ({
+      push,
+      back: () => {},
+      reset: () => setActiveId(resolveTopId()),
+      close,
+      depth: 1,
+      reportDirty: setDirty,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- push/close recriam-se por render, mas são estáveis o suficiente aqui
     [byId, topRows],
   );
@@ -126,7 +148,13 @@ export function StackedModal({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !confirmDiscardChanges(dirty)) return;
+        onOpenChange(next);
+      }}
+    >
       <DialogContent
         className={cn(
           "flex h-[min(700px,85vh)] flex-col gap-0 overflow-hidden border-border/70 p-0 shadow-2xl sm:rounded-2xl",

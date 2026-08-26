@@ -1,6 +1,8 @@
 /**
- * Motor de Pagamentos Automáticos Angolanos — EMIS / Multicaixa Express / Kwik / Unitel Money / RUPE.
- * Suporta geração de referências ponderadas, simulação de liquidação e recepção de Webhook.
+ * Geração local de referências de pagamento angolanas — EMIS / Multicaixa Express / Kwik /
+ * Unitel Money / RUPE (formato e dígito de controlo correctos). Não há integração automática
+ * com o EMIS: a confirmação do pagamento é sempre manual, feita pela tesouraria depois de ver
+ * o comprovativo (ver confirmManualMulticaixaPayment em server.ts).
  */
 
 export interface MulticaixaReference {

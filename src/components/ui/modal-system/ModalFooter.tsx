@@ -30,12 +30,10 @@ export function ModalFooter({
     <div
       className={cn(
         "flex items-center justify-between border-t border-border bg-muted/10 px-5 py-3 gap-3",
-        className
+        className,
       )}
     >
-      <div className="flex items-center gap-2">
-        {extraActions}
-      </div>
+      <div className="flex items-center gap-2">{extraActions}</div>
 
       <div className="flex items-center gap-2">
         {onCancel && (

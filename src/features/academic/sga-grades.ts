@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { calculateTrimesterAverage } from "@/lib/angola-academic";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- remote SGA schema has no generated types
 type Db = SupabaseClient<any>;
@@ -340,7 +341,7 @@ export async function upsertSgaTermGrade(params: {
     mac,
     npp,
     npt,
-    average: (mac + npp + npt) / 3,
+    average: calculateTrimesterAverage(mac, npt, npp),
     gradebook_id: gradebookId,
   };
 }

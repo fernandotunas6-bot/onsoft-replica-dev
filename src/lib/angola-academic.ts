@@ -13,25 +13,55 @@ export const angolaTeachingLevels = [
     label: "Ensino Primário (1ª–6ª)",
     cycle: "Primário",
     classes: ["1ª", "2ª", "3ª", "4ª", "5ª", "6ª"],
-    match: /prim[aá]r|1[ªa]|2[ªa]|3[ªa]|4[ªa]|5[ªa]|6[ªa]/i,
+    // Aceita "1ª"/"1.ª"/"1a" — os dados reais das turmas usam o formato com ponto ("1.ª Classe").
+    match: /prim[aá]r|[123456]\.?\s?[ªa]/i,
   },
   {
     id: "i_ciclo",
     label: "I Ciclo do Ensino Secundário (7ª–9ª)",
     cycle: "I Ciclo",
     classes: ["7ª", "8ª", "9ª"],
-    match: /i\s*ciclo|7[ªa]|8[ªa]|9[ªa]|primeiro ciclo/i,
+    match: /i\s*ciclo|[789]\.?\s?[ªa]|primeiro ciclo/i,
   },
   {
     id: "ii_ciclo",
     label: "II Ciclo / Ensino Médio (10ª–13ª)",
     cycle: "II Ciclo",
     classes: ["10ª", "11ª", "12ª", "13ª"],
-    match: /ii\s*ciclo|m[eé]dio|10[ªa]|11[ªa]|12[ªa]|13[ªa]/i,
+    match: /ii\s*ciclo|m[eé]dio|1[0123]\.?\s?[ªa]/i,
+  },
+  {
+    id: "superior",
+    label: "Ensino Superior (1º–5º Ano)",
+    cycle: "Superior",
+    classes: ["1º Ano", "2º Ano", "3º Ano", "4º Ano", "5º Ano"],
+    // Ordinal masculino "º" (Ano) em vez do feminino "ª" (Classe) usado no ensino geral — não colide
+    // com os matchers de primario/i_ciclo/ii_ciclo acima.
+    match: /superior|licenciatura|mestrado|\d\.?\s?º\s?ano/i,
   },
 ] as const;
 
 export type AngolaTeachingLevelId = (typeof angolaTeachingLevels)[number]["id"];
+
+/** Mesmos ciclos usados pelo motor de avaliação e pelas pautas (assessment-engine.ts, pautas/types.ts). */
+export type AngolaTeachingCycle =
+  "primario" | "i_ciclo" | "ii_ciclo" | "tecnico" | "adultos" | "superior";
+
+/**
+ * Deriva o ciclo de ensino a partir da classe/curso reais de uma turma — fonte única usada tanto
+ * pelas Pautas (PautasWorkspaceModule.tsx) como pelo Histórico académico (academic/server.ts) para
+ * nunca inferir ciclos diferentes para os mesmos dados.
+ */
+export function inferTeachingCycle(
+  gradeName?: string | null,
+  courseName?: string | null,
+): AngolaTeachingCycle {
+  const course = (courseName ?? "").toLowerCase();
+  if (course.includes("técnic") || course.includes("tecnic")) return "tecnico";
+  const level = angolaTeachingLevels.find((lvl) => lvl.match.test(gradeName ?? ""));
+  if (!level) return "i_ciclo";
+  return level.id === "pre_escolar" ? "primario" : level.id;
+}
 
 export const angolaSecondaryCourses = [
   { id: "cfb", label: "Ciências Físicas e Biológicas", short: "CFB" },
@@ -72,8 +102,60 @@ export const angolaGradeScale = {
   ],
 } as const;
 
+/**
+ * Fonte única de cálculo de médias (Decreto Executivo n.º 424/25). Usada tanto pelo motor de
+ * avaliação (`assessment-engine.ts`) como pelas pautas (`pautas/assessment.ts`) — não duplicar
+ * esta fórmula noutro sítio.
+ */
+export function normalizeScore(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0 || num > 20) return null;
+  return Math.round((num + Number.EPSILON) * 10) / 10;
+}
+
+/**
+ * Média Trimestral (MT) = (MACT + NPT) / 2. Se um dos dois faltar, degrada temporariamente para
+ * o valor disponível (útil durante o lançamento de notas, antes de a pauta fechar); a NPP não
+ * participa deste cálculo — é só exibida por compatibilidade visual com modelos anteriores.
+ */
+export function calculateTrimesterAverage(
+  mac: number | null | undefined,
+  npt: number | null | undefined,
+  npp?: number | null | undefined,
+): number | null {
+  const normMac = normalizeScore(mac);
+  const normNpt = normalizeScore(npt);
+  const normNpp = normalizeScore(npp);
+
+  if (normMac !== null && normNpt !== null) {
+    return Math.round(((normMac + normNpt) / 2 + Number.EPSILON) * 10) / 10;
+  }
+  if (normMac !== null && normNpp !== null && normNpt !== null) {
+    return Math.round(((normMac + normNpp + normNpt) / 3 + Number.EPSILON) * 10) / 10;
+  }
+  if (normMac !== null) return normMac;
+  if (normNpt !== null) return normNpt;
+  return null;
+}
+
+/** Média Final da Disciplina (MFD) = (MT1 + MT2 + MT3) / 3, com média parcial dos trimestres disponíveis. */
+export function calculateDisciplineFinalAverage(
+  mt1: number | null | undefined,
+  mt2: number | null | undefined,
+  mt3: number | null | undefined,
+): number | null {
+  const v1 = normalizeScore(mt1);
+  const v2 = normalizeScore(mt2);
+  const v3 = normalizeScore(mt3);
+  const valid = [v1, v2, v3].filter((x): x is number => x !== null);
+  if (valid.length === 0) return null;
+  const sum = valid.reduce((a, b) => a + b, 0);
+  return Math.round((sum / valid.length + Number.EPSILON) * 10) / 10;
+}
+
 export function scoreAverage(mac: number, npp: number, npt: number) {
-  return (mac + npp + npt) / 3;
+  return calculateTrimesterAverage(mac, npt, npp) ?? 0;
 }
 
 export function situacaoPauta(average: number, passing: number = angolaGradeScale.passing) {
@@ -92,6 +174,53 @@ export function initialsFromName(name: string) {
       .map((part) => part[0]?.toUpperCase() ?? "")
       .join("") || "?"
   );
+}
+
+/**
+ * Número de períodos lectivos por ciclo — 3 trimestres nos ciclos angolanos já suportados, 2
+ * semestres no Ensino Superior. Fonte única usada pelas Pautas (mini/trimestre/final) e pelo
+ * motor de avaliação para nunca assumir "3" fixo num sítio e "2" configurável noutro.
+ */
+export const CYCLE_PERIOD_COUNT: Record<AngolaTeachingCycle, 2 | 3> = {
+  primario: 3,
+  i_ciclo: 3,
+  ii_ciclo: 3,
+  tecnico: 3,
+  adultos: 3,
+  superior: 2,
+};
+
+export function getPeriodCountForCycle(cycle?: AngolaTeachingCycle | null): 2 | 3 {
+  return cycle ? CYCLE_PERIOD_COUNT[cycle] : 3;
+}
+
+/** [1,2,3] para os ciclos trimestrais, [1,2] para o Ensino Superior. */
+export function getPeriodsForCycle(cycle?: AngolaTeachingCycle | null): Array<1 | 2 | 3> {
+  return getPeriodCountForCycle(cycle) === 2 ? [1, 2] : [1, 2, 3];
+}
+
+/** "Trimestre" ou "Semestre", consoante o ciclo. */
+export function getPeriodNoun(cycle?: AngolaTeachingCycle | null): "Trimestre" | "Semestre" {
+  return getPeriodCountForCycle(cycle) === 2 ? "Semestre" : "Trimestre";
+}
+
+/** Ex.: "1º Trimestre" / "1º Semestre". */
+export function getPeriodLabel(
+  cycle: AngolaTeachingCycle | null | undefined,
+  period: number,
+): string {
+  return `${period}º ${getPeriodNoun(cycle)}`;
+}
+
+const romanPeriod = ["", "I", "II", "III"] as const;
+
+/** Ex.: "I TRIMESTRE" / "I SEMESTRE" — usado nos cabeçalhos das pautas impressas. */
+export function getPeriodLabelUpper(
+  cycle: AngolaTeachingCycle | null | undefined,
+  period: number,
+): string {
+  const roman = romanPeriod[period] ?? String(period);
+  return `${roman} ${getPeriodNoun(cycle).toUpperCase()}`;
 }
 
 export function gradeMatchesTeachingLevels(gradeName: string, enabled: readonly string[]) {

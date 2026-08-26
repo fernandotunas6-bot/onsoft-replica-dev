@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { cn } from "@/lib/utils";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -133,6 +134,8 @@ export function PrintTemplateStudio() {
     }
   };
 
+  const hasUnsavedChanges = Boolean(templateQuery.data) && draft !== templateQuery.data?.source;
+
   return (
     <div id="modelos" className="scroll-mt-24">
       {resendDocuments ? (
@@ -221,16 +224,19 @@ export function PrintTemplateStudio() {
       <ModalShell
         open={Boolean(openKey)}
         onOpenChange={(open) => {
-          if (!open) setOpenKey(null);
+          if (!open && confirmDiscardChanges(hasUnsavedChanges)) setOpenKey(null);
         }}
         size="full"
+        hasUnsavedChanges={hasUnsavedChanges}
       >
         <div className="flex flex-col h-full">
           <ModalHeader
             icon={FileStack}
             title={templateQuery.data?.title ?? "Modelo de impressão"}
             subtitle="Altere o HTML do modelo. A pré-visualização usa dados de exemplo da escola."
-            onClose={() => setOpenKey(null)}
+            onClose={() => {
+              if (confirmDiscardChanges(hasUnsavedChanges)) setOpenKey(null);
+            }}
           />
           <ModalContent>
             <div className="grid min-h-[68vh] gap-4 lg:grid-cols-2">
@@ -261,7 +267,9 @@ export function PrintTemplateStudio() {
             </div>
           </ModalContent>
           <ModalFooter
-            onCancel={() => setOpenKey(null)}
+            onCancel={() => {
+              if (confirmDiscardChanges(hasUnsavedChanges)) setOpenKey(null);
+            }}
             onSubmit={async () => {
               if (openKey) await saveDraft();
             }}

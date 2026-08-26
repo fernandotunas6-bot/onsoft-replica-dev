@@ -40,6 +40,7 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { classroomCourseHref, meetingRoomLink } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet } from "@/features/academic/ClassGroupSheet";
+import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
 import { GradePautaSheet } from "@/features/academic/GradePautaSheet";
 import { ScheduleWorkspace } from "@/features/academic/schedule/ScheduleWorkspace";
 import { documentValidationCode } from "@/features/academic/assessment-views";
@@ -52,11 +53,9 @@ import {
   createSubject,
   updateSubject,
   deactivateSubject,
-  deleteClassGroup,
   ensureAcademicDefaults,
   assignClassSubjectTeacher,
   listPedagogicalWorkspace,
-  updateClassGroup,
   upsertTermGrade,
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
@@ -80,6 +79,7 @@ import { usePersistedListFilters } from "@/lib/list-filters";
 import { PautaOcrScannerModal } from "@/features/pedagogica/components/PautaOcrScannerModal";
 import { DropoutRiskReportModal } from "@/features/pedagogica/components/DropoutRiskReportModal";
 import { PautasWorkspaceModule } from "@/features/pedagogica/components/pautas/PautasWorkspaceModule";
+import { AttendanceWorkspaceModule } from "@/features/pedagogica/components/AttendanceWorkspaceModule";
 import { toast } from "sonner";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
 
@@ -97,7 +97,9 @@ const AssessmentCenter = lazy(() =>
 
 const pedagogicaSearchSchema = z
   .object({
-    tab: z.enum(["turmas", "disciplinas", "notas", "horarios", "pautas"]).optional(),
+    tab: z
+      .enum(["turmas", "disciplinas", "notas", "horarios", "presencas", "chamada", "pautas"])
+      .optional(),
     turma: z.string().uuid().optional(),
     disciplina: z.string().uuid().optional(),
     pauta: z.enum(["1"]).optional(),
@@ -141,12 +143,6 @@ const shiftLabels = {
   morning: "Manhã",
   afternoon: "Tarde",
   evening: "Noite",
-} as const;
-
-const shiftValues = {
-  Manhã: "morning",
-  Tarde: "afternoon",
-  Noite: "evening",
 } as const;
 
 function optionLabel(id: string, label: string) {
@@ -242,7 +238,6 @@ function PedagogicaPage() {
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const installed = useInstalledIntegrations();
-  const whatsappOn = installed.hasCapability("whatsapp.class_groups");
   const zoomOn = installed.hasCapability("zoom.rooms");
   const teamsOn = installed.hasCapability("teams.meetings");
   const classroomOn = installed.hasCapability("classroom.classes");
@@ -263,6 +258,7 @@ function PedagogicaPage() {
   const [tab, setTab] = useState<PedagogicaTab>(tabFromSearch ?? "turmas");
   const [bootstrapping, setBootstrapping] = useState(false);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
+  const [openTurmaId, setOpenTurmaId] = useState<string | null>(null);
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "pedagogica",
     pedagogicaFilterDefaults,
@@ -305,7 +301,9 @@ function PedagogicaPage() {
 
   const onTabChange = (next: string) => {
     if (
-      !(["turmas", "disciplinas", "notas", "horarios"] as const).includes(next as PedagogicaTab)
+      !(
+        ["turmas", "disciplinas", "notas", "horarios", "presencas", "chamada", "pautas"] as const
+      ).includes(next as PedagogicaTab)
     ) {
       return;
     }
@@ -329,6 +327,7 @@ function PedagogicaPage() {
   const subjects = workspace?.subjects ?? [];
   const termGrades = workspace?.termGrades ?? [];
   const enrollmentOptions = workspace?.enrollmentOptions ?? [];
+  const classSubjects = workspace?.classSubjects ?? [];
   const scheduleSlots = workspace?.scheduleSlots ?? [];
   const subjectsAvailable = workspace?.subjectsAvailable !== false;
   const gradesAvailable = workspace?.gradesAvailable !== false;
@@ -338,7 +337,6 @@ function PedagogicaPage() {
     gradeMatchesTeachingLevels(String(grade.name ?? ""), teachingLevels),
   );
   const yearOptions = academicYears.map((year) => optionLabel(year.id, year.name));
-  const courseOptions = courses.map((course) => optionLabel(course.id, course.name));
   const gradeOptions = visibleGradeLevels.map((grade) => optionLabel(grade.id, grade.name));
   const roomOptions = ["Sem sala", ...rooms.map((room) => optionLabel(room.id, room.name))];
   const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
@@ -663,7 +661,8 @@ function PedagogicaPage() {
                     onClick={() => setOcrModalOpen(true)}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Sparkles className="size-3.5 text-primary" /> Scanner OCR Pauta Papel
+                    <Sparkles className="size-3.5 text-primary" /> Scanner OCR Pauta Papel (em
+                    breve)
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setDropoutModalOpen(true)}
@@ -717,11 +716,9 @@ function PedagogicaPage() {
               {canManageAcademic && structureReady ? (
                 <ClassGroupSheet
                   yearOptions={yearOptions}
-                  courseOptions={courseOptions}
                   gradeOptions={gradeOptions}
                   roomOptions={roomOptions}
                   yearIds={academicYears.map((year) => year.id)}
-                  courseIds={courses.map((course) => course.id)}
                   gradeIds={visibleGradeLevels.map((grade) => grade.id)}
                   roomIds={rooms.map((room) => room.id)}
                   onCreated={async () => {
@@ -789,6 +786,7 @@ function PedagogicaPage() {
             <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
             <TabsTrigger value="notas">Notas</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
+            <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
             <TabsTrigger value="pautas">Modelos de Pauta</TabsTrigger>
           </TabsList>
           <div className="mt-4">
@@ -931,9 +929,13 @@ function PedagogicaPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="font-display text-lg font-extrabold tracking-tight">
+                              <button
+                                type="button"
+                                onClick={() => setOpenTurmaId(t.id)}
+                                className="font-display text-lg font-extrabold tracking-tight hover:text-primary hover:underline"
+                              >
                                 Turma {t.nome}
-                              </p>
+                              </button>
                               <p className="text-xs text-muted-foreground">
                                 {t.curso} · {t.classe} · {t.ano}
                               </p>
@@ -990,112 +992,6 @@ function PedagogicaPage() {
                           <ClassMaterialsPanel classGroupId={t.id} classLabel={t.nome} />
                           {canManageAcademic ? (
                             <div className="mt-4 flex flex-wrap gap-2">
-                              {teacherOptions.length > 0 && subjectOptions.length > 0 ? (
-                                <AssignTeacherForm
-                                  turmaOptions={turmaAssignOptions}
-                                  subjectOptions={subjectOptions}
-                                  teacherOptions={teacherOptions}
-                                  turmaIds={classGroups.map((group) => group.id)}
-                                  subjectIds={subjects.map((subject) => subject.id)}
-                                  teacherIds={teachers.map((teacher) => teacher.id)}
-                                  defaultTurma={optionLabel(t.id, t.nome)}
-                                  triggerLabel="Professor"
-                                  onAssigned={refreshAcademic}
-                                />
-                              ) : null}
-                              <QuickFormModal
-                                title="Editar turma"
-                                eyebrow="Pedagógica"
-                                description="Actualize código, nome, turno, capacidade e estado."
-                                icon={<Pencil className="size-5" />}
-                                submitLabel="Guardar"
-                                onSubmit={async (values) => {
-                                  const capacity = Number(values["capacidade"] || t.capacidadeReal);
-                                  await updateClassGroup({
-                                    data: {
-                                      id: t.id,
-                                      code: values["codigo"] ?? t.code,
-                                      name: values["nome"] ?? t.nome,
-                                      shift:
-                                        shiftValues[
-                                          (values["turno"] as
-                                            keyof typeof shiftValues | undefined) ?? "Manhã"
-                                        ],
-                                      capacity: Number.isFinite(capacity)
-                                        ? capacity
-                                        : t.capacidadeReal,
-                                      roomId: t.campusId,
-                                      status:
-                                        values["estado"] === "Inactiva" ? "inactive" : "active",
-                                      whatsappInviteUrl: values["whatsapp"] || undefined,
-                                      whatsappGroupName: values["whatsappNome"] || undefined,
-                                    },
-                                  });
-                                  await queryClient.invalidateQueries({
-                                    queryKey: ["academic", "pedagogical-workspace"],
-                                  });
-                                }}
-                                fields={[
-                                  {
-                                    name: "nome",
-                                    label: "Designação",
-                                    defaultValue: t.nome,
-                                    full: true,
-                                  },
-                                  {
-                                    name: "codigo",
-                                    label: "Código",
-                                    defaultValue: t.code,
-                                  },
-                                  {
-                                    name: "turno",
-                                    label: "Turno",
-                                    type: "select",
-                                    options: ["Manhã", "Tarde", "Noite"],
-                                    defaultValue: t.turno,
-                                  },
-                                  {
-                                    name: "capacidade",
-                                    label: "Capacidade",
-                                    type: "number",
-                                    defaultValue: t.capacidadeReal,
-                                  },
-                                  {
-                                    name: "estado",
-                                    label: "Estado",
-                                    type: "select",
-                                    options: ["Activa", "Inactiva"],
-                                    defaultValue: t.status === "inactive" ? "Inactiva" : "Activa",
-                                  },
-                                  ...(whatsappOn
-                                    ? [
-                                        {
-                                          name: "whatsappNome",
-                                          label: "Sala WhatsApp",
-                                          defaultValue: t.whatsappGroupName,
-                                          required: false,
-                                        },
-                                        {
-                                          name: "whatsapp",
-                                          label: "Link WhatsApp",
-                                          defaultValue: t.whatsappInviteUrl,
-                                          full: true,
-                                          required: false,
-                                        },
-                                      ]
-                                    : []),
-                                ]}
-                                trigger={(open) => (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1.5"
-                                    onClick={open}
-                                  >
-                                    <Pencil className="size-3.5" /> Editar
-                                  </Button>
-                                )}
-                              />
                               {t.whatsappInviteUrl ? (
                                 <Button size="sm" variant="outline" className="gap-1.5" asChild>
                                   <a href={t.whatsappInviteUrl} target="_blank" rel="noreferrer">
@@ -1191,27 +1087,6 @@ function PedagogicaPage() {
                                   </a>
                                 </Button>
                               ) : null}
-                              <ConfirmActionModal
-                                title="Desactivar turma"
-                                description={`A turma ${t.nome} será marcada como inactiva. Matrículas activas bloqueiam esta operação.`}
-                                confirmLabel="Desactivar"
-                                onConfirm={async () => {
-                                  await deleteClassGroup({ data: { id: t.id } });
-                                  await queryClient.invalidateQueries({
-                                    queryKey: ["academic", "pedagogical-workspace"],
-                                  });
-                                }}
-                                trigger={(open) => (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="gap-1.5 text-destructive"
-                                    onClick={open}
-                                  >
-                                    <Trash2 className="size-3.5" /> Excluir
-                                  </Button>
-                                )}
-                              />
                             </div>
                           ) : null}
                         </div>
@@ -1782,6 +1657,14 @@ function PedagogicaPage() {
             />
           </TabsContent>
 
+          <TabsContent value="presencas" className="mt-5 space-y-6">
+            <AttendanceWorkspaceModule />
+          </TabsContent>
+
+          <TabsContent value="chamada" className="mt-5 space-y-6">
+            <AttendanceWorkspaceModule />
+          </TabsContent>
+
           <TabsContent value="pautas" className="mt-5 space-y-6">
             <PautasWorkspaceModule workspace={workspace} />
           </TabsContent>
@@ -1800,6 +1683,7 @@ function PedagogicaPage() {
           subjects={subjects}
           enrollments={enrollmentOptions}
           termGrades={termGrades}
+          classSubjects={classSubjects}
           passingGrade={school?.passing_grade ?? 10}
           canLaunch={canLaunchGrades}
           canLockTerm={account.role === "Administrador"}
@@ -1809,6 +1693,18 @@ function PedagogicaPage() {
           initialSubjectId={disciplinaFromSearch}
         />
       </Suspense>
+
+      <TurmaProfileModal
+        open={Boolean(openTurmaId)}
+        onOpenChange={(next) => {
+          if (!next) setOpenTurmaId(null);
+        }}
+        classGroupId={openTurmaId}
+        workspace={workspace}
+        teacherOptions={teacherOptions}
+        teacherIds={teachers.map((teacher) => teacher.id)}
+        onRefresh={refreshAcademic}
+      />
 
       <PautaOcrScannerModal
         open={ocrModalOpen}

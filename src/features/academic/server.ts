@@ -9,6 +9,8 @@ import {
 import { pedagogySettingsSchema } from "@/features/school/schemas";
 import { averagePercent } from "@/features/students/schemas";
 import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
+import { scoreAverage, inferTeachingCycle } from "@/lib/angola-academic";
+import { buildClassAcademicSummaries } from "./assessment-engine";
 import {
   ensureDefaultTeacher,
   listSgaTermGrades,
@@ -38,11 +40,13 @@ import {
   upsertAssessmentScoresInputSchema,
   assignClassSubjectTeacherInputSchema,
   unassignClassSubjectTeacherInputSchema,
+  getStudentAcademicHistoryInputSchema,
+  listProgramCurriculumInputSchema,
+  addProgramSubjectInputSchema,
+  removeProgramSubjectInputSchema,
+  updateProgramGradingProfileInputSchema,
+  applyCurriculumToClassGroupInputSchema,
 } from "./schemas";
-
-function scoreAverage(mac: number, npp: number, npt: number) {
-  return (mac + npp + npt) / 3;
-}
 
 async function assertTermOpen(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
@@ -213,6 +217,7 @@ type EnrollmentOptionSummary = {
   student_id: string | null;
   student_name: string;
   student_photo_url: string | null;
+  student_gender: string | null;
   registration_number: string | null;
   class_group_id: string | null;
   class_group_name: string;
@@ -237,6 +242,7 @@ type ClassSubjectNav = {
   subject_id: string;
   subject_name: string;
   teacher_id: string | null;
+  teacher_name: string | null;
 };
 
 export type PedagogicalWorkspace = {
@@ -478,6 +484,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         full_name: string;
         registration_number: string;
         photo_url: string | null;
+        sex: string | null;
       }
     >();
     if (studentIds.length > 0) {
@@ -502,6 +509,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           full_name: person?.full_name ?? "—",
           registration_number: student.student_number,
           photo_url: person?.photo_url ?? null,
+          sex: person?.sex ?? null,
         });
       }
     }
@@ -530,6 +538,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         student_id: student?.id ?? String(enrollment.student_id),
         student_name: student?.full_name ?? "—",
         student_photo_url: student?.photo_url ?? null,
+        student_gender: student?.sex ?? null,
         registration_number: student?.registration_number ?? null,
         class_group_id: enrollment.class_group_id ? String(enrollment.class_group_id) : null,
         class_group_name: (group?.["name"] as string) ?? "—",
@@ -617,14 +626,44 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       };
     });
 
+    const teacherIds = [
+      ...new Set(
+        (classSubjects ?? [])
+          .map((row: Record<string, unknown>) => row["teacher_id"])
+          .filter((id): id is string => Boolean(id))
+          .map(String),
+      ),
+    ];
+    const teacherNameById = new Map<string, string>();
+    if (teacherIds.length > 0) {
+      const { data: teacherRows } = await db
+        .from("teachers")
+        .select("id, person_id")
+        .in("id", teacherIds);
+      const personIds = [
+        ...new Set(
+          (teacherRows ?? [])
+            .map((row: { person_id: string | null }) => row.person_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
+      const teacherPeopleById = await loadPeopleLite(db, membership.schoolId, personIds);
+      for (const teacher of teacherRows ?? []) {
+        const person = teacher.person_id ? teacherPeopleById.get(teacher.person_id) : undefined;
+        if (person?.full_name) teacherNameById.set(String(teacher.id), person.full_name);
+      }
+    }
+
     const classSubjectNav: ClassSubjectNav[] = (classSubjects ?? []).map((row) => {
       const record = row as Record<string, unknown>;
       const subject = record["subject_id"] ? subjectById.get(String(record["subject_id"])) : null;
+      const teacherId = record["teacher_id"] ? String(record["teacher_id"]) : null;
       return {
         class_group_id: String(record["class_group_id"] ?? ""),
         subject_id: String(record["subject_id"] ?? ""),
         subject_name: String(subject?.["name"] ?? "Disciplina"),
-        teacher_id: record["teacher_id"] ? String(record["teacher_id"]) : null,
+        teacher_id: teacherId,
+        teacher_name: teacherId ? (teacherNameById.get(teacherId) ?? null) : null,
       };
     });
 
@@ -651,6 +690,11 @@ export const createClassGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createClassGroupInputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    // class_groups não tem coluna de curso/programa própria — o curso vem
+    // sempre de grade_levels.program_id (ver leitura em listPedagogicalWorkspace).
+    // Por isso o input não pede courseId: pedir uma segunda selecção "Curso"
+    // independente da Classe seria uma escolha que o formulário mostrava
+    // como significativa mas que nunca era gravada em lado nenhum.
     if (!context) throw new Error("Não autenticado.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
@@ -1915,4 +1959,436 @@ export const deleteAssessmentItem = createServerFn({ method: "POST" })
     }
 
     return { success: true, deletedScoresCount: count ?? 0 };
+  });
+
+export type StudentAcademicHistoryYear = {
+  academicYearId: string | null;
+  academicYearName: string;
+  academicYearStartsOn: string | null;
+  classGroupName: string;
+  gradeName: string;
+  courseName: string;
+  enrollmentStatus: string;
+  cycle: string;
+  subjects: ReturnType<typeof buildClassAcademicSummaries>[number]["subjects"];
+  overallMfd: number | null;
+  status: ReturnType<typeof buildClassAcademicSummaries>[number]["status"];
+};
+
+/**
+ * Histórico académico multi-ano de um aluno: percorre TODAS as matrículas (não só a activa) e usa
+ * o motor único (assessment-engine.ts) para calcular médias e situação de cada ano lectivo — a
+ * mesma fonte usada pela Pauta Final, para o Histórico e o Certificado nunca divergirem dela.
+ */
+export const getStudentAcademicHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => getStudentAcademicHistoryInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<{ years: StudentAcademicHistoryYear[] }> => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const db = await loadSgaAdminClient();
+
+    const { data: enrollments, error: enrollmentsError } = await db
+      .from("enrollments")
+      .select("id, class_group_id, academic_year_id, status")
+      .eq("student_id", data.studentId)
+      .eq("school_id", membership.schoolId);
+    if (enrollmentsError) {
+      throw publicDatabaseError(
+        enrollmentsError,
+        "Não foi possível carregar as matrículas do aluno.",
+      );
+    }
+    if (!enrollments?.length) return { years: [] };
+
+    const classGroupIds = [
+      ...new Set(
+        enrollments.map((e) => e.class_group_id).filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const yearIds = [
+      ...new Set(
+        enrollments.map((e) => e.academic_year_id).filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const enrollmentIds = enrollments.map((e) => String(e.id));
+
+    const [
+      { data: groups, error: groupsError },
+      { data: years, error: yearsError },
+      { data: classSubjects, error: classSubjectsError },
+    ] = await Promise.all([
+      classGroupIds.length
+        ? db.from("class_groups").select("id, name, grade_level_id").in("id", classGroupIds)
+        : Promise.resolve({ data: [] as Array<Record<string, unknown>>, error: null }),
+      yearIds.length
+        ? db.from("academic_years").select("id, name, starts_on").in("id", yearIds)
+        : Promise.resolve({ data: [] as Array<Record<string, unknown>>, error: null }),
+      classGroupIds.length
+        ? db
+            .from("class_subjects")
+            .select("class_group_id, subject_id")
+            .in("class_group_id", classGroupIds)
+            .eq("status", "active")
+        : Promise.resolve({ data: [] as Array<Record<string, unknown>>, error: null }),
+    ]);
+    if (groupsError)
+      throw publicDatabaseError(groupsError, "Não foi possível carregar as turmas do aluno.");
+    if (yearsError)
+      throw publicDatabaseError(yearsError, "Não foi possível carregar os anos lectivos.");
+    if (classSubjectsError) {
+      throw publicDatabaseError(
+        classSubjectsError,
+        "Não foi possível carregar as disciplinas das turmas.",
+      );
+    }
+
+    // Curso/Programa liga-se pela classe (grade_levels.program_id), não pela turma directamente —
+    // mesmo caminho usado em listPedagogicalWorkspace, para não divergir na resolução de nomes.
+    const gradeLevelIds = [
+      ...new Set(
+        (groups ?? [])
+          .map((g: Record<string, unknown>) => g["grade_level_id"])
+          .filter((id): id is string => Boolean(id))
+          .map(String),
+      ),
+    ];
+    const { data: gradeLevelsData, error: gradeLevelsError } = gradeLevelIds.length
+      ? await db.from("grade_levels").select("id, name, program_id").in("id", gradeLevelIds)
+      : { data: [] as Array<Record<string, unknown>>, error: null };
+    if (gradeLevelsError)
+      throw publicDatabaseError(gradeLevelsError, "Não foi possível carregar as classes.");
+
+    const courseIds = [
+      ...new Set(
+        (gradeLevelsData ?? [])
+          .map((g: Record<string, unknown>) => g["program_id"])
+          .filter((id): id is string => Boolean(id))
+          .map(String),
+      ),
+    ];
+    const { data: coursesData, error: coursesError } = courseIds.length
+      ? await db.from("programs").select("id, name").in("id", courseIds)
+      : { data: [] as Array<Record<string, unknown>>, error: null };
+    if (coursesError)
+      throw publicDatabaseError(coursesError, "Não foi possível carregar os cursos.");
+
+    const subjectIds = [
+      ...new Set(
+        (classSubjects ?? [])
+          .map((cs: Record<string, unknown>) => cs["subject_id"])
+          .filter((id): id is string => Boolean(id))
+          .map(String),
+      ),
+    ];
+    const { data: subjectsData } = subjectIds.length
+      ? await db.from("subjects").select("id, name").in("id", subjectIds)
+      : { data: [] as Array<Record<string, unknown>> };
+
+    let termGradeRows: Awaited<ReturnType<typeof listSgaTermGrades>> = [];
+    try {
+      termGradeRows = await listSgaTermGrades({
+        db,
+        schoolId: membership.schoolId,
+        enrollmentIds,
+        limit: 600,
+      });
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !/schema cache|does not exist|42P01|PGRST|grade_/i.test(error.message)
+      ) {
+        throw error;
+      }
+    }
+
+    const groupById = new Map(
+      (groups ?? []).map((g: Record<string, unknown>) => [String(g["id"]), g]),
+    );
+    const yearById = new Map(
+      (years ?? []).map((y: Record<string, unknown>) => [String(y["id"]), y]),
+    );
+    const gradeById = new Map(
+      (gradeLevelsData ?? []).map((g: Record<string, unknown>) => [String(g["id"]), g]),
+    );
+    const courseById = new Map(
+      (coursesData ?? []).map((c: Record<string, unknown>) => [String(c["id"]), c]),
+    );
+    const subjectById = new Map(
+      (subjectsData ?? []).map((s: Record<string, unknown>) => [String(s["id"]), s]),
+    );
+
+    const years_ = enrollments.map((enrollment): StudentAcademicHistoryYear => {
+      const group = enrollment.class_group_id
+        ? groupById.get(String(enrollment.class_group_id))
+        : null;
+      const year = enrollment.academic_year_id
+        ? yearById.get(String(enrollment.academic_year_id))
+        : null;
+      const grade = group?.["grade_level_id"]
+        ? gradeById.get(String(group["grade_level_id"]))
+        : null;
+      const gradeName = String(grade?.["name"] ?? "—");
+      const courseName = grade?.["program_id"]
+        ? String(courseById.get(String(grade["program_id"]))?.["name"] ?? "—")
+        : "—";
+      const cycle = inferTeachingCycle(gradeName, courseName);
+
+      const subjectsForClass = (classSubjects ?? [])
+        .filter(
+          (cs: Record<string, unknown>) =>
+            String(cs["class_group_id"]) === String(enrollment.class_group_id),
+        )
+        .map((cs: Record<string, unknown>) => subjectById.get(String(cs["subject_id"])))
+        .filter((s): s is Record<string, unknown> => Boolean(s))
+        .map((s) => ({ id: String(s["id"]), name: String(s["name"] ?? "") }));
+
+      const gradesForEnrollment = termGradeRows
+        .filter((g) => g.enrollment_id === enrollment.id)
+        .map((g) => ({
+          id: g.id,
+          enrollment_id: g.enrollment_id,
+          subject_id: g.subject_id,
+          term: g.term as 1 | 2 | 3,
+          mac: g.mac,
+          npp: g.npp,
+          npt: g.npt,
+        }));
+
+      const [summary] = buildClassAcademicSummaries({
+        enrollments: [{ id: String(enrollment.id), student_name: "" }],
+        subjects: subjectsForClass,
+        termGrades: gradesForEnrollment,
+        cycle,
+      });
+
+      return {
+        academicYearId: enrollment.academic_year_id ? String(enrollment.academic_year_id) : null,
+        academicYearName: String(year?.["name"] ?? "—"),
+        academicYearStartsOn: year?.["starts_on"] ? String(year["starts_on"]) : null,
+        classGroupName: String(group?.["name"] ?? "—"),
+        gradeName,
+        courseName,
+        enrollmentStatus: String(enrollment.status ?? ""),
+        cycle,
+        subjects: summary?.subjects ?? [],
+        overallMfd: summary?.overallMfd ?? null,
+        status: summary?.status ?? "PENDENTE",
+      };
+    });
+
+    years_.sort((a, b) =>
+      (a.academicYearStartsOn ?? "").localeCompare(b.academicYearStartsOn ?? ""),
+    );
+
+    return { years: years_ };
+  });
+
+export type ProgramCurriculumEntry = {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  semester: number;
+  credits: number;
+};
+
+/**
+ * Currículo do curso (Ensino Superior) — program_subjects. A tabela só existe depois de aplicada a
+ * migração 20260811151500_program_subjects_curriculum.sql; devolve lista vazia (em vez de rebentar)
+ * enquanto isso não acontecer, mesmo padrão já usado noutras tabelas opcionais deste ficheiro.
+ */
+export const listProgramCurriculum = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => listProgramCurriculumInputSchema.parse(input))
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<{ entries: ProgramCurriculumEntry[]; available: boolean }> => {
+      if (!context) throw new Error("Não autenticado.");
+      const membership = await resolveSgaMembershipAdmin(context.userId);
+      if (!membership) throw new Error("Sem membership activa nesta escola.");
+      const db = await loadSgaAdminClient();
+
+      const { data: rows, error } = await db
+        .from("program_subjects")
+        .select("id, subject_id, semester, credits")
+        .eq("school_id", membership.schoolId)
+        .eq("program_id", data.programId)
+        .eq("status", "active")
+        .is("deleted_at", null)
+        .order("semester");
+      if (error) {
+        if (isMissingRelation(error)) return { entries: [], available: false };
+        throw publicDatabaseError(error, "Não foi possível carregar o currículo do curso.");
+      }
+
+      const subjectIds = [...new Set((rows ?? []).map((row) => row.subject_id))];
+      const { data: subjectsData } = subjectIds.length
+        ? await db.from("subjects").select("id, name").in("id", subjectIds)
+        : { data: [] as Array<{ id: string; name: string }> };
+      const subjectNameById = new Map((subjectsData ?? []).map((s) => [s.id, s.name]));
+
+      return {
+        available: true,
+        entries: (rows ?? []).map((row) => ({
+          id: row.id,
+          subjectId: row.subject_id,
+          subjectName: subjectNameById.get(row.subject_id) ?? "—",
+          semester: row.semester,
+          credits: Number(row.credits),
+        })),
+      };
+    },
+  );
+
+export const addProgramSubject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => addProgramSubjectInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { error } = await db.from("program_subjects").insert({
+      school_id: membership.schoolId,
+      program_id: data.programId,
+      subject_id: data.subjectId,
+      semester: data.semester,
+      credits: data.credits,
+      created_by: context.userId,
+    });
+    if (error) {
+      throw publicDatabaseError(
+        error,
+        "Não foi possível adicionar a disciplina ao currículo do curso.",
+      );
+    }
+    return { success: true };
+  });
+
+export const removeProgramSubject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => removeProgramSubjectInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { error } = await db
+      .from("program_subjects")
+      .update({ deleted_at: new Date().toISOString(), updated_by: context.userId })
+      .eq("id", data.id)
+      .eq("school_id", membership.schoolId);
+    if (error) {
+      throw publicDatabaseError(
+        error,
+        "Não foi possível remover a disciplina do currículo do curso.",
+      );
+    }
+    return { success: true };
+  });
+
+/**
+ * Aplica o currículo do curso (program_subjects) a uma turma já existente: cria uma linha em
+ * class_subjects (sem professor) para cada disciplina do currículo que a turma ainda não tenha —
+ * não cria turmas nem mexe em matrículas, só reaproveita a tabela class_subjects já existente. O
+ * professor de cada disciplina continua a atribuir-se depois pelo fluxo normal ("Atribuir
+ * professor"); o painel de consistência já assinala disciplinas sem docente.
+ */
+export const applyCurriculumToClassGroup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => applyCurriculumToClassGroupInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: group } = await db
+      .from("class_groups")
+      .select("id")
+      .eq("id", data.classGroupId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (!group) throw new Error("Turma não encontrada nesta escola.");
+
+    const { data: curriculum, error: curriculumError } = await db
+      .from("program_subjects")
+      .select("subject_id")
+      .eq("school_id", membership.schoolId)
+      .eq("program_id", data.programId)
+      .eq("status", "active")
+      .is("deleted_at", null);
+    if (curriculumError) {
+      if (isMissingRelation(curriculumError)) {
+        throw new Error("Aplique a migração do currículo do curso antes de usar esta função.");
+      }
+      throw publicDatabaseError(curriculumError, "Não foi possível carregar o currículo do curso.");
+    }
+    const curriculumSubjectIds = [...new Set((curriculum ?? []).map((row) => row.subject_id))];
+    if (curriculumSubjectIds.length === 0) {
+      return { appliedCount: 0, skippedCount: 0 };
+    }
+
+    const { data: existingLinks } = await db
+      .from("class_subjects")
+      .select("subject_id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", data.classGroupId);
+    const existingSubjectIds = new Set((existingLinks ?? []).map((row) => row.subject_id));
+
+    const toInsert = curriculumSubjectIds
+      .filter((subjectId) => !existingSubjectIds.has(subjectId))
+      .map((subjectId) => ({
+        school_id: membership.schoolId,
+        class_group_id: data.classGroupId,
+        subject_id: subjectId,
+        teacher_id: null,
+        weekly_periods: 4,
+        status: "active",
+        created_by: context.userId,
+        updated_by: context.userId,
+      }));
+
+    if (toInsert.length > 0) {
+      const { error } = await db.from("class_subjects").insert(toInsert);
+      if (error) {
+        throw publicDatabaseError(error, "Não foi possível aplicar o currículo a esta turma.");
+      }
+    }
+
+    return {
+      appliedCount: toInsert.length,
+      skippedCount: curriculumSubjectIds.length - toInsert.length,
+    };
+  });
+
+/** Override do motor de notas para este curso — ver programs.grading_profile (Fase B). */
+export const updateProgramGradingProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => updateProgramGradingProfileInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const db = await loadSgaAdminClient();
+
+    const { error } = await db
+      .from("programs")
+      .update({ grading_profile: data.gradingProfile })
+      .eq("id", data.programId)
+      .eq("school_id", membership.schoolId);
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível guardar o motor de notas do curso.");
+    }
+    return { success: true };
   });

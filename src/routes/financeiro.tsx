@@ -794,7 +794,9 @@ function FinanceiroPage() {
           </Alert>
         ) : null}
 
-        <StatGrid collapsible storageKey="financeiro"
+        <StatGrid
+          collapsible
+          storageKey="financeiro"
           items={[
             { label: "Saldo actual", value: kwanza(saldo), hint: "Caixa + banco" },
             {
