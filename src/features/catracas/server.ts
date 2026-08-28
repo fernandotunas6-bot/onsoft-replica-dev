@@ -13,7 +13,19 @@ import {
   validateGatePassTokenInputSchema,
   registerTurnstileDeviceInputSchema,
   listAccessLogsInputSchema,
+  setAccessCardStatusInputSchema,
+  updateTurnstileDeviceInputSchema,
+  linkAccessCardRfidInputSchema,
+  rotateAccessCardQrInputSchema,
+  listAccessCardsInputSchema,
+  validateGatePassDeviceInputSchema,
 } from "./schemas";
+import { gatePassLookupTokens, normalizeRfidTag } from "./gate-pass-token";
+import {
+  evaluateGatePassAccess,
+  resolveGatePassDevice,
+  resolveGatePassDeviceByApiKey,
+} from "./gate-pass-validation";
 
 export interface GateEntryRecord {
   student_id: string | null;
@@ -166,85 +178,56 @@ export const validateGatePassToken = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
-    const cleanToken = data.token.trim();
-
-    const { data: card } = await db
-      .from("siga_access_cards")
-      .select("*, students!inner(id, student_number, person_id, status)")
-      .eq("school_id", membership.schoolId)
-      .or(
-        `card_number.eq.${cleanToken},barcode.eq.${cleanToken},qr_secret.eq.${cleanToken},rfid_tag.eq.${cleanToken}`,
-      )
-      .maybeSingle();
-
-    let deviceName = "Catraca Portaria";
-    if (data.deviceId) {
-      const { data: dev } = await db
-        .from("siga_turnstile_devices")
-        .select("name")
-        .eq("id", data.deviceId)
-        .maybeSingle();
-      if (dev) deviceName = dev.name;
+    const tokens = gatePassLookupTokens(data.token);
+    if (tokens.length === 0) {
+      return { granted: false, reason: "Token ou código inválido." };
     }
 
-    if (!card) {
-      await db.from("siga_access_logs").insert({
-        school_id: membership.schoolId,
-        device_id: data.deviceId ?? null,
-        device_name: deviceName,
-        direction: data.direction,
-        status: "denied",
-        denial_reason: "Cartão / Token não reconhecido.",
-      });
-
-      return {
-        granted: false,
-        reason: "Cartão ou QR Code não reconhecido pelo sistema de catracas.",
-      };
-    }
-
-    if (card.status !== "active") {
-      await db.from("siga_access_logs").insert({
-        school_id: membership.schoolId,
-        person_id: card.person_id,
-        student_id: card.student_id,
-        card_id: card.id,
-        device_id: data.deviceId ?? null,
-        device_name: deviceName,
-        direction: data.direction,
-        status: "denied",
-        denial_reason: `Cartão com estado: ${card.status}`,
-      });
-
-      return {
-        granted: false,
-        reason: `Acesso negado: cartão ${card.status === "suspended" ? "suspenso" : "inativo"}.`,
-      };
-    }
-
-    const { loadPeopleLite } = await import("@/features/people/lookup");
-    const peopleMap = await loadPeopleLite(db, membership.schoolId, [card.person_id]);
-    const person = peopleMap.get(card.person_id);
-
-    await db.from("siga_access_logs").insert({
-      school_id: membership.schoolId,
-      person_id: card.person_id,
-      student_id: card.student_id,
-      card_id: card.id,
-      device_id: data.deviceId ?? null,
-      device_name: deviceName,
-      direction: data.direction,
-      status: "granted",
+    const device = await resolveGatePassDevice(db, membership.schoolId, {
+      deviceId: data.deviceId,
     });
 
-    return {
-      granted: true,
-      personName: person?.full_name ?? "Estudante",
-      photoUrl: person?.photo_url ?? null,
-      cardNumber: card.card_number,
-      direction: data.direction,
-      timestamp: new Date().toISOString(),
-    };
+    if (device.blockPassage) {
+      return {
+        granted: false,
+        reason: "Dispositivo em manutenção ou offline — passagem bloqueada.",
+      };
+    }
+
+    return evaluateGatePassAccess(db, membership.schoolId, tokens, data.direction, device);
+  });
+
+/** Webhook para leitores físicos — autenticação via api_key (sem login SIGA). */
+export const validateGatePassByDeviceApiKey = createServerFn({ method: "POST" })
+  .validator((input: unknown) => validateGatePassDeviceInputSchema.parse(input))
+  .handler(async ({ data }) => {
+    const db = await loadSgaAdminClient();
+    const tokens = gatePassLookupTokens(data.token);
+    if (tokens.length === 0) {
+      return { granted: false, reason: "Token ou código inválido." };
+    }
+
+    const resolved = await resolveGatePassDeviceByApiKey(db, data.apiKey);
+    if (!resolved) {
+      return { granted: false, reason: "API key de dispositivo inválida." };
+    }
+
+    const result = await evaluateGatePassAccess(
+      db,
+      resolved.schoolId,
+      tokens,
+      data.direction,
+      resolved,
+    );
+
+    if (resolved.deviceId) {
+      await db
+        .from("siga_turnstile_devices")
+        .update({ last_ping_at: new Date().toISOString(), status: "online" })
+        .eq("id", resolved.deviceId);
+    }
+
+    return result;
   });
 
 export const listTurnstileDevices = createServerFn({ method: "GET" })
@@ -297,6 +280,225 @@ export const registerTurnstileDevice = createServerFn({ method: "POST" })
     return created;
   });
 
+export const updateTurnstileDevice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => updateTurnstileDeviceInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const patch: Record<string, unknown> = {};
+    if (data.status) patch.status = data.status;
+    if (data.ipAddress !== undefined) patch.ip_address = data.ipAddress?.trim() || null;
+    if (data.name) patch.name = data.name.trim();
+    if (data.location) patch.location = data.location.trim();
+    if (Object.keys(patch).length === 0) throw new Error("Nada para actualizar.");
+    if (data.status === "online") patch.last_ping_at = new Date().toISOString();
+
+    const { data: updated, error } = await db
+      .from("siga_turnstile_devices")
+      .update(patch)
+      .eq("id", data.deviceId)
+      .eq("school_id", membership.schoolId)
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível actualizar o dispositivo.");
+    return updated;
+  });
+
+export const setAccessCardStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => setAccessCardStatusInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const { data: updated, error } = await db
+      .from("siga_access_cards")
+      .update({ status: data.status, updated_at: new Date().toISOString() })
+      .eq("id", data.cardId)
+      .eq("school_id", membership.schoolId)
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível actualizar o cartão.");
+    return updated;
+  });
+
+export const linkAccessCardRfid = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => linkAccessCardRfidInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const raw = data.rfidTag == null ? "" : String(data.rfidTag);
+    const normalized = raw.trim() ? normalizeRfidTag(raw) : null;
+    if (normalized && normalized.length < 3) {
+      throw new Error("RFID deve ter pelo menos 3 caracteres.");
+    }
+
+    if (normalized) {
+      const { data: clash } = await db
+        .from("siga_access_cards")
+        .select("id, card_number")
+        .eq("school_id", membership.schoolId)
+        .eq("rfid_tag", normalized)
+        .neq("id", data.cardId)
+        .maybeSingle();
+      if (clash) {
+        throw new Error(`Esta tag RFID já está ligada ao cartão ${clash.card_number}.`);
+      }
+    }
+
+    const { data: updated, error } = await db
+      .from("siga_access_cards")
+      .update({ rfid_tag: normalized, updated_at: new Date().toISOString() })
+      .eq("id", data.cardId)
+      .eq("school_id", membership.schoolId)
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível ligar a tag RFID.");
+    return updated;
+  });
+
+export const rotateAccessCardQr = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => rotateAccessCardQrInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const { data: updated, error } = await db
+      .from("siga_access_cards")
+      .update({
+        qr_secret: crypto.randomUUID(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.cardId)
+      .eq("school_id", membership.schoolId)
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível renovar o QR do cartão.");
+    return updated;
+  });
+
+export const issueAccessCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => issueAccessCardInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    const { data: existing } = await db
+      .from("siga_access_cards")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .eq("person_id", data.personId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (existing) return existing;
+
+    const rfid =
+      data.rfidTag && data.rfidTag.trim() ? normalizeRfidTag(data.rfidTag) : null;
+    if (rfid) {
+      const { data: clash } = await db
+        .from("siga_access_cards")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("rfid_tag", rfid)
+        .maybeSingle();
+      if (clash) throw new Error("Tag RFID já associada a outro cartão.");
+    }
+
+    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+    const cardNumber = `CARD-${new Date().getFullYear()}-${randomSuffix}`;
+    const barcode = `STU${new Date().getFullYear()}${randomSuffix}`;
+
+    const { data: created, error } = await db
+      .from("siga_access_cards")
+      .insert({
+        school_id: membership.schoolId,
+        person_id: data.personId,
+        student_id: data.studentId ?? null,
+        card_number: cardNumber,
+        barcode,
+        qr_secret: crypto.randomUUID(),
+        rfid_tag: rfid,
+        status: "active",
+      })
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível emitir o cartão.");
+    return created;
+  });
+
+export const listAccessCards = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => listAccessCardsInputSchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa.");
+    const db = await loadSgaAdminClient();
+
+    let query = db
+      .from("siga_access_cards")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .order("updated_at", { ascending: false })
+      .limit(data.limit);
+
+    if (data.status) query = query.eq("status", data.status);
+
+    const search = data.search?.trim().replace(/[%_,]/g, "");
+    if (search) {
+      query = query.or(
+        `card_number.ilike.%${search}%,barcode.ilike.%${search}%,rfid_tag.ilike.%${search}%`,
+      );
+    }
+
+    const { data: cards, error } = await query;
+    if (error) throw publicDatabaseError(error, "Não foi possível listar os cartões.");
+
+    const personIds = [...new Set((cards ?? []).map((c) => c.person_id))];
+    const { loadPeopleLite } = await import("@/features/people/lookup");
+    const peopleMap = personIds.length
+      ? await loadPeopleLite(db, membership.schoolId, personIds)
+      : new Map();
+
+    return (cards ?? []).map((c) => ({
+      id: c.id,
+      card_number: c.card_number,
+      barcode: c.barcode,
+      rfid_tag: c.rfid_tag,
+      status: c.status,
+      student_id: c.student_id,
+      person_id: c.person_id,
+      person_name: peopleMap.get(c.person_id)?.full_name ?? "Pessoa",
+      updated_at: c.updated_at,
+    }));
+  });
+
 export const listAccessLogs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listAccessLogsInputSchema.parse(input ?? {}))
@@ -315,6 +517,8 @@ export const listAccessLogs = createServerFn({ method: "GET" })
 
     if (data.studentId) query = query.eq("student_id", data.studentId);
     if (data.status) query = query.eq("status", data.status);
+    if (data.direction) query = query.eq("direction", data.direction);
+    if (data.deviceId) query = query.eq("device_id", data.deviceId);
 
     const { data: logs, error } = await query;
     if (error) throw publicDatabaseError(error, "Não foi possível carregar os registos de acesso.");
@@ -405,7 +609,11 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
       classStatusMap.set(r.student_id, r.status);
     });
 
-    const anomalies = detectAttendanceAnomalies(gateEntries ?? [], classStatusMap, personNameByPersonId);
+    const anomalies = detectAttendanceAnomalies(
+      gateEntries ?? [],
+      classStatusMap,
+      personNameByPersonId,
+    );
     const totalCampusEntriesToday = new Set(
       (gateEntries ?? []).filter((g) => g.student_id).map((g) => g.student_id!),
     ).size;

@@ -4,6 +4,10 @@ import {
   validateGatePassTokenInputSchema,
   registerTurnstileDeviceInputSchema,
   listAccessLogsInputSchema,
+  setAccessCardStatusInputSchema,
+  updateTurnstileDeviceInputSchema,
+  listAccessCardsInputSchema,
+  validateGatePassDeviceInputSchema,
 } from "@/features/catracas/schemas";
 
 describe("Turnstiles & Access Control Schemas", () => {
@@ -101,5 +105,55 @@ describe("Turnstiles & Access Control Schemas", () => {
 
   it("only accepts granted or denied as the access log status filter", () => {
     expect(listAccessLogsInputSchema.safeParse({ status: "pending" }).success).toBe(false);
+  });
+
+  it("accepts direction filter on access logs", () => {
+    expect(listAccessLogsInputSchema.parse({ direction: "exit" }).direction).toBe("exit");
+  });
+
+  it("validates setAccessCardStatus transitions", () => {
+    const parsed = setAccessCardStatusInputSchema.parse({
+      cardId: "123e4567-e89b-12d3-a456-426614174000",
+      status: "suspended",
+    });
+    expect(parsed.status).toBe("suspended");
+    expect(
+      setAccessCardStatusInputSchema.safeParse({
+        cardId: "123e4567-e89b-12d3-a456-426614174000",
+        status: "unknown",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates updateTurnstileDevice status and IP", () => {
+    const parsed = updateTurnstileDeviceInputSchema.parse({
+      deviceId: "123e4567-e89b-12d3-a456-426614174000",
+      status: "maintenance",
+      ipAddress: "192.168.1.10",
+    });
+    expect(parsed.status).toBe("maintenance");
+    expect(
+      updateTurnstileDeviceInputSchema.safeParse({
+        deviceId: "not-uuid",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates listAccessCards filters", () => {
+    const parsed = listAccessCardsInputSchema.parse({ status: "active", search: "CARD" });
+    expect(parsed.status).toBe("active");
+    expect(listAccessCardsInputSchema.parse({}).limit).toBe(80);
+  });
+
+  it("validates device webhook input with apiKey", () => {
+    const parsed = validateGatePassDeviceInputSchema.parse({
+      apiKey: "KEY-ABCD1234",
+      token: "STU2026884920",
+      direction: "exit",
+    });
+    expect(parsed.direction).toBe("exit");
+    expect(validateGatePassDeviceInputSchema.safeParse({ apiKey: "short", token: "x" }).success).toBe(
+      false,
+    );
   });
 });

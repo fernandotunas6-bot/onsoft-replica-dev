@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Monitor, Cpu, Printer, Bell, Check, RefreshCw, ShieldCheck, Wifi } from "lucide-react";
+import {
+  Monitor,
+  Cpu,
+  Printer,
+  Check,
+  RefreshCw,
+  ShieldCheck,
+  Wifi,
+  Usb,
+  Lock,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +27,10 @@ import {
   isTauriDesktop,
   triggerTurnstileRelay,
   printThermalReceiptNative,
+  discoverLocalHardwareDevices,
+  getLocalHardwareAllowlist,
+  saveLocalHardwareAllowlist,
+  type LocalHardwareDevice,
 } from "@/lib/tauri-bridge";
 
 const STORAGE_KEY = "siga-desktop-settings";
@@ -67,6 +81,11 @@ export function WindowsDesktopSettingsModal({
     defaultSettings.nativeNotifications,
   );
   const [isTestingHardware, setIsTestingHardware] = useState(false);
+  const [discovered, setDiscovered] = useState<LocalHardwareDevice[]>([]);
+  const [allowedIds, setAllowedIds] = useState<Set<string>>(new Set());
+  const [discoverBusy, setDiscoverBusy] = useState(false);
+  const [discoverError, setDiscoverError] = useState<string | null>(null);
+  const [discoverMeta, setDiscoverMeta] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -75,7 +94,68 @@ export function WindowsDesktopSettingsModal({
     setPrinterIp(stored.printerIp);
     setAutoStartWindows(stored.autoStartWindows);
     setNativeNotifications(stored.nativeNotifications);
+    void refreshLocalDiscovery();
   }, [open]);
+
+  const refreshLocalDiscovery = async () => {
+    setDiscoverBusy(true);
+    setDiscoverError(null);
+    try {
+      const [scan, allow] = await Promise.all([
+        discoverLocalHardwareDevices(),
+        getLocalHardwareAllowlist(),
+      ]);
+      if (!scan.ok) {
+        setDiscoverError(scan.error || "Falha na descoberta local");
+        setDiscovered([]);
+      } else {
+        setDiscovered(scan.devices || []);
+        const counts = scan.counts;
+        setDiscoverMeta(
+          counts
+            ? `${counts.serial_usb} USB-série · ${counts.cups_printer} CUPS · só localhost`
+            : "só localhost · sem enviar para cloud",
+        );
+      }
+      setAllowedIds(new Set((allow.devices || []).map((d) => d.id)));
+      if (allow.error && scan.ok === false) {
+        setDiscoverError(allow.error);
+      }
+    } catch (err) {
+      setDiscoverError(err instanceof Error ? err.message : "Erro na descoberta");
+    } finally {
+      setDiscoverBusy(false);
+    }
+  };
+
+  const toggleAllowDevice = async (device: LocalHardwareDevice, enable: boolean) => {
+    const next = new Set(allowedIds);
+    if (enable) next.add(device.id);
+    else next.delete(device.id);
+
+    const devices = discovered
+      .filter((d) => next.has(d.id))
+      .map((d) => ({ id: d.id, kind: d.kind, path: d.path, label: d.label }));
+
+    // Incluir ids allowlistados que já não aparecem no scan (ainda válidos)
+    for (const id of next) {
+      if (!devices.some((d) => d.id === id)) {
+        devices.push({ id, kind: "unknown", path: "", label: id });
+      }
+    }
+
+    try {
+      const saved = await saveLocalHardwareAllowlist(devices);
+      setAllowedIds(new Set((saved.devices || []).map((d) => d.id)));
+      toast.success(enable ? "Dispositivo autorizado neste PC" : "Autorização removida", {
+        description: "Allowlist só neste computador — não sobe para a cloud.",
+      });
+    } catch (err) {
+      toast.error("Não foi possível guardar a allowlist", {
+        description: err instanceof Error ? err.message : "Daemon offline?",
+      });
+    }
+  };
 
   const handleTestTurnstile = async () => {
     setIsTestingHardware(true);
@@ -119,7 +199,7 @@ export function WindowsDesktopSettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="size-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold">
@@ -127,10 +207,10 @@ export function WindowsDesktopSettingsModal({
             </div>
             <div>
               <DialogTitle className="text-base font-extrabold">
-                Configurações do SIGA Desktop (Windows / macOS)
+                Configurações do SIGA Desktop (Windows / macOS / Linux)
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Ajuste os parâmetros nativos de relés, catracas, impressoras e notificações.
+                Relés, impressoras, descoberta local USB/CUPS e allowlist neste PC.
               </DialogDescription>
             </div>
           </div>
@@ -214,6 +294,69 @@ export function WindowsDesktopSettingsModal({
                 <Printer className="size-3.5" /> Imprimir Teste
               </Button>
             </div>
+          </div>
+
+          {/* DESCOBERTA LOCAL LINUX / USB / CUPS */}
+          <div className="surface-card p-4 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <h4 className="font-bold text-xs flex items-center gap-2">
+                <Usb className="size-4 text-primary" /> Hardware local (USB-série + CUPS)
+              </h4>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={discoverBusy}
+                onClick={() => void refreshLocalDiscovery()}
+                className="h-8 gap-1.5 text-[11px] font-bold shrink-0"
+              >
+                <RefreshCw className={`size-3.5 ${discoverBusy ? "animate-spin" : ""}`} />
+                Procurar
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+              <Lock className="size-3.5 mt-0.5 shrink-0" />
+              Só lista portas série conhecidas e impressoras CUPS via daemon em{" "}
+              <span className="font-mono">127.0.0.1:8088</span>. Não lê pastas pessoais nem o
+              browser; a allowlist fica neste PC.
+            </p>
+            {discoverMeta ? (
+              <p className="text-[10px] font-mono text-muted-foreground">{discoverMeta}</p>
+            ) : null}
+            {discoverError ? (
+              <p className="text-[11px] text-destructive rounded-lg bg-destructive/10 px-2.5 py-2">
+                {discoverError}
+              </p>
+            ) : null}
+            {!discoverError && discovered.length === 0 && !discoverBusy ? (
+              <p className="text-[11px] text-muted-foreground">
+                Nenhum dispositivo encontrado. Ligue um leitor USB ou configure uma impressora
+                CUPS e volte a procurar.
+              </p>
+            ) : null}
+            <ul className="space-y-2 max-h-40 overflow-y-auto">
+              {discovered.map((device) => {
+                const allowed = allowedIds.has(device.id);
+                return (
+                  <li
+                    key={device.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border px-2.5 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{device.label || device.path}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground truncate">
+                        {device.kind} · {device.path || device.id}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={allowed}
+                      onCheckedChange={(on) => void toggleAllowDevice(device, on)}
+                      aria-label={allowed ? "Remover da allowlist" : "Autorizar neste PC"}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
           </div>
 
           {/* OPÇÕES DO SISTEMA OPERATIVO */}

@@ -22,3 +22,29 @@ Este módulo gere o controlo de acesso físico ao recinto escolar, os cartões v
    - Verificação em tempo real de estado de matrícula e cartão ativo.
    - Registo em `siga_access_logs` com status (`granted` / `denied`) e direção (`entry` / `exit`).
    - Sincronização opcional com a presença diária escolar.
+
+4. **Descoberta local (ciclo 39)**:
+   - Daemon `python/hardware_bridge/` em **só** `127.0.0.1:8088`.
+   - USB-série + CUPS via `device_discovery.py`; allowlist JSON local (nunca cloud).
+   - Cliente: `discoverLocalHardwareDevices` / `getLocalHardwareAllowlist` / `saveLocalHardwareAllowlist` em `src/lib/tauri-bridge.ts`.
+   - UI: secção «Hardware local» em `WindowsDesktopSettingsModal` (`/catracas`).
+   - Não varrer disco/browser; não inventariar o PC para a SGA cloud.
+
+5. **Pulso no grant (ciclo 40)**:
+   - Após `validateGatePassToken` com `granted`, a UI chama `triggerTurnstileRelay`.
+   - `resolveTurnstilePulseIp` em `hardware-pulse.ts` (dispositivo → desktop → loopback).
+   - Health: `checkPythonHardwareBridgeHealth` + badge no painel.
+
+6. **Operação (ciclo 41)**:
+   - `setAccessCardStatus` / `updateTurnstileDevice`.
+   - Cartão digital: Suspender · Perdido · Reactivar.
+   - Dispositivos: estado + selector no simulador; filtro de logs.
+
+7. **RFID / QR / API key (ciclo 42)**:
+   - `linkAccessCardRfid`, `rotateAccessCardQr`, `gate-pass-token.ts`.
+   - Cartão digital: campo RFID + Renovar QR.
+   - Lista de catracas: copiar `api_key`.
+
+8. **Lista + webhook (ciclo 43)**:
+   - `listAccessCards`, `AccessCardsPanel`, `validateGatePassByDeviceApiKey`.
+   - `gate-pass-validation.ts` — validação única UI + hardware.

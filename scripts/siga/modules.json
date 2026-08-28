@@ -2,7 +2,11 @@
   "project": "SIGA",
   "sgaRef": "xodgfmxiaunpamctfeea",
   "node": "24",
-  "sqlApply": ["supabase/APPLY_IN_SQL_EDITOR.sql", "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"],
+  "sqlApply": [
+    "supabase/APPLY_IN_SQL_EDITOR.sql",
+    "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
+    "supabase/APPLY_SAAS_PLATFORM.sql"
+  ],
   "sqlNeverApplyToSga": [
     "all_migrations_combined.sql",
     "supabase/pending_feature_migrations.sql",
@@ -204,12 +208,35 @@
       "feature": [
         "src/features/catracas/schemas.ts",
         "src/features/catracas/server.ts",
+        "src/features/catracas/gate-pass-token.ts",
+        "src/features/catracas/hardware-pulse.ts",
         "src/features/catracas/components/TurnstileAccessPanel.tsx",
         "src/features/catracas/components/VirtualCardModal.tsx"
       ],
-      "tests": ["tests/catracas/schemas.test.ts"],
+      "tests": [
+        "tests/catracas/schemas.test.ts",
+        "tests/catracas/hardware-pulse.test.ts",
+        "tests/catracas/gate-pass-token.test.ts",
+        "tests/catracas/reconciliation.test.ts"
+      ],
       "accessKey": "gestao",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+    },
+    {
+      "id": "saas",
+      "skill": "siga-saas",
+      "label": "SaaS Control Center (plataforma)",
+      "routes": ["src/routes/saas-admin.tsx", "src/routes/criar-escola.tsx"],
+      "feature": [
+        "src/features/saas/schemas.ts",
+        "src/features/saas/server.ts",
+        "src/features/saas/types.ts",
+        "src/features/saas/tenant-context.tsx",
+        "src/lib/saas/provisioning-service.ts",
+        "src/lib/saas/tenant-resolver.ts"
+      ],
+      "tests": ["tests/saas/schemas.test.ts"],
+      "publicPath": "/criar-escola"
     }
   ]
 }

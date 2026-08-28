@@ -2,12 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  ShieldAlert,
-  ShieldCheck,
   Cpu,
   Plus,
   RefreshCw,
-  Search,
   CheckCircle2,
   XCircle,
   QrCode,
@@ -18,6 +15,8 @@ import {
   Send,
   Download,
   Monitor,
+  Zap,
+  Copy,
 } from "lucide-react";
 import { WindowsDesktopSettingsModal } from "./WindowsDesktopSettingsModal";
 import { Button } from "@/components/ui/button";
@@ -43,11 +42,41 @@ import { Label } from "@/components/ui/label";
 import {
   listTurnstileDevices,
   registerTurnstileDevice,
+  updateTurnstileDevice,
   validateGatePassToken,
   listAccessLogs,
   exportGatePassOfflineList,
 } from "@/features/catracas/server";
+import type { z } from "zod";
 import { CampusAttendanceReconciliationPanel } from "@/features/catracas/components/CampusAttendanceReconciliationPanel";
+import { AccessCardsPanel } from "@/features/catracas/components/AccessCardsPanel";
+import { validateGatePassTokenInputSchema } from "@/features/catracas/schemas";
+import {
+  loadDesktopHardwarePrefs,
+  resolveTurnstilePulseIp,
+} from "@/features/catracas/hardware-pulse";
+import {
+  checkPythonHardwareBridgeHealth,
+  triggerTurnstileRelay,
+} from "@/lib/tauri-bridge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type TurnstileDeviceRow = {
+  id: string;
+  name: string;
+  location: string;
+  device_type: string;
+  direction_capability: string;
+  ip_address?: string | null;
+  status?: string | null;
+  api_key?: string | null;
+};
 
 export function TurnstileAccessPanel() {
   const queryClient = useQueryClient();
@@ -64,9 +93,13 @@ export function TurnstileAccessPanel() {
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [deviceName, setDeviceName] = useState("");
   const [deviceLocation, setDeviceLocation] = useState("");
+  const [deviceIp, setDeviceIp] = useState("");
   const [deviceType, setDeviceType] = useState<"turnstile" | "gate" | "door" | "scanner_app">(
     "turnstile",
   );
+  const [pulsingDeviceId, setPulsingDeviceId] = useState<string | null>(null);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+  const [logStatusFilter, setLogStatusFilter] = useState<"all" | "granted" | "denied">("all");
 
   const devicesQuery = useQuery({
     queryKey: ["turnstile-devices"],
@@ -74,19 +107,63 @@ export function TurnstileAccessPanel() {
   });
 
   const logsQuery = useQuery({
-    queryKey: ["access-logs"],
-    queryFn: () => listAccessLogs({ data: { limit: 50 } }),
+    queryKey: ["access-logs", logStatusFilter],
+    queryFn: () =>
+      listAccessLogs({
+        data: {
+          limit: 50,
+          ...(logStatusFilter !== "all" ? { status: logStatusFilter } : {}),
+        },
+      }),
   });
 
+  const bridgeHealthQuery = useQuery({
+    queryKey: ["hardware-bridge-health"],
+    queryFn: () => checkPythonHardwareBridgeHealth(),
+    refetchInterval: 15_000,
+    retry: false,
+  });
+
+  const pulsePhysicalRelay = async (
+    direction: "entry" | "exit",
+    preferredDeviceId?: string | null,
+  ) => {
+    const devices = (devicesQuery.data ?? []) as TurnstileDeviceRow[];
+    const target = resolveTurnstilePulseIp({
+      devices,
+      preferredDeviceId,
+      desktopPrefs: loadDesktopHardwarePrefs(),
+    });
+    try {
+      const res = await triggerTurnstileRelay({
+        ipAddress: target.ipAddress,
+        gate: 1,
+        direction,
+      });
+      toast.message("Relé físico enviado", {
+        description: `${direction === "entry" ? "Entrada" : "Saída"} → ${target.ipAddress} (${target.source} · ${res.source})`,
+      });
+    } catch (err) {
+      toast.warning("Acesso autorizado, mas o relé local falhou", {
+        description:
+          err instanceof Error
+            ? err.message
+            : "Arranque o daemon Python em 127.0.0.1:8088 ou use Configurações desktop.",
+      });
+    }
+  };
+
   const validateMutation = useMutation({
-    mutationFn: (vars: NonNullable<Parameters<typeof validateGatePassToken>[0]>["data"]) =>
+    mutationFn: (vars: z.infer<typeof validateGatePassTokenInputSchema>) =>
       validateGatePassToken({ data: vars }),
-    onSuccess: (res) => {
+    onSuccess: (res, vars) => {
       setLastScanResult(res);
       if (res.granted) {
-        toast.success(`Entrada Autorizada: ${res.personName}`, {
+        const dirLabel = (vars.direction ?? "entry") === "entry" ? "Entrada" : "Saída";
+        toast.success(`${dirLabel} autorizada: ${res.personName}`, {
           description: `Catraca libertada às ${new Date().toLocaleTimeString("pt-PT")}`,
         });
+        void pulsePhysicalRelay(vars.direction ?? "entry", vars.deviceId);
       } else {
         toast.error("Acesso Negado na Catraca", {
           description: res.reason,
@@ -111,6 +188,7 @@ export function TurnstileAccessPanel() {
       setRegisterModalOpen(false);
       setDeviceName("");
       setDeviceLocation("");
+      setDeviceIp("");
     },
     onError: (err) => {
       toast.error("Não foi possível registar o dispositivo", {
@@ -119,12 +197,51 @@ export function TurnstileAccessPanel() {
     },
   });
 
+  const deviceStatusMutation = useMutation({
+    mutationFn: (vars: { deviceId: string; status: "online" | "offline" | "maintenance" }) =>
+      updateTurnstileDevice({ data: vars }),
+    onSuccess: (dev) => {
+      toast.success(`Dispositivo «${dev.name}» → ${dev.status}`);
+      queryClient.invalidateQueries({ queryKey: ["turnstile-devices"] });
+    },
+    onError: (err) => {
+      toast.error("Não foi possível actualizar o estado", {
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
+    },
+  });
+
+  const handleManualPulse = async (device: TurnstileDeviceRow) => {
+    setPulsingDeviceId(device.id);
+    try {
+      await pulsePhysicalRelay(scanDirection, device.id);
+    } finally {
+      setPulsingDeviceId(null);
+    }
+  };
+
+  const copyDeviceApiKey = async (device: TurnstileDeviceRow) => {
+    if (!device.api_key) {
+      toast.error("Este dispositivo não tem API key.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(device.api_key);
+      toast.success("API key copiada", {
+        description: "Use nos controladores offline — não partilhe fora da escola.",
+      });
+    } catch {
+      toast.message(device.api_key);
+    }
+  };
+
   const handleSimulateScan = (e: React.FormEvent) => {
     e.preventDefault();
     if (!simulatorToken.trim()) return;
     validateMutation.mutate({
       token: simulatorToken.trim(),
       direction: scanDirection,
+      ...(selectedDeviceId ? { deviceId: selectedDeviceId } : {}),
     });
   };
 
@@ -155,6 +272,8 @@ export function TurnstileAccessPanel() {
       {/* PAINEL DE CONCILIAÇÃO: ENTRADAS NA PORTARIA VS. CHAMADA DA TURMA */}
       <CampusAttendanceReconciliationPanel />
 
+      <AccessCardsPanel />
+
       {/* SIMULADOR DE LEITURA NA CATRACA & STATUS DE HARDWARE */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* TESTE E SIMULADOR DE SCANNER DE CATRACA */}
@@ -170,7 +289,27 @@ export function TurnstileAccessPanel() {
                 Cartão).
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              <Badge
+                variant="outline"
+                className={`text-[10px] gap-1 ${
+                  bridgeHealthQuery.data?.online
+                    ? "bg-success/10 text-success border-success/30"
+                    : "bg-muted text-muted-foreground border-border"
+                }`}
+                title={
+                  bridgeHealthQuery.data?.online
+                    ? `Daemon local ${bridgeHealthQuery.data.bind ?? "127.0.0.1:8088"}`
+                    : "Arranque: python3 python/hardware_bridge/siga_hardware_bridge.py"
+                }
+              >
+                <Wifi className="size-3" />
+                {bridgeHealthQuery.isLoading
+                  ? "Bridge…"
+                  : bridgeHealthQuery.data?.online
+                    ? "Bridge online"
+                    : "Bridge offline"}
+              </Badge>
               <Button
                 type="button"
                 variant="outline"
@@ -178,7 +317,7 @@ export function TurnstileAccessPanel() {
                 onClick={() => setDesktopSettingsOpen(true)}
                 className="h-7 text-[11px] gap-1 font-bold text-primary border-primary/30 bg-primary/10 hover:bg-primary/20"
               >
-                <Monitor className="size-3.5" /> Configurações Windows
+                <Monitor className="size-3.5" /> Hardware local
               </Button>
               <Badge
                 variant="outline"
@@ -191,7 +330,7 @@ export function TurnstileAccessPanel() {
           </div>
 
           <form onSubmit={handleSimulateScan} className="space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-muted-foreground">Direção do Braço:</span>
               <Button
                 type="button"
@@ -212,6 +351,29 @@ export function TurnstileAccessPanel() {
                 ⬅ SAÍDA (Relé 2)
               </Button>
             </div>
+
+            {devices.length > 0 ? (
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold">Dispositivo (opcional)</Label>
+                <Select
+                  value={selectedDeviceId || "none"}
+                  onValueChange={(v) => setSelectedDeviceId(v === "none" ? "" : v)}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Portaria genérica" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Portaria genérica (sem dispositivo)</SelectItem>
+                    {(devices as TurnstileDeviceRow[]).map((dev) => (
+                      <SelectItem key={dev.id} value={dev.id}>
+                        {dev.name}
+                        {dev.status && dev.status !== "online" ? ` · ${dev.status}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
 
             <div className="flex gap-2">
               <Input
@@ -247,7 +409,9 @@ export function TurnstileAccessPanel() {
               )}
               <div>
                 <h4 className="font-extrabold text-lg">
-                  {lastScanResult.granted ? "CATRACA LIBERTADA (ENTRADA)" : "ACESSO RECUSADO"}
+                  {lastScanResult.granted
+                    ? `CATRACA LIBERTADA (${scanDirection === "entry" ? "ENTRADA" : "SAÍDA"})`
+                    : "ACESSO RECUSADO"}
                 </h4>
                 <p className="text-xs font-semibold mt-0.5">
                   {lastScanResult.granted
@@ -301,32 +465,71 @@ export function TurnstileAccessPanel() {
             </div>
           ) : (
             <div className="space-y-2">
-              {devices.map((dev) => (
+              {(devices as TurnstileDeviceRow[]).map((dev) => (
                 <div
                   key={dev.id}
-                  className="flex items-center justify-between p-3 rounded-xl border border-border bg-card"
+                  className="flex items-center justify-between gap-2 p-3 rounded-xl border border-border bg-card"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="size-9 rounded-xl bg-primary-soft text-primary-strong flex items-center justify-center">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-9 rounded-xl bg-primary-soft text-primary-strong flex items-center justify-center shrink-0">
                       {dev.device_type === "scanner_app" ? (
                         <Smartphone className="size-4" />
                       ) : (
                         <DoorOpen className="size-4" />
                       )}
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-foreground">{dev.name}</p>
-                      <p className="text-[11px] text-muted-foreground">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate">{dev.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
                         {dev.location} · {dev.direction_capability}
+                        {dev.ip_address ? (
+                          <span className="font-mono"> · {dev.ip_address}</span>
+                        ) : null}
                       </p>
                     </div>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="bg-secondary text-muted-foreground border-border text-[10px] gap-1"
-                  >
-                    <Wifi className="size-3" /> Registado
-                  </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Select
+                      value={dev.status || "online"}
+                      onValueChange={(status) =>
+                        deviceStatusMutation.mutate({
+                          deviceId: dev.id,
+                          status: status as "online" | "offline" | "maintenance",
+                        })
+                      }
+                    >
+                      <SelectTrigger className="h-7 w-[110px] text-[10px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="offline">Offline</SelectItem>
+                        <SelectItem value="maintenance">Manutenção</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={pulsingDeviceId === dev.id}
+                      onClick={() => void handleManualPulse(dev)}
+                      className="h-7 text-[10px] gap-1 font-bold"
+                      title="Enviar pulso de relé via daemon/Tauri"
+                    >
+                      <Zap className="size-3" /> Relé
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={!dev.api_key}
+                      onClick={() => void copyDeviceApiKey(dev)}
+                      className="h-7 text-[10px] gap-1"
+                      title="Copiar API key do controlador offline"
+                    >
+                      <Copy className="size-3" /> Key
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -355,6 +558,28 @@ export function TurnstileAccessPanel() {
           >
             <RefreshCw className="size-3.5" /> Atualizar Logs
           </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold text-muted-foreground">Filtrar:</span>
+          {(
+            [
+              ["all", "Todos"],
+              ["granted", "Autorizados"],
+              ["denied", "Negados"],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              type="button"
+              size="sm"
+              variant={logStatusFilter === value ? "default" : "outline"}
+              onClick={() => setLogStatusFilter(value)}
+              className="h-7 text-[11px]"
+            >
+              {label}
+            </Button>
+          ))}
         </div>
 
         {logsQuery.isLoading ? (
@@ -443,6 +668,17 @@ export function TurnstileAccessPanel() {
                 className="text-xs h-9"
               />
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">
+                IP da controladora (opcional, TCP 4370)
+              </Label>
+              <Input
+                placeholder="Ex: 192.168.1.201 — usado no pulso físico ao autorizar"
+                value={deviceIp}
+                onChange={(e) => setDeviceIp(e.target.value)}
+                className="text-xs h-9 font-mono"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setRegisterModalOpen(false)}>
@@ -458,6 +694,7 @@ export function TurnstileAccessPanel() {
                   name: deviceName,
                   location: deviceLocation,
                   deviceType,
+                  ...(deviceIp.trim() ? { ipAddress: deviceIp.trim() } : {}),
                 })
               }
               className="gap-2 font-bold"

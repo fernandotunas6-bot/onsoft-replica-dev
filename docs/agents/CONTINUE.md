@@ -2,9 +2,9 @@
 
 Ler isto **antes** de alterar código. Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-08-13)
+## Estado (2026-08-27)
 
-Os ciclos 1–34 da sessão premium estão no código. As consolidações mais recentes
+Os ciclos 1–43 da sessão premium estão no código. As consolidações mais recentes
 estão versionadas localmente:
 
 - `6d11ee8` — módulos escolares e tesouraria
@@ -52,6 +52,14 @@ estão versionadas localmente:
 | 33    | Recibos/talões na biblioteca + ID pesquisável                                                                               | Feito (precisa SQL)             |
 | 34    | Planos de Aula (título/conteúdo/anexo + avaliações/provas por turma-disciplina-trimestre)                                   | Feito (precisa SQL)             |
 | 35    | Anexo de arquivo nas mensagens internas + conversas enviadas sem resposta a aparecerem na lista + página `/perfil` dedicada | Feito (precisa SQL)             |
+| 36    | Documento ligado a utilizador + ficheiros de sistema protegidos                                                             | Feito (precisa SQL)             |
+| 37    | Backfill dono/sistema + filtros Meus/Sistema + painéis protegidos                                                           | Feito (precisa SQL)             |
+| 38    | Auditoria access_denied + anexos de mensagens protegidos                                                                    | Feito (precisa SQL)             |
+| 39    | Descoberta local USB/CUPS + allowlist (daemon Python localhost)                                                             | Feito                           |
+| 40    | Pulso físico no grant + health do bridge + IP no registo                                                                    | Feito                           |
+| 41    | Suspender cartão + estado catraca + selector/filtro logs                                                                    | Feito                           |
+| 42    | RFID no cartão + renovar QR + API key do dispositivo                                                                        | Feito                           |
+| 43    | Lista de cartões + webhook api_key + validação partilhada                                                                   | Feito                           |
 
 ## Ciclo 9 — identidade, escola e tesouraria
 
@@ -340,6 +348,69 @@ Registo canónico: `scripts/siga/modules.json`.
 - **Anexo nas mensagens internas**: botão de clipe (`PickFileButton`) na conversa, chip antes de enviar, bolha da mensagem mostra o ficheiro e abre com `signSchoolFile`. Mensagem pode ir só com anexo (sem texto). Colunas novas `siga_direct_messages.attachment_file_id/attachment_file_name`; `body` deixou de ser `NOT NULL`.
 - **Bug de fluxo corrigido**: `listInboxPreviews` só olhava para mensagens recebidas — uma conversa que só tu iniciaste (sem resposta ainda) não aparecia em lado nenhum. Agora `InboxPreview` separa `lastActivityAt` (qualquer direcção, para pré-visualização/ordenação) de `lastIncomingAt` (só recebidas, para o ponto de não-lida).
 - **`/perfil`**: página dedicada (foto, nome, telemóvel) extraída para `src/features/auth/ProfileSettingsPanel.tsx` — usada tanto na página como no painel Conta → Perfil do Centro de Configurações (uma só fonte). O menu da conta na sidebar abre `/perfil` em vez do modal.
+
+## Ciclo 36 — dono obrigatório e ficheiros de sistema
+
+- Todo o documento fica ligado a um utilizador SIGA (`related_user_id`): inquérito obrigatório (predefinido = conta actual); upload/pasta/arquivo financeiro preenchem automaticamente.
+- Coluna `is_system` em `siga_files`: recibos/talões/faturas gerados pela tesouraria são `is_system=true`.
+- Visíveis na lista (metadados/ID), mas abrir/descarregar/miniatura exige dono, utilizador relacionado, ou Admin/Secretaria/Tesouraria (`canAccessFileContent`).
+- Alterar/apagar/mover ficheiros de sistema: Admin/Secretaria ou dono (`canManageSystemFile`). Sem permissão: cadeado «Sistema / Protegido» e conteúdo oculto.
+- SQL: reaplicar `APPLY_ENROLLMENT_AND_PREMIUM.sql` (`is_system` + índice).
+
+## Ciclo 37 — backfill, filtros e painéis
+
+- SQL: `related_user_id = owner_user_id` onde faltava; `is_system=true` em recibo/talão/fatura existentes.
+- Biblioteca: filtros **Meus** e **Sistema**; picker não escolhe ficheiro protegido sem permissão.
+- Materiais de turma e ficha do aluno respeitam `canAccessFileContent` (cadeado / toast).
+- `setSchoolFileVisibility` bloqueia ficheiros de sistema sem gestão.
+
+## Ciclo 38 — auditoria de acesso e anexos
+
+- Evento `access_denied` em `siga_file_events` (CHECK SQL + UI «tentou abrir (sem permissão)»).
+- `signSchoolFile` regista tentativa quando o conteúdo de sistema é bloqueado.
+- Mensageiro interno: anexo protegido mostra cadeado / toast «Anexo protegido» em vez de falha genérica.
+
+## Ciclo 39 — descoberta local de hardware (Linux-first)
+
+- Daemon Python em `127.0.0.1:8088` apenas (`BIND_HOST`); CORS restrito a localhost/Tauri.
+- `device_discovery.py`: lista `/dev/ttyUSB*`, `ttyACM*`, `serial/by-id` e impressoras CUPS (`lpstat -a`). Não lê `$HOME`, browsers nem cookies.
+- Allowlist em `siga_hardware_allowlist.json` (ou `SIGA_HARDWARE_STATE_DIR`) — só neste PC.
+- Endpoints: `GET /hardware/discover`, `GET|POST /hardware/allowlist`; abertura de catraca com `device_id` exige allowlist.
+- UI em `/catracas` → definições desktop: procurar dispositivos e autorizar com switch.
+- Arranque: `python3 python/hardware_bridge/siga_hardware_bridge.py`
+- **Abandonado:** drivers universais, acesso directo do browser, inventário completo do PC enviado à cloud.
+
+## Ciclo 40 — pulso físico ligado ao grant
+
+- Simulador/validação: se o acesso for **autorizado**, envia pulso de relé via Tauri ou daemon Python (`triggerTurnstileRelay`).
+- IP resolvido por `resolveTurnstilePulseIp`: IP do dispositivo SGA → definições desktop → `127.0.0.1` (simulação).
+- Badge **Bridge online/offline** em `/catracas` (`GET /health` a cada 15s).
+- Registo de catraca: campo IP opcional; botão **Relé** por dispositivo.
+- Helper puro: `src/features/catracas/hardware-pulse.ts` + testes.
+
+## Ciclo 41 — cartões e dispositivos operacionais
+
+- `setAccessCardStatus`: Suspender / Perdido / Reactivar no cartão digital do aluno.
+- `updateTurnstileDevice`: estado online / offline / manutenção (bloqueia scan se offline/manutenção).
+- Simulador: selector de dispositivo; logs com filtro Autorizados / Negados.
+- Validação de token sem `students!inner` (cartões só de pessoa); aluno `inactive` negado.
+- Filtros de log: `direction` e `deviceId` no schema/server.
+
+## Ciclo 42 — RFID, QR e API key
+
+- `linkAccessCardRfid` + UI no cartão digital (guardar / limpar tag Wiegand).
+- `rotateAccessCardQr` — invalida o QR anterior.
+- Validação: `gatePassLookupTokens` (sanitiza filtro PostgREST + tenta RFID normalizado).
+- Dispositivos: botão **Key** copia `api_key` para controladores offline.
+- Helpers: `src/features/catracas/gate-pass-token.ts`.
+
+## Ciclo 43 — lista de cartões e webhook físico
+
+- `listAccessCards` + painel em `/catracas` (pesquisa, filtro estado, suspender/reactivar).
+- `validateGatePassByDeviceApiKey` — leitores físicos autenticam com `api_key` (sem login).
+- Lógica partilhada em `gate-pass-validation.ts` (`evaluateGatePassAccess`).
+- `issueAccessCard` para emitir cartão a pessoa/staff.
+- Controlador: POST com `{ apiKey, token, direction }` → `{ granted, personName, … }`.
 
 ## Próximos passos úteis
 

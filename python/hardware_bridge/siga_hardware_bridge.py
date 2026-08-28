@@ -1,24 +1,45 @@
 #!/usr/bin/env python3
 """
-SIGA — Python Hardware Integration Bridge Daemon (v1.0)
+SIGA — Python Hardware Integration Bridge Daemon (v1.1)
 Serviço local Python para interface direta com Hardware de Escolas:
 1. Controladores de Catracas Físicas (ZKTeco, Intelbras, Control iD, Hikvision via TCP/IP & Relés).
 2. Impressoras Térmicas ESC/POS (Recibos de Propinas e Senhas de Portaria).
 3. Impressoras de Cartões PVC de Estudante (Evolis, Zebra, Datacard).
 4. Leitores Biométricos e USB Barcode Scanners.
+5. Descoberta local Linux (USB série + CUPS) com allowlist — só localhost, sem vazar dados.
 """
 
 import sys
 import json
 import time
 import socket
-import urllib.request
-import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
+
+from device_discovery import (
+    discover_local_devices,
+    is_device_allowed,
+    load_allowlist,
+    save_allowlist,
+)
 
 DEFAULT_PORT = 8088
-SIGA_API_URL = "http://localhost:3000/api"
+BIND_HOST = "127.0.0.1"  # nunca expor na LAN
+ALLOWED_ORIGINS = (
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "tauri://localhost",
+    "http://tauri.localhost",
+)
+
+
+def _cors_origin(handler: BaseHTTPRequestHandler) -> str:
+    origin = handler.headers.get("Origin", "")
+    if origin in ALLOWED_ORIGINS:
+        return origin
+    # Pedidos same-origin / ferramentas locais sem Origin
+    return "http://127.0.0.1:3000"
 
 class TurnstileHardwareController:
     """
@@ -158,16 +179,18 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
     def _send_json(self, data, code=200):
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Vary", "Origin")
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Vary", "Origin")
         self.end_headers()
 
     def do_GET(self):
@@ -175,14 +198,20 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
             self._send_json({
                 "service": "SIGA Python Hardware Bridge",
                 "status": "online",
+                "bind": BIND_HOST,
                 "hardware": {
                     "turnstiles": "ready",
                     "zkteco_protocol": "supported",
                     "intelbras_webhook": "supported",
                     "esc_pos_printers": "ready",
-                    "pvc_card_printers": "ready"
-                }
+                    "pvc_card_printers": "ready",
+                    "local_discovery": "serial_usb_and_cups",
+                },
             })
+        elif self.path == "/hardware/discover":
+            self._send_json(discover_local_devices())
+        elif self.path == "/hardware/allowlist":
+            self._send_json({"ok": True, **load_allowlist()})
         else:
             self._send_json({"error": "Endpoint não encontrado"}, 404)
 
@@ -195,10 +224,30 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
         except Exception:
             payload = {}
 
+        if self.path == "/hardware/allowlist":
+            devices = payload.get("devices") if isinstance(payload, dict) else None
+            if not isinstance(devices, list):
+                self._send_json({"error": "Envie { devices: [...] }"}, 400)
+                return
+            saved = save_allowlist(devices)
+            self._send_json({"ok": True, **saved})
+            return
+
         if self.path == "/hardware/turnstile/open":
             ip = payload.get("ip_address", "127.0.0.1")
             gate = payload.get("gate", 1)
             direction = payload.get("direction", "entry")
+            device_id = payload.get("device_id")
+            # Se o cliente indicar device_id da allowlist, exige estar autorizado.
+            if device_id and not is_device_allowed(str(device_id)):
+                self._send_json(
+                    {
+                        "error": "Dispositivo fora da allowlist local.",
+                        "device_id": device_id,
+                    },
+                    403,
+                )
+                return
             ctrl = TurnstileHardwareController(ip_address=ip)
             res = ctrl.send_pulse_relay(gate_number=gate, direction=direction)
             self._send_json({
@@ -244,10 +293,15 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
         else:
             self._send_json({"error": "Endpoint de hardware desconhecido"}, 404)
 
+    def log_message(self, format, *args):
+        # Evitar logar payloads; só método e path.
+        sys.stderr.write("%s - %s\n" % (self.address_string(), format % args))
+
+
 def run_bridge_server(port=DEFAULT_PORT):
-    server_address = ("", port)
+    server_address = (BIND_HOST, port)
     httpd = HTTPServer(server_address, HardwareBridgeRequestHandler)
-    print(f"✓ SIGA Python Hardware Bridge escutando em http://localhost:{port}")
+    print(f"✓ SIGA Python Hardware Bridge em http://{BIND_HOST}:{port} (só localhost)")
     httpd.serve_forever()
 
 if __name__ == "__main__":

@@ -31,6 +31,42 @@ export const listAccessLogsInputSchema = z.object({
   studentId: z.string().uuid().optional(),
   deviceId: z.string().uuid().optional(),
   status: accessStatusEnum.optional(),
+  direction: accessDirectionEnum.optional(),
   date: z.string().optional(),
   limit: z.number().int().min(1).max(500).default(50),
+});
+
+export const setAccessCardStatusInputSchema = z.object({
+  cardId: z.string().uuid(),
+  status: accessCardStatusEnum,
+});
+
+export const updateTurnstileDeviceInputSchema = z.object({
+  deviceId: z.string().uuid(),
+  status: z.enum(["online", "offline", "maintenance"]).optional(),
+  ipAddress: z.string().max(64).optional().nullable(),
+  name: z.string().min(3).max(120).optional(),
+  location: z.string().min(2).max(160).optional(),
+});
+
+export const linkAccessCardRfidInputSchema = z.object({
+  cardId: z.string().uuid(),
+  rfidTag: z.string().max(64).nullable().optional(),
+});
+
+export const rotateAccessCardQrInputSchema = z.object({
+  cardId: z.string().uuid(),
+});
+
+export const listAccessCardsInputSchema = z.object({
+  status: accessCardStatusEnum.optional(),
+  search: z.string().max(80).optional(),
+  limit: z.number().int().min(1).max(200).default(80),
+});
+
+/** Webhook para controladores físicos (sem sessão — autentica por api_key do dispositivo). */
+export const validateGatePassDeviceInputSchema = z.object({
+  apiKey: z.string().min(8, "API key inválida."),
+  token: z.string().min(3, "Token ou código inválido."),
+  direction: accessDirectionEnum.default("entry"),
 });

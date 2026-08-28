@@ -1,9 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 
+const PYTHON_BRIDGE_BASE = "http://127.0.0.1:8088";
+
 export interface HardwarePulseOptions {
   ipAddress: string;
   gate?: number;
   direction?: "entry" | "exit";
+  /** Id da allowlist local (ex.: serial:/dev/ttyUSB0); se enviado, o daemon exige autorização. */
+  deviceId?: string;
 }
 
 export interface ThermalPrintOptions {
@@ -15,6 +19,38 @@ export interface SystemInfoResult {
   os_type: string;
   arch: string;
   is_desktop_native: boolean;
+}
+
+export interface LocalHardwareDevice {
+  id: string;
+  kind: string;
+  path: string;
+  label: string;
+  vendor_id?: string | null;
+  product_id?: string | null;
+  platform?: string;
+}
+
+export interface LocalHardwareDiscoverResult {
+  ok: boolean;
+  platform?: string;
+  machine?: string;
+  privacy?: {
+    scope: string;
+    scans_home: boolean;
+    scans_browser: boolean;
+    leaves_host: boolean;
+  };
+  devices: LocalHardwareDevice[];
+  counts?: { serial_usb: number; cups_printer: number };
+  error?: string;
+}
+
+export interface LocalHardwareAllowlist {
+  ok?: boolean;
+  devices: LocalHardwareDevice[];
+  updated_at?: string | null;
+  error?: string;
 }
 
 /** Detecta se o SIGA está a ser executado dentro do Tauri 2 Desktop Nativo */
@@ -47,13 +83,21 @@ export async function triggerTurnstileRelay(options: HardwarePulseOptions) {
     }
   }
 
-  // Fallback para Daemon Python HTTP local
-  const response = await fetch("http://localhost:8088/hardware/turnstile/open", {
+  // Fallback para Daemon Python HTTP local (só 127.0.0.1)
+  const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/turnstile/open`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ip_address: ip, gate, direction }),
+    body: JSON.stringify({
+      ip_address: ip,
+      gate,
+      direction,
+      ...(options.deviceId ? { device_id: options.deviceId } : {}),
+    }),
   });
   const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error || `Bridge HTTP ${response.status}`);
+  }
   return { source: "python_http_daemon", ...data.result };
 }
 
@@ -74,7 +118,7 @@ export async function printThermalReceiptNative(options: ThermalPrintOptions) {
     }
   }
 
-  const response = await fetch("http://localhost:8088/hardware/printer/thermal", {
+  const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/printer/thermal`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -85,6 +129,110 @@ export async function printThermalReceiptNative(options: ThermalPrintOptions) {
   });
   const data = await response.json();
   return { source: "python_http_daemon", ...data };
+}
+
+/** Descobre USB-série + impressoras CUPS via daemon Python local (sem sair do host). */
+export async function discoverLocalHardwareDevices(): Promise<LocalHardwareDiscoverResult> {
+  try {
+    const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/discover`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return {
+        ok: false,
+        devices: [],
+        error: `Daemon inacessível (HTTP ${response.status}). Corra: python3 python/hardware_bridge/siga_hardware_bridge.py`,
+      };
+    }
+    return (await response.json()) as LocalHardwareDiscoverResult;
+  } catch {
+    return {
+      ok: false,
+      devices: [],
+      error:
+        "Daemon Python offline em 127.0.0.1:8088. Arranque o bridge localmente — a lista não é enviada para a cloud.",
+    };
+  }
+}
+
+/** Lê a allowlist local do daemon (ficheiro JSON no PC, nunca na cloud). */
+export async function getLocalHardwareAllowlist(): Promise<LocalHardwareAllowlist> {
+  try {
+    const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/allowlist`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return { devices: [], error: `HTTP ${response.status}` };
+    }
+    return (await response.json()) as LocalHardwareAllowlist;
+  } catch {
+    return { devices: [], error: "Daemon Python offline" };
+  }
+}
+
+/** Guarda a allowlist no disco local do daemon. */
+export async function saveLocalHardwareAllowlist(
+  devices: LocalHardwareDevice[],
+): Promise<LocalHardwareAllowlist> {
+  const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/allowlist`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      devices: devices.map((d) => ({
+        id: d.id,
+        kind: d.kind,
+        path: d.path,
+        label: d.label,
+      })),
+    }),
+  });
+  const data = (await response.json()) as LocalHardwareAllowlist;
+  if (!response.ok) {
+    throw new Error(data.error || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+export type HardwareBridgeHealth = {
+  online: boolean;
+  service?: string;
+  bind?: string;
+  local_discovery?: string;
+  error?: string;
+};
+
+/** Estado do daemon Python em 127.0.0.1:8088 (nunca sai do host). */
+export async function checkPythonHardwareBridgeHealth(): Promise<HardwareBridgeHealth> {
+  try {
+    const response = await fetch(`${PYTHON_BRIDGE_BASE}/health`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!response.ok) {
+      return { online: false, error: `HTTP ${response.status}` };
+    }
+    const data = (await response.json()) as {
+      service?: string;
+      bind?: string;
+      hardware?: { local_discovery?: string };
+    };
+    return {
+      online: true,
+      ...(data.service !== undefined ? { service: data.service } : {}),
+      ...(data.bind !== undefined ? { bind: data.bind } : {}),
+      ...(data.hardware?.local_discovery !== undefined
+        ? { local_discovery: data.hardware.local_discovery }
+        : {}),
+    };
+  } catch (err) {
+    return {
+      online: false,
+      error: err instanceof Error ? err.message : "Daemon offline",
+    };
+  }
 }
 
 /** Obtém detalhes do sistema operativo nativo (Windows / macOS / Linux) */

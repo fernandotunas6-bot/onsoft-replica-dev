@@ -28,6 +28,9 @@ node_modules/.vite
 # Local Supabase CLI cache
 supabase/.temp/
 
+# Allowlist de hardware do daemon Python (só neste PC)
+python/hardware_bridge/siga_hardware_allowlist.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
