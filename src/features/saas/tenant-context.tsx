@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { Tenant, Plan } from "./types";
 import { getTenantSlugFromHostname, isAdminSubdomain } from "@/lib/saas/tenant-resolver";
-import { supabase } from "@/integrations/supabase/client";
+import { getTenantBySlug } from "@/features/saas/server";
 
 interface TenantContextType {
   activeTenant: Tenant | null;
@@ -42,15 +42,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsAdminArea(isAdmin);
 
     try {
-      // Query tenant by slug
-      const { data: tenantData, error } = await supabase
-        .from("tenants")
-        .select("*, plans(*)")
-        .eq("slug", slug)
-        .maybeSingle();
+      const tenant = await getTenantBySlug({ data: { slug } });
 
-      if (tenantData && !error) {
-        const tenant = tenantData as unknown as Tenant;
+      if (tenant) {
         setActiveTenant(tenant);
         if (tenant.plans) {
           setActivePlan(tenant.plans);

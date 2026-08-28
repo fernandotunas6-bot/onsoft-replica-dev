@@ -19,15 +19,15 @@ export function getTenantSlugFromHostname(hostname?: string): string {
   if (host.endsWith(".portal-siga.com")) {
     const parts = host.split(".");
     if (parts.length >= 3) {
-      const subdomain = parts[0].toLowerCase();
-      if (subdomain === "www" || subdomain === "app") return "minha-escola";
+      const subdomain = parts[0]?.toLowerCase();
+      if (!subdomain || subdomain === "www" || subdomain === "app") return "minha-escola";
       return subdomain; // Returns e.g. "colegiohorizonte" or "admin"
     }
   }
 
   // Custom domain scenario fallback
-  const firstPart = host.split(".")[0].toLowerCase();
-  return firstPart;
+  const firstPart = host.split(".")[0]?.toLowerCase();
+  return firstPart || "minha-escola";
 }
 
 export function isAdminSubdomain(hostname?: string): boolean {

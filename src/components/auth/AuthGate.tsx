@@ -18,6 +18,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureDevBypassSession } from "@/features/auth/dev-bypass.server";
 import { Button } from "@/components/ui/button";
@@ -398,6 +399,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
             </h2>
             <p className="mt-1.5 text-xs text-muted-foreground text-center">
               Introduza as credenciais da conta no portal SIGA.
+            </p>
+            <p className="mt-1 text-xs text-center">
+              Ainda não tem escola?{" "}
+              <Link to="/criar-escola" className="font-semibold text-primary hover:underline">
+                Criar a minha escola
+              </Link>
             </p>
 
             {AUTH_DISABLED ? (

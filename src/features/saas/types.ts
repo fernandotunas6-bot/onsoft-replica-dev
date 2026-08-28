@@ -10,6 +10,17 @@ export type TenantStatus =
 
 export type SubscriptionLifecycle = "trialing" | "active" | "past_due" | "canceled" | "unpaid";
 
+export interface SaaSStats {
+  totalTenants: number;
+  activeTenants: number;
+  trialTenants: number;
+  suspendedTenants: number;
+  totalStudents: number;
+  mrrAoa: number;
+  arrAoa: number;
+  totalStorageGb: number;
+}
+
 export interface Plan {
   id: string;
   name: string;
@@ -68,24 +79,6 @@ export interface TenantDomain {
   created_at: string;
 }
 
-export interface TenantMembership {
-  id: string;
-  tenant_id: string;
-  user_id: string;
-  role:
-    | "school_owner"
-    | "director"
-    | "pedagogical_director"
-    | "secretary"
-    | "treasury"
-    | "teacher"
-    | "employee"
-    | "student"
-    | "guardian";
-  status: "active" | "invited" | "suspended";
-  created_at: string;
-}
-
 export interface TenantUsage {
   id: string;
   tenant_id: string;
@@ -109,8 +102,8 @@ export interface CreateSchoolWizardData {
 
   // Step 2: Manager
   contact_name: string;
-  contact_role: string;
-  contact_phone: string;
+  contact_role?: string;
+  contact_phone?: string;
   contact_email: string;
 
   // Step 3: Plan

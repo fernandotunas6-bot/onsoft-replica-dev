@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { ShieldAlert, LoaderCircle } from "lucide-react";
 import {
   Building2,
   Users,
@@ -18,7 +20,9 @@ import {
   MoreVertical,
   XCircle,
   Sparkles,
+  ExternalLink,
 } from "lucide-react";
+import { getSaasAdminUrl } from "@/lib/ecosystem-urls";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,13 +52,64 @@ import {
   updateTenantStatus,
   type SaaSStats,
 } from "@/lib/saas/provisioning-service";
-import type { Tenant, CreateSchoolWizardData } from "@/features/saas/types";
+import { getIsPlatformAdmin, listPlans } from "@/features/saas/server";
+import { createSchoolWizardInputSchema } from "@/features/saas/schemas";
+import { useAuthSession } from "@/components/auth/AuthGate";
+import type { Tenant, CreateSchoolWizardData, Plan } from "@/features/saas/types";
 
 export const Route = createFileRoute("/saas-admin")({
-  component: SaaSControlCenter,
+  component: SaaSControlCenterGate,
 });
 
-export function SaaSControlCenter() {
+function SaaSControlCenterGate() {
+  const session = useAuthSession();
+  const userId = session?.user.id;
+  const platformAdminQuery = useQuery({
+    queryKey: ["saas", "is-platform-admin", userId ?? "anon"],
+    enabled: Boolean(userId),
+    queryFn: () => getIsPlatformAdmin(),
+    staleTime: 5 * 60_000,
+  });
+
+  if (!userId || platformAdminQuery.isPending) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <LoaderCircle
+          className="size-7 animate-spin text-indigo-400"
+          aria-label="A confirmar acesso"
+        />
+      </div>
+    );
+  }
+
+  if (!platformAdminQuery.data?.isPlatformAdmin) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-5">
+        <div className="max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 text-center shadow-xl">
+          <ShieldAlert className="mx-auto size-10 text-rose-400" />
+          <h1 className="mt-4 text-2xl font-extrabold text-white">Acesso não autorizado</h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Esta área é reservada a administradores da plataforma SIGA — não é o mesmo que
+            administrador de uma escola. Contacte o proprietário da plataforma se precisar de
+            acesso.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Link
+              to="/"
+              className="inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Voltar ao início
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return <SaaSControlCenter />;
+}
+
+function SaaSControlCenter() {
   const [stats, setStats] = useState<SaaSStats | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -96,6 +151,13 @@ export function SaaSControlCenter() {
     loadData();
   }, []);
 
+  const plansQuery = useQuery({
+    queryKey: ["saas", "plans"],
+    queryFn: () => listPlans(),
+    staleTime: 5 * 60_000,
+  });
+  const plans: Plan[] = plansQuery.data ?? [];
+
   // Update slug automatically when school name changes
   const handleNameChange = (name: string) => {
     const slug = name
@@ -114,8 +176,9 @@ export function SaaSControlCenter() {
   };
 
   const handleCreateSchoolSubmit = async () => {
-    if (!wizardData.name || !wizardData.slug || !wizardData.contact_email) {
-      toast.error("Por favor preencha os campos obrigatórios da instituição e responsável.");
+    const parsed = createSchoolWizardInputSchema.safeParse(wizardData);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Verifique os campos do formulário.");
       return;
     }
 
@@ -204,6 +267,15 @@ export function SaaSControlCenter() {
         </div>
 
         <div className="flex items-center gap-3">
+          <a
+            href={getSaasAdminUrl()}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-950/60 px-3 py-1.5 text-xs font-semibold text-indigo-200 hover:bg-indigo-900 hover:text-white transition-colors"
+          >
+            Abrir ADMIN SaaS Central <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+
           <Button
             variant="outline"
             size="sm"
@@ -213,6 +285,7 @@ export function SaaSControlCenter() {
             <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             Atualizar
           </Button>
+
 
           <Button
             onClick={() => setIsWizardOpen(true)}
@@ -483,6 +556,17 @@ export function SaaSControlCenter() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
+                    <Label className="text-slate-300">Nome Comercial</Label>
+                    <Input
+                      placeholder="Ex: Horizonte"
+                      value={wizardData.commercial_name}
+                      onChange={(e) =>
+                        setWizardData((prev) => ({ ...prev, commercial_name: e.target.value }))
+                      }
+                      className="bg-slate-950 border-slate-800 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label className="text-slate-300">NIF / Identificação Fiscal</Label>
                     <Input
                       placeholder="Ex: 5000123456"
@@ -491,13 +575,52 @@ export function SaaSControlCenter() {
                       className="bg-slate-950 border-slate-800 text-white"
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-slate-300">Município / Cidade</Label>
                     <Input
                       placeholder="Ex: Luanda"
                       value={wizardData.city}
                       onChange={(e) => setWizardData((prev) => ({ ...prev, city: e.target.value }))}
+                      className="bg-slate-950 border-slate-800 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Endereço</Label>
+                    <Input
+                      placeholder="Ex: Rua da Missão, 45"
+                      value={wizardData.address}
+                      onChange={(e) =>
+                        setWizardData((prev) => ({ ...prev, address: e.target.value }))
+                      }
+                      className="bg-slate-950 border-slate-800 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">E-mail da Escola</Label>
+                    <Input
+                      type="email"
+                      placeholder="Ex: geral@horizonte.co.ao"
+                      value={wizardData.email}
+                      onChange={(e) =>
+                        setWizardData((prev) => ({ ...prev, email: e.target.value }))
+                      }
+                      className="bg-slate-950 border-slate-800 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Telefone da Escola</Label>
+                    <Input
+                      placeholder="Ex: +244 222 000 111"
+                      value={wizardData.phone}
+                      onChange={(e) =>
+                        setWizardData((prev) => ({ ...prev, phone: e.target.value }))
+                      }
                       className="bg-slate-950 border-slate-800 text-white"
                     />
                   </div>
@@ -553,6 +676,18 @@ export function SaaSControlCenter() {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Cargo do Responsável</Label>
+                  <Input
+                    placeholder="Ex: Diretor Geral"
+                    value={wizardData.contact_role}
+                    onChange={(e) =>
+                      setWizardData((prev) => ({ ...prev, contact_role: e.target.value }))
+                    }
+                    className="bg-slate-950 border-slate-800 text-white"
+                  />
+                </div>
               </div>
             )}
 
@@ -570,16 +705,16 @@ export function SaaSControlCenter() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-800 text-white">
-                      <SelectItem value="start">
-                        SIGA Start (Até 250 alunos) — 50.000 Kz/mês
-                      </SelectItem>
-                      <SelectItem value="professional">
-                        SIGA Professional (Até 750 alunos) — 120.000 Kz/mês
-                      </SelectItem>
-                      <SelectItem value="business">
-                        SIGA Business (Até 2.000 alunos) — 250.000 Kz/mês
-                      </SelectItem>
-                      <SelectItem value="enterprise">SIGA Enterprise (Redes Escolares)</SelectItem>
+                      {plansQuery.isPending ? (
+                        <div className="px-2 py-1.5 text-xs text-slate-500">A carregar...</div>
+                      ) : (
+                        plans.map((plan) => (
+                          <SelectItem key={plan.code} value={plan.code}>
+                            SIGA {plan.name} (Até {plan.max_students.toLocaleString()} alunos) —{" "}
+                            {formatCurrency(plan.price_aoa_monthly)}/mês
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -610,6 +745,36 @@ export function SaaSControlCenter() {
                     </span>
                   </p>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Dias de Trial</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={90}
+                      value={wizardData.trial_days}
+                      onChange={(e) =>
+                        setWizardData((prev) => ({
+                          ...prev,
+                          trial_days: Number(e.target.value) || 0,
+                        }))
+                      }
+                      className="bg-slate-950 border-slate-800 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">URL do Logótipo</Label>
+                    <Input
+                      placeholder="https://.../logo.png"
+                      value={wizardData.logo_url}
+                      onChange={(e) =>
+                        setWizardData((prev) => ({ ...prev, logo_url: e.target.value }))
+                      }
+                      className="bg-slate-950 border-slate-800 text-white"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -625,7 +790,8 @@ export function SaaSControlCenter() {
                     {wizardData.contact_email})
                   </p>
                   <p>
-                    <strong>Plano:</strong> {wizardData.plan_code.toUpperCase()}
+                    <strong>Plano:</strong> {wizardData.plan_code.toUpperCase()} ·{" "}
+                    {wizardData.trial_days} dias de trial
                   </p>
                   <p>
                     <strong>URL SIGA:</strong>{" "}

@@ -81,6 +81,13 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     prefixes: ["/importar"],
     roles: ["Administrador", "Secretaria", "Tesouraria"],
   },
+  {
+    // Só reduz a superfície de quem tenta a URL directa; o portão real é
+    // requirePlatformAdmin() no servidor (platform_admins, independente de
+    // cargo) — ver src/features/saas/server.ts e src/routes/saas-admin.tsx.
+    prefixes: ["/saas-admin"],
+    roles: ["Administrador"],
+  },
 ];
 
 export type AccessLevel = "Nenhum" | "Leitura" | "Escrita" | "Total";
