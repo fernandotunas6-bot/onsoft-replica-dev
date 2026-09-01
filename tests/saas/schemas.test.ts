@@ -4,6 +4,11 @@ import {
   publicSchoolSignupInputSchema,
   tenantSlugInputSchema,
   updateTenantStatusInputSchema,
+  updateTenantSubscriptionInputSchema,
+  grantPlatformAdminInputSchema,
+  revokePlatformAdminInputSchema,
+  registerTenantDomainInputSchema,
+  updateTenantDomainStatusInputSchema,
 } from "@/features/saas/schemas";
 
 describe("SaaS Control Center schemas", () => {
@@ -36,6 +41,22 @@ describe("SaaS Control Center schemas", () => {
     ).toThrow();
   });
 
+  it("rejects reserved subdomains like admin, api, www", () => {
+    for (const reserved of ["admin", "api", "www", "app", "auth", "mail", "billing"]) {
+      expect(() =>
+        createSchoolWizardInputSchema.parse({
+          name: "Colégio Teste",
+          contact_name: "Responsável",
+          contact_email: "teste@escola.ao",
+          plan_code: "start",
+          slug: reserved,
+          admin_name: "Admin",
+          admin_email: "admin@escola.ao",
+        }),
+      ).toThrow();
+    }
+  });
+
   it("rejects an invalid admin e-mail", () => {
     expect(() =>
       createSchoolWizardInputSchema.parse({
@@ -56,6 +77,52 @@ describe("SaaS Control Center schemas", () => {
       status: "suspended",
     });
     expect(parsed.status).toBe("suspended");
+  });
+
+  it("validates a tenant subscription update with plan or trial extension", () => {
+    const parsed = updateTenantSubscriptionInputSchema.parse({
+      tenantId: "11111111-1111-1111-1111-111111111111",
+      plan_code: "professional",
+      extend_trial_days: 14,
+    });
+    expect(parsed.plan_code).toBe("professional");
+    expect(parsed.extend_trial_days).toBe(14);
+  });
+
+  it("rejects subscription update without plan or trial extension", () => {
+    expect(() =>
+      updateTenantSubscriptionInputSchema.parse({
+        tenantId: "11111111-1111-1111-1111-111111111111",
+      }),
+    ).toThrow();
+  });
+
+  it("validates grant platform admin by email", () => {
+    const parsed = grantPlatformAdminInputSchema.parse({ email: "admin@siga.ao" });
+    expect(parsed.email).toBe("admin@siga.ao");
+  });
+
+  it("validates revoke platform admin by userId", () => {
+    const parsed = revokePlatformAdminInputSchema.parse({
+      userId: "11111111-1111-1111-1111-111111111111",
+    });
+    expect(parsed.userId).toBe("11111111-1111-1111-1111-111111111111");
+  });
+
+  it("validates register tenant custom domain", () => {
+    const parsed = registerTenantDomainInputSchema.parse({
+      tenantId: "11111111-1111-1111-1111-111111111111",
+      hostname: "portal.colegio.ao",
+    });
+    expect(parsed.hostname).toBe("portal.colegio.ao");
+  });
+
+  it("validates tenant domain status update", () => {
+    const parsed = updateTenantDomainStatusInputSchema.parse({
+      domainId: "22222222-2222-2222-2222-222222222222",
+      status: "active",
+    });
+    expect(parsed.status).toBe("active");
   });
 
   it("normalizes a tenant slug lookup to lowercase", () => {

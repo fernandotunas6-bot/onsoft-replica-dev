@@ -1,6 +1,9 @@
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { CreateSchoolWizardInput } from "@/features/saas/schemas";
+import { syncTenantUsageForSchool } from "@/features/saas/usage-sync";
+import { bootstrapSchoolDefaults } from "@/features/saas/school-bootstrap";
+import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
 
 /**
  * Cria uma escola nova de ponta a ponta: tenant comercial, escola, o
@@ -25,7 +28,13 @@ import type { CreateSchoolWizardInput } from "@/features/saas/schemas";
 export async function provisionTenantCore(
   data: CreateSchoolWizardInput,
   opts: { auditUserId: string | null; source: "platform_admin" | "public_signup" },
-): Promise<{ success: true; tenantId: string }> {
+): Promise<{
+  success: true;
+  tenantId: string;
+  slug: string;
+  hostname: string;
+  bootstrapSeeded: string[];
+}> {
   const db = await loadSgaAdminClient();
 
   const { data: plan } = await db
@@ -57,11 +66,26 @@ export async function provisionTenantCore(
   if (tenantErr) throw publicDatabaseError(tenantErr, "Não foi possível criar o tenant.");
   const tenantId = tenant.id as string;
 
+  if (plan?.id) {
+    const subscriptionStatus = data.trial_days > 0 ? "trialing" : "active";
+    const { error: subErr } = await db.from("subscriptions").insert({
+      tenant_id: tenantId,
+      plan_id: plan.id,
+      status: subscriptionStatus,
+      current_period_start: new Date().toISOString(),
+      current_period_end: trialEndsAt.toISOString(),
+    });
+    if (subErr) {
+      await db.from("tenants").delete().eq("id", tenantId);
+      throw publicDatabaseError(subErr, "Não foi possível criar a subscrição.");
+    }
+  }
+
   const cleanupTenant = async () => {
     await db.from("tenants").delete().eq("id", tenantId);
   };
 
-  const hostname = `${data.slug}.portal-siga.com`;
+  const hostname = getPlatformSubdomain(data.slug);
   const { error: domainErr } = await db.from("tenant_domains").insert({
     tenant_id: tenantId,
     hostname,
@@ -74,10 +98,13 @@ export async function provisionTenantCore(
     throw publicDatabaseError(domainErr, "Subdomínio já em uso por outra escola.");
   }
 
+  const generatedPublicCode = `SIGA-AO-${Math.floor(100000 + Math.random() * 900000)}`;
+
   const { data: school, error: schoolErr } = await db
     .from("schools")
     .insert({
       tenant_id: tenantId,
+      public_code: generatedPublicCode,
       name: data.name,
       commercial_name: data.commercial_name || data.name,
       nif: data.nif || null,
@@ -115,6 +142,7 @@ export async function provisionTenantCore(
         school_id: schoolId,
         cargo: "Administrador",
         full_name: data.admin_name,
+        display_name: data.admin_name,
       },
       { onConflict: "id" },
     );
@@ -133,9 +161,11 @@ export async function provisionTenantCore(
       );
     }
 
+    // Procurar role 'owner' global (is_system=true) ou específico da escola
     const { data: existingRole } = await db
       .from("roles")
       .select("id")
+      .or(`school_id.eq.${schoolId},and(school_id.is.null,is_system.eq.true)`)
       .in("code", ["owner", "admin", "administrador"])
       .limit(1)
       .maybeSingle();
@@ -143,7 +173,12 @@ export async function provisionTenantCore(
     if (!roleId) {
       const { data: createdRole, error: roleErr } = await db
         .from("roles")
-        .insert({ code: "owner", name: "Proprietário" })
+        .insert({
+          school_id: schoolId,
+          code: "owner",
+          name: "Proprietário",
+          is_system: false,
+        })
         .select("id")
         .single();
       if (roleErr)
@@ -167,12 +202,13 @@ export async function provisionTenantCore(
     throw err instanceof Error ? err : new Error("Falha ao provisionar o administrador da escola.");
   }
 
-  await db.from("tenant_usage").insert({
-    tenant_id: tenantId,
-    active_students_count: 0,
-    active_staff_count: 1,
-    storage_bytes_used: 0,
-    api_calls_count: 0,
+  await syncTenantUsageForSchool(tenantId, schoolId);
+
+  const { seeded: bootstrapSeeded } = await bootstrapSchoolDefaults(db, {
+    schoolId,
+    schoolName: data.name,
+    slug: data.slug,
+    adminUserId,
   });
 
   await db.from("saas_audit_logs").insert({
@@ -186,8 +222,15 @@ export async function provisionTenantCore(
       plan_code: data.plan_code,
       school_id: schoolId,
       source: opts.source,
+      bootstrap_seeded: bootstrapSeeded,
     },
   });
 
-  return { success: true, tenantId };
+  return {
+    success: true,
+    tenantId,
+    slug: data.slug,
+    hostname: getPlatformSubdomain(data.slug),
+    bootstrapSeeded,
+  };
 }
