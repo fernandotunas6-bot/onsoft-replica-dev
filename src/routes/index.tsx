@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Activity,
   Building2,
@@ -16,6 +17,9 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
+import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
+import type { EntityFocus } from "@/features/intelligence/types";
+import type { DashboardOverviewSnapshot } from "@/features/intelligence/dashboard/dashboard-suggestion-rules";
 import { AppShell } from "@/components/layout/AppShell";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -27,8 +31,6 @@ import { getDashboardOverview } from "@/features/dashboard/server";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { Button } from "@/components/ui/button";
-import { IconChip } from "@/components/ui/icon-chip";
-import { inferIcon } from "@/lib/auto-icon";
 import { kwanza } from "@/lib/currency";
 import { warmDashboardCharts } from "@/lib/warm-charts";
 import { schoolYear as fallbackSchoolYear } from "@/lib/school-config";
@@ -138,6 +140,37 @@ function Dashboard() {
     };
   }, []);
 
+  // Realtime — invalida o overview sempre que dados críticos mudam na BD
+  useEffect(() => {
+    const channel = supabase
+      .channel("dashboard_realtime_overview")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "students" },
+        () => queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "enrollments" },
+        () => queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "invoices" },
+        () => queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "school_announcements" },
+        () => queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const greeting = (() => {
     const h = now?.getHours() ?? 20;
     if (h < 12) return "Bom dia";
@@ -154,6 +187,26 @@ function Dashboard() {
     documents: false,
     audit: false,
   };
+
+  const focusedDashboardEntity = useMemo<EntityFocus<DashboardOverviewSnapshot> | null>(() => {
+    if (!data) return null;
+    return {
+      type: "dashboard-overview",
+      id: "global",
+      label: "Visão Global",
+      schoolId: school?.id ?? "desconhecida",
+      data: {
+        academicYear: data.academicYear,
+        overviewCounts: { students: data.totals.students, classes: data.totals.classes },
+        pendingEnrollmentApplications: data.totals.applicants ?? 0,
+        unpaidInvoices: 0, // Placeholder se nÃ£o vier na query principal (pode cruzar num endpoint estendido)
+        upcomingEvents: data.upcoming.length,
+      },
+    };
+  }, [data, school]);
+
+  useDeclareEntityFocus(focusedDashboardEntity);
+
 
   const stats = [
     {
@@ -306,7 +359,14 @@ function Dashboard() {
       ) : portalMode === "teacher" ? (
         <TeacherPortalDashboard />
       ) : (
-        <AdminPortalDashboard />
+        <AdminPortalDashboard
+          data={data}
+          isLoading={overviewQuery.isLoading}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          now={now}
+          greeting={greeting}
+        />
       )}
     </AppShell>
   );
