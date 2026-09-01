@@ -5,8 +5,10 @@
   "sqlApply": [
     "supabase/APPLY_IN_SQL_EDITOR.sql",
     "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
-    "supabase/APPLY_SAAS_PLATFORM.sql"
+    "supabase/APPLY_SAAS_PLATFORM.sql",
+    "supabase/APPLY_DIGITAL_IDENTITY.sql"
   ],
+  "sqlPatchAfterVerify": "supabase/APPLY_MISSING_FROM_VERIFY.sql",
   "sqlNeverApplyToSga": [
     "all_migrations_combined.sql",
     "supabase/pending_feature_migrations.sql",
@@ -27,7 +29,8 @@
         "src/features/spotlight/server.ts"
       ],
       "tests": ["tests/dashboard/alerts.test.ts", "tests/spotlight/catalog.test.ts"],
-      "accessKey": "dashboard"
+      "accessKey": "dashboard",
+      "navPath": "/"
     },
     {
       "id": "alunos",
@@ -40,7 +43,8 @@
         "src/features/students/StudentEnrollmentSheet.tsx"
       ],
       "tests": ["tests/students/schemas.test.ts"],
-      "accessKey": "pessoas"
+      "accessKey": "pessoas",
+      "navPath": "/alunos"
     },
     {
       "id": "pessoas",
@@ -49,7 +53,8 @@
       "routes": ["src/routes/pessoas/index.tsx", "src/routes/professores/$teacherId.tsx"],
       "feature": ["src/features/people/schemas.ts", "src/features/people/server.ts"],
       "tests": ["tests/people/schemas.test.ts"],
-      "accessKey": "pessoas"
+      "accessKey": "pessoas",
+      "navPath": "/pessoas"
     },
     {
       "id": "pedagogica",
@@ -63,7 +68,9 @@
         "src/features/academic/sga-grades.ts"
       ],
       "tests": ["tests/academic/schemas.test.ts"],
-      "accessKey": "pedagogica"
+      "accessKey": "pedagogica",
+      "navPath": "/pedagogica",
+      "secondaryNavPaths": ["/relatorios/academicos"]
     },
     {
       "id": "financeiro",
@@ -75,7 +82,9 @@
         "src/routes/relatorios.financeiros.tsx"
       ],
       "feature": ["src/features/finance/schemas.ts", "src/features/finance/server.ts"],
-      "accessKey": "financeiro"
+      "accessKey": "financeiro",
+      "navPath": "/financeiro",
+      "secondaryNavPaths": ["/faturas", "/relatorios/financeiros"]
     },
     {
       "id": "documentos",
@@ -83,7 +92,8 @@
       "label": "Documentos",
       "routes": ["src/routes/documentos.tsx"],
       "feature": ["src/features/documents/schemas.ts", "src/features/documents/server.ts"],
-      "accessKey": "pessoas"
+      "accessKey": "pessoas",
+      "navPath": "/documentos"
     },
     {
       "id": "calendario",
@@ -96,7 +106,8 @@
         "src/features/calendar/feed.ts"
       ],
       "tests": ["tests/calendar/schemas.test.ts"],
-      "accessKey": "pedagogica"
+      "accessKey": "pedagogica",
+      "navPath": "/calendario"
     },
     {
       "id": "comunicacoes",
@@ -110,7 +121,8 @@
         "src/features/messages/server.ts"
       ],
       "tests": ["tests/communications/schemas.test.ts", "tests/messages/schemas.test.ts"],
-      "accessKey": "pedagogica"
+      "accessKey": "pedagogica",
+      "navPath": "/comunicacoes"
     },
     {
       "id": "acessos",
@@ -125,7 +137,8 @@
         "src/components/auth/AuthGate.tsx"
       ],
       "tests": ["tests/auth/access-policy.test.ts"],
-      "accessKey": "gestao"
+      "accessKey": "gestao",
+      "navPath": "/acessos"
     },
     {
       "id": "matricula",
@@ -139,6 +152,7 @@
       ],
       "tests": ["tests/enrollment/schemas.test.ts"],
       "publicPath": "/matricula",
+      "navPath": "/configuracoes",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
     },
     {
@@ -168,6 +182,7 @@
       ],
       "tests": ["tests/arquivos/schemas.test.ts"],
       "accessKey": "arquivos",
+      "navPath": "/arquivos",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
     },
     {
@@ -182,6 +197,7 @@
       ],
       "tests": ["tests/lesson-plans/schemas.test.ts"],
       "accessKey": "pedagogica",
+      "navPath": "/planos-aula",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
     },
     {
@@ -197,18 +213,21 @@
         "src/features/import/components/ImportHistoryPanel.tsx"
       ],
       "tests": ["tests/import/schemas.test.ts"],
-      "accessKey": "pessoas",
+      "accessKey": "importacao",
+      "navPath": "/importar",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
     },
     {
       "id": "catracas",
       "skill": "siga-catracas",
       "label": "Catracas e Cartão Virtual",
-      "routes": ["src/routes/catracas.tsx"],
+      "routes": ["src/routes/catracas.tsx", "src/routes/api/catracas/device-scan.tsx"],
       "feature": [
         "src/features/catracas/schemas.ts",
         "src/features/catracas/server.ts",
         "src/features/catracas/gate-pass-token.ts",
+        "src/features/catracas/gate-pass-validation.ts",
+        "src/features/catracas/device-webhook-handler.ts",
         "src/features/catracas/hardware-pulse.ts",
         "src/features/catracas/components/TurnstileAccessPanel.tsx",
         "src/features/catracas/components/VirtualCardModal.tsx"
@@ -220,6 +239,7 @@
         "tests/catracas/reconciliation.test.ts"
       ],
       "accessKey": "gestao",
+      "navPath": "/catracas",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
     },
     {
