@@ -13,9 +13,15 @@
 
 # Continuação para agentes
 
+**Ecossistema (ler ao abrir):** [docs/agents/ARCHITECTURE_HARMONIZATION.md](docs/agents/ARCHITECTURE_HARMONIZATION.md).
+
+WEB vende (`painel/web`). ADMIN controla (`painel/admin`). SIGA trabalha (raiz). DOC explica (`painel/docs`). Skill: `siga-ecosystem`.
+
 Handoff e estado dos ciclos: [docs/agents/CONTINUE.md](docs/agents/CONTINUE.md).
 
-Skills por módulo (ler o do domínio antes de editar): `.cursor/skills/siga/SKILL.md` e `.cursor/skills/siga-*/SKILL.md`.
+Skills: `.cursor/skills/siga/SKILL.md`, `siga-web`, `siga-admin`, `siga-docs`, `siga-saas`, `siga-identity`, e `.cursor/skills/siga-*/SKILL.md` por módulo escolar.
+
+**Identidade Digital (domínios, e-mail, subdomínios):** skill `siga-identity` + docs em `docs/domains/`, `docs/email/`, `docs/cloudflare/`, `docs/multi-tenant/`, `docs/provisioning/`.
 
 Auto-construção:
 
@@ -26,3 +32,4 @@ npm run siga:scaffold -- <modulo> [--route=/caminho] [--with-page]
 ```
 
 No SGA não aplicar migrações Lovable. SQL correcto: `npm run siga:sql`.
+
