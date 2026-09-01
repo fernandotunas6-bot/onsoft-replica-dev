@@ -106,3 +106,58 @@ export const signupSchoolPublic = createServerFn({ method: "POST" })
     const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
     return runPublicSchoolSignup(data, ip);
   });
+
+// ─── Identidade Digital — Fase 3 & 4 ────────────────────────────────────────
+
+import { getSchoolDomainStatus, requestCustomDomainVerification, saveEmailForwardingRoute } from "@/features/saas/school-domain-ops";
+import { z } from "zod";
+
+/**
+ * Estado completo de identidade digital da escola autenticada:
+ * subdomínio, domínio personalizado e rota de e-mail.
+ */
+export const getSchoolDomain = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => z.object({ tenantId: z.string(), tenantSlug: z.string() }).parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    return getSchoolDomainStatus(data.tenantId, data.tenantSlug);
+  });
+
+/**
+ * Regista um pedido de verificação de domínio personalizado.
+ * Retorna as instruções CNAME/TXT que a escola deve configurar no seu DNS.
+ */
+export const requestDomainVerification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({
+      tenantId: z.string().uuid(),
+      tenantSlug: z.string().min(2),
+      hostname: z
+        .string()
+        .min(4)
+        .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/, "Hostname inválido."),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    return requestCustomDomainVerification(data);
+  });
+
+/**
+ * Guarda o endereço de encaminhamento de e-mail institucional.
+ */
+export const updateEmailForwarding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({
+      tenantId: z.string().uuid(),
+      tenantSlug: z.string().min(2),
+      forwardTo: z.string().email("E-mail de encaminhamento inválido."),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    return saveEmailForwardingRoute(data);
+  });
