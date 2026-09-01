@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
 import { pollCustomDomainDns, persistPollResult } from "@/features/saas/domain-polling";
-import { domainDnsInstructions } from "@/features/saas/domain-verify";
+import { domainDnsInstructions } from "@/features/saas/platform-ops";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
 // style-check: route-exempt — polling DNS de domínio personalizado.

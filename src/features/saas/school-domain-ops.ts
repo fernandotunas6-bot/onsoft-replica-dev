@@ -10,10 +10,7 @@ import {
   getPlatformDomain,
   getPlatformSubdomain,
 } from "@/lib/saas/platform-domain";
-import {
-  domainDnsInstructions,
-  type DomainDnsCheckResult,
-} from "@/features/saas/domain-verify";
+import { domainDnsInstructions } from "@/features/saas/platform-ops";
 import {
   buildInstitutionalAddress,
   validateForwardingEmail,

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Globe,
   Mail,
@@ -26,6 +27,11 @@ import {
   planIncludesAdvancedBranding,
 } from "@/features/saas/plan-features";
 import { getPricingUrl } from "@/lib/ecosystem-urls";
+import {
+  getSchoolDomain,
+  requestDomainVerification,
+  updateEmailForwarding,
+} from "@/features/saas/server";
 
 export function DigitalIdentityPanel() {
   const { activeTenant, activeSlug, activePlan } = useTenant();
@@ -33,20 +39,33 @@ export function DigitalIdentityPanel() {
 
   const platformDomain = getPlatformDomain();
   const currentSubdomainUrl = `https://${getPlatformSubdomain(activeSlug || "minha-escola")}`;
-  const institutionalEmail = `${activeSlug || "escola"}@${platformDomain}`;
+
+  const fetchDomainStatus = useServerFn(getSchoolDomain);
+  const verifyDomainFn = useServerFn(requestDomainVerification);
+  const saveEmailFn = useServerFn(updateEmailForwarding);
+
+  const [isLoading, setIsLoading] = useState(true);
 
   // Estados de Domínio Personalizado
   const [customDomainInput, setCustomDomainInput] = useState("");
   const [isVerifyingDomain, setIsVerifyingDomain] = useState(false);
   const [domainVerificationStatus, setDomainVerificationStatus] = useState<
-    "idle" | "verifying" | "success" | "error"
+    "idle" | "verifying" | "success" | "error" | "pending"
   >("idle");
+  const [dnsInstructions, setDnsInstructions] = useState<{
+    cnameHost?: string;
+    cnameTarget?: string;
+    txtHost?: string;
+    txtValue?: string;
+  } | null>(null);
 
   // Estados de Encaminhamento de E-mail
+  const [institutionalEmail, setInstitutionalEmail] = useState(`${activeSlug || "escola"}@${platformDomain}`);
   const [forwardingEmail, setForwardingEmail] = useState(
     activeTenant?.contact_email || "direcao@escola.ao"
   );
   const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [emailRouteActive, setEmailRouteActive] = useState(false);
 
   // Estados de Branding
   const [primaryColor, setPrimaryColor] = useState("#2563EB");
@@ -57,6 +76,36 @@ export function DigitalIdentityPanel() {
   const hasProfessionalEmailAccess = planIncludesProfessionalEmail(activePlan);
   const hasAdvancedBrandingAccess = planIncludesAdvancedBranding(activePlan);
 
+  const loadDomainData = useCallback(async () => {
+    if (!activeTenant || !activeSlug) return;
+    try {
+      setIsLoading(true);
+      const data = await fetchDomainStatus({ data: { tenantId: activeTenant.id, tenantSlug: activeSlug } });
+      
+      if (data.emailRoute) {
+        setInstitutionalEmail(data.emailRoute.institutionalEmail);
+        if (data.emailRoute.forwardTo) setForwardingEmail(data.emailRoute.forwardTo);
+        setEmailRouteActive(data.emailRoute.active);
+      }
+
+      if (data.customDomain) {
+        setCustomDomainInput(data.customDomain.hostname);
+        if (data.customDomain.status === "active") setDomainVerificationStatus("success");
+        else if (data.customDomain.status === "failed") setDomainVerificationStatus("error");
+        else setDomainVerificationStatus("pending");
+        setDnsInstructions(data.customDomain.instructions);
+      }
+    } catch (err) {
+      console.error("Failed to load digital identity status:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeTenant, activeSlug, fetchDomainStatus]);
+
+  useEffect(() => {
+    void loadDomainData();
+  }, [loadDomainData]);
+
   const copyToClipboard = (text: string, label: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(text);
@@ -65,14 +114,32 @@ export function DigitalIdentityPanel() {
   };
 
   const handleSaveEmailRoute = async () => {
+    if (!activeTenant || !activeSlug) return;
     setIsSavingEmail(true);
-    setTimeout(() => {
+    try {
+      const res = await saveEmailFn({
+        data: {
+          tenantId: activeTenant.id,
+          tenantSlug: activeSlug,
+          forwardTo: forwardingEmail,
+        },
+      });
+      if (res.ok) {
+        toast.success("Encaminhamento de e-mail institucional actualizado!");
+        setInstitutionalEmail(res.institutionalEmail);
+        setEmailRouteActive(true);
+      } else {
+        toast.error(res.reason || "Não foi possível guardar o e-mail.");
+      }
+    } catch (err) {
+      toast.error("Ocorreu um erro ao guardar o e-mail.");
+    } finally {
       setIsSavingEmail(false);
-      toast.success("Encaminhamento de e-mail institucional actualizado!");
-    }, 600);
+    }
   };
 
   const handleVerifyCustomDomain = async () => {
+    if (!activeTenant || !activeSlug) return;
     if (!customDomainInput.trim()) {
       toast.error("Por favor insira um domínio válido.");
       return;
@@ -80,12 +147,53 @@ export function DigitalIdentityPanel() {
     setIsVerifyingDomain(true);
     setDomainVerificationStatus("verifying");
 
-    setTimeout(() => {
+    try {
+      const res = await verifyDomainFn({
+        data: {
+          tenantId: activeTenant.id,
+          tenantSlug: activeSlug,
+          hostname: customDomainInput.trim(),
+        },
+      });
+      setDnsInstructions(res.instructions);
+      setDomainVerificationStatus("pending");
+      toast.success("Domínio registado! Verifique as instruções de DNS abaixo.");
+      
+      // Inicia o polling via endpoint
+      const pollRes = await fetch("/api/saas/domains/poll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domainId: res.domainId }),
+      });
+      
+      if (pollRes.ok) {
+        const pollData = await pollRes.json();
+        if (pollData.status === "active") {
+          setDomainVerificationStatus("success");
+          toast.success("Domínio e registos DNS validados com sucesso!");
+        } else if (pollData.status === "failed") {
+          setDomainVerificationStatus("error");
+          toast.error(pollData.reason || "Validação DNS falhou.");
+        } else {
+          toast.info("A verificação está pendente. Propagação de DNS pode levar algum tempo.");
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao verificar domínio.";
+      toast.error(msg);
+      setDomainVerificationStatus("error");
+    } finally {
       setIsVerifyingDomain(false);
-      setDomainVerificationStatus("success");
-      toast.success("Domínio e registos DNS validados com sucesso!");
-    }, 1200);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-40 items-center justify-center text-muted-foreground">
+        <LoaderCircle className="size-6 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -219,11 +327,12 @@ export function DigitalIdentityPanel() {
                     value={customDomainInput}
                     onChange={(e) => setCustomDomainInput(e.target.value)}
                     className="font-mono text-xs"
+                    disabled={isVerifyingDomain}
                   />
                   <Button
                     size="sm"
                     onClick={handleVerifyCustomDomain}
-                    disabled={isVerifyingDomain}
+                    disabled={isVerifyingDomain || !customDomainInput.trim()}
                     className="text-xs shrink-0 gap-1.5"
                   >
                     {isVerifyingDomain ? (
@@ -236,19 +345,49 @@ export function DigitalIdentityPanel() {
                 </div>
               </div>
 
-              <div className="rounded-lg bg-muted/50 p-3 space-y-2 border text-xs">
-                <div className="font-semibold text-foreground">Instruções de Apontamento DNS:</div>
-                <div className="grid grid-cols-3 gap-2 font-mono text-[11px]">
-                  <div><span className="text-muted-foreground">Tipo:</span> CNAME</div>
-                  <div><span className="text-muted-foreground">Nome:</span> portal</div>
-                  <div><span className="text-muted-foreground">Destino:</span> {getPlatformSubdomain(activeSlug)}</div>
+              {dnsInstructions && domainVerificationStatus !== "success" && (
+                <div className="rounded-lg bg-muted/50 p-3 space-y-3 border text-xs">
+                  <div className="font-semibold text-foreground">Instruções de Apontamento DNS:</div>
+                  <div className="grid grid-cols-1 gap-2 font-mono text-[11px]">
+                    <div className="grid grid-cols-[80px_1fr] items-center">
+                      <span className="text-muted-foreground">CNAME (nome):</span>
+                      <div className="flex items-center justify-between bg-background p-1.5 rounded border">
+                        <span>{dnsInstructions.cnameHost}</span>
+                        <Copy className="size-3 cursor-pointer text-muted-foreground hover:text-foreground" onClick={() => copyToClipboard(dnsInstructions.cnameHost || "", "Nome")} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-[80px_1fr] items-center">
+                      <span className="text-muted-foreground">Destino:</span>
+                      <div className="flex items-center justify-between bg-background p-1.5 rounded border">
+                        <span>{dnsInstructions.cnameTarget}</span>
+                        <Copy className="size-3 cursor-pointer text-muted-foreground hover:text-foreground" onClick={() => copyToClipboard(dnsInstructions.cnameTarget || "", "Destino")} />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Opcionalmente, pode configurar um TXT no host <strong>{dnsInstructions.txtHost}</strong> com o valor <strong>{dnsInstructions.txtValue}</strong>.
+                  </p>
                 </div>
-              </div>
+              )}
 
               {domainVerificationStatus === "success" && (
-                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-2.5 rounded-lg">
+                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
                   <CheckCircle2 className="size-4 shrink-0" />
-                  <span>CNAME validado com sucesso. Certificado SSL provisionado.</span>
+                  <span>Domínio validado com sucesso. Certificado SSL provisionado e activo.</span>
+                </div>
+              )}
+              
+              {domainVerificationStatus === "pending" && (
+                <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                  <LoaderCircle className="size-4 shrink-0 animate-spin" />
+                  <span>A aguardar propagação DNS. Pode levar até 24 horas.</span>
+                </div>
+              )}
+
+              {domainVerificationStatus === "error" && (
+                <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>Erro ao verificar os registos DNS. Verifique a configuração e tente novamente.</span>
                 </div>
               )}
             </div>
@@ -259,8 +398,13 @@ export function DigitalIdentityPanel() {
         <TabsContent value="email" className="space-y-4 pt-4">
           <div className="rounded-xl border bg-card p-5 space-y-4">
             <div>
-              <h4 className="text-sm font-semibold text-foreground">
+              <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 E-mail Institucional da Escola
+                {emailRouteActive && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600">
+                    Activo
+                  </span>
+                )}
               </h4>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Endereço de representação oficial com encaminhamento automático para a direção.
@@ -269,11 +413,16 @@ export function DigitalIdentityPanel() {
 
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Endereço Institucional</Label>
-              <Input
-                readOnly
-                value={institutionalEmail}
-                className="font-mono text-xs bg-muted/40"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={institutionalEmail}
+                  className="font-mono text-xs bg-muted/40"
+                />
+                <Button variant="outline" size="icon" className="size-9 shrink-0" onClick={() => copyToClipboard(institutionalEmail, "E-mail")}>
+                  <Copy className="size-3.5" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -297,7 +446,7 @@ export function DigitalIdentityPanel() {
               <Button
                 size="sm"
                 onClick={handleSaveEmailRoute}
-                disabled={isSavingEmail}
+                disabled={isSavingEmail || !forwardingEmail.trim()}
                 className="text-xs gap-1.5"
               >
                 {isSavingEmail ? (
@@ -313,6 +462,28 @@ export function DigitalIdentityPanel() {
 
         {/* 4. ABA BRANDING */}
         <TabsContent value="branding" className="space-y-4 pt-4">
+          {!hasAdvancedBrandingAccess ? (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3">
+              <div className="mx-auto size-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <Lock className="size-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-foreground">
+                  Branding Institucional
+                </h4>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1">
+                  Personalize o portal com as cores e o logótipo da sua escola para oferecer uma experiência imersiva à comunidade escolar.
+                </p>
+              </div>
+              <Button size="sm" asChild className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs">
+                <a href={getPricingUrl()} target="_blank" rel="noreferrer">
+                  <Sparkles className="size-3.5" />
+                  Actualizar para Plano Premium
+                  <ArrowRight className="size-3.5" />
+                </a>
+              </Button>
+            </div>
+          ) : (
           <div className="rounded-xl border bg-card p-5 space-y-4">
             <div>
               <h4 className="text-sm font-semibold text-foreground">
@@ -388,6 +559,7 @@ export function DigitalIdentityPanel() {
               </Button>
             </div>
           </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
