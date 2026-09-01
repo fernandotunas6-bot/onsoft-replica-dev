@@ -5,6 +5,7 @@ import {
   GraduationCap,
   FolderOpen,
   Gauge,
+  Globe,
   KeyRound,
   Palette,
   Link2,
@@ -25,6 +26,7 @@ import {
   PedagogicalSettingsPanel,
   SchoolSettingsPanel,
   SecurityPanel,
+  DigitalIdentityPanel,
 } from "@/features/school/settings-panels";
 import { EnrollmentCampaignPanel } from "@/features/enrollment/EnrollmentCampaignPanel";
 import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPanel";
@@ -162,6 +164,14 @@ function useSettingsPanels(): StackPanel[] {
         icon: Building2,
         tone: "info",
         render: () => <SchoolSettingsPanel />,
+      },
+      {
+        id: "identidade",
+        title: "Identidade Digital",
+        description: "Subdomínios, e-mail institucional e domínio personalizado.",
+        icon: Globe,
+        tone: "primary",
+        render: () => <DigitalIdentityPanel />,
       },
       {
         id: "pedagogico",
