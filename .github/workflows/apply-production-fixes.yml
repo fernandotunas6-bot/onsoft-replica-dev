@@ -1,0 +1,36 @@
+name: Apply Production Fixes
+
+on:
+  push:
+    branches: ["fix/tenant-security-payment-mfa-2026-09-03"]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'chore(autofix): apply import and MFA production fixes') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/tenant-security-payment-mfa-2026-09-03
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Apply deterministic patches
+        run: node scripts/siga/apply-production-import-auth-fixes.mjs
+
+      - name: Commit patches if needed
+        run: |
+          if git diff --quiet -- src/features/import/components/ImportWorkflowWizard.tsx src/components/auth/AuthGate.tsx; then
+            echo "Patches já aplicados."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/import/components/ImportWorkflowWizard.tsx src/components/auth/AuthGate.tsx
+          git commit -m "chore(autofix): apply import and MFA production fixes"
+          git push origin HEAD:fix/tenant-security-payment-mfa-2026-09-03
