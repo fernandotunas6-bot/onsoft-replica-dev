@@ -29,6 +29,12 @@ const FALLBACK_PLANS: SaasPlan[] = [
   { code: "enterprise", name: "Enterprise", description: "Limites e suporte alargados" },
 ]
 
+const PAYMENT_IBAN = String(import.meta.env["VITE_PAYMENT_IBAN"] ?? "").trim()
+const PAYMENT_BANK = String(import.meta.env["VITE_PAYMENT_BANK"] ?? "").trim()
+const PAYMENT_ACCOUNT_NAME = String(import.meta.env["VITE_PAYMENT_ACCOUNT_NAME"] ?? "").trim()
+const SUPPORT_WHATSAPP = String(import.meta.env["VITE_SUPPORT_WHATSAPP"] ?? "").replace(/\D/g, "")
+const SUPPORT_EMAIL = String(import.meta.env["VITE_SUPPORT_EMAIL"] ?? "").trim()
+
 const schema = z.object({
   name: z.string().trim().min(2, "Nome da escola obrigatório"),
   nif: z.string().trim().optional(),
@@ -163,49 +169,69 @@ export function StartSchoolWizard() {
   }
 
   if (done) {
-    const whatsappUrl = `https://wa.me/244926445277?text=Ol%C3%A1%2C%20criei%20a%20minha%20escola%20(${encodeURIComponent(values.name)})%20no%20SIGA%20Plus%20e%20aqui%20est%C3%A1%20o%20comprovativo%20de%20pagamento%20do%20plano%20${values.plan_code}.`
-    const emailUrl = `mailto:valentinocanguele@gmail.com?subject=Comprovativo%20de%20Pagamento%20-%20SIGA%20Plus%20(${encodeURIComponent(values.name)})`
+    const paymentMessage = encodeURIComponent(
+      `Olá, registei a escola ${values.name} no SIGA Plus. Pretendo enviar o comprovativo do plano ${planLabel}. Endereço: ${done.hostname}.`,
+    )
+    const whatsappUrl = SUPPORT_WHATSAPP ? `https://wa.me/${SUPPORT_WHATSAPP}?text=${paymentMessage}` : null
+    const emailUrl = SUPPORT_EMAIL
+      ? `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Comprovativo de pagamento - SIGA Plus (${values.name})`)}`
+      : null
+    const hasPaymentInstructions = Boolean(PAYMENT_IBAN)
 
     return (
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">A sua escola foi criada com sucesso! 🎉</CardTitle>
+          <CardTitle className="text-xl">Pedido da escola registado com sucesso</CardTitle>
           <CardDescription>
-            Para activar a sua licença e o plano escolhido, efectue o pagamento.
+            O acesso experimental pode iniciar agora. O plano pago só fica activo depois da validação do pagamento.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-5 text-center">
           <div className="rounded-lg bg-muted p-4 space-y-3">
-            <h3 className="font-semibold text-sm">Dados para Pagamento por IBAN</h3>
-            <p className="text-sm font-mono tracking-wider">AO06 0000 0000 0000 0000 0000 0</p>
-            <p className="text-xs text-muted-foreground">Banco: Selecionar / Titular: SIGA Plus</p>
-            <div className="border-t pt-3 mt-3">
-              <p className="text-sm font-medium">Plano selecionado: {planLabel}</p>
-            </div>
+            <h3 className="font-semibold text-sm">Estado da assinatura</h3>
+            <p className="text-sm font-medium">Pagamento pendente de validação</p>
+            <p className="text-xs text-muted-foreground">Plano seleccionado: {planLabel}</p>
           </div>
+
+          {hasPaymentInstructions ? (
+            <div className="rounded-lg border p-4 space-y-2">
+              <h3 className="font-semibold text-sm">Dados para pagamento por IBAN</h3>
+              <p className="text-sm font-mono tracking-wider">{PAYMENT_IBAN}</p>
+              {PAYMENT_BANK ? <p className="text-xs text-muted-foreground">Banco: {PAYMENT_BANK}</p> : null}
+              {PAYMENT_ACCOUNT_NAME ? (
+                <p className="text-xs text-muted-foreground">Titular: {PAYMENT_ACCOUNT_NAME}</p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="rounded-lg border p-4 text-sm text-muted-foreground">
+              Os dados oficiais para pagamento serão enviados pelos canais comerciais configurados. Nenhum IBAN de demonstração é apresentado.
+            </p>
+          )}
 
           <p className="text-sm">
-            Após a transferência, envie-nos o comprovativo indicando o nome da escola:
-            <br />
-            <strong className="text-foreground">{values.name}</strong> ({done.hostname})
+            Ao enviar o comprovativo, identifique a instituição como <strong>{values.name}</strong> e informe o endereço <strong>{done.hostname}</strong>.
           </p>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Button asChild className="bg-[#25D366] hover:bg-[#1DA851] text-white">
-              <a href={whatsappUrl} target="_blank" rel="noreferrer">
-                Enviar por WhatsApp
-              </a>
-            </Button>
-            <Button asChild variant="outline">
-              <a href={emailUrl}>
-                Enviar por E-mail
-              </a>
-            </Button>
-          </div>
+          {whatsappUrl || emailUrl ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              {whatsappUrl ? (
+                <Button asChild>
+                  <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                    Enviar comprovativo por WhatsApp
+                  </a>
+                </Button>
+              ) : null}
+              {emailUrl ? (
+                <Button asChild variant="outline">
+                  <a href={emailUrl}>Enviar comprovativo por e-mail</a>
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
 
-          <div className="mt-4 pt-4 border-t text-sm">
+          <div className="mt-4 border-t pt-4 text-sm">
             <Button variant="link" asChild className="text-muted-foreground">
-              <a href={done.sigaUrl}>Ou entre no SIGA Plus agora (Trial de 14 dias) &rarr;</a>
+              <a href={done.sigaUrl}>Entrar no SIGA Plus durante o período experimental &rarr;</a>
             </Button>
           </div>
         </CardContent>
