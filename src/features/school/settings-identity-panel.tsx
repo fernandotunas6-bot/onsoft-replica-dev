@@ -31,6 +31,7 @@ import {
   getSchoolDomain,
   requestDomainVerification,
   updateEmailForwarding,
+  provisionMailbox,
 } from "@/features/saas/server";
 
 export function DigitalIdentityPanel() {
@@ -59,6 +60,11 @@ export function DigitalIdentityPanel() {
     txtValue?: string;
   } | null>(null);
 
+  // Estados de Caixa Profissional
+  const [mailboxState, setMailboxState] = useState<{email: string, status: string, provider: string} | null>(null);
+  const [isProvisioningMailbox, setIsProvisioningMailbox] = useState(false);
+  const provisionMailboxFn = useServerFn(provisionMailbox);
+
   // Estados de Encaminhamento de E-mail
   const [institutionalEmail, setInstitutionalEmail] = useState(`${activeSlug || "escola"}@${platformDomain}`);
   const [forwardingEmail, setForwardingEmail] = useState(
@@ -82,6 +88,10 @@ export function DigitalIdentityPanel() {
       setIsLoading(true);
       const data = await fetchDomainStatus({ data: { tenantId: activeTenant.id, tenantSlug: activeSlug } });
       
+      if (data.mailbox) {
+        setMailboxState(data.mailbox);
+      }
+
       if (data.emailRoute) {
         setInstitutionalEmail(data.emailRoute.institutionalEmail);
         if (data.emailRoute.forwardTo) setForwardingEmail(data.emailRoute.forwardTo);
@@ -110,6 +120,33 @@ export function DigitalIdentityPanel() {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(text);
       toast.success(`${label} copiado para a área de transferência!`);
+    }
+  };
+
+  const handleProvisionMailbox = async () => {
+    if (!activeTenant || !activeSlug) return;
+    setIsProvisioningMailbox(true);
+    try {
+      const res = await provisionMailboxFn({
+        data: {
+          tenantId: activeTenant.id,
+          tenantSlug: activeSlug,
+          email: `${activeSlug}@${platformDomain}`,
+          displayName: activeTenant.name || "Escola"
+        }
+      });
+      if (res.ok) {
+        toast.success("Caixa profissional solicitada com sucesso!");
+        setMailboxState({
+          email: `${activeSlug}@${platformDomain}`,
+          status: "active",
+          provider: res.provider
+        });
+      }
+    } catch (err) {
+      toast.error("Ocorreu um erro ao solicitar a caixa profissional.");
+    } finally {
+      setIsProvisioningMailbox(false);
     }
   };
 

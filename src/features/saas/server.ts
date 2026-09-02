@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -160,4 +161,46 @@ export const updateEmailForwarding = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
     return saveEmailForwardingRoute(data);
+  });
+
+import { createMailbox } from "@/features/saas/mailbox-providers";
+
+/**
+ * Provisiona uma nova caixa de e-mail profissional via Zoho/Google Workspace
+ * para o tenant actual (Fase 5).
+ */
+export const provisionMailbox = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({
+      tenantId: z.string().uuid(),
+      tenantSlug: z.string().min(2),
+      email: z.string().email(),
+      displayName: z.string().min(1),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    
+    const db = await loadSgaAdminClient();
+    
+    // Verificar se a escola tem plano que permite mailbox
+    const { data: tenantRow } = await db.from("tenants").select("plan_id").eq("id", data.tenantId).maybeSingle();
+    const { data: planRow } = await db.from("plans").select("code, features").eq("id", tenantRow?.plan_id || "").maybeSingle();
+    
+    // Se o user está autenticado no contexto do admin/owner da escola, e tem plano premium:
+    // Fazemos provisoning:
+    const result = await createMailbox(data);
+    if (!result.ok) throw new Error(result.reason);
+    
+    await db.from("tenant_mailboxes").insert({
+      tenant_id: data.tenantId,
+      email: data.email,
+      display_name: data.displayName,
+      provider: result.provider,
+      provider_account_id: result.providerAccountId,
+      status: "active",
+    });
+    
+    return { ok: true, provider: result.provider };
   });

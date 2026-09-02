@@ -40,10 +40,17 @@ export type EmailRouteInfo = {
   provider: string | null;
 };
 
+export type MailboxInfo = {
+  email: string;
+  status: "active" | "suspended" | "deleted";
+  provider: string;
+};
+
 export type SchoolDomainStatus = {
   subdomain: SubdomainInfo;
   customDomain: CustomDomainInfo | null;
   emailRoute: EmailRouteInfo | null;
+  mailbox: MailboxInfo | null;
 };
 
 // ─── Consultas ───────────────────────────────────────────────────────────────
@@ -117,7 +124,25 @@ export async function getSchoolDomainStatus(
     };
   }
 
-  return { subdomain, customDomain, emailRoute };
+  // Caixa de Correio (Fase 5)
+  const { data: mailboxRow } = await db
+    .from("tenant_mailboxes")
+    .select("email, status, provider")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let mailbox: MailboxInfo | null = null;
+  if (mailboxRow) {
+    mailbox = {
+      email: String(mailboxRow.email),
+      status: (mailboxRow.status || "active") as MailboxInfo["status"],
+      provider: String(mailboxRow.provider || "simulated"),
+    };
+  }
+
+  return { subdomain, customDomain, emailRoute, mailbox };
 }
 
 // ─── Mutações ────────────────────────────────────────────────────────────────
