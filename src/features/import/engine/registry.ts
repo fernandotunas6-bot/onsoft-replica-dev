@@ -2,20 +2,20 @@ import type { ImportModule } from "../schemas";
 import type { RowImporter } from "./types";
 import { pessoasImporter } from "../importers/pessoas-importer";
 import { alunosImporter } from "../importers/alunos-importer";
+import { matriculasImporter } from "../importers/matriculas-importer";
+import { notasImporter, pautasImporter } from "../importers/notas-importer";
 
 /**
  * Registo central do motor de importação. Cada módulo novo regista aqui o
  * seu RowImporter (analyzeRow + commitRow) — o resto do motor (parsing,
  * staging, lotes, dry-run, auditoria, rollback) é comum a todos.
- *
- * Módulos ainda não implementados (ver plano faseado): encarregados,
- * professores, funcionarios, turmas, classes, cursos, disciplinas, salas,
- * matriculas, inscricoes, horarios, notas, avaliacoes, presencas, propinas,
- * pagamentos, dividas, historico_academico, historico_financeiro.
  */
 export const IMPORTER_REGISTRY: Partial<Record<ImportModule, RowImporter>> = {
   pessoas: pessoasImporter,
   alunos: alunosImporter,
+  matriculas: matriculasImporter,
+  notas: notasImporter,
+  pautas: pautasImporter,
 };
 
 export function getImporter(module: ImportModule): RowImporter {
