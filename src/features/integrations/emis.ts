@@ -1,8 +1,38 @@
 // EMIS integration logic
+
+export type EmisStudentRow = {
+  id: string;
+  registration_number: string;
+  full_name: string;
+  sex: "male" | "female" | string | null;
+  date_of_birth?: string | null;
+  academic_year?: string | null;
+  class_name?: string | null;
+  grade_name?: string | null;
+  primary_guardian_name?: string | null;
+  document_number?: string | null;
+  student_status: string;
+};
+
+export type EmisExportRow = {
+  emis_school_id: string;
+  student_id: string;
+  registration_number: string;
+  full_name: string;
+  gender: "M" | "F" | "U";
+  birth_date: string | null;
+  academic_year: string | null;
+  class_name: string | null;
+  emis_grade: string;
+  guardian_name: string | null;
+  national_id: string | null;
+  status: string;
+};
+
 /**
  * Normaliza o grau de ensino para a taxonomia do EMIS (Angola).
  */
-export function normalizeEmisGradeLevel(gradeName: string | null): string {
+export function normalizeEmisGradeLevel(gradeName: string | null | undefined): string {
   if (!gradeName) return "Desconhecido";
   const gn = gradeName.toLowerCase();
   if (gn.includes("13ª") || gn.includes("13a") || gn.includes("décima terceira")) return "13ª Classe";
@@ -25,7 +55,10 @@ export function normalizeEmisGradeLevel(gradeName: string | null): string {
 /**
  * Exporta dados de estudantes no formato requerido pelo gateway EMIS.
  */
-export function buildEmisExportPayload(schoolId: string, students: any[]) {
+export function buildEmisExportPayload(
+  schoolId: string,
+  students: readonly EmisStudentRow[],
+): EmisExportRow[] {
   return students.map((student) => ({
     emis_school_id: schoolId,
     student_id: student.id,
