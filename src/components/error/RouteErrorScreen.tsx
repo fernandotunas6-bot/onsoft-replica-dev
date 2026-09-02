@@ -34,9 +34,9 @@ export function RouteErrorScreen({ error, reset, fullPage = false }: RouteErrorS
         {error?.message ? (
           <details className="mt-3 text-left">
             <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-              Detalhes técnicos
+              Detalhes técnicos:
             </summary>
-            <p className="mt-1 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-mono text-destructive">
+            <p className="mt-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-mono text-destructive">
               {error.message}
             </p>
           </details>
