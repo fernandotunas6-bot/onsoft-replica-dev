@@ -1,0 +1,67 @@
+name: Production Gate
+
+on:
+  push:
+    branches: ["fix/tenant-security-payment-mfa-2026-09-03", "main"]
+  pull_request:
+
+jobs:
+  verify:
+    name: Security, tests and builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Resolve root dependencies
+        run: bun install
+
+      - name: Preserve resolved lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: resolved-bun-lock
+          path: bun.lock
+          retention-days: 7
+
+      - name: Dependency security audit
+        run: bun audit --audit-level=high
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Bulk import regression (150-500 CSV rows)
+        run: bunx vitest run tests/import/bulk-csv.test.ts tests/saas/tenant-security.test.ts
+
+      - name: Full unit test suite
+        run: bun run test
+
+      - name: SIGA module inventory
+        run: node scripts/siga/check-modules.mjs
+
+      - name: Build SIGA
+        run: bun run build
+
+      - name: Install WEB dependencies
+        run: npm ci --prefix painel/web
+
+      - name: Build WEB
+        run: npm run build --prefix painel/web
+
+      - name: Install ADMIN dependencies
+        run: npm ci --prefix painel/admin
+
+      - name: Build ADMIN
+        run: npm run build --prefix painel/admin
+
+      - name: Install DOCS dependencies
+        run: npm ci --prefix painel/docs
+
+      - name: Build DOCS
+        run: npm run build --prefix painel/docs
