@@ -40,6 +40,14 @@ export type EmailRouteInfo = {
   provider: string | null;
 };
 
+export type BrandingInfo = {
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  portalTitle: string | null;
+  logoUrl: string | null;
+  faviconUrl: string | null;
+};
+
 export type MailboxInfo = {
   email: string;
   status: "active" | "suspended" | "deleted";
@@ -51,6 +59,7 @@ export type SchoolDomainStatus = {
   customDomain: CustomDomainInfo | null;
   emailRoute: EmailRouteInfo | null;
   mailbox: MailboxInfo | null;
+  branding: BrandingInfo | null;
 };
 
 // ─── Consultas ───────────────────────────────────────────────────────────────
@@ -64,6 +73,10 @@ export async function getSchoolDomainStatus(
   tenantSlug: string,
 ): Promise<SchoolDomainStatus> {
   const db = await loadSgaAdminClient();
+
+  // Procurar o school_id a partir do tenantId
+  const { data: schoolRow } = await db.from("schools").select("id").eq("tenant_id", tenantId).maybeSingle();
+  const schoolId = schoolRow?.id;
 
   // Subdomínio permanente (sempre activo)
   const subdomain: SubdomainInfo = {
@@ -100,8 +113,8 @@ export async function getSchoolDomainStatus(
   // E-mail institucional
   const { data: emailRouteRow } = await db
     .from("school_email_routes")
-    .select("institutional_address, forward_to, active, provider")
-    .eq("tenant_id", tenantId)
+    .select("source_address, destination_address, status, provider")
+    .eq("school_id", schoolId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -109,9 +122,9 @@ export async function getSchoolDomainStatus(
   let emailRoute: EmailRouteInfo | null = null;
   if (emailRouteRow) {
     emailRoute = {
-      institutionalEmail: String(emailRouteRow.institutional_address ?? buildInstitutionalAddress(tenantSlug)),
-      forwardTo: (emailRouteRow.forward_to ?? null) as string | null,
-      active: Boolean(emailRouteRow.active),
+      institutionalEmail: String(emailRouteRow.source_address ?? buildInstitutionalAddress(tenantSlug)),
+      forwardTo: (emailRouteRow.destination_address ?? null) as string | null,
+      active: emailRouteRow.status === 'active',
       provider: (emailRouteRow.provider ?? null) as string | null,
     };
   } else {
@@ -142,7 +155,25 @@ export async function getSchoolDomainStatus(
     };
   }
 
-  return { subdomain, customDomain, emailRoute, mailbox };
+  // Branding Institucional
+  const { data: brandingRow } = await db
+    .from("school_branding")
+    .select("primary_color, secondary_color, portal_title, logo_url, favicon_url")
+    .eq("school_id", schoolId)
+    .maybeSingle();
+
+  let branding: BrandingInfo | null = null;
+  if (brandingRow) {
+    branding = {
+      primaryColor: (brandingRow.primary_color ?? null) as string | null,
+      secondaryColor: (brandingRow.secondary_color ?? null) as string | null,
+      portalTitle: (brandingRow.portal_title ?? null) as string | null,
+      logoUrl: (brandingRow.logo_url ?? null) as string | null,
+      faviconUrl: (brandingRow.favicon_url ?? null) as string | null,
+    };
+  }
+
+  return { subdomain, customDomain, emailRoute, mailbox, branding };
 }
 
 // ─── Mutações ────────────────────────────────────────────────────────────────
@@ -228,16 +259,21 @@ export async function saveEmailForwardingRoute(input: {
   );
 
   const db = await loadSgaAdminClient();
+  
+  // Buscar schoolId
+  const { data: schoolRow } = await db.from("schools").select("id").eq("tenant_id", input.tenantId).maybeSingle();
+  if (!schoolRow) return { ok: false, institutionalEmail: "", reason: "Escola não encontrada para este tenant." };
+  
   const { error } = await db.from("school_email_routes").upsert(
     {
-      tenant_id: input.tenantId,
-      institutional_address: institutionalEmail,
-      forward_to: input.forwardTo,
-      active: true,
+      school_id: schoolRow.id,
+      source_address: institutionalEmail,
+      destination_address: input.forwardTo,
+      status: 'active',
       provider: "simulated",
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "tenant_id,institutional_address" },
+    { onConflict: "school_id,source_address" },
   );
 
   if (error) {
@@ -245,4 +281,38 @@ export async function saveEmailForwardingRoute(input: {
   }
 
   return { ok: true, institutionalEmail };
+}
+
+
+export async function saveSchoolBranding(input: {
+  tenantId: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  portalTitle?: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const db = await loadSgaAdminClient();
+  
+  const { data: schoolRow } = await db.from("schools").select("id").eq("tenant_id", input.tenantId).maybeSingle();
+  if (!schoolRow) return { ok: false, reason: "Escola não encontrada para este tenant." };
+
+  const { error } = await db.from("school_branding").upsert(
+    {
+      school_id: schoolRow.id,
+      ...(input.primaryColor && { primary_color: input.primaryColor }),
+      ...(input.secondaryColor && { secondary_color: input.secondaryColor }),
+      ...(input.portalTitle && { portal_title: input.portalTitle }),
+      ...(input.logoUrl && { logo_url: input.logoUrl }),
+      ...(input.faviconUrl && { favicon_url: input.faviconUrl }),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "school_id" }
+  );
+
+  if (error) {
+    return { ok: false, reason: error.message };
+  }
+
+  return { ok: true };
 }

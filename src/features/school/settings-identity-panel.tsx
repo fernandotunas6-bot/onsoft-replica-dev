@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Globe,
   Mail,
@@ -13,7 +14,7 @@ import {
   Sparkles,
   ArrowRight,
   Lock,
-} from "lucide-react";
+Upload, Loader2} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ import {
   requestDomainVerification,
   updateEmailForwarding,
   provisionMailbox,
+  updateSchoolBranding,
 } from "@/features/saas/server";
 
 export function DigitalIdentityPanel() {
@@ -64,6 +66,8 @@ export function DigitalIdentityPanel() {
   const [mailboxState, setMailboxState] = useState<{email: string, status: string, provider: string} | null>(null);
   const [isProvisioningMailbox, setIsProvisioningMailbox] = useState(false);
   const provisionMailboxFn = useServerFn(provisionMailbox);
+  const saveBrandingFn = useServerFn(updateSchoolBranding);
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
 
   // Estados de Encaminhamento de E-mail
   const [institutionalEmail, setInstitutionalEmail] = useState(`${activeSlug || "escola"}@${platformDomain}`);
@@ -77,6 +81,7 @@ export function DigitalIdentityPanel() {
   const [primaryColor, setPrimaryColor] = useState("#2563EB");
   const [secondaryColor, setSecondaryColor] = useState("#1E293B");
   const [portalTitle, setPortalTitle] = useState(activeTenant?.name || "Portal Escolar");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   const hasCustomDomainAccess = planIncludesCustomDomain(activePlan);
   const hasProfessionalEmailAccess = planIncludesProfessionalEmail(activePlan);
@@ -88,6 +93,13 @@ export function DigitalIdentityPanel() {
       setIsLoading(true);
       const data = await fetchDomainStatus({ data: { tenantId: activeTenant.id, tenantSlug: activeSlug } });
       
+      if (data.branding) {
+        if (data.branding.primaryColor) setPrimaryColor(data.branding.primaryColor);
+        if (data.branding.secondaryColor) setSecondaryColor(data.branding.secondaryColor);
+        if (data.branding.portalTitle) setPortalTitle(data.branding.portalTitle);
+        if (data.branding.logoUrl) setLogoUrl(data.branding.logoUrl);
+      }
+
       if (data.mailbox) {
         setMailboxState(data.mailbox);
       }
@@ -115,6 +127,59 @@ export function DigitalIdentityPanel() {
   useEffect(() => {
     void loadDomainData();
   }, [loadDomainData]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeTenant) return;
+    
+    setIsSavingBranding(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${activeTenant.id}/logo-${Date.now()}.${ext}`;
+      
+      const { error, data } = await supabase.storage
+        .from("school-logos")
+        .upload(path, file, { upsert: true });
+        
+      if (error) throw error;
+      
+      const { data: publicData } = supabase.storage
+        .from("school-logos")
+        .getPublicUrl(path);
+        
+      setLogoUrl(publicData.publicUrl);
+      toast.success("Logótipo enviado. Clique em Guardar Branding para aplicar.");
+    } catch (err) {
+      toast.error("Falha ao enviar logótipo.");
+    } finally {
+      setIsSavingBranding(false);
+    }
+  };
+
+  const handleSaveBranding = async () => {
+    if (!activeTenant || !activeSlug) return;
+    setIsSavingBranding(true);
+    try {
+      const res = await saveBrandingFn({
+        data: {
+          tenantId: activeTenant.id,
+          primaryColor,
+          secondaryColor,
+          portalTitle,
+          logoUrl
+        }
+      });
+      if (res.ok) {
+        toast.success("Identidade visual guardada com sucesso!");
+      } else {
+        toast.error(res.reason || "Não foi possível guardar as cores.");
+      }
+    } catch (err) {
+      toast.error("Ocorreu um erro ao guardar o branding.");
+    } finally {
+      setIsSavingBranding(false);
+    }
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -543,6 +608,29 @@ export function DigitalIdentityPanel() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-xs">Logótipo da Escola</Label>
+              <div className="flex items-center gap-4">
+                {logoUrl ? (
+                  <div className="size-12 rounded border flex items-center justify-center overflow-hidden bg-white">
+                    <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="size-12 rounded border border-dashed flex items-center justify-center bg-muted/30">
+                    <span className="text-[10px] text-muted-foreground text-center leading-tight">Sem Logo</span>
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="logo-upload" className="cursor-pointer inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground">
+                    <Upload className="size-3.5" />
+                    Enviar Logótipo
+                  </Label>
+                  <input id="logo-upload" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={isSavingBranding} />
+                  <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG ou SVG. Altura recomendada: 64px.</p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="primary-color" className="text-xs">
@@ -588,10 +676,10 @@ export function DigitalIdentityPanel() {
             <div className="pt-2 flex justify-end">
               <Button
                 size="sm"
-                onClick={() => toast.success("Identidade visual guardada com sucesso!")}
+                onClick={handleSaveBranding} disabled={isSavingBranding}
                 className="text-xs gap-1.5"
               >
-                <CheckCircle2 className="size-3.5" />
+                {isSavingBranding ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
                 Guardar Branding
               </Button>
             </div>

@@ -164,6 +164,28 @@ export const updateEmailForwarding = createServerFn({ method: "POST" })
   });
 
 import { createMailbox } from "@/features/saas/mailbox-providers";
+import { saveSchoolBranding } from "@/features/saas/school-domain-ops";
+
+/**
+ * Guarda a personalização visual (Fase 6) do portal
+ */
+export const updateSchoolBranding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({
+      tenantId: z.string().uuid(),
+      primaryColor: z.string().optional(),
+      secondaryColor: z.string().optional(),
+      portalTitle: z.string().optional(),
+      logoUrl: z.string().optional(),
+      faviconUrl: z.string().optional(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    return saveSchoolBranding(data);
+  });
+
 
 /**
  * Provisiona uma nova caixa de e-mail profissional via Zoho/Google Workspace
