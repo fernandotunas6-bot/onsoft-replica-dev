@@ -28,6 +28,27 @@ export type RowCommitResult = {
   audits: AuditEntry[];
 };
 
+export type StudentImportRef = {
+  id: string;
+  student_number: string;
+  person_id: string;
+  national_id: string | null;
+};
+
+export type EnrollmentImportRef = {
+  id: string;
+  student_id: string;
+  class_group_id: string | null;
+  academic_year_id: string | null;
+  status: string;
+};
+
+export type SubjectImportRef = {
+  id: string;
+  name: string;
+  code: string | null;
+};
+
 export type ImportRefCache = {
   existingPeople: Array<{
     id: string;
@@ -40,6 +61,10 @@ export type ImportRefCache = {
   }>;
   classGroups: Array<{ id: string; name: string }>;
   studentByPersonId: Map<string, { id: string; student_number: string }>;
+  /** Referências adicionais usadas pelos importadores académicos. */
+  students?: StudentImportRef[];
+  enrollments?: EnrollmentImportRef[];
+  subjects?: SubjectImportRef[];
 };
 
 /** Um importador processa UMA linha normalizada de staging de cada vez. */
