@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form"
 import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
 import { cn } from "@/lib/utils"
-import { ECOSYSTEM_URLS, getDocsUrl } from "@/lib/ecosystem-urls"
+import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls"
 import { fetchSaasPlans, signupSchool, type PlanCode, type SaasPlan } from "@/lib/saas-api"
 
 const FALLBACK_PLANS: SaasPlan[] = [
@@ -163,47 +163,51 @@ export function StartSchoolWizard() {
   }
 
   if (done) {
+    const whatsappUrl = `https://wa.me/244926445277?text=Ol%C3%A1%2C%20criei%20a%20minha%20escola%20(${encodeURIComponent(values.name)})%20no%20SIGA%20Plus%20e%20aqui%20est%C3%A1%20o%20comprovativo%20de%20pagamento%20do%20plano%20${values.plan_code}.`
+    const emailUrl = `mailto:valentinocanguele@gmail.com?subject=Comprovativo%20de%20Pagamento%20-%20SIGA%20Plus%20(${encodeURIComponent(values.name)})`
+
     return (
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Escola criada</CardTitle>
+          <CardTitle className="text-xl">A sua escola foi criada com sucesso! 🎉</CardTitle>
           <CardDescription>
-            O administrador vai receber um convite por e-mail para definir a palavra-passe.
+            Para activar a sua licença e o plano escolhido, efectue o pagamento.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Endereço SIGA: <span className="font-mono text-foreground">{done.hostname}</span>
+        <CardContent className="grid gap-5 text-center">
+          <div className="rounded-lg bg-muted p-4 space-y-3">
+            <h3 className="font-semibold text-sm">Dados para Pagamento por IBAN</h3>
+            <p className="text-sm font-mono tracking-wider">AO06 0000 0000 0000 0000 0000 0</p>
+            <p className="text-xs text-muted-foreground">Banco: Selecionar / Titular: SIGA Plus</p>
+            <div className="border-t pt-3 mt-3">
+              <p className="text-sm font-medium">Plano selecionado: {planLabel}</p>
+            </div>
+          </div>
+
+          <p className="text-sm">
+            Após a transferência, envie-nos o comprovativo indicando o nome da escola:
+            <br />
+            <strong className="text-foreground">{values.name}</strong> ({done.hostname})
           </p>
-          <p className="text-xs text-muted-foreground">
-            Trial de 14 dias activo. O administrador da plataforma vê esta escola no Control Center
-            SaaS (ADMIN).
-          </p>
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <Button asChild>
-              <a href={done.sigaUrl}>Abrir o SIGA Plus</a>
-            </Button>
-            {done.adminTenantsUrl ? (
-              <Button variant="outline" asChild>
-                <a href={done.adminTenantsUrl} target="_blank" rel="noreferrer">
-                  Ver no Control Center (ADMIN)
-                </a>
-              </Button>
-            ) : null}
-            <Button variant="outline" asChild>
-              <a href={getDocsUrl("/web/criar-escola.html")} target="_blank" rel="noreferrer">
-                Guia do wizard (DOC)
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button asChild className="bg-[#25D366] hover:bg-[#1DA851] text-white">
+              <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                Enviar por WhatsApp
               </a>
             </Button>
-            <Button variant="outline" asChild>
-              <a href={getDocsUrl("/arquitetura/fluxos.html")} target="_blank" rel="noreferrer">
-                Próximos passos (DOC)
+            <Button asChild variant="outline">
+              <a href={emailUrl}>
+                Enviar por E-mail
               </a>
             </Button>
           </div>
-          <Button variant="link" size="sm" asChild className="text-muted-foreground">
-            <Link to="/">Voltar à landing</Link>
-          </Button>
+
+          <div className="mt-4 pt-4 border-t text-sm">
+            <Button variant="link" asChild className="text-muted-foreground">
+              <a href={done.sigaUrl}>Ou entre no SIGA Plus agora (Trial de 14 dias) &rarr;</a>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     )

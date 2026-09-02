@@ -37,7 +37,7 @@ const defaultPlans: PricingPlan[] = [
     id: 'professional',
     name: 'Profissional',
     description: 'Para escolas em crescimento',
-    price: '79$',
+    price: '25.000 Kz',
     frequency: '/mês',
     features: [
       'Multicaixa Express',
@@ -53,7 +53,7 @@ const defaultPlans: PricingPlan[] = [
     id: 'enterprise',
     name: 'Institucional',
     description: 'Para grupos escolares',
-    price: '199$',
+    price: '50.000 Kz',
     frequency: '/mês',
     features: [
       'Várias escolas',
