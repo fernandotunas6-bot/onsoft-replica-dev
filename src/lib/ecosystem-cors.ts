@@ -38,18 +38,20 @@ export function isAllowedEcosystemOrigin(
 ): boolean {
   if (!origin) return false;
   if (getEcosystemOrigins(apps).includes(origin)) return true;
+
   try {
     const url = new URL(origin);
-    if (
-      url.hostname.endsWith(".portal-siga.com") ||
-      url.hostname.endsWith(".pages.dev") ||
-      url.hostname.endsWith(".workers.dev")
-    ) {
+
+    // Tenant portals are allowed only on the controlled platform domain.
+    // Cloudflare preview domains are intentionally NOT wildcarded: only the
+    // explicit projects listed in PRODUCTION_ORIGINS may call these endpoints.
+    if (url.protocol === "https:" && url.hostname.endsWith(".portal-siga.com")) {
       return true;
     }
   } catch {
-    /* ignore invalid url */
+    /* ignore invalid origin */
   }
+
   return false;
 }
 
