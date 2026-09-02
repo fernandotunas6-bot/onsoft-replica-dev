@@ -26,7 +26,7 @@ hero:
       link: /admin/control-center
     - theme: alt
       text: Entrar no SIGA
-      link: http://localhost:3006
+      link: https://portal-siga.com
       target: _blank
 
 features:
@@ -75,24 +75,24 @@ features:
   <div class="demo-card">
     <div class="demo-icon"><img src="/icons/globe.svg" alt="Portal WEB" width="48" height="48" style="margin: 0 auto;" /></div>
     <h3>Portal WEB (Comercial)</h3>
-    <p>Marketing, planos SaaS e wizard de criação de escola — porta local 5174</p>
-    <a href="http://localhost:5174/start" class="demo-button" target="_blank" rel="noreferrer">Abrir wizard /start</a>
+    <p>Marketing, planos SaaS e wizard de criação de escola</p>
+    <a href="https://siga-web.pages.dev/start" class="demo-button" target="_blank" rel="noreferrer">Abrir wizard /start</a>
     <a href="/web/criar-escola" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Manual do wizard</a>
   </div>
 
   <div class="demo-card">
     <div class="demo-icon"><img src="/icons/dashboard.svg" alt="SaaS Admin" width="48" height="48" style="margin: 0 auto;" /></div>
     <h3>ADMIN — SaaS Control Center</h3>
-    <p>Tenants, métricas e gestão de assinaturas da plataforma — porta local 3005</p>
-    <a href="http://localhost:3005/tenants" class="demo-button" target="_blank" rel="noreferrer">Abrir ADMIN</a>
+    <p>Tenants, métricas e gestão de assinaturas da plataforma</p>
+    <a href="https://siga-admin.pages.dev/tenants" class="demo-button" target="_blank" rel="noreferrer">Abrir ADMIN</a>
     <a href="/admin/control-center" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Manual do Control Center</a>
   </div>
 
   <div class="demo-card">
     <div class="demo-icon"><img src="/icons/rocket.svg" alt="SIGA Plus" width="48" height="48" style="margin: 0 auto;" /></div>
     <h3>SIGA Plus (Operação escolar)</h3>
-    <p>Alunos, pautas, finanças e catracas — porta local 3006</p>
-    <a href="http://localhost:3006" class="demo-button" target="_blank" rel="noreferrer">Abrir SIGA</a>
+    <p>Alunos, pautas, finanças e catracas</p>
+    <a href="https://portal-siga.com" class="demo-button" target="_blank" rel="noreferrer">Abrir SIGA</a>
     <a href="/siga/navegacao" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Mapa de navegação</a>
   </div>
   

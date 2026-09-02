@@ -10,8 +10,9 @@ export interface StudentRelationsSnapshot {
   };
   academic: {
     finalAverage: number | null;
-    attendanceRate: number | null;
-    hasHistory: boolean;
+    attendanceRate?: number | null;
+    absences?: number | null;
+    hasHistory?: boolean;
   };
   finance: {
     hasData: boolean;

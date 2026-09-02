@@ -1,8 +1,9 @@
 import { defineConfig } from 'vitepress'
 
-const WEB_URL = process.env.VITE_WEB_URL || 'http://localhost:5174'
-const SIGA_URL = process.env.VITE_SIGA_URL || 'http://localhost:3006'
-const ADMIN_URL = process.env.VITE_ADMIN_URL || 'http://localhost:3005'
+const isProd = process.env.NODE_ENV === 'production' || process.env.CF_PAGES === '1'
+const WEB_URL = process.env.VITE_WEB_URL || (isProd ? 'https://siga-web.pages.dev' : 'http://localhost:5174')
+const SIGA_URL = process.env.VITE_SIGA_URL || (isProd ? 'https://portal-siga.com' : 'http://localhost:3006')
+const ADMIN_URL = process.env.VITE_ADMIN_URL || (isProd ? 'https://siga-admin.pages.dev' : 'http://localhost:3005')
 
 export default defineConfig({
   lang: 'pt-PT',

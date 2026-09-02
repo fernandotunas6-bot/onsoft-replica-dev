@@ -37,7 +37,20 @@ export function isAllowedEcosystemOrigin(
   apps?: EcosystemApp[],
 ): boolean {
   if (!origin) return false;
-  return getEcosystemOrigins(apps).includes(origin);
+  if (getEcosystemOrigins(apps).includes(origin)) return true;
+  try {
+    const url = new URL(origin);
+    if (
+      url.hostname.endsWith(".portal-siga.com") ||
+      url.hostname.endsWith(".pages.dev") ||
+      url.hostname.endsWith(".workers.dev")
+    ) {
+      return true;
+    }
+  } catch {
+    /* ignore invalid url */
+  }
+  return false;
 }
 
 export function corsHeadersFor(

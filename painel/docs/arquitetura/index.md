@@ -53,14 +53,14 @@ A harmonização é de **arquitectura, dados, autenticação e URLs** — não d
 - [Manual do ADMIN](/admin/control-center) — Control Center SaaS (tenants, APIs)
 - [Wizard WEB `/start`](/web/criar-escola) — criar escola comercialmente
 
-## Aplicações em execução local
-
-| App | URL local | Função |
-| --- | --- | --- |
-| **WEB** | [localhost:5174](http://localhost:5174) | Marketing, `/pricing`, wizard `/start` |
-| **ADMIN** | [localhost:3005/tenants](http://localhost:3005/tenants) | Control Center SaaS |
-| **SIGA** | [localhost:3006](http://localhost:3006) | Operação escolar |
-| **DOC** | [localhost:5173](http://localhost:5173) | Este site |
+## Aplicações do Ecossistema
+ 
+| App | URL Produção | URL Local | Função |
+| --- | --- | --- | --- |
+| **WEB** | [siga-web.pages.dev](https://siga-web.pages.dev) | `http://localhost:5174` | Marketing, `/pricing`, wizard `/start` |
+| **ADMIN** | [siga-admin.pages.dev](https://siga-admin.pages.dev/tenants) | `http://localhost:3005/tenants` | Control Center SaaS |
+| **SIGA** | [portal-siga.com](https://portal-siga.com) | `http://localhost:3006` | Operação escolar |
+| **DOC** | [siga-docs.pages.dev](https://siga-docs.pages.dev) | `http://localhost:5173` | Este site |
 
 Configure URLs de produção com `VITE_*` (SIGA/WEB) ou `NEXT_PUBLIC_*` (ADMIN). Ver `npm run siga:sync-env` na raiz do repositório.
 

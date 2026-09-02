@@ -38,6 +38,11 @@ const CLOUDFLARE_API_TOKEN = requireEnv("CLOUDFLARE_API_TOKEN");
 const CLOUDFLARE_ACCOUNT_ID = requireEnv("CLOUDFLARE_ACCOUNT_ID");
 
 console.log("==> Building for Cloudflare (production)...");
+const WEB_URL = envVars["VITE_WEB_URL"] || "https://siga-web.pages.dev";
+const ADMIN_URL = envVars["VITE_ADMIN_URL"] || "https://siga-admin.pages.dev";
+const DOCS_URL = envVars["VITE_DOCS_URL"] || "https://siga-docs.pages.dev";
+const SIGA_URL = envVars["VITE_SIGA_URL"] || "https://portal-siga.com";
+
 execSync("npx vite build --mode production", {
   stdio: "inherit",
   env: {
@@ -46,6 +51,10 @@ execSync("npx vite build --mode production", {
     NODE_ENV: "production",
     VITE_SUPABASE_URL: SUPABASE_URL,
     VITE_SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY,
+    VITE_WEB_URL: WEB_URL,
+    VITE_ADMIN_URL: ADMIN_URL,
+    VITE_DOCS_URL: DOCS_URL,
+    VITE_SIGA_URL: SIGA_URL,
   },
 });
 
@@ -63,6 +72,10 @@ if (fs.existsSync(wranglerPath)) {
     APP_NAME: envVars["APP_NAME"] || "SIGA Plus",
     VITE_APP_URL: envVars["VITE_APP_URL"] || "https://portal-siga.com",
     VITE_APP_NAME: envVars["VITE_APP_NAME"] || "SIGA Plus",
+    VITE_WEB_URL: WEB_URL,
+    VITE_ADMIN_URL: ADMIN_URL,
+    VITE_DOCS_URL: DOCS_URL,
+    VITE_SIGA_URL: SIGA_URL,
     ...(envVars["RESEND_API_KEY"] ? { RESEND_API_KEY: envVars["RESEND_API_KEY"] } : {}),
   };
   fs.writeFileSync(wranglerPath, JSON.stringify(config, null, 2), "utf-8");
