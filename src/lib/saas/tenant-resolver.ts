@@ -33,7 +33,7 @@ export function resolveTenantLookup(hostname?: string): TenantLookup {
 
   if (!host) return { mode: "slug", slug: "minha-escola" };
 
-  if (isLocalDevHostname(host)) {
+  if (isLocalDevHostname(host) || host.endsWith(".workers.dev") || host.endsWith(".pages.dev")) {
     if (typeof window !== "undefined") {
       const devSlug = localStorage.getItem("siga_dev_tenant_slug");
       if (devSlug) return { mode: "slug", slug: devSlug };
@@ -43,6 +43,10 @@ export function resolveTenantLookup(hostname?: string): TenantLookup {
 
   if (isPortalSigaHostname(host)) {
     const platformDomain = getPlatformDomain();
+    if (host === platformDomain || host === "portal-siga.com") {
+      return { mode: "slug", slug: "minha-escola" };
+    }
+
     // Se o host termina com o domínio configurado (ex: .portal-siga.com ou .siga.ao)
     const suffix = host.endsWith(`.${platformDomain}`)
       ? `.${platformDomain}`
@@ -58,6 +62,8 @@ export function resolveTenantLookup(hostname?: string): TenantLookup {
       }
       return { mode: "slug", slug: subdomain };
     }
+
+    return { mode: "slug", slug: "minha-escola" };
   }
 
   return { mode: "hostname", hostname: host };

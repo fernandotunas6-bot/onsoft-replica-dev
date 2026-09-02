@@ -10,6 +10,16 @@ function originOf(url: string): string | null {
   }
 }
 
+const PRODUCTION_ORIGINS: string[] = [
+  "https://portal-siga.com",
+  "https://www.portal-siga.com",
+  "https://admin.portal-siga.com",
+  "https://docs.portal-siga.com",
+  "https://siga-web.pages.dev",
+  "https://siga-admin.pages.dev",
+  "https://siga-docs.pages.dev",
+];
+
 export function getEcosystemOrigins(apps?: EcosystemApp[]): string[] {
   const keys = apps ?? (Object.keys(ECOSYSTEM_URLS) as EcosystemApp[]);
   const origins = keys
@@ -19,7 +29,7 @@ export function getEcosystemOrigins(apps?: EcosystemApp[]): string[] {
     origin.replace("localhost", "127.0.0.1"),
     origin.replace("127.0.0.1", "localhost"),
   ]);
-  return [...new Set([...origins, ...aliases])];
+  return [...new Set([...origins, ...aliases, ...PRODUCTION_ORIGINS])];
 }
 
 export function isAllowedEcosystemOrigin(

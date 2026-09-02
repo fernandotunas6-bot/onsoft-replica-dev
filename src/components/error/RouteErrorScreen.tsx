@@ -31,10 +31,15 @@ export function RouteErrorScreen({ error, reset, fullPage = false }: RouteErrorS
         <p className="mt-2 text-sm text-muted-foreground">
           Algo correu mal do nosso lado. Pode tentar outra vez ou voltar ao início.
         </p>
-        {import.meta.env.DEV ? (
-          <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-left text-xs text-destructive">
-            {error.message}
-          </p>
+        {error?.message ? (
+          <details className="mt-3 text-left">
+            <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+              Detalhes técnicos
+            </summary>
+            <p className="mt-1 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-mono text-destructive">
+              {error.message}
+            </p>
+          </details>
         ) : null}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button

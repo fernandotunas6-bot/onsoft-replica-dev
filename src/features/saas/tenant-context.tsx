@@ -69,24 +69,14 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (tenant) {
         setActiveTenant(tenant);
         setActivePlan(tenant.plans ?? null);
-      } else if (
-        import.meta.env.DEV &&
-        isLocalDevHostname(hostname) &&
-        lookup.mode === "slug" &&
-        lookup.slug === "minha-escola"
-      ) {
-        // Modo escola única em localhost — só quando não há tenant SaaS na BD.
-        setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug: lookup.slug });
-        setActivePlan(null);
       } else {
-        setActiveTenant(null);
+        // Fallback robusto — permite operação mesmo se o registo SaaS ainda não estiver inicializado
+        setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug });
         setActivePlan(null);
       }
     } catch (err) {
       console.warn("[TenantProvider] Error loading tenant:", err);
-      if (import.meta.env.DEV && isLocalDevHostname(hostname)) {
-        setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug });
-      }
+      setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug });
     } finally {
       setIsLoadingTenant(false);
     }
