@@ -1,13 +1,14 @@
 import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileDown, GraduationCap, Pencil, UserPlus } from "lucide-react";
+import { FileDown, GraduationCap, Pencil, UserPlus, UserMinus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
-import { listTeachers, updateTeacher } from "@/features/people/server";
+import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
+import { listTeachers, updateTeacher, deleteTeacher } from "@/features/people/server";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -195,9 +196,26 @@ function TeacherProfilePage() {
                     });
                     await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
                   }}
-                  trigger={(open) => (
+                  trigger={(open: () => void) => (
                     <Button variant="outline" className="gap-2" onClick={open}>
                       <Pencil className="size-4" /> Editar
+                    </Button>
+                  )}
+                />
+              ) : null}
+              {canManage && teacher && teacher.status === "active" ? (
+                <ConfirmActionModal
+                  title="Desligar professor"
+                  description={`O professor ${teacher.full_name} será marcado como inactivo e perderá acesso ao painel de professor.`}
+                  confirmLabel="Desactivar"
+                  onConfirm={async () => {
+                    await deleteTeacher({ data: { teacherId: teacher.id } });
+                    await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
+                    await queryClient.invalidateQueries({ queryKey: ["academic", "teacher-workspace"] });
+                  }}
+                  trigger={(open: () => void) => (
+                    <Button variant="outline" className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={open}>
+                      <UserMinus className="size-4" /> Desligar
                     </Button>
                   )}
                 />
@@ -248,7 +266,7 @@ function TeacherProfilePage() {
                       }),
                     ]);
                   }}
-                  trigger={(open) => (
+                  trigger={(open: () => void) => (
                     <Button className="gap-2" onClick={open}>
                       <UserPlus className="size-4" /> Atribuir disciplina
                     </Button>

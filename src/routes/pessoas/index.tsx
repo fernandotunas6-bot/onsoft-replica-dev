@@ -856,6 +856,38 @@ function PeoplePage() {
                       }}
                     />
                   ) : null}
+                  <div className="ml-auto">
+                    <QuickFormModal
+                      title="Editar Pessoa"
+                      eyebrow="Registo Central"
+                      description="Modifique os dados principais desta pessoa."
+                      icon={<Pencil className="size-5" />}
+                      submitLabel="Guardar Alterações"
+                      fields={[
+                        { name: "nome", label: "Nome completo", defaultValue: person.full_name, full: true },
+                        { name: "email", label: "E-mail", defaultValue: person.email ?? "", required: false },
+                        { name: "telefone", label: "Telefone", defaultValue: person.phone_primary ?? "", required: false },
+                        { name: "nif", label: "BI/NIF", defaultValue: person.nif ?? "", required: false },
+                      ]}
+                      onSubmit={async (values) => {
+                        await updatePerson({
+                          data: {
+                            personId: person.id,
+                            fullName: values["nome"] ?? person.full_name,
+                            email: values["email"] || undefined,
+                            phone: values["telefone"] || undefined,
+                            nif: values["nif"] || undefined,
+                          }
+                        });
+                        await queryClient.invalidateQueries({ queryKey: ["people"] });
+                      }}
+                      trigger={(open) => (
+                        <Button variant="outline" size="sm" className="gap-2" onClick={open}>
+                          <Pencil className="size-4" /> Editar
+                        </Button>
+                      )}
+                    />
+                  </div>
                 </div>
                 <dl className="grid gap-4 sm:grid-cols-2">
                   <div>
