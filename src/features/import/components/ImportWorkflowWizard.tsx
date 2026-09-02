@@ -57,7 +57,13 @@ const STEPS = [
 ];
 
 /** Módulos com importador implementado — os restantes aparecem desactivados no Select. */
-const IMPLEMENTED_MODULES = new Set<ImportModule>(["pessoas", "alunos"]);
+const IMPLEMENTED_MODULES = new Set<ImportModule>([
+  "pessoas",
+  "alunos",
+  "matriculas",
+  "notas",
+  "pautas",
+]);
 
 type AnalyzedSheet = {
   name: string;
@@ -69,7 +75,7 @@ type AnalyzedSheet = {
 };
 
 const STAGE_CHUNK = 300;
-const COMMIT_BATCH = 5;
+const COMMIT_BATCH = 200;
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -280,8 +286,8 @@ export function ImportWorkflowWizard({
     const totals = { inserted: 0, updated: 0, ignored: 0, failed: 0, processed: 0 };
     try {
       let afterRow = 0;
-      // Amostra limitada — simula até 250 linhas para não bloquear a UI num ficheiro enorme.
-      for (let guard = 0; guard < 50; guard++) {
+      // Amostra limitada — simula até 400 linhas em dois lotes grandes, sem gravar dados.
+      for (let guard = 0; guard < 2; guard++) {
         const res = await commitImportBatch({
           data: {
             job_id: job.id,
@@ -316,7 +322,8 @@ export function ImportWorkflowWizard({
     try {
       let completed = false;
       let guard = 0;
-      while (!completed && guard < 6000) {
+      const maxBatches = Math.ceil(Math.max(job.total_rows, 1) / COMMIT_BATCH) + 2;
+      while (!completed && guard < maxBatches) {
         guard += 1;
         const res = await commitImportBatch({
           data: {
@@ -336,6 +343,9 @@ export function ImportWorkflowWizard({
           total: prev.processed + res.processed + res.remaining,
         }));
         completed = res.completed || res.processed === 0;
+      }
+      if (!completed) {
+        throw new Error("A importação atingiu o limite de lotes antes de concluir. Nenhum novo lote será iniciado automaticamente.");
       }
       setResult(totals);
       setStep(7);
@@ -599,21 +609,11 @@ export function ImportWorkflowWizard({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos" className="text-xs">
-                    Todos
-                  </SelectItem>
-                  <SelectItem value="valid" className="text-xs">
-                    Válidos
-                  </SelectItem>
-                  <SelectItem value="warning" className="text-xs">
-                    Com avisos
-                  </SelectItem>
-                  <SelectItem value="duplicate" className="text-xs">
-                    Duplicados
-                  </SelectItem>
-                  <SelectItem value="error" className="text-xs">
-                    Erros
-                  </SelectItem>
+                  <SelectItem value="todos" className="text-xs">Todos</SelectItem>
+                  <SelectItem value="valid" className="text-xs">Válidos</SelectItem>
+                  <SelectItem value="warning" className="text-xs">Com avisos</SelectItem>
+                  <SelectItem value="duplicate" className="text-xs">Duplicados</SelectItem>
+                  <SelectItem value="error" className="text-xs">Erros</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -671,9 +671,7 @@ export function ImportWorkflowWizard({
                           ))}
                         </div>
                         {row.warnings.length ? (
-                          <p className="mt-1 text-[11px] text-amber-600">
-                            {row.warnings.join(" · ")}
-                          </p>
+                          <p className="mt-1 text-[11px] text-amber-600">{row.warnings.join(" · ")}</p>
                         ) : null}
                         {row.errors.length ? (
                           <p className="mt-1 text-[11px] text-rose-600">{row.errors.join(" · ")}</p>
@@ -709,9 +707,7 @@ export function ImportWorkflowWizard({
                               </SelectTrigger>
                               <SelectContent>
                                 {Object.keys(row.normalized_data).map((k) => (
-                                  <SelectItem key={k} value={k} className="text-[11px]">
-                                    {k}
-                                  </SelectItem>
+                                  <SelectItem key={k} value={k} className="text-[11px]">{k}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
