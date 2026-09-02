@@ -8,6 +8,9 @@ description: >-
 
 # SIGA · Tesouraria
 
+Billing da **plataforma** (assinatura SIGA, upgrade, planos comerciais) não
+pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
+
 - Rotas: `financeiro.tsx`, `faturas.tsx`, `relatorios.financeiros.tsx`
 - Domínio: `src/features/finance/{schemas,server}.ts`
 - Acesso: Admin/Tesouraria
@@ -18,7 +21,10 @@ description: >-
 1. Pagamento avançado: `createPaymentPlan` → `finance_payment_plans` com canal
    `multicaixa_express` | `unitel_money` | `transfer` | `cash`, estado `pending_gateway`.
 2. Sem tabela: `listPaymentPlans` devolve `[]` (não partir a página).
-3. Sem gateway real — só config + plano pendente. Planos `pending_gateway`/`scheduled` têm **Cancelar** (`cancelPaymentPlan` → `cancelled`).
+3. Sem gateway EMIS real na cloud — webhook `POST /api/finance/gateway/confirm` liquida
+   planos `pending_gateway` quando a referência coincide; confirmação manual continua
+   disponível. Referências Multicaixa são determinísticas por fatura.
+   Teste local: `npm run siga:gateway-simulate -- --invoice-id=<uuid>`.
 4. SQL: `APPLY_ENROLLMENT_AND_PREMIUM.sql` cria `finance_payment_plans`.
 5. Ficha do aluno pode emitir fatura (Secretaria/Admin). `paymentStatusFromInvoices` calcula settled/pending/overdue.
 6. `/faturas` recebe pagamento na linha (**Receber**) e imprime o recibo no modelo `service-document` com **Dados de pagamento** (IBAN de Definições → Financeiro; fallback `officialReceiptBody`). **Fatura** imprime o documento de cobrança. A lista tem **Oficial** e toolbars `financeiro` + `faturas`. Faturas pagas têm **Recibo**. Sem recibos: **Anular** (`cancelInvoice` → `cancelled`). Admin também recebe na ficha. Com Resend/WhatsApp: partilha da fatura, do recibo de caixa e da referência do plano. Relatório financeiro tem AGT, WhatsApp e **E-mail** Resend; PDFs oficiais incluem logótipo (`branding.logo_url`) e IBAN.

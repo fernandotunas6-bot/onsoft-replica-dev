@@ -1,13 +1,35 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 /**
- * Geração local de referências de pagamento angolanas — EMIS / Multicaixa Express / Kwik /
- * Unitel Money / RUPE (formato e dígito de controlo correctos). Não há integração automática
- * com o EMIS: a confirmação do pagamento é sempre manual, feita pela tesouraria depois de ver
- * o comprovativo (ver confirmManualMulticaixaPayment em server.ts).
+ * Referências EMIS/Multicaixa determinísticas (mesma fatura → mesma referência).
+ * Confirmação automática via POST /api/finance/gateway/confirm quando o EMIS
+ * (ou simulador) notifica o SIGA com a API key da escola.
  */
 
+export const DEFAULT_EMIS_ENTITY = "99824";
+
+/** Lê entidade EMIS do config de integração (merchantId ou emisEntity). */
+export function emisEntityFromIntegrationConfig(config: Record<string, unknown> | null | undefined) {
+  const raw = String(config?.emisEntity ?? config?.merchantId ?? "").trim();
+  if (/^\d{4,6}$/.test(raw)) return raw;
+  return DEFAULT_EMIS_ENTITY;
+}
+
+/** Entidade EMIS configurada em Integrações → Multicaixa (merchantId / emisEntity). */
+export async function resolveSchoolEmisEntity(db: SupabaseClient, schoolId: string) {
+  const { data } = await db
+    .from("school_integrations")
+    .select("config")
+    .eq("school_id", schoolId)
+    .eq("provider", "multicaixa_express")
+    .in("status", ["configured", "connected"])
+    .maybeSingle();
+  return emisEntityFromIntegrationConfig((data?.config ?? {}) as Record<string, unknown>);
+}
+
 export interface MulticaixaReference {
-  entity: string; // Ex: "99824" (RUPE / EMIS) ou "00012"
-  reference: string; // 9 dígitos ponderados
+  entity: string;
+  reference: string;
   amountFormatted: string;
   amountNumber: number;
   expiresAt: string;
@@ -24,48 +46,62 @@ export interface MobileWalletPayment {
   status: "pending" | "completed" | "failed";
 }
 
-/**
- * Gera uma referência Multicaixa de 9 dígitos válida com cálculo de checksum de controlo.
- */
-export function generateMulticaixaReference(
-  entity: string = "99824",
-  invoiceId: string,
-  amount: number,
-  expiryDays: number = 30,
-): MulticaixaReference {
-  // Limpa o ID para extrair apenas dígitos ou hash determinístico
-  const cleanId = invoiceId
-    .replace(/[^0-9]/g, "")
-    .padEnd(6, "0")
-    .slice(0, 6);
-  const randomSuffix = Math.floor(10 + Math.random() * 89).toString();
-  const raw8 = `${cleanId.slice(0, 7)}${randomSuffix}`.padEnd(8, "1").slice(0, 8);
+/** Remove espaços — comparação entre UI, webhook e base de dados. */
+export function normalizePaymentReference(value: string) {
+  return value.replace(/\s+/g, "");
+}
 
-  // Cálculo de dígito de controlo Luhn-Mod10 simplificado para referências EMIS
+function hashInvoiceSeed(invoiceId: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < invoiceId.length; i += 1) {
+    hash ^= invoiceId.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash);
+}
+
+function emisCheckDigit(raw8: string) {
   let sum = 0;
-  for (let i = 0; i < raw8.length; i++) {
-    const digit = parseInt(raw8[i] ?? "0", 10);
+  for (let i = 0; i < raw8.length; i += 1) {
+    const digit = Number.parseInt(raw8[i] ?? "0", 10);
     const weight = i % 2 === 0 ? 2 : 1;
     const prod = digit * weight;
     sum += prod > 9 ? prod - 9 : prod;
   }
-  const checkDigit = (10 - (sum % 10)) % 10;
-  const reference = `${raw8}${checkDigit}`;
+  return (10 - (sum % 10)) % 10;
+}
+
+/**
+ * Gera referência Multicaixa de 9 dígitos estável para a mesma fatura.
+ */
+export function generateMulticaixaReference(
+  entity: string = DEFAULT_EMIS_ENTITY,
+  invoiceId: string,
+  amount: number,
+  expiryDays: number = 30,
+): MulticaixaReference {
+  const digits = invoiceId.replace(/\D/g, "");
+  const seed = hashInvoiceSeed(invoiceId);
+  const raw8 = `${digits.padEnd(4, "0").slice(0, 4)}${String(seed % 10000).padStart(4, "0")}`.slice(
+    0,
+    8,
+  );
+  const checkDigit = emisCheckDigit(raw8);
+  const referenceDigits = `${raw8}${checkDigit}`;
+  const formattedRef = `${referenceDigits.slice(0, 3)} ${referenceDigits.slice(3, 6)} ${referenceDigits.slice(6, 9)}`;
 
   const expDate = new Date();
   expDate.setDate(expDate.getDate() + expiryDays);
 
-  const formattedRef = `${reference.slice(0, 3)} ${reference.slice(3, 6)} ${reference.slice(6, 9)}`;
-
-  // Payload codificado para o QR Code do terminal Multicaixa / App bancária
-  const qrCodeText = `EMIS|ENT:${entity}|REF:${reference}|AMT:${amount.toFixed(2)}|CUR:AOA`;
+  const qrCodeText = `EMIS|ENT:${entity}|REF:${referenceDigits}|AMT:${amount.toFixed(2)}|CUR:AOA`;
 
   return {
     entity,
     reference: formattedRef,
-    amountFormatted: new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(
-      amount,
-    ),
+    amountFormatted: new Intl.NumberFormat("pt-AO", {
+      style: "currency",
+      currency: "AOA",
+    }).format(amount),
     amountNumber: amount,
     expiresAt: expDate.toISOString().split("T")[0] ?? expDate.toISOString(),
     status: "pending",
@@ -73,9 +109,6 @@ export function generateMulticaixaReference(
   };
 }
 
-/**
- * Formata detalhes de carteiras móveis angolanas (Unitel Money, Kwik, PayPay).
- */
 export function generateMobileWalletOptions(
   amount: number,
   invoiceNumber: string,
@@ -108,4 +141,15 @@ export function generateMobileWalletOptions(
       status: "pending",
     },
   ];
+}
+
+export const GATEWAY_CHANNELS = new Set([
+  "multicaixa",
+  "express",
+  "multicaixa_express",
+  "unitel_money",
+]);
+
+export function isGatewayPaymentChannel(channel: string) {
+  return GATEWAY_CHANNELS.has(channel);
 }

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { sgaClient } from "@/integrations/supabase/sga";
@@ -16,11 +17,27 @@ import {
   reverseCashEntryInputSchema,
   cancelInvoiceInputSchema,
   cancelPaymentPlanInputSchema,
+  upsertFeePlanSettingsInputSchema,
 } from "./schemas";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
+import { DEFAULT_FEE_ITEMS, DEFAULT_FEE_PLAN_NAME } from "./fee-plan-defaults";
+import {
+  generateMulticaixaReference,
+  generateMobileWalletOptions,
+  resolveSchoolEmisEntity,
+  isGatewayPaymentChannel,
+  normalizePaymentReference,
+} from "./emiss-multicaixa";
 import { loadPersonNamesById } from "@/features/people/lookup";
+import {
+  invoiceDateInSaftPeriod,
+  mapFinanceInvoiceToSaftItem,
+  saftExportBlocked,
+  saftPeriodBounds,
+  validateSaftSchoolReadiness,
+} from "./saft-export";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
@@ -228,14 +245,22 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
         ready: false,
         missingPenaltyAmount: true,
         missingNotificationPreferences: false,
+        missingActiveFeePlan: true,
       };
     }
     const db = await loadSgaAdminClient();
-    const [{ error: penaltyError }, { error: prefsError }, { error: cashExpensesError }] =
+    const [{ error: penaltyError }, { error: prefsError }, { error: cashExpensesError }, feePlanResult] =
       await Promise.all([
         db.from("finance_invoices").select("id, penalty_amount").limit(1),
         db.from("notification_preferences").select("id").limit(1),
         db.from("siga_cash_expenses").select("id").limit(1),
+        db
+          .from("fee_plans")
+          .select("id")
+          .eq("school_id", membership.schoolId)
+          .eq("status", "active")
+          .limit(1)
+          .maybeSingle(),
       ]);
     const missingPenaltyAmount = Boolean(
       penaltyError && /penalty_amount/i.test(penaltyError.message),
@@ -269,11 +294,21 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
         "Não foi possível validar as despesas de caixa.",
       );
     }
+    const feePlanError = feePlanResult.error;
+    const missingActiveFeePlan = Boolean(
+      !feePlanResult.data?.id &&
+      (!feePlanError || !isMissingSgaTable(feePlanError)),
+    );
+    if (feePlanError && !isMissingSgaTable(feePlanError)) {
+      throw publicDatabaseError(feePlanError, "Não foi possível validar o plano financeiro.");
+    }
     return {
-      ready: !missingPenaltyAmount && !missingNotificationPreferences,
+      ready:
+        !missingPenaltyAmount && !missingNotificationPreferences && !missingActiveFeePlan,
       missingPenaltyAmount,
       missingNotificationPreferences,
       missingCashExpenses: isMissingSgaTable(cashExpensesError),
+      missingActiveFeePlan,
     };
   });
 
@@ -759,15 +794,34 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
   });
 
 export const generateInvoicePaymentReference = createServerFn({ method: "POST" })
-  .validator((data: { invoiceId: string; amount: number; entity?: string }) => data)
-  .handler(async ({ data }) => {
-    const { generateMulticaixaReference, generateMobileWalletOptions } =
-      await import("./emiss-multicaixa");
-    const mcx = generateMulticaixaReference(data.entity ?? "99824", data.invoiceId, data.amount);
+  .middleware([requireSupabaseAuth])
+  .validator((data: { invoiceId: string; amount: number }) => data)
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { data: invoice, error: invoiceError } = await db
+      .from("finance_invoices")
+      .select("id")
+      .eq("id", data.invoiceId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (invoiceError) {
+      throw publicDatabaseError(invoiceError, "Não foi possível validar a fatura.");
+    }
+    if (!invoice?.id) throw new Error("Fatura não encontrada nesta escola.");
+
+    const emisEntity = await resolveSchoolEmisEntity(db, membership.schoolId);
+    const mcx = generateMulticaixaReference(emisEntity, data.invoiceId, data.amount);
     const wallets = generateMobileWalletOptions(data.amount, data.invoiceId);
     return {
       multicaixa: mcx,
       mobileWallets: wallets,
+      emisEntity,
     };
   });
 
@@ -796,6 +850,22 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
         receiptNumber: `MCX-CONF-${data.reference.replace(/\s+/g, "")}`,
       },
     });
+
+    const db = await loadSgaAdminClient();
+    const normRef = normalizePaymentReference(data.reference);
+    await db
+      .from("finance_payment_plans")
+      .update({ status: "settled", updated_at: new Date().toISOString() })
+      .eq("school_id", membership.schoolId)
+      .eq("invoice_id", data.invoiceId)
+      .in("status", ["pending_gateway", "scheduled"]);
+
+    await db
+      .from("finance_payment_plans")
+      .update({ status: "settled", updated_at: new Date().toISOString() })
+      .eq("school_id", membership.schoolId)
+      .eq("reference", normRef)
+      .in("status", ["pending_gateway", "scheduled"]);
 
     return {
       success: true,
@@ -1100,6 +1170,28 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
       "Tesouraria",
     ]);
     const db = await loadSgaAdminClient();
+
+    let reference = data.reference?.trim() || null;
+    let invoiceAmount: number | null = null;
+    if (data.invoiceId) {
+      const { data: invoiceRow } = await db
+        .from("finance_invoices")
+        .select("total_amount, amount, discount_amount")
+        .eq("id", data.invoiceId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (invoiceRow) {
+        invoiceAmount =
+          Number(invoiceRow.total_amount ?? 0) ||
+          Number(invoiceRow.amount ?? 0) - Number(invoiceRow.discount_amount ?? 0);
+      }
+    }
+    if (!reference && data.invoiceId && isGatewayPaymentChannel(data.channel) && invoiceAmount) {
+      const emisEntity = await resolveSchoolEmisEntity(db, membership.schoolId);
+      const generated = generateMulticaixaReference(emisEntity, data.invoiceId, invoiceAmount);
+      reference = normalizePaymentReference(generated.reference);
+    }
+
     const { data: plan, error } = await db
       .from("finance_payment_plans")
       .insert({
@@ -1108,7 +1200,7 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
         student_id: data.studentId ?? null,
         channel: data.channel,
         installments: data.installments,
-        reference: data.reference ?? null,
+        reference,
         notes: data.notes ?? null,
         status: "pending_gateway",
         created_by: context.userId,
@@ -1173,6 +1265,55 @@ export const listPaymentPlans = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+export type GatewayWebhookEventSummary = {
+  id: string;
+  created_at: string;
+  ok: boolean;
+  http_status: number;
+  channel: string;
+  message: string;
+  reference: string;
+  invoice_id: string | null;
+  amount: number;
+};
+
+export const listGatewayWebhookEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => {
+    return z
+      .object({
+        channel: z.enum(["multicaixa_express", "unitel_money"]).optional(),
+        limit: z.number().int().min(1).max(20).optional(),
+      })
+      .parse(input ?? {});
+  })
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+    ]);
+    const db = await loadSgaAdminClient();
+    let query = db
+      .from("finance_gateway_webhook_events")
+      .select(
+        "id, created_at, ok, http_status, channel, message, reference, invoice_id, amount",
+      )
+      .eq("school_id", membership.schoolId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit ?? 5);
+    if (data.channel) {
+      query = query.eq("channel", data.channel);
+    }
+    const { data: rows, error } = await query;
+    if (error) {
+      if (error.code === "42P01" || /does not exist|schema cache/i.test(error.message)) {
+        return [] as GatewayWebhookEventSummary[];
+      }
+      throw publicDatabaseError(error, "Não foi possível carregar eventos de webhook.");
+    }
+    return (rows ?? []) as GatewayWebhookEventSummary[];
+  });
+
 export const cancelPaymentPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => cancelPaymentPlanInputSchema.parse(input))
@@ -1210,6 +1351,145 @@ export const cancelPaymentPlan = createServerFn({ method: "POST" })
     return plan;
   });
 
+export type FeePlanItemSummary = {
+  id: string;
+  name: string;
+  kind: string;
+  amount: number;
+  is_active: boolean;
+};
+
+async function loadFeePlanSettingsForSchool(schoolId: string) {
+  const db = await loadSgaAdminClient();
+  const { data: plan, error: planError } = await db
+    .from("fee_plans")
+    .select("id, name, status")
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  if (planError && !isMissingSgaTable(planError)) {
+    throw publicDatabaseError(planError, "Não foi possível carregar o plano financeiro.");
+  }
+  if (!plan?.id) {
+    return { ready: false, plan: null, items: [] as FeePlanItemSummary[] };
+  }
+
+  const { data: items, error: itemsError } = await db
+    .from("fee_items")
+    .select("id, name, kind, amount, is_active")
+    .eq("school_id", schoolId)
+    .eq("fee_plan_id", plan.id)
+    .order("kind");
+  if (itemsError && !isMissingSgaTable(itemsError)) {
+    throw publicDatabaseError(itemsError, "Não foi possível carregar os itens de taxa.");
+  }
+
+  return {
+    ready: true,
+    plan: { id: plan.id as string, name: String(plan.name), status: String(plan.status) },
+    items: (items ?? []).map((row) => ({
+      id: row.id as string,
+      name: String(row.name),
+      kind: String(row.kind),
+      amount: Number(row.amount),
+      is_active: Boolean(row.is_active),
+    })),
+  };
+}
+
+export const listFeePlanSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
+    return loadFeePlanSettingsForSchool(membership.schoolId);
+  });
+
+export const upsertFeePlanSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => upsertFeePlanSettingsInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    let planId: string;
+    const { data: existingPlan } = await db
+      .from("fee_plans")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
+    if (existingPlan?.id) {
+      planId = existingPlan.id as string;
+      const { error: updateErr } = await db
+        .from("fee_plans")
+        .update({ name: data.planName })
+        .eq("id", planId)
+        .eq("school_id", membership.schoolId);
+      if (updateErr) throw publicDatabaseError(updateErr, "Não foi possível actualizar o plano.");
+    } else {
+      const { data: created, error: createErr } = await db
+        .from("fee_plans")
+        .insert({
+          school_id: membership.schoolId,
+          name: data.planName || DEFAULT_FEE_PLAN_NAME,
+          status: "active",
+        })
+        .select("id")
+        .single();
+      if (createErr) {
+        throw publicDatabaseError(createErr, "Não foi possível criar o plano financeiro.");
+      }
+      planId = created.id as string;
+    }
+
+    const desired = [
+      { kind: "tuition", name: "Propina mensal", amount: data.tuitionAmount },
+      { kind: "enrollment", name: "Taxa de matrícula", amount: data.enrollmentAmount },
+    ] as const;
+
+    for (const item of desired) {
+      const { data: existingItem } = await db
+        .from("fee_items")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("fee_plan_id", planId)
+        .eq("kind", item.kind)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingItem?.id) {
+        const { error } = await db
+          .from("fee_items")
+          .update({ name: item.name, amount: item.amount, is_active: true })
+          .eq("id", existingItem.id)
+          .eq("school_id", membership.schoolId);
+        if (error) throw publicDatabaseError(error, "Não foi possível actualizar o item de taxa.");
+      } else {
+        const { error } = await db.from("fee_items").insert({
+          school_id: membership.schoolId,
+          fee_plan_id: planId,
+          name: item.name,
+          kind: item.kind,
+          amount: item.amount,
+          is_active: true,
+        });
+        if (error) throw publicDatabaseError(error, "Não foi possível criar o item de taxa.");
+      }
+    }
+
+    return loadFeePlanSettingsForSchool(membership.schoolId);
+  });
+
 export const exportSaftAoXml = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => {
@@ -1225,59 +1505,145 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    // Load school settings
-    const { data: schoolSetting } = await db
-      .from("school_settings")
-      .select("value")
-      .eq("school_id", membership.schoolId)
-      .eq("domain", "school")
-      .maybeSingle();
+    const [{ data: schoolSetting }, { data: agtSetting }] = await Promise.all([
+      db
+        .from("school_settings")
+        .select("value")
+        .eq("school_id", membership.schoolId)
+        .eq("domain", "school")
+        .maybeSingle(),
+      db
+        .from("school_settings")
+        .select("value")
+        .eq("school_id", membership.schoolId)
+        .eq("domain", "agt")
+        .maybeSingle(),
+    ]);
 
-    const schoolVal = (schoolSetting?.value as Record<string, any>) ?? {};
+    const schoolVal = (schoolSetting?.value as Record<string, unknown>) ?? {};
+    const agtVal = (agtSetting?.value as Record<string, unknown>) ?? {};
     const schoolInfo = {
-      nif: String(schoolVal["nif"] ?? schoolVal["taxId"] ?? "999999999"),
+      nif: String(schoolVal["nif"] ?? schoolVal["taxId"] ?? ""),
       name: String(schoolVal["name"] ?? schoolVal["schoolName"] ?? "Instituição Escolar SIGA"),
       address: String(schoolVal["address"] ?? "Luanda"),
       city: String(schoolVal["city"] ?? "Luanda"),
     };
 
-    // Load invoices
+    const readiness = validateSaftSchoolReadiness(schoolInfo);
+    if (saftExportBlocked(readiness)) {
+      throw new Error(readiness.find((issue) => issue.level === "error")?.message ?? "Exportação bloqueada.");
+    }
+
+    const period = saftPeriodBounds(data);
     const { data: invoices, error } = await db
-      .from("invoices")
-      .select("id, document_number, issue_date, amount, status, student_id")
+      .from("finance_invoices")
+      .select(
+        "id, contract_id, fee_item_id, invoice_number, amount, discount_amount, status, created_at",
+      )
       .eq("school_id", membership.schoolId)
-      .order("issue_date", { ascending: true });
+      .gte("created_at", `${period.start}T00:00:00`)
+      .lte("created_at", `${period.end}T23:59:59`)
+      .order("created_at", { ascending: true });
 
     if (error) {
       throw publicDatabaseError(error, "Não foi possível carregar as faturas para o SAFT-AO.");
     }
 
-    const studentIds = [
-      ...new Set((invoices ?? []).map((inv: any) => inv.student_id).filter(Boolean)),
-    ];
-    const studentNames = studentIds.length
-      ? await loadPersonNamesById(db, membership.schoolId, studentIds)
-      : new Map();
+    const contractIds = [
+      ...new Set(
+        (invoices ?? [])
+          .map((row: { contract_id: string | null }) => row.contract_id)
+          .filter(Boolean),
+      ),
+    ] as string[];
+    const feeIds = [
+      ...new Set(
+        (invoices ?? [])
+          .map((row: { fee_item_id: string | null }) => row.fee_item_id)
+          .filter(Boolean),
+      ),
+    ] as string[];
 
-    const formattedInvoices = (invoices ?? []).map((inv: any) => ({
-      id: inv.id,
-      invoiceNo: inv.document_number || `FT ${data.fiscalYear}/${inv.id.slice(0, 4)}`,
-      invoiceType: "FT" as const,
-      date: inv.issue_date ? String(inv.issue_date).slice(0, 10) : `${data.fiscalYear}-01-01`,
-      customerName: studentNames.get(inv.student_id) || "Estudante SIGA",
-      studentId: inv.student_id,
-      description: "Propina e Serviços Escolares",
-      amount: Number(inv.amount) || 0,
-      status: inv.status === "cancelled" ? ("A" as const) : ("N" as const),
-    }));
+    const [{ data: contracts }, { data: feeItems }] = await Promise.all([
+      contractIds.length
+        ? db.from("finance_contracts").select("id, enrollment_id").in("id", contractIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }> }),
+      feeIds.length
+        ? db.from("fee_items").select("id, name").in("id", feeIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+    ]);
+
+    const enrollmentIds = [
+      ...new Set((contracts ?? []).map((row) => row.enrollment_id).filter(Boolean)),
+    ];
+    const { data: enrollments } = enrollmentIds.length
+      ? await db.from("enrollments").select("id, student_id").in("id", enrollmentIds)
+      : { data: [] as Array<{ id: string; student_id: string }> };
+
+    const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
+    const students = studentIds.length
+      ? await loadStudentDirectory(db, membership.schoolId, studentIds)
+      : [];
+    const studentById = new Map(students.map((row) => [row.student_id, row]));
+    const enrollmentById = new Map((enrollments ?? []).map((row) => [row.id, row]));
+    const contractById = new Map((contracts ?? []).map((row) => [row.id, row]));
+    const feeById = new Map((feeItems ?? []).map((row) => [row.id, row]));
+
+    const formattedInvoices = (invoices ?? [])
+      .map(
+        (invoice: {
+          id: string;
+          contract_id: string | null;
+          fee_item_id: string | null;
+          invoice_number: string;
+          amount: number;
+          discount_amount: number;
+          status: string;
+          created_at: string;
+        }) => {
+          const contract = invoice.contract_id ? contractById.get(invoice.contract_id) : null;
+          const enrollment = contract ? enrollmentById.get(contract.enrollment_id) : null;
+          const student = enrollment ? studentById.get(enrollment.student_id) : null;
+          const fee = invoice.fee_item_id ? feeById.get(invoice.fee_item_id) : null;
+          return mapFinanceInvoiceToSaftItem({
+            id: invoice.id,
+            invoice_number: invoice.invoice_number,
+            created_at: invoice.created_at,
+            amount: Number(invoice.amount ?? 0),
+            discount_amount: Number(invoice.discount_amount ?? 0),
+            status: invoice.status,
+            description: fee?.name ?? "Propina e Serviços Escolares",
+            customerName: student?.full_name ?? "Estudante SIGA",
+            studentId: enrollment?.student_id ?? null,
+            fiscalYear: data.fiscalYear,
+          });
+        },
+      )
+      .filter((item) => invoiceDateInSaftPeriod(item.date, period.start, period.end));
+
+    const softwareCertificateNumber =
+      typeof agtVal["software_certified"] === "string" && agtVal["software_certified"].trim()
+        ? agtVal["software_certified"].trim()
+        : undefined;
 
     const { buildSaftAoXml } = await import("./saft-generator");
-    const xml = buildSaftAoXml(schoolInfo, formattedInvoices, data);
+    const xml = buildSaftAoXml(schoolInfo, formattedInvoices, {
+      ...data,
+      softwareCertificateNumber,
+    });
+
+    const warnings = [
+      ...readiness.filter((issue) => issue.level === "warn").map((issue) => issue.message),
+      ...(formattedInvoices.length === 0
+        ? [`Nenhuma fatura no período ${period.start} — ${period.end}.`]
+        : []),
+    ];
 
     return {
       success: true,
       filename: `SAFT-AO_${schoolInfo.nif}_${data.fiscalYear}.xml`,
       xml,
       invoiceCount: formattedInvoices.length,
+      warnings,
     };
   });

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { BookOpenCheck, ClipboardCheck, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { DocHelpButton, SqlDocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
@@ -18,6 +19,7 @@ import {
   LessonPlanModal,
   type LessonPlanFormInitial,
 } from "@/features/lesson-plans/LessonPlanModal";
+import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 
 const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 
@@ -149,9 +151,13 @@ function LessonPlansPage() {
           title="Planos de Aula"
           description="Título, conteúdo e estrutura de avaliações/provas por turma, disciplina e trimestre — modelo angolano."
           actions={
-            <Button className="gap-2" onClick={openCreate} disabled={!classGroups.length}>
-              <Plus className="size-4" /> Novo plano
-            </Button>
+            <>
+              <SqlDocHelpButton />
+              <DocHelpButton title="Navegação — Planos de Aula" />
+              <Button className="gap-2" onClick={openCreate} disabled={!classGroups.length}>
+                <Plus className="size-4" /> Novo plano
+              </Button>
+            </>
           }
         />
 
@@ -190,7 +196,8 @@ function LessonPlansPage() {
         {plansQuery.data?.available === false ? (
           <div className="rounded-xl border border-dashed border-border bg-secondary/30 p-6 text-sm text-muted-foreground">
             Tabelas de planos de aula em falta. Corra{" "}
-            <code>supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql</code> no SQL Editor do projecto SGA.
+            <code>supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql</code> no SQL Editor do projecto SGA.{" "}
+            <SqlChecklistLink />
           </div>
         ) : null}
 

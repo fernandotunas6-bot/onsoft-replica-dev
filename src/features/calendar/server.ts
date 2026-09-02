@@ -12,6 +12,7 @@ import {
   listCalendarEventsInputSchema,
   updateCalendarEventInputSchema,
 } from "./schemas";
+import { todayInLuanda, inclusiveRangesOverlap } from "./dates";
 
 export type CalendarEventSummary = {
   id: string;
@@ -20,7 +21,23 @@ export type CalendarEventSummary = {
   event_date: string;
   ends_on: string;
   category: "academic";
+  sequence: number;
+  academic_year_id: string;
 };
+
+function mapTerm(term: Record<string, unknown>, description?: string): CalendarEventSummary {
+  const sequence = Number(term["sequence"] ?? 0);
+  return {
+    id: String(term["id"] ?? ""),
+    title: String(term["name"] ?? ""),
+    description: description ?? `Período lectivo ${sequence || ""}`.trim(),
+    event_date: String(term["starts_on"] ?? ""),
+    ends_on: String(term["ends_on"] ?? ""),
+    category: "academic",
+    sequence,
+    academic_year_id: String(term["academic_year_id"] ?? ""),
+  };
+}
 
 export const listCalendarEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -30,24 +47,23 @@ export const listCalendarEvents = createServerFn({ method: "GET" })
     if (!membership) return [];
     const db = await loadSgaAdminClient();
 
-    const fromDate = data.fromDate ?? new Date().toISOString().slice(0, 10);
-    const { data: terms, error } = await db
+    const fromDate = data.fromDate ?? todayInLuanda();
+    let query = db
       .from("terms")
       .select("id, name, starts_on, ends_on, sequence, academic_year_id")
-      .eq("school_id", membership.schoolId)
-      .gte("ends_on", fromDate)
+      .eq("school_id", membership.schoolId);
+    if (data.academicYearId) {
+      query = query.eq("academic_year_id", data.academicYearId);
+    }
+    if (!data.includePast || !data.academicYearId) {
+      query = query.gte("ends_on", fromDate);
+    }
+    const { data: terms, error } = await query
       .order("starts_on", { ascending: true })
       .limit(data.limit);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar o calendário lectivo.");
 
-    return (terms ?? []).map((term: Record<string, unknown>) => ({
-      id: String(term["id"] ?? ""),
-      title: String(term["name"] ?? ""),
-      description: `Período lectivo ${term["sequence"] ?? ""}`.trim(),
-      event_date: String(term["starts_on"] ?? ""),
-      ends_on: String(term["ends_on"] ?? ""),
-      category: "academic" as const,
-    }));
+    return (terms ?? []).map((term: Record<string, unknown>) => mapTerm(term));
   });
 
 export const createCalendarEvent = createServerFn({ method: "POST" })
@@ -79,6 +95,8 @@ export const createCalendarEvent = createServerFn({ method: "POST" })
     }
     if (!academicYearId) throw new Error("Não há um ano lectivo activo para criar o período.");
 
+    await assertNoTermOverlap(db, membership.schoolId, academicYearId, data.eventDate, data.endsOn);
+
     let sequence = data.sequence;
     if (!sequence) {
       const { data: existing } = await db
@@ -102,17 +120,10 @@ export const createCalendarEvent = createServerFn({ method: "POST" })
         starts_on: data.eventDate,
         ends_on: data.endsOn,
       })
-      .select("id, name, starts_on, ends_on, sequence")
+      .select("id, name, starts_on, ends_on, sequence, academic_year_id")
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar o período lectivo.");
-    return {
-      id: term.id,
-      title: term.name,
-      description: data.description ?? `Período lectivo ${term.sequence ?? ""}`.trim(),
-      event_date: term.starts_on,
-      ends_on: term.ends_on,
-      category: "academic" as const,
-    };
+    return mapTerm(term as Record<string, unknown>, data.description);
   });
 
 export const updateCalendarEvent = createServerFn({ method: "POST" })
@@ -127,6 +138,22 @@ export const updateCalendarEvent = createServerFn({ method: "POST" })
       throw new Error("A data de fim não pode ser anterior ao início.");
     }
     const db = await loadSgaAdminClient();
+    const { data: current } = await db
+      .from("terms")
+      .select("academic_year_id")
+      .eq("id", data.id)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (current?.academic_year_id) {
+      await assertNoTermOverlap(
+        db,
+        membership.schoolId,
+        String(current.academic_year_id),
+        data.eventDate,
+        data.endsOn,
+        data.id,
+      );
+    }
     const { data: term, error } = await db
       .from("terms")
       .update({
@@ -136,18 +163,11 @@ export const updateCalendarEvent = createServerFn({ method: "POST" })
       })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
-      .select("id, name, starts_on, ends_on, sequence")
+      .select("id, name, starts_on, ends_on, sequence, academic_year_id")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o período.");
     if (!term) throw new Error("Período não encontrado.");
-    return {
-      id: term.id,
-      title: term.name,
-      description: `Período lectivo ${term.sequence ?? ""}`.trim(),
-      event_date: term.starts_on,
-      ends_on: term.ends_on,
-      category: "academic" as const,
-    };
+    return mapTerm(term as Record<string, unknown>);
   });
 
 export const deleteCalendarEvent = createServerFn({ method: "POST" })
@@ -175,3 +195,32 @@ export const deleteCalendarEvent = createServerFn({ method: "POST" })
     if (!term) throw new Error("Período não encontrado.");
     return { id: term.id };
   });
+
+async function assertNoTermOverlap(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  academicYearId: string,
+  startsOn: string,
+  endsOn: string,
+  excludeId?: string,
+) {
+  let query = db
+    .from("terms")
+    .select("id, name, starts_on, ends_on")
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data: existing, error } = await query.limit(40);
+  if (error) throw publicDatabaseError(error, "Não foi possível validar o período lectivo.");
+  const overlap = (existing ?? []).find((term) =>
+    inclusiveRangesOverlap(
+      startsOn,
+      endsOn,
+      String(term.starts_on ?? ""),
+      String(term.ends_on ?? term.starts_on ?? ""),
+    ),
+  );
+  if (overlap) {
+    throw new Error(`Este intervalo sobrepõe-se a «${String(overlap.name ?? "outro período")}».`);
+  }
+}

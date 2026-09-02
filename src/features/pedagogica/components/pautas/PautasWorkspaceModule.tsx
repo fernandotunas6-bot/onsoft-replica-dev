@@ -19,11 +19,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 import type { PedagogicalWorkspace } from "@/features/academic/server";
 import { exportCsv } from "@/lib/export-csv";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { whatsappHref } from "@/features/integrations/actions";
 import { useSchoolSettings, type SchoolSettingsRow } from "@/features/auth/use-school-settings";
+import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import {
   inferTeachingCycle,
   subjectShortCode,
@@ -911,8 +913,25 @@ export function PautasWorkspaceModule({
                 </p>
                 <p className="text-xs text-muted-foreground max-w-md">
                   O SIGA ainda não regista notas de Exame Nacional, PAP ou Estágio para turmas
-                  reais. Escolha "Demonstrativo" para ver um modelo de referência.
+                  reais. Use a grelha MAC/NPP/NPT, Planos de Aula, ou o demonstrativo de
+                  referência.
                 </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                  <Button type="button" size="sm" variant="outline" asChild>
+                    <Link to="/planos-aula">Abrir Planos de Aula</Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1"
+                    onClick={() =>
+                      window.open(getSigaNavDocUrl(), "_blank", "noopener,noreferrer")
+                    }
+                  >
+                    Manual DOC
+                  </Button>
+                </div>
               </div>
             ) : (
               <ExamPautaView data={filteredExamDocument} />

@@ -1,0 +1,13 @@
+---
+description: DOC is the ecosystem documentation site — content only, preserve VitePress frontend
+globs: painel/docs/**
+alwaysApply: false
+---
+
+# DOC (`painel/docs`)
+
+Documentação. Skill `siga-docs`. Arquitectura: `docs/agents/ARCHITECTURE_HARMONIZATION.md`.
+
+- Dev na porta **5173**. Preservar tema VitePress. Mudar conteúdo, não o visual.
+- Organizar por SIGA Plus, SaaS Admin, WEB, API, Arquitetura, Integrações, Changelog.
+- Não duplicar manuais dentro do SIGA — o SIGA liga para o artigo aqui.

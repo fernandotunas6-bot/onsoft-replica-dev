@@ -48,3 +48,9 @@ Este módulo gere o controlo de acesso físico ao recinto escolar, os cartões v
 8. **Lista + webhook (ciclo 43)**:
    - `listAccessCards`, `AccessCardsPanel`, `validateGatePassByDeviceApiKey`.
    - `gate-pass-validation.ts` — validação única UI + hardware.
+
+9. **Bridge → SIGA (ciclo 44)**:
+   - `POST /api/catracas/device-scan` — rota HTTP para leitores/daemon.
+   - `device-webhook-handler.ts` — lógica partilhada.
+   - Python: `siga_cloud_client.py`, `bridge_config.py`, webhook com pulso após grant.
+   - UI desktop: URL SIGA + API key em `WindowsDesktopSettingsModal`.

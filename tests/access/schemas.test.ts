@@ -10,3 +10,27 @@ describe("resendSystemInviteInputSchema", () => {
     ).toHaveLength(36);
   });
 });
+
+describe("School Invitation Schemas", () => {
+  it("validates createSchoolInvitationInputSchema", async () => {
+    const { createSchoolInvitationInputSchema } = await import("@/features/access/schemas");
+    expect(createSchoolInvitationInputSchema.safeParse({ email: "invalid" }).success).toBe(false);
+    const parsed = createSchoolInvitationInputSchema.parse({
+      email: "professor@escola.ao",
+      roleCode: "teacher",
+    });
+    expect(parsed.email).toBe("professor@escola.ao");
+    expect(parsed.roleCode).toBe("teacher");
+  });
+
+  it("validates revokeSchoolInvitationInputSchema", async () => {
+    const { revokeSchoolInvitationInputSchema } = await import("@/features/access/schemas");
+    expect(revokeSchoolInvitationInputSchema.safeParse({}).success).toBe(false);
+    expect(
+      revokeSchoolInvitationInputSchema.parse({
+        invitationId: "22222222-2222-2222-2222-222222222222",
+      }).invitationId,
+    ).toHaveLength(36);
+  });
+});
+

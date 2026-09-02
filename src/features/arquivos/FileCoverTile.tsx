@@ -13,17 +13,22 @@ export function FileCoverTile({
   selected,
   className,
   resolvedPreviewUrl,
+  locked,
 }: {
   file: SchoolFileRecord;
   selected?: boolean;
   className?: string;
   resolvedPreviewUrl?: string | null | undefined;
+  locked?: boolean;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const batched = resolvedPreviewUrl !== undefined;
 
   useEffect(() => {
-    if (batched) return;
+    if (batched || locked) {
+      if (locked) setPreviewUrl(null);
+      return;
+    }
     if (!isImageFileKind(file.kind)) {
       setPreviewUrl(null);
       return;
@@ -46,14 +51,15 @@ export function FileCoverTile({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [batched, file.id, file.kind, file.storageBackend, file.storagePath]);
+  }, [batched, file.id, file.kind, file.storageBackend, file.storagePath, locked]);
 
   return (
     <FileCover
       kind={file.kind}
       name={file.name}
       selected={selected}
-      previewUrl={batched ? resolvedPreviewUrl : previewUrl}
+      previewUrl={locked ? null : batched ? resolvedPreviewUrl : previewUrl}
+      locked={locked}
       className={className}
     />
   );

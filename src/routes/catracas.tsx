@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { DocHelpButton, SqlDocHelpButton } from "@/components/ui/doc-help-button";
 import { TurnstileAccessPanel } from "@/features/catracas/components/TurnstileAccessPanel";
 
 export const Route = createFileRoute("/catracas")({
@@ -25,6 +26,12 @@ function CatracasPage() {
           group="Acessos"
           title="Catracas & Cartão Virtual de Acesso"
           description="Gestão de hardware de catracas, leitores de portaria, cartões digitais e auditoria de recinto."
+          actions={
+            <>
+              <SqlDocHelpButton />
+              <DocHelpButton title="Navegação — Catracas e permissões" />
+            </>
+          }
         />
         <TurnstileAccessPanel />
       </div>

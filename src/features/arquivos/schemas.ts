@@ -41,6 +41,7 @@ export const fileEventActions = [
   "metadata_updated",
   "moved",
   "folder_created",
+  "access_denied",
 ] as const;
 
 export const FILE_MAX_BYTES = 8 * 1024 * 1024;
@@ -228,6 +229,8 @@ export type SchoolFileRecord = {
   relatedPersonId: string | null;
   relatedUserName: string | null;
   relatedPersonName: string | null;
+  /** Gerado pelo sistema (recibos, talões…): listável; conteúdo só com permissão. */
+  isSystem: boolean;
   createdAt: string;
   updatedAt: string | null;
   updatedByUserId: string | null;

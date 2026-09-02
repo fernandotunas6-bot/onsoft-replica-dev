@@ -30,6 +30,9 @@ supabase/.temp/
 
 # Allowlist de hardware do daemon Python (só neste PC)
 python/hardware_bridge/siga_hardware_allowlist.json
+python/hardware_bridge/siga_hardware_bridge_config.json
+__pycache__/
+*.pyc
 
 # Editor directories and files
 .vscode/*
@@ -46,6 +49,9 @@ python/hardware_bridge/siga_hardware_allowlist.json
 tests/visual/current/
 tests/visual/diff/
 reports/
+.e2e-ecosystem-pids.json
+test-results/
+playwright-report/
 
 # Arquivos de referência grandes que não devem entrar no repo (>100MB, rejeitados pelo GitHub)
 public/turmas/*.zip

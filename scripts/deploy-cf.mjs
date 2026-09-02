@@ -20,26 +20,22 @@ if (fs.existsSync(envFile)) {
   }
 }
 
-const SUPABASE_URL =
-  envVars.VITE_SUPABASE_URL ||
-  process.env.VITE_SUPABASE_URL ||
-  "https://xodgfmxiaunpamctfeea.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY =
-  envVars.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvZGdmbXhpYXVucGFtY3RmZWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NjIxOTYsImV4cCI6MjEwMTMzODE5Nn0.5f5dpoKP_Yu3y4ZaWhAEDLmWpGmVDq4KtuG38kGvDIM";
-const SUPABASE_SERVICE_ROLE_KEY =
-  envVars.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvZGdmbXhpYXVucGFtY3RmZWVhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTc2MjE5NiwiZXhwIjoyMTAxMzM4MTk2fQ.YROu1hTgqtV58c_BNNQ14IiKe1B0L5h96PWvp8uGQOk";
-const CLOUDFLARE_API_TOKEN =
-  envVars.CLOUDFLARE_API_TOKEN ||
-  process.env.CLOUDFLARE_API_TOKEN ||
-  "cfut_1KGKkdaRwwHem45MmYft66Kkku6Vu5q2ZKYqvN922153ce55";
-const CLOUDFLARE_ACCOUNT_ID =
-  envVars.CLOUDFLARE_ACCOUNT_ID ||
-  process.env.CLOUDFLARE_ACCOUNT_ID ||
-  "701800d01d428c5141fa1fdb60ee01ae";
+function requireEnv(name) {
+  const value = envVars[name] || process.env[name];
+  if (!value) {
+    console.error(
+      `==> Missing required env var ${name}. Set it in .env (never commit it) before deploying.`,
+    );
+    process.exit(1);
+  }
+  return value;
+}
+
+const SUPABASE_URL = requireEnv("VITE_SUPABASE_URL");
+const SUPABASE_PUBLISHABLE_KEY = requireEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
+const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+const CLOUDFLARE_API_TOKEN = requireEnv("CLOUDFLARE_API_TOKEN");
+const CLOUDFLARE_ACCOUNT_ID = requireEnv("CLOUDFLARE_ACCOUNT_ID");
 
 console.log("==> Building for Cloudflare (production)...");
 execSync("npx vite build --mode production", {
@@ -63,13 +59,19 @@ if (fs.existsSync(wranglerPath)) {
     SUPABASE_SERVICE_ROLE_KEY,
     VITE_SUPABASE_URL: SUPABASE_URL,
     VITE_SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY,
+    APP_URL: envVars["APP_URL"] || "https://portal-siga.com",
+    APP_NAME: envVars["APP_NAME"] || "SIGA Plus",
+    VITE_APP_URL: envVars["VITE_APP_URL"] || "https://portal-siga.com",
+    VITE_APP_NAME: envVars["VITE_APP_NAME"] || "SIGA Plus",
+    ...(envVars["RESEND_API_KEY"] ? { RESEND_API_KEY: envVars["RESEND_API_KEY"] } : {}),
   };
   fs.writeFileSync(wranglerPath, JSON.stringify(config, null, 2), "utf-8");
-  console.log("==> Attached production Supabase environment variables to wrangler.json");
+  console.log("==> Attached production Supabase & App environment variables to wrangler.json");
 }
 
 console.log("==> Deploying to Cloudflare Workers...");
-execSync("npx wrangler deploy --config .output/server/wrangler.json", {
+execSync("npx wrangler deploy --config wrangler.json", {
+  cwd: path.resolve(".output/server"),
   stdio: "inherit",
   env: {
     ...process.env,

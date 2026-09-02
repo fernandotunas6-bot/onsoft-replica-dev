@@ -22,6 +22,8 @@ import {
   updateEnrollmentInputSchema,
   updateStudentProfileInputSchema,
 } from "./schemas";
+import { queueTenantUsageSync } from "@/features/saas/usage-sync";
+import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 
 async function linkGuardian(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
@@ -512,9 +514,9 @@ export const createStudent = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    // register_student cria o aluno numa transação atómica (número de processo por
-    // sequência própria, nunca duplica sob pedidos simultâneos) — substitui o insert
-    // directo anterior, alinhando esta rota com enrollNewStudent/decideEnrollmentApplication.
+    await assertCanAddStudentForSchool(membership.schoolId);
+
+    // register_student cria o aluno numa transação atómica
     const firstGuardian = (data.guardians ?? [])[0];
     const { data: registered, error: registerError } = await context.supabase.rpc(
       "register_student",
@@ -573,6 +575,8 @@ export const createStudent = createServerFn({ method: "POST" })
       enrollmentOutcome = enrolled as { enrollmentId: string; enrollmentNumber: string };
     }
 
+    queueTenantUsageSync(membership.schoolId);
+
     return {
       id: studentOutcome.studentId,
       student_number: studentOutcome.studentNumber,
@@ -596,6 +600,8 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
+
+    await assertCanAddStudentForSchool(membership.schoolId);
 
     const personInput = data.person;
     const fullName = personInput.full_name.trim();
@@ -689,6 +695,8 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       enrollmentOutcome = enrolled as { enrollmentId: string; enrollmentNumber: string };
     }
 
+    queueTenantUsageSync(membership.schoolId);
+
     return {
       id: studentOutcome.studentId,
       student_number: studentOutcome.studentNumber,
@@ -725,6 +733,7 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível alterar o estado do aluno.");
     if (!student) throw new Error("Aluno não encontrado");
+    queueTenantUsageSync(membership.schoolId);
     return student;
   });
 

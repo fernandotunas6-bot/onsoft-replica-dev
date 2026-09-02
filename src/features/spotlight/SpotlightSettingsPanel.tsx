@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { IconChip } from "@/components/ui/icon-chip";
+import { LogoChip } from "@/components/ui/logo-chip";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import {
   Select,
   SelectContent,
@@ -18,7 +20,6 @@ import {
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import { spotlightCatalog } from "./catalog";
-import { spotlightIcon, spotlightIconLabels, spotlightIcons } from "./icons";
 import { listSpotlightConfig, saveSpotlightOverrides } from "./server";
 import { SpotlightCard } from "./SpotlightCard";
 import {
@@ -150,7 +151,16 @@ export function SpotlightSettingsPanel() {
           return (
             <li key={item.id} className="rounded-2xl border border-border bg-card p-3">
               <div className="flex items-start gap-3">
-                <IconChip icon={spotlightIcon(item.icon)} tone={item.tone} size="sm" />
+                {item.logoUrl?.trim() ? (
+                  <LogoChip
+                    src={item.logoUrl.trim()}
+                    tone={item.tone}
+                    size="sm"
+                    label={item.title}
+                  />
+                ) : (
+                  <IconChip icon={Sparkles} tone={item.tone} size="sm" label={item.title} />
+                )}
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -554,6 +564,9 @@ function SpotlightLookFields({
   disabled: boolean;
   onPatch: (change: Partial<SpotlightItem>) => void;
 }) {
+  const { school } = useSchoolSettings();
+  const schoolLogo = school?.branding?.logo_url ?? "";
+
   return (
     <div className="space-y-2">
       <div className="grid gap-2 sm:grid-cols-2">
@@ -603,27 +616,47 @@ function SpotlightLookFields({
         </div>
       </div>
       <div className="space-y-1">
-        <Label className="text-xs">Ícone</Label>
-        <div className="flex flex-wrap gap-1.5">
-          {Object.keys(spotlightIcons).map((icon) => {
-            const selected = item.icon === icon;
-            return (
-              <button
-                key={icon}
-                type="button"
-                disabled={disabled}
-                aria-pressed={selected}
-                aria-label={spotlightIconLabels[icon] ?? icon}
-                title={spotlightIconLabels[icon] ?? icon}
-                className={`rounded-xl p-0.5 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-50 ${
-                  selected ? "ring-2 ring-primary" : "ring-1 ring-transparent hover:ring-border"
-                }`}
-                onClick={() => onPatch({ icon })}
-              >
-                <IconChip icon={spotlightIcon(icon)} tone={item.tone} size="sm" />
-              </button>
-            );
-          })}
+        <Label htmlFor={`spot-logo-${item.id}`} className="text-xs">
+          Logótipo (URL)
+        </Label>
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            id={`spot-logo-${item.id}`}
+            value={item.logoUrl ?? ""}
+            disabled={disabled}
+            placeholder="https://…/logo.png (opcional)"
+            className="font-mono text-xs"
+            onChange={(event) => onPatch({ logoUrl: event.target.value.trim() || undefined })}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled || !schoolLogo}
+            onClick={() => onPatch({ logoUrl: schoolLogo })}
+          >
+            Usar logótipo da escola
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={disabled || !item.logoUrl}
+            onClick={() => onPatch({ logoUrl: undefined })}
+          >
+            Limpar
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Sem URL personalizada, o cartão usa um ícone genérico. O logótipo institucional fica na
+          barra lateral.
+        </p>
+        <div className="pt-1">
+          {item.logoUrl?.trim() ? (
+            <LogoChip src={item.logoUrl.trim()} tone={item.tone} size="md" label={item.title} />
+          ) : (
+            <IconChip icon={Sparkles} tone={item.tone} size="md" label={item.title} />
+          )}
         </div>
       </div>
     </div>

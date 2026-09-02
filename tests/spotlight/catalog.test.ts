@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { spotlightCatalog } from "@/features/spotlight/catalog";
-import { spotlightIcon } from "@/features/spotlight/icons";
 import {
   applySpotlightOverrides,
   calendarDateInLuanda,
@@ -20,7 +19,6 @@ describe("destaques da conta", () => {
     expect(spotlightCatalog.length).toBeGreaterThan(3);
     for (const item of spotlightCatalog) {
       expect(spotlightItemSchema.safeParse(item).success).toBe(true);
-      expect(spotlightIcon(item.icon)).toBeTruthy();
     }
   });
 
@@ -212,17 +210,22 @@ describe("destaques da conta", () => {
     });
   });
 
-  it("grava ícone, cor e tipo no catálogo", () => {
+  it("grava logótipo, cor e tipo no catálogo", () => {
     const edited = applySpotlightOverrides(spotlightCatalog, {
-      items: { relatorios: { icon: "star", tone: "warning", kind: "promo" } },
+      items: {
+        relatorios: {
+          logoUrl: "https://escola.example/logo.png",
+          tone: "warning",
+          kind: "promo",
+        },
+      },
     });
     const reports = edited.find((item) => item.id === "relatorios")!;
-    expect(reports.icon).toBe("star");
+    expect(reports.logoUrl).toBe("https://escola.example/logo.png");
     expect(reports.tone).toBe("warning");
     expect(reports.kind).toBe("promo");
-    expect(spotlightIcon(reports.icon)).toBeTruthy();
     expect(spotlightOverrideDiff(spotlightCatalog, edited).items.relatorios).toEqual({
-      icon: "star",
+      logoUrl: "https://escola.example/logo.png",
       tone: "warning",
       kind: "promo",
       surfaces: ["drawer", "home"],

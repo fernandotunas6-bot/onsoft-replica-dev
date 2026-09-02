@@ -15,10 +15,12 @@ description: >-
 
 ## Regras
 
-1. Catalog-ready: gravar merchant/callback/sandbox. Sem chamadas HTTP a terceiros.
+1. Catalog-ready: gravar merchant/callback/sandbox. HTTP a terceiros só quando
+   a escola configura API key (hoje: Resend via `sendSchoolResendEmail`; gateway
+   EMIS/Unitel já tem webhook). Sem key → fallback clipboard / deep-link.
 2. Sem tabela: `listSchoolIntegrations` devolve o catálogo `disconnected`.
 3. Pagamentos ligados a `siga-financeiro` (`createPaymentPlan`).
 4. Instalar: `installSchoolIntegration` pede consentimento e grava `grantedCapabilities`. Pacotes em `install.ts`. Funções aparecem via `InstalledModuleTools`.
 5. Rotas públicas não usam `listInstalledCapabilities`. `getPublicEnrollmentForm` devolve `installedProviders` + contactos filtrados (`publicSchoolPhone`, `publicSchoolEmail`). Helper: `publicInstalledProviderIds`.
-6. Superfícies recentes: dashboard e Definições → Financeiro usam `InstalledModuleTools`; alunos têm botão SIGE no cabeçalho; comunicações copiam texto Resend ao publicar canal E-mail; calendário tem WhatsApp/E-mail por período; turma pré-visualiza link WhatsApp; matrícula pública usa `publicSchoolPhone` / `publicSchoolEmail`; campanha e folha de matrícula copiam convites Resend; `PrintTemplateStudio`, `GradePautaSheet`, `AssessmentCenter` e workspace do professor têm WhatsApp/E-mail quando instalados.
-7. Testes: `tests/integrations/install.test.ts`, `launcher.test.ts`, `actions.test.ts`.
+6. Superfícies recentes: dashboard e Definições → Financeiro usam `InstalledModuleTools`; alunos têm botão SIGE no cabeçalho; comunicações enviam via Resend HTTP ao publicar canal E-mail (ou copiam se faltar key); calendário tem WhatsApp/E-mail por período; turma pré-visualiza link WhatsApp; matrícula pública usa `publicSchoolPhone` / `publicSchoolEmail`; campanha e folha de matrícula copiam convites Resend; `PrintTemplateStudio`, `GradePautaSheet`, `AssessmentCenter` e workspace do professor têm WhatsApp/E-mail quando instalados.
+7. Testes: `tests/integrations/install.test.ts`, `launcher.test.ts`, `actions.test.ts`, `resend-client.test.ts`.

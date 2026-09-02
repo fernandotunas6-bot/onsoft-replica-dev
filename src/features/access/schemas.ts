@@ -30,3 +30,21 @@ export const resetStaffPasswordInputSchema = z.object({
   newPassword: z.string().min(8),
 });
 export type ResetStaffPasswordInput = z.infer<typeof resetStaffPasswordInputSchema>;
+
+export const createSchoolInvitationInputSchema = z.object({
+  email: z.string().trim().email(),
+  roleCode: z.string().trim().min(2).max(50).default("teacher"),
+  fullName: z.string().trim().min(2).max(160).optional(),
+});
+export type CreateSchoolInvitationInput = z.infer<typeof createSchoolInvitationInputSchema>;
+
+export const revokeSchoolInvitationInputSchema = z.object({
+  invitationId: z.string().uuid(),
+});
+export type RevokeSchoolInvitationInput = z.infer<typeof revokeSchoolInvitationInputSchema>;
+
+export const acceptSchoolInvitationInputSchema = z.object({
+  token: z.string().trim().min(10).max(256),
+});
+export type AcceptSchoolInvitationInput = z.infer<typeof acceptSchoolInvitationInputSchema>;
+

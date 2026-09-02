@@ -1,0 +1,117 @@
+name: E2E @live (nocturno)
+
+on:
+  schedule:
+    # 03:00 UTC — provisionamento real contra Supabase de staging
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ecosystem-e2e-live
+  cancel-in-progress: true
+
+jobs:
+  live:
+    name: Ecossistema @live — comercial + matrícula
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar secrets Supabase
+        id: secrets
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SECRET_KEY" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Secrets em falta — skip @live nocturno."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.skip != 'true'
+        with:
+          node-version: "24"
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.secrets.outputs.skip != 'true'
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-python@v5
+        if: steps.secrets.outputs.skip != 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências (raiz + painéis)
+        if: steps.secrets.outputs.skip != 'true'
+        run: |
+          bun install --frozen-lockfile
+          npm ci --prefix painel/web
+          npm ci --prefix painel/admin
+          npm ci --prefix painel/docs
+          python -m pip install --requirement requirements-dev.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Configurar Supabase para E2E @live
+        if: steps.secrets.outputs.skip != 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: node scripts/siga/prepare-ci-env.mjs
+
+      - name: Arrancar ecossistema (4 apps)
+        if: steps.secrets.outputs.skip != 'true'
+        run: node scripts/siga/start-ecosystem-ci.mjs
+
+      - name: Aguardar portas do ecossistema
+        if: steps.secrets.outputs.skip != 'true'
+        run: node scripts/siga/wait-ecosystem.mjs
+        env:
+          SIGA_E2E_WAIT_ATTEMPTS: "120"
+
+      - name: Pipeline @live (smoke + Python + Playwright TS)
+        if: steps.secrets.outputs.skip != 'true'
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SIGA_E2E_LIVE: "1"
+          CI: "true"
+        run: node scripts/siga/e2e-ecosystem-live.mjs
+
+      - name: Publicar relatório Playwright (falhas @live)
+        if: failure() && steps.secrets.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-live-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+      - name: Parar ecossistema
+        if: always() && steps.secrets.outputs.skip != 'true'
+        run: node scripts/siga/stop-ecosystem-ci.mjs
+
+  notify:
+    name: Alerta de falha (Slack / e-mail, opcional)
+    needs: live
+    if: failure() && needs.live.result == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Notificar falha E2E @live
+        env:
+          SLACK_E2E_WEBHOOK_URL: ${{ secrets.SLACK_E2E_WEBHOOK_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          E2E_ALERT_EMAIL_TO: ${{ secrets.E2E_ALERT_EMAIL_TO }}
+          E2E_ALERT_EMAIL_FROM: ${{ secrets.E2E_ALERT_EMAIL_FROM }}
+          NOTIFY_TITLE: "E2E @live nocturno falhou"
+          NOTIFY_CONTEXT: "Provisionamento comercial + matrícula pública (@live)."
+        run: node scripts/siga/notify-ci-failure.mjs

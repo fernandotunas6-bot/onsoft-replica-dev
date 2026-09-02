@@ -66,6 +66,29 @@ export interface Tenant {
   created_at: string;
   updated_at: string;
   plans?: Plan;
+  tenant_usage?: TenantUsage | TenantUsage[];
+  /** Derivado de `tenant_usage` para listagens ADMIN. */
+  active_students_count?: number;
+  usage_last_calculated_at?: string;
+}
+
+export interface PlatformAdminRow {
+  user_id: string;
+  email: string | null;
+  created_at: string;
+}
+
+export interface SaasAuditLogRow {
+  id: string;
+  tenant_id: string | null;
+  user_id: string | null;
+  action: string;
+  entity: string;
+  entity_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  tenant_name?: string | null;
+  tenant_slug?: string | null;
 }
 
 export interface TenantDomain {
@@ -77,6 +100,8 @@ export interface TenantDomain {
   ssl_status: string;
   verified_at?: string;
   created_at: string;
+  tenant_name?: string | null;
+  tenant_slug?: string | null;
 }
 
 export interface TenantUsage {
@@ -87,6 +112,23 @@ export interface TenantUsage {
   storage_bytes_used: number;
   api_calls_count: number;
   last_calculated_at: string;
+}
+
+export interface SubscriptionRow {
+  id: string;
+  tenant_id: string;
+  plan_id: string;
+  status: SubscriptionLifecycle;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  created_at: string;
+  updated_at: string;
+  tenant_name?: string | null;
+  tenant_slug?: string | null;
+  plan_name?: string | null;
+  plan_code?: string | null;
+  price_aoa_monthly?: number | null;
 }
 
 export interface CreateSchoolWizardData {

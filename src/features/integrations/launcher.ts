@@ -1,33 +1,12 @@
 import { canAccessPath, type ModuleGrantMap } from "@/features/auth/access-policy";
+import { buildWorkspaceLauncherApps } from "@/features/auth/navigation-catalog";
+import type { Plan } from "@/features/saas/types";
+import type { LauncherApp, LauncherSectionId, LauncherTarget } from "./launcher-types";
 import { academicIntegrationCatalog } from "./catalog";
 
-export type LauncherSectionId =
-  | "workspace"
-  | "integrations"
-  | "payments"
-  | "communication"
-  | "academic"
-  | "calendar"
-  | "lessons"
-  | "state";
-
-export type LauncherTarget =
-  | { type: "route"; to: string; search?: Record<string, string> }
-  | { type: "settings"; panelId: string }
-  | { type: "ics" };
+export type { LauncherApp, LauncherSectionId, LauncherTarget } from "./launcher-types";
 
 export type IntegrationStatus = "disconnected" | "configured" | "connected" | "error";
-
-export type LauncherApp = {
-  id: string;
-  name: string;
-  shortName: string;
-  description: string;
-  section: LauncherSectionId;
-  mark: string;
-  target: LauncherTarget;
-  catalogId?: string;
-};
 
 const integrationTargets: Record<
   (typeof academicIntegrationCatalog)[number]["id"],
@@ -78,134 +57,7 @@ const catalogGroupToSection: Record<string, LauncherSectionId> = {
   Estado: "state",
 };
 
-export const launcherWorkspaceApps: LauncherApp[] = [
-  {
-    id: "siga-dashboard",
-    name: "Início",
-    shortName: "Início",
-    description: "Painel e atalhos do dia.",
-    section: "workspace",
-    mark: "siga-dashboard",
-    target: { type: "route", to: "/" },
-  },
-  {
-    id: "siga-alunos",
-    name: "Alunos",
-    shortName: "Alunos",
-    description: "Fichas, matrícula e estado.",
-    section: "workspace",
-    mark: "siga-alunos",
-    target: { type: "route", to: "/alunos" },
-  },
-  {
-    id: "siga-pedagogica",
-    name: "Pedagógica",
-    shortName: "Pedagógica",
-    description: "Turmas, notas e horários.",
-    section: "workspace",
-    mark: "siga-pedagogica",
-    target: { type: "route", to: "/pedagogica" },
-  },
-  {
-    id: "siga-calendario",
-    name: "Calendário",
-    shortName: "Calendário",
-    description: "Períodos lectivos e ICS.",
-    section: "workspace",
-    mark: "siga-calendario",
-    target: { type: "route", to: "/calendario" },
-  },
-  {
-    id: "siga-financeiro",
-    name: "Tesouraria",
-    shortName: "Tesouraria",
-    description: "Caixa, planos e pagamentos.",
-    section: "workspace",
-    mark: "siga-financeiro",
-    target: { type: "route", to: "/financeiro" },
-  },
-  {
-    id: "siga-faturas",
-    name: "Faturas",
-    shortName: "Faturas",
-    description: "Emissão e consulta de faturas.",
-    section: "workspace",
-    mark: "siga-faturas",
-    target: { type: "route", to: "/faturas" },
-  },
-  {
-    id: "siga-documentos",
-    name: "Documentos",
-    shortName: "Documentos",
-    description: "Declarações e emissão.",
-    section: "workspace",
-    mark: "siga-documentos",
-    target: { type: "route", to: "/documentos" },
-  },
-  {
-    id: "siga-arquivos",
-    name: "Arquivos",
-    shortName: "Arquivos",
-    description: "PDF, Word, Excel e fotos da escola.",
-    section: "workspace",
-    mark: "siga-arquivos",
-    target: { type: "route", to: "/arquivos" },
-  },
-  {
-    id: "siga-comunicacoes",
-    name: "Comunicados",
-    shortName: "Comunicados",
-    description: "Avisos à comunidade escolar.",
-    section: "workspace",
-    mark: "siga-comunicacoes",
-    target: { type: "route", to: "/comunicacoes" },
-  },
-  {
-    id: "siga-pessoas",
-    name: "Pessoas",
-    shortName: "Pessoas",
-    description: "Colaboradores e docentes.",
-    section: "workspace",
-    mark: "siga-pessoas",
-    target: { type: "route", to: "/pessoas" },
-  },
-  {
-    id: "siga-relatorios-academicos",
-    name: "Relatórios académicos",
-    shortName: "Rel. académicos",
-    description: "Pautas e indicadores de turma.",
-    section: "workspace",
-    mark: "siga-relatorios-academicos",
-    target: { type: "route", to: "/relatorios/academicos" },
-  },
-  {
-    id: "siga-relatorios-financeiros",
-    name: "Relatórios financeiros",
-    shortName: "Rel. financeiros",
-    description: "Cobrança, dívida e caixa.",
-    section: "workspace",
-    mark: "siga-relatorios-financeiros",
-    target: { type: "route", to: "/relatorios/financeiros" },
-  },
-  {
-    id: "siga-acessos",
-    name: "Acessos",
-    shortName: "Acessos",
-    description: "Contas, convites e permissões.",
-    section: "workspace",
-    mark: "siga-acessos",
-    target: { type: "route", to: "/acessos" },
-  },
-  {
-    id: "siga-matricula",
-    name: "Matrícula pública",
-    shortName: "Matrícula",
-    description: "Link e página de candidaturas.",
-    section: "workspace",
-    mark: "siga-matricula",
-    target: { type: "settings", panelId: "matricula" },
-  },
-];
+export const launcherWorkspaceApps: LauncherApp[] = buildWorkspaceLauncherApps();
 
 export const launcherIntegrationApps: LauncherApp[] = academicIntegrationCatalog.map((item) => ({
   id: item.id,
@@ -323,10 +175,24 @@ export function hrefForLauncherApp(app: LauncherApp) {
   return `${app.target.to}${query}`;
 }
 
-export function canOpenLauncherApp(app: LauncherApp, role: string, grants: ModuleGrantMap = {}) {
-  if (app.target.type === "settings") return canAccessPath("/configuracoes", role, grants);
-  if (app.target.type === "ics") return canAccessPath("/calendario", role, grants);
-  return canAccessPath(app.target.to, role, grants);
+export function canOpenLauncherApp(
+  app: LauncherApp,
+  role: string,
+  grants: ModuleGrantMap = {},
+  plan?: Plan | null,
+) {
+  if (app.target.type === "settings") return canAccessPath("/configuracoes", role, grants, plan);
+  if (app.target.type === "ics") return canAccessPath("/calendario", role, grants, plan);
+  return canAccessPath(app.target.to, role, grants, plan);
+}
+
+export function filterAccessibleApps(
+  apps: LauncherApp[],
+  role: string,
+  grants: ModuleGrantMap = {},
+  plan?: Plan | null,
+) {
+  return apps.filter((app) => canOpenLauncherApp(app, role, grants, plan));
 }
 
 export function integrationStatusLabel(status: string) {
@@ -349,14 +215,6 @@ export function appsForHubSection(sectionId: LauncherSectionId) {
     );
   }
   return launcherIntegrationApps.filter((app) => app.section === sectionId);
-}
-
-export function filterAccessibleApps(
-  apps: LauncherApp[],
-  role: string,
-  grants: ModuleGrantMap = {},
-) {
-  return apps.filter((app) => canOpenLauncherApp(app, role, grants));
 }
 
 export function sortIntegrationsByStatus(
@@ -386,8 +244,9 @@ export function searchLauncherApps(
   role: string,
   grants: ModuleGrantMap = {},
   statusByProvider: Map<string, string> = new Map(),
+  plan?: Plan | null,
 ) {
-  const matches = filterAccessibleApps(allLauncherApps(), role, grants).filter((app) =>
+  const matches = filterAccessibleApps(allLauncherApps(), role, grants, plan).filter((app) =>
     matchesLauncherQuery(app, query),
   );
   return sortIntegrationsByStatus(matches, statusByProvider);
@@ -419,11 +278,13 @@ export function compactLauncherSections(input?: {
   role?: string;
   grants?: ModuleGrantMap;
   statusByProvider?: Map<string, string>;
+  plan?: Plan | null;
 }) {
   const role = input?.role ?? "Administrador";
   const grants = input?.grants ?? {};
+  const plan = input?.plan;
   const statusByProvider = input?.statusByProvider ?? new Map<string, string>();
-  const accessible = (apps: LauncherApp[]) => filterAccessibleApps(apps, role, grants);
+  const accessible = (apps: LauncherApp[]) => filterAccessibleApps(apps, role, grants, plan);
 
   const pick = (ids: readonly string[]) =>
     sortIntegrationsByStatus(

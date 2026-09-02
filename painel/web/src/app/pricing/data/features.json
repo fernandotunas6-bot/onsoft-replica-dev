@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "Resposta rápida",
+    "description": "Interface pensada para toque e trabalho diário na secretaria, sem esperas.",
+    "icon": "Rocket"
+  },
+  {
+    "id": 2,
+    "name": "Dados isolados",
+    "description": "Uma base, N escolas. Cada instituição vê só os seus alunos e pagamentos.",
+    "icon": "Shield"
+  },
+  {
+    "id": 3,
+    "name": "Arranque em minutos",
+    "description": "Crie a escola no WEB e comece a operar no SIGA no mesmo dia.",
+    "icon": "Zap"
+  },
+  {
+    "id": 4,
+    "name": "Equipa da escola",
+    "description": "Cargos, permissões e 2FA para administradores, secretaria e professores.",
+    "icon": "Users"
+  },
+  {
+    "id": 5,
+    "name": "Suporte em português",
+    "description": "Manuais no DOC e contacto no portal comercial, no idioma da escola.",
+    "icon": "Headphones"
+  },
+  {
+    "id": 6,
+    "name": "Métricas SaaS",
+    "description": "O ADMIN mostra alunos, trials e estado das escolas clientes.",
+    "icon": "Clock"
+  }
+]

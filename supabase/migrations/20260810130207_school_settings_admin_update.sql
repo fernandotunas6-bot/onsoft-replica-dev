@@ -34,11 +34,11 @@ CREATE POLICY "Administrators can update their own school"
   FOR UPDATE
   TO authenticated
   USING (
-    id = (SELECT public.current_school_id())
+    id = public.is_school_member(school_id)
     AND (SELECT public.current_profile_role()) = 'Administrador'
   )
   WITH CHECK (
-    id = (SELECT public.current_school_id())
+    id = public.is_school_member(school_id)
     AND (SELECT public.current_profile_role()) = 'Administrador'
   );
 
@@ -58,7 +58,7 @@ BEGIN
   IF actor IS NULL THEN
     RETURN NEW;
   END IF;
-  IF NEW.id IS DISTINCT FROM (SELECT public.current_school_id()) THEN
+  IF NEW.id IS DISTINCT FROM public.is_school_member(school_id) THEN
     RAISE EXCEPTION 'cannot audit a school outside the current profile'
       USING ERRCODE = '42501';
   END IF;

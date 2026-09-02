@@ -4,6 +4,9 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { buildSchoolAlert, type SchoolAlert } from "./alerts";
 import { averagePercent } from "@/features/students/schemas";
+import { getPublicEnrollmentUrl } from "@/lib/ecosystem-urls";
+import { academicYearProgress, todayInLuanda, type AcademicYearPhase } from "@/features/calendar/dates";
+import { buildUpcomingCalendarItems } from "@/features/calendar/upcoming";
 
 function countMap(entries: Array<string | null | undefined>) {
   const map = new Map<string, number>();
@@ -14,14 +17,6 @@ function countMap(entries: Array<string | null | undefined>) {
   return [...map.entries()]
     .map(([label, total]) => ({ label, total }))
     .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, "pt"));
-}
-
-function yearProgressPercent(startsOn: string, endsOn: string) {
-  const start = new Date(`${startsOn}T00:00:00`).getTime();
-  const end = new Date(`${endsOn}T23:59:59`).getTime();
-  const now = Date.now();
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
-  return Math.max(0, Math.min(100, Math.round(((now - start) / (end - start)) * 100)));
 }
 
 function ageBand(birthDate: string | null | undefined) {
@@ -47,6 +42,7 @@ function emptyOverview(role = "Utilizador") {
       status: string;
     },
     yearProgress: 0,
+    yearPhase: "not_started" as AcademicYearPhase,
     capabilities: {
       students: false,
       finance: false,
@@ -99,6 +95,7 @@ function emptyOverview(role = "Utilizador") {
       title: string;
       description: string | null;
       event_date: string;
+      ends_on: string | null;
       category: string;
     }>,
     announcements: [] as Array<{
@@ -112,6 +109,11 @@ function emptyOverview(role = "Utilizador") {
     enrollmentStatus: [] as Array<{ estado: string; total: number }>,
     studentsByCourse: [] as Array<{ curso: string; alunos: number }>,
     topClasses: [] as Array<{ classe: string; curso: string; turma: string; alunos: number }>,
+    enrollmentPublicLink: null as null | {
+      slug: string;
+      url: string;
+      isOpen: boolean;
+    },
   };
 }
 
@@ -160,7 +162,13 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         status: yearRow.status,
       };
       overview.academicYear = academicYear;
-      overview.yearProgress = yearProgressPercent(yearRow.starts_on, yearRow.ends_on);
+      const progress = academicYearProgress(
+        yearRow.starts_on,
+        yearRow.ends_on,
+        todayInLuanda(),
+      );
+      overview.yearProgress = progress.percent;
+      overview.yearPhase = progress.phase;
     }
 
     if (capabilities.students) {
@@ -400,7 +408,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       let overdue = 0;
       let openCount = 0;
       const billedByMonth = new Map<string, number>();
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayInLuanda();
 
       for (const invoice of invoices ?? []) {
         if (invoice.status === "cancelled") continue;
@@ -445,21 +453,24 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       }
     }
 
-    const fromDate = new Date().toISOString().slice(0, 10);
+    const fromDate = todayInLuanda();
     const { data: terms } = await db
       .from("terms")
       .select("id, name, starts_on, ends_on, sequence")
       .eq("school_id", schoolId)
       .gte("ends_on", fromDate)
       .order("starts_on", { ascending: true })
-      .limit(5);
-    overview.upcomingEvents = (terms ?? []).map((term) => ({
-      id: String(term.id),
-      title: String(term.name),
-      description: `Período lectivo ${term.sequence ?? ""}`.trim(),
-      event_date: String(term.starts_on),
-      category: "academic",
-    }));
+      .limit(20);
+    overview.upcomingEvents = buildUpcomingCalendarItems(
+      (terms ?? []).map((term) => ({
+        id: String(term.id),
+        title: String(term.name),
+        description: `Período lectivo ${term.sequence ?? ""}`.trim(),
+        event_date: String(term.starts_on),
+        ends_on: term.ends_on ? String(term.ends_on) : null,
+      })),
+      fromDate,
+    );
 
     const { data: announcementRows, error: announcementError } = await db
       .from("announcements")
@@ -502,6 +513,22 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           },
         );
       }
+    }
+
+    const { data: enrollmentForm } = await db
+      .from("enrollment_forms")
+      .select("slug, is_open")
+      .eq("school_id", schoolId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (enrollmentForm?.slug) {
+      overview.enrollmentPublicLink = {
+        slug: enrollmentForm.slug,
+        url: getPublicEnrollmentUrl(enrollmentForm.slug),
+        isOpen: Boolean(enrollmentForm.is_open),
+      };
     }
 
     return overview;
@@ -587,7 +614,7 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
             (paidByInvoice.get(String(receipt.invoice_id)) ?? 0) + Number(receipt.amount ?? 0),
           );
         }
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayInLuanda();
         let overdueCount = 0;
         for (const invoice of invoices ?? []) {
           if (invoice.status === "cancelled") continue;

@@ -98,7 +98,7 @@ export function AccessCardsPanel() {
           },
         ]}
         values={filters}
-        onChange={setFilter}
+        onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
         onReset={resetFilters}
         activeCount={activeCount}
       />

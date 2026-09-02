@@ -1,7 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { Tenant, Plan } from "./types";
-import { getTenantSlugFromHostname, isAdminSubdomain } from "@/lib/saas/tenant-resolver";
-import { getTenantBySlug } from "@/features/saas/server";
+import {
+  isLocalDevHostname,
+  resolveTenantLookup,
+  isAdminSubdomain,
+} from "@/lib/saas/tenant-resolver";
+import { getTenantByHostname, getTenantBySlug } from "@/features/saas/server";
+import { getTenantAccessBlock, type TenantAccessBlockReason } from "@/features/saas/tenant-access";
+import { DOC_PATHS, getDocUrl, getPricingUrl } from "@/lib/ecosystem-urls";
 
 interface TenantContextType {
   activeTenant: Tenant | null;
@@ -25,6 +31,18 @@ const TenantContext = createContext<TenantContextType>({
   setDevSlug: () => {},
 });
 
+const DEV_SINGLE_SCHOOL_FALLBACK: Tenant = {
+  id: "ten-default-001",
+  name: "Colégio SIGA",
+  slug: "minha-escola",
+  status: "active",
+  subscription_status: "active",
+  max_students: 1000,
+  max_storage_gb: 20,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeSlug, setActiveSlug] = useState<string>("minha-escola");
   const [activeTenant, setActiveTenant] = useState<Tenant | null>(null);
@@ -35,36 +53,40 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const loadTenant = async () => {
     setIsLoadingTenant(true);
     const hostname = typeof window !== "undefined" ? window.location.hostname : "";
-    const slug = getTenantSlugFromHostname(hostname);
+    const lookup = resolveTenantLookup(hostname);
+    const slug = lookup.mode === "slug" ? lookup.slug : lookup.hostname.split(".")[0] || "minha-escola";
     setActiveSlug(slug);
 
     const isAdmin = isAdminSubdomain(hostname);
     setIsAdminArea(isAdmin);
 
     try {
-      const tenant = await getTenantBySlug({ data: { slug } });
+      const tenant =
+        lookup.mode === "hostname"
+          ? await getTenantByHostname({ data: { hostname: lookup.hostname } })
+          : await getTenantBySlug({ data: { slug: lookup.slug } });
 
       if (tenant) {
         setActiveTenant(tenant);
-        if (tenant.plans) {
-          setActivePlan(tenant.plans);
-        }
+        setActivePlan(tenant.plans ?? null);
+      } else if (
+        import.meta.env.DEV &&
+        isLocalDevHostname(hostname) &&
+        lookup.mode === "slug" &&
+        lookup.slug === "minha-escola"
+      ) {
+        // Modo escola única em localhost — só quando não há tenant SaaS na BD.
+        setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug: lookup.slug });
+        setActivePlan(null);
       } else {
-        // Fallback default tenant for single-school SIGA client
-        setActiveTenant({
-          id: "ten-default-001",
-          name: "Colégio SIGA",
-          slug: slug,
-          status: "active",
-          subscription_status: "active",
-          max_students: 1000,
-          max_storage_gb: 20,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+        setActiveTenant(null);
+        setActivePlan(null);
       }
     } catch (err) {
-      console.warn("[TenantProvider] Error loading tenant, using default single-school mode:", err);
+      console.warn("[TenantProvider] Error loading tenant:", err);
+      if (import.meta.env.DEV && isLocalDevHostname(hostname)) {
+        setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug });
+      }
     } finally {
       setIsLoadingTenant(false);
     }
@@ -81,7 +103,26 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const isSuspended = activeTenant?.status === "suspended" || activeTenant?.status === "past_due";
+  const access = getTenantAccessBlock(activeTenant);
+  const isSuspended = access.blocked;
+
+  const blockCopy: Record<TenantAccessBlockReason, { title: string; body: string }> = {
+    suspended: {
+      title: "Assinatura Suspensa",
+      body: "A assinatura encontra-se temporariamente suspensa por razões administrativas.",
+    },
+    trial_expired: {
+      title: "Período de Trial Expirado",
+      body: "O período experimental terminou. Escolha um plano para continuar a usar o SIGA Plus.",
+    },
+    cancelled: {
+      title: "Assinatura Cancelada",
+      body: "A subscrição desta instituição foi cancelada. Reactive no portal comercial.",
+    },
+  };
+
+  const blockReason = access.reason ?? "suspended";
+  const copy = blockCopy[blockReason];
 
   return (
     <TenantContext.Provider
@@ -109,15 +150,32 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold">Assinatura Suspensa</h1>
+            <h1 className="text-2xl font-bold">{copy.title}</h1>
             <p className="mt-2 text-sm text-slate-400">
-              A assinatura da instituição{" "}
-              <strong className="text-white">{activeTenant?.name}</strong> encontra-se
-              temporariamente suspensa por razões administrativas.
+              {copy.body} Instituição{" "}
+              <strong className="text-white">{activeTenant?.name}</strong>.
             </p>
             <p className="mt-4 text-xs text-slate-500">
-              Entre em contacto com o suporte do SIGA para regularizar o acesso da sua instituição.
+              Regularize a assinatura no portal comercial ou contacte o suporte da plataforma.
             </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href={getPricingUrl()}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+              >
+                Ver planos e renovar
+              </a>
+              <a
+                href={getDocUrl(DOC_PATHS.guideSupport)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+              >
+                Suporte institucional
+              </a>
+            </div>
           </div>
         </div>
       ) : (

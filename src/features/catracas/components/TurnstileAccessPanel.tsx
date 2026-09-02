@@ -66,6 +66,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  SchemaMissingBanner,
+  isSchemaMissingError,
+} from "@/components/ui/schema-missing-banner";
 
 type TurnstileDeviceRow = {
   id: string;
@@ -269,6 +273,13 @@ export function TurnstileAccessPanel() {
 
   return (
     <div className="space-y-6">
+      {isSchemaMissingError(devicesQuery.error) || isSchemaMissingError(logsQuery.error) ? (
+        <SchemaMissingBanner
+          title="Catracas: tabelas SGA em falta"
+          description="siga_access_cards, siga_turnstile_devices e siga_access_logs. Aplique APPLY_MISSING_FROM_VERIFY.sql."
+        />
+      ) : null}
+
       {/* PAINEL DE CONCILIAÇÃO: ENTRADAS NA PORTARIA VS. CHAMADA DA TURMA */}
       <CampusAttendanceReconciliationPanel />
 

@@ -109,6 +109,7 @@ export async function listLocalFiles(input: {
         relatedPersonId: row.relatedPersonId ?? null,
         relatedUserName: row.relatedUserName ?? null,
         relatedPersonName: row.relatedPersonName ?? null,
+        isSystem: Boolean(row.isSystem),
         updatedAt: row.updatedAt ?? null,
         updatedByUserId: row.updatedByUserId ?? null,
         lastAction: row.lastAction ?? "created",

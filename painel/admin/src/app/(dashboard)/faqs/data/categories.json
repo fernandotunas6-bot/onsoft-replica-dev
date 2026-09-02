@@ -1,0 +1,10 @@
+[
+  { "name": "Todas", "count": 16 },
+  { "name": "Geral", "count": 4 },
+  { "name": "Conta", "count": 3 },
+  { "name": "Facturação", "count": 3 },
+  { "name": "Técnico", "count": 2 },
+  { "name": "Privacidade", "count": 2 },
+  { "name": "Segurança", "count": 1 },
+  { "name": "Suporte", "count": 1 }
+]

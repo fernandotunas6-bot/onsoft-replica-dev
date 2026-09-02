@@ -9,6 +9,7 @@ import {
   Maximize2,
   Menu,
   Moon,
+  Palette,
   Search,
   Sun,
   Users,
@@ -40,8 +41,13 @@ import { IconChip } from "@/components/ui/icon-chip";
 import type { ChipTone } from "@/components/ui/icon-chip";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useAppearance } from "@/lib/appearance";
+import { cn } from "@/lib/utils";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canAccessPath } from "@/features/auth/access-policy";
+import { useTenant } from "@/features/saas/tenant-context";
+import { planIncludesPath, trialDaysRemaining } from "@/features/saas/plan-features";
+import { buildStudentCapacity } from "@/features/saas/tenant-limits";
+import { getPricingUrl } from "@/lib/ecosystem-urls";
 import { consumeSettingsOpen, OPEN_SETTINGS_EVENT } from "@/lib/settings-deep-link";
 import { scheduleIdleRouteWarmup } from "@/lib/idle-route-warmup";
 import { useInboxUnread } from "@/features/messages/use-inbox-unread";
@@ -70,6 +76,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const router = useRouter();
   const currentUser = useCurrentAccount();
+  const { activePlan, activeTenant } = useTenant();
+  const trialDaysLeft = trialDaysRemaining(activeTenant?.trial_ends_at);
+  const studentCapacity = buildStudentCapacity(
+    activeTenant?.active_students_count ?? 0,
+    activeTenant,
+    activePlan,
+  );
   const { unread, unreadCount } = useInboxUnread();
   const { alerts, alertCount } = useSchoolAlerts();
   const noticeCount = unreadCount + alertCount;
@@ -129,6 +142,14 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!activePlan || pathname === "/" || pathname.startsWith("/api/")) return;
+    if (!planIncludesPath(pathname, activePlan)) {
+      toast.error("Este módulo não está incluído no plano da sua escola.");
+      void router.navigate({ to: "/" });
+    }
+  }, [pathname, activePlan, router]);
 
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -204,13 +225,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           <AppSidebar
             collapsed={collapsed}
             className="h-full"
-            onOpenSettings={() => openSettings()}
+            onOpenSettings={(panelId) => openSettings(panelId)}
           />
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent side="left" className="w-[260px] border-none p-0">
-            <AppSidebar onOpenSettings={() => openSettings()} />
+            <AppSidebar onOpenSettings={(panelId) => openSettings(panelId)} />
           </SheetContent>
         </Sheet>
 
@@ -302,13 +323,17 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 <DropdownMenuContent align="end" className="w-40">
                   <DropdownMenuLabel>Tema de Apresentação</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => toggleDark()} className="gap-2">
+                  <DropdownMenuItem onClick={(e) => toggleDark(e)} className="gap-2 cursor-pointer">
                     {isDark ? (
                       <Sun className="size-4 text-warning" />
                     ) : (
                       <Moon className="size-4 text-primary" />
                     )}
                     {isDark ? "Modo Claro" : "Modo Escuro"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openSettings("sistema.cores")} className="gap-2 cursor-pointer">
+                    <Palette className="size-4 text-primary" />
+                    Personalizar Aparência…
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -464,6 +489,45 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             tabIndex={-1}
             className="mx-auto w-full max-w-[1400px] flex-1 px-3.5 py-4 md:px-5 md:py-5 lg:px-6 lg:py-5 [content-visibility:auto]"
           >
+            {studentCapacity.nearLimit || studentCapacity.atLimit ? (
+              <div
+                className={cn(
+                  "mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-2.5 text-sm",
+                  studentCapacity.atLimit
+                    ? "border-destructive/40 bg-destructive/10 text-destructive"
+                    : "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100",
+                )}
+              >
+                <span>
+                  {studentCapacity.atLimit
+                    ? `Limite de alunos atingido (${studentCapacity.activeStudents}/${studentCapacity.maxStudents}).`
+                    : `Quase no limite de alunos — ${studentCapacity.activeStudents}/${studentCapacity.maxStudents} (${studentCapacity.remaining} restantes).`}
+                </span>
+                <a
+                  href={getPricingUrl()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold underline-offset-2 hover:underline"
+                >
+                  Actualizar plano
+                </a>
+              </div>
+            ) : null}
+            {activeTenant?.status === "trial" && trialDaysLeft !== null ? (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-950 dark:text-amber-100">
+                <span>
+                  Período experimental — <strong>{trialDaysLeft}</strong> dia(s) restantes.
+                </span>
+                <a
+                  href={getPricingUrl()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-primary underline-offset-2 hover:underline"
+                >
+                  Ver planos
+                </a>
+              </div>
+            ) : null}
             {children}
           </main>
 

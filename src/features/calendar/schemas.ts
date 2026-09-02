@@ -26,8 +26,10 @@ export const createCalendarEventInputSchema = z.object({
 export type CreateCalendarEventInput = z.infer<typeof createCalendarEventInputSchema>;
 
 export const listCalendarEventsInputSchema = z.object({
-  limit: z.number().int().min(1).max(50).default(12),
+  limit: z.number().int().min(1).max(80).default(50),
   fromDate: optionalText,
+  academicYearId: z.string().uuid().optional(),
+  includePast: z.boolean().optional(),
 });
 export type ListCalendarEventsInput = z.infer<typeof listCalendarEventsInputSchema>;
 

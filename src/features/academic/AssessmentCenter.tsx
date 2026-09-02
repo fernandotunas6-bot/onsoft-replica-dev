@@ -10,20 +10,28 @@ import {
   Pencil,
   Printer,
   Save,
-  Trash2,
   Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
-import { QuickModal, FormModal } from "@/components/ui/modal-system";
+import { QuickModal } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
-import { AngolaEmblem } from "@/features/academic/AngolaEmblem";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
+import {
+  ClassCourseTable,
+  StudentDossierTable,
+} from "@/features/academic/AssessmentViewTables";
+import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
+import {
+  AssessmentStat,
+  OfficialPautaView,
+  type PautaExportRow,
+} from "@/features/academic/OfficialPautaView";
 import {
   buildClassCourseMap,
   buildStudentDossier,
@@ -34,9 +42,6 @@ import {
   selectIdRange,
 } from "@/features/academic/assessment-views";
 import {
-  createAssessment,
-  updateAssessmentItem,
-  deleteAssessmentItem,
   listAssessments,
   upsertAssessmentScores,
   upsertTermGradesBatch,
@@ -57,8 +62,6 @@ import {
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import {
   annualAverage,
-  assessmentComponents,
-  assessmentKinds,
   formatScore,
   getPeriodsForCycle,
   getPeriodNoun,
@@ -89,17 +92,6 @@ type TermGradeRow = {
   mac: number;
   npp: number;
   npt: number;
-};
-
-type PautaExportRow = {
-  n: string;
-  aluno: string;
-  proc: string;
-  mac: string;
-  npp: string;
-  npt: string;
-  media: string;
-  situacao: string;
 };
 
 type StudentListExportRow = Pick<PautaExportRow, "n" | "aluno" | "proc">;
@@ -328,10 +320,10 @@ export function AssessmentCenter({
           row.subject_id === selectedSubject?.id &&
           row.term === term,
       );
-      const row: Record<string, string> = {
-        mac: grade ? String(grade.mac) : "",
-        npp: grade ? String(grade.npp) : "",
-        npt: grade ? String(grade.npt) : "",
+      const row: AssessmentCenterFormValues[string] = {
+        mac: grade?.mac != null ? String(grade.mac) : "",
+        npp: grade?.npp != null ? String(grade.npp) : "",
+        npt: grade?.npt != null ? String(grade.npt) : "",
       };
       for (const item of items) {
         const score = scores.find(
@@ -391,9 +383,9 @@ export function AssessmentCenter({
           row.subject_id === selectedSubject?.id &&
           row.term === term,
       );
-      map.set(cellKey(student.id, "mac"), grade ? String(grade.mac) : "");
-      map.set(cellKey(student.id, "npp"), grade ? String(grade.npp) : "");
-      map.set(cellKey(student.id, "npt"), grade ? String(grade.npt) : "");
+      map.set(cellKey(student.id, "mac"), grade?.mac != null ? String(grade.mac) : "");
+      map.set(cellKey(student.id, "npp"), grade?.npp != null ? String(grade.npp) : "");
+      map.set(cellKey(student.id, "npt"), grade?.npt != null ? String(grade.npt) : "");
       for (const item of items) {
         const score = scores.find(
           (entry) =>
@@ -995,9 +987,9 @@ export function AssessmentCenter({
       for (const { id, grade } of previous) {
         next[id] = {
           ...(next[id] ?? {}),
-          mac: String(grade.mac),
-          npp: String(grade.npp),
-          npt: String(grade.npt),
+          mac: grade.mac != null ? String(grade.mac) : "",
+          npp: grade.npp != null ? String(grade.npp) : "",
+          npt: grade.npt != null ? String(grade.npt) : "",
         };
       }
       return next;
@@ -1459,10 +1451,10 @@ export function AssessmentCenter({
             />
           ) : mode === "estatisticas" ? (
             <div className="grid gap-3 sm:grid-cols-4">
-              <Stat label="Alunos" value={String(visibleRows.length)} />
-              <Stat label="Pendentes" value={String(pendingCount)} />
-              <Stat label="Média da turma" value={formatScore(classAverage)} />
-              <Stat
+              <AssessmentStat label="Alunos" value={String(visibleRows.length)} />
+              <AssessmentStat label="Pendentes" value={String(pendingCount)} />
+              <AssessmentStat label="Média da turma" value={formatScore(classAverage)} />
+              <AssessmentStat
                 label="Transitam"
                 value={String(
                   visibleRows.filter((row) => row.situacao.label === "Transita").length,
@@ -1474,7 +1466,7 @@ export function AssessmentCenter({
               {!assessmentsAvailable ? (
                 <p className="text-sm text-muted-foreground">
                   Aplique <code>APPLY_ENROLLMENT_AND_PREMIUM.sql</code> para criar avaliações
-                  detalhadas.
+                  detalhadas. <SqlChecklistLink />
                 </p>
               ) : items.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -1787,415 +1779,5 @@ export function AssessmentCenter({
         />
       </DialogContent>
     </Dialog>
-  );
-}
-
-function ClassCourseTable({
-  rows,
-  onOpen,
-}: {
-  rows: ReturnType<typeof buildClassCourseMap>;
-  onOpen: (groupId: string) => void;
-}) {
-  return (
-    <div className="overflow-auto rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/70">
-          <tr>
-            <th className="px-3 py-2 text-left">Classe</th>
-            <th className="px-3 py-2 text-left">Curso</th>
-            <th className="px-3 py-2 text-left">Turma</th>
-            <th className="px-3 py-2 text-right">Alunos</th>
-            <th className="px-3 py-2 text-right">Média</th>
-            <th className="px-3 py-2 text-right">Transitam</th>
-            <th className="px-3 py-2 text-right">Pendentes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
-              key={row.id}
-              className="cursor-pointer border-t hover:bg-muted/40"
-              onClick={() => onOpen(row.id)}
-            >
-              <td className="px-3 py-2">{row.gradeName}</td>
-              <td className="px-3 py-2">{row.courseName}</td>
-              <td className="px-3 py-2 font-semibold">{row.name}</td>
-              <td className="px-3 py-2 text-right">{row.alunos}</td>
-              <td className="px-3 py-2 text-right">{formatScore(row.media)}</td>
-              <td className="px-3 py-2 text-right">{row.transitam}</td>
-              <td className="px-3 py-2 text-right">{row.pendentes}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function StudentDossierTable({
-  studentName,
-  rows,
-  onBack,
-  onOpenSubject,
-}: {
-  studentName: string;
-  rows: ReturnType<typeof buildStudentDossier>;
-  onBack: () => void;
-  onOpenSubject: (subjectId: string) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">{studentName} · todas as disciplinas e trimestres</p>
-        <Button size="sm" variant="outline" onClick={onBack}>
-          Voltar à grelha
-        </Button>
-      </div>
-      <div className="overflow-auto rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/70">
-            <tr>
-              <th className="px-3 py-2 text-left">Disciplina</th>
-              <th className="px-3 py-2 text-right">1º T</th>
-              <th className="px-3 py-2 text-right">2º T</th>
-              <th className="px-3 py-2 text-right">3º T</th>
-              <th className="px-3 py-2 text-right">MFA</th>
-              <th className="px-3 py-2 text-right">Situação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr
-                key={row.subjectId}
-                className="cursor-pointer border-t hover:bg-muted/40"
-                onClick={() => onOpenSubject(row.subjectId)}
-              >
-                <td className="px-3 py-2 font-semibold">{row.subjectName}</td>
-                {row.terms.map((value, index) => (
-                  <td key={index} className="px-3 py-2 text-right">
-                    {formatScore(value)}
-                  </td>
-                ))}
-                <td className="px-3 py-2 text-right font-bold">{formatScore(row.mfa)}</td>
-                <td className="px-3 py-2 text-right">{row.situacao.label}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border bg-card p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 font-display text-2xl font-extrabold">{value}</p>
-    </div>
-  );
-}
-
-function OfficialPautaView({
-  schoolName,
-  academicYear,
-  meta,
-  rows,
-}: {
-  schoolName: string;
-  academicYear: string;
-  meta: {
-    gradeName?: string;
-    courseName?: string;
-    className?: string;
-    subjectName?: string;
-    termLabel?: string;
-    validationCode?: string;
-  };
-  rows: PautaExportRow[];
-}) {
-  return (
-    <div
-      id="siga-pauta-oficial"
-      className="siga-official-paper mx-auto max-w-4xl px-8 py-10 shadow-soft print:shadow-none"
-    >
-      <div className="text-center">
-        <AngolaEmblem className="mx-auto size-20" />
-        <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em]">República de Angola</p>
-        <p className="text-xs uppercase tracking-[0.16em]">Ministério da Educação</p>
-        <h2 className="mt-3 font-display text-2xl font-extrabold">{schoolName}</h2>
-        <p className="mt-1 text-sm font-semibold uppercase tracking-wide">
-          Pauta de avaliação contínua
-        </p>
-      </div>
-      <div className="mt-6 grid grid-cols-2 gap-2 text-sm">
-        <p>Ano Lectivo: {academicYear}</p>
-        <p>Classe: {meta.gradeName ?? "—"}</p>
-        <p>Curso: {meta.courseName ?? "—"}</p>
-        <p>Turma: {meta.className ?? "—"}</p>
-        <p>Disciplina: {meta.subjectName ?? "—"}</p>
-        <p>Período: {meta.termLabel ?? "—"}</p>
-      </div>
-      <table className="mt-6 w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            {["Nº", "Nome do Aluno", "Proc.", "MAC", "NPP", "NPT", "Média", "Situação"].map(
-              (label) => (
-                <th key={label} className="siga-official-grid border px-2 py-1 text-left">
-                  {label}
-                </th>
-              ),
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.n}>
-              <td className="siga-official-grid border px-2 py-1">{row.n}</td>
-              <td className="siga-official-grid border px-2 py-1">{row.aluno}</td>
-              <td className="siga-official-grid border px-2 py-1">{row.proc}</td>
-              <td className="siga-official-grid border px-2 py-1 text-right">{row.mac}</td>
-              <td className="siga-official-grid border px-2 py-1 text-right">{row.npp}</td>
-              <td className="siga-official-grid border px-2 py-1 text-right">{row.npt}</td>
-              <td className="siga-official-grid border px-2 py-1 text-right">{row.media}</td>
-              <td className="siga-official-grid border px-2 py-1">{row.situacao}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {meta.validationCode ? (
-        <p className="mt-4 text-right text-[11px] font-mono">Validar: {meta.validationCode}</p>
-      ) : null}
-      <div className="mt-10 grid grid-cols-3 gap-6 text-center text-sm">
-        <p>O Professor: __________________</p>
-        <p>O Coordenador: ________________</p>
-        <p>A Direcção: ___________________</p>
-      </div>
-    </div>
-  );
-}
-
-function CreateAssessmentDialog({
-  open,
-  onOpenChange,
-  classGroupId,
-  subjectId,
-  term,
-  onCreated,
-  editingItem,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  classGroupId?: string | undefined;
-  subjectId?: string | undefined;
-  term: 1 | 2 | 3;
-  onCreated: () => void;
-  editingItem?: any | null;
-}) {
-  const [name, setName] = useState("");
-  const [kind, setKind] = useState("teste");
-  const [component, setComponent] = useState("NPP");
-  const [date, setDate] = useState("");
-  const [maxScore, setMaxScore] = useState("20");
-  const [description, setDescription] = useState("");
-  const [counts, setCounts] = useState(true);
-  const [recovery, setRecovery] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    if (editingItem) {
-      setName(editingItem.name ?? "");
-      setKind(editingItem.kind ?? "teste");
-      setComponent(editingItem.component ?? "NPP");
-      setDate(editingItem.assessed_on ?? "");
-      setMaxScore(String(editingItem.max_score ?? "20"));
-      setDescription(editingItem.description ?? "");
-      setCounts(editingItem.counts_toward_pauta ?? true);
-      setRecovery(editingItem.allow_recovery ?? true);
-    } else {
-      setName("");
-      setKind("teste");
-      setComponent("NPP");
-      setDate("");
-      setMaxScore("20");
-      setDescription("");
-      setCounts(true);
-      setRecovery(true);
-    }
-  }, [editingItem, open]);
-
-  const submit = async () => {
-    if (!classGroupId || !subjectId) {
-      toast.error("Seleccione turma e disciplina.");
-      return;
-    }
-    setSaving(true);
-    try {
-      if (editingItem) {
-        await updateAssessmentItem({
-          data: {
-            id: editingItem.id,
-            name,
-            kind: kind as (typeof assessmentKinds)[number]["id"],
-            component: component as (typeof assessmentComponents)[number]["id"],
-            assessedOn: date || undefined,
-            maxScore: Number(maxScore) || 20,
-            description: description || undefined,
-            countsTowardPauta: counts,
-            allowRecovery: recovery,
-          },
-        });
-        toast.success("Avaliação actualizada.");
-      } else {
-        await createAssessment({
-          data: {
-            classGroupId,
-            subjectId,
-            term,
-            name,
-            kind: kind as (typeof assessmentKinds)[number]["id"],
-            component: component as (typeof assessmentComponents)[number]["id"],
-            assessedOn: date || undefined,
-            maxScore: Number(maxScore) || 20,
-            description: description || undefined,
-            countsTowardPauta: counts,
-            allowRecovery: recovery,
-          },
-        });
-        toast.success("Avaliação criada.");
-      }
-      setName("");
-      onOpenChange(false);
-      onCreated();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!editingItem?.id) return;
-    if (!confirm(`Tem a certeza que pretende eliminar a avaliação "${editingItem.name}"?`)) {
-      return;
-    }
-    setDeleting(true);
-    try {
-      try {
-        await deleteAssessmentItem({ data: { itemId: editingItem.id, force: false } });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "";
-        if (!message.includes("nota(s) lançada(s)")) throw error;
-        if (!confirm(`${message} Eliminar mesmo assim?`)) {
-          setDeleting(false);
-          return;
-        }
-        await deleteAssessmentItem({ data: { itemId: editingItem.id, force: true } });
-      }
-      toast.success("Avaliação eliminada.");
-      onOpenChange(false);
-      onCreated();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível eliminar.");
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  return (
-    <FormModal
-      open={open}
-      onOpenChange={onOpenChange}
-      title={editingItem ? "Editar avaliação" : "Criar avaliação"}
-      subtitle="A pauta calcula MAC, NPP e NPT a partir destas avaliações."
-      submitLabel={editingItem ? "Guardar alterações" : "Criar avaliação"}
-      isSubmitting={saving}
-      disabled={deleting || name.trim().length < 2}
-      onSubmit={submit}
-      extraActions={
-        editingItem ? (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => void handleDelete()}
-            disabled={deleting || saving}
-            className="gap-1.5"
-          >
-            <Trash2 className="size-3.5" />
-            {deleting ? "A eliminar…" : "Eliminar"}
-          </Button>
-        ) : undefined
-      }
-    >
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <Label htmlFor="av-name">Nome</Label>
-          <Input id="av-name" value={name} onChange={(event) => setName(event.target.value)} />
-        </div>
-        <div>
-          <Label>Tipo</Label>
-          <select
-            aria-label="Tipo de avaliação"
-            className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
-            value={kind}
-            onChange={(event) => setKind(event.target.value)}
-          >
-            {assessmentKinds.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label>Componente</Label>
-          <select
-            aria-label="Componente de avaliação"
-            className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
-            value={component}
-            onChange={(event) => setComponent(event.target.value)}
-          >
-            {assessmentComponents.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label htmlFor="av-date">Data</Label>
-          <Input
-            id="av-date"
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="av-max">Cotação</Label>
-          <Input
-            id="av-max"
-            value={maxScore}
-            onChange={(event) => setMaxScore(event.target.value)}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="av-desc">Descrição</Label>
-          <Input
-            id="av-desc"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </div>
-        <label className="flex items-center gap-2 text-sm">
-          <Switch checked={counts} onCheckedChange={setCounts} /> Conta para a pauta
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <Switch checked={recovery} onCheckedChange={setRecovery} /> Permitir recuperação
-        </label>
-      </div>
-    </FormModal>
   );
 }

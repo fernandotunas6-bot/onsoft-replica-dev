@@ -1,0 +1,98 @@
+[
+  {
+    "id": 1,
+    "question": "O que é o SIGA Plus?",
+    "answer": "O SIGA Plus é a plataforma de gestão escolar para instituições em Angola: matrículas, pautas, tesouraria, Multicaixa Express e comunicação, com quatro aplicações (WEB, ADMIN, SIGA e DOC).",
+    "category": "Geral"
+  },
+  {
+    "id": 2,
+    "question": "Como começo?",
+    "answer": "Crie a escola no portal comercial (WEB), escolha um plano e entre no SIGA para operar o dia-a-dia. A documentação oficial está no DOC.",
+    "category": "Geral"
+  },
+  {
+    "id": 3,
+    "question": "Há período de experiência?",
+    "answer": "Sim. Pode criar a escola e explorar o essencial sem cartão. Os limites do trial estão descritos na página de planos.",
+    "category": "Geral"
+  },
+  {
+    "id": 4,
+    "question": "Que browsers são suportados?",
+    "answer": "Chrome, Firefox, Safari e Edge nas versões actuais. Recomendamos a última versão do browser que usa.",
+    "category": "Geral"
+  },
+  {
+    "id": 5,
+    "question": "Como recupero a senha?",
+    "answer": "Na página de entrada, use Esqueceu a senha?, introduza o e-mail e siga o link que enviamos.",
+    "category": "Conta"
+  },
+  {
+    "id": 6,
+    "question": "Posso alterar o e-mail da conta?",
+    "answer": "Sim, nas definições do utilizador. O novo endereço precisa de ser confirmado antes de passar a ser o principal.",
+    "category": "Conta"
+  },
+  {
+    "id": 7,
+    "question": "Como elimino a conta?",
+    "answer": "Nas definições da conta, escolha Eliminar conta. Esta acção é irreversível e remove os dados da escola neste produto.",
+    "category": "Conta"
+  },
+  {
+    "id": 8,
+    "question": "Que métodos de pagamento aceitam?",
+    "answer": "A facturação SaaS do plano é gerida no Centro de controlo. Na escola, as propinas podem usar Multicaixa Express e Unitel Money, conforme o plano.",
+    "category": "Facturação"
+  },
+  {
+    "id": 9,
+    "question": "Como mudo de plano?",
+    "answer": "No portal de preços ou no Centro de controlo SaaS. A alteração aplica-se ao ciclo seguinte, salvo indicação em contrário.",
+    "category": "Facturação"
+  },
+  {
+    "id": 10,
+    "question": "Como funciona a facturação?",
+    "answer": "O plano da escola é mensal ou anual. Recibos e histórico ficam em Planos e facturação. Propinas dos alunos são tesouraria escolar, no SIGA.",
+    "category": "Facturação"
+  },
+  {
+    "id": 11,
+    "question": "Há API?",
+    "answer": "Sim. A documentação da API está no DOC. Integrações catalogadas (Multicaixa, Unitel Money, Classroom, Moodle, WhatsApp) configuram-se na escola.",
+    "category": "Técnico"
+  },
+  {
+    "id": 12,
+    "question": "Há manutenção programada?",
+    "answer": "Manutenções são anunciadas com antecedência. Fora desses intervalos o serviço deve permanecer disponível.",
+    "category": "Técnico"
+  },
+  {
+    "id": 13,
+    "question": "Como tratam os dados pessoais?",
+    "answer": "Os dados da escola ficam isolados por tenant. Não partilhamos informação de alunos com terceiros sem base legal ou consentimento.",
+    "category": "Privacidade"
+  },
+  {
+    "id": 14,
+    "question": "Os dados estão encriptados?",
+    "answer": "O tráfego usa HTTPS. Palavras-passe e segredos seguem as práticas do Supabase Auth; ficheiros sensíveis usam armazenamento controlado.",
+    "category": "Privacidade"
+  },
+  {
+    "id": 15,
+    "question": "Há autenticação de dois factores?",
+    "answer": "Sim. O SIGA suporta TOTP 2FA na entrada da conta da escola.",
+    "category": "Segurança"
+  },
+  {
+    "id": 16,
+    "question": "Como peço ajuda?",
+    "answer": "Consulte o DOC, a página de contacto do WEB, ou o suporte institucional indicado no contrato da escola.",
+    "category": "Suporte"
+  }
+]

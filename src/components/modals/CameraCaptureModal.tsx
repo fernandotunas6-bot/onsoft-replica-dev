@@ -13,9 +13,15 @@ interface CameraCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCapture: (file: File) => void;
+  title?: string;
 }
 
-export function CameraCaptureModal({ open, onOpenChange, onCapture }: CameraCaptureModalProps) {
+export function CameraCaptureModal({
+  open,
+  onOpenChange,
+  onCapture,
+  title = "Tirar Foto com a Câmera",
+}: CameraCaptureModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
@@ -128,7 +134,7 @@ export function CameraCaptureModal({ open, onOpenChange, onCapture }: CameraCapt
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="size-5 text-primary" />
-            Tirar Foto com a Câmera
+            {title}
           </DialogTitle>
           <DialogDescription>
             Posicione o rosto no centro e clique no botão para capturar a foto de perfil.

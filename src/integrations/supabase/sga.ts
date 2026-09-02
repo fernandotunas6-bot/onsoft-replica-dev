@@ -56,66 +56,164 @@ export type SgaMembershipContext = {
   appRole: ApplicationRole;
   allAppRoles: ApplicationRole[];
   roleName: string;
+  schoolName?: string;
+  schoolSlug?: string | null;
 };
+
+export type UserSchoolMembershipItem = {
+  membershipId: string;
+  schoolId: string;
+  schoolName: string;
+  schoolSlug: string | null;
+  status: string;
+  roleCode: string;
+  roleName: string;
+  appRole: ApplicationRole;
+  allAppRoles: ApplicationRole[];
+  isActive: boolean;
+};
+
+export async function listUserSchoolMemberships(
+  client: SupabaseClient,
+  userId: string,
+): Promise<UserSchoolMembershipItem[]> {
+  const db = sgaClient(client);
+  const { data: memberships, error } = await db
+    .from("school_memberships")
+    .select("id, school_id, status, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("[listUserSchoolMemberships] error querying memberships:", error);
+    return [];
+  }
+  if (!memberships || memberships.length === 0) return [];
+
+  const schoolIds = [...new Set(memberships.map((m: { school_id: string }) => m.school_id))];
+  const membershipIds = memberships.map((m: { id: string }) => m.id);
+
+  // Fetch school details
+  let schoolsMap = new Map<string, { name: string; slug: string | null }>();
+  if (schoolIds.length) {
+    try {
+      const { data: schoolsData } = await db
+        .from("schools")
+        .select("id, name, slug")
+        .in("id", schoolIds);
+      if (schoolsData) {
+        schoolsMap = new Map(schoolsData.map((s: { id: string; name: string; slug?: string | null }) => [s.id, { name: s.name, slug: s.slug ?? null }]));
+      }
+    } catch {
+      /* ignore if schools table query has issues */
+    }
+  }
+
+  // Fetch member roles
+  let memberRolesMap = new Map<string, string[]>();
+  let allRoleIds: string[] = [];
+  if (membershipIds.length) {
+    try {
+      const { data: mrData } = await db
+        .from("member_roles")
+        .select("membership_id, role_id")
+        .in("membership_id", membershipIds);
+      if (mrData) {
+        for (const mr of mrData) {
+          const list = memberRolesMap.get(mr.membership_id) ?? [];
+          list.push(mr.role_id);
+          memberRolesMap.set(mr.membership_id, list);
+          allRoleIds.push(mr.role_id);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Fetch roles definitions
+  let rolesMap = new Map<string, { code: string; name: string }>();
+  if (allRoleIds.length) {
+    try {
+      const { data: rolesData } = await db
+        .from("roles")
+        .select("id, code, name")
+        .in("id", [...new Set(allRoleIds)]);
+      if (rolesData) {
+        rolesMap = new Map(rolesData.map((r: { id: string; code: string; name: string }) => [r.id, r]));
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return memberships.map((m: { id: string; school_id: string; status: string }) => {
+    const schoolInfo = schoolsMap.get(m.school_id);
+    const roleIds = memberRolesMap.get(m.id) ?? [];
+    const roles = roleIds.map((rid) => rolesMap.get(rid)).filter(Boolean) as Array<{ code: string; name: string }>;
+
+    let roleCode = "member";
+    let roleName = "Utilizador";
+    const allAppRoles: ApplicationRole[] = [];
+
+    if (roles.length > 0) {
+      const preferred =
+        roles.find((r) => ["owner", "admin", "administrador"].includes(r.code)) ?? roles[0];
+      if (preferred) {
+        roleCode = preferred.code;
+        roleName = preferred.name;
+      }
+      for (const r of roles) {
+        const appR = mapSgaRoleCode(r.code);
+        if (!allAppRoles.includes(appR)) allAppRoles.push(appR);
+      }
+    }
+
+    const primaryAppRole = mapSgaRoleCode(roleCode);
+    if (!allAppRoles.includes(primaryAppRole)) {
+      allAppRoles.push(primaryAppRole);
+    }
+
+    return {
+      membershipId: m.id,
+      schoolId: m.school_id,
+      schoolName: schoolInfo?.name ?? "Instituição Escolar",
+      schoolSlug: schoolInfo?.slug ?? null,
+      status: m.status,
+      roleCode,
+      roleName,
+      appRole: primaryAppRole,
+      allAppRoles,
+      isActive: m.status === "active",
+    };
+  });
+}
 
 export async function resolveSgaMembership(
   client: SupabaseClient,
   userId: string,
+  preferredSchoolId?: string | null,
 ): Promise<SgaMembershipContext | null> {
-  const db = sgaClient(client);
-  const { data: membership, error } = await db
-    .from("school_memberships")
-    .select("id, school_id, status")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  if (!membership) return null;
+  const allMemberships = await listUserSchoolMemberships(client, userId);
+  if (!allMemberships || allMemberships.length === 0) return null;
 
-  const { data: memberRoles, error: mrError } = await db
-    .from("member_roles")
-    .select("role_id")
-    .eq("membership_id", membership.id);
-  if (mrError) throw mrError;
+  const activeMemberships = allMemberships.filter((m) => m.isActive);
+  if (activeMemberships.length === 0) return null;
 
-  const roleIds = (memberRoles ?? []).map((row: { role_id: string }) => row.role_id);
-  let roleCode = "member";
-  let roleName = "Utilizador";
-  const allAppRoles: ApplicationRole[] = [];
+  const selected =
+    (preferredSchoolId ? activeMemberships.find((m) => m.schoolId === preferredSchoolId) : null) ??
+    activeMemberships[0];
 
-  if (roleIds.length) {
-    const { data: roles, error: rolesError } = await db
-      .from("roles")
-      .select("id, code, name")
-      .in("id", roleIds);
-    if (rolesError) throw rolesError;
-    const preferred =
-      (roles ?? []).find((role: { code: string }) =>
-        ["owner", "admin", "administrador"].includes(role.code),
-      ) ?? (roles ?? [])[0];
-    if (preferred) {
-      roleCode = preferred.code;
-      roleName = preferred.name;
-    }
-    for (const roleItem of roles ?? []) {
-      const appR = mapSgaRoleCode(roleItem.code);
-      if (!allAppRoles.includes(appR)) allAppRoles.push(appR);
-    }
-  }
-
-  const primaryRole = mapSgaRoleCode(roleCode);
-  if (!allAppRoles.includes(primaryRole)) {
-    allAppRoles.push(primaryRole);
-  }
+  if (!selected) return null;
 
   return {
-    schoolId: membership.school_id,
-    membershipId: membership.id,
-    roleCode,
-    roleName,
-    appRole: primaryRole,
-    allAppRoles,
+    schoolId: selected.schoolId,
+    membershipId: selected.membershipId,
+    roleCode: selected.roleCode,
+    roleName: selected.roleName,
+    appRole: selected.appRole,
+    allAppRoles: selected.allAppRoles,
+    schoolName: selected.schoolName,
+    schoolSlug: selected.schoolSlug,
   };
 }

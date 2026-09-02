@@ -74,6 +74,16 @@ export const cancelPaymentPlanInputSchema = z.object({
 });
 export type CancelPaymentPlanInput = z.infer<typeof cancelPaymentPlanInputSchema>;
 
+export const feeItemKindSchema = z.enum(["tuition", "enrollment"]);
+
+export const upsertFeePlanSettingsInputSchema = z.object({
+  planName: z.string().trim().min(2).max(120).default("Plano padrão"),
+  tuitionAmount: z.number().positive().max(999_999_999_999.99),
+  enrollmentAmount: z.number().positive().max(999_999_999_999.99),
+});
+
+export type UpsertFeePlanSettingsInput = z.infer<typeof upsertFeePlanSettingsInputSchema>;
+
 export const createPaymentPlanInputSchema = z.object({
   invoiceId: z.string().uuid().optional(),
   studentId: z.string().uuid().optional(),

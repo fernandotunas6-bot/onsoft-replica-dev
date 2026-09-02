@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createCalendarEventInputSchema,
   deleteCalendarEventInputSchema,
+  listCalendarEventsInputSchema,
   updateCalendarEventInputSchema,
 } from "@/features/calendar/schemas";
 
@@ -38,6 +39,17 @@ describe("updateCalendarEventInputSchema", () => {
       endsOn: "2027-04-02",
     });
     expect(parsed.title).toBe("2º Trimestre");
+  });
+});
+
+describe("listCalendarEventsInputSchema", () => {
+  it("aceita ano lectivo e períodos já concluídos", () => {
+    expect(
+      listCalendarEventsInputSchema.parse({
+        academicYearId: "11111111-1111-1111-1111-111111111111",
+        includePast: true,
+      }),
+    ).toMatchObject({ limit: 50, includePast: true });
   });
 });
 

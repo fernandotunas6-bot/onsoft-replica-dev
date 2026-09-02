@@ -21,6 +21,8 @@ from device_discovery import (
     load_allowlist,
     save_allowlist,
 )
+from bridge_config import load_bridge_config, save_bridge_config
+from siga_cloud_client import validate_gate_pass_remote
 
 DEFAULT_PORT = 8088
 BIND_HOST = "127.0.0.1"  # nunca expor na LAN
@@ -212,6 +214,8 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
             self._send_json(discover_local_devices())
         elif self.path == "/hardware/allowlist":
             self._send_json({"ok": True, **load_allowlist()})
+        elif self.path == "/hardware/bridge-config":
+            self._send_json({"ok": True, **load_bridge_config()})
         else:
             self._send_json({"error": "Endpoint não encontrado"}, 404)
 
@@ -230,6 +234,14 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
                 self._send_json({"error": "Envie { devices: [...] }"}, 400)
                 return
             saved = save_allowlist(devices)
+            self._send_json({"ok": True, **saved})
+            return
+
+        if self.path == "/hardware/bridge-config":
+            if not isinstance(payload, dict):
+                self._send_json({"error": "Envie um objecto JSON."}, 400)
+                return
+            saved = save_bridge_config(payload)
             self._send_json({"ok": True, **saved})
             return
 
@@ -257,18 +269,56 @@ class HardwareBridgeRequestHandler(BaseHTTPRequestHandler):
             })
 
         elif self.path in ["/hardware/webhook/scan", "/webhook/turnstile-event"]:
-            # Recebe notificações de escuta direta de leitoras de catraca Control iD / Intelbras
-            token = payload.get("card_number") or payload.get("qr_code") or payload.get("token", "")
-            gate = payload.get("gate_id", 1)
-            
-            # Resposta rápida para o hardware com autorização instantânea
+            config = load_bridge_config()
+            token = (
+                payload.get("card_number")
+                or payload.get("qr_code")
+                or payload.get("token")
+                or payload.get("rfid")
+                or ""
+            )
+            gate = payload.get("gate_id", payload.get("gate", 1))
+            direction = payload.get("direction") or config.get("default_direction") or "entry"
+            api_key = payload.get("api_key") or payload.get("apiKey") or config.get("device_api_key") or ""
+            turnstile_ip = payload.get("ip_address") or config.get("turnstile_ip") or "127.0.0.1"
+            siga_url = config.get("siga_app_url") or "http://127.0.0.1:3006"
+
+            granted = False
+            person_name = None
+            reason = "Token em falta."
+            pulse_result = None
+
+            if token and api_key:
+                validation = validate_gate_pass_remote(
+                    app_url=str(siga_url),
+                    api_key=str(api_key),
+                    token=str(token),
+                    direction=str(direction),
+                )
+                granted = bool(validation.get("granted"))
+                person_name = validation.get("personName")
+                reason = validation.get("reason") or ("Acesso autorizado." if granted else "Acesso negado.")
+            elif token and not api_key:
+                reason = "API key do dispositivo não configurada no daemon local."
+
+            if granted:
+                ctrl = TurnstileHardwareController(ip_address=str(turnstile_ip))
+                pulse_result = ctrl.send_pulse_relay(gate_number=int(gate), direction=str(direction))
+
             self._send_json({
                 "result": {
-                    "allow": True if token else False,
+                    "allow": granted,
                     "gate": gate,
                     "pulse_ms": 3000,
-                    "message": "Acesso Processado pelo SIGA Python Bridge"
-                }
+                    "message": reason,
+                    "person_name": person_name,
+                },
+                "siga": {
+                    "granted": granted,
+                    "reason": reason,
+                    "person_name": person_name,
+                },
+                "pulse": pulse_result,
             })
 
         elif self.path == "/hardware/printer/thermal":

@@ -24,6 +24,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { overlayCredenciais } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
+import { calendarIcsFeedUrl } from "@/features/calendar/ics";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapTeacherWorkspaceToSnapshot } from "@/features/intelligence/teachers/teacher-relations-adapter";
 import { toast } from "sonner";
@@ -259,7 +260,7 @@ function TeacherProfilePage() {
                 onClick={async () => {
                   try {
                     const feed = await getOrCreateCalendarFeedToken();
-                    const url = `${window.location.origin}/calendario/ics?token=${feed.token}`;
+                    const url = calendarIcsFeedUrl(window.location.origin, feed.token);
                     await navigator.clipboard.writeText(url);
                     toast.success("Link ICS copiado. Cole no calendário do telemóvel ou do email.");
                   } catch (error) {

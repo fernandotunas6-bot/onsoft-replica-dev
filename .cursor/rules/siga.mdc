@@ -5,7 +5,7 @@ alwaysApply: true
 
 # SIGA
 
-Antes de alterar código: ler `docs/agents/CONTINUE.md` e o skill do módulo em `.cursor/skills/siga-<modulo>/SKILL.md`. Visão geral: skill `siga`.
+Antes de alterar código: ler `docs/agents/ARCHITECTURE_HARMONIZATION.md` (limites das 4 apps) e `docs/agents/CONTINUE.md`. Skill do módulo em `.cursor/skills/siga-<modulo>/SKILL.md`. Visão geral: `siga`. Cruzar WEB/ADMIN/DOC: `siga-ecosystem`.
 
 - Estender, não reescrever `schemas.ts` / `server.ts` / páginas existentes.
 - Listas: `usePersistedListFilters` + `ListFilterBar`.

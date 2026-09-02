@@ -5,16 +5,13 @@ import { z } from "zod";
 import {
   Download,
   FileDown,
-  GraduationCap,
   Award,
-  Pencil,
   Plus,
   Sparkles,
   ShieldAlert,
   ChevronDown,
-  Trash2,
-  UserPlus,
 } from "lucide-react";
+import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -35,9 +32,8 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
-import { ClassMaterialsPanel } from "@/features/arquivos/ClassMaterialsPanel";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
-import { classroomCourseHref, meetingRoomLink } from "@/features/integrations/actions";
+import { meetingRoomLink } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet } from "@/features/academic/ClassGroupSheet";
 import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
@@ -50,11 +46,7 @@ import {
   createScheduleSlot,
   deleteScheduleSlot,
   updateScheduleSlot,
-  createSubject,
-  updateSubject,
-  deactivateSubject,
   ensureAcademicDefaults,
-  assignClassSubjectTeacher,
   listPedagogicalWorkspace,
   upsertTermGrade,
   type PedagogicalWorkspace,
@@ -62,24 +54,22 @@ import {
 import { listTeachers } from "@/features/people/server";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
-  angolaCoreSubjects,
-  angolaTeachingLevels,
   gradeMatchesTeachingLevels,
   initialsFromName,
 } from "@/lib/angola-academic";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canWriteModule } from "@/features/auth/access-policy";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
-import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
-import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
-import { PautaOcrScannerModal } from "@/features/pedagogica/components/PautaOcrScannerModal";
 import { DropoutRiskReportModal } from "@/features/pedagogica/components/DropoutRiskReportModal";
 import { PautasWorkspaceModule } from "@/features/pedagogica/components/pautas/PautasWorkspaceModule";
 import { AttendanceWorkspaceModule } from "@/features/pedagogica/components/AttendanceWorkspaceModule";
+import { TurmasWorkspaceTab } from "@/features/pedagogica/components/TurmasWorkspaceTab";
+import { DisciplinasWorkspaceTab } from "@/features/pedagogica/components/DisciplinasWorkspaceTab";
+import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "sonner";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
 
@@ -152,85 +142,6 @@ function optionLabel(id: string, label: string) {
 function resolveOptionId(options: string[], selected: string | undefined, ids: string[]) {
   const index = options.indexOf(selected ?? "");
   return index >= 0 ? ids[index] : undefined;
-}
-
-function AssignTeacherForm({
-  turmaOptions,
-  subjectOptions,
-  teacherOptions,
-  turmaIds,
-  subjectIds,
-  teacherIds,
-  defaultTurma,
-  triggerLabel = "Professor",
-  triggerSize = "sm",
-  onAssigned,
-}: {
-  turmaOptions: string[];
-  subjectOptions: string[];
-  teacherOptions: string[];
-  turmaIds: string[];
-  subjectIds: string[];
-  teacherIds: string[];
-  defaultTurma?: string;
-  triggerLabel?: string;
-  triggerSize?: "sm" | "default";
-  onAssigned: () => Promise<void>;
-}) {
-  return (
-    <QuickFormModal
-      title="Atribuir professor"
-      eyebrow="Pedagógica"
-      description="Liga o docente à disciplina desta turma. A pauta e a árvore do menu passam a mostrar o professor certo."
-      icon={<UserPlus className="size-5" />}
-      submitLabel="Atribuir"
-      successDescription="Professor ligado à disciplina da turma."
-      onSubmit={async (values) => {
-        const classGroupId = resolveOptionId(turmaOptions, values["turma"], turmaIds);
-        const subjectId = resolveOptionId(subjectOptions, values["disciplina"], subjectIds);
-        const teacherId = resolveOptionId(teacherOptions, values["professor"], teacherIds);
-        if (!classGroupId || !subjectId || !teacherId) {
-          throw new Error("Seleccione turma, disciplina e professor.");
-        }
-        await assignClassSubjectTeacher({
-          data: { classGroupId, subjectId, teacherId },
-        });
-        await onAssigned();
-      }}
-      fields={[
-        {
-          name: "turma",
-          label: "Turma",
-          type: "select",
-          options: turmaOptions,
-          required: true,
-          defaultValue: defaultTurma,
-          full: true,
-        },
-        {
-          name: "disciplina",
-          label: "Disciplina",
-          type: "select",
-          options: subjectOptions,
-          required: true,
-          full: true,
-        },
-        {
-          name: "professor",
-          label: "Professor",
-          type: "select",
-          options: teacherOptions,
-          required: true,
-          full: true,
-        },
-      ]}
-      trigger={(open) => (
-        <Button size={triggerSize} variant="outline" className="gap-1.5" onClick={open}>
-          <UserPlus className="size-3.5" /> {triggerLabel}
-        </Button>
-      )}
-    />
-  );
 }
 
 function PedagogicaPage() {
@@ -637,7 +548,6 @@ function PedagogicaPage() {
     }
   };
 
-  const [ocrModalOpen, setOcrModalOpen] = useState(false);
   const [dropoutModalOpen, setDropoutModalOpen] = useState(false);
 
   return (
@@ -652,17 +562,30 @@ function PedagogicaPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
-                    <Sparkles className="size-3.5 text-primary" /> Ferramentas AI{" "}
+                    <Sparkles className="size-3.5 text-primary" /> Ferramentas{" "}
                     <ChevronDown className="size-3.5 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem
-                    onClick={() => setOcrModalOpen(true)}
+                    onClick={() => {
+                      window.open(getSigaNavDocUrl(), "_blank", "noopener,noreferrer");
+                    }}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Sparkles className="size-3.5 text-primary" /> Scanner OCR Pauta Papel (em
-                    breve)
+                    <Sparkles className="size-3.5 text-primary" /> Manual de navegação (DOC)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setTab("notas");
+                      setAssessmentOpen(true);
+                      toast.message("Centro de Avaliação", {
+                        description: "Lance MAC/NPP/NPT na grelha digital. OCR de papel ainda não está ligado.",
+                      });
+                    }}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
+                    <Sparkles className="size-3.5 text-primary" /> Lançar notas (grelha viva)
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setDropoutModalOpen(true)}
@@ -713,6 +636,7 @@ function PedagogicaPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <DocHelpButton title="Navegação e permissões — área pedagógica" />
               {canManageAcademic && structureReady ? (
                 <ClassGroupSheet
                   yearOptions={yearOptions}
@@ -807,631 +731,53 @@ function PedagogicaPage() {
           </div>
 
           <TabsContent value="turmas" className="mt-5 space-y-6">
-            {!canReadAcademic ? (
-              <div className="rounded-xl border border-border bg-card p-8 text-center shadow-soft">
-                <p className="font-semibold">Sem permissão para a área pedagógica</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Contacte a administração se precisar de acesso a turmas e pautas.
-                </p>
-              </div>
-            ) : workspaceQuery.isLoading ? (
-              <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-soft">
-                A carregar turmas…
-              </div>
-            ) : workspaceQuery.isError ? (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-soft">
-                <p className="font-semibold text-destructive">
-                  Não foi possível carregar as turmas
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {workspaceQuery.error instanceof Error
-                    ? workspaceQuery.error.message
-                    : "Erro desconhecido"}
-                </p>
-              </div>
-            ) : !structureReady ? (
-              <div className="rounded-xl border border-border bg-card p-8 text-center shadow-soft">
-                <Sparkles className="mx-auto size-8 text-primary" />
-                <p className="mt-3 font-semibold">Estrutura académica em falta</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Ainda não existem anos lectivos, cursos ou classes. Prepare a base padrão para
-                  começar a criar turmas.
-                </p>
-                <Button
-                  className="mt-5 gap-2"
-                  onClick={bootstrapStructure}
-                  disabled={bootstrapping}
-                >
-                  <Sparkles className="size-4" />
-                  {bootstrapping ? "A preparar…" : "Preparar estrutura académica"}
-                </Button>
-              </div>
-            ) : (
-              <>
-                <ListFilterBar
-                  values={filters}
-                  activeCount={activeCount}
-                  onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
-                  onReset={resetFilters}
-                  fields={[
-                    {
-                      name: "q",
-                      placeholder: "Pesquisar turma, programa ou classe…",
-                      "aria-label": "Pesquisar turma",
-                    },
-                    {
-                      name: "turno",
-                      type: "select",
-                      label: "Turno",
-                      emptyValue: "todos",
-                      options: [
-                        { value: "todos", label: "Todos" },
-                        { value: "Manhã", label: "Manhã" },
-                        { value: "Tarde", label: "Tarde" },
-                        { value: "Noite", label: "Noite" },
-                      ],
-                    },
-                    {
-                      name: "programa",
-                      type: "select",
-                      label: "Programa",
-                      emptyValue: "todos",
-                      options: [
-                        { value: "todos", label: "Todos" },
-                        ...courses.map((course) => ({ value: course.name, label: course.name })),
-                      ],
-                    },
-                    {
-                      name: "estado",
-                      type: "select",
-                      label: "Estado",
-                      emptyValue: "todos",
-                      options: [
-                        { value: "todos", label: "Todos os estados" },
-                        { value: "activas", label: "Activas" },
-                        { value: "inactivas", label: "Inactivas" },
-                      ],
-                    },
-                    {
-                      name: "lotacao",
-                      type: "select",
-                      label: "Lotação",
-                      emptyValue: "todas",
-                      options: [
-                        { value: "todas", label: "Todas" },
-                        { value: "vagas", label: "Com vagas" },
-                        { value: "completas", label: "Completas" },
-                      ],
-                    },
-                  ]}
-                />
-                {!canManageAcademic ? (
-                  <p className="text-xs text-muted-foreground">
-                    Perfil Professor: consulta e exportação activas. Criar/editar turmas exige
-                    Secretaria ou Administração.
-                  </p>
-                ) : null}
-                {turmasComDados.length === 0 ? (
-                  <div className="rounded-xl border border-border bg-card p-8 text-center shadow-soft">
-                    <p className="font-semibold">Nenhuma turma neste filtro</p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Ajuste a pesquisa ou use “Nova turma” para criar a primeira turma.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {turmasComDados.map((t) => {
-                      const ocupacao = Math.round((t.alunosActuais / t.capacidadeReal) * 100);
-                      return (
-                        <div
-                          key={t.id}
-                          className="rounded-xl border border-border bg-card p-5 shadow-soft"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <button
-                                type="button"
-                                onClick={() => setOpenTurmaId(t.id)}
-                                className="font-display text-lg font-extrabold tracking-tight hover:text-primary hover:underline"
-                              >
-                                Turma {t.nome}
-                              </button>
-                              <p className="text-xs text-muted-foreground">
-                                {t.curso} · {t.classe} · {t.ano}
-                              </p>
-                              {(() => {
-                                const assigned = (workspace?.classSubjects ?? [])
-                                  .filter((row) => row.class_group_id === t.id && row.teacher_id)
-                                  .map(
-                                    (row) =>
-                                      teacherNameById.get(row.teacher_id!) ?? row.subject_name,
-                                  );
-                                return assigned.length > 0 ? (
-                                  <p className="mt-1 text-[11px] text-muted-foreground">
-                                    {assigned.join(" · ")}
-                                  </p>
-                                ) : null;
-                              })()}
-                            </div>
-                            <span className={cn(badgeBase, toneClass.primary)}>{t.turno}</span>
-                          </div>
-                          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                              <dt className="text-xs text-muted-foreground">Estado</dt>
-                              <dd className="font-medium capitalize">{t.status}</dd>
-                            </div>
-                            <div>
-                              <dt className="text-xs text-muted-foreground">Campus</dt>
-                              <dd className="font-medium">{t.sala}</dd>
-                            </div>
-                            <div>
-                              <dt className="text-xs text-muted-foreground">Média da turma</dt>
-                              <dd className="font-medium">
-                                {t.mediaReal > 0 ? `${t.mediaReal.toFixed(1)} val.` : "—"}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="text-xs text-muted-foreground">Alunos</dt>
-                              <dd className="font-medium">
-                                {t.alunosActuais}/{t.capacidadeReal}
-                              </dd>
-                            </div>
-                          </dl>
-                          <div className="mt-4">
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span>Ocupação</span>
-                              <span>{ocupacao}%</span>
-                            </div>
-                            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
-                              <div
-                                className="h-full rounded-full bg-primary"
-                                style={{ width: `${Math.min(ocupacao, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                          <ClassMaterialsPanel classGroupId={t.id} classLabel={t.nome} />
-                          {canManageAcademic ? (
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              {t.whatsappInviteUrl ? (
-                                <Button size="sm" variant="outline" className="gap-1.5" asChild>
-                                  <a href={t.whatsappInviteUrl} target="_blank" rel="noreferrer">
-                                    WhatsApp
-                                  </a>
-                                </Button>
-                              ) : null}
-                              {classroomOn ? (
-                                <Button size="sm" variant="outline" className="gap-1.5" asChild>
-                                  <a
-                                    href={classroomCourseHref(t.code)}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Classroom
-                                  </a>
-                                </Button>
-                              ) : null}
-                              {moodleOn ? (
-                                <Button size="sm" variant="outline" asChild>
-                                  <a
-                                    href="https://docs.moodle.org/en/Web_services"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Moodle
-                                  </a>
-                                </Button>
-                              ) : null}
-                              {canvasOn ? (
-                                <Button size="sm" variant="outline" asChild>
-                                  <a
-                                    href="https://www.instructure.com/canvas"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Canvas
-                                  </a>
-                                </Button>
-                              ) : null}
-                              {classroomWork ? (
-                                <Button size="sm" variant="outline" asChild>
-                                  <a
-                                    href="https://classroom.google.com/"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Trabalhos
-                                  </a>
-                                </Button>
-                              ) : null}
-                              {moodleGrades ? (
-                                <Button size="sm" variant="outline" asChild>
-                                  <a
-                                    href="https://docs.moodle.org/en/Gradebook"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Notas Moodle
-                                  </a>
-                                </Button>
-                              ) : null}
-                              {canvasWork ? (
-                                <Button size="sm" variant="outline" asChild>
-                                  <a
-                                    href="https://canvas.instructure.com/doc/api/assignments.html"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Trabalhos Canvas
-                                  </a>
-                                </Button>
-                              ) : null}
-                              {teamsClasses ? (
-                                <Button size="sm" variant="outline" asChild>
-                                  <a
-                                    href="https://teams.microsoft.com/"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Equipa Teams
-                                  </a>
-                                </Button>
-                              ) : null}
-                              {onedriveOn ? (
-                                <Button size="sm" variant="outline" asChild>
-                                  <a
-                                    href="https://www.microsoft.com/microsoft-365/onedrive/online-cloud-storage"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    OneDrive
-                                  </a>
-                                </Button>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
+            <TurmasWorkspaceTab
+              canReadAcademic={canReadAcademic}
+              canManageAcademic={canManageAcademic}
+              isLoading={workspaceQuery.isLoading}
+              isError={workspaceQuery.isError}
+              errorMessage={workspaceQuery.error instanceof Error ? workspaceQuery.error.message : undefined}
+              structureReady={structureReady}
+              bootstrapping={bootstrapping}
+              bootstrapStructure={bootstrapStructure}
+              filters={filters}
+              setFilter={(name, value) => setFilter(name as keyof typeof filters, value)}
+              resetFilters={resetFilters}
+              activeCount={activeCount}
+              courses={courses}
+              turmasComDados={turmasComDados}
+              workspace={workspace}
+              teacherNameById={teacherNameById}
+              classroomOn={classroomOn}
+              moodleOn={moodleOn}
+              canvasOn={canvasOn}
+              classroomWork={classroomWork}
+              moodleGrades={moodleGrades}
+              canvasWork={canvasWork}
+              teamsClasses={teamsClasses}
+              onedriveOn={onedriveOn}
+              onOpenTurma={(id) => setOpenTurmaId(id)}
+            />
           </TabsContent>
 
           <TabsContent value="disciplinas" className="mt-5">
-            <Panel
-              title="Disciplinas e docentes"
-              description={
-                !subjectsAvailable
-                  ? "Aplique a migração subjects/term_grades para activar este painel"
-                  : "Catálogo da escola com taxa de aprovação calculada das notas lançadas"
-              }
-              action={
-                canManageAcademic && subjectsAvailable ? (
-                  <div className="flex flex-wrap gap-2">
-                    {teacherOptions.length > 0 && turmaAssignOptions.length > 0 ? (
-                      <AssignTeacherForm
-                        turmaOptions={turmaAssignOptions}
-                        subjectOptions={subjectOptions}
-                        teacherOptions={teacherOptions}
-                        turmaIds={classGroups.map((group) => group.id)}
-                        subjectIds={subjects.map((subject) => subject.id)}
-                        teacherIds={teachers.map((teacher) => teacher.id)}
-                        triggerLabel="Atribuir professor"
-                        onAssigned={refreshAcademic}
-                      />
-                    ) : null}
-                    <QuickFormModal
-                      title="Nova disciplina"
-                      eyebrow="Pedagógica"
-                      description="Adicione uma disciplina ao catálogo da escola."
-                      icon={<Plus className="size-5" />}
-                      submitLabel="Criar disciplina"
-                      onSubmit={async (values) => {
-                        const weeklyHours = Number(values["carga"] || 4);
-                        const gradeFrom = values["classeDe"]
-                          ? Number(values["classeDe"])
-                          : undefined;
-                        const gradeTo = values["classeAte"]
-                          ? Number(values["classeAte"])
-                          : undefined;
-                        await createSubject({
-                          data: {
-                            code: values["codigo"] ?? "",
-                            name: values["nome"] ?? "",
-                            teacherName: values["professor"] || undefined,
-                            weeklyHours: Number.isFinite(weeklyHours) ? weeklyHours : 4,
-                            gradeFrom: Number.isFinite(gradeFrom) ? gradeFrom : undefined,
-                            gradeTo: Number.isFinite(gradeTo) ? gradeTo : undefined,
-                          },
-                        });
-                        await queryClient.invalidateQueries({
-                          queryKey: ["academic", "pedagogical-workspace"],
-                        });
-                      }}
-                      fields={[
-                        {
-                          name: "nome",
-                          label: "Disciplina",
-                          placeholder: "Ex.: Química",
-                          full: true,
-                        },
-                        { name: "codigo", label: "Código", placeholder: "Ex.: QUI" },
-                        {
-                          name: "professor",
-                          label: "Docente",
-                          placeholder: "Ex.: Prof.ª Ana Silva",
-                          required: false,
-                        },
-                        {
-                          name: "carga",
-                          label: "Horas/semana",
-                          type: "number",
-                          placeholder: "4",
-                        },
-                        {
-                          name: "classeDe",
-                          label: "Classe inicial",
-                          type: "number",
-                          placeholder: "7",
-                          required: false,
-                        },
-                        {
-                          name: "classeAte",
-                          label: "Classe final",
-                          type: "number",
-                          placeholder: "13",
-                          required: false,
-                        },
-                      ]}
-                      trigger={(open) => (
-                        <Button size="sm" className="gap-1.5" onClick={open}>
-                          <Plus className="size-3.5" /> Nova
-                        </Button>
-                      )}
-                    />
-                  </div>
-                ) : null
-              }
-            >
-              {!canManageAcademic ? (
-                <p className="text-sm text-muted-foreground">
-                  A consulta de disciplinas reais está reservada a Secretaria/Admin.
-                </p>
-              ) : !subjectsAvailable ? (
-                <p className="text-sm text-muted-foreground">
-                  Execute <code className="font-mono">supabase db push</code> para criar{" "}
-                  <code className="font-mono">subjects</code>.
-                </p>
-              ) : subjects.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Ainda não há disciplinas. Crie a primeira no botão Nova ou use Configurações →
-                  Pedagógico.
-                </p>
-              ) : (
-                <div className="space-y-6">
-                  {angolaTeachingLevels
-                    .filter(
-                      (level) => teachingLevels.length === 0 || teachingLevels.includes(level.id),
-                    )
-                    .map((level) => {
-                      const catalogCodes = new Set(
-                        angolaCoreSubjects
-                          .filter((subject) => subject.levels.includes(level.id))
-                          .map((subject) => subject.code),
-                      );
-                      const rows = subjects.filter((subject) => {
-                        const code = String(subject.code ?? "").toUpperCase();
-                        const catalog = angolaCoreSubjects.find(
-                          (item) =>
-                            item.code === code ||
-                            item.name.toLowerCase() === String(subject.name).toLowerCase(),
-                        );
-                        return catalog
-                          ? catalog.levels.includes(level.id)
-                          : catalogCodes.size === 0;
-                      });
-                      if (rows.length === 0) return null;
-                      return (
-                        <div key={level.id} className="space-y-2">
-                          <h4 className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                            {level.cycle} · {level.classes.join(" · ")}
-                          </h4>
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Disciplina</TableHead>
-                                  <TableHead>Professor</TableHead>
-                                  <TableHead>Classes</TableHead>
-                                  <TableHead>Carga horária</TableHead>
-                                  <TableHead className="text-right">Aprovação</TableHead>
-                                  <TableHead className="text-right">Acções</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {rows.map((d) => (
-                                  <TableRow key={d.id}>
-                                    <TableCell className="font-semibold">
-                                      <span className="flex items-center gap-2">
-                                        <GraduationCap className="size-4 text-primary" />
-                                        {d.name}
-                                      </span>
-                                    </TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                      {(() => {
-                                        const names = (workspace?.classSubjects ?? [])
-                                          .filter(
-                                            (row) => row.subject_id === d.id && row.teacher_id,
-                                          )
-                                          .map(
-                                            (row) =>
-                                              teacherNameById.get(row.teacher_id!) ??
-                                              row.subject_name,
-                                          );
-                                        return names.length
-                                          ? [...new Set(names)].join(" · ")
-                                          : (d.teacher_name ?? "—");
-                                      })()}
-                                    </TableCell>
-                                    <TableCell>{d.classes_label}</TableCell>
-                                    <TableCell>{d.weekly_hours_label}</TableCell>
-                                    <TableCell className="text-right">
-                                      {d.approval_rate == null ? (
-                                        <span className="text-sm text-muted-foreground">
-                                          Sem notas
-                                        </span>
-                                      ) : (
-                                        <span
-                                          className={cn(
-                                            badgeBase,
-                                            d.approval_rate >= 85
-                                              ? toneClass.success
-                                              : d.approval_rate >= 75
-                                                ? toneClass.warning
-                                                : toneClass.danger,
-                                          )}
-                                        >
-                                          {d.approval_rate}%
-                                        </span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <div className="inline-flex justify-end gap-1">
-                                        <QuickFormModal
-                                          title="Editar disciplina"
-                                          description="Actualiza o nome e o código no catálogo da escola."
-                                          icon={<Pencil className="size-5" />}
-                                          submitLabel="Guardar"
-                                          successDescription="Disciplina actualizada."
-                                          onSubmit={async (values) => {
-                                            await updateSubject({
-                                              data: {
-                                                subjectId: d.id,
-                                                name: values["nome"] ?? "",
-                                                code: values["codigo"] ?? "",
-                                              },
-                                            });
-                                            await refreshAcademic();
-                                          }}
-                                          fields={[
-                                            {
-                                              name: "nome",
-                                              label: "Disciplina",
-                                              defaultValue: String(d.name ?? ""),
-                                              full: true,
-                                            },
-                                            {
-                                              name: "codigo",
-                                              label: "Código",
-                                              defaultValue: String(d.code ?? ""),
-                                            },
-                                          ]}
-                                          trigger={(open) => (
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              className="gap-1.5"
-                                              onClick={open}
-                                            >
-                                              <Pencil className="size-3.5" /> Editar
-                                            </Button>
-                                          )}
-                                        />
-                                        {classroomOn ? (
-                                          <Button size="sm" variant="ghost" asChild>
-                                            <a
-                                              href="https://classroom.google.com/"
-                                              target="_blank"
-                                              rel="noreferrer"
-                                            >
-                                              Classroom
-                                            </a>
-                                          </Button>
-                                        ) : null}
-                                        {moodleOn ? (
-                                          <Button size="sm" variant="ghost" asChild>
-                                            <a
-                                              href="https://docs.moodle.org/en/Web_services"
-                                              target="_blank"
-                                              rel="noreferrer"
-                                            >
-                                              Moodle
-                                            </a>
-                                          </Button>
-                                        ) : null}
-                                        {canvasOn ? (
-                                          <Button size="sm" variant="ghost" asChild>
-                                            <a
-                                              href="https://www.instructure.com/canvas"
-                                              target="_blank"
-                                              rel="noreferrer"
-                                            >
-                                              Canvas
-                                            </a>
-                                          </Button>
-                                        ) : null}
-                                        <ConfirmActionModal
-                                          title="Desactivar disciplina"
-                                          description={`${d.name} sai do catálogo. Turmas ainda ligadas impedem a operação.`}
-                                          confirmLabel="Desactivar"
-                                          onConfirm={async () => {
-                                            await deactivateSubject({
-                                              data: { subjectId: d.id },
-                                            });
-                                            await refreshAcademic();
-                                          }}
-                                          trigger={(open) => (
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              className="gap-1.5 text-destructive"
-                                              onClick={open}
-                                            >
-                                              <Trash2 className="size-3.5" /> Desactivar
-                                            </Button>
-                                          )}
-                                        />
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  {subjects.filter((subject) => {
-                    const code = String(subject.code ?? "").toUpperCase();
-                    return !angolaCoreSubjects.some(
-                      (item) =>
-                        item.code === code ||
-                        item.name.toLowerCase() === String(subject.name).toLowerCase(),
-                    );
-                  }).length > 0 ? (
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                        Outras disciplinas
-                      </h4>
-                      <p className="text-xs text-muted-foreground">
-                        {subjects
-                          .filter((subject) => {
-                            const code = String(subject.code ?? "").toUpperCase();
-                            return !angolaCoreSubjects.some(
-                              (item) =>
-                                item.code === code ||
-                                item.name.toLowerCase() === String(subject.name).toLowerCase(),
-                            );
-                          })
-                          .map((subject) => subject.name)
-                          .join(" · ")}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </Panel>
+            <DisciplinasWorkspaceTab
+              canManageAcademic={canManageAcademic}
+              subjectsAvailable={subjectsAvailable}
+              subjects={subjects}
+              workspace={workspace}
+              teacherOptions={teacherOptions}
+              turmaAssignOptions={turmaAssignOptions}
+              subjectOptions={subjectOptions}
+              classGroups={classGroups}
+              teachers={teachers}
+              teacherNameById={teacherNameById}
+              teachingLevels={teachingLevels}
+              classroomOn={classroomOn}
+              moodleOn={moodleOn}
+              canvasOn={canvasOn}
+              onRefresh={refreshAcademic}
+            />
           </TabsContent>
 
           <TabsContent value="notas" className="mt-5 space-y-6">
@@ -1704,21 +1050,6 @@ function PedagogicaPage() {
         teacherOptions={teacherOptions}
         teacherIds={teachers.map((teacher) => teacher.id)}
         onRefresh={refreshAcademic}
-      />
-
-      <PautaOcrScannerModal
-        open={ocrModalOpen}
-        onOpenChange={setOcrModalOpen}
-        students={enrollmentOptions.map((e) => ({
-          id: e.id,
-          fullName: e.student_name,
-          academicNumber: e.id.slice(0, 8),
-        }))}
-        onApplyGrades={(grades) => {
-          toast.success(`Leitura OCR Aplicada (${grades.length} Alunos)`, {
-            description: "Preenchidas notas na pauta digital.",
-          });
-        }}
       />
 
       <DropoutRiskReportModal open={dropoutModalOpen} onOpenChange={setDropoutModalOpen} />

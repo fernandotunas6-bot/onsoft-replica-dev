@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "title": "Feito para escolas",
+    "description": "Fluxos de secretaria, pedagógica e tesouraria pensados para Angola.",
+    "icon": "Sparkles"
+  },
+  {
+    "id": 2,
+    "title": "Acessos seguros",
+    "description": "Contas da escola, permissões por módulo e 2FA TOTP.",
+    "icon": "Shield"
+  },
+  {
+    "id": 3,
+    "title": "Pagamentos locais",
+    "description": "Multicaixa Express e Unitel Money na tesouraria escolar.",
+    "icon": "Truck"
+  },
+  {
+    "id": 4,
+    "title": "Ajuda sempre à mão",
+    "description": "Manuais e arquitectura no DOC, ligado ao WEB, ADMIN e SIGA.",
+    "icon": "Clock"
+  }
+]

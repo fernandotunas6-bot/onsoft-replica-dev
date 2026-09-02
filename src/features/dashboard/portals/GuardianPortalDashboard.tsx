@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { kwanza } from "@/lib/currency";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
+import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { SubmitAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { VirtualCardModal } from "@/features/catracas/components/VirtualCardModal";
@@ -58,7 +59,7 @@ export function GuardianPortalDashboard() {
   const attendanceQuery = useQuery({
     queryKey: ["student-attendance-history", activeStudentId],
     enabled: Boolean(activeStudentId),
-    queryFn: () => getStudentAttendanceHistory({ studentId: activeStudentId }),
+    queryFn: () => getStudentAttendanceHistory({ data: { studentId: activeStudentId } }),
   });
 
   const overviewQuery = useQuery({
@@ -92,7 +93,7 @@ export function GuardianPortalDashboard() {
       to: "/pedagogica",
       search: { tab: "horarios" },
     },
-    { label: "Propinas e Recibos", icon: CreditCard, to: "/financeiro" },
+    { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
     { label: "Documentos", icon: FileText, to: "/documentos" },
     { label: "Comunicados da Escola", icon: Megaphone, to: "/comunicacoes" },
     { label: "Contactar a Escola", icon: Send, to: "/comunicacoes" },
@@ -247,7 +248,7 @@ export function GuardianPortalDashboard() {
               className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card hover:bg-accent/60 transition-all group"
             >
               <div className="flex items-center gap-3">
-                <IconChip icon={item.icon} size="sm" tone="primary" />
+                <IconChip icon={item.icon} size="sm" tone="primary" label={item.label} />
                 <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
                   {item.label}
                 </span>
@@ -257,6 +258,8 @@ export function GuardianPortalDashboard() {
           ))}
         </div>
       </div>
+
+      <DashboardCalendarCard />
 
       {/* FREQUÊNCIA DO EDUCANDO E COMUNICADOS INSTITUCIONAIS */}
       <div className="grid gap-6 lg:grid-cols-2">

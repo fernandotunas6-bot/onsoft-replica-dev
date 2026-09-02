@@ -3,11 +3,13 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   Activity,
+  BookOpen,
   Building2,
   CalendarDays,
   DoorOpen,
   GraduationCap,
   Megaphone,
+  FileText,
   Receipt,
   TrendingUp,
   UserCheck,
@@ -25,11 +27,11 @@ import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
-import { inferIcon } from "@/lib/auto-icon";
 import { kwanza } from "@/lib/currency";
 import { schoolYear as fallbackSchoolYear } from "@/lib/school-config";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
+import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 
 const DashboardCharts = lazy(() =>
@@ -90,8 +92,8 @@ export function AdminPortalDashboard({
   const stats = [
     {
       label: "Total de estudantes",
-      value: capabilities.students ? String(totalStudents) : "—",
       icon: Users,
+      value: capabilities.students ? String(totalStudents) : "—",
       tone: "primary" as const,
       hint: capabilities.students
         ? `${data?.totals.activeStudents ?? 0} com matrícula activa${
@@ -111,8 +113,8 @@ export function AdminPortalDashboard({
     },
     {
       label: "Estudantes masculinos",
+      icon: UserRound,
       value: capabilities.students ? String(data?.totals.male ?? 0) : "—",
-      icon: UserCheck,
       tone: "info" as const,
       hint:
         capabilities.students && totalStudents
@@ -121,8 +123,8 @@ export function AdminPortalDashboard({
     },
     {
       label: "Estudantes femininos",
-      value: capabilities.students ? String(data?.totals.female ?? 0) : "—",
       icon: UserRound,
+      value: capabilities.students ? String(data?.totals.female ?? 0) : "—",
       tone: "pink" as const,
       hint:
         capabilities.students && totalStudents
@@ -131,12 +133,12 @@ export function AdminPortalDashboard({
     },
     {
       label: capabilities.documents ? "Documentos emitidos" : "Saldo de caixa",
+      icon: capabilities.documents ? FileText : Receipt,
       value: capabilities.documents
         ? String(data?.totals.documentIssued ?? 0)
         : capabilities.finance
           ? kwanza(data?.finance?.cash_balance ?? 0)
           : "—",
-      icon: Receipt,
       tone: "warning" as const,
       hint: capabilities.documents
         ? `${data?.totals.documentTotal ?? 0} pedidos registados${
@@ -153,28 +155,20 @@ export function AdminPortalDashboard({
   ];
 
   const miniStats = [
-    {
-      label: "Cursos",
-      value: capabilities.students ? String(data?.totals.courses ?? 0) : "—",
-      icon: GraduationCap,
-    },
+    { label: "Cursos", icon: BookOpen, value: capabilities.students ? String(data?.totals.courses ?? 0) : "—" },
     {
       label: "Turmas activas",
+      icon: Users,
       value: capabilities.students ? String(data?.totals.classGroups ?? 0) : "—",
-      icon: Building2,
     },
-    {
-      label: "Salas",
-      value: capabilities.students ? String(data?.totals.rooms ?? 0) : "—",
-      icon: DoorOpen,
-    },
+    { label: "Salas", icon: DoorOpen, value: capabilities.students ? String(data?.totals.rooms ?? 0) : "—" },
     {
       label: "Taxa de presença",
+      icon: UserCheck,
       value:
         capabilities.students && data?.totals.attendanceAverage != null
           ? `${data.totals.attendanceAverage}%`
           : "—",
-      icon: Activity,
     },
   ];
 
@@ -253,6 +247,67 @@ export function AdminPortalDashboard({
         </Button>
       </div>
 
+      {activeTab === "geral" && capabilities.students && totalStudents === 0 ? (
+        <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <h2 className="text-sm font-bold">Primeiros passos da escola</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            A estrutura base (ano lectivo, turma, propinas) foi preparada no provisionamento.
+            Complete estes passos para começar a operar.
+          </p>
+          <ol className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            <li>
+              <Link to="/alunos" className="font-medium text-primary underline-offset-2 hover:underline">
+                1. Matricular o primeiro aluno
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/pedagogica"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                2. Rever turmas e disciplinas
+              </Link>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+                onClick={() => openSettingsPanel("financeiro")}
+              >
+                3. Confirmar valores de propina
+              </button>
+            </li>
+            <li>
+              {data?.enrollmentPublicLink?.isOpen ? (
+                <a
+                  href={data.enrollmentPublicLink.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  4. Partilhar link público de matrícula
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  className="font-medium text-primary underline-offset-2 hover:underline"
+                  onClick={() => openSettingsPanel("matricula")}
+                >
+                  4. Activar link público de matrícula
+                </button>
+              )}
+            </li>
+            {data?.enrollmentPublicLink?.isOpen ? (
+              <li className="sm:col-span-2 text-xs text-muted-foreground">
+                <code className="rounded bg-muted px-1.5 py-0.5">
+                  {data.enrollmentPublicLink.url}
+                </code>
+              </li>
+            ) : null}
+          </ol>
+        </section>
+      ) : null}
+
       <InstalledModuleTools module="comunicacoes" />
 
       <section className="surface-card p-5">
@@ -262,7 +317,13 @@ export function AdminPortalDashboard({
             Progresso do {yearName}
           </div>
           <span className="text-sm font-bold text-primary">
-            {data?.academicYear ? `${data.yearProgress}%` : "—"}
+            {data?.academicYear
+              ? data.yearPhase === "not_started"
+                ? "Ainda não começou"
+                : data.yearPhase === "ended"
+                  ? "Concluído"
+                  : `${data.yearProgress}%`
+              : "—"}
           </span>
         </div>
         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
@@ -294,8 +355,8 @@ export function AdminPortalDashboard({
                 <IconChip
                   icon={s.icon}
                   size="md"
-                  soft={false}
-                  className={`${toneBg[s.tone]} rounded-2xl`}
+                  tone={s.tone === "pink" ? "info" : s.tone}
+                  label={s.label}
                 />
               </div>
               <p className="mt-3 text-4xl font-extrabold tracking-tight">{s.value}</p>
@@ -328,12 +389,7 @@ export function AdminPortalDashboard({
             key={s.label}
             className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
           >
-            <IconChip
-              icon={s.icon}
-              size="md"
-              soft={false}
-              className="rounded-2xl bg-primary-soft text-primary-strong"
-            />
+            <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
             <div>
               <p className="text-xs text-muted-foreground">{s.label}</p>
               <p className="text-xl font-bold">{s.value}</p>
@@ -342,11 +398,13 @@ export function AdminPortalDashboard({
         ))}
       </div>
 
-      {(data?.announcements?.length ?? 0) > 0 ? (
+      <div className="grid gap-4 lg:grid-cols-2">
+        <DashboardCalendarCard />
+        {(data?.announcements?.length ?? 0) > 0 ? (
         <section className="surface-card p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <IconChip icon={Megaphone} size="sm" />
+              <IconChip icon={Megaphone} size="sm" label="Comunicados" />
               <h2 className="text-base font-semibold">Comunicados</h2>
             </div>
             {canAccessPath("/comunicacoes", currentUser.role) ? (
@@ -370,6 +428,7 @@ export function AdminPortalDashboard({
           </ul>
         </section>
       ) : null}
+      </div>
 
       <div className="space-y-4">
         <Suspense fallback={<DashboardChartsSkeleton />}>

@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-export const announcementAudienceOptions = ["school"] as const;
+export const announcementAudienceOptions = [
+  "all_guardians",
+  "guardians_with_debt",
+  "students_secondary",
+  "students_finalists",
+  "teaching_staff",
+] as const;
 
 export const announcementChannelOptions = ["sms", "email", "portal"] as const;
 

@@ -12,9 +12,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { IconChip } from "@/components/ui/icon-chip";
+import { BarChart2 } from "lucide-react";
 import { LazyVisible } from "@/components/ui/lazy-visible";
-import { inferIcon } from "@/lib/auto-icon";
+import { IconChip } from "@/components/ui/icon-chip";
 import { kwanza } from "@/lib/currency";
 
 const axis = {
@@ -52,7 +52,7 @@ function ChartCard({
     <section className={`surface-card p-5 ${className}`}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <IconChip {...inferIcon(title)} size="sm" />
+          <IconChip icon={BarChart2} size="sm" tone="primary" label={title} />
           <h2 className="truncate text-base font-semibold">{title}</h2>
         </div>
         {meta ? <span className="shrink-0 text-xs text-muted-foreground">{meta}</span> : null}

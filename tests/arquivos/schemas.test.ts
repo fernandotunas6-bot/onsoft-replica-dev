@@ -18,12 +18,15 @@ import {
   stableDocumentCode,
 } from "@/features/arquivos/document-code";
 import {
+  canAccessFileContent,
+  canManageSystemFile,
   canReadFileArea,
   canWriteFileArea,
   fileNeedsOrganization,
   fileVisibilityMeta,
   formatFileActivityLine,
   isAllowedSchoolFile,
+  isFileRelatedToUser,
   kindFromFile,
   myFileAccess,
   suggestFileArea,
@@ -161,7 +164,7 @@ describe("arquivos schemas", () => {
     );
   });
 
-  it("flags incomplete media without description", () => {
+  it("flags incomplete media without description or related user", () => {
     expect(
       fileNeedsOrganization({
         title: "Foto",
@@ -175,9 +178,57 @@ describe("arquivos schemas", () => {
         description: "Cópia digital do bilhete de identidade do aluno.",
         category: "bilhete",
       }),
+    ).toBe(true);
+    expect(
+      fileNeedsOrganization({
+        title: "BI do aluno",
+        description: "Cópia digital do bilhete de identidade do aluno.",
+        category: "bilhete",
+        relatedUserId: "11111111-1111-4111-8111-111111111111",
+      }),
+    ).toBe(false);
+    expect(
+      fileNeedsOrganization({
+        title: "Recibo",
+        description: "Arquivo financeiro gerado pelo sistema SIGA.",
+        category: "recibo",
+        isSystem: true,
+      }),
     ).toBe(false);
     expect(suggestFileCategory({ name: "pauta-10a.xlsx", kind: "excel" })).toBe("pauta");
     expect(suggestFileArea("foto", ["secretaria", "escola", "pessoal"])).toBe("secretaria");
+  });
+
+  it("keeps system files listable but locks content without elevated access", () => {
+    const systemFile = {
+      isSystem: true,
+      ownerUserId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      relatedUserId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    };
+    expect(canAccessFileContent(systemFile, systemFile.ownerUserId, "Professor")).toBe(true);
+    expect(canAccessFileContent(systemFile, systemFile.relatedUserId!, "Professor")).toBe(true);
+    expect(canAccessFileContent(systemFile, "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "Professor")).toBe(
+      false,
+    );
+    expect(
+      canAccessFileContent(systemFile, "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "Tesouraria"),
+    ).toBe(true);
+    expect(
+      canManageSystemFile(systemFile, "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "Professor"),
+    ).toBe(false);
+    expect(
+      canManageSystemFile(systemFile, "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "Administrador"),
+    ).toBe(true);
+    expect(
+      canAccessFileContent(
+        { isSystem: false, ownerUserId: systemFile.ownerUserId },
+        "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "Professor",
+      ),
+    ).toBe(true);
+    expect(isFileRelatedToUser(systemFile, systemFile.ownerUserId)).toBe(true);
+    expect(isFileRelatedToUser(systemFile, systemFile.relatedUserId!)).toBe(true);
+    expect(isFileRelatedToUser(systemFile, "cccccccc-cccc-4ccc-8ccc-cccccccccccc")).toBe(false);
   });
 
   it("treats raster images as cover previews", () => {
@@ -244,6 +295,13 @@ describe("arquivos schemas", () => {
         at: new Date().toISOString(),
       }),
     ).toContain("Ana renomeou");
+    expect(
+      formatFileActivityLine({
+        action: "access_denied",
+        actorName: "Ana",
+        at: new Date().toISOString(),
+      }),
+    ).toContain("tentou abrir (sem permissão)");
     expect(initialsFromName("Ana Silva Costa")).toBe("AS");
   });
 });

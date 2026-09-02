@@ -69,17 +69,17 @@ GRANT ALL ON public.people TO service_role;
 ALTER TABLE public.people ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Read people in own school" ON public.people
-  FOR SELECT TO authenticated USING (school_id = (SELECT public.current_school_id()));
+  FOR SELECT TO authenticated USING (school_id = public.is_school_member(school_id));
 CREATE POLICY "Create people in own school" ON public.people
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    school_id = public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
   );
 CREATE POLICY "Update people in own school" ON public.people
   FOR UPDATE TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (school_id = public.is_school_member(school_id))
+  WITH CHECK (school_id = public.is_school_member(school_id));
 
 -- ---------------------------------------------------------------------------
 -- person_documents: BI/passaporte/cédula — únicos por tipo+número dentro da escola.
@@ -113,17 +113,17 @@ GRANT ALL ON public.person_documents TO service_role;
 ALTER TABLE public.person_documents ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Read person documents in own school" ON public.person_documents
-  FOR SELECT TO authenticated USING (school_id = (SELECT public.current_school_id()));
+  FOR SELECT TO authenticated USING (school_id = public.is_school_member(school_id));
 CREATE POLICY "Create person documents in own school" ON public.person_documents
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    school_id = public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
   );
 CREATE POLICY "Update person documents in own school" ON public.person_documents
   FOR UPDATE TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (school_id = public.is_school_member(school_id))
+  WITH CHECK (school_id = public.is_school_member(school_id));
 
 -- ---------------------------------------------------------------------------
 -- person_roles: os papéis que uma pessoa acumula (aluno, encarregado, ...).
@@ -157,17 +157,17 @@ GRANT ALL ON public.person_roles TO service_role;
 ALTER TABLE public.person_roles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Read person roles in own school" ON public.person_roles
-  FOR SELECT TO authenticated USING (school_id = (SELECT public.current_school_id()));
+  FOR SELECT TO authenticated USING (school_id = public.is_school_member(school_id));
 CREATE POLICY "Create person roles in own school" ON public.person_roles
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    school_id = public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
   );
 CREATE POLICY "Update person roles in own school" ON public.person_roles
   FOR UPDATE TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (school_id = public.is_school_member(school_id))
+  WITH CHECK (school_id = public.is_school_member(school_id));
 
 -- ---------------------------------------------------------------------------
 -- person_relationships: pai/mãe/encarregado/tutor/cônjuge/... entre duas pessoas.
@@ -208,17 +208,17 @@ GRANT ALL ON public.person_relationships TO service_role;
 ALTER TABLE public.person_relationships ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Read person relationships in own school" ON public.person_relationships
-  FOR SELECT TO authenticated USING (school_id = (SELECT public.current_school_id()));
+  FOR SELECT TO authenticated USING (school_id = public.is_school_member(school_id));
 CREATE POLICY "Create person relationships in own school" ON public.person_relationships
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    school_id = public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
   );
 CREATE POLICY "Update person relationships in own school" ON public.person_relationships
   FOR UPDATE TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (school_id = public.is_school_member(school_id))
+  WITH CHECK (school_id = public.is_school_member(school_id));
 
 -- ---------------------------------------------------------------------------
 -- person_school_links: liga uma pessoa a uma escola antes de ter um papel
@@ -248,17 +248,17 @@ GRANT ALL ON public.person_school_links TO service_role;
 ALTER TABLE public.person_school_links ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Read person school links in own school" ON public.person_school_links
-  FOR SELECT TO authenticated USING (school_id = (SELECT public.current_school_id()));
+  FOR SELECT TO authenticated USING (school_id = public.is_school_member(school_id));
 CREATE POLICY "Create person school links in own school" ON public.person_school_links
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    school_id = public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
   );
 CREATE POLICY "Update person school links in own school" ON public.person_school_links
   FOR UPDATE TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (school_id = public.is_school_member(school_id))
+  WITH CHECK (school_id = public.is_school_member(school_id));
 
 -- ---------------------------------------------------------------------------
 -- Pesquisa fuzzy (pg_trgm) — usada pela pesquisa livre em /pessoas.
@@ -272,7 +272,7 @@ SET search_path = ''
 AS $$
   SELECT *
   FROM public.people
-  WHERE school_id = (SELECT public.current_school_id())
+  WHERE school_id = public.is_school_member(school_id)
     AND deleted_at IS NULL
     AND (
       btrim(p_query) = ''
@@ -316,7 +316,7 @@ AS $$
     SELECT p.id, p.full_name, 'documento'::text AS match_reason, 1.0::real AS score
     FROM public.person_documents pd
     JOIN public.people p ON p.id = pd.person_id
-    WHERE pd.school_id = (SELECT public.current_school_id())
+    WHERE pd.school_id = public.is_school_member(school_id)
       AND pd.deleted_at IS NULL
       AND p_document_number IS NOT NULL
       AND pd.document_number = p_document_number
@@ -324,7 +324,7 @@ AS $$
     UNION ALL
     SELECT p.id, p.full_name, 'nif', 1.0
     FROM public.people p
-    WHERE p.school_id = (SELECT public.current_school_id())
+    WHERE p.school_id = public.is_school_member(school_id)
       AND p.deleted_at IS NULL
       AND p_nif IS NOT NULL
       AND p.nif = p_nif
@@ -332,7 +332,7 @@ AS $$
     UNION ALL
     SELECT p.id, p.full_name, 'telefone', 0.9
     FROM public.people p
-    WHERE p.school_id = (SELECT public.current_school_id())
+    WHERE p.school_id = public.is_school_member(school_id)
       AND p.deleted_at IS NULL
       AND p_phone IS NOT NULL
       AND p_phone IN (p.phone_primary, p.phone_alternative, p.whatsapp)
@@ -340,7 +340,7 @@ AS $$
     UNION ALL
     SELECT p.id, p.full_name, 'email', 0.9
     FROM public.people p
-    WHERE p.school_id = (SELECT public.current_school_id())
+    WHERE p.school_id = public.is_school_member(school_id)
       AND p.deleted_at IS NULL
       AND p_email IS NOT NULL
       AND lower(p.email) = lower(p_email)
@@ -348,7 +348,7 @@ AS $$
     UNION ALL
     SELECT p.id, p.full_name, 'nome_data_nascimento', 0.85
     FROM public.people p
-    WHERE p.school_id = (SELECT public.current_school_id())
+    WHERE p.school_id = public.is_school_member(school_id)
       AND p.deleted_at IS NULL
       AND p_birth_date IS NOT NULL
       AND p.birth_date = p_birth_date
@@ -362,7 +362,7 @@ AS $$
         public.immutable_unaccent(lower(p_full_name))
       )
     FROM public.people p
-    WHERE p.school_id = (SELECT public.current_school_id())
+    WHERE p.school_id = public.is_school_member(school_id)
       AND p.deleted_at IS NULL
       AND public.immutable_unaccent(lower(p.full_name))
         OPERATOR(public.%) public.immutable_unaccent(lower(p_full_name))
@@ -398,7 +398,7 @@ BEGIN
   END IF;
 
   SELECT school_id INTO v_school_id FROM public.people WHERE id = p_survivor_id;
-  IF v_school_id IS NULL OR v_school_id <> (SELECT public.current_school_id()) THEN
+  IF v_school_id IS NULL OR v_school_id <> public.is_school_member(school_id) THEN
     RAISE EXCEPTION 'person not found in current school';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.people WHERE id = p_duplicate_id AND school_id = v_school_id) THEN
@@ -455,7 +455,7 @@ SECURITY INVOKER
 SET search_path = ''
 AS $$
 DECLARE
-  v_school_id uuid := (SELECT public.current_school_id());
+  v_school_id uuid := public.is_school_member(school_id);
   v_person public.people;
   v_role text;
   v_doc jsonb;
@@ -939,14 +939,14 @@ BEGIN
   LOOP
     EXECUTE format(
       'CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING '
-      || '(school_id = (SELECT public.current_school_id()) '
+      || '(school_id = public.is_school_member(school_id) '
       || 'AND (SELECT public.can_read_students()))',
       'Read ' || table_name || ' in own school',
       table_name
     );
     EXECUTE format(
       'CREATE POLICY %I ON public.%I FOR INSERT TO authenticated WITH CHECK '
-      || '(school_id = (SELECT public.current_school_id()) '
+      || '(school_id = public.is_school_member(school_id) '
       || 'AND created_by = (SELECT auth.uid()) '
       || 'AND (SELECT public.can_manage_students()))',
       'Create ' || table_name || ' in own school',
@@ -954,9 +954,9 @@ BEGIN
     );
     EXECUTE format(
       'CREATE POLICY %I ON public.%I FOR UPDATE TO authenticated USING '
-      || '(school_id = (SELECT public.current_school_id()) '
+      || '(school_id = public.is_school_member(school_id) '
       || 'AND (SELECT public.can_manage_students())) WITH CHECK '
-      || '(school_id = (SELECT public.current_school_id()) '
+      || '(school_id = public.is_school_member(school_id) '
       || 'AND (SELECT public.can_manage_students()))',
       'Update ' || table_name || ' in own school',
       table_name
@@ -1044,7 +1044,7 @@ SECURITY INVOKER
 SET search_path = ''
 AS $$
 DECLARE
-  v_school_id uuid := (SELECT public.current_school_id());
+  v_school_id uuid := public.is_school_member(school_id);
   v_student public.students;
   v_guardian jsonb;
 BEGIN
@@ -1119,7 +1119,7 @@ ALTER TABLE public.student_status_history FORCE ROW LEVEL SECURITY;
 CREATE POLICY "Read student status history in own school" ON public.student_status_history
   FOR SELECT TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    school_id = public.is_school_member(school_id)
     AND (SELECT public.can_read_students())
   );
 CREATE OR REPLACE FUNCTION private.record_student_status_change()
@@ -1160,7 +1160,7 @@ SECURITY INVOKER
 SET search_path = ''
 AS $$
 DECLARE
-  v_school_id uuid := (SELECT public.current_school_id());
+  v_school_id uuid := public.is_school_member(school_id);
   v_student public.students;
 BEGIN
   IF NOT COALESCE((SELECT public.can_manage_students()), false) THEN
@@ -1197,7 +1197,7 @@ SET search_path = ''
 AS $$
   SELECT *
   FROM public.student_directory
-  WHERE school_id = (SELECT public.current_school_id())
+  WHERE school_id = public.is_school_member(school_id)
     AND (
       p_query IS NULL
       OR public.immutable_unaccent(lower(full_name))
@@ -1235,7 +1235,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  IF row_school_id IS DISTINCT FROM (SELECT public.current_school_id()) THEN
+  IF row_school_id IS DISTINCT FROM public.is_school_member(school_id) THEN
     RAISE EXCEPTION 'cannot audit a row outside the current school' USING ERRCODE = '42501';
   END IF;
 

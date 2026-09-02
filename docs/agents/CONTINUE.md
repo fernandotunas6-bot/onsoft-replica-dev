@@ -1,18 +1,100 @@
 # Handoff — continuar o SIGA
 
-Ler isto **antes** de alterar código. Depois abrir o skill do módulo em `.cursor/skills/`.
+Ler isto **antes** de alterar código. Ecossistema (4 apps):
+[ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
+Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-08-27)
+## Estado (2026-08-30)
 
-Os ciclos 1–43 da sessão premium estão no código. As consolidações mais recentes
-estão versionadas localmente:
+Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise completo (Fases 1–15).
+Identidade global, multi-tenant, RBAC, RLS, convites, índices de performance e testes hostis de isolamento.
+Não unificar frontends. Pontes `/saas-admin` e `/criar-escola` mantidas.
 
-- `6d11ee8` — módulos escolares e tesouraria
-- `251ef86` — contratos tipados dos módulos
-- `afd58b8` — requisitos dos validadores visuais na CI
-- `ac2aba5` — fotos de pessoas protegidas no Storage
-- `1eea631` — avatares de conta privados com URLs assinadas
-- `f6bb092` — limpeza de avatares privados substituídos
+### Ciclo 49 — Identidade Enterprise: Multi-Tenant, RBAC, Convites, Performance (2026-08-30 / 2026-08-31)
+
+Prompt Mestre Enterprise — 15 fases concluídas e verificadas (684/684 testes passando em 100 ficheiros).
+
+#### Fase 2 — Auth & Profiles DDL (`APPLY_IN_SQL_EDITOR.sql`)
+- `public.profiles`: colunas `phone`, `first_name`, `last_name`, `full_name`, `preferred_name`, `avatar_url`, `avatar_path`, `cargo`, `school_id`, `locale`, `timezone`, `status`, `onboarding_status`, `last_active_at`.
+- `handle_new_user()` trigger: `SECURITY DEFINER`, `SET search_path = ''`, graceful metadata fallback, `EXCEPTION WHEN OTHERS THEN`.
+- `public.people.user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL` + `people_user_id_idx`.
+- Buckets storage: `avatars` (privado, URLs assinadas) e `school-logos` (público) com políticas RLS cross-school correctas.
+
+#### Fase 3 — Multi-Tenant & RBAC DDL (`APPLY_ENROLLMENT_AND_PREMIUM.sql`)
+- `public.school_memberships` com `UNIQUE(school_id, user_id)` + lifecycle columns + RLS + `updated_at` trigger.
+- `public.roles`, `public.permissions`, `public.role_permissions`, `public.member_roles` com RLS policies.
+- `public.school_invitations` com `token_hash` (sha256), `expires_at`, status enum, indexes.
+- RLS helpers: `public.is_school_member(uuid)` e `public.has_school_permission(uuid, text)` — ambas `SECURITY DEFINER`, `SET search_path = pg_catalog, public`, REVOKE de PUBLIC.
+
+#### Fase 4 — TypeScript Permissions Module
+- `src/features/auth/permissions.ts` (~260 linhas): `standardPermissions` (49 permissões canónicas), `roleDefaultPermissions`, `hasPermission()`, `canAccessContext()`.
+- `tests/auth/permissions.test.ts` (10 testes).
+
+#### Fase 5 — Access Server Functions & Convites
+- `src/features/access/server.ts`: import ESM estático, person-linking idempotente, `updateSystemAccountCargo`, `setSystemAccountDisabled`, `resendSystemInvite`, `listSchoolInvitations`, `createSchoolInvitation` (SHA-256 token), `revokeSchoolInvitation`, `acceptSchoolInvitation` (validação hash sha-256, expiração, ativação idempotente de membership com role, linking people.user_id).
+- `src/features/access/schemas.ts`: `createSchoolInvitationInputSchema`, `revokeSchoolInvitationInputSchema`, `acceptSchoolInvitationInputSchema`.
+- `src/routes/convite.$token.tsx`: Página pública de aceitação de convite institucional com auto-aceitação para utilizadores autenticados e feedback visual.
+- `src/lib/public-paths.ts`, `src/features/auth/access-policy.ts`, `src/features/auth/route-inventory.ts`: registo de `/convite` como rota pública bypass.
+
+#### Fase 6 — Acessos UI Panel (`src/routes/acessos.tsx`)
+- Painel «Convites institucionais» com tabela de convites, status badge, botão Revogar.
+- `invitationsQuery` com `useQuery`.
+
+#### Fase 7 — Scripts & print-apply-sql
+- `scripts/siga/print-apply-sql.mjs`: adicionados `school_memberships`, `roles`, `permissions`, `school_invitations` às smoke tables.
+
+#### Fase 8 — APPLY_SAAS_PLATFORM.sql (verificação)
+- RLS completo com `is_platform_admin()` em `plans`, `tenants`, `tenant_domains`, `subscriptions`, `tenant_usage`, `saas_audit_logs`, `platform_admins`.
+- Política `platform_admin_read_self` — utilizador vê o próprio registo sem INSERT/DELETE na `authenticated` role.
+
+#### Fase 9 — Multi-School Provisioning & Roles Scoping
+- `src/features/saas/provisioning-core.ts`: roles com escopo explícito `school_id` ou global `is_system=true`.
+- `src/features/saas/school-bootstrap.ts`: seeding de papéis canónicos (`owner`, `admin`, `secretary`, `treasury`, `teacher`, `student`, `guardian`, `user`) por escola recém-criada.
+
+#### Fase 12 — DOC (`painel/docs/guide/sql-sga.md`)
+- Tabela de tabelas novas (Ciclo 49): `school_memberships`, `roles`, `permissions`, `role_permissions`, `member_roles`, `school_invitations`.
+- Documentação das funções de segurança RLS helpers.
+- Tabela completa de índices de performance (Fase 14).
+- Sintomas adicionados: `school_memberships not found`, convites vazios.
+
+#### Fase 14 — Índices Compostos de Performance (`APPLY_ENROLLMENT_AND_PREMIUM.sql`)
+12 índices compostos adicionados (todos idempotentes `CREATE INDEX IF NOT EXISTS`):
+- `people_school_status_idx`, `students_school_status_idx` (WHERE `deleted_at IS NULL`)
+- `enrollments_school_year_status_idx`, `enrollments_school_created_desc_idx`
+- `finance_invoices_school_status_idx`, `finance_invoices_school_created_desc_idx`
+- `school_memberships_user_status_idx`, `member_roles_membership_role_idx`
+- `school_invitations_school_created_desc_idx` (WHERE `status = 'pending'`)
+- `announcements_school_created_desc_idx`, `siga_files_school_created_desc_idx`, `roles_school_code_idx`
+
+#### Fase 15 — Testes Hostis de Isolamento Multi-Tenant & Convites
+- `tests/saas/rls-isolation.test.ts` (56 testes): catálogo de permissões, RBAC por papel, grant overrides, `canAccessContext`, mapeamento SGA↔AppRole, validação defensiva de schemas, Pessoa vs Conta (`user_id NULL`), switching multi-escola.
+- `tests/access/accept-invitation.test.ts` (28 testes): hash SHA-256 determinístico, verificação de expiração, idempotência de membership (reactivação vs inserção), ligação people.user_id por email case-insensitive sem sobrescrita, validação de schema e mapeamento role_code.
+
+### Ciclo 48 — AssessmentCenter + Resend HTTP (2026-08-29)
+
+- **AssessmentCenter:** `CreateAssessmentDialog`, `OfficialPautaView`,
+  `AssessmentViewTables` extraídos (~2200 → ~1780 linhas).
+- **Resend HTTP:** `resend-client.ts` + `sendSchoolResendEmail`; publicar
+  comunicado canal E-mail envia via API (merchant = API key); sem key → clipboard.
+- Gateway failure-rate alerts reutilizam o mesmo cliente.
+- Testes: `tests/integrations/resend-client.test.ts`.
+
+### Ciclo 47 — pontos fracos estruturais (2026-08-29)
+
+- **Auth Fase 10:** middleware ADMIN chama `GET /api/saas/me`; contas escolares
+  são expulsas (`?error=platform`) antes de renderizar o Control Center.
+- **Rotas template → funções reais (não esconder):** ADMIN `/dashboard` (stats),
+  `/dashboard-2` (gateway), `/tasks` (fila), `/calendar` (agenda SaaS), `/mail`
+  (avisos auditoria), `/chat` (suporte operador), `/pricing`/`/faqs`/`/users`.
+  WEB `/dashboard` (visitante + planos API), `/tasks` (checklist), `/mail`
+  (contacto), `/chat` (ajuda), `/calendar`/`/users`/`/dashboard-2`. Pontes
+  `/saas-admin` e `/criar-escola` intactas; alive-bridges só auth/settings.
+- **UI monólito:** `SecurityPanel` → `settings-security-panel.tsx` (re-export
+  em `settings-panels.tsx`).
+- **Firebase analytics:** off por defeito (`VITE_FIREBASE_ANALYTICS=true` para ligar).
+- **Matriz de pontos fracos** actualizada em `ARCHITECTURE_HARMONIZATION.md` §14.
+- Já mitigados antes deste ciclo: SQL checklist/`siga:sql:verify`, porta WEB
+  5174 `--strictPort`.
 
 | Ciclo | O quê                                                                                                                       | Estado                          |
 | ----- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
@@ -60,6 +142,48 @@ estão versionadas localmente:
 | 41    | Suspender cartão + estado catraca + selector/filtro logs                                                                    | Feito                           |
 | 42    | RFID no cartão + renovar QR + API key do dispositivo                                                                        | Feito                           |
 | 43    | Lista de cartões + webhook api_key + validação partilhada                                                                   | Feito                           |
+| 44    | Rota HTTP `/api/catracas/device-scan` + bridge Python → SIGA + pulso no grant                                               | Feito                           |
+| 46    | Navegação unificada: sidebar + launcher + inventário; logótipo só no topo da sidebar                                          | Feito                           |
+
+## Ciclo 46 — navegação, launcher e identidade visual (2026-08-28)
+
+- **Logótipo da escola:** apenas no botão do topo da sidebar (dropdown conta: logótipo + utilizador + escola). `SchoolLogoChip` deixa de fazer fallback automático; cartões, headers e launcher usam `IconChip` + ícones Lucide premium (`app-marks.tsx`).
+- **Fonte única:** `navigation-catalog.ts` (`WORKSPACE_MODULE_SPECS`) alimenta launcher e auditoria; `portal-engine.ts` (`getPortalNavigation`) alimenta sidebar por papel/plano.
+- **Inventário:** `scripts/siga/modules.json` com `navPath` e `secondaryNavPaths` (relatórios académicos/financeiros, faturas). Mapa em `docs/agents/MODULES.md`.
+- **Correcções:** Importar visível (feature `importacao` em `academic`); Secretaria/Tesouraria/Professor com `filterNavGroups`; secção Sistema (Definições + Perfil); apps importar/catracas/planos-aula no waffle.
+- **Validação:** `npm run siga:check` (inventário + `tests/auth/navigation-catalog.test.ts`); CI corre `check-modules.mjs` após `bun run test`. **Node 24** — Node 26 neste macOS aborta (`dyld libc++`).
+
+### Ciclo 46b — auditoria de rotas e DOC (2026-08-28)
+
+- **`route-inventory.ts`** — prefixos conhecidos de rotas UI; testes garantem cobertura RBAC admin e inventário ↔ rotas.
+- **Spotlight** — `spotlightInternalTargets` derivado de `WORKSPACE_MODULE_SPECS` (+ `/perfil`).
+- **DOC:** `painel/docs/siga/navegacao.md` + sidebar VitePress; link «Documentação» na sidebar aponta ao mapa de navegação.
+- **`route-security.md`** — aviso de legado template + link para navegação SIGA real.
+
+### Ciclo 46c — DOC features e links Ajuda (2026-08-28)
+
+- **`guide/features.md`** e **`guide/index.md`** — conteúdo alinhado ao ecossistema real (4 apps, módulos SIGA, RBAC).
+- **`getSigaNavDocUrl()`** + `DOC_PATHS` em `ecosystem-urls.ts`.
+- **Ajuda:** `/pedagogica` → mapa navegação; `/financeiro` → navegação + link «Pagamentos» (integrações EMIS).
+
+### Ciclo 46d — DocHelpButton e estrutura DOC (2026-08-28)
+
+- **`DocHelpButton`** — botão reutilizável de Ajuda (default: mapa de navegação).
+- Ajuda em `/importar`, `/catracas`, `/documentos`; pedagógica/tesouraria usam o mesmo componente.
+- **`DOC_PATHS`** expandido (gateway, ADMIN, suporte); Definições e pontes SaaS usam as constantes.
+- **`guide/project-structure.md`** — árvore real das 4 apps (já não lista rotas fictícias `/admin/academico`).
+
+### Ciclo 46e — Ajuda em todos os módulos + DOC home (2026-08-28)
+
+- **`DocHelpButton`** também em `/arquivos`, `/planos-aula`, `/acessos`, `/faturas` (+ SAFT-AO), `/comunicacoes`, `/calendario`, `/relatorios/*`.
+- **`guide/installation.md`** — arranque real (Node 24, SQL SGA, `dev:ecosystem`), sem fluxo de «licença» fictício.
+- **DOC home** — CTAs e features alinhados a WEB/ADMIN/SIGA/DOC; card SIGA liga ao mapa de navegação.
+
+### Ciclo 46f — drawer, alunos/pessoas e stack DOC (2026-08-29)
+
+- **AccountDrawer:** Perfil → `/perfil`; filtro de atalhos respeita plano; Configurações abre painel `conta`.
+- **Ajuda** em `/alunos` e `/pessoas`; corrigido `InstalledModuleTools` em pessoas (`pessoas`, não `comunicacoes`).
+- **DOC:** `choosing-framework.md` e `tech-stack.md` descrevem as 4 apps (já não «Vite vs Next»).
 
 ## Ciclo 9 — identidade, escola e tesouraria
 
@@ -122,11 +246,18 @@ Ver `supabase/DO_NOT_APPLY_TO_SGA.txt`.
 
 ```sh
 npm run siga:check          # inventário dos módulos
-npm run siga:sql            # lembra o SQL a aplicar
+npm run siga:sql            # checklist SQL SGA (ordem + smoke tables)
+npm run siga:sql:verify     # confirma tabelas na BD (SUPABASE_SECRET_KEY)
 npm run siga:scaffold -- <id> [--route /caminho] [--with-page]
 npm run siga:clean-cache   # cache Vite/Nitro se o dev ficar lento
 npm test                    # vitest (usar Node 24)
 ```
+
+DOC checklist SQL: `painel/docs/guide/sql-sga.md`. Pontes kit→produto:
+`painel/*/src/lib/alive-bridges.ts` (flag `SHOW_TEMPLATE_SURFACES`).
+
+Lacunas pós-verify (gateway / presença / catracas):
+`supabase/APPLY_MISSING_FROM_VERIFY.sql` — `npm run siga:sql:patch` copia e abre o Editor.
 
 Scaffold cria `schemas.ts`, `server.ts`, teste e opcionalmente a rota. Não sobrescreve ficheiros existentes.
 
@@ -152,6 +283,11 @@ quando o daemon estiver disponível, correr as suites em `supabase/tests/`.
 | `siga-arquivos`     | biblioteca de ficheiros, picker Moodle                           |
 | `siga-dashboard`    | dashboard e workspace do professor                               |
 | `siga-lesson-plans` | planos de aula, avaliações/provas por turma-disciplina-trimestre |
+| `siga-ecosystem`    | limites WEB / ADMIN / SIGA / DOC                                 |
+| `siga-web`          | `painel/web` (landing, pricing, wizard comercial)                |
+| `siga-admin`        | `painel/admin` (SaaS Control Center)                             |
+| `siga-docs`         | `painel/docs` (VitePress)                                        |
+| `siga-saas`         | backend SaaS ainda no SIGA (`features/saas`)                     |
 
 Registo canónico: `scripts/siga/modules.json`.
 
@@ -404,6 +540,205 @@ Registo canónico: `scripts/siga/modules.json`.
 - Dispositivos: botão **Key** copia `api_key` para controladores offline.
 - Helpers: `src/features/catracas/gate-pass-token.ts`.
 
+## Ciclo 45 — Harmonização do ecossistema (2026-08-28)
+
+Referência canónica: [`docs/agents/ARCHITECTURE_HARMONIZATION.md`](./ARCHITECTURE_HARMONIZATION.md).
+
+Implementado sem unificar frontends:
+
+- URLs em cada app (`ecosystem-urls.ts` / `VITE_*` / `NEXT_PUBLIC_*`).
+- API HTTP no SIGA (mesmo `provisionTenantCore`): `/api/saas/signup`, `/plans`, `/tenants`, `/stats`, `/tenants/status`.
+- WEB: `/` = landing; `/start` = wizard (componentes do WEB) → API → SIGA.
+- ADMIN: `/tenants` (layout Next existente) consome a API; «Nova escola» abre o WEB.
+- SIGA `/saas-admin` e `/criar-escola` são pontes (redirect automático para WEB `/start`). Login «criar escola» → WEB. Menu: Documentação (DOC) e Planos (WEB).
+- Assinatura suspensa no SIGA: CTA para planos WEB + suporte DOC.
+- `npm run siga:sync-env` propaga `.env` raiz → `painel/web/.env.local` e `painel/admin/.env.local`.
+- ADMIN `/` redirecciona para `/tenants`. DOC: nav e cards com links para WEB/ADMIN/SIGA.
+- Fase 10 (parcial): `GET /api/saas/me` (ADMIN valida `platform_admins`); login ADMIN bloqueia contas escolares; middleware protege `/tenants` e `/settings/billing`; `PlatformAdminGate` no layout; login «Control Center SaaS».
+- Fase 12 (parcial): `fetchSaaSStats` soma `tenant_usage` (não `students` global); lista tenants com alunos/trial; SIGA bloqueia trial expirado.
+- ADMIN `/settings/billing` = catálogo SaaS via API (não mock template).
+- Fase 13 (parcial): `POST /api/saas/usage/sync` + botão «Sync utilização» no ADMIN; `npm run siga:e2e-smoke`; testes de contrato em `tests/saas/ecosystem-flow.test.ts`.
+- Provisionamento chama `syncTenantUsageForSchool`; signup devolve `adminTenantsUrl`; WEB `/start` ecrã final com DOC; ADMIN sidebar com sessão Supabase real.
+- **Gating por plano (SIGA):** `plan-features.ts` — menu e rotas respeitam `plans.features`; banner de trial; «Criar escola» → WEB.
+- **Sync automático:** `queueTenantUsageSync` após criar/alterar alunos → `tenant_usage` no ADMIN.
+- **Limites de alunos:** `tenant-limits.ts` + `assertCanAddStudentForSchool` em `createStudent`/`enrollNewStudent`; banner no `AppShell` e `/alunos` (≥90% / limite; botão Nova Matrícula desactivado); badge «Limite» no ADMIN `/tenants`; testes `tests/saas/tenant-limits.test.ts`.
+- **ADMIN middleware:** `/settings` (incl. billing) exige sessão Supabase como `/tenants`.
+- **Smoke Fase 13:** `siga:e2e-smoke` inclui `GET /api/saas/me` (401 anónimo).
+- **Billing operacional (ADMIN):** `POST /api/saas/tenants/subscription` (plano + prolongar trial); botão «Gerir» em `/tenants`.
+- **Operadores SaaS:** `/platform-admins` + API `GET/POST /api/saas/platform-admins` e `POST .../revoke`; `/audit` + `GET /api/saas/audit-logs`.
+- **Domínios:** `/domains` + `GET/POST /api/saas/domains` e `POST /api/saas/domains/status` (custom pending → active/failed); link «Domínios» por tenant em `/tenants`; testes schema; smoke E2E inclui APIs e rota ADMIN.
+- **Subscrições:** tabela `subscriptions` populada no `provisionTenantCore` e sincronizada em `updateTenantSubscription`; `/subscriptions` + `GET /api/saas/subscriptions`; backfill `POST /api/saas/subscriptions/backfill`.
+- **DOC ADMIN:** `painel/docs/admin/control-center.md` — manual do Control Center; ponte `/saas-admin` com links directos às rotas ADMIN.
+- **DOC WEB:** `painel/docs/web/criar-escola.md` — wizard `/start`, API signup, testes E2E.
+- **CI @live (opcional):** `prepare-ci-env.mjs` + step Playwright com `SUPABASE_SECRET_KEY`; smoke inclui páginas DOC WEB/ADMIN.
+- **Playwright Fase 13:** `scripts/siga/e2e-ecosystem-playwright.py` + `npm run siga:e2e-playwright` (smoke + UI); espelho TS em `tests/e2e/`; `@live` com `SIGA_E2E_LIVE=1` (incl. login SIGA pós-provisionamento).
+- **CI:** job `ecosystem-e2e` — arranca 4 apps, `SIGA_E2E_CI=1` smoke, Playwright wizard; scripts `start/wait/stop-ecosystem-ci.mjs`.
+- `npm run dev:ecosystem` arranca as 4 apps. SIGA pedagógica: botão Ajuda → DOC.
+
+### Ciclo ecossistema 5 (2026-08-28) — bootstrap, DNS, demo, DOC
+
+- **Bootstrap pós-provisionamento:** `bootstrapSchoolDefaults` (ano lectivo, propinas, matrícula pública, académico mínimo); resposta signup inclui `bootstrapSeeded`.
+- **Tenant lookup:** `GET /api/saas/tenants/lookup?slug=` + `tenant-lookup.ts`; resolução custom domain em `tenant-resolver.ts`.
+- **DNS verify:** `POST /api/saas/domains/verify` + UI ADMIN «Verificar DNS».
+- **Financeiro onboarding:** `FeePlanSettingsForm`, alertas `missingActiveFeePlan`, dashboard «Primeiros passos».
+- **E2E:** `npm run siga:e2e-live` (provisionamento real + lookup); smoke actualizado.
+- **Demo seed:** `npm run siga:sql:demo` (ordem SQL) + `npm run siga:seed-demo` (gera `SEED_ESCOLA_DEMO_FULL.sql`).
+- **Tenant demo:** `SEED_ESCOLA_DEMO.sql` liga slug `dom-afonso-demo` → ADMIN + lookup API.
+- **Financeiro:** `financeInvoiceBlocked` desactiva «Emitir fatura» em `/financeiro` quando schema/plano incompleto.
+- **Académico:** `ensureAcademicDefaults` delega em `ensureAcademicDefaultsCore` (`academic-bootstrap.ts`); Pedagógica também cria nível, classe e turma inicial.
+- **Gateway financeiro:** `POST /api/finance/gateway/confirm` + referências EMIS determinísticas; API key em Integrações → Multicaixa; `npm run siga:gateway-simulate`; UI «Referência EMIS» em `/faturas`; painel Integrações mostra URL + API key.
+- **Demo usage:** `npm run siga:sync-demo-usage` após seed completo (métricas ADMIN).
+- **DOC:** `web/onboarding-pos-criacao.md`, `admin/domains.md`; actualizados `criar-escola.md`, `fluxos.md`, `control-center.md`.
+
+### Ciclo ecossistema 11 (2026-08-28) — matrícula pública E2E
+
+- **`getPublicEnrollmentUrl(slug)`** em `ecosystem-urls.ts` — link `/matricula/$slug` (slug do tenant = slug do formulário no bootstrap).
+- **Dashboard:** `getDashboardOverview` expõe `enrollmentPublicLink`; «Primeiros passos» mostra URL partilhável quando o formulário está aberto.
+- **Smoke:** `GET /matricula/dom-afonso-demo` em `siga:e2e-smoke`.
+- **Live E2E:** após signup API, verifica `GET /matricula/{slug}` → 200.
+
+### Ciclo ecossistema 12 (2026-08-28) — matrícula @live + gateway produção
+
+- **Playwright @live:** `tests/e2e/enrollment-live.spec.ts` — signup → candidatura pública → login admin → aceitar → `student_id` na BD.
+- **Helper:** `tests/e2e/helpers/sga-live-admin.ts` (password E2E + consultas Supabase).
+- **EMIS por escola:** `resolveSchoolEmisEntity` / `emisEntityFromIntegrationConfig` — lê `merchantId` (4–6 dígitos) em Integrações → Multicaixa; planos de pagamento usam entidade configurada.
+- **Webhook Unitel:** `POST /api/finance/gateway/unitel/confirm` (canal `unitel_money` fixo); UI Integrações mostra URL dedicada.
+- **API key gateway:** validação só via `webhookApiKey` (não confunde com merchant EMIS).
+
+### Ciclo ecossistema 13 (2026-08-28) — PaymentReferenceCard + cleanup E2E
+
+- **`PaymentReferenceCard`:** carrega referência via `generateInvoicePaymentReference` (entidade EMIS da escola em Integrações).
+- **`generateInvoicePaymentReference`:** autenticado, valida fatura da escola, devolve `emisEntity` + referência determinística.
+- **Cleanup @live:** `cleanupE2ETenantBySlug` — só slugs `e2e-*` / `web-*` / `mat-*` e e-mail `@siga-plus.test`; testes Playwright `@live` removem tenant no `finally`.
+- **CLI:** `npm run siga:e2e-cleanup-stale` (`--dry-run`) — tenants E2E órfãos na BD.
+
+### Ciclo ecossistema 14 (2026-08-28) — Python @live + lib cleanup
+
+- **`e2e-cleanup-lib.mjs`:** lógica partilhada de cleanup (usada por stale, tenant CLI e Python).
+- **`npm run siga:e2e-cleanup-tenant -- --slug=… --email=…`** — remove um tenant E2E.
+- **Python `@live`:** `e2e-ecosystem-playwright.py` faz cleanup no `finally` após signup API e wizard; verifica `GET /matricula/{slug}`.
+- **DOC:** `criar-escola.md` — comandos Playwright TS `@live` e cleanup stale.
+
+### Ciclo ecossistema 15 (2026-08-28) — CI Playwright TS @live
+
+- **`@playwright/test`** (devDependency) + scripts `siga:e2e-playwright-ts` e `siga:e2e-playwright-live`.
+- **CI `ecosystem-e2e`:** Playwright TS rotas/wizard sempre; `@live` Python + TS quando `SUPABASE_SECRET_KEY`; cleanup stale no `finally`.
+- **`siga:e2e-playwright`:** orquestra smoke → TS → Python → [@live] TS + cleanup stale.
+
+### Ciclo ecossistema 16 (2026-08-28) — artefactos Playwright CI
+
+- **`playwright.config.ts`:** `outputDir`, reporter HTML, `trace`/`video` `retain-on-failure` na CI.
+- **CI:** upload artefacto `playwright-e2e-report` (HTML + traces) quando o job falha (14 dias).
+- **`.gitignore`:** `test-results/`, `playwright-report/`.
+- **`npm run siga:e2e-playwright-report`** — ver relatório local após falha.
+
+### Ciclo ecossistema 17 (2026-08-28) — CI @live nocturno
+
+- **Workflow** `.github/workflows/ecosystem-e2e-live.yml` — cron `03:00 UTC` + `workflow_dispatch`.
+- **`siga:e2e-live-only`** / `e2e-ecosystem-live.mjs` — smoke + Python `@live` + Playwright TS `@live` + cleanup (sem repetir suite não-live).
+- Skip automático quando `SUPABASE_SECRET_KEY` não está configurado (forks / repos sem secrets).
+- Artefacto `playwright-e2e-live-report` em falhas.
+
+### Ciclo ecossistema 18 (2026-08-28) — alertas Slack E2E
+
+- **`notify-ci-failure.mjs`** — POST opcional para Slack (`SLACK_E2E_WEBHOOK_URL`).
+- **Jobs `notify`:** em `ecosystem-e2e-live.yml` (nocturno) e `ci.yml` (`ecosystem-e2e-notify` em falha de PR/push).
+- **DOC / `.env.example`:** secret Slack documentado.
+
+### Ciclo ecossistema 19 (2026-08-28) — alertas e-mail + DOC gateway
+
+- **`notify-ci-failure.mjs`** — complemento Resend (`RESEND_API_KEY`, `E2E_ALERT_EMAIL_TO`, `E2E_ALERT_EMAIL_FROM` opcional); Slack + e-mail em paralelo; exit 0 se nenhum canal configurado.
+- **DOC:** `painel/docs/integracoes/emis-multicaixa-unitel.md` — webhooks EMIS e Unitel, entidade por escola, teste local.
+- **Sidebar VitePress** `/integracoes/` + link em `fluxos.md` e `GatewayWebhookHint` (Definições → Integrações).
+
+### Ciclo ecossistema 20 (2026-08-28) — E2E @live gateway EMIS
+
+- **`tests/e2e/gateway-live.spec.ts`** — signup → fatura + plano `pending_gateway` → POST webhook → fatura `paid` + plano `settled`.
+- **Dois cenários:** `SIGA_GATEWAY_DEV_API_KEY` (modo dev) e `webhookApiKey` por escola (Integrações).
+- **Helpers** em `sga-live-admin.ts`: `seedE2EGatewayFixture`, `installE2EMulticaixaIntegration`, slugs `gw-*`.
+- **CI:** `prepare-ci-env.mjs` injecta `SIGA_GATEWAY_DEV_API_KEY`; incluído em `siga:e2e-playwright-live`.
+
+**Próximo opcional:** integração real EMIS/Unitel no portal externo (credenciais de produção).
+
+### Ciclo ecossistema 21 (2026-08-28) — E2E @live Unitel
+
+- **`gateway-live.spec.ts`** — dois cenários Unitel: dev key + `webhookApiKey` da escola em `POST /api/finance/gateway/unitel/confirm`.
+- **`installE2EUnitelIntegration`** + `seedE2EGatewayFixture({ channel: "unitel_money" })` em `sga-live-admin.ts`.
+- **DOC** integrações — três modos de verificação @live (EMIS dev, EMIS escola, Unitel).
+
+**Próximo opcional:** credenciais reais no portal EMIS/Unitel (externo ao SIGA).
+
+### Ciclo ecossistema 22 (2026-08-28) — checklist produção gateway
+
+- **DOC:** `painel/docs/integracoes/gateway-producao.md` — fases operador/escola/portal banco, go-live, segurança.
+- **Sidebar** + links em onboarding, fluxos, `GatewayWebhookHint`, manual EMIS/Unitel.
+- **CLI:** `npm run siga:gateway-simulate -- --unitel` — simulador Unitel (URL `/unitel/confirm`).
+
+**Próximo opcional:** runbook suporte (escalation quando webhook falha em produção).
+
+### Ciclo ecossistema 23 (2026-08-28) — runbook suporte gateway
+
+- **DOC:** `painel/docs/integracoes/gateway-runbook-suporte.md` — triagem, mapa HTTP→acção, L1–L4, confirmação manual.
+- **Sidebar** + links em checklist produção, manual EMIS/Unitel, `GatewayWebhookHint`.
+- **Índice** integrações — entrada «Incidentes webhook».
+
+**Próximo opcional:** métricas/alertas de webhook falhado (observabilidade produção).
+
+### Ciclo ecossistema 24 (2026-08-28) — observabilidade webhook gateway
+
+- **Tabela** `finance_gateway_webhook_events` em `APPLY_IN_SQL_EDITOR.sql` (RLS leitura Administrador/Tesouraria).
+- **`gateway-webhook-telemetry.ts`** — `recordGatewayWebhookEvent`: log JSON, insert SGA, Slack opcional (`SIGA_GATEWAY_ALERT_SLACK_URL`).
+- **Handler** `runFinanceGatewayWebhook` regista cada tentativa (sucesso ou falha).
+- **UI** Definições → Integrações: últimos 5 webhooks por canal em `GatewayWebhookHint`.
+- **CLI** `npm run siga:gateway-events-recent [--failures-only] [--limit=N]`.
+- **Testes** `tests/finance/gateway-webhook-telemetry.test.ts`.
+
+### Ciclo ecossistema 25 (2026-08-28) — dashboard ADMIN webhooks gateway
+
+- **API** `GET /api/saas/gateway-webhooks` — `platform_admins`, agrega `finance_gateway_webhook_events` cross-tenant.
+- **`gateway-webhook-metrics.ts`** — função pura `aggregateGatewayWebhookMetrics` (24h, 7d, por canal, top escolas).
+- **ADMIN** `/gateway-webhooks` — cartões resumo + tabelas falhas recentes e escolas afectadas.
+- **Sidebar** + command search + `fetchGatewayWebhookMetrics` em `painel/admin/src/lib/saas-api.ts`.
+- **Testes** `tests/finance/gateway-webhook-metrics.test.ts`.
+
+### Ciclo ecossistema 26 (2026-08-28) — alerta taxa de falha gateway
+
+- **`gateway-failure-rate-alert.ts`** — avalia taxa 24h, Slack/Resend, cooldown via `saas_audit_logs` (`GATEWAY_FAILURE_RATE_ALERT`).
+- **Telemetria** — após falha HTTP ≥ 400, `recordGatewayWebhookEvent` dispara verificação assíncrona.
+- **CLI** `npm run siga:gateway-failure-rate-check` — cron horário sugerido.
+- **ADMIN** `/gateway-webhooks` — banner quando taxa 24h ≥ 25% (≥ 5 eventos).
+- **Testes** `tests/finance/gateway-failure-rate-alert.test.ts`.
+
+**Próximo opcional:** credenciais reais EMIS/Unitel no portal externo (fora do SIGA).
+
+### Ciclo ecossistema 27 (2026-08-28) — portal banco + CI horária
+
+- **DOC:** `painel/docs/integracoes/gateway-portal-banco.md` — modelo e-mail/ticket EMIS/Unitel, checklist portal.
+- **Checklist produção** Fase 6 observabilidade; links cruzados manual EMIS + índice.
+- **CI:** `.github/workflows/gateway-failure-rate-check.yml` — cron horário (secrets opcionais).
+- **ADMIN** `/gateway-webhooks` — último alerta de taxa (`GATEWAY_FAILURE_RATE_ALERT`).
+- **Auditoria** — badge «Alerta taxa webhook» para acção de rate alert.
+
+### Ciclo ecossistema 28 (2026-08-28) — rotação webhookApiKey
+
+- **`gateway-webhook-key.ts`** — geração, rotação, match com graça 24h (`webhookApiKeyPrevious`).
+- **`rotateGatewayWebhookApiKey`** — server fn Administrador; actualiza `school_integrations`.
+- **Handler** `resolveGatewaySchoolByApiKey` aceita key anterior dentro da graça.
+- **UI** Definições → Integrações — botão «Rotacionar key» + aviso de graça activa.
+- **Testes** `tests/integrations/gateway-webhook-key.test.ts`.
+- **DOC** checklist produção + manual EMIS/Unitel.
+
+### Ciclo ecossistema 29 (2026-08-28) — SAFT-AO / AGT exportação
+
+- **Correcção:** `exportSaftAoXml` lia tabela `invoices` inexistente — passou a `finance_invoices` com alunos/contratos.
+- **`saft-export.ts`** — validação NIF AGT, período fiscal, mapeamento faturas.
+- **UI** `/faturas` — submenu SAFT por ano fiscal + toasts de aviso.
+- **AGT** — certificação software do painel Financeiro entra no XML.
+- **DOC** `painel/docs/financeiro/saft-agt-exportacao.md`.
+- **Testes** `tests/finance/saft-export.test.ts`.
+
+**Próximo opcional:** recibos FR no SAFT ou validação XSD AGT offline.
+
 ## Ciclo 43 — lista de cartões e webhook físico
 
 - `listAccessCards` + painel em `/catracas` (pesquisa, filtro estado, suspender/reactivar).
@@ -412,9 +747,164 @@ Registo canónico: `scripts/siga/modules.json`.
 - `issueAccessCard` para emitir cartão a pessoa/staff.
 - Controlador: POST com `{ apiKey, token, direction }` → `{ granted, personName, … }`.
 
+## Ciclo 44 — bridge Python ligado ao SIGA
+
+- Rota HTTP pública `POST /api/catracas/device-scan` (sem CSRF/sessão) — autentica por `apiKey` do dispositivo.
+- Handler partilhado em `device-webhook-handler.ts` (UI serverFn + rota HTTP).
+- Daemon Python: webhook `/hardware/webhook/scan` chama o SIGA, regista log e dispara relé se `granted`.
+- Config local `siga_hardware_bridge_config.json`: URL SIGA, API key, IP relé (`GET|POST /hardware/bridge-config`).
+- UI desktop: secção «Validação SIGA» em `WindowsDesktopSettingsModal`.
+
+## Ciclo 49 — Modularização de Monólitos UI e Suíte de Testes WhatsApp
+
+- **Modularização de `settings-panels.tsx` (1658 linhas → 19 linhas)**:
+  - Extraído `settings-shortcuts-row.tsx`: atalhos de módulos.
+  - Extraído `settings-school-panel.tsx`: preferências institucionais, anos lectivos e validação Zod.
+  - Extraído `settings-billing-panel.tsx`: parâmetros de propinas e regras de cobrança.
+  - Extraído `settings-finance-panel.tsx`: dados bancários (IBAN BNA) e AGT.
+  - Extraído `settings-pedagogical-panel.tsx`: níveis angolanos e perfil superior.
+  - `settings-panels.tsx` convertido em hub de re-exports (zero breaking changes).
+- **Modularização de `src/routes/pedagogica.tsx` (1727 linhas → 570 linhas)**:
+  - Extraído `AssignTeacherForm.tsx`: ligação de professores a turmas/disciplinas.
+  - Extraído `TurmasWorkspaceTab.tsx`: grelha de turmas, ocupação, integrações LMS e filtros.
+  - Extraído `DisciplinasWorkspaceTab.tsx`: catálogo por ciclos angolanos, taxas de aprovação e acções.
+- **Modularização de `FileBrowser.tsx` (1740 linhas → 1360 linhas)**:
+  - Extraído `FileBrowserNav.tsx`: repositórios (escola, secretaria, pessoal, público) e OneDrive.
+  - Extraído `FileBrowserGrid.tsx`: grelha de cartões com selecção e progresso de upload.
+  - Extraído `FileBrowserTable.tsx`: tabela detalhada de ficheiros, IDs e auditoria de acções.
+- **Integração WhatsApp Client**:
+  - `whatsapp-client.ts` coberto por suíte de testes unitários `tests/integrations/whatsapp-client.test.ts` (normalização E.164, limite de 50 destinatários, resolução de credenciais e mock HTTP Graph API).
+- **Qualidade & Validação**:
+  - `npm run siga:check` 100% verde (16 módulos verificados).
+  - 92 ficheiros de teste e 560 testes a passar em Node 24.
+
+## Ciclo 50 — Correção Integral de Tipos, Resolução de Erros e Estabilidade do Build
+
+- **Resolução de Erros de Tipos (TypeScript 100% Limpo — 0 Erros com `tsc --noEmit`)**:
+  - `src/routes/faturas.tsx` & `src/routes/financeiro.tsx`: importação do utilitário `cn`.
+  - `src/features/academic/AssessmentCenter.tsx`: corrigido `<Stat>` para `<AssessmentStat>` em estatísticas.
+  - `src/features/auth/server.ts`: tipagem forte de `EnrollmentRow` para leitura de médias e assiduidade sem restrição indevida.
+  - `src/features/catracas/components/AccessCardsPanel.tsx`: tipagem estrita de `onChange` no `ListFilterBar`.
+  - `src/routes/calendario.tsx`: assinatura tipada com `{ dia?: string }` em `validateSearch`, tornando a propriedade `search` opcional nos links.
+  - `src/features/dashboard/portals/GuardianPortalDashboard.tsx` & `StudentPortalDashboard.tsx` & `TeacherPortalDashboard.tsx`: passagem correcta de argumentos em `data: { ... }` para `createServerFn`.
+  - `src/features/pedagogica/components/AttendanceCallDialog.tsx` & `AttendanceJustificationModal.tsx`: passagem de `data` nas mutações e queries de chamadas/justificativas.
+  - `src/features/pedagogica/components/AttendanceWorkspaceModule.tsx`: importação de `ReviewAttendanceJustificationModal` e normalização de queries.
+  - `src/features/pedagogica/components/TurmasWorkspaceTab.tsx`: tratamento de `t.code` nulo para `classroomCourseHref`.
+  - `src/features/saas/tenant-limits.ts`: flexibilização de tipo `TenantCapacityInput` suportando tenant completo ou campos parciais.
+  - `src/features/integrations/install.ts`: adicionado módulo `"pessoas"` a `SigaHostModule` e `moduleLabel`.
+  - `src/lib/desktop-utils.ts`: importação dinâmica resiliente com fallback para o plugin nativo do Tauri.
+- **Validação de Qualidade Global**:
+  - `npx tsc --noEmit`: **0 erros** (código 0).
+  - `npm run siga:check`: **16 módulos validados com sucesso**.
+  - `npm test`: **92 ficheiros de teste e 560 testes aprovados** (100% verde).
+  - `npm run build`: **compilação em 6.26 segundos** sem qualquer falha.
+
+## Ciclo 51 — Validador SAF-T AGT Offline e Paginação Canónica
+
+- **Validador Estrutural SAF-T AO (Portaria n.º 63/19 da AGT)**:
+  - Criado `src/features/finance/saft-validator.ts`: validação offline do ficheiro XML gerado (tags obrigatórias de cabeçalho, NIF, contagem real vs. declarada de faturas e integridade dos totais fiscais).
+  - Integrado em `src/routes/faturas.tsx`: opção "Validar Estrutura AGT" no dropdown e validação instantânea no download de SAF-T.
+  - Testes unitários em `tests/finance/saft-validator.test.ts` (3 testes aprovados).
+- **Componente Canónico de Paginação (`ListPaginationBar`)**:
+  - Criado `src/components/filters/ListPaginationBar.tsx`: controlo unificado com intervalo dinâmico, seletor de itens por página e paginação acessível.
+  - Integrado nas listagens de `/alunos` e `/faturas`.
+  - Testes unitários em `tests/ui/pagination-bar.test.ts` (3 testes aprovados).
+- **Validação & Estado**:
+  - `npx tsc --noEmit`: **0 erros**.
+  - `npm run siga:check`: **16 módulos verificados com sucesso**.
+  - `npm test`: **94 ficheiros · 566 testes aprovados** (100% verde).
+
+## Ciclo 52 — Conformidade AGT, SAF-T AO com Recibos (RG/RC), Harmonização de Loading e Realtime
+
+- **SAF-T AO Avançado (Portaria n.º 63/19 e Decreto Presidencial 312/18)**:
+  - `src/features/finance/saft-generator.ts`: adicionado suporte completo ao bloco `<Payments>` com tipos `RG` (Recibo Geral) e `RC` (Recibo de Caixa), referenciando `<OriginatingON>` e `<SettlementAmount>`.
+  - Suporte completo aos tipos fiscais `FT`, `FR`, `FS`, `NC`, `ND`, `RG` e `RC`.
+  - `src/features/finance/saft-validator.ts`: validação de recibos, datas de transação e acumulação de `grossPaymentsTotal`.
+  - Testes em `tests/finance/saft-generator.test.ts` e `tests/finance/saft-validator.test.ts`.
+- **Harmonização do Estilo de Loading (Admin → SIGA)**:
+  - Criado `src/components/ui/page-loading.tsx` e `src/components/ui/loading-spinner.tsx` replicando o estilo do `painel/admin` com spinner circular limpo e legenda contextual.
+  - Integrado em `AuthGate.tsx`, `RouteAccessGate.tsx` e `src/routes/__root.tsx` (`pendingComponent`).
+  - Loadings internos (botões, formulários, tabelas, modais) rigorosamente preservados.
+- **Realtime (Supabase postgres_changes)**:
+  - `src/features/messages/StaffMessenger.tsx`: canal Realtime para `direct_messages` — atualizações instantâneas de DMs sem polling periódico.
+  - `src/routes/comunicacoes.tsx`: canal Realtime para `school_announcements` — feed de comunicados atualiza ao vivo.
+- **Correção crítica: Comunicações (`school_announcements`)**:
+  - `src/features/communications/schemas.ts`: corrigidos `audience` options de `['school']` para os 5 valores reais da constraint DB: `all_guardians`, `guardians_with_debt`, `students_secondary`, `students_finalists`, `teaching_staff`.
+  - `src/features/communications/server.ts`: corrigido nome de tabela de `announcements` → `school_announcements`; removidos mapeamentos de status `published/archived` que não existem na DB; `archiveSchoolAnnouncement` usa soft-delete via `deleted_at`; todas as queries filtram `deleted_at IS NULL`.
+  - `src/routes/comunicacoes.tsx`: `audienceLabel` atualizado com todos os 5 destinos reais; fallback corrigido de `'school'` → `'all_guardians'`.
+  - Testes de `tests/communications/schemas.test.ts` expandidos: **10 testes** incluindo validação de que `'school'` é rejeitado e todos os 5 valores DB são aceites.
+- **Documentação e Dossiê Fiscal**:
+  - Atualizado `painel/docs/financeiro/saft-agt-exportacao.md` e gerado dossiê fiscal técnico sobre a AGT e o ensino em Angola.
+- **Validação & Estado**:
+  - `npm run siga:check`: **100% aprovado**.
+  - `npm test`: **100 ficheiros · 688 testes aprovados** (100% verde em Node 24).
+
+## Ciclo 53 — Realtime Dashboard, Correção Comunicações e Testes Catracas
+
+- **Correção crítica: `announcements` → `school_announcements`**:
+  - `src/features/communications/server.ts`: corrigido nome de tabela de `announcements` → `school_announcements`; eliminados mapeamentos de status `published↔sent` e `archived↔cancelled` que não existiam na DB; `archiveSchoolAnnouncement` agora usa soft-delete via `deleted_at`; todas as queries filtram `deleted_at IS NULL`.
+  - `src/features/communications/schemas.ts`: `announcementAudienceOptions` expandido de `['school']` para os 5 valores reais da constraint DB: `all_guardians`, `guardians_with_debt`, `students_secondary`, `students_finalists`, `teaching_staff`.
+  - `src/routes/comunicacoes.tsx`: `audienceLabel` atualizado com todos os 5 destinos reais; fallbacks corrigidos de `'school'` → `'all_guardians'`.
+  - `tests/communications/schemas.test.ts`: expandido de 6 → **10 testes**; valida que `'school'` é rejeitado e todos os 5 valores DB são aceites.
+- **Realtime — Dashboard (`src/routes/index.tsx`)**:
+  - Adicionado `useEffect` com canal `dashboard_realtime_overview` subscrevendo a `*` em `students`, `*` em `enrollments`, `INSERT` em `invoices` e `INSERT` em `school_announcements`.
+  - Ao receber qualquer evento, invalida `["dashboard", "overview"]` automaticamente.
+  - Cleanup correcto com `supabase.removeChannel(channel)`.
+- **Testes catracas — `gate-pass-validation` (`tests/catracas/gate-pass-validation.test.ts`)**:
+  - **CRIADO** — **12 testes** cobrindo os casos mais críticos de acesso:
+    - Dispositivo offline/manutenção → bloqueado sem tocar na BD.
+    - Cartão não encontrado → negado + log.
+    - Cartão suspenso/inactivo/cancelled → negado com razão correcta.
+    - Aluno inactivo com cartão activo → negado.
+    - Staff sem `student_id` → acesso concedido.
+    - Entrada e saída com cartão e aluno activos → acesso concedido com `direction`, `timestamp`, `cardNumber`, `studentId`.
+    - `findGatePassCard`: retorno correcto, null e iteração de múltiplos tokens.
+- **Validação & Estado**:
+  - `npm run siga:check`: **100% aprovado**.
+  - `npm test`: **101 ficheiros · 700 testes aprovados** (100% verde em Node 24).
+
+## Ciclo 54 — Cobertura UI Realtime e Expansão de Testes Pedagógicos
+
+- **Subscrições Realtime em Rotas Principais**:
+  - `src/routes/faturas.tsx`: Escuta as tabelas `invoices` (INSERT, UPDATE) e `payments` (INSERT). Invalida `["finance", "invoices"]`, `["finance", "reporting"]`, e `["dashboard", "overview"]` mantendo os painéis financeiros vivos.
+  - `src/routes/documentos.tsx`: Escuta a tabela `siga_document_requests` (*). Invalida `["documents", "workspace"]` e `["dashboard", "overview"]` (ideal para pedidos entrados no portal do aluno/encarregado).
+  - `src/routes/alunos/index.tsx`: Escuta `students` (*) e `enrollments` (*). Invalida `["students", "search"]` e `["dashboard", "overview"]`.
+  - `src/features/messages/StaffMessenger.tsx`: **Correção crítica** — a tabela de mensagens diretas no backend era `siga_direct_messages` mas o cliente realtime estava a escutar `direct_messages`. Corrigido para a tabela correta para fazer os chats funcionarem em tempo real.
+- **Sincronização de Dados (Integração EMIS)**:
+  - Scaffolding de `src/features/integrations/emis.ts` (normalização rigorosa de classes/anos lectivos usando taxonomia EMIS).
+  - Criado payload builder `buildEmisExportPayload` para mapear dados internos para a taxonomia estatal de forma previsível (lidando também com géneros cruzados).
+  - Testes com ordem hierárquica inversa de "matching" de substrings (`12ª` antes de `2ª`) garantindo output robusto.
+  - Interface do módulo de alunos atualizada para usar este formato rigoroso através da acção "Formato SIGE".
+- **Sistema Bancário Angolano (`src/lib/angola-banking.ts`)**:
+  - Dicionário `ANGOLA_BANK_CODES` massivamente expandido com os principais bancos comerciais (BMA, BCI, BE, BNI, Yetu, Access Bank, Sol, BCA).
+  - Ficheiro `angola-banking.test.ts` expandido para validar os novos bancos comerciais e mapeamento nulo para desconhecidos.
+- **Centro de Avaliação (Assessment Center)**:
+  - Corrigido um *bug* na função `copyPreviousTerm` e no parse do estado inicial onde notas em branco (`null` na DB) eram convertidas para a string `"null"`, causando lixo visual no painel do professor. Agora faz fall-back para empty string `""` corretamente.
+- **Ecossistema SaaS e Lógica Central**:
+  - Tabela `school_invitations` restaurada e aprovisionada no Supabase de produção, fechando a lacuna de 30/31 tabelas no verificador (`npm run siga:sql:verify`). As verificações da base de dados encontram-se a 100%.
+  - Nova suite `tests/saas/public-signup.test.ts` construída para atestar e cobrir a proteção heurística de limite de taxa (*rate-limiting* por IP e por Email) no percurso do Funil Comercial (Inscrição Escolar SaaS).
+- **Testes da Área Pedagógica (`tests/pedagogica/pautas.test.ts`)**:
+  - **Expandido** de 6 para **24 testes**.
+  - Cobertura completa adicionada para: `isGrade`, `normalizeGrade`, `roundGrade`, `formatGrade`.
+  - Novos testes para `calculateExamFinalGrade` com verificação de pesos (ex. NF = MFD*0.6 + Exame*0.4) e handling de fallbacks null.
+  - Novos testes para `deriveElectronicStatusClass` garantindo as cores corretas por estado (verde/APROVADO, vermelho/REPROVADO, âmbar/ADMITIDO).
+- **Testes de Alertas no Dashboard (`tests/dashboard/alerts.test.ts`)**:
+  - **Expandido** de 2 para **9 testes** abrangendo todos os 4 tipos de avisos (`candidaturas`, `matricula`, `documentos`, `faturas`).
+  - Cobertura completa de singulares, plurais e rotas de encaminhamento (links e painéis de definições).
+- **Inteligência Preditiva (Fase 2 - ML Suggestions)**:
+  - Novo motor `dashboard-overview` embutido. Sugestões contextuais (`dashboard-suggestion-rules.ts`) analisam candidaturas pendentes, configuração do ano letivo e calendário. As sugestões geradas mapeiam diretamente para o `ContextualActionsPanelHost` na *home* da escola.
+  - Criado o `narrative-engine.ts` que compila relatórios contextuais em formato SMS humano a partir de *snapshots*. O motor infere e acopla a sugestão "Partilhar Relatório de Inteligência" sempre que um encarregado esteja associado ao perfil.
+- **Validação & Estado**:
+  - `npm run siga:check`: **100% aprovado**.
+  - `npm test`: **102 ficheiros · 721 testes aprovados** (100% verde em Node 24).
+
 ## Próximos passos úteis
 
-1. Utilizador aplica o SQL; confirmar as 6 tabelas no resultado do script.
+0. **Ecossistema:** seguir Fases 10–13 em `ARCHITECTURE_HARMONIZATION.md`. Não
+   unificar frontends. Não apagar `/saas-admin` sem destino no ADMIN.
+0b. **Dívida UI:** realtime nas DMs e canais de comunicação.
+0c. **Integrações:** credenciais reais de portal bancário e sincronização automática EMIS.
+1. Utilizador aplica o SQL; confirmar com `npm run siga:sql:verify`.
 2. Manter commits pequenos por alteração e nunca incluir `.env` nem `.claude/worktrees/`.
 3. Aceitar candidatura cria aluno, encarregado (se veio no formulário) e opcionalmente turma (`classGroupId`). Sem turma fica `applicant`. Em `/alunos`: **Turma** (candidato), **Mudar** (activo), **Estado** e PDF **Oficial**. Campanha de matrícula (Definições) liga a `/documentos#modelos` para talões.
 4. Emitir em `/documentos` usa o modelo `.hbs` escolhido em **Modelos de impressão** (Ver / Editar / Usar). Cabeçalho da página tem botão **Modelos** (`#modelos`). Atalhos: Definições → Escola → **Atalhos**, `/configuracoes?painel=documentos` ou campanha de matrícula. A lista de pedidos também tem **Oficial**. A ficha do aluno emite **Boletim**, **Histórico**, **Declaração** e **Mais modelos** (dossiê, certificado, credenciais). Pedagógica: pauta, boletim, mapa, acta e validação. Workspace do professor: **Diário**. Relatórios académicos e talões de candidatura/matrícula também. Sem modelo ou se falhar, cai no PDF MINED. Pedidos já emitidos têm **PDF**. Pedidos em curso: **Recusar** e **Cancelar**. Ficha também: **Fatura** e **Documento**.
@@ -425,7 +915,7 @@ Registo canónico: `scripts/siga/modules.json`.
 9. `/calendario`: Admin/Secretaria **Editar** e **Apagar** períodos (`terms`). Cada período tem **Imprimir**; a lista tem PDF **Oficial**. Pedagógica → Horários: lista de slots com **Remover** (`deleteScheduleSlot`). Planos de pagamento pendentes têm **Cancelar**.
 10. Convite/cargo Professor cria ficha HR (`ensureTeacherHrRecord`). Liga `teachers.user_id` se a coluna existir; senão resolve por email.
 11. Gateway real Multicaixa/Unitel — fora de âmbito (só config + plano `pending_gateway`).
-12. Sidebar: hover expande, modal encolhe. Árvore Curso/Nível → turmas → disciplinas. Primário/iniciação abre pauta da turma; I/II ciclo abre a disciplina do professor.
+12. Sidebar: hover expande, modal encolhe. Árvore Curso/Nível → turmas → disciplinas. Primário/iniciação abre pauta da turma; I/II ciclo abre a disciplina do professor. **Navegação:** sidebar e launcher derivam de `navigation-catalog.ts`; logótipo da escola só no topo da sidebar; `npm run siga:check-nav` valida cobertura por papel.
 13. Integrações catalog-ready estão ligadas em todos os módulos autenticados (toolbars `InstalledModuleTools`, WhatsApp/Resend por linha, botões SIGE/AGT). Relatórios académicos e financeiros copiam resumo Resend. Definições → Integrações reflecte estado real; Gmail mostra nota quando Resend já está instalado. `/alterar-senha` explica 2FA. Configurações vivem no modal (`SettingsCenter`); `/configuracoes?painel=integracoes` abre o painel e redirecciona para `/`; `/configuracoes?painel=documentos` abre `/documentos#modelos`.
 14. **Identidade Angola:** BI/NIF com `AngolaIdentityField` (validar formato + BI online) em `/pessoas`, matrícula interna e `/matricula/$slug` — validação Zod no servidor (`personCoreFieldsSchema`). Escola: NIF AGT, logótipo (URL ou upload), dados bancários e AGT em Definições. Perfil: telemóvel em Definições → Conta (`profiles.phone` no SQL). Ficha da pessoa: lista `person_documents` e **Adicionar documento**; BI sincroniza `national_id`. Aplicar `APPLY_IN_SQL_EDITOR.sql` inclui bucket `school-logos`.
 

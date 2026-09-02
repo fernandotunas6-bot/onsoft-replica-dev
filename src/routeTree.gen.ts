@@ -17,6 +17,7 @@ import { Route as CalendarioRouteImport } from './routes/calendario'
 import { Route as CatracasRouteImport } from './routes/catracas'
 import { Route as ComunicacoesRouteImport } from './routes/comunicacoes'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as CriarEscolaRouteImport } from './routes/criar-escola'
 import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as FaturasRouteImport } from './routes/faturas'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
@@ -27,12 +28,40 @@ import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
 import { Route as SaasAdminRouteImport } from './routes/saas-admin'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
 import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
+import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
 import { Route as RelatoriosAcademicosRouteImport } from './routes/relatorios.academicos'
 import { Route as RelatoriosFinanceirosRouteImport } from './routes/relatorios.financeiros'
+import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
+import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
+import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
+import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
+import { Route as ApiSaasGatewayWebhooksRouteImport } from './routes/api/saas/gateway-webhooks'
+import { Route as ApiSaasMailboxesRouteImport } from './routes/api/saas/mailboxes'
+import { Route as ApiSaasMeRouteImport } from './routes/api/saas/me'
+import { Route as ApiSaasPlansRouteImport } from './routes/api/saas/plans'
+import { Route as ApiSaasPlatformAdminsRouteImport } from './routes/api/saas/platform-admins'
+import { Route as ApiSaasSignupRouteImport } from './routes/api/saas/signup'
+import { Route as ApiSaasStatsRouteImport } from './routes/api/saas/stats'
+import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subscriptions'
+import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
+import { Route as ApiFinanceGatewayConfirmRouteImport } from './routes/api/finance/gateway.confirm'
+import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domains.check'
+import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
+import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
+import { Route as ApiSaasDomainsVerifyRouteImport } from './routes/api/saas/domains.verify'
+import { Route as ApiSaasEmailRoutesRouteImport } from './routes/api/saas/email.routes'
+import { Route as ApiSaasPlatformAdminsRevokeRouteImport } from './routes/api/saas/platform-admins.revoke'
+import { Route as ApiSaasSubscriptionsBackfillRouteImport } from './routes/api/saas/subscriptions.backfill'
+import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tenants.lookup'
+import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
+import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
+import { Route as ApiSaasUsageSyncRouteImport } from './routes/api/saas/usage.sync'
+import { Route as ApiFinanceGatewayUnitelConfirmRouteImport } from './routes/api/finance/gateway.unitel.confirm'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -72,6 +101,11 @@ const ComunicacoesRoute = ComunicacoesRouteImport.update({
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CriarEscolaRoute = CriarEscolaRouteImport.update({
+  id: '/criar-escola',
+  path: '/criar-escola',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentosRoute = DocumentosRouteImport.update({
@@ -124,10 +158,20 @@ const AlunosStudentIdRoute = AlunosStudentIdRouteImport.update({
   path: '/alunos/$studentId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
   id: '/ics',
   path: '/ics',
   getParentRoute: () => CalendarioRoute,
+} as any)
+const ConviteTokenRoute = ConviteTokenRouteImport.update({
+  id: '/convite/$token',
+  path: '/convite/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   id: '/matricula/$slug',
@@ -154,6 +198,141 @@ const RelatoriosFinanceirosRoute = RelatoriosFinanceirosRouteImport.update({
   path: '/relatorios/financeiros',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCalendarIcsRoute = ApiCalendarIcsRouteImport.update({
+  id: '/api/calendar/ics',
+  path: '/api/calendar/ics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCatracasDeviceScanRoute = ApiCatracasDeviceScanRouteImport.update({
+  id: '/api/catracas/device-scan',
+  path: '/api/catracas/device-scan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
+  id: '/api/saas/audit-logs',
+  path: '/api/saas/audit-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasDomainsRoute = ApiSaasDomainsRouteImport.update({
+  id: '/api/saas/domains',
+  path: '/api/saas/domains',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasGatewayWebhooksRoute = ApiSaasGatewayWebhooksRouteImport.update({
+  id: '/api/saas/gateway-webhooks',
+  path: '/api/saas/gateway-webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasMailboxesRoute = ApiSaasMailboxesRouteImport.update({
+  id: '/api/saas/mailboxes',
+  path: '/api/saas/mailboxes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasMeRoute = ApiSaasMeRouteImport.update({
+  id: '/api/saas/me',
+  path: '/api/saas/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasPlansRoute = ApiSaasPlansRouteImport.update({
+  id: '/api/saas/plans',
+  path: '/api/saas/plans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasPlatformAdminsRoute = ApiSaasPlatformAdminsRouteImport.update({
+  id: '/api/saas/platform-admins',
+  path: '/api/saas/platform-admins',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasSignupRoute = ApiSaasSignupRouteImport.update({
+  id: '/api/saas/signup',
+  path: '/api/saas/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasStatsRoute = ApiSaasStatsRouteImport.update({
+  id: '/api/saas/stats',
+  path: '/api/saas/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasSubscriptionsRoute = ApiSaasSubscriptionsRouteImport.update({
+  id: '/api/saas/subscriptions',
+  path: '/api/saas/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasTenantsRoute = ApiSaasTenantsRouteImport.update({
+  id: '/api/saas/tenants',
+  path: '/api/saas/tenants',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFinanceGatewayConfirmRoute =
+  ApiFinanceGatewayConfirmRouteImport.update({
+    id: '/api/finance/gateway/confirm',
+    path: '/api/finance/gateway/confirm',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSaasDomainsCheckRoute = ApiSaasDomainsCheckRouteImport.update({
+  id: '/check',
+  path: '/check',
+  getParentRoute: () => ApiSaasDomainsRoute,
+} as any)
+const ApiSaasDomainsPollRoute = ApiSaasDomainsPollRouteImport.update({
+  id: '/poll',
+  path: '/poll',
+  getParentRoute: () => ApiSaasDomainsRoute,
+} as any)
+const ApiSaasDomainsStatusRoute = ApiSaasDomainsStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => ApiSaasDomainsRoute,
+} as any)
+const ApiSaasDomainsVerifyRoute = ApiSaasDomainsVerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => ApiSaasDomainsRoute,
+} as any)
+const ApiSaasEmailRoutesRoute = ApiSaasEmailRoutesRouteImport.update({
+  id: '/api/saas/email/routes',
+  path: '/api/saas/email/routes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaasPlatformAdminsRevokeRoute =
+  ApiSaasPlatformAdminsRevokeRouteImport.update({
+    id: '/revoke',
+    path: '/revoke',
+    getParentRoute: () => ApiSaasPlatformAdminsRoute,
+  } as any)
+const ApiSaasSubscriptionsBackfillRoute =
+  ApiSaasSubscriptionsBackfillRouteImport.update({
+    id: '/backfill',
+    path: '/backfill',
+    getParentRoute: () => ApiSaasSubscriptionsRoute,
+  } as any)
+const ApiSaasTenantsLookupRoute = ApiSaasTenantsLookupRouteImport.update({
+  id: '/lookup',
+  path: '/lookup',
+  getParentRoute: () => ApiSaasTenantsRoute,
+} as any)
+const ApiSaasTenantsStatusRoute = ApiSaasTenantsStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => ApiSaasTenantsRoute,
+} as any)
+const ApiSaasTenantsSubscriptionRoute =
+  ApiSaasTenantsSubscriptionRouteImport.update({
+    id: '/subscription',
+    path: '/subscription',
+    getParentRoute: () => ApiSaasTenantsRoute,
+  } as any)
+const ApiSaasUsageSyncRoute = ApiSaasUsageSyncRouteImport.update({
+  id: '/api/saas/usage/sync',
+  path: '/api/saas/usage/sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFinanceGatewayUnitelConfirmRoute =
+  ApiFinanceGatewayUnitelConfirmRouteImport.update({
+    id: '/api/finance/gateway/unitel/confirm',
+    path: '/api/finance/gateway/unitel/confirm',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -164,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -173,13 +353,41 @@ export interface FileRoutesByFullPath {
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos/': typeof AlunosIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
+  '/api/calendar/ics': typeof ApiCalendarIcsRoute
+  '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
+  '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
+  '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
+  '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
+  '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
+  '/api/saas/me': typeof ApiSaasMeRoute
+  '/api/saas/plans': typeof ApiSaasPlansRoute
+  '/api/saas/platform-admins': typeof ApiSaasPlatformAdminsRouteWithChildren
+  '/api/saas/signup': typeof ApiSaasSignupRoute
+  '/api/saas/stats': typeof ApiSaasStatsRoute
+  '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
+  '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
+  '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
+  '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
+  '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
+  '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
+  '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
+  '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
+  '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
+  '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -190,6 +398,7 @@ export interface FileRoutesByTo {
   '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -199,13 +408,41 @@ export interface FileRoutesByTo {
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos': typeof AlunosIndexRoute
   '/pessoas': typeof PessoasIndexRoute
+  '/api/calendar/ics': typeof ApiCalendarIcsRoute
+  '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
+  '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
+  '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
+  '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
+  '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
+  '/api/saas/me': typeof ApiSaasMeRoute
+  '/api/saas/plans': typeof ApiSaasPlansRoute
+  '/api/saas/platform-admins': typeof ApiSaasPlatformAdminsRouteWithChildren
+  '/api/saas/signup': typeof ApiSaasSignupRoute
+  '/api/saas/stats': typeof ApiSaasStatsRoute
+  '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
+  '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
+  '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
+  '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
+  '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
+  '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
+  '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
+  '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
+  '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
+  '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -217,6 +454,7 @@ export interface FileRoutesById {
   '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -226,13 +464,41 @@ export interface FileRoutesById {
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
   '/alunos/': typeof AlunosIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
+  '/api/calendar/ics': typeof ApiCalendarIcsRoute
+  '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
+  '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
+  '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
+  '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
+  '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
+  '/api/saas/me': typeof ApiSaasMeRoute
+  '/api/saas/plans': typeof ApiSaasPlansRoute
+  '/api/saas/platform-admins': typeof ApiSaasPlatformAdminsRouteWithChildren
+  '/api/saas/signup': typeof ApiSaasSignupRoute
+  '/api/saas/stats': typeof ApiSaasStatsRoute
+  '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
+  '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
+  '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
+  '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
+  '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
+  '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
+  '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
+  '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
+  '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
+  '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
+  '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -245,6 +511,7 @@ export interface FileRouteTypes {
     | '/catracas'
     | '/comunicacoes'
     | '/configuracoes'
+    | '/criar-escola'
     | '/documentos'
     | '/faturas'
     | '/financeiro'
@@ -254,13 +521,41 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/saas-admin'
     | '/alunos/$studentId'
+    | '/auth/reset-password'
     | '/calendario/ics'
+    | '/convite/$token'
     | '/matricula/$slug'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
     | '/alunos/'
     | '/pessoas/'
+    | '/api/calendar/ics'
+    | '/api/catracas/device-scan'
+    | '/api/saas/audit-logs'
+    | '/api/saas/domains'
+    | '/api/saas/gateway-webhooks'
+    | '/api/saas/mailboxes'
+    | '/api/saas/me'
+    | '/api/saas/plans'
+    | '/api/saas/platform-admins'
+    | '/api/saas/signup'
+    | '/api/saas/stats'
+    | '/api/saas/subscriptions'
+    | '/api/saas/tenants'
+    | '/api/finance/gateway/confirm'
+    | '/api/saas/domains/check'
+    | '/api/saas/domains/poll'
+    | '/api/saas/domains/status'
+    | '/api/saas/domains/verify'
+    | '/api/saas/email/routes'
+    | '/api/saas/platform-admins/revoke'
+    | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/lookup'
+    | '/api/saas/tenants/status'
+    | '/api/saas/tenants/subscription'
+    | '/api/saas/usage/sync'
+    | '/api/finance/gateway/unitel/confirm'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -271,6 +566,7 @@ export interface FileRouteTypes {
     | '/catracas'
     | '/comunicacoes'
     | '/configuracoes'
+    | '/criar-escola'
     | '/documentos'
     | '/faturas'
     | '/financeiro'
@@ -280,13 +576,41 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/saas-admin'
     | '/alunos/$studentId'
+    | '/auth/reset-password'
     | '/calendario/ics'
+    | '/convite/$token'
     | '/matricula/$slug'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
     | '/alunos'
     | '/pessoas'
+    | '/api/calendar/ics'
+    | '/api/catracas/device-scan'
+    | '/api/saas/audit-logs'
+    | '/api/saas/domains'
+    | '/api/saas/gateway-webhooks'
+    | '/api/saas/mailboxes'
+    | '/api/saas/me'
+    | '/api/saas/plans'
+    | '/api/saas/platform-admins'
+    | '/api/saas/signup'
+    | '/api/saas/stats'
+    | '/api/saas/subscriptions'
+    | '/api/saas/tenants'
+    | '/api/finance/gateway/confirm'
+    | '/api/saas/domains/check'
+    | '/api/saas/domains/poll'
+    | '/api/saas/domains/status'
+    | '/api/saas/domains/verify'
+    | '/api/saas/email/routes'
+    | '/api/saas/platform-admins/revoke'
+    | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/lookup'
+    | '/api/saas/tenants/status'
+    | '/api/saas/tenants/subscription'
+    | '/api/saas/usage/sync'
+    | '/api/finance/gateway/unitel/confirm'
   id:
     | '__root__'
     | '/'
@@ -297,6 +621,7 @@ export interface FileRouteTypes {
     | '/catracas'
     | '/comunicacoes'
     | '/configuracoes'
+    | '/criar-escola'
     | '/documentos'
     | '/faturas'
     | '/financeiro'
@@ -306,13 +631,41 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/saas-admin'
     | '/alunos/$studentId'
+    | '/auth/reset-password'
     | '/calendario/ics'
+    | '/convite/$token'
     | '/matricula/$slug'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
     | '/alunos/'
     | '/pessoas/'
+    | '/api/calendar/ics'
+    | '/api/catracas/device-scan'
+    | '/api/saas/audit-logs'
+    | '/api/saas/domains'
+    | '/api/saas/gateway-webhooks'
+    | '/api/saas/mailboxes'
+    | '/api/saas/me'
+    | '/api/saas/plans'
+    | '/api/saas/platform-admins'
+    | '/api/saas/signup'
+    | '/api/saas/stats'
+    | '/api/saas/subscriptions'
+    | '/api/saas/tenants'
+    | '/api/finance/gateway/confirm'
+    | '/api/saas/domains/check'
+    | '/api/saas/domains/poll'
+    | '/api/saas/domains/status'
+    | '/api/saas/domains/verify'
+    | '/api/saas/email/routes'
+    | '/api/saas/platform-admins/revoke'
+    | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/lookup'
+    | '/api/saas/tenants/status'
+    | '/api/saas/tenants/subscription'
+    | '/api/saas/usage/sync'
+    | '/api/finance/gateway/unitel/confirm'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -324,6 +677,7 @@ export interface RootRouteChildren {
   CatracasRoute: typeof CatracasRoute
   ComunicacoesRoute: typeof ComunicacoesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
+  CriarEscolaRoute: typeof CriarEscolaRoute
   DocumentosRoute: typeof DocumentosRoute
   FaturasRoute: typeof FaturasRoute
   FinanceiroRoute: typeof FinanceiroRoute
@@ -333,12 +687,31 @@ export interface RootRouteChildren {
   PlanosAulaRoute: typeof PlanosAulaRoute
   SaasAdminRoute: typeof SaasAdminRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
   RelatoriosFinanceirosRoute: typeof RelatoriosFinanceirosRoute
   AlunosIndexRoute: typeof AlunosIndexRoute
   PessoasIndexRoute: typeof PessoasIndexRoute
+  ApiCalendarIcsRoute: typeof ApiCalendarIcsRoute
+  ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
+  ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
+  ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
+  ApiSaasGatewayWebhooksRoute: typeof ApiSaasGatewayWebhooksRoute
+  ApiSaasMailboxesRoute: typeof ApiSaasMailboxesRoute
+  ApiSaasMeRoute: typeof ApiSaasMeRoute
+  ApiSaasPlansRoute: typeof ApiSaasPlansRoute
+  ApiSaasPlatformAdminsRoute: typeof ApiSaasPlatformAdminsRouteWithChildren
+  ApiSaasSignupRoute: typeof ApiSaasSignupRoute
+  ApiSaasStatsRoute: typeof ApiSaasStatsRoute
+  ApiSaasSubscriptionsRoute: typeof ApiSaasSubscriptionsRouteWithChildren
+  ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
+  ApiFinanceGatewayConfirmRoute: typeof ApiFinanceGatewayConfirmRoute
+  ApiSaasEmailRoutesRoute: typeof ApiSaasEmailRoutesRoute
+  ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
+  ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -397,6 +770,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/criar-escola': {
+      id: '/criar-escola'
+      path: '/criar-escola'
+      fullPath: '/criar-escola'
+      preLoaderRoute: typeof CriarEscolaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documentos': {
@@ -469,12 +849,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlunosStudentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/calendario/ics': {
       id: '/calendario/ics'
       path: '/ics'
       fullPath: '/calendario/ics'
       preLoaderRoute: typeof CalendarioIcsRouteImport
       parentRoute: typeof CalendarioRoute
+    }
+    '/convite/$token': {
+      id: '/convite/$token'
+      path: '/convite/$token'
+      fullPath: '/convite/$token'
+      preLoaderRoute: typeof ConviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/matricula/$slug': {
       id: '/matricula/$slug'
@@ -511,6 +905,188 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RelatoriosFinanceirosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/calendar/ics': {
+      id: '/api/calendar/ics'
+      path: '/api/calendar/ics'
+      fullPath: '/api/calendar/ics'
+      preLoaderRoute: typeof ApiCalendarIcsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/catracas/device-scan': {
+      id: '/api/catracas/device-scan'
+      path: '/api/catracas/device-scan'
+      fullPath: '/api/catracas/device-scan'
+      preLoaderRoute: typeof ApiCatracasDeviceScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/audit-logs': {
+      id: '/api/saas/audit-logs'
+      path: '/api/saas/audit-logs'
+      fullPath: '/api/saas/audit-logs'
+      preLoaderRoute: typeof ApiSaasAuditLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/domains': {
+      id: '/api/saas/domains'
+      path: '/api/saas/domains'
+      fullPath: '/api/saas/domains'
+      preLoaderRoute: typeof ApiSaasDomainsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/gateway-webhooks': {
+      id: '/api/saas/gateway-webhooks'
+      path: '/api/saas/gateway-webhooks'
+      fullPath: '/api/saas/gateway-webhooks'
+      preLoaderRoute: typeof ApiSaasGatewayWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/mailboxes': {
+      id: '/api/saas/mailboxes'
+      path: '/api/saas/mailboxes'
+      fullPath: '/api/saas/mailboxes'
+      preLoaderRoute: typeof ApiSaasMailboxesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/me': {
+      id: '/api/saas/me'
+      path: '/api/saas/me'
+      fullPath: '/api/saas/me'
+      preLoaderRoute: typeof ApiSaasMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/plans': {
+      id: '/api/saas/plans'
+      path: '/api/saas/plans'
+      fullPath: '/api/saas/plans'
+      preLoaderRoute: typeof ApiSaasPlansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/platform-admins': {
+      id: '/api/saas/platform-admins'
+      path: '/api/saas/platform-admins'
+      fullPath: '/api/saas/platform-admins'
+      preLoaderRoute: typeof ApiSaasPlatformAdminsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/signup': {
+      id: '/api/saas/signup'
+      path: '/api/saas/signup'
+      fullPath: '/api/saas/signup'
+      preLoaderRoute: typeof ApiSaasSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/stats': {
+      id: '/api/saas/stats'
+      path: '/api/saas/stats'
+      fullPath: '/api/saas/stats'
+      preLoaderRoute: typeof ApiSaasStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/subscriptions': {
+      id: '/api/saas/subscriptions'
+      path: '/api/saas/subscriptions'
+      fullPath: '/api/saas/subscriptions'
+      preLoaderRoute: typeof ApiSaasSubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/tenants': {
+      id: '/api/saas/tenants'
+      path: '/api/saas/tenants'
+      fullPath: '/api/saas/tenants'
+      preLoaderRoute: typeof ApiSaasTenantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/finance/gateway/confirm': {
+      id: '/api/finance/gateway/confirm'
+      path: '/api/finance/gateway/confirm'
+      fullPath: '/api/finance/gateway/confirm'
+      preLoaderRoute: typeof ApiFinanceGatewayConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/domains/check': {
+      id: '/api/saas/domains/check'
+      path: '/check'
+      fullPath: '/api/saas/domains/check'
+      preLoaderRoute: typeof ApiSaasDomainsCheckRouteImport
+      parentRoute: typeof ApiSaasDomainsRoute
+    }
+    '/api/saas/domains/poll': {
+      id: '/api/saas/domains/poll'
+      path: '/poll'
+      fullPath: '/api/saas/domains/poll'
+      preLoaderRoute: typeof ApiSaasDomainsPollRouteImport
+      parentRoute: typeof ApiSaasDomainsRoute
+    }
+    '/api/saas/domains/status': {
+      id: '/api/saas/domains/status'
+      path: '/status'
+      fullPath: '/api/saas/domains/status'
+      preLoaderRoute: typeof ApiSaasDomainsStatusRouteImport
+      parentRoute: typeof ApiSaasDomainsRoute
+    }
+    '/api/saas/domains/verify': {
+      id: '/api/saas/domains/verify'
+      path: '/verify'
+      fullPath: '/api/saas/domains/verify'
+      preLoaderRoute: typeof ApiSaasDomainsVerifyRouteImport
+      parentRoute: typeof ApiSaasDomainsRoute
+    }
+    '/api/saas/email/routes': {
+      id: '/api/saas/email/routes'
+      path: '/api/saas/email/routes'
+      fullPath: '/api/saas/email/routes'
+      preLoaderRoute: typeof ApiSaasEmailRoutesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/platform-admins/revoke': {
+      id: '/api/saas/platform-admins/revoke'
+      path: '/revoke'
+      fullPath: '/api/saas/platform-admins/revoke'
+      preLoaderRoute: typeof ApiSaasPlatformAdminsRevokeRouteImport
+      parentRoute: typeof ApiSaasPlatformAdminsRoute
+    }
+    '/api/saas/subscriptions/backfill': {
+      id: '/api/saas/subscriptions/backfill'
+      path: '/backfill'
+      fullPath: '/api/saas/subscriptions/backfill'
+      preLoaderRoute: typeof ApiSaasSubscriptionsBackfillRouteImport
+      parentRoute: typeof ApiSaasSubscriptionsRoute
+    }
+    '/api/saas/tenants/lookup': {
+      id: '/api/saas/tenants/lookup'
+      path: '/lookup'
+      fullPath: '/api/saas/tenants/lookup'
+      preLoaderRoute: typeof ApiSaasTenantsLookupRouteImport
+      parentRoute: typeof ApiSaasTenantsRoute
+    }
+    '/api/saas/tenants/status': {
+      id: '/api/saas/tenants/status'
+      path: '/status'
+      fullPath: '/api/saas/tenants/status'
+      preLoaderRoute: typeof ApiSaasTenantsStatusRouteImport
+      parentRoute: typeof ApiSaasTenantsRoute
+    }
+    '/api/saas/tenants/subscription': {
+      id: '/api/saas/tenants/subscription'
+      path: '/subscription'
+      fullPath: '/api/saas/tenants/subscription'
+      preLoaderRoute: typeof ApiSaasTenantsSubscriptionRouteImport
+      parentRoute: typeof ApiSaasTenantsRoute
+    }
+    '/api/saas/usage/sync': {
+      id: '/api/saas/usage/sync'
+      path: '/api/saas/usage/sync'
+      fullPath: '/api/saas/usage/sync'
+      preLoaderRoute: typeof ApiSaasUsageSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/finance/gateway/unitel/confirm': {
+      id: '/api/finance/gateway/unitel/confirm'
+      path: '/api/finance/gateway/unitel/confirm'
+      fullPath: '/api/finance/gateway/unitel/confirm'
+      preLoaderRoute: typeof ApiFinanceGatewayUnitelConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -526,6 +1102,64 @@ const CalendarioRouteWithChildren = CalendarioRoute._addFileChildren(
   CalendarioRouteChildren,
 )
 
+interface ApiSaasDomainsRouteChildren {
+  ApiSaasDomainsCheckRoute: typeof ApiSaasDomainsCheckRoute
+  ApiSaasDomainsPollRoute: typeof ApiSaasDomainsPollRoute
+  ApiSaasDomainsStatusRoute: typeof ApiSaasDomainsStatusRoute
+  ApiSaasDomainsVerifyRoute: typeof ApiSaasDomainsVerifyRoute
+}
+
+const ApiSaasDomainsRouteChildren: ApiSaasDomainsRouteChildren = {
+  ApiSaasDomainsCheckRoute: ApiSaasDomainsCheckRoute,
+  ApiSaasDomainsPollRoute: ApiSaasDomainsPollRoute,
+  ApiSaasDomainsStatusRoute: ApiSaasDomainsStatusRoute,
+  ApiSaasDomainsVerifyRoute: ApiSaasDomainsVerifyRoute,
+}
+
+const ApiSaasDomainsRouteWithChildren = ApiSaasDomainsRoute._addFileChildren(
+  ApiSaasDomainsRouteChildren,
+)
+
+interface ApiSaasPlatformAdminsRouteChildren {
+  ApiSaasPlatformAdminsRevokeRoute: typeof ApiSaasPlatformAdminsRevokeRoute
+}
+
+const ApiSaasPlatformAdminsRouteChildren: ApiSaasPlatformAdminsRouteChildren = {
+  ApiSaasPlatformAdminsRevokeRoute: ApiSaasPlatformAdminsRevokeRoute,
+}
+
+const ApiSaasPlatformAdminsRouteWithChildren =
+  ApiSaasPlatformAdminsRoute._addFileChildren(
+    ApiSaasPlatformAdminsRouteChildren,
+  )
+
+interface ApiSaasSubscriptionsRouteChildren {
+  ApiSaasSubscriptionsBackfillRoute: typeof ApiSaasSubscriptionsBackfillRoute
+}
+
+const ApiSaasSubscriptionsRouteChildren: ApiSaasSubscriptionsRouteChildren = {
+  ApiSaasSubscriptionsBackfillRoute: ApiSaasSubscriptionsBackfillRoute,
+}
+
+const ApiSaasSubscriptionsRouteWithChildren =
+  ApiSaasSubscriptionsRoute._addFileChildren(ApiSaasSubscriptionsRouteChildren)
+
+interface ApiSaasTenantsRouteChildren {
+  ApiSaasTenantsLookupRoute: typeof ApiSaasTenantsLookupRoute
+  ApiSaasTenantsStatusRoute: typeof ApiSaasTenantsStatusRoute
+  ApiSaasTenantsSubscriptionRoute: typeof ApiSaasTenantsSubscriptionRoute
+}
+
+const ApiSaasTenantsRouteChildren: ApiSaasTenantsRouteChildren = {
+  ApiSaasTenantsLookupRoute: ApiSaasTenantsLookupRoute,
+  ApiSaasTenantsStatusRoute: ApiSaasTenantsStatusRoute,
+  ApiSaasTenantsSubscriptionRoute: ApiSaasTenantsSubscriptionRoute,
+}
+
+const ApiSaasTenantsRouteWithChildren = ApiSaasTenantsRoute._addFileChildren(
+  ApiSaasTenantsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcessosRoute: AcessosRoute,
@@ -535,6 +1169,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatracasRoute: CatracasRoute,
   ComunicacoesRoute: ComunicacoesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
+  CriarEscolaRoute: CriarEscolaRoute,
   DocumentosRoute: DocumentosRoute,
   FaturasRoute: FaturasRoute,
   FinanceiroRoute: FinanceiroRoute,
@@ -544,12 +1179,31 @@ const rootRouteChildren: RootRouteChildren = {
   PlanosAulaRoute: PlanosAulaRoute,
   SaasAdminRoute: SaasAdminRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+  ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,
   RelatoriosFinanceirosRoute: RelatoriosFinanceirosRoute,
   AlunosIndexRoute: AlunosIndexRoute,
   PessoasIndexRoute: PessoasIndexRoute,
+  ApiCalendarIcsRoute: ApiCalendarIcsRoute,
+  ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
+  ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
+  ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
+  ApiSaasGatewayWebhooksRoute: ApiSaasGatewayWebhooksRoute,
+  ApiSaasMailboxesRoute: ApiSaasMailboxesRoute,
+  ApiSaasMeRoute: ApiSaasMeRoute,
+  ApiSaasPlansRoute: ApiSaasPlansRoute,
+  ApiSaasPlatformAdminsRoute: ApiSaasPlatformAdminsRouteWithChildren,
+  ApiSaasSignupRoute: ApiSaasSignupRoute,
+  ApiSaasStatsRoute: ApiSaasStatsRoute,
+  ApiSaasSubscriptionsRoute: ApiSaasSubscriptionsRouteWithChildren,
+  ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,
+  ApiFinanceGatewayConfirmRoute: ApiFinanceGatewayConfirmRoute,
+  ApiSaasEmailRoutesRoute: ApiSaasEmailRoutesRoute,
+  ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
+  ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

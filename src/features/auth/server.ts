@@ -154,8 +154,15 @@ export async function resolveUserLinkedEntities(
       const classGroupMap = new Map(
         (classGroups ?? []).map((cg: { id: string; name: string }) => [cg.id, cg]),
       );
-      const enrollmentMap = new Map(
-        (enrollments ?? []).map((e: { student_id: string }) => [e.student_id, e]),
+      type EnrollmentRow = {
+        id: string;
+        student_id: string;
+        class_group_id: string | null;
+        attendance_rate: number | null;
+        final_average: number | null;
+      };
+      const enrollmentMap = new Map<string, EnrollmentRow>(
+        (enrollments ?? []).map((e: any) => [e.student_id, e as EnrollmentRow]),
       );
 
       for (const st of studentRows ?? []) {
@@ -188,35 +195,54 @@ export async function resolveUserLinkedEntities(
   };
 }
 
+import { listUserSchoolMemberships, type UserSchoolMembershipItem } from "@/integrations/supabase/sga";
+
 export const getCurrentAccountContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const membership = await resolveSgaMembershipAdmin(context.userId);
+  .validator((input: unknown) => {
+    if (!input || typeof input !== "object") return { preferredSchoolId: undefined };
+    const parsed = z.object({ preferredSchoolId: z.string().uuid().optional() }).safeParse(input);
+    return parsed.success ? parsed.data : { preferredSchoolId: undefined };
+  })
+  .handler(async ({ data, context }) => {
     const db = await loadSgaAdminClient();
+    const userSchools = await listUserSchoolMemberships(db, context.userId);
+    const membership = await resolveSgaMembershipAdmin(context.userId, data?.preferredSchoolId);
 
     let profileRow: {
+      first_name?: string | null;
+      last_name?: string | null;
       full_name: string | null;
       avatar_url: string | null;
       phone: string | null;
       updated_at: string | null;
     } | null = null;
     try {
-      const { data } = await db
+      const { data: pData } = await db
         .from("profiles")
-        .select("full_name, avatar_url, phone, updated_at")
+        .select("first_name, last_name, full_name, avatar_url, phone, updated_at")
         .eq("id", context.userId)
         .maybeSingle();
-      profileRow = data;
+      profileRow = pData;
     } catch {
       try {
-        const { data } = await db
+        const { data: pData } = await db
           .from("profiles")
-          .select("full_name, avatar_url, updated_at")
+          .select("full_name, avatar_url, phone, updated_at")
           .eq("id", context.userId)
           .maybeSingle();
-        profileRow = data ? { ...data, phone: null } : null;
+        profileRow = pData ? { ...pData, first_name: null, last_name: null } : null;
       } catch {
-        profileRow = null;
+        try {
+          const { data: pData } = await db
+            .from("profiles")
+            .select("full_name, avatar_url, updated_at")
+            .eq("id", context.userId)
+            .maybeSingle();
+          profileRow = pData ? { ...pData, phone: null, first_name: null, last_name: null } : null;
+        } catch {
+          profileRow = null;
+        }
       }
     }
 
@@ -225,8 +251,8 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
     let emailName = "";
     let authEmail = "";
     try {
-      const { data } = await db.auth.admin.getUserById(context.userId);
-      const authUser = data.user;
+      const { data: uData } = await db.auth.admin.getUserById(context.userId);
+      const authUser = uData.user;
       authEmail = authUser?.email ?? "";
       metaName =
         typeof authUser?.user_metadata?.["full_name"] === "string"
@@ -252,10 +278,9 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
             .from("profiles")
             .update({ full_name: fullName, updated_at: new Date().toISOString() })
             .eq("id", context.userId);
-        } else if (membership?.schoolId) {
+        } else {
           await db.from("profiles").upsert({
             id: context.userId,
-            school_id: membership.schoolId,
             full_name: fullName,
             updated_at: new Date().toISOString(),
           });
@@ -316,16 +341,21 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
 
     return {
       full_name: fullName || null,
+      first_name: profileRow?.first_name || null,
+      last_name: profileRow?.last_name || null,
       avatar_url: profileRow?.avatar_url ?? null,
       phone: profileRow?.phone?.trim() || metaPhone || null,
       updated_at: profileRow?.updated_at ?? null,
       school_id: membership?.schoolId ?? null,
+      school_name: membership?.schoolName ?? null,
+      school_slug: membership?.schoolSlug ?? null,
       role_code: membership?.roleCode ?? null,
       role_name: membership?.roleName ?? null,
       cargo: resolvedCargo,
       roles: allAppRoles,
       grants,
       linkedEntities,
+      schools: userSchools,
     };
   });
 
@@ -338,6 +368,12 @@ export const updateCurrentProfile = createServerFn({ method: "POST" })
       full_name: data.fullName,
       updated_at: new Date().toISOString(),
     };
+    if (data.firstName !== undefined) {
+      updatePayload["first_name"] = data.firstName ? data.firstName.trim() : null;
+    }
+    if (data.lastName !== undefined) {
+      updatePayload["last_name"] = data.lastName ? data.lastName.trim() : null;
+    }
     if (data.phone !== undefined) {
       const { normalizeAngolaPhone } = await import("@/lib/angola-phone");
       updatePayload["phone"] = data.phone ? normalizeAngolaPhone(data.phone) || null : null;
@@ -345,6 +381,8 @@ export const updateCurrentProfile = createServerFn({ method: "POST" })
 
     let row: {
       full_name: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
       avatar_url: string | null;
       phone: string | null;
       updated_at: string | null;
@@ -356,15 +394,15 @@ export const updateCurrentProfile = createServerFn({ method: "POST" })
         .update(updatePayload)
         .eq("id", context.userId)
         .eq("updated_at", data.expectedUpdatedAt)
-        .select("full_name, avatar_url, phone, updated_at")
+        .select("full_name, first_name, last_name, avatar_url, phone, updated_at")
         .maybeSingle();
       if (error) throw error;
       row = updated;
     } catch (error) {
-      const withoutPhone = { full_name: data.fullName, updated_at: new Date().toISOString() };
+      const fallbackPayload = { full_name: data.fullName, updated_at: new Date().toISOString() };
       const { data: updated, error: retryError } = await db
         .from("profiles")
-        .update(withoutPhone)
+        .update(fallbackPayload)
         .eq("id", context.userId)
         .eq("updated_at", data.expectedUpdatedAt)
         .select("full_name, avatar_url, updated_at")
@@ -374,7 +412,7 @@ export const updateCurrentProfile = createServerFn({ method: "POST" })
       }
       row = updated ? { ...updated, phone: data.phone?.trim() || null } : null;
       if (error instanceof Error && /phone|column/i.test(error.message)) {
-        // Coluna phone ainda não aplicada no SGA — continua com metadados Auth.
+        // Coluna phone ou first_name ainda não aplicada no SGA — continua com metadados Auth.
       } else if (error) {
         throw publicDatabaseError(
           error as { message: string },
@@ -454,7 +492,6 @@ export const signProfileAvatar = createServerFn({ method: "GET" })
       .from("profiles")
       .select("avatar_url")
       .eq("id", ownerId)
-      .eq("school_id", membership.schoolId)
       .eq("avatar_url", data.avatarUrl)
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível abrir a foto de perfil.");

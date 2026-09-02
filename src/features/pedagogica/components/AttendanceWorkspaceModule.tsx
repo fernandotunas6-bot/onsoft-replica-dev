@@ -29,9 +29,14 @@ import {
 } from "@/features/pedagogica/attendance-server";
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
 import { ReviewAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
+import { todayInLuanda } from "@/features/calendar/dates";
+import {
+  SchemaMissingBanner,
+  isSchemaMissingError,
+} from "@/components/ui/schema-missing-banner";
 
 export function AttendanceWorkspaceModule() {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+  const [selectedDate, setSelectedDate] = useState(todayInLuanda());
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [callDialogOpen, setCallDialogOpen] = useState(false);
   const [reviewJustificationModalOpen, setReviewJustificationModalOpen] = useState(false);
@@ -44,12 +49,12 @@ export function AttendanceWorkspaceModule() {
 
   const sessionsQuery = useQuery({
     queryKey: ["teacher-attendance-sessions", selectedDate],
-    queryFn: () => listTeacherAttendanceSessions({ date: selectedDate }),
+    queryFn: () => listTeacherAttendanceSessions({ data: { date: selectedDate } }),
   });
 
   const historyQuery = useQuery({
     queryKey: ["student-attendance-history", "all"],
-    queryFn: () => getStudentAttendanceHistory({}),
+    queryFn: () => getStudentAttendanceHistory({ data: {} }),
   });
 
   const sessions = sessionsQuery.data?.sessions ?? [];
@@ -66,6 +71,13 @@ export function AttendanceWorkspaceModule() {
 
   return (
     <div className="space-y-6">
+      {isSchemaMissingError(sessionsQuery.error) || isSchemaMissingError(historyQuery.error) ? (
+        <SchemaMissingBanner
+          title="Presenças: tabelas SGA em falta"
+          description="siga_attendance_sessions (e relacionadas). Aplique APPLY_MISSING_FROM_VERIFY.sql."
+        />
+      ) : null}
+
       {/* BARRA DE CONTROLO DE SESSÕES E SELETOR DE DATA */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-5 rounded-2xl border border-border bg-card shadow-soft">
         <div>

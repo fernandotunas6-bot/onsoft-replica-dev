@@ -56,7 +56,7 @@ DROP POLICY IF EXISTS "Read school import jobs" ON public.import_jobs;
 CREATE POLICY "Read school import jobs"
   ON public.import_jobs
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.import_rows (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -94,7 +94,7 @@ CREATE POLICY "Read school import rows"
   FOR SELECT TO authenticated
   USING (
     import_job_id IN (
-      SELECT j.id FROM public.import_jobs j WHERE j.school_id = (SELECT public.current_school_id())
+      SELECT j.id FROM public.import_jobs j WHERE j.public.is_school_member(school_id)
     )
   );
 
@@ -121,7 +121,7 @@ DROP POLICY IF EXISTS "Read school import templates" ON public.import_templates;
 CREATE POLICY "Read school import templates"
   ON public.import_templates
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.import_audits (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -153,7 +153,7 @@ CREATE POLICY "Read school import audits"
   FOR SELECT TO authenticated
   USING (
     import_job_id IN (
-      SELECT j.id FROM public.import_jobs j WHERE j.school_id = (SELECT public.current_school_id())
+      SELECT j.id FROM public.import_jobs j WHERE j.public.is_school_member(school_id)
     )
   );
 

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { DocHelpButton, SqlDocHelpButton } from "@/components/ui/doc-help-button";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { FileBrowser } from "@/features/arquivos/FileBrowser";
 
@@ -34,6 +35,12 @@ function ArquivosPage() {
           group="Aplicativos"
           title="Arquivos"
           description="Biblioteca no estilo Google Drive & Moodle: gestão de documentos pedagógicos, carregamento sem burocracia, pastas por turma, miniaturas em tempo real e auditoria institucional."
+          actions={
+            <>
+              <SqlDocHelpButton />
+              <DocHelpButton title="Navegação — Arquivos e permissões" />
+            </>
+          }
         />
         <InstalledModuleTools module="arquivos" />
         <FileBrowser

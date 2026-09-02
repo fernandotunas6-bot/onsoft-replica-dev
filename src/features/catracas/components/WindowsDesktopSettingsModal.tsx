@@ -30,6 +30,8 @@ import {
   discoverLocalHardwareDevices,
   getLocalHardwareAllowlist,
   saveLocalHardwareAllowlist,
+  getLocalHardwareBridgeConfig,
+  saveLocalHardwareBridgeConfig,
   type LocalHardwareDevice,
 } from "@/lib/tauri-bridge";
 
@@ -38,6 +40,8 @@ const STORAGE_KEY = "siga-desktop-settings";
 interface DesktopSettings {
   turnstileIp: string;
   printerIp: string;
+  sigaAppUrl: string;
+  deviceApiKey: string;
   autoStartWindows: boolean;
   nativeNotifications: boolean;
 }
@@ -45,6 +49,8 @@ interface DesktopSettings {
 const defaultSettings: DesktopSettings = {
   turnstileIp: "192.168.1.201",
   printerIp: "192.168.1.205",
+  sigaAppUrl: "http://127.0.0.1:3006",
+  deviceApiKey: "",
   autoStartWindows: true,
   nativeNotifications: true,
 };
@@ -76,6 +82,8 @@ export function WindowsDesktopSettingsModal({
 }) {
   const [turnstileIp, setTurnstileIp] = useState(defaultSettings.turnstileIp);
   const [printerIp, setPrinterIp] = useState(defaultSettings.printerIp);
+  const [sigaAppUrl, setSigaAppUrl] = useState(defaultSettings.sigaAppUrl);
+  const [deviceApiKey, setDeviceApiKey] = useState(defaultSettings.deviceApiKey);
   const [autoStartWindows, setAutoStartWindows] = useState(defaultSettings.autoStartWindows);
   const [nativeNotifications, setNativeNotifications] = useState(
     defaultSettings.nativeNotifications,
@@ -92,9 +100,16 @@ export function WindowsDesktopSettingsModal({
     const stored = loadDesktopSettings();
     setTurnstileIp(stored.turnstileIp);
     setPrinterIp(stored.printerIp);
+    setSigaAppUrl(stored.sigaAppUrl);
+    setDeviceApiKey(stored.deviceApiKey);
     setAutoStartWindows(stored.autoStartWindows);
     setNativeNotifications(stored.nativeNotifications);
     void refreshLocalDiscovery();
+    void getLocalHardwareBridgeConfig().then((cfg) => {
+      if (cfg.siga_app_url) setSigaAppUrl(cfg.siga_app_url);
+      if (cfg.device_api_key) setDeviceApiKey(cfg.device_api_key);
+      if (cfg.turnstile_ip) setTurnstileIp(cfg.turnstile_ip);
+    });
   }, [open]);
 
   const refreshLocalDiscovery = async () => {
@@ -296,6 +311,38 @@ export function WindowsDesktopSettingsModal({
             </div>
           </div>
 
+          {/* LIGAÇÃO SIGA ↔ WEBHOOK LOCAL */}
+          <div className="surface-card p-4 space-y-3">
+            <h4 className="font-bold text-xs flex items-center gap-2">
+              <ShieldCheck className="size-4 text-primary" /> Validação SIGA (webhook local)
+            </h4>
+            <p className="text-[11px] text-muted-foreground">
+              O daemon em <span className="font-mono">127.0.0.1:8088</span> encaminha leituras RFID/QR
+              para <span className="font-mono">POST /api/catracas/device-scan</span> usando a Key do
+              dispositivo registado em Catracas.
+            </p>
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold">URL do SIGA Plus</Label>
+                <Input
+                  value={sigaAppUrl}
+                  onChange={(e) => setSigaAppUrl(e.target.value)}
+                  placeholder="http://127.0.0.1:3006"
+                  className="text-xs h-9 font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold">API Key do dispositivo (Key)</Label>
+                <Input
+                  value={deviceApiKey}
+                  onChange={(e) => setDeviceApiKey(e.target.value)}
+                  placeholder="KEY-XXXXXXXX"
+                  className="text-xs h-9 font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* DESCOBERTA LOCAL LINUX / USB / CUPS */}
           <div className="surface-card p-4 space-y-3">
             <div className="flex items-start justify-between gap-2">
@@ -393,8 +440,19 @@ export function WindowsDesktopSettingsModal({
               saveDesktopSettings({
                 turnstileIp,
                 printerIp,
+                sigaAppUrl,
+                deviceApiKey,
                 autoStartWindows,
                 nativeNotifications,
+              });
+              void saveLocalHardwareBridgeConfig({
+                siga_app_url: sigaAppUrl,
+                device_api_key: deviceApiKey,
+                turnstile_ip: turnstileIp,
+              }).catch((err) => {
+                toast.error("Definições locais do daemon não guardadas", {
+                  description: err instanceof Error ? err.message : "Daemon offline?",
+                });
               });
               toast.success("Configurações do SIGA Desktop guardadas com sucesso!");
               onOpenChange(false);

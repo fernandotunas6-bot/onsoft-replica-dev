@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -13,6 +14,7 @@ import {
   ChevronRight,
   Download,
   FileDown,
+  GraduationCap,
   FileText,
   FileUp,
   Search,
@@ -21,6 +23,7 @@ import {
   Users,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -35,10 +38,11 @@ import { AppMark } from "@/features/integrations/app-marks";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+import { buildEmisExportPayload } from "@/features/integrations/emis";
 import { StudentEnrollmentSheet } from "@/features/students/StudentEnrollmentSheet";
+import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
-import { inferIcon } from "@/lib/auto-icon";
 import {
   isPrivateSigaFile,
   prefetchPersonPhotoUrls,
@@ -98,6 +102,9 @@ import {
 } from "@/features/students/server";
 import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useTenant } from "@/features/saas/tenant-context";
+import { buildStudentCapacity } from "@/features/saas/tenant-limits";
+import { getPricingUrl } from "@/lib/ecosystem-urls";
 import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
 import { documentValidationCode } from "@/features/academic/assessment-views";
@@ -198,6 +205,7 @@ type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
 
 function StudentsPage() {
   const queryClient = useQueryClient();
+  const { activePlan, activeTenant, refreshTenant } = useTenant();
   const { activeYearLabel, selectedYearId, selectedYear, selectedYearLabel, school } =
     useSchoolSettings();
   const { action } = Route.useSearch();
@@ -218,10 +226,57 @@ function StudentsPage() {
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const sigeOn = installed.hasCapability("sige.export_students");
 
+  const studentCapacity = useMemo(
+    () =>
+      buildStudentCapacity(
+        activeTenant?.active_students_count ?? 0,
+        activeTenant,
+        activePlan,
+      ),
+    [activeTenant, activePlan],
+  );
+  const capacityBlocked = studentCapacity.atLimit
+    ? `Limite de alunos atingido (${studentCapacity.activeStudents}/${studentCapacity.maxStudents}).`
+    : null;
+
+  useEffect(() => {
+    if (action === "matricular" && capacityBlocked) {
+      toast.error(capacityBlocked, {
+        description: "Actualize o plano no portal comercial SIGA Plus.",
+      });
+    }
+  }, [action, capacityBlocked]);
+
   useEffect(() => {
     if (action === "confirmar") setFilter("estado", "applicant");
     else if (action === "estado") setFilter("estado", "todos");
   }, [action, setFilter]);
+
+  // Realtime — atualiza a lista de alunos quando há novidades
+  useEffect(() => {
+    const channel = supabase
+      .channel("alunos_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "students" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "enrollments" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const actionHint =
     action === "matricular"
@@ -352,6 +407,10 @@ function StudentsPage() {
   ];
 
   const exportarAlunosCsv = () => exportCsv("alunos-filtrados", alunoExportColumns, filtered);
+  const exportarAlunosSige = () => {
+    const sigeData = buildEmisExportPayload(activeTenant?.id ?? "school", filtered);
+    exportCsv("alunos-sige-emis", Object.keys(sigeData[0] ?? {}).map((k) => ({ label: k, value: (r: any) => r[k] })), sigeData);
+  };
   const exportarAlunosPdf = () =>
     exportPdfTable(
       "alunos-filtrados",
@@ -452,12 +511,12 @@ function StudentsPage() {
         <InstalledModuleTools
           module="alunos"
           onExport={(kind) => {
-            if (kind === "sige_students") exportarAlunosCsv();
+            if (kind === "sige_students") exportarAlunosSige();
           }}
         />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-3">
-            <IconChip {...inferIcon("Gestão de Estudantes")} size="lg" />
+            <IconChip icon={GraduationCap} size="lg" label="Gestão de Estudantes" />
             <div>
               <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
                 Gestão de Estudantes
@@ -468,6 +527,7 @@ function StudentsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <DocHelpButton title="Navegação — Gestão de alunos" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
@@ -497,7 +557,7 @@ function StudentsPage() {
                 </DropdownMenuItem>
                 {sigeOn ? (
                   <DropdownMenuItem
-                    onClick={exportarAlunosCsv}
+                    onClick={exportarAlunosSige}
                     disabled={!filtered.length}
                     className="gap-2 text-xs cursor-pointer"
                   >
@@ -514,7 +574,7 @@ function StudentsPage() {
               }
             />
             <StudentEnrollmentSheet
-              autoOpen={action === "matricular"}
+              autoOpen={action === "matricular" && !capacityBlocked}
               classGroups={classGroups.map((group) => ({
                 id: group.id,
                 name: group.name,
@@ -531,9 +591,22 @@ function StudentsPage() {
                     queryKey: ["academic", "pedagogical-workspace"],
                   }),
                 ]);
+                await refreshTenant();
               }}
               trigger={(open) => (
-                <Button className="gap-2" onClick={open}>
+                <Button
+                  className="gap-2"
+                  disabled={Boolean(capacityBlocked)}
+                  onClick={() => {
+                    if (capacityBlocked) {
+                      toast.error(capacityBlocked, {
+                        description: "Actualize o plano no portal comercial SIGA Plus.",
+                      });
+                      return;
+                    }
+                    open();
+                  }}
+                >
                   <UserPlus className="size-4" /> Nova Matrícula
                 </Button>
               )}
@@ -553,6 +626,32 @@ function StudentsPage() {
               Preparar turmas na Área Pedagógica
             </Link>{" "}
             para matricular directamente numa classe.
+          </div>
+        ) : null}
+
+        {studentCapacity.nearLimit || studentCapacity.atLimit ? (
+          <div
+            className={
+              studentCapacity.atLimit
+                ? "rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                : "rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100"
+            }
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>
+                {studentCapacity.atLimit
+                  ? capacityBlocked
+                  : `Quase no limite de alunos — ${studentCapacity.activeStudents}/${studentCapacity.maxStudents} (${studentCapacity.remaining} restantes).`}
+              </span>
+              <a
+                href={getPricingUrl()}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold underline-offset-2 hover:underline"
+              >
+                Actualizar plano
+              </a>
+            </div>
           </div>
         ) : null}
 
@@ -1026,76 +1125,17 @@ function StudentsPage() {
             </Table>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-xs text-muted-foreground">
-            <span>
-              A mostrar {filtered.length === 0 ? 0 : start + 1}–
-              {Math.min(start + pageSize, filtered.length)} de {filtered.length} alunos
-              {filtered.length !== allStudents.length ? ` (total ${allStudents.length})` : ""}
-            </span>
-
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2">
-                <span>Por página</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setFilter("pageSize", e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-8 rounded-lg border border-input bg-background px-2 text-xs"
-                  aria-label="Registos por página"
-                >
-                  {[10, 25, 50].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-8"
-                  disabled={currentPage <= 1}
-                  onClick={() => setPage(currentPage - 1)}
-                  aria-label="Página anterior"
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter((p) => Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages)
-                  .map((p, idx, arr) => (
-                    <span key={p} className="flex items-center">
-                      {idx > 0 && p - (arr[idx - 1] ?? p) > 1 ? (
-                        <span className="px-1 opacity-60">…</span>
-                      ) : null}
-                      <Button
-                        variant={p === currentPage ? "default" : "outline"}
-                        size="icon"
-                        className="size-8 text-xs"
-                        aria-label={`Página ${p}`}
-                        aria-current={p === currentPage ? "page" : undefined}
-                        onClick={() => setPage(p)}
-                      >
-                        {p}
-                      </Button>
-                    </span>
-                  ))}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-8"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setPage(currentPage + 1)}
-                  aria-label="Página seguinte"
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+          <ListPaginationBar
+            page={currentPage}
+            pageSize={pageSize}
+            totalItems={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => {
+              setFilter("pageSize", String(newSize));
+              setPage(1);
+            }}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
         </div>
       </div>
     </AppShell>

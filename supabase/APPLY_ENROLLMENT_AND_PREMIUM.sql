@@ -24,6 +24,37 @@ $$;
 REVOKE ALL ON FUNCTION public.current_school_id() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.current_school_id() TO authenticated, service_role;
 
+CREATE OR REPLACE FUNCTION public.current_profile_role()
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  SELECT COALESCE(
+    (
+      SELECT r.code
+      FROM public.school_memberships sm
+      JOIN public.member_roles mr ON mr.membership_id = sm.id
+      JOIN public.roles r ON r.id = mr.role_id
+      WHERE sm.user_id = (SELECT auth.uid())
+        AND sm.status = 'active'
+      ORDER BY sm.created_at ASC
+      LIMIT 1
+    ),
+    (
+      SELECT cargo
+      FROM public.profiles
+      WHERE id = (SELECT auth.uid())
+      LIMIT 1
+    ),
+    'Utilizador'
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.current_profile_role() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_profile_role() TO authenticated, service_role;
+
 -- APPLY_IN_SQL_EDITOR.sql cria o bucket antes desta função existir. Ao reaplicar
 -- este script, as políticas passam a limitar os uploads ao prefixo da própria escola.
 DROP POLICY IF EXISTS "Authenticated users can upload school logos" ON storage.objects;
@@ -115,7 +146,7 @@ DROP POLICY IF EXISTS "Read enrollment forms in own school" ON public.enrollment
 CREATE POLICY "Read enrollment forms in own school"
   ON public.enrollment_forms
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()) AND deleted_at IS NULL);
+  USING (public.is_school_member(school_id) AND deleted_at IS NULL);
 
 DROP POLICY IF EXISTS "Public read open enrollment forms" ON public.enrollment_forms;
 CREATE POLICY "Public read open enrollment forms"
@@ -127,8 +158,8 @@ DROP POLICY IF EXISTS "Manage enrollment forms in own school" ON public.enrollme
 CREATE POLICY "Manage enrollment forms in own school"
   ON public.enrollment_forms
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()) AND deleted_at IS NULL)
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id) AND deleted_at IS NULL)
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.enrollment_applications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -170,14 +201,14 @@ DROP POLICY IF EXISTS "Read enrollment applications in own school" ON public.enr
 CREATE POLICY "Read enrollment applications in own school"
   ON public.enrollment_applications
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()) AND deleted_at IS NULL);
+  USING (public.is_school_member(school_id) AND deleted_at IS NULL);
 
 DROP POLICY IF EXISTS "Update enrollment applications in own school" ON public.enrollment_applications;
 CREATE POLICY "Update enrollment applications in own school"
   ON public.enrollment_applications
   FOR UPDATE TO authenticated
-  USING (school_id = (SELECT public.current_school_id()) AND deleted_at IS NULL)
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id) AND deleted_at IS NULL)
+  WITH CHECK (public.is_school_member(school_id));
 
 DROP POLICY IF EXISTS "Public insert open enrollment applications" ON public.enrollment_applications;
 CREATE POLICY "Public insert open enrollment applications"
@@ -227,14 +258,14 @@ DROP POLICY IF EXISTS "Read own or admin staff grants" ON public.staff_module_gr
 CREATE POLICY "Read own or admin staff grants"
   ON public.staff_module_grants
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 DROP POLICY IF EXISTS "Admins manage staff grants" ON public.staff_module_grants;
 CREATE POLICY "Admins manage staff grants"
   ON public.staff_module_grants
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.calendar_feed_tokens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -279,8 +310,8 @@ DROP POLICY IF EXISTS "Manage school integrations in own school" ON public.schoo
 CREATE POLICY "Manage school integrations in own school"
   ON public.school_integrations
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.finance_payment_plans (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -318,8 +349,8 @@ DROP POLICY IF EXISTS "Manage payment plans in own school" ON public.finance_pay
 CREATE POLICY "Manage payment plans in own school"
   ON public.finance_payment_plans
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_assessment_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -350,8 +381,8 @@ DROP POLICY IF EXISTS "Manage assessment items in own school" ON public.siga_ass
 CREATE POLICY "Manage assessment items in own school"
   ON public.siga_assessment_items
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_assessment_scores (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -375,8 +406,8 @@ DROP POLICY IF EXISTS "Manage assessment scores in own school" ON public.siga_as
 CREATE POLICY "Manage assessment scores in own school"
   ON public.siga_assessment_scores
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 -- Mensagens internas entre contas da mesma escola (painel da conta)
 CREATE TABLE IF NOT EXISTS public.siga_direct_messages (
@@ -409,13 +440,13 @@ DROP POLICY IF EXISTS "Read own school direct messages" ON public.siga_direct_me
 CREATE POLICY "Read own school direct messages"
   ON public.siga_direct_messages
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 DROP POLICY IF EXISTS "Send school direct messages" ON public.siga_direct_messages;
 CREATE POLICY "Send school direct messages"
   ON public.siga_direct_messages
   FOR INSERT TO authenticated
-  WITH CHECK (school_id = (SELECT public.current_school_id()) AND sender_id = auth.uid());
+  WITH CHECK (public.is_school_member(school_id) AND sender_id = auth.uid());
 
 -- Documentos por pessoa (BI/NIF e outros) — src/features/people/server.ts espera esta tabela.
 CREATE TABLE IF NOT EXISTS public.person_documents (
@@ -450,14 +481,14 @@ DROP POLICY IF EXISTS "Read school person documents" ON public.person_documents;
 CREATE POLICY "Read school person documents"
   ON public.person_documents
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 DROP POLICY IF EXISTS "Manage school person documents" ON public.person_documents;
 CREATE POLICY "Manage school person documents"
   ON public.person_documents
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 -- Referência opcional a ficheiro da biblioteca SIGA (sem FK para não bloquear SQL antigo)
 ALTER TABLE public.person_documents
@@ -551,6 +582,7 @@ CREATE TABLE IF NOT EXISTS public.siga_files (
   class_group_id uuid,
   is_folder boolean NOT NULL DEFAULT false,
   parent_id uuid REFERENCES public.siga_files(id) ON DELETE CASCADE,
+  is_system boolean NOT NULL DEFAULT false,
   title text,
   description text,
   category text CHECK (
@@ -603,6 +635,8 @@ ALTER TABLE public.siga_files
   ADD COLUMN IF NOT EXISTS is_folder boolean NOT NULL DEFAULT false;
 ALTER TABLE public.siga_files
   ADD COLUMN IF NOT EXISTS parent_id uuid REFERENCES public.siga_files(id) ON DELETE CASCADE;
+ALTER TABLE public.siga_files
+  ADD COLUMN IF NOT EXISTS is_system boolean NOT NULL DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS siga_files_school_area_idx
   ON public.siga_files (school_id, area, created_at DESC);
@@ -625,6 +659,20 @@ CREATE INDEX IF NOT EXISTS siga_files_related_person_idx
 CREATE INDEX IF NOT EXISTS siga_files_reference_idx
   ON public.siga_files (school_id, reference_code)
   WHERE reference_code IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS siga_files_system_idx
+  ON public.siga_files (school_id)
+  WHERE is_system;
+
+-- Todo documento fica ligado a um utilizador; arquivos financeiros = sistema.
+UPDATE public.siga_files
+SET related_user_id = owner_user_id
+WHERE related_user_id IS NULL;
+
+UPDATE public.siga_files
+SET is_system = true
+WHERE COALESCE(is_system, false) = false
+  AND category IN ('recibo', 'talao', 'fatura');
 
 ALTER TABLE public.siga_files DROP CONSTRAINT IF EXISTS siga_files_category_check;
 ALTER TABLE public.siga_files
@@ -659,7 +707,8 @@ ALTER TABLE public.siga_file_events
       'unlinked_class',
       'metadata_updated',
       'moved',
-      'folder_created'
+      'folder_created',
+      'access_denied'
     )
   );
 
@@ -675,14 +724,14 @@ DROP POLICY IF EXISTS "Read school file events" ON public.siga_file_events;
 CREATE POLICY "Read school file events"
   ON public.siga_file_events
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 DROP POLICY IF EXISTS "Write school file events" ON public.siga_file_events;
 CREATE POLICY "Write school file events"
   ON public.siga_file_events
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND actor_user_id = auth.uid()
   );
 
@@ -695,14 +744,14 @@ DROP POLICY IF EXISTS "Read school files" ON public.siga_files;
 CREATE POLICY "Read school files"
   ON public.siga_files
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 DROP POLICY IF EXISTS "Write school files" ON public.siga_files;
 CREATE POLICY "Write school files"
   ON public.siga_files
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()) AND owner_user_id = auth.uid());
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id) AND owner_user_id = auth.uid());
 
 -- ---------------------------------------------------------------------------
 -- Planos de Aula (ciclo 34): documento título/conteúdo/anexo por turma+disciplina
@@ -750,8 +799,8 @@ DROP POLICY IF EXISTS "Manage lesson plans in own school" ON public.siga_lesson_
 CREATE POLICY "Manage lesson plans in own school"
   ON public.siga_lesson_plans
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_lesson_plan_components (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -786,8 +835,8 @@ DROP POLICY IF EXISTS "Manage lesson plan components in own school" ON public.si
 CREATE POLICY "Manage lesson plan components in own school"
   ON public.siga_lesson_plan_components
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 -- Liga os itens do Centro de Avaliação gerados por um Plano de Aula de volta à
 -- definição que os originou, para conseguir sincronizar (criar/remover) quando o
@@ -873,7 +922,7 @@ DROP POLICY IF EXISTS "Read school cash expenses" ON public.siga_cash_expenses;
 CREATE POLICY "Read school cash expenses"
   ON public.siga_cash_expenses
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 -- Comunicados institucionais: o portal pode ler os da própria escola; criação,
 -- edição e arquivo passam pelos server functions, que exigem Administrador/Secretaria.
@@ -953,7 +1002,7 @@ DROP POLICY IF EXISTS "Read school announcements" ON public.announcements;
 CREATE POLICY "Read school announcements"
   ON public.announcements
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 -- ============================================================================
 -- MOTOR CENTRAL DE IMPORTAÇÃO DE DADOS ESCOLARES (STAGING, AUDIT & JOBS)
@@ -1001,7 +1050,7 @@ DROP POLICY IF EXISTS "Read school import jobs" ON public.import_jobs;
 CREATE POLICY "Read school import jobs"
   ON public.import_jobs
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.import_rows (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1039,7 +1088,7 @@ CREATE POLICY "Read school import rows"
   FOR SELECT TO authenticated
   USING (
     import_job_id IN (
-      SELECT j.id FROM public.import_jobs j WHERE j.school_id = (SELECT public.current_school_id())
+      SELECT j.id FROM public.import_jobs j WHERE j.public.is_school_member(school_id)
     )
   );
 
@@ -1066,7 +1115,7 @@ DROP POLICY IF EXISTS "Read school import templates" ON public.import_templates;
 CREATE POLICY "Read school import templates"
   ON public.import_templates
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.import_audits (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1098,7 +1147,7 @@ CREATE POLICY "Read school import audits"
   FOR SELECT TO authenticated
   USING (
     import_job_id IN (
-      SELECT j.id FROM public.import_jobs j WHERE j.school_id = (SELECT public.current_school_id())
+      SELECT j.id FROM public.import_jobs j WHERE j.public.is_school_member(school_id)
     )
   );
 
@@ -1140,8 +1189,8 @@ DROP POLICY IF EXISTS "Manage attendance sessions in own school" ON public.siga_
 CREATE POLICY "Manage attendance sessions in own school"
   ON public.siga_attendance_sessions
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_attendance_records (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1168,8 +1217,8 @@ DROP POLICY IF EXISTS "Manage attendance records in own school" ON public.siga_a
 CREATE POLICY "Manage attendance records in own school"
   ON public.siga_attendance_records
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_attendance_audits (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1197,7 +1246,7 @@ DROP POLICY IF EXISTS "Read attendance audits in own school" ON public.siga_atte
 CREATE POLICY "Read attendance audits in own school"
   ON public.siga_attendance_audits
   FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_attendance_justifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1228,8 +1277,8 @@ DROP POLICY IF EXISTS "Manage attendance justifications in own school" ON public
 CREATE POLICY "Manage attendance justifications in own school"
   ON public.siga_attendance_justifications
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 -- ============================================================================
 -- CATRACAS DE ACESSO, CARTÕES VIRTUAIS & CONTROLO DE RECINTO
@@ -1266,8 +1315,8 @@ DROP POLICY IF EXISTS "Access cards in own school" ON public.siga_access_cards;
 CREATE POLICY "Access cards in own school"
   ON public.siga_access_cards
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_turnstile_devices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1296,8 +1345,8 @@ DROP POLICY IF EXISTS "Turnstile devices in own school" ON public.siga_turnstile
 CREATE POLICY "Turnstile devices in own school"
   ON public.siga_turnstile_devices
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_access_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1327,8 +1376,226 @@ DROP POLICY IF EXISTS "Access logs in own school" ON public.siga_access_logs;
 CREATE POLICY "Access logs in own school"
   ON public.siga_access_logs
   FOR ALL TO authenticated
-  USING (school_id = (SELECT public.current_school_id()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()));
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
+
+-- ---------------------------------------------------------------------------
+-- MULTI-TENANT & RBAC ENTERPRISE: Memberships, Papéis, Permissões e Convites
+-- ---------------------------------------------------------------------------
+
+-- 1. school_memberships
+CREATE TABLE IF NOT EXISTS public.school_memberships (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'invited', 'suspended', 'archived', 'inactive')),
+  joined_at timestamptz DEFAULT now(),
+  invited_at timestamptz,
+  activated_at timestamptz DEFAULT now(),
+  suspended_at timestamptz,
+  last_access_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.school_memberships ADD COLUMN IF NOT EXISTS joined_at timestamptz DEFAULT now();
+ALTER TABLE public.school_memberships ADD COLUMN IF NOT EXISTS invited_at timestamptz;
+ALTER TABLE public.school_memberships ADD COLUMN IF NOT EXISTS activated_at timestamptz DEFAULT now();
+ALTER TABLE public.school_memberships ADD COLUMN IF NOT EXISTS suspended_at timestamptz;
+ALTER TABLE public.school_memberships ADD COLUMN IF NOT EXISTS last_access_at timestamptz;
+
+CREATE UNIQUE INDEX IF NOT EXISTS school_memberships_school_user_idx
+  ON public.school_memberships (school_id, user_id);
+
+CREATE INDEX IF NOT EXISTS school_memberships_user_status_idx
+  ON public.school_memberships (user_id, status);
+
+CREATE INDEX IF NOT EXISTS school_memberships_school_status_idx
+  ON public.school_memberships (school_id, status);
+
+DROP TRIGGER IF EXISTS school_memberships_set_updated_at ON public.school_memberships;
+CREATE TRIGGER school_memberships_set_updated_at
+  BEFORE UPDATE ON public.school_memberships
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+GRANT SELECT, INSERT, UPDATE ON public.school_memberships TO authenticated;
+GRANT ALL ON public.school_memberships TO service_role;
+ALTER TABLE public.school_memberships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.school_memberships FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own memberships" ON public.school_memberships;
+CREATE POLICY "Users can read own memberships"
+  ON public.school_memberships FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()) OR public.is_school_member(school_id));
+
+-- 2. roles
+CREATE TABLE IF NOT EXISTS public.roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid REFERENCES public.schools(id) ON DELETE CASCADE,
+  code text NOT NULL,
+  name text NOT NULL,
+  description text,
+  is_system boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS roles_school_code_idx ON public.roles (school_id, code);
+
+-- 3. permissions
+CREATE TABLE IF NOT EXISTS public.permissions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  module text NOT NULL,
+  description text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 4. role_permissions
+CREATE TABLE IF NOT EXISTS public.role_permissions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  role_id uuid NOT NULL REFERENCES public.roles(id) ON DELETE CASCADE,
+  permission_id uuid NOT NULL REFERENCES public.permissions(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (role_id, permission_id)
+);
+
+-- 5. member_roles
+CREATE TABLE IF NOT EXISTS public.member_roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid REFERENCES public.schools(id) ON DELETE CASCADE,
+  membership_id uuid NOT NULL REFERENCES public.school_memberships(id) ON DELETE CASCADE,
+  role_id uuid NOT NULL REFERENCES public.roles(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (membership_id, role_id)
+);
+
+GRANT SELECT ON public.roles TO authenticated;
+GRANT ALL ON public.roles TO service_role;
+GRANT SELECT ON public.permissions TO authenticated;
+GRANT ALL ON public.permissions TO service_role;
+GRANT SELECT ON public.role_permissions TO authenticated;
+GRANT ALL ON public.role_permissions TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.member_roles TO authenticated;
+GRANT ALL ON public.member_roles TO service_role;
+
+ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.member_roles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read roles authenticated" ON public.roles;
+CREATE POLICY "Read roles authenticated" ON public.roles
+  FOR SELECT TO authenticated USING (school_id IS NULL OR public.is_school_member(school_id));
+
+DROP POLICY IF EXISTS "Read permissions authenticated" ON public.permissions;
+CREATE POLICY "Read permissions authenticated" ON public.permissions
+  FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Read role_permissions authenticated" ON public.role_permissions;
+CREATE POLICY "Read role_permissions authenticated" ON public.role_permissions
+  FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Read member_roles in own school" ON public.member_roles;
+CREATE POLICY "Read member_roles in own school" ON public.member_roles
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.school_memberships sm
+      WHERE sm.id = public.member_roles.membership_id
+        AND (sm.user_id = (SELECT auth.uid()) OR sm.public.is_school_member(school_id))
+    )
+  );
+
+-- 6. school_invitations
+CREATE TABLE IF NOT EXISTS public.school_invitations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  role_code text NOT NULL DEFAULT 'teacher',
+  invited_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'expired', 'revoked')),
+  token_hash text NOT NULL,
+  expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
+  accepted_at timestamptz,
+  accepted_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS school_invitations_school_email_idx
+  ON public.school_invitations (school_id, lower(email));
+CREATE INDEX IF NOT EXISTS school_invitations_token_hash_idx
+  ON public.school_invitations (token_hash)
+  WHERE status = 'pending';
+
+DROP TRIGGER IF EXISTS school_invitations_set_updated_at ON public.school_invitations;
+CREATE TRIGGER school_invitations_set_updated_at
+  BEFORE UPDATE ON public.school_invitations
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+GRANT SELECT, INSERT, UPDATE ON public.school_invitations TO authenticated;
+GRANT ALL ON public.school_invitations TO service_role;
+ALTER TABLE public.school_invitations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.school_invitations FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Manage invitations in own school" ON public.school_invitations;
+CREATE POLICY "Manage invitations in own school" ON public.school_invitations
+  FOR ALL TO authenticated
+  USING (public.is_school_member(school_id))
+  WITH CHECK (public.is_school_member(school_id));
+
+-- 7. Funções Utilitárias de Segurança / RLS
+CREATE OR REPLACE FUNCTION public.is_school_member(p_school_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.school_memberships
+    WHERE school_id = p_school_id
+      AND user_id = (SELECT auth.uid())
+      AND status = 'active'
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.is_school_member(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_school_member(uuid) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.has_school_permission(p_school_id uuid, p_permission text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.school_memberships sm
+    JOIN public.member_roles mr ON mr.membership_id = sm.id
+    JOIN public.roles r ON r.id = mr.role_id
+    JOIN public.role_permissions rp ON rp.role_id = r.id
+    JOIN public.permissions p ON p.id = rp.permission_id
+    WHERE sm.school_id = p_school_id
+      AND sm.user_id = (SELECT auth.uid())
+      AND sm.status = 'active'
+      AND p.code = p_permission
+  ) OR EXISTS (
+    SELECT 1
+    FROM public.school_memberships sm
+    JOIN public.member_roles mr ON mr.membership_id = sm.id
+    JOIN public.roles r ON r.id = mr.role_id
+    WHERE sm.school_id = p_school_id
+      AND sm.user_id = (SELECT auth.uid())
+      AND sm.status = 'active'
+      AND r.code IN ('owner', 'admin', 'administrator', 'director')
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.has_school_permission(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.has_school_permission(uuid, text) TO authenticated, service_role;
 
 -- Verificação: deve devolver as relações novas.
 SELECT c.relname AS tabela
@@ -1359,7 +1626,100 @@ WHERE n.nspname = 'public'
     'siga_attendance_sessions',
     'siga_attendance_records',
     'siga_attendance_audits',
-    'siga_attendance_justifications'
+    'siga_attendance_justifications',
+    'school_memberships',
+    'roles',
+    'permissions',
+    'role_permissions',
+    'member_roles',
+    'school_invitations'
   )
 ORDER BY 1;
 
+-- =============================================================================
+-- FASE 14 — ÍNDICES COMPOSTOS DE PERFORMANCE (Multi-Tenant & Queries Críticas)
+-- Idempotentes: CREATE INDEX IF NOT EXISTS
+-- =============================================================================
+
+-- ─── people ──────────────────────────────────────────────────────────────────
+-- Listagem de pessoas activas por escola (filtros frequentes: activo/inactivo)
+CREATE INDEX IF NOT EXISTS people_school_status_idx
+  ON public.people (school_id, status)
+  WHERE deleted_at IS NULL;
+
+-- ─── students ─────────────────────────────────────────────────────────────────
+-- Listagem e exportação de alunos por escola e estado
+CREATE INDEX IF NOT EXISTS students_school_status_idx
+  ON public.students (school_id, status)
+  WHERE deleted_at IS NULL;
+
+-- ─── enrollments ──────────────────────────────────────────────────────────────
+-- Dashboard e pautas: escola → ano lectivo → status (active/cancelled)
+CREATE INDEX IF NOT EXISTS enrollments_school_year_status_idx
+  ON public.enrollments (school_id, academic_year_id, status);
+
+-- Histórico e relatórios: criação mais recente por escola
+CREATE INDEX IF NOT EXISTS enrollments_school_created_desc_idx
+  ON public.enrollments (school_id, created_at DESC);
+
+-- ─── finance_invoices ─────────────────────────────────────────────────────────
+-- Tesouraria: faturas pendentes ou vencidas por escola
+CREATE INDEX IF NOT EXISTS finance_invoices_school_status_idx
+  ON public.finance_invoices (school_id, status);
+
+-- Relatórios financeiros: facturas recentes por escola
+CREATE INDEX IF NOT EXISTS finance_invoices_school_created_desc_idx
+  ON public.finance_invoices (school_id, created_at DESC);
+
+-- ─── school_memberships ───────────────────────────────────────────────────────
+-- Resolução rápida do contexto activo: (school_id, user_id) já tem UNIQUE;
+-- este índice adicional optimiza a direcção inversa (listar escolas de um user)
+CREATE INDEX IF NOT EXISTS school_memberships_user_status_idx
+  ON public.school_memberships (user_id, status);
+
+-- ─── member_roles ─────────────────────────────────────────────────────────────
+-- Resolução de papéis por membership (usado em current_profile_role e has_school_permission)
+CREATE INDEX IF NOT EXISTS member_roles_membership_role_idx
+  ON public.member_roles (membership_id, role_id);
+
+-- ─── school_invitations ───────────────────────────────────────────────────────
+-- Listagem de convites pendentes por escola e data (painel Acessos)
+CREATE INDEX IF NOT EXISTS school_invitations_school_created_desc_idx
+  ON public.school_invitations (school_id, created_at DESC)
+  WHERE status = 'pending';
+
+-- ─── announcements ────────────────────────────────────────────────────────────
+-- Comunicados activos por escola (dashboard + campanhas)
+CREATE INDEX IF NOT EXISTS announcements_school_created_desc_idx
+  ON public.announcements (school_id, created_at DESC);
+
+-- ─── siga_files ───────────────────────────────────────────────────────────────
+-- Biblioteca de arquivos: escola → pasta recente
+CREATE INDEX IF NOT EXISTS siga_files_school_created_desc_idx
+  ON public.siga_files (school_id, created_at DESC)
+  WHERE deleted_at IS NULL;
+
+-- ─── roles ────────────────────────────────────────────────────────────────────
+-- Lookup de papel por escola e código (único, mas índice explícito para planners)
+CREATE INDEX IF NOT EXISTS roles_school_code_idx
+  ON public.roles (school_id, code);
+
+-- Verificação: listar índices criados neste bloco
+SELECT indexname, tablename
+FROM pg_indexes
+WHERE schemaname = 'public'
+  AND indexname IN (
+    'people_school_status_idx',
+    'students_school_status_idx',
+    'enrollments_school_year_status_idx',
+    'enrollments_school_created_desc_idx',
+    'finance_invoices_school_status_idx',
+    'finance_invoices_school_created_desc_idx',
+    'school_memberships_user_status_idx',
+    'member_roles_membership_role_idx',
+    'school_invitations_school_created_desc_idx',
+    'announcements_school_created_desc_idx',
+    'siga_files_school_created_desc_idx',
+    'roles_school_code_idx'
+  )
+ORDER BY tablename, indexname;

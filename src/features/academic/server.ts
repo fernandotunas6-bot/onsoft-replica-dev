@@ -11,6 +11,7 @@ import { averagePercent } from "@/features/students/schemas";
 import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
 import { scoreAverage, inferTeachingCycle } from "@/lib/angola-academic";
 import { buildClassAcademicSummaries } from "./assessment-engine";
+import { ensureAcademicDefaultsCore } from "./academic-bootstrap";
 import {
   ensureDefaultTeacher,
   listSgaTermGrades,
@@ -1281,153 +1282,21 @@ export const ensureAcademicDefaults = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const [years, programs, grades, campuses] = await Promise.all([
-      db.from("academic_years").select("id").eq("school_id", membership.schoolId).limit(1),
-      db.from("programs").select("id").eq("school_id", membership.schoolId).limit(1),
-      db.from("grade_levels").select("id").eq("school_id", membership.schoolId).limit(1),
-      db.from("campuses").select("id").eq("school_id", membership.schoolId).limit(1),
-    ]);
-    if (years.error || programs.error || grades.error || campuses.error) {
-      throw new Error("Não foi possível verificar a estrutura académica SGA.");
-    }
-
-    const created: string[] = [];
-
-    if ((years.data ?? []).length === 0) {
-      const yearName = data.yearName ?? "2026/2027";
-      const { error } = await db.from("academic_years").insert({
-        school_id: membership.schoolId,
-        name: yearName,
-        starts_on: "2026-09-01",
-        ends_on: "2027-07-31",
-        status: "active",
-      });
-      if (error) throw publicDatabaseError(error, "Não foi possível criar o ano lectivo.");
-      created.push("ano lectivo");
-    }
-
-    if ((programs.data ?? []).length === 0) {
-      const { data: level } = await db
-        .from("academic_levels")
-        .select("id")
-        .eq("school_id", membership.schoolId)
-        .limit(1)
-        .maybeSingle();
-      if (!level?.id) {
-        throw new Error("Crie primeiro um nível académico na escola SGA.");
-      }
-      const { error } = await db.from("programs").insert({
-        school_id: membership.schoolId,
-        academic_level_id: level.id,
-        code: "GERAL",
-        name: "Ensino Geral",
-        kind: "general",
-        is_active: true,
-      });
-      if (error) throw publicDatabaseError(error, "Não foi possível criar o programa.");
-      created.push("programa");
-    }
-
-    if ((campuses.data ?? []).length === 0) {
-      const { error } = await db.from("campuses").insert({
-        school_id: membership.schoolId,
-        code: "SEDE",
-        name: "Campus Principal",
-        is_active: true,
-      });
-      if (error) throw publicDatabaseError(error, "Não foi possível criar o campus.");
-      created.push("campus");
-    }
-
-    const { data: subjectRows } = await db
-      .from("subjects")
-      .select("id")
-      .eq("school_id", membership.schoolId)
-      .limit(1);
-    if ((subjectRows ?? []).length === 0) {
-      const defaults = [
-        { code: "MAT", name: "Matemática", short_name: "Mat" },
-        { code: "PORT", name: "Língua Portuguesa", short_name: "Port" },
-        { code: "CN", name: "Ciências Naturais", short_name: "CN" },
-        { code: "HIST", name: "História", short_name: "Hist" },
-        { code: "ING", name: "Inglês", short_name: "Ing" },
-      ];
-      const { error } = await db.from("subjects").insert(
-        defaults.map((subject) => ({
-          school_id: membership.schoolId,
-          code: subject.code,
-          name: subject.name,
-          short_name: subject.short_name,
-          status: "active",
-          created_by: context.userId,
-          updated_by: context.userId,
-        })),
-      );
-      if (error) throw publicDatabaseError(error, "Não foi possível criar disciplinas iniciais.");
-      created.push("disciplinas");
-    }
-
-    const { data: teachers } = await db
-      .from("teachers")
-      .select("id")
-      .eq("school_id", membership.schoolId)
-      .limit(1);
-    if ((teachers ?? []).length === 0) {
-      await ensureDefaultTeacher(db, membership.schoolId, context.userId);
-      created.push("professor");
-    }
-
-    const { data: yearRow } = await db
-      .from("academic_years")
-      .select("id")
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle();
-    if (yearRow?.id) {
-      const { data: termRows } = await db
-        .from("terms")
-        .select("id")
-        .eq("school_id", membership.schoolId)
-        .eq("academic_year_id", yearRow.id)
-        .limit(1);
-      if ((termRows ?? []).length === 0) {
-        const { error } = await db.from("terms").insert([
-          {
-            school_id: membership.schoolId,
-            academic_year_id: yearRow.id,
-            name: "1º Trimestre",
-            sequence: 1,
-            starts_on: "2026-09-01",
-            ends_on: "2026-12-15",
-          },
-          {
-            school_id: membership.schoolId,
-            academic_year_id: yearRow.id,
-            name: "2º Trimestre",
-            sequence: 2,
-            starts_on: "2027-01-05",
-            ends_on: "2027-03-20",
-          },
-          {
-            school_id: membership.schoolId,
-            academic_year_id: yearRow.id,
-            name: "3º Trimestre",
-            sequence: 3,
-            starts_on: "2027-04-01",
-            ends_on: "2027-07-15",
-          },
-        ]);
-        if (error) throw publicDatabaseError(error, "Não foi possível criar trimestres.");
-        created.push("trimestres");
-      }
-    }
+    const result = await ensureAcademicDefaultsCore(
+      db,
+      {
+        schoolId: membership.schoolId,
+        userId: context.userId,
+        yearName: data.yearName,
+      },
+      { strict: true },
+    );
 
     return {
-      created,
+      created: result.created,
       message:
-        created.length > 0
-          ? `Estrutura SGA preparada: ${created.join(", ")}.`
+        result.created.length > 0
+          ? `Estrutura SGA preparada: ${result.created.join(", ")}.`
           : "A estrutura académica SGA já está pronta.",
     };
   });

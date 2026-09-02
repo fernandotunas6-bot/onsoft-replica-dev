@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderOpen, ImagePlus, Loader2 } from "lucide-react";
+import { FolderOpen, ImagePlus, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { applyLibraryPhotoToPerson } from "./apply-person-photo";
 import { FileKindIcon } from "./FileKindIcon";
-import { fileCategoryMeta, formatFileSize, formatFileWhen } from "./kinds";
+import { canAccessFileContent, fileCategoryMeta, formatFileSize, formatFileWhen } from "./kinds";
 import { isImageFileKind } from "./resolve-file";
 import { listSchoolFiles } from "./server";
 
@@ -20,6 +21,7 @@ export function StudentRelatedFilesPanel({
   schoolId: string;
   studentId: string;
 }) {
+  const account = useCurrentAccount();
   const queryClient = useQueryClient();
   const filesQuery = useQuery({
     queryKey: ["arquivos", "student-related", personId],
@@ -66,6 +68,7 @@ export function StudentRelatedFilesPanel({
         <ul className="mt-4 divide-y divide-border rounded-xl border border-border">
           {files.map((file) => {
             const categoryLabel = file.category ? fileCategoryMeta[file.category]?.label : null;
+            const contentOpen = canAccessFileContent(file, account.id, account.role);
             return (
               <li key={file.id} className="flex flex-wrap items-center gap-3 px-3 py-2.5 text-sm">
                 <FileKindIcon kind={file.kind} className="size-8 shrink-0" />
@@ -74,6 +77,12 @@ export function StudentRelatedFilesPanel({
                     {file.title?.trim() || file.name}
                     {categoryLabel ? (
                       <span className="ml-2 text-xs font-normal text-primary">{categoryLabel}</span>
+                    ) : null}
+                    {file.isSystem ? (
+                      <span className="ml-2 inline-flex items-center gap-1 text-xs font-normal text-muted-foreground">
+                        <Lock className="size-3" aria-hidden />
+                        {contentOpen ? "Sistema" : "Protegido"}
+                      </span>
                     ) : null}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
@@ -85,7 +94,7 @@ export function StudentRelatedFilesPanel({
                     {file.createdAt ? ` · ${formatFileWhen(file.createdAt)}` : ""}
                   </p>
                 </div>
-                {isImageFileKind(file.kind) ? (
+                {isImageFileKind(file.kind) && contentOpen ? (
                   <Button
                     type="button"
                     variant="outline"

@@ -15,10 +15,12 @@ import {
   Wallet,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { whatsappHref } from "@/features/integrations/actions";
 import { archiveFinanceDocument } from "@/features/arquivos/server";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { warmFinanceCharts } from "@/lib/warm-charts";
+import { cn } from "@/lib/utils";
 
 const FinanceiroCashChart = lazy(() =>
   import("@/features/finance/FinanceiroCashChart").then((module) => ({
@@ -28,6 +30,8 @@ const FinanceiroCashChart = lazy(() =>
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
+import { DOC_PATHS } from "@/lib/ecosystem-urls";
+import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
@@ -63,7 +67,7 @@ import { officialReceiptBody } from "@/features/finance/schemas";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
-import { cn } from "@/lib/utils";
+import { openSettingsPanel } from "@/lib/settings-deep-link";
 
 const financeiroFilterDefaults = {
   q: "",
@@ -149,7 +153,9 @@ function FinanceiroPage() {
   });
   const missingPenalty = Boolean(schemaQuery.data?.missingPenaltyAmount);
   const missingPrefs = Boolean(schemaQuery.data?.missingNotificationPreferences);
+  const missingActiveFeePlan = Boolean(schemaQuery.data?.missingActiveFeePlan);
   const schemaBlocked = missingPenalty || missingPrefs;
+  const financeInvoiceBlocked = schemaBlocked || missingActiveFeePlan;
   const cashExpensesAvailable = schemaQuery.data ? !schemaQuery.data.missingCashExpenses : false;
   const movimentos = useMemo(
     () =>
@@ -430,11 +436,23 @@ function FinanceiroPage() {
                   <Banknote className="size-4" /> Resumo do caixa
                 </Link>
               </Button>
-              <Button variant="outline" className="gap-2" asChild>
-                <Link to="/faturas">
+              {financeInvoiceBlocked ? (
+                <Button variant="outline" className="gap-2" disabled>
                   <Banknote className="size-4" /> Emitir fatura
-                </Link>
-              </Button>
+                </Button>
+              ) : (
+                <Button variant="outline" className="gap-2" asChild>
+                  <Link to="/faturas">
+                    <Banknote className="size-4" /> Emitir fatura
+                  </Link>
+                </Button>
+              )}
+              <DocHelpButton title="Navegação e permissões — tesouraria" />
+              <DocPathHelpButton
+                path={DOC_PATHS.integracoesEmis}
+                label="Pagamentos"
+                title="Multicaixa, Unitel e gateway"
+              />
               <QuickFormModal
                 eyebrow="Tesouraria"
                 title="Pagamento avançado"
@@ -789,7 +807,30 @@ function FinanceiroPage() {
                   )
                 </>
               ) : null}
-              . Até lá só consegue consultar caixa existente.
+              . Até lá só consegue consultar caixa existente. <SqlChecklistLink />
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {!schemaBlocked && missingActiveFeePlan ? (
+          <Alert className="border-amber-500/40 bg-amber-500/10">
+            <AlertCircle className="size-4 text-amber-700 dark:text-amber-300" />
+            <AlertTitle>Plano de propinas em falta</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>
+                Configure o plano financeiro (propina mensal e taxa de matrícula) antes de emitir
+                faturas. Escolas novas recebem valores por omissão no provisionamento — active ou
+                ajuste aqui.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1"
+                onClick={() => openSettingsPanel("financeiro")}
+              >
+                Abrir Definições → Financeiro
+              </Button>
             </AlertDescription>
           </Alert>
         ) : null}

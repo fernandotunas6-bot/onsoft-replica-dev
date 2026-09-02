@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ApplicationRole, ModuleGrantMap } from "@/features/auth/access-policy";
 import { applicationRoles } from "@/features/auth/access-policy";
+import { WORKSPACE_MODULE_SPECS } from "@/features/auth/navigation-catalog";
 
 export const spotlightKinds = ["feature", "note", "function", "promo"] as const;
 export type SpotlightKind = (typeof spotlightKinds)[number];
@@ -80,7 +81,7 @@ export const spotlightItemSchema = z
     title: z.string().trim().min(3).max(80),
     body: z.string().trim().min(8).max(180),
     cta: z.string().trim().min(2).max(40),
-    icon: z.string().min(1),
+    logoUrl: z.string().trim().optional(),
     tone: z.enum(spotlightTones),
     accessPath: z.string().optional(),
     roles: z.array(z.enum(applicationRoles)).optional(),
@@ -167,7 +168,7 @@ export const spotlightItemOverrideSchema = z.object({
     .optional(),
   link: spotlightLinkSchema.optional(),
   kind: z.enum(spotlightKinds).optional(),
-  icon: z.string().min(1).optional(),
+  logoUrl: z.string().trim().optional(),
   tone: z.enum(spotlightTones).optional(),
 });
 export type SpotlightItemOverride = z.infer<typeof spotlightItemOverrideSchema>;
@@ -180,18 +181,11 @@ export function isCustomSpotlightId(id: string) {
 }
 
 export const spotlightInternalTargets = [
-  { to: "/", label: "Início" },
-  { to: "/alunos", label: "Alunos" },
-  { to: "/pessoas", label: "Pessoas" },
-  { to: "/pedagogica", label: "Pedagógica" },
-  { to: "/financeiro", label: "Tesouraria" },
-  { to: "/faturas", label: "Faturas" },
-  { to: "/documentos", label: "Documentos" },
-  { to: "/calendario", label: "Calendário" },
-  { to: "/comunicacoes", label: "Comunicações" },
-  { to: "/acessos", label: "Acessos" },
-  { to: "/relatorios/academicos", label: "Relatórios académicos" },
-  { to: "/relatorios/financeiros", label: "Relatórios financeiros" },
+  ...WORKSPACE_MODULE_SPECS.map((spec) => ({
+    to: spec.navPath,
+    label: spec.shortName,
+  })),
+  { to: "/perfil", label: "Perfil" },
 ] as const;
 
 export const spotlightSettingsTargets = [
@@ -222,7 +216,6 @@ export function createCustomSpotlight(order: number): SpotlightItem {
     title: "Nova nota",
     body: "Escreva o recado que aparece no início e no painel da conta.",
     cta: "Abrir",
-    icon: "sparkles",
     tone: "info",
     link: { type: "settings", panel: "destaques" },
   });
@@ -252,7 +245,7 @@ export function applySpotlightOverrides(
       link: patch.link ?? item.link,
       accessPath: patch.link ? accessPathForLink(patch.link) : item.accessPath,
       kind: patch.kind ?? item.kind,
-      icon: patch.icon ?? item.icon,
+      logoUrl: patch.logoUrl ?? item.logoUrl,
       tone: patch.tone ?? item.tone,
     };
   });
@@ -290,7 +283,7 @@ export function spotlightOverrideDiff(
     }
     if (!sameSpotlightLink(item.link, base.link)) patch.link = item.link;
     if (item.kind !== base.kind) patch.kind = item.kind;
-    if (item.icon !== base.icon) patch.icon = item.icon;
+    if ((item.logoUrl ?? "") !== (base.logoUrl ?? "")) patch.logoUrl = item.logoUrl;
     if (item.tone !== base.tone) patch.tone = item.tone;
     if (Object.keys(patch).length) items[item.id] = patch;
   }

@@ -161,7 +161,7 @@ export function prefetchRouteData(queryClient: QueryClient, pathname: string) {
     once("data:/calendario", () => {
       void queryClient.prefetchQuery({
         queryKey: ["calendar", "events"],
-        queryFn: () => listCalendarEvents({ data: { limit: 50 } }),
+        queryFn: () => listCalendarEvents({ data: { limit: 50, includePast: true } }),
       });
     });
     return;

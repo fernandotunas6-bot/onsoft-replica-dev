@@ -238,6 +238,45 @@ export function myFileAccess(
   return "view";
 }
 
+const SYSTEM_CONTENT_ROLES = new Set(["Administrador", "Secretaria", "Tesouraria"]);
+
+/** Abrir/descarregar: ficheiros `isSystem` ficam listáveis, conteúdo só com permissão. */
+export function canAccessFileContent(
+  file: {
+    isSystem?: boolean;
+    isFolder?: boolean;
+    ownerUserId: string;
+    relatedUserId?: string | null;
+  },
+  userId: string,
+  role: string,
+): boolean {
+  if (file.isFolder) return true;
+  if (!file.isSystem) return true;
+  if (file.ownerUserId === userId) return true;
+  if (file.relatedUserId && file.relatedUserId === userId) return true;
+  return SYSTEM_CONTENT_ROLES.has(role);
+}
+
+/** Documento «meu»: sou dono ou utilizador relacionado nos metadados. */
+export function isFileRelatedToUser(
+  file: { ownerUserId: string; relatedUserId?: string | null },
+  userId: string,
+) {
+  return file.ownerUserId === userId || file.relatedUserId === userId;
+}
+
+/** Alterar/apagar ficheiro do sistema. */
+export function canManageSystemFile(
+  file: { isSystem?: boolean; ownerUserId: string },
+  userId: string,
+  role: string,
+): boolean {
+  if (!file.isSystem) return true;
+  if (file.ownerUserId === userId) return true;
+  return role === "Administrador" || role === "Secretaria";
+}
+
 export function formatFileWhen(iso: string | null | undefined) {
   if (!iso) return "—";
   const date = new Date(iso);
@@ -268,6 +307,7 @@ export const fileActionLabels: Record<string, string> = {
   metadata_updated: "actualizou metadados",
   moved: "moveu",
   folder_created: "criou pasta",
+  access_denied: "tentou abrir (sem permissão)",
 };
 
 export function formatFileActivityLine(input: {
@@ -287,17 +327,22 @@ export function formatFileActivityLine(input: {
   return formatFileWhen(input.fallbackCreatedAt ?? input.at);
 }
 
-/** Ficheiro fora do padrão SIGA: falta descrição útil ou classificação. */
+/** Ficheiro fora do padrão SIGA: falta descrição útil, classificação ou utilizador. */
 export function fileNeedsOrganization(file: {
   title?: string | null;
   description?: string | null;
   category?: FileCategory | null;
+  relatedUserId?: string | null;
+  isFolder?: boolean;
+  isSystem?: boolean;
 }) {
+  if (file.isFolder || file.isSystem) return false;
   const description = file.description?.trim() ?? "";
   if (description.length < FILE_DESCRIPTION_MIN) return true;
   if (!file.category) return true;
   const title = file.title?.trim() ?? "";
   if (!title) return true;
+  if (!file.relatedUserId) return true;
   return false;
 }
 

@@ -1,8 +1,9 @@
 import { useState, type ElementType, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
-import { IconChip, type ChipTone } from "@/components/ui/icon-chip";
+import type { ChipTone } from "@/components/ui/icon-chip";
+import { IconChip } from "@/components/ui/icon-chip";
 import { LazyVisible } from "@/components/ui/lazy-visible";
-import { inferIcon } from "@/lib/auto-icon";
+import { LogoChip } from "@/components/ui/logo-chip";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -11,17 +12,29 @@ export function PageHeader({
   description,
   actions,
   avatar,
+  icon,
+  logoUrl,
 }: {
   group: string;
   title: string;
   description: string;
   actions?: ReactNode;
   avatar?: ReactNode;
+  icon?: ElementType;
+  logoUrl?: string | null;
 }) {
+  const headerMark =
+    avatar ??
+    (logoUrl?.trim() ? (
+      <LogoChip src={logoUrl.trim()} size="lg" label={title} />
+    ) : icon ? (
+      <IconChip icon={icon} size="lg" label={title} />
+    ) : null);
+
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="flex items-center gap-3">
-        {avatar}
+        {headerMark}
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {group}
@@ -60,7 +73,7 @@ export function StatGrid({
         if (stored !== null) return stored === "true";
       } catch {}
     }
-    return false; // oculto por defeito
+    return false;
   });
 
   const toggle = () => {
@@ -76,9 +89,7 @@ export function StatGrid({
   const grid = (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => {
-        const inferred = inferIcon(`${item.label} ${item.hint ?? ""}`);
-        const Icon = item.icon ?? inferred.icon;
-        const tone = item.tone ?? inferred.tone;
+        const tone = item.tone ?? "primary";
         return (
           <div
             key={item.label}
@@ -95,12 +106,15 @@ export function StatGrid({
                   <p className="mt-0.5 text-[11px] text-muted-foreground">{item.hint}</p>
                 ) : null}
               </div>
-              <IconChip
-                icon={Icon}
-                tone={tone}
-                size="sm"
-                className="transition-transform duration-150 group-hover:scale-105"
-              />
+              {item.icon ? (
+                <IconChip
+                  icon={item.icon}
+                  tone={tone}
+                  size="sm"
+                  label={item.label}
+                  className="transition-transform duration-150 group-hover:scale-105"
+                />
+              ) : null}
             </div>
           </div>
         );
@@ -147,6 +161,7 @@ export function Panel({
   description,
   action,
   icon,
+  logoUrl,
   tone,
   children,
 }: {
@@ -154,17 +169,21 @@ export function Panel({
   description?: string;
   action?: ReactNode;
   icon?: ElementType;
+  logoUrl?: string | null;
   tone?: ChipTone;
   children: ReactNode;
 }) {
-  const inferred = inferIcon(`${title} ${description ?? ""}`);
-  const Icon = icon ?? inferred.icon;
-  const chipTone = tone ?? inferred.tone;
+  const panelMark = logoUrl?.trim() ? (
+    <LogoChip src={logoUrl.trim()} tone={tone ?? "primary"} size="sm" label={title} />
+  ) : icon ? (
+    <IconChip icon={icon} tone={tone ?? "primary"} size="sm" label={title} />
+  ) : null;
+
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card shadow-xs transition-shadow hover:shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-muted/30 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <IconChip icon={Icon} tone={chipTone} size="sm" />
+          {panelMark}
           <div className="min-w-0">
             <h2 className="font-display text-sm font-semibold tracking-tight sm:text-base">
               {title}

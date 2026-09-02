@@ -272,9 +272,27 @@ export function ProfileSettingsPanel() {
             required
           />
         </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="set-first-name">Primeiro nome (opcional)</Label>
+          <Input
+            id="set-first-name"
+            name="firstName"
+            defaultValue={currentUser.firstName ?? ""}
+            placeholder="Ex.: Manuel"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="set-last-name">Sobrenome (opcional)</Label>
+          <Input
+            id="set-last-name"
+            name="lastName"
+            defaultValue={currentUser.lastName ?? ""}
+            placeholder="Ex.: Joaquim"
+          />
+        </div>
         <Field
           id="set-email"
-          label="E-mail"
+          label="E-mail (Identidade Global)"
           type="email"
           defaultValue={currentUser.email}
           readOnly
@@ -290,7 +308,13 @@ export function ProfileSettingsPanel() {
             autoComplete="tel"
           />
         </div>
-        <Field id="set-cargo" label="Cargo / Função" defaultValue={currentUser.role} readOnly />
+        <Field id="set-cargo" label="Cargo / Função Actual" defaultValue={currentUser.role} readOnly />
+        <Field
+          id="set-escola"
+          label="Instituição Actual"
+          defaultValue={currentUser.activeSchool?.schoolName ?? currentUser.schoolName ?? "Instituição Principal"}
+          readOnly
+        />
       </div>
 
       <p className="text-xs text-muted-foreground">

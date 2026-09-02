@@ -1,32 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BookOpen,
-  CalendarDays,
+  Building2,
   ChevronDown,
+  CircleHelp,
   CreditCard,
-  Download,
-  FileText,
-  FileUp,
-  GraduationCap,
-  History,
-  LayoutGrid,
   Lock,
   LogOut,
-  Megaphone,
-  NotebookPen,
-  PieChart,
-  Receipt,
+  PlusCircle,
   Settings,
-  TrendingUp,
   User,
-  UserCheck,
-  UserCog,
-  UserPlus,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SigaLogo } from "@/components/ui/siga-logo";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   DropdownMenu,
@@ -41,150 +26,11 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { getPortalNavigation } from "@/features/auth/portal-engine";
+import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
+import { useTenant } from "@/features/saas/tenant-context";
+import { UserProfileModal } from "@/components/auth/UserProfileModal";
 import { AcademicNavTree } from "./AcademicNavTree";
 import { NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
-
-type Child = {
-  label: string;
-  icon: React.ElementType;
-  to: string;
-  search?: Record<string, string | undefined>;
-};
-type Item = {
-  label: string;
-  icon: React.ElementType;
-  to?: string;
-  search?: Record<string, string | undefined>;
-  children?: Child[];
-};
-type Group = { title: string; items: Item[] };
-
-const groups: Group[] = [
-  {
-    title: "Académico",
-    items: [
-      { label: "Dashboard", icon: LayoutGrid, to: "/" },
-      {
-        label: "Área Pedagógica",
-        icon: BookOpen,
-        children: [
-          {
-            label: "Turmas e Disciplinas",
-            icon: BookOpen,
-            to: "/pedagogica",
-            search: { tab: "turmas" },
-          },
-          {
-            label: "Notas e Avaliações",
-            icon: PieChart,
-            to: "/pedagogica",
-            search: { tab: "notas" },
-          },
-          {
-            label: "Horários",
-            icon: CalendarDays,
-            to: "/pedagogica",
-            search: { tab: "horarios" },
-          },
-          {
-            label: "Calendário Lectivo",
-            icon: CalendarDays,
-            to: "/calendario",
-          },
-          {
-            label: "Planos de Aula",
-            icon: NotebookPen,
-            to: "/planos-aula",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    title: "Secretaria",
-    items: [
-      { label: "Pessoas", icon: UserCog, to: "/pessoas" },
-      {
-        label: "Importação de Dados",
-        icon: FileUp,
-        children: [
-          {
-            label: "Nova Importação",
-            icon: FileUp,
-            to: "/importar",
-            search: { tab: "novo" },
-          },
-          {
-            label: "Histórico & Auditoria",
-            icon: History,
-            to: "/importar",
-            search: { tab: "historico" },
-          },
-          {
-            label: "Modelos Oficiais Excel",
-            icon: Download,
-            to: "/importar",
-            search: { tab: "modelos" },
-          },
-        ],
-      },
-      {
-        label: "Gestão de Alunos",
-        icon: Users,
-        children: [
-          {
-            label: "Matricular Aluno",
-            icon: UserPlus,
-            to: "/alunos",
-            search: { action: "matricular" },
-          },
-          {
-            label: "Confirmar Matrícula",
-            icon: UserCheck,
-            to: "/alunos",
-            search: { action: "confirmar" },
-          },
-          {
-            label: "Estado do Aluno",
-            icon: Users,
-            to: "/alunos",
-            search: { action: "estado" },
-          },
-        ],
-      },
-      {
-        label: "Documentos",
-        icon: FileText,
-        children: [{ label: "Emissão de Documentos", icon: FileText, to: "/documentos" }],
-      },
-    ],
-  },
-  {
-    title: "Financeiro",
-    items: [
-      {
-        label: "Caixa e Pagamentos",
-        icon: CreditCard,
-        children: [{ label: "Movimentos de Caixa", icon: CreditCard, to: "/financeiro" }],
-      },
-    ],
-  },
-  {
-    title: "Relatórios",
-    items: [
-      { label: "Relatórios Financeiros", icon: TrendingUp, to: "/relatorios/financeiros" },
-      { label: "Relatórios Académicos", icon: PieChart, to: "/relatorios/academicos" },
-      { label: "Faturas", icon: Receipt, to: "/faturas" },
-    ],
-  },
-  {
-    title: "Gestão e Comunicação",
-    items: [
-      { label: "Gestão de Acessos", icon: UserCog, to: "/acessos" },
-      { label: "Comunicações", icon: Megaphone, to: "/comunicacoes" },
-    ],
-  },
-];
 
 const MENU_KEY = "siga:sidebar-open-menus";
 
@@ -195,16 +41,27 @@ export function AppSidebar({
 }: {
   className?: string;
   collapsed?: boolean;
-  onOpenSettings?: () => void;
+  onOpenSettings?: (panelId?: string) => void;
 }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const currentUser = useCurrentAccount();
-  const { activeYearLabel } = useSchoolSettings();
+  const { activePlan } = useTenant();
+  const { school, activeYearLabel } = useSchoolSettings();
   const { signOut, signingOut } = useSignOut();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileModalTab, setProfileModalTab] = useState<"perfil" | "foto" | "seguranca" | "instituicoes">("perfil");
+
+  const hasSchool = Boolean(school?.name);
+  const schoolLogoUrl = school?.branding?.logo_url?.trim() || null;
+  const schoolInitials = (school?.name ?? "Escola")
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 
   const visibleGroups = useMemo(
-    () => getPortalNavigation(currentUser.role, currentUser.grants),
-    [currentUser.role, currentUser.grants],
+    () => getPortalNavigation(currentUser.role, currentUser.grants, activePlan),
+    [currentUser.role, currentUser.grants, activePlan],
   );
   const parentsOfActive = visibleGroups
     .flatMap((g) => g.items)
@@ -236,24 +93,154 @@ export function AppSidebar({
     });
 
   return (
-    <aside
-      data-sidebar="siga"
-      className={cn(
-        "flex h-full shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-        collapsed ? "w-[64px]" : "w-[240px]",
-        className,
-      )}
-    >
-      <div
+    <>
+      <aside
+        data-sidebar="siga"
         className={cn(
-          "flex h-14 items-center border-b border-sidebar-border/40",
-          collapsed ? "justify-center px-2.5" : "px-3.5",
+          "flex h-full shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+          collapsed ? "w-[64px]" : "w-[240px]",
+          className,
         )}
       >
-        {collapsed ? (
-          <SigaLogo variant="icon" size="sm" />
-        ) : (
-          <SigaLogo variant="full" size="sm" badgeText="Plus" />
+        <div
+          className={cn(
+            "flex items-center border-b border-sidebar-border/40",
+            collapsed ? "h-14 justify-center px-2" : "px-3 py-2",
+          )}
+        >
+          {hasSchool ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  data-sidebar-header-account=""
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
+                    collapsed ? "justify-center px-1" : "px-2",
+                  )}
+                  title={school?.name ? `${school.name} • ${currentUser.name}` : currentUser.name}
+                >
+                  {schoolLogoUrl ? (
+                    <img
+                      src={schoolLogoUrl}
+                      alt={school?.name ?? "Logótipo da escola"}
+                      className="size-8 shrink-0 rounded-[10px] bg-sidebar-accent/40 object-contain p-0.5"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="inline-flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary/15 text-xs font-bold text-primary"
+                    >
+                      {schoolInitials || "E"}
+                    </span>
+                  )}
+                  {!collapsed ? (
+                    <>
+                      <span className="min-w-0 flex-1 leading-tight">
+                        <span className="block truncate text-xs font-bold text-sidebar-foreground">
+                          {currentUser.name}
+                        </span>
+                        <span className="block truncate text-[10px] font-medium text-sidebar-muted">
+                          {school?.name}
+                        </span>
+                      </span>
+                      <ChevronDown aria-hidden className="size-3.5 shrink-0 opacity-50" />
+                    </>
+                  ) : null}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="bottom" className="w-64 z-50">
+                <DropdownMenuLabel className="font-normal">
+                  <span className="block truncate text-xs font-bold text-foreground">
+                    {school?.name}
+                  </span>
+                  <span className="block truncate text-[11px] text-muted-foreground">
+                    {currentUser.name} ({currentUser.role})
+                  </span>
+                </DropdownMenuLabel>
+
+                {currentUser.schools.length > 1 ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider py-1">
+                      Alternar Instituição
+                    </DropdownMenuLabel>
+                    {currentUser.schools.map((item) => {
+                      const isCurrent = item.schoolId === currentUser.schoolId;
+                      return (
+                        <DropdownMenuItem
+                          key={item.membershipId}
+                          onClick={() => {
+                            if (!isCurrent) {
+                              currentUser.setActiveSchoolId(item.schoolId);
+                            }
+                          }}
+                          className={cn(
+                            "flex items-center justify-between text-xs cursor-pointer",
+                            isCurrent && "font-bold text-primary bg-primary/10",
+                          )}
+                        >
+                          <span className="truncate">{item.schoolName}</span>
+                          <span className="text-[10px] text-muted-foreground ml-2 shrink-0">
+                            {item.roleName || item.appRole}
+                          </span>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </>
+                ) : null}
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setProfileModalTab("perfil");
+                    setProfileModalOpen(true);
+                  }}
+                >
+                  <User className="size-4 text-primary" /> Minha Conta / Perfil
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setProfileModalTab("instituicoes");
+                    setProfileModalOpen(true);
+                  }}
+                >
+                  <Building2 className="size-4 text-primary" /> Instituições
+                  {currentUser.schools.length > 1 ? (
+                    <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                      {currentUser.schools.length}
+                    </span>
+                  ) : null}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onOpenSettings?.("escola")}>
+                  <Settings className="size-4 text-muted-foreground" /> Configurações da Escola
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
+                    <PlusCircle className="size-4 text-emerald-600 dark:text-emerald-400" /> Criar escola (WEB)
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+          <a
+            href={getCreateSchoolUrl()}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(
+              "flex items-center gap-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors border border-primary/25 shadow-xs",
+              collapsed ? "size-9 justify-center p-0" : "w-full justify-between px-3 py-2",
+            )}
+            title="Criar escola no portal WEB"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <PlusCircle className="size-4 shrink-0 text-primary" />
+              {!collapsed ? <span className="truncate">Criar escola (WEB)</span> : null}
+            </div>
+            {!collapsed ? <Building2 className="size-3.5 shrink-0 opacity-70" /> : null}
+          </a>
         )}
       </div>
 
@@ -264,7 +251,7 @@ export function AppSidebar({
           collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
         )}
       >
-        {canAccessPath("/pedagogica", currentUser.role, currentUser.grants) ? (
+        {canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
           <AcademicNavTree collapsed={collapsed} />
         ) : null}
         {visibleGroups.map((group) => (
@@ -433,6 +420,16 @@ export function AppSidebar({
                 </Link>
               </DropdownMenuItem>
             ) : null}
+            <DropdownMenuItem asChild>
+              <a href={getSigaNavDocUrl()} target="_blank" rel="noreferrer">
+                <CircleHelp className="size-4" /> Documentação
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href={getPricingUrl()} target="_blank" rel="noreferrer">
+                <CreditCard className="size-4" /> Planos
+              </a>
+            </DropdownMenuItem>
             {currentUser.roles && currentUser.roles.length > 1 ? (
               <>
                 <DropdownMenuSeparator />
@@ -470,5 +467,12 @@ export function AppSidebar({
         ) : null}
       </div>
     </aside>
+
+    <UserProfileModal
+      open={profileModalOpen}
+      onOpenChange={setProfileModalOpen}
+      defaultTab={profileModalTab}
+    />
+  </>
   );
 }

@@ -3,5 +3,11 @@
   "identifier": "default",
   "description": "Default permissions for SIGA Desktop",
   "windows": ["main"],
-  "permissions": ["core:default", "opener:default"]
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "core:window:default",
+    "store:default",
+    "window-state:default"
+  ]
 }

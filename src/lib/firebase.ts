@@ -68,15 +68,25 @@ export function getFirebaseApp(customConfig?: Partial<FirebaseClientConfig>): Fi
 }
 
 /**
- * Initialized app instance
+ * App instance — só inicializa Firebase quando analytics está ligado
+ * (`VITE_FIREBASE_ANALYTICS=true`) ou quando alguém chama getFirebaseApp().
  */
-export const app: FirebaseApp = getFirebaseApp();
+export const app: FirebaseApp | null =
+  typeof window !== "undefined" && import.meta.env.VITE_FIREBASE_ANALYTICS === "true"
+    ? getFirebaseApp()
+    : null;
 
 /**
  * Returns Firebase Analytics if supported by the runtime (browser/hybrid environment).
+ * Desligado por defeito — activar com VITE_FIREBASE_ANALYTICS=true.
  */
 export async function getAnalyticsInstance(): Promise<Analytics | null> {
   if (typeof window === "undefined") return null;
+  if (import.meta.env.VITE_FIREBASE_ANALYTICS !== "true") {
+    analyticsInitialized = true;
+    analyticsInstance = null;
+    return null;
+  }
   if (analyticsInitialized) return analyticsInstance;
 
   try {
@@ -98,6 +108,7 @@ export async function getAnalyticsInstance(): Promise<Analytics | null> {
  */
 export function getAnalytics(targetApp?: FirebaseApp): Analytics | null {
   if (typeof window === "undefined") return null;
+  if (import.meta.env.VITE_FIREBASE_ANALYTICS !== "true") return null;
   if (analyticsInstance) return analyticsInstance;
   try {
     const activeApp = targetApp || getFirebaseApp();

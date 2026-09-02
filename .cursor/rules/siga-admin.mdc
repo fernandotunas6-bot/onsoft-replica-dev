@@ -1,0 +1,13 @@
+---
+description: ADMIN is the SaaS Control Center — tenants and billing, not school operations
+globs: painel/admin/**
+alwaysApply: false
+---
+
+# ADMIN (`painel/admin`)
+
+SaaS Control Center. Skill `siga-admin`. Arquitectura: `docs/agents/ARCHITECTURE_HARMONIZATION.md`.
+
+- Dev na porta **3005**. Portão: `platform_admins`, não cargo escolar.
+- Preservar frontend Next.js. Não copiar UI do SIGA. Não gerir alunos/notas/propinas.
+- Não remover SIGA `/saas-admin` até este app consumir as mesmas APIs SaaS.

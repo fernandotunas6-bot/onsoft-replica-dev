@@ -5,6 +5,7 @@ import {
   officialReceiptBody,
   paymentStatusFromInvoices,
   recordCashExpenseInputSchema,
+  upsertFeePlanSettingsInputSchema,
 } from "@/features/finance/schemas";
 
 describe("officialReceiptBody", () => {
@@ -89,6 +90,24 @@ describe("recordCashExpenseInputSchema", () => {
         category: "Outros",
         amount: -1,
         method: "cash",
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("upsertFeePlanSettingsInputSchema", () => {
+  it("exige valores positivos de propina e matrícula", () => {
+    expect(
+      upsertFeePlanSettingsInputSchema.safeParse({
+        planName: "Plano 2026",
+        tuitionAmount: 45_000,
+        enrollmentAmount: 25_000,
+      }).success,
+    ).toBe(true);
+    expect(
+      upsertFeePlanSettingsInputSchema.safeParse({
+        tuitionAmount: 0,
+        enrollmentAmount: 25_000,
       }).success,
     ).toBe(false);
   });

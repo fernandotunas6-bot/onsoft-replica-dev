@@ -1,6 +1,6 @@
 import type { ModuleGrantMap } from "@/features/auth/access-policy";
 
-export type EntityType = "student" | "teacher" | "class" | "finance-overview";
+export type EntityType = "student" | "teacher" | "class" | "finance-overview" | "dashboard-overview";
 
 export interface EntityFocus<T = unknown> {
   type: EntityType;

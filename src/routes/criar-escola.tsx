@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { GraduationCap, ExternalLink, Sparkles, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ export const Route = createFileRoute("/criar-escola")({
 
 function CriarEscolaLanding() {
   const webUrl = getCreateSchoolUrl();
+
+  useEffect(() => {
+    window.location.replace(webUrl);
+  }, [webUrl]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between font-sans">

@@ -1,22 +1,16 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LoaderCircle, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canAccessPath } from "@/features/auth/access-policy";
+import { PageLoading } from "@/components/ui/page-loading";
 
 export function RouteAccessGate({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const account = useCurrentAccount();
 
   if (!account.id || account.profile.isPending) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <LoaderCircle
-          className="size-7 animate-spin text-primary"
-          aria-label="A confirmar acesso"
-        />
-      </div>
-    );
+    return <PageLoading message="A confirmar acesso…" />;
   }
 
   if (account.profile.isError && pathname !== "/alterar-senha") {

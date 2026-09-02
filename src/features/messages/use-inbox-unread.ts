@@ -16,6 +16,8 @@ function lastLocalIncoming(userId: string, peerId: string) {
   const incoming = readLocalThread(userId, peerId).filter((item) => !item.mine);
   return incoming.at(-1) ?? null;
 }
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useInboxUnread(colleagues: SchoolColleague[] = []) {
   const currentUser = useCurrentAccount();
@@ -25,8 +27,32 @@ export function useInboxUnread(colleagues: SchoolColleague[] = []) {
     enabled: Boolean(currentUser.id),
     queryFn: () => listInboxPreviews(),
     retry: false,
-    refetchInterval: 15_000,
   });
+
+  useEffect(() => {
+    if (!currentUser.id) return;
+    const channel = supabase
+      .channel(`inbox_${currentUser.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "siga_direct_messages",
+          filter: `recipient_id=eq.${currentUser.id}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({
+            queryKey: ["messages", "inbox", currentUser.id],
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [currentUser.id, queryClient]);
   const readTick = useQuery({
     queryKey: ["messages", "read-tick", currentUser.id],
     enabled: Boolean(currentUser.id),

@@ -28,6 +28,7 @@ import { ModalShell, ModalHeader } from "@/components/ui/modal-system";
 import { createPerson, findPersonDuplicates, searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions, personRoleOptions } from "@/features/people/schemas";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
+import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 
 type PersonRole = (typeof personRoleOptions)[number];
 type RelationshipType = (typeof personRelationshipTypeOptions)[number];
@@ -357,12 +358,11 @@ export function PersonWizardModal({
 
                   <div className="space-y-1.5">
                     <Label htmlFor="wiz_nif">BI ou NIF (Angola)</Label>
-                    <Input
+                    <AngolaIdentityField
                       id="wiz_nif"
                       value={nifOrBi}
-                      onChange={(e) => setNifOrBi(e.target.value.toUpperCase())}
+                      onChange={(value) => setNifOrBi(value.toUpperCase())}
                       placeholder="Ex: 000123456LA042"
-                      maxLength={14}
                     />
                   </div>
                 </div>

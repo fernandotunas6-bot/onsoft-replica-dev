@@ -23,6 +23,7 @@ import { EntityFocusProvider } from "@/features/intelligence/entity-focus-contex
 import { isPublicAppPath } from "@/lib/public-paths";
 import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
 import { TenantProvider } from "@/features/saas/tenant-context";
+import { PageLoading } from "@/components/ui/page-loading";
 
 function NotFoundComponent() {
   return (
@@ -88,6 +89,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootShell,
   component: RootComponent,
+  pendingComponent: () => <PageLoading />,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
@@ -105,6 +107,8 @@ function RootShell({ children }: { children: ReactNode }) {
     </html>
   );
 }
+
+import { TauriTitlebar } from "@/components/TauriTitlebar";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -129,20 +133,23 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <TenantProvider>
         <AppearanceProvider>
-          {isPublic ? (
-            <Outlet />
-          ) : (
-            <AuthGate>
-              <SchoolYearProvider>
-                <EntityFocusProvider>
-                  <RouteAccessGate>
-                    {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                    <Outlet />
-                  </RouteAccessGate>
-                </EntityFocusProvider>
-              </SchoolYearProvider>
-            </AuthGate>
-          )}
+          <TauriTitlebar />
+          <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
+            {isPublic ? (
+              <Outlet />
+            ) : (
+              <AuthGate>
+                <SchoolYearProvider>
+                  <EntityFocusProvider>
+                    <RouteAccessGate>
+                      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                      <Outlet />
+                    </RouteAccessGate>
+                  </EntityFocusProvider>
+                </SchoolYearProvider>
+              </AuthGate>
+            )}
+          </div>
           <Toaster position="top-right" richColors />
         </AppearanceProvider>
       </TenantProvider>

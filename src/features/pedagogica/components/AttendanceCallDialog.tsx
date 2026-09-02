@@ -59,7 +59,10 @@ export function AttendanceCallDialog({
   const sheetQuery = useQuery({
     queryKey: ["attendance-sheet", sessionId, classGroupId, subjectId, date],
     enabled: open && Boolean(sessionId || (classGroupId && subjectId)),
-    queryFn: () => getAttendanceCallSheet({ sessionId, classGroupId, subjectId, date }),
+    queryFn: () =>
+      getAttendanceCallSheet({
+        data: { sessionId, classGroupId, subjectId, date },
+      }),
   });
 
   const [studentStatuses, setStudentStatuses] = useState<
@@ -155,8 +158,10 @@ export function AttendanceCallDialog({
       setConfirmReasonModalOpen(true);
     } else {
       submitBatchMutation.mutate({
-        sessionId: sheetQuery.data.session.id,
-        records,
+        data: {
+          sessionId: sheetQuery.data.session.id,
+          records,
+        },
       });
     }
   };
@@ -176,9 +181,11 @@ export function AttendanceCallDialog({
     }));
 
     editBatchMutation.mutate({
-      sessionId: sheetQuery.data.session.id,
-      reason: editReason.trim(),
-      records,
+      data: {
+        sessionId: sheetQuery.data.session.id,
+        reason: editReason.trim(),
+        records,
+      },
     });
   };
 

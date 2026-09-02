@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, Paperclip, Search, Send, X } from "lucide-react";
+import { ArrowLeft, FileText, Lock, Paperclip, Search, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { signSchoolFile } from "@/features/arquivos/server";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
+import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
+import { sqlApplyHint } from "@/lib/sql-doc-hint";
 import {
   listDirectThread,
   listSchoolColleagues,
@@ -25,6 +27,7 @@ import {
 } from "@/features/messages/recent-contacts";
 import { appendLocalThread, readLocalThread } from "@/features/messages/local-thread";
 import { useInboxUnread } from "@/features/messages/use-inbox-unread";
+import { supabase } from "@/integrations/supabase/client";
 
 type MessengerView = "menu" | "directory" | "thread";
 
@@ -220,25 +223,48 @@ function openAttachment(fileId: string) {
       else toast.error("Não foi possível abrir o arquivo.");
     })
     .catch((error) => {
-      toast.error("Não foi possível abrir o arquivo", {
-        description: error instanceof Error ? error.message : undefined,
-      });
+      const message = error instanceof Error ? error.message : "Tente novamente.";
+      toast.error(
+        /sistema|permissão|oculto/i.test(message)
+          ? "Anexo protegido"
+          : "Não foi possível abrir o arquivo",
+        { description: message },
+      );
     });
 }
 
 function MessageAttachment({ fileId, fileName }: { fileId: string; fileName: string }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
   const isImage = /\.(png|jpe?g|webp|gif|svg)$/i.test(fileName);
 
   useEffect(() => {
-    if (isImage) {
-      void signSchoolFile({ data: { id: fileId } })
-        .then((signed) => {
-          if (signed.url) setUrl(signed.url);
-        })
-        .catch(() => undefined);
-    }
+    if (!isImage) return;
+    let cancelled = false;
+    void signSchoolFile({ data: { id: fileId } })
+      .then((signed) => {
+        if (cancelled) return;
+        if (signed.url) setUrl(signed.url);
+        else setLocked(true);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : "";
+        if (/sistema|permissão|oculto/i.test(message)) setLocked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [fileId, isImage]);
+
+  if (locked) {
+    return (
+      <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-border bg-secondary/40 px-2.5 py-1.5 text-xs text-muted-foreground">
+        <Lock className="size-3.5 shrink-0" aria-hidden />
+        <span className="truncate">{fileName} · protegido</span>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-1.5 space-y-1">
@@ -284,7 +310,6 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
     enabled: Boolean(currentUser.id && peer.id),
     queryFn: () => listDirectThread({ data: { peerId: peer.id } }),
     retry: false,
-    refetchInterval: 8_000,
   });
 
   const remote = threadQuery.data?.messages ?? [];
@@ -293,6 +318,39 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
 
   const { markRead } = useInboxUnread();
   const lastIncomingAt = messages.filter((item) => !item.mine).at(-1)?.createdAt ?? null;
+
+  useEffect(() => {
+    if (!currentUser.id || !peer.id) return;
+    const channel = supabase
+      .channel(`dm_${currentUser.id}_${peer.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "siga_direct_messages",
+        },
+        (payload) => {
+          const newMsg = payload.new as { sender_id?: string; recipient_id?: string };
+          if (
+            (newMsg.sender_id === peer.id && newMsg.recipient_id === currentUser.id) ||
+            (newMsg.sender_id === currentUser.id && newMsg.recipient_id === peer.id)
+          ) {
+            void queryClient.invalidateQueries({
+              queryKey: ["messages", "thread", currentUser.id, peer.id],
+            });
+            void queryClient.invalidateQueries({
+              queryKey: ["messages", "inbox", currentUser.id],
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [currentUser.id, peer.id, queryClient]);
 
   useEffect(() => {
     if (lastIncomingAt) markRead(peer.id, lastIncomingAt);
@@ -343,9 +401,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
       setLocalMessages(appendLocalThread(currentUser.id, peer.id, fallback));
       toast.message("Mensagem guardada neste dispositivo", {
         description:
-          error instanceof Error
-            ? error.message
-            : "Aplique APPLY_ENROLLMENT_AND_PREMIUM.sql para sincronizar no SGA.",
+          error instanceof Error ? error.message : sqlApplyHint("premium"),
       });
     } finally {
       setSending(false);
@@ -379,7 +435,8 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
       </div>
       {useLocal ? (
         <p className="border-b border-border bg-secondary/60 px-3 py-1.5 text-[11px] text-muted-foreground">
-          Conversa neste dispositivo. Aplique APPLY_ENROLLMENT_AND_PREMIUM.sql para sincronizar.
+          Conversa neste dispositivo. {sqlApplyHint("premium")}{" "}
+          <SqlChecklistLink className="text-[11px]" />
         </p>
       ) : null}
       <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">

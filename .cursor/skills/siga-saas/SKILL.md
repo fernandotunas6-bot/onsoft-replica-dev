@@ -1,14 +1,20 @@
 ---
 name: siga-saas
 description: >-
-  Extends the SaaS Control Center (/saas-admin) — platform admins, tenants
-  and school provisioning. Use when editing tenants, plans, platform_admins,
-  or the "criar nova escola" wizard.
+  Extends SIGA SaaS backend still hosted in the school app: tenants,
+  platform_admins, provisionSchoolTenant, signupSchoolPublic. Use when
+  editing src/features/saas, /saas-admin, or provisioning. UI destination
+  is ADMIN (painel/admin) and WEB /start — do not grow the SIGA wizard.
 ---
 
-# SIGA · SaaS Control Center
+# SIGA · backend SaaS (transitional)
 
-- Rota: `saas-admin.tsx` (gate + `SaaSControlCenter`, visual mantém-se estável)
+Arquitectura: [ARCHITECTURE_HARMONIZATION.md](../../../docs/agents/ARCHITECTURE_HARMONIZATION.md).
+UI destino: ADMIN (`siga-admin`, `/tenants`) e wizard WEB (`siga-web`, `/start`).
+**Não** crescer o wizard comercial no SIGA. `/saas-admin` é ponte para o ADMIN.
+
+- Rota actual: `saas-admin.tsx` (gate + `SaaSControlCenter` — UI a migrar)
+- Ponte pública: `criar-escola.tsx` → `getCreateSchoolUrl()` (WEB `/start`)
 - Servidor: `src/features/saas/server.ts` (`requirePlatformAdmin`, `getSaaSStats`,
   `listTenants`, `provisionSchoolTenant`, `updateTenantStatusFn`)
 - Cliente: `src/lib/saas/provisioning-service.ts` — wrappers finos + fallback
@@ -27,8 +33,8 @@ description: >-
 2. **Administrador da plataforma ≠ Administrador de escola.** É a tabela
    `platform_admins`, sem ligação a `profiles.cargo`. `requirePlatformAdmin()`
    é o portão real; a regra em `access-policy.ts` só reduz quem sequer tenta.
-3. Provisionar escola cria, nesta ordem: `tenants` → `tenant_domains` →
-   `schools` → utilizador Auth → `profiles` (upsert) → `school_memberships` →
+3. Provisionar escola cria, nesta ordem: `tenants` → `subscriptions` (se plano) →
+   `tenant_domains` → `schools` → utilizador Auth → `profiles` (upsert) → `school_memberships` →
    `roles`/`member_roles` → `tenant_usage` → `saas_audit_logs`. Qualquer falha
    depois de criar o utilizador Auth desfaz tudo (`deleteUser` + deletes).
 4. Nunca inserir directamente nas tabelas `tenants`/`plans`/etc. a partir do

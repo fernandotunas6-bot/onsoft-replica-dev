@@ -204,14 +204,14 @@ BEGIN
   ] LOOP
     EXECUTE format(
       'CREATE POLICY %I ON public.%I FOR SELECT TO authenticated '
-      || 'USING (school_id = (SELECT public.current_school_id()) '
+      || 'USING (school_id = public.is_school_member(school_id) '
       || 'AND (SELECT public.can_manage_finance()))',
       'Finance roles read ' || table_name,
       table_name
     );
     EXECUTE format(
       'CREATE POLICY %I ON public.%I FOR INSERT TO authenticated '
-      || 'WITH CHECK (school_id = (SELECT public.current_school_id()) '
+      || 'WITH CHECK (school_id = public.is_school_member(school_id) '
       || 'AND created_by = (SELECT auth.uid()) '
       || 'AND (SELECT public.can_manage_finance()))',
       'Finance roles create ' || table_name,
@@ -223,16 +223,16 @@ $$;
 
 CREATE POLICY "Finance roles update invoices" ON public.invoices
   FOR UPDATE TO authenticated
-  USING (school_id = (SELECT public.current_school_id()) AND (SELECT public.can_manage_finance()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()) AND (SELECT public.can_manage_finance()));
+  USING (school_id = public.is_school_member(school_id) AND (SELECT public.can_manage_finance()))
+  WITH CHECK (school_id = public.is_school_member(school_id) AND (SELECT public.can_manage_finance()));
 CREATE POLICY "Finance roles update payments" ON public.payments
   FOR UPDATE TO authenticated
-  USING (school_id = (SELECT public.current_school_id()) AND (SELECT public.can_manage_finance()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()) AND (SELECT public.can_manage_finance()));
+  USING (school_id = public.is_school_member(school_id) AND (SELECT public.can_manage_finance()))
+  WITH CHECK (school_id = public.is_school_member(school_id) AND (SELECT public.can_manage_finance()));
 CREATE POLICY "Finance roles update cash entries" ON public.cash_entries
   FOR UPDATE TO authenticated
-  USING (school_id = (SELECT public.current_school_id()) AND (SELECT public.can_manage_finance()))
-  WITH CHECK (school_id = (SELECT public.current_school_id()) AND (SELECT public.can_manage_finance()));
+  USING (school_id = public.is_school_member(school_id) AND (SELECT public.can_manage_finance()))
+  WITH CHECK (school_id = public.is_school_member(school_id) AND (SELECT public.can_manage_finance()));
 
 -- Atomic one-touch payment. The row lock serializes concurrent payments for
 -- the same invoice and an existing identical receipt makes retries idempotent.
@@ -250,7 +250,7 @@ SECURITY INVOKER
 SET search_path = ''
 AS $$
 DECLARE
-  school uuid := (SELECT public.current_school_id());
+  school uuid := public.is_school_member(school_id);
   invoice public.invoices;
   payment public.payments;
 BEGIN

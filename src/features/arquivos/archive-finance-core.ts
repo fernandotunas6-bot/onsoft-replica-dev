@@ -86,8 +86,9 @@ export async function insertFinanceArchive(
     category: input.category,
     document_date: iso.slice(0, 10),
     reference_code: documentCode,
-    related_user_id: null as string | null,
+    related_user_id: input.userId,
     related_person_id: input.relatedPersonId ?? null,
+    is_system: true,
     created_by: input.userId,
     updated_at: iso,
     updated_by: input.userId,
@@ -99,7 +100,7 @@ export async function insertFinanceArchive(
   const { error } = await db.from("siga_files").insert(payload);
   if (error) {
     if (
-      /42P01|schema cache|does not exist|42703|reference_code|related_person|category/i.test(
+      /42P01|schema cache|does not exist|42703|reference_code|related_person|category|is_system/i.test(
         error.message,
       )
     ) {

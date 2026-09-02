@@ -47,7 +47,7 @@ CREATE POLICY "Read calendar events in own school"
   ON public.calendar_events
   FOR SELECT TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND deleted_at IS NULL
   );
 
@@ -55,7 +55,7 @@ CREATE POLICY "Create calendar events in own school"
   ON public.calendar_events
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
     AND (SELECT public.can_manage_students())
   );
@@ -64,11 +64,11 @@ CREATE POLICY "Update calendar events in own school"
   ON public.calendar_events
   FOR UPDATE TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   )
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   );
 
@@ -182,7 +182,7 @@ CREATE POLICY "Read school announcements in own school"
   ON public.school_announcements
   FOR SELECT TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND deleted_at IS NULL
   );
 
@@ -190,7 +190,7 @@ CREATE POLICY "Create school announcements in own school"
   ON public.school_announcements
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
     AND (SELECT public.can_manage_students())
   );
@@ -199,11 +199,11 @@ CREATE POLICY "Update school announcements in own school"
   ON public.school_announcements
   FOR UPDATE TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   )
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   );
 
@@ -387,7 +387,7 @@ CREATE POLICY "Read subjects in own school"
   ON public.subjects
   FOR SELECT TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND deleted_at IS NULL
     AND (SELECT public.can_read_students())
   );
@@ -396,7 +396,7 @@ CREATE POLICY "Create subjects in own school"
   ON public.subjects
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
     AND (SELECT public.can_manage_students())
   );
@@ -405,11 +405,11 @@ CREATE POLICY "Update subjects in own school"
   ON public.subjects
   FOR UPDATE TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   )
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   );
 
@@ -417,7 +417,7 @@ CREATE POLICY "Read term grades in own school"
   ON public.term_grades
   FOR SELECT TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND deleted_at IS NULL
     AND (SELECT public.can_read_students())
   );
@@ -426,7 +426,7 @@ CREATE POLICY "Create term grades in own school"
   ON public.term_grades
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
     AND (SELECT public.can_manage_students())
   );
@@ -435,11 +435,11 @@ CREATE POLICY "Update term grades in own school"
   ON public.term_grades
   FOR UPDATE TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   )
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   );
 
@@ -536,7 +536,7 @@ CREATE POLICY "Read class schedule slots in own school"
   ON public.class_schedule_slots
   FOR SELECT TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND deleted_at IS NULL
     AND (SELECT public.can_read_students())
   );
@@ -545,7 +545,7 @@ CREATE POLICY "Create class schedule slots in own school"
   ON public.class_schedule_slots
   FOR INSERT TO authenticated
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND created_by = (SELECT auth.uid())
     AND (SELECT public.can_manage_students())
   );
@@ -554,11 +554,11 @@ CREATE POLICY "Update class schedule slots in own school"
   ON public.class_schedule_slots
   FOR UPDATE TO authenticated
   USING (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   )
   WITH CHECK (
-    school_id = (SELECT public.current_school_id())
+    public.is_school_member(school_id)
     AND (SELECT public.can_manage_students())
   );
 

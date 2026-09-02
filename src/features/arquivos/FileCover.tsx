@@ -6,6 +6,7 @@ import {
   Folder,
   Hexagon,
   ImageIcon,
+  Lock,
   Presentation,
   Table2,
 } from "lucide-react";
@@ -32,12 +33,14 @@ export function FileCover({
   name,
   selected,
   previewUrl,
+  locked,
   className,
 }: {
   kind: FileKind;
   name: string;
   selected?: boolean | undefined;
   previewUrl?: string | null;
+  locked?: boolean | undefined;
   className?: string | undefined;
 }) {
   const meta = fileKindMeta[kind];
@@ -54,7 +57,7 @@ export function FileCover({
         className="relative flex h-24 items-center justify-center overflow-hidden"
         style={{ background: `color-mix(in oklch, ${meta.color} 18%, white)` }}
       >
-        {previewUrl ? (
+        {previewUrl && !locked ? (
           <MediaFrame
             src={previewUrl}
             alt={`Pré-visualização de ${name}`}
@@ -70,13 +73,21 @@ export function FileCover({
             <Icon className="size-6" aria-hidden />
           </span>
         )}
+        {locked ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-background/80">
+            <Lock className="size-5 text-muted-foreground" aria-hidden />
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Sistema
+            </span>
+          </div>
+        ) : null}
       </div>
       <div className="space-y-1 px-3 py-2.5">
         <p className="truncate text-xs font-semibold text-foreground" title={name}>
           {name}
         </p>
         <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-          {meta.label}
+          {locked ? "Protegido" : meta.label}
         </p>
       </div>
     </div>

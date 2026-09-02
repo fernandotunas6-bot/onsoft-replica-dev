@@ -68,12 +68,14 @@ export function SubmitAttendanceJustificationModal({
       return;
     }
     submitMutation.mutate({
-      studentId,
-      sessionId,
-      attendanceRecordId,
-      reason: reason.trim(),
-      fileId: fileId ?? undefined,
-      fileName: fileName ?? undefined,
+      data: {
+        studentId,
+        sessionId,
+        attendanceRecordId,
+        reason: reason.trim(),
+        fileId: fileId ?? undefined,
+        fileName: fileName ?? undefined,
+      },
     });
   };
 
@@ -157,9 +159,9 @@ export function ReviewAttendanceJustificationModal({
 
   const reviewMutation = useMutation({
     mutationFn: reviewAttendanceJustification,
-    onSuccess: (_, vars) => {
+    onSuccess: (_, vars: any) => {
       toast.success(
-        vars.status === "approved" ? "Justificativa Aprovada!" : "Justificativa Rejeitada.",
+        vars?.data?.status === "approved" ? "Justificativa Aprovada!" : "Justificativa Rejeitada.",
       );
       queryClient.invalidateQueries({ queryKey: ["student-attendance-history"] });
       onOpenChange(false);
@@ -211,9 +213,11 @@ export function ReviewAttendanceJustificationModal({
             variant="destructive"
             onClick={() =>
               reviewMutation.mutate({
-                justificationId,
-                status: "rejected",
-                reviewNotes,
+                data: {
+                  justificationId,
+                  status: "rejected",
+                  reviewNotes,
+                },
               })
             }
             disabled={reviewMutation.isPending}
@@ -226,9 +230,11 @@ export function ReviewAttendanceJustificationModal({
             type="button"
             onClick={() =>
               reviewMutation.mutate({
-                justificationId,
-                status: "approved",
-                reviewNotes,
+                data: {
+                  justificationId,
+                  status: "approved",
+                  reviewNotes,
+                },
               })
             }
             disabled={reviewMutation.isPending}

@@ -12,7 +12,8 @@ export type SigaHostModule =
   | "comunicacoes"
   | "alunos"
   | "documentos"
-  | "arquivos";
+  | "arquivos"
+  | "pessoas";
 
 export type IntegrationCapability = {
   id: string;
@@ -39,6 +40,7 @@ const moduleLabel: Record<SigaHostModule, string> = {
   alunos: "Alunos",
   documentos: "Documentos",
   arquivos: "Arquivos",
+  pessoas: "Pessoas & Docentes",
 };
 
 function cap(
@@ -95,7 +97,8 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
     provider: "whatsapp_business",
     installUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api/get-started",
     docsUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api",
-    summary: "Instala salas de turma e avisos a encarregados via WhatsApp Business.",
+    summary:
+      "Avisos via Cloud API (Phone Number ID + token). Sem credenciais → deep-link wa.me.",
     capabilities: [
       cap(
         "whatsapp.class_groups",
@@ -106,7 +109,7 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
       cap(
         "whatsapp.notices",
         "Avisos por WhatsApp",
-        "Preencher a mensagem de aviso rápida para o encarregado.",
+        "Enviar aviso HTTP à equipa/encarregados (ou wa.me se faltar token).",
         "comunicacoes",
       ),
     ],
@@ -115,7 +118,7 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
     provider: "resend_email",
     installUrl: "https://resend.com/docs/send-with-nodejs",
     docsUrl: "https://resend.com/docs",
-    summary: "Instala envio transaccional de recibos, faturas e avisos por e-mail.",
+    summary: "Envio transaccional HTTP (API key em merchant). Sem key → cópia para colar.",
     capabilities: [
       cap(
         "resend.send",
@@ -259,7 +262,8 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
     provider: "firebase_analytics",
     installUrl: "https://firebase.google.com/docs/analytics",
     docsUrl: "https://firebase.google.com/docs",
-    summary: "Instala monitorização de exceções Crashlytics e telemetria de utilização híbrida.",
+    summary:
+      "Opcional e desligado no núcleo (VITE_FIREBASE_ANALYTICS). Crashlytics / telemetria híbrida sob consentimento.",
     capabilities: [
       cap(
         "firebase.crashlytics",

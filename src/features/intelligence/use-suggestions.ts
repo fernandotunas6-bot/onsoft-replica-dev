@@ -9,6 +9,8 @@ import type { TeacherRelationsSnapshot } from "./teachers/teacher-relations-adap
 import { buildClassSuggestionRules } from "./classes/class-suggestion-rules";
 import type { ClassRelationsSnapshot } from "./classes/class-relations-adapter";
 import { buildFinanceOverviewSuggestionRules } from "./finance/finance-overview-suggestion-rules";
+import { buildDashboardSuggestionRules } from "./dashboard/dashboard-suggestion-rules";
+import type { DashboardOverviewSnapshot } from "./dashboard/dashboard-suggestion-rules";
 import type { FinanceOverviewSnapshot } from "./finance/finance-overview-adapter";
 import type { Suggestion } from "./types";
 
@@ -32,6 +34,9 @@ export function useSuggestions(): Suggestion[] {
     } else if (entity.type === "finance-overview") {
       const rules = buildFinanceOverviewSuggestionRules();
       raw = generateSuggestions(context, entity.data as FinanceOverviewSnapshot, rules);
+    } else if (entity.type === "dashboard-overview") {
+      const rules = buildDashboardSuggestionRules();
+      raw = generateSuggestions(context, entity.data as DashboardOverviewSnapshot, rules);
     }
 
     return filterSuggestionsByPermission(raw, context.role, context.grants);

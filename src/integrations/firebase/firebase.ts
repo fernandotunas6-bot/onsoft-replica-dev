@@ -52,9 +52,15 @@ export function getFirebaseApp(customConfig?: Partial<FirebaseClientConfig>): Fi
 
 /**
  * Initializes and returns Firebase Analytics if running in a supported browser environment.
+ * Desligado por defeito — activar com VITE_FIREBASE_ANALYTICS=true (não faz parte do núcleo SIGA).
  */
 export async function getFirebaseAnalytics(): Promise<Analytics | null> {
   if (typeof window === "undefined") return null;
+  if (import.meta.env.VITE_FIREBASE_ANALYTICS !== "true") {
+    analyticsInitialized = true;
+    firebaseAnalytics = null;
+    return null;
+  }
   if (analyticsInitialized) return firebaseAnalytics;
 
   try {
@@ -143,4 +149,7 @@ class CrashlyticsService implements CrashlyticsLogger {
 export const crashlytics: CrashlyticsLogger = new CrashlyticsService();
 
 // Export default singleton setup
-export const app = typeof window !== "undefined" ? getFirebaseApp() : null;
+export const app =
+  typeof window !== "undefined" && import.meta.env.VITE_FIREBASE_ANALYTICS === "true"
+    ? getFirebaseApp()
+    : null;

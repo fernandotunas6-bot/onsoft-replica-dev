@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { getPublicCalendarFeed } from "@/features/calendar/feed";
+import { calendarIcsFeedUrl, toIcsCalendar } from "@/features/calendar/ics";
+import { servePublicCalendarIcs } from "@/features/calendar/ics-serve";
 
 // style-check: route-exempt - endpoint público de subscrição, sem shell administrativo.
 
@@ -8,38 +10,22 @@ export const Route = createFileRoute("/calendario/ics")({
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search["token"] === "string" ? search["token"] : "",
   }),
+  server: {
+    handlers: {
+      GET: async ({ request }) => {
+        const token = new URL(request.url).searchParams.get("token") ?? "";
+        if (token.length < 16) {
+          return new Response(
+            `<!doctype html><html lang="pt"><meta charset="utf-8"><title>Calendário móvel · SIGA</title><body style="font-family:sans-serif;max-width:40rem;margin:3rem auto;padding:0 1.25rem;line-height:1.5"><h1>Calendário móvel</h1><p>Abra o SIGA em <a href="/calendario">/calendario</a> e use <strong>Subscrever ICS</strong> para obter o endereço do feed.</p></body></html>`,
+            { headers: { "Content-Type": "text/html; charset=utf-8" } },
+          );
+        }
+        return servePublicCalendarIcs(request);
+      },
+    },
+  },
   component: CalendarFeedPage,
 });
-
-function toIcs(
-  events: Array<{
-    title: string;
-    description: string | null;
-    event_date: string;
-    ends_on: string | null;
-  }>,
-) {
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//SIGA//Calendario//PT",
-    "CALSCALE:GREGORIAN",
-  ];
-  for (const event of events) {
-    const start = event.event_date.replaceAll("-", "");
-    const end = (event.ends_on ?? event.event_date).replaceAll("-", "");
-    lines.push(
-      "BEGIN:VEVENT",
-      `DTSTART;VALUE=DATE:${start}`,
-      `DTEND;VALUE=DATE:${end}`,
-      `SUMMARY:${event.title.replaceAll(",", "\\,")}`,
-      `DESCRIPTION:${String(event.description ?? "").replaceAll("\n", "\\n")}`,
-      "END:VEVENT",
-    );
-  }
-  lines.push("END:VCALENDAR");
-  return `${lines.join("\r\n")}\r\n`;
-}
 
 function CalendarFeedPage() {
   const { token } = Route.useSearch();
@@ -49,11 +35,10 @@ function CalendarFeedPage() {
     enabled: token.length >= 16,
     retry: false,
   });
-  const events = feedQuery.data ?? [];
+  const feed = feedQuery.data;
+  const events = feed?.events ?? [];
   const url =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/calendario/ics?token=${token}`
-      : token;
+    typeof window !== "undefined" ? calendarIcsFeedUrl(window.location.origin, token) : token;
 
   return (
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
@@ -75,7 +60,10 @@ function CalendarFeedPage() {
         className="mt-6 inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
         disabled={!events.length}
         onClick={() => {
-          const blob = new Blob([toIcs(events)], { type: "text/calendar;charset=utf-8" });
+          const blob = new Blob(
+            [toIcsCalendar(events, { calendarName: feed?.calendarName })],
+            { type: "text/calendar;charset=utf-8" },
+          );
           const href = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = href;

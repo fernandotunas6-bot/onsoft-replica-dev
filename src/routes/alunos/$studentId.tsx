@@ -17,8 +17,10 @@ import {
   QrCode,
   Smartphone,
   Trash2,
+  User,
   UserCheck,
   UserPlus,
+  Users,
 } from "lucide-react";
 
 const paymentStatusLabels: Record<string, string> = {
@@ -34,7 +36,6 @@ import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { StudentDigitalCardModal } from "@/features/students/components/StudentDigitalCardModal";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
-import { inferIcon } from "@/lib/auto-icon";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { applyLibraryPhotoToPerson } from "@/features/arquivos/apply-person-photo";
 import { StudentRelatedFilesPanel } from "@/features/arquivos/StudentRelatedFilesPanel";
@@ -1307,7 +1308,7 @@ function StudentDetail() {
         <div className="grid gap-4 lg:grid-cols-2">
           <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
             <div className="flex items-center gap-2.5">
-              <IconChip {...inferIcon("Dados pessoais")} size="sm" />
+              <IconChip icon={User} size="sm" label="Dados pessoais" />
               <h2 className="font-display text-base font-bold">Dados pessoais</h2>
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -1358,7 +1359,7 @@ function StudentDetail() {
           <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
             <div className="flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-2.5">
-                <IconChip {...inferIcon("Encarregados")} size="sm" />
+                <IconChip icon={Users} size="sm" label="Encarregados" />
                 <h2 className="font-display text-base font-bold">Encarregados de educação</h2>
               </div>
               <QuickFormModal
@@ -1505,7 +1506,7 @@ function StudentDetail() {
 
           <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
             <div className="flex items-center gap-2.5">
-              <IconChip {...inferIcon("Matrícula e situação")} size="sm" />
+              <IconChip icon={GraduationCap} size="sm" label="Matrícula e situação" />
               <h2 className="font-display text-base font-bold">Matrícula e situação</h2>
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

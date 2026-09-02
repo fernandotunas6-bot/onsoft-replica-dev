@@ -1,0 +1,13 @@
+---
+description: WEB is the public commercial portal — preserve its design; no school operations here
+globs: painel/web/**
+alwaysApply: false
+---
+
+# WEB (`painel/web`)
+
+Portal comercial. Skill `siga-web`. Arquitectura: `docs/agents/ARCHITECTURE_HARMONIZATION.md`.
+
+- Dev na porta **5174**. Destino: landing em `/`, wizard em `/start`, preços em `/pricing`.
+- Preservar design/componentes deste app. Não importar UI do SIGA nem do ADMIN.
+- Criação de escola começa aqui; provisionamento é API SaaS, não UI escolar.

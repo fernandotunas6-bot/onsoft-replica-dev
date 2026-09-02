@@ -4,7 +4,7 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import { loadPersonNamesById } from "@/features/people/lookup";
-import { canReadFileArea, canWriteFileArea, kindFromFile } from "./kinds";
+import { canAccessFileContent, canManageSystemFile, canReadFileArea, canWriteFileArea, kindFromFile } from "./kinds";
 import { insertFinanceArchive } from "./archive-finance-core";
 import { generateDocumentCode, normalizeDocumentCode, prefixForCategory } from "./document-code";
 import {
@@ -33,7 +33,7 @@ const STAFF_ROLES: ApplicationRole[] = ["Administrador", "Secretaria", "Tesourar
 const MISSING_TABLE = /schema cache|does not exist|42P01|PGRST/i;
 const FILES_BUCKET = "siga-files";
 const FILE_SELECT =
-  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, class_group_id, parent_id, is_folder, title, description, category, document_date, reference_code, related_user_id, related_person_id, created_at, updated_at, updated_by, last_action, last_action_at, last_action_by";
+  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, class_group_id, parent_id, is_folder, is_system, title, description, category, document_date, reference_code, related_user_id, related_person_id, created_at, updated_at, updated_by, last_action, last_action_at, last_action_by";
 const FILE_SELECT_CLASS =
   "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, class_group_id, created_at";
 const FILE_SELECT_BASIC =
@@ -49,7 +49,7 @@ function missingFilesTable(error: { message?: string; code?: string } | null) {
 function missingOptionalColumn(error: { message?: string } | null) {
   return Boolean(
     error &&
-    /class_group_id|updated_at|updated_by|last_action|title|description|category|document_date|reference_code|related_user|related_person|parent_id|is_folder|42703|schema cache/i.test(
+    /class_group_id|updated_at|updated_by|last_action|title|description|category|document_date|reference_code|related_user|related_person|parent_id|is_folder|is_system|42703|schema cache/i.test(
       String(error.message ?? ""),
     ),
   );
@@ -110,6 +110,7 @@ function mapRow(row: Record<string, unknown>): SchoolFileRecord {
     relatedPersonId: row["related_person_id"] ? String(row["related_person_id"]) : null,
     relatedUserName: null,
     relatedPersonName: null,
+    isSystem: Boolean(row["is_system"]),
     createdAt: String(row["created_at"] ?? new Date().toISOString()),
     updatedAt: row["updated_at"] ? String(row["updated_at"]) : null,
     updatedByUserId: row["updated_by"] ? String(row["updated_by"]) : null,
@@ -132,6 +133,20 @@ function canSeeRow(row: SchoolFileRecord, userId: string, role: string) {
     return role === "Administrador" || (row.area === "secretaria" && role === "Secretaria");
   }
   return true;
+}
+
+/** Metadados visíveis; descrição/caminho de sistema ocultos sem permissão de conteúdo. */
+function presentFileForViewer(
+  file: SchoolFileRecord,
+  userId: string,
+  role: string,
+): SchoolFileRecord {
+  if (canAccessFileContent(file, userId, role)) return file;
+  return {
+    ...file,
+    description: null,
+    storagePath: "",
+  };
 }
 
 async function profilePeople(db: AdminDb, ids: string[]) {
@@ -349,15 +364,18 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
     ];
     const personNames = await loadPersonNamesById(db, membership.schoolId, personIds);
     return {
-      files: enrichPeople(files, people).map((file) => ({
-        ...file,
-        relatedUserName: file.relatedUserId
-          ? (people.get(file.relatedUserId)?.name ?? file.relatedUserName)
-          : null,
-        relatedPersonName: file.relatedPersonId
-          ? (personNames.get(file.relatedPersonId) ?? file.relatedPersonName)
-          : null,
-      })),
+      files: enrichPeople(files, people).map((file) => {
+        const withNames = {
+          ...file,
+          relatedUserName: file.relatedUserId
+            ? (people.get(file.relatedUserId)?.name ?? file.relatedUserName)
+            : null,
+          relatedPersonName: file.relatedPersonId
+            ? (personNames.get(file.relatedPersonId) ?? file.relatedPersonName)
+            : null,
+        };
+        return presentFileForViewer(withNames, userId, membership.appRole);
+      }),
       schoolId: membership.schoolId,
       backend: "sga" as const,
     };
@@ -406,8 +424,9 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       category,
       document_date: data.documentDate?.trim() || null,
       reference_code: referenceCode,
-      related_user_id: data.relatedUserId ?? null,
+      related_user_id: data.relatedUserId?.trim() || userId,
       related_person_id: data.relatedPersonId ?? null,
+      is_system: false,
       updated_at: now,
       updated_by: userId,
       last_action: "created",
@@ -488,6 +507,8 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
       title: data.name,
       description: "Pasta da biblioteca SIGA",
       category: "outro" as const,
+      related_user_id: userId,
+      is_system: false,
       created_by: userId,
       updated_at: now,
       updated_by: userId,
@@ -542,7 +563,7 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: rows, error: loadError } = await db
       .from("siga_files")
-      .select("id, owner_user_id, area, is_folder")
+      .select("id, owner_user_id, area, is_folder, is_system")
       .eq("school_id", membership.schoolId)
       .in("id", data.ids);
     if (loadError) {
@@ -556,6 +577,15 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
     for (const item of items) {
       const area = item.area as SchoolFileRecord["area"];
       const owner = String(item.owner_user_id);
+      if (
+        !canManageSystemFile(
+          { isSystem: Boolean(item.is_system), ownerUserId: owner },
+          userId,
+          membership.appRole,
+        )
+      ) {
+        throw new Error("Há ficheiros do sistema protegidos na selecção.");
+      }
       const canEdit =
         owner === userId ||
         membership.appRole === "Administrador" ||
@@ -713,7 +743,7 @@ export const renameSchoolFile = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("siga_files")
-      .select("id, owner_user_id, area")
+      .select("id, owner_user_id, area, is_system")
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -724,6 +754,15 @@ export const renameSchoolFile = createServerFn({ method: "POST" })
     if (!existing) throw new Error("Ficheiro não encontrado.");
     const area = existing.area as SchoolFileRecord["area"];
     const owner = String(existing.owner_user_id);
+    if (
+      !canManageSystemFile(
+        { isSystem: Boolean(existing.is_system), ownerUserId: owner },
+        userId,
+        membership.appRole,
+      )
+    ) {
+      throw new Error("Ficheiro do sistema protegido — sem permissão para alterar.");
+    }
     const canEdit =
       owner === userId ||
       membership.appRole === "Administrador" ||
@@ -779,7 +818,7 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("siga_files")
-      .select("id, owner_user_id, area")
+      .select("id, owner_user_id, area, is_system")
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -790,6 +829,15 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     if (!existing) throw new Error("Ficheiro não encontrado.");
     const area = existing.area as SchoolFileRecord["area"];
     const owner = String(existing.owner_user_id);
+    if (
+      !canManageSystemFile(
+        { isSystem: Boolean(existing.is_system), ownerUserId: owner },
+        userId,
+        membership.appRole,
+      )
+    ) {
+      throw new Error("Ficheiro do sistema protegido — sem permissão para alterar.");
+    }
     const canEdit =
       owner === userId ||
       membership.appRole === "Administrador" ||
@@ -810,7 +858,9 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     if (data.category !== undefined) payload["category"] = data.category;
     if (data.documentDate !== undefined) payload["document_date"] = data.documentDate || null;
     if (data.referenceCode !== undefined) payload["reference_code"] = data.referenceCode || null;
-    if (data.relatedUserId !== undefined) payload["related_user_id"] = data.relatedUserId;
+    if (data.relatedUserId !== undefined) {
+      payload["related_user_id"] = data.relatedUserId?.trim() || owner;
+    }
     if (data.relatedPersonId !== undefined) payload["related_person_id"] = data.relatedPersonId;
     if (data.visibility !== undefined) payload["visibility"] = data.visibility;
     if (data.area !== undefined) {
@@ -1001,7 +1051,7 @@ export const setSchoolFileVisibility = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("siga_files")
-      .select("id, owner_user_id, area")
+      .select("id, owner_user_id, area, is_system")
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -1012,6 +1062,15 @@ export const setSchoolFileVisibility = createServerFn({ method: "POST" })
     if (!existing) throw new Error("Ficheiro não encontrado.");
     const area = existing.area as SchoolFileRecord["area"];
     const owner = String(existing.owner_user_id);
+    if (
+      !canManageSystemFile(
+        { isSystem: Boolean(existing.is_system), ownerUserId: owner },
+        userId,
+        membership.appRole,
+      )
+    ) {
+      throw new Error("Ficheiro do sistema protegido — sem permissão para alterar.");
+    }
     const canEdit =
       owner === userId ||
       membership.appRole === "Administrador" ||
@@ -1123,7 +1182,7 @@ export const deleteSchoolFile = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: row, error } = await db
       .from("siga_files")
-      .select("id, owner_user_id, area, storage_path, storage_backend")
+      .select("id, owner_user_id, area, storage_path, storage_backend, is_system")
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -1134,6 +1193,15 @@ export const deleteSchoolFile = createServerFn({ method: "POST" })
     if (!row) throw new Error("Ficheiro não encontrado.");
     const area = row.area as SchoolFileRecord["area"];
     const owner = String(row.owner_user_id);
+    if (
+      !canManageSystemFile(
+        { isSystem: Boolean(row.is_system), ownerUserId: owner },
+        userId,
+        membership.appRole,
+      )
+    ) {
+      throw new Error("Ficheiro do sistema protegido — sem permissão para apagar.");
+    }
     const canDelete =
       owner === userId ||
       membership.appRole === "Administrador" ||
@@ -1292,6 +1360,20 @@ export const signSchoolFile = createServerFn({ method: "GET" })
     if (!canSeeRow(mapped, userId, membership.appRole)) {
       throw new Error("Sem permissão para abrir este ficheiro.");
     }
+    if (!canAccessFileContent(mapped, userId, membership.appRole)) {
+      try {
+        await recordFileEvent(db, {
+          schoolId: membership.schoolId,
+          fileId: mapped.id,
+          actorUserId: userId,
+          action: "access_denied",
+          detail: "conteúdo de sistema",
+        });
+      } catch {
+        /* auditoria opcional */
+      }
+      throw new Error("Ficheiro do sistema — conteúdo oculto. Sem permissão de abertura.");
+    }
     if (mapped.storageBackend !== "sga") return { local: true as const, url: null };
     const signed = await db.storage.from(FILES_BUCKET).createSignedUrl(mapped.storagePath, 600);
     if (signed.error || !signed.data?.signedUrl) {
@@ -1335,7 +1417,10 @@ export const signSchoolFiles = createServerFn({ method: "GET" })
     const visible = (rows ?? [])
       .map((row) => mapRow(row as Record<string, unknown>))
       .filter(
-        (file) => canSeeRow(file, userId, membership.appRole) && file.storageBackend === "sga",
+        (file) =>
+          canSeeRow(file, userId, membership.appRole) &&
+          canAccessFileContent(file, userId, membership.appRole) &&
+          file.storageBackend === "sga",
       );
     if (!visible.length) return { urls: {} as Record<string, string> };
 

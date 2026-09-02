@@ -14,6 +14,17 @@ import {
   type CatalogIntegrationId,
 } from "./catalog";
 import { capabilityIdsFor, installPackageFor, parseGrantedCapabilities } from "./install";
+import { generateWebhookApiKey, buildRotatedWebhookConfig } from "./gateway-webhook-key";
+import {
+  normalizeResendRecipients,
+  resolveResendCredentials,
+  sendResendEmail,
+} from "./resend-client";
+import {
+  normalizeWhatsAppRecipients,
+  resolveWhatsAppCredentials,
+  sendWhatsAppCloudMessage,
+} from "./whatsapp-client";
 
 const upsertIntegrationInputSchema = z.object({
   provider: z.string().trim().min(2).max(80),
@@ -30,6 +41,22 @@ const installIntegrationInputSchema = z.object({
 
 const revokeIntegrationInputSchema = z.object({
   provider: z.string().trim().min(2).max(80),
+});
+
+const rotateGatewayWebhookKeyInputSchema = z.object({
+  provider: z.enum(["multicaixa_express", "unitel_money"]),
+});
+
+const sendSchoolResendEmailInputSchema = z.object({
+  to: z.array(z.string().email()).min(1).max(50).optional(),
+  subject: z.string().trim().min(2).max(200),
+  text: z.string().trim().min(1).max(8000),
+  html: z.string().trim().max(20_000).optional(),
+});
+
+const sendSchoolWhatsAppInputSchema = z.object({
+  to: z.array(z.string().trim().min(6).max(32)).min(1).max(50).optional(),
+  text: z.string().trim().min(1).max(4096),
 });
 
 type IntegrationConfig = { [key: string]: Json | undefined };
@@ -162,6 +189,10 @@ export const installSchoolIntegration = createServerFn({ method: "POST" })
     if (!selected.length) throw new Error("Seleccione pelo menos uma função para instalar.");
     const db = await loadSgaAdminClient();
     const existing = await readIntegrationConfig(db, membership.schoolId, data.provider);
+    const webhookApiKey =
+      typeof existing["webhookApiKey"] === "string" && existing["webhookApiKey"].trim()
+        ? existing["webhookApiKey"]
+        : generateWebhookApiKey();
     const { error } = await db.from("school_integrations").upsert(
       {
         school_id: membership.schoolId,
@@ -172,6 +203,9 @@ export const installSchoolIntegration = createServerFn({ method: "POST" })
           grantedCapabilities: selected,
           installedAt: new Date().toISOString(),
           sandbox: existing["sandbox"] ?? true,
+          ...(data.provider === "multicaixa_express" || data.provider === "unitel_money"
+            ? { webhookApiKey }
+            : {}),
         },
         updated_by: context.userId,
         created_by: context.userId,
@@ -211,6 +245,284 @@ export const revokeSchoolIntegration = createServerFn({ method: "POST" })
     if (error) throw publicDatabaseError(error, "Não foi possível desinstalar a integração.");
     return { ok: true };
   });
+
+export const rotateGatewayWebhookApiKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => rotateGatewayWebhookKeyInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const db = await loadSgaAdminClient();
+    const existing = await readIntegrationConfig(db, membership.schoolId, data.provider);
+    const { data: row } = await db
+      .from("school_integrations")
+      .select("status")
+      .eq("school_id", membership.schoolId)
+      .eq("provider", data.provider)
+      .maybeSingle();
+    const rotated = buildRotatedWebhookConfig(existing);
+    const { error } = await db.from("school_integrations").upsert(
+      {
+        school_id: membership.schoolId,
+        provider: data.provider,
+        status: row?.status ?? "configured",
+        config: rotated.config,
+        updated_by: context.userId,
+        created_by: context.userId,
+      },
+      { onConflict: "school_id,provider" },
+    );
+    if (error) throw publicDatabaseError(error, "Não foi possível rotacionar a API key.");
+    return {
+      ok: true as const,
+      webhookApiKey: rotated.webhookApiKey,
+      previousKeyValidUntil: rotated.previousKeyValidUntil,
+    };
+  });
+
+/**
+ * Envio HTTP Resend com API key da escola (Integrações → merchantId).
+ * Sem key ou sem destinatários resolvíveis → mode "clipboard" (caller copia).
+ */
+export const sendSchoolResendEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => sendSchoolResendEmailInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    let row: { status?: string | null; config?: unknown } | null = null;
+    try {
+      const { data: stored, error } = await db
+        .from("school_integrations")
+        .select("status, config")
+        .eq("school_id", membership.schoolId)
+        .eq("provider", "resend_email")
+        .maybeSingle();
+      if (error) throw error;
+      row = stored;
+    } catch {
+      return {
+        mode: "clipboard" as const,
+        reason: "Tabela school_integrations em falta — aplique APPLY_ENROLLMENT_AND_PREMIUM.sql.",
+      };
+    }
+
+    const config = readJsonObject(row?.config);
+    const granted = parseGrantedCapabilities(config);
+    const connected =
+      row?.status === "connected" ||
+      row?.status === "configured" ||
+      granted.includes("resend.send");
+    if (!connected) {
+      return { mode: "clipboard" as const, reason: "Resend não instalado nesta escola." };
+    }
+
+    const credentials = resolveResendCredentials(config, process.env.RESEND_API_KEY);
+    if (!credentials) {
+      return {
+        mode: "clipboard" as const,
+        reason: "Configure a API key Resend em Definições → Integrações (campo merchant).",
+      };
+    }
+
+    let recipients = normalizeResendRecipients(data.to ?? []);
+    if (!recipients.length) {
+      recipients = await listSchoolStaffEmails(db, membership.schoolId);
+    }
+    if (!recipients.length) {
+      return {
+        mode: "clipboard" as const,
+        reason: "Sem destinatários: indique e-mails ou cadastre e-mails na equipa.",
+      };
+    }
+
+    const html =
+      data.html ??
+      `<pre style="font-family:sans-serif;white-space:pre-wrap">${escapeHtml(data.text)}</pre>`;
+
+    try {
+      const result = await sendResendEmail({
+        apiKey: credentials.apiKey,
+        from: credentials.from,
+        to: recipients,
+        subject: data.subject,
+        text: data.text,
+        html,
+      });
+      return {
+        mode: "sent" as const,
+        id: result.id,
+        recipientCount: recipients.length,
+      };
+    } catch (error) {
+      return {
+        mode: "clipboard" as const,
+        reason: error instanceof Error ? error.message : "Falha no envio Resend.",
+      };
+    }
+  });
+
+/**
+ * Envio HTTP WhatsApp Cloud API.
+ * merchantId = Phone Number ID; callbackUrl (não-URL) ou WHATSAPP_ACCESS_TOKEN = token.
+ * Sem credenciais → mode "deeplink" (caller abre wa.me).
+ */
+export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => sendSchoolWhatsAppInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    let row: { status?: string | null; config?: unknown } | null = null;
+    try {
+      const { data: stored, error } = await db
+        .from("school_integrations")
+        .select("status, config")
+        .eq("school_id", membership.schoolId)
+        .eq("provider", "whatsapp_business")
+        .maybeSingle();
+      if (error) throw error;
+      row = stored;
+    } catch {
+      return {
+        mode: "deeplink" as const,
+        reason: "Tabela school_integrations em falta — aplique APPLY_ENROLLMENT_AND_PREMIUM.sql.",
+      };
+    }
+
+    const config = readJsonObject(row?.config);
+    const granted = parseGrantedCapabilities(config);
+    const connected =
+      row?.status === "connected" ||
+      row?.status === "configured" ||
+      granted.includes("whatsapp.notices");
+    if (!connected) {
+      return { mode: "deeplink" as const, reason: "WhatsApp Business não instalado nesta escola." };
+    }
+
+    const credentials = resolveWhatsAppCredentials(
+      config,
+      process.env.WHATSAPP_ACCESS_TOKEN ?? process.env.WHATSAPP_CLOUD_TOKEN,
+    );
+    if (!credentials) {
+      return {
+        mode: "deeplink" as const,
+        reason:
+          "Configure Phone Number ID (merchant) e Access Token (callback) em Definições → Integrações.",
+      };
+    }
+
+    let recipients = normalizeWhatsAppRecipients(data.to ?? []);
+    if (!recipients.length) {
+      recipients = await listSchoolStaffPhones(db, membership.schoolId);
+    }
+    if (!recipients.length) {
+      return {
+        mode: "deeplink" as const,
+        reason: "Sem destinatários: indique telemóveis ou cadastre phones na equipa.",
+      };
+    }
+
+    let sent = 0;
+    const errors: string[] = [];
+    for (const to of recipients) {
+      try {
+        await sendWhatsAppCloudMessage({
+          accessToken: credentials.accessToken,
+          phoneNumberId: credentials.phoneNumberId,
+          toE164Digits: to,
+          text: data.text,
+        });
+        sent += 1;
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : "Falha WhatsApp");
+      }
+    }
+
+    if (sent === 0) {
+      return {
+        mode: "deeplink" as const,
+        reason: errors[0] || "Falha no envio WhatsApp Cloud API.",
+      };
+    }
+    return {
+      mode: "sent" as const,
+      recipientCount: sent,
+      partialErrors: errors.length ? errors.slice(0, 3) : undefined,
+    };
+  });
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+async function listSchoolStaffEmails(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+): Promise<string[]> {
+  try {
+    const { data: memberships, error } = await db
+      .from("school_memberships")
+      .select("user_id")
+      .eq("school_id", schoolId)
+      .eq("status", "active")
+      .limit(80);
+    if (error || !memberships?.length) return [];
+    const userIds = memberships.map((row) => row.user_id).filter(Boolean);
+    if (!userIds.length) return [];
+    const { data: profiles } = await db
+      .from("profiles")
+      .select("email")
+      .in("id", userIds)
+      .limit(80);
+    return normalizeResendRecipients(
+      (profiles ?? []).map((row) => String(row.email ?? "")),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function listSchoolStaffPhones(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+): Promise<string[]> {
+  try {
+    const { data: memberships, error } = await db
+      .from("school_memberships")
+      .select("user_id")
+      .eq("school_id", schoolId)
+      .eq("status", "active")
+      .limit(80);
+    if (error || !memberships?.length) return [];
+    const userIds = memberships.map((row) => row.user_id).filter(Boolean);
+    if (!userIds.length) return [];
+    const { data: profiles } = await db
+      .from("profiles")
+      .select("phone")
+      .in("id", userIds)
+      .limit(80);
+    return normalizeWhatsAppRecipients(
+      (profiles ?? []).map((row) => String((row as { phone?: string | null }).phone ?? "")),
+    );
+  } catch {
+    return [];
+  }
+}
 
 async function readIntegrationConfig(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,

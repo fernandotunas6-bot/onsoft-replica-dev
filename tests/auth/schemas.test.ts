@@ -6,6 +6,19 @@ import {
 import { isManagedProfileAvatarUrl } from "@/features/auth/profile-avatar-url";
 
 describe("updateCurrentProfileInputSchema", () => {
+  it("aceita primeiro e último nome opcionais", () => {
+    const result = updateCurrentProfileInputSchema.parse({
+      fullName: "Manuel Joaquim",
+      firstName: "Manuel",
+      lastName: "Joaquim",
+      phone: "+244923456789",
+      expectedUpdatedAt: new Date().toISOString(),
+    });
+    expect(result.firstName).toBe("Manuel");
+    expect(result.lastName).toBe("Joaquim");
+    expect(result.fullName).toBe("Manuel Joaquim");
+  });
+
   it("aceita telefone angolano opcional", () => {
     expect(
       updateCurrentProfileInputSchema.parse({

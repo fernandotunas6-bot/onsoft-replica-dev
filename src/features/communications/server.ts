@@ -14,19 +14,8 @@ import {
   updateAnnouncementStatusInputSchema,
 } from "./schemas";
 
-function mapStatusToUi(status: string | null | undefined) {
-  if (status === "published") return "sent";
-  if (status === "scheduled") return "scheduled";
-  if (status === "draft") return "draft";
-  if (status === "archived") return "cancelled";
-  return status ?? "draft";
-}
-
-function mapStatusToSga(status: string) {
-  if (status === "sent") return "published";
-  if (status === "cancelled") return "archived";
-  return status;
-}
+// Table: public.school_announcements
+// Status values: 'draft' | 'scheduled' | 'sent'  (no 'archived' — use soft-delete deleted_at instead)
 
 export const listSchoolAnnouncements = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -37,16 +26,17 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
 
     let query = db
-      .from("announcements")
+      .from("school_announcements")
       .select(
-        "id, title, body, audience, channel, status, scheduled_for, published_at, created_at, updated_at, priority, role_code",
+        "id, title, body, audience, channel, status, scheduled_for, published_at, created_at, updated_at",
       )
       .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(data.limit);
 
     if (data.status) {
-      query = query.eq("status", mapStatusToSga(data.status));
+      query = query.eq("status", data.status);
     }
 
     const { data: announcements, error } = await query;
@@ -57,9 +47,9 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
       id: String(row["id"] ?? ""),
       title: String(row["title"] ?? ""),
       body: String(row["body"] ?? ""),
-      audience: String(row["audience"] ?? "school"),
+      audience: String(row["audience"] ?? "all_guardians"),
       channel: String(row["channel"] ?? "portal"),
-      status: mapStatusToUi(String(row["status"])),
+      status: String(row["status"] ?? "draft"),
       scheduled_for: row["scheduled_for"] ? String(row["scheduled_for"]) : null,
       published_at: row["published_at"] ? String(row["published_at"]) : null,
       created_at: String(row["created_at"] ?? ""),
@@ -77,18 +67,16 @@ export const createSchoolAnnouncement = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const sgaStatus = mapStatusToSga(data.status);
-    const publishedAt = sgaStatus === "published" ? new Date().toISOString() : null;
+    const publishedAt = data.status === "sent" ? new Date().toISOString() : null;
     const { data: announcement, error } = await db
-      .from("announcements")
+      .from("school_announcements")
       .insert({
         school_id: membership.schoolId,
         title: data.title,
         body: data.body,
         audience: data.audience,
         channel: data.channel,
-        priority: "normal",
-        status: sgaStatus,
+        status: data.status,
         scheduled_for: data.scheduledFor ?? null,
         published_at: publishedAt,
         created_by: context.userId,
@@ -102,7 +90,7 @@ export const createSchoolAnnouncement = createServerFn({ method: "POST" })
     return {
       ...announcement,
       channel: announcement.channel ?? data.channel,
-      status: mapStatusToUi(announcement.status),
+      status: announcement.status ?? data.status,
       scheduled_for: announcement.scheduled_for ?? data.scheduledFor ?? null,
     };
   });
@@ -116,20 +104,19 @@ export const updateSchoolAnnouncementStatus = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const sgaStatus = mapStatusToSga(data.status);
     const patch = {
-      status: sgaStatus,
-      published_at: sgaStatus === "published" ? new Date().toISOString() : null,
-      scheduled_for: sgaStatus === "scheduled" ? (data.scheduledFor ?? null) : null,
-      archived_at: sgaStatus === "archived" ? new Date().toISOString() : null,
+      status: data.status,
+      published_at: data.status === "sent" ? new Date().toISOString() : null,
+      scheduled_for: data.status === "scheduled" ? (data.scheduledFor ?? null) : null,
       updated_by: context.userId,
     };
 
     const { data: announcement, error } = await db
-      .from("announcements")
+      .from("school_announcements")
       .update(patch)
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
       .select(
         "id, title, body, audience, channel, status, scheduled_for, published_at, created_at, updated_at",
       )
@@ -139,7 +126,7 @@ export const updateSchoolAnnouncementStatus = createServerFn({ method: "POST" })
     return {
       ...announcement,
       channel: announcement.channel ?? "portal",
-      status: mapStatusToUi(announcement.status),
+      status: announcement.status,
       scheduled_for: announcement.scheduled_for ?? data.scheduledFor ?? null,
     };
   });
@@ -154,7 +141,7 @@ export const updateSchoolAnnouncement = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
     const { data: announcement, error } = await db
-      .from("announcements")
+      .from("school_announcements")
       .update({
         title: data.title,
         body: data.body,
@@ -162,6 +149,7 @@ export const updateSchoolAnnouncement = createServerFn({ method: "POST" })
       })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
       .select(
         "id, title, body, audience, channel, status, scheduled_for, published_at, created_at, updated_at",
       )
@@ -171,7 +159,7 @@ export const updateSchoolAnnouncement = createServerFn({ method: "POST" })
     return {
       ...announcement,
       channel: announcement.channel ?? "portal",
-      status: mapStatusToUi(announcement.status),
+      status: announcement.status,
       scheduled_for: announcement.scheduled_for ?? null,
     };
   });
@@ -185,15 +173,16 @@ export const archiveSchoolAnnouncement = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
+    // Soft-delete: set deleted_at instead of status 'archived' (not in DB constraint)
     const { data: announcement, error } = await db
-      .from("announcements")
+      .from("school_announcements")
       .update({
-        status: "archived",
-        archived_at: new Date().toISOString(),
+        deleted_at: new Date().toISOString(),
         updated_by: context.userId,
       })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
       .select(
         "id, title, body, audience, channel, status, scheduled_for, published_at, created_at, updated_at",
       )
@@ -202,8 +191,8 @@ export const archiveSchoolAnnouncement = createServerFn({ method: "POST" })
     if (!announcement) throw new Error("Comunicado não encontrado.");
     return {
       ...announcement,
-      channel: "portal",
-      status: mapStatusToUi(announcement.status),
+      channel: announcement.channel ?? "portal",
+      status: "cancelled" as const,
       scheduled_for: null,
     };
   });

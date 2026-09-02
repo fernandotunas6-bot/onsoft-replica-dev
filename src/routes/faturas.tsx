@@ -1,6 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import {
   AlertCircle,
   Award,
@@ -9,22 +11,37 @@ import {
   FileDown,
   FileText,
   Plus,
+  QrCode,
   Wallet,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
+import { DOC_PATHS } from "@/lib/ecosystem-urls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -57,7 +74,8 @@ import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/expo
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
-import { cn } from "@/lib/utils";
+import { PaymentReferenceCard } from "@/features/finance/components/PaymentReferenceCard";
+import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { exportCsv } from "@/lib/export-csv";
 import { exportPdfTable } from "@/lib/export-pdf-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
@@ -116,6 +134,12 @@ function FaturasPage() {
   const installed = useInstalledIntegrations();
   const resendInvoices = installed.hasCapability("resend.invoices");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
+  const multicaixaOn = installed.isInstalled("multicaixa_express");
+  const [emisInvoice, setEmisInvoice] = useState<{
+    id: string;
+    numero: string;
+    valor: number;
+  } | null>(null);
   const receiveMethods = [
     "Numerário",
     "Transferência",
@@ -151,7 +175,9 @@ function FaturasPage() {
   const financeStudents = financeStudentsQuery.data ?? [];
   const missingPenalty = Boolean(schemaQuery.data?.missingPenaltyAmount);
   const missingPrefs = Boolean(schemaQuery.data?.missingNotificationPreferences);
+  const missingActiveFeePlan = Boolean(schemaQuery.data?.missingActiveFeePlan);
   const schemaBlocked = missingPenalty || missingPrefs;
+  const financeInvoiceBlocked = schemaBlocked || missingActiveFeePlan;
   const studentOptions = financeStudents.map(
     (student) => `${student.registration_number} · ${student.full_name}`,
   );
@@ -205,6 +231,55 @@ function FaturasPage() {
           f.descricao.toLowerCase().includes(q)),
     );
   }, [ate, de, estado, faturas, query]);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, estado, de, ate]);
+
+  // Realtime — actualiza faturas e relatório ao vivo quando há novos pagamentos ou faturas
+  useEffect(() => {
+    const channel = supabase
+      .channel("faturas_realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "invoices" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+          void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "payments" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+          void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "invoices" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+          void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const pagedFaturas = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   const summary = reportingQuery.data?.summary;
   const total = Number(summary?.billed ?? 0);
@@ -361,11 +436,13 @@ function FaturasPage() {
     });
   };
 
-  const handleExportSaftAo = async () => {
+  const handleExportSaftAo = async (fiscalYear = new Date().getFullYear()) => {
     try {
       const { exportSaftAoXml } = await import("@/features/finance/server");
-      const res = await exportSaftAoXml({ data: { fiscalYear: new Date().getFullYear() } });
+      const { validateSaftAoXml } = await import("@/features/finance/saft-validator");
+      const res = await exportSaftAoXml({ data: { fiscalYear } });
       if (res.success && res.xml) {
+        const val = validateSaftAoXml(res.xml);
         const blob = new Blob([res.xml], { type: "application/xml;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -375,12 +452,51 @@ function FaturasPage() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        toast.success(`Ficheiro ${res.filename} descarregado (${res.invoiceCount} faturas).`);
+        toast.success(`Ficheiro ${res.filename} descarregado (${res.invoiceCount} faturas).`, {
+          description: val.valid
+            ? `Conformidade AGT validada (${val.version}).`
+            : `Aviso: ${val.errors.length} erro(s) estruturais detectados.`,
+        });
+        for (const warning of [...(res.warnings ?? []), ...val.warnings.map((w) => w.message)]) {
+          toast.warning(warning);
+        }
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao gerar SAFT-AO.");
     }
   };
+
+  const handleValidateSaftAo = async (fiscalYear = new Date().getFullYear()) => {
+    try {
+      const { exportSaftAoXml } = await import("@/features/finance/server");
+      const { validateSaftAoXml } = await import("@/features/finance/saft-validator");
+      const res = await exportSaftAoXml({ data: { fiscalYear } });
+      if (!res.success || !res.xml) {
+        toast.error("Não foi possível carregar o XML do SAF-T.");
+        return;
+      }
+      const val = validateSaftAoXml(res.xml);
+      if (val.valid) {
+        toast.success(`SAF-T AO ${fiscalYear} 100% Válido!`, {
+          description: `Versão ${val.version} · NIF: ${val.taxRegistrationNumber} · ${val.totalInvoices} faturas · Total: ${val.grossTotal.toLocaleString("pt-PT")} Kz`,
+        });
+      } else {
+        toast.error(`SAF-T AO ${fiscalYear}: ${val.errors.length} erro(s) estruturais`, {
+          description: val.errors[0]?.message,
+        });
+      }
+      for (const w of val.warnings) {
+        toast.warning(w.message);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao validar SAFT-AO.");
+    }
+  };
+
+  const saftYearOptions = useMemo(() => {
+    const current = new Date().getFullYear();
+    return [current, current - 1, current - 2];
+  }, []);
 
   const handleIssueProforma = async (values: Record<string, string>) => {
     const studentLabel = values["aluno"] || "";
@@ -460,6 +576,12 @@ function FaturasPage() {
           description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação."
           actions={
             <>
+              <DocHelpButton title="Navegação — Faturas e tesouraria" />
+              <DocPathHelpButton
+                path={DOC_PATHS.financeSaft}
+                label="SAFT-AO"
+                title="Exportação SAFT-AO / AGT"
+              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
@@ -468,12 +590,28 @@ function FaturasPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem
-                    onClick={handleExportSaftAo}
-                    className="gap-2 text-xs cursor-pointer"
-                  >
-                    <FileText className="size-3.5 text-primary" /> Ficheiro SAFT-AO (XML)
-                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2 text-xs">
+                      <FileText className="size-3.5 text-primary" /> Ficheiro SAFT-AO (XML)
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      {saftYearOptions.map((year) => (
+                        <DropdownMenuItem
+                          key={year}
+                          className="text-xs cursor-pointer"
+                          onClick={() => void handleExportSaftAo(year)}
+                        >
+                          Exportar {year}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuItem
+                        className="text-xs cursor-pointer text-primary font-medium"
+                        onClick={() => void handleValidateSaftAo(new Date().getFullYear())}
+                      >
+                        Validar Estrutura AGT
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
                   <DropdownMenuItem
                     onClick={exportarFaturasOficial}
                     className="gap-2 text-xs cursor-pointer"
@@ -606,7 +744,7 @@ function FaturasPage() {
                   <Button
                     className="gap-2"
                     onClick={open}
-                    disabled={!financeStudents.length || schemaBlocked}
+                    disabled={!financeStudents.length || financeInvoiceBlocked}
                   >
                     <Plus className="size-4" /> Emitir fatura
                   </Button>
@@ -652,7 +790,27 @@ function FaturasPage() {
                   <code>in_app_enabled</code>)
                 </>
               ) : null}
-              .
+              . <SqlChecklistLink />
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {!schemaBlocked && missingActiveFeePlan ? (
+          <Alert className="border-amber-500/40 bg-amber-500/10">
+            <AlertCircle className="size-4 text-amber-700 dark:text-amber-300" />
+            <AlertTitle>Plano de propinas em falta</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>
+                Active o plano financeiro em Definições para emitir faturas de propina e matrícula.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => openSettingsPanel("financeiro")}
+              >
+                Configurar propinas
+              </Button>
             </AlertDescription>
           </Alert>
         ) : null}
@@ -753,7 +911,7 @@ function FaturasPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((f) => (
+                {pagedFaturas.map((f) => (
                   <TableRow key={f.id}>
                     <TableCell className="font-mono text-xs">
                       <span className="flex items-center gap-2">
@@ -781,6 +939,21 @@ function FaturasPage() {
                         >
                           <FileDown className="size-3.5" /> Fatura
                         </Button>
+                        {multicaixaOn && f.estado !== "Paga" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              setEmisInvoice({
+                                id: f.id,
+                                numero: f.numero,
+                                valor: Math.max(f.valor - f.recebido, 0) || f.valor,
+                              })
+                            }
+                          >
+                            <QrCode className="size-3.5" /> Referência EMIS
+                          </Button>
+                        ) : null}
                         {f.estado !== "Paga" ? (
                           <QuickFormModal
                             eyebrow={f.numero}
@@ -968,8 +1141,47 @@ function FaturasPage() {
                 ) : null}
               </TableBody>
             </Table>
+            <ListPaginationBar
+              page={page}
+              pageSize={pageSize}
+              totalItems={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 25, 50, 100]}
+            />
           </div>
         </Panel>
+
+        <Dialog
+          open={emisInvoice !== null}
+          onOpenChange={(open) => {
+            if (!open) setEmisInvoice(null);
+          }}
+        >
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Referência Multicaixa / EMIS</DialogTitle>
+              <DialogDescription>
+                Partilhe a referência com o encarregado ou confirme o pagamento após ver o
+                comprovativo.
+              </DialogDescription>
+            </DialogHeader>
+            {emisInvoice ? (
+              <PaymentReferenceCard
+                invoiceId={emisInvoice.id}
+                invoiceNumber={emisInvoice.numero}
+                amount={emisInvoice.valor}
+                onPaymentSuccess={() => {
+                  setEmisInvoice(null);
+                  void queryClient.invalidateQueries({ queryKey: ["finance"] });
+                }}
+              />
+            ) : null}
+          </DialogContent>
+        </Dialog>
       </div>
     </AppShell>
   );

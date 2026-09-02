@@ -15,6 +15,7 @@ export const generateSaftInputSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
+  softwareCertificateNumber: z.string().trim().max(80).optional(),
 });
 export type GenerateSaftInput = z.infer<typeof generateSaftInputSchema>;
 
@@ -28,13 +29,27 @@ export type SaftSchoolInfo = {
 export type SaftInvoiceItem = {
   id: string;
   invoiceNo: string;
-  invoiceType: "FT" | "FR" | "VD";
+  invoiceType: "FT" | "FR" | "FS" | "VD" | "NC" | "ND";
   date: string;
   customerName: string;
   customerNif?: string | null;
   studentId?: string;
   description: string;
   amount: number;
+  status: "N" | "A"; // N = Normal, A = Anulada
+};
+
+export type SaftPaymentItem = {
+  id: string;
+  paymentRefNo: string;
+  paymentType: "RG" | "RC"; // RG = Recibo Geral, RC = Recibo de Caixa
+  date: string;
+  customerName: string;
+  customerNif?: string | null;
+  studentId?: string;
+  description?: string;
+  amount: number;
+  sourceInvoiceNo?: string;
   status: "N" | "A"; // N = Normal, A = Anulada
 };
 
@@ -51,6 +66,7 @@ export function buildSaftAoXml(
   school: SaftSchoolInfo,
   invoices: SaftInvoiceItem[],
   input: GenerateSaftInput,
+  payments: SaftPaymentItem[] = [],
 ): string {
   const year = input.fiscalYear;
   const startDate = input.startDate ?? `${year}-01-01`;
@@ -74,12 +90,28 @@ export function buildSaftAoXml(
       });
     }
   }
+  for (const pay of payments) {
+    const key = pay.customerNif || pay.studentId || pay.customerName;
+    if (!customerMap.has(key)) {
+      customerMap.set(key, {
+        id: `CLI-${customerMap.size + 1}`,
+        name: pay.customerName,
+        nif: pay.customerNif || "999999999",
+      });
+    }
+  }
 
   // Calculate totals
   let totalCredit = 0;
   for (const inv of invoices) {
     if (inv.status === "N") {
       totalCredit += inv.amount;
+    }
+  }
+  let totalPaymentCredit = 0;
+  for (const pay of payments) {
+    if (pay.status === "N") {
+      totalPaymentCredit += pay.amount;
     }
   }
 
@@ -107,7 +139,7 @@ export function buildSaftAoXml(
   xml += `    <ProductID>SIGA/AO</ProductID>\n`;
   xml += `    <ProductVersion>2026.1</ProductVersion>\n`;
   xml += `    <HeaderComment>Ficheiro SAFT-AO gerado pelo SIGA per Decreto Presidencial 312/18 AGT</HeaderComment>\n`;
-  xml += `    <SoftwareCertificateNumber>0/AGT/2026</SoftwareCertificateNumber>\n`;
+  xml += `    <SoftwareCertificateNumber>${escapeXml(input.softwareCertificateNumber?.trim() || "0/AGT/2026")}</SoftwareCertificateNumber>\n`;
   xml += `  </Header>\n`;
 
   xml += `  <MasterFiles>\n`;
@@ -206,6 +238,59 @@ export function buildSaftAoXml(
   }
 
   xml += `    </SalesInvoices>\n`;
+
+  if (payments.length > 0) {
+    xml += `    <Payments>\n`;
+    xml += `      <NumberOfEntries>${payments.length}</NumberOfEntries>\n`;
+    xml += `      <TotalDebit>0.00</TotalDebit>\n`;
+    xml += `      <TotalCredit>${totalPaymentCredit.toFixed(2)}</TotalCredit>\n`;
+
+    for (const pay of payments) {
+      const custKey = pay.customerNif || pay.studentId || pay.customerName;
+      const cust = customerMap.get(custKey);
+      const custId = cust ? cust.id : "CLI-1";
+      const payPeriod = pay.date.slice(5, 7);
+
+      xml += `      <Payment>\n`;
+      xml += `        <PaymentRefNo>${escapeXml(pay.paymentRefNo)}</PaymentRefNo>\n`;
+      xml += `        <Period>${payPeriod}</Period>\n`;
+      xml += `        <TransactionDate>${pay.date}</TransactionDate>\n`;
+      xml += `        <PaymentType>${pay.paymentType}</PaymentType>\n`;
+      xml += `        <PaymentStatus>\n`;
+      xml += `          <PaymentStatus>${pay.status}</PaymentStatus>\n`;
+      xml += `          <PaymentStatusDate>${pay.date}T00:00:00</PaymentStatusDate>\n`;
+      xml += `          <SourceID>SIGA</SourceID>\n`;
+      xml += `          <SourcePayment>P</SourcePayment>\n`;
+      xml += `        </PaymentStatus>\n`;
+      xml += `        <SourceID>SIGA</SourceID>\n`;
+      xml += `        <SystemEntryDate>${pay.date}T00:00:00</SystemEntryDate>\n`;
+      xml += `        <CustomerID>${escapeXml(custId)}</CustomerID>\n`;
+      xml += `        <Line>\n`;
+      xml += `          <LineNumber>1</LineNumber>\n`;
+      if (pay.sourceInvoiceNo) {
+        xml += `          <SourceDocumentID>\n`;
+        xml += `            <OriginatingON>${escapeXml(pay.sourceInvoiceNo)}</OriginatingON>\n`;
+        xml += `            <InvoiceDate>${pay.date}</InvoiceDate>\n`;
+        xml += `            <Description>${escapeXml(pay.description || "Propina")}</Description>\n`;
+        xml += `          </SourceDocumentID>\n`;
+      }
+      xml += `          <CreditAmount>${pay.amount.toFixed(2)}</CreditAmount>\n`;
+      xml += `        </Line>\n`;
+      xml += `        <DocumentTotals>\n`;
+      xml += `          <TaxPayable>0.00</TaxPayable>\n`;
+      xml += `          <NetTotal>${pay.amount.toFixed(2)}</NetTotal>\n`;
+      xml += `          <GrossTotal>${pay.amount.toFixed(2)}</GrossTotal>\n`;
+      xml += `          <Settlement>\n`;
+      xml += `            <SettlementDiscount>0.00</SettlementDiscount>\n`;
+      xml += `            <SettlementAmount>${pay.amount.toFixed(2)}</SettlementAmount>\n`;
+      xml += `          </Settlement>\n`;
+      xml += `        </DocumentTotals>\n`;
+      xml += `      </Payment>\n`;
+    }
+
+    xml += `    </Payments>\n`;
+  }
+
   xml += `  </SourceDocuments>\n`;
   xml += `</AuditFile>`;
 

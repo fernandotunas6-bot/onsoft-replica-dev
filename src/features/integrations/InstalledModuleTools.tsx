@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
+import { calendarIcsFeedUrl } from "@/features/calendar/ics";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { AppMark } from "./app-marks";
 import {
@@ -32,7 +33,7 @@ export function InstalledModuleTools({
     try {
       if (kind === "ics-google" || kind === "ics-apple") {
         const feed = await getOrCreateCalendarFeedToken();
-        const url = `${window.location.origin}/calendario/ics?token=${feed.token}`;
+        const url = calendarIcsFeedUrl(window.location.origin, feed.token);
         await copyText(url);
         toast.success("Feed ICS copiado", {
           description:

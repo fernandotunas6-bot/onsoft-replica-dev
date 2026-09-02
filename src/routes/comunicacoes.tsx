@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Archive,
   Award,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -24,6 +26,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+import { sendSchoolResendEmail, sendSchoolWhatsAppMessage } from "@/features/integrations/server";
+import { whatsappHref } from "@/features/integrations/actions";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { documentValidationCode } from "@/features/academic/assessment-views";
@@ -45,6 +49,8 @@ import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
+import { getDocUrl, DOC_PATHS } from "@/lib/ecosystem-urls";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
 const comunicacoesFilterDefaults = {
@@ -113,7 +119,11 @@ const estadoLabel: Record<string, string> = {
 };
 
 const audienceLabel: Record<Audience, string> = {
-  school: "Toda a escola",
+  all_guardians: "Todos os encarregados",
+  guardians_with_debt: "Encarregados com dívida",
+  students_secondary: "Alunos do ensino secundário",
+  students_finalists: "Alunos finalistas",
+  teaching_staff: "Corpo docente",
 };
 
 const audienceOptions: Array<{ value: Audience; label: string }> = (
@@ -125,7 +135,7 @@ function readAnnouncementForm(form: HTMLFormElement) {
   return {
     title: String(data.get("titulo") ?? ""),
     body: String(data.get("mensagem") ?? ""),
-    audience: String(data.get("destino") ?? "school") as Audience,
+    audience: String(data.get("destino") ?? "all_guardians") as Audience,
     channel: String(data.get("canal") ?? "portal") as Channel,
     scheduledFor: String(data.get("agendar") || "") || undefined,
   };
@@ -156,6 +166,29 @@ function ComunicacoesPage() {
     queryFn: () => listSchoolAnnouncements({ data: { limit: 50 } }),
     retry: false,
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("school_announcements_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "school_announcements",
+        },
+        () => {
+          void queryClient.invalidateQueries({
+            queryKey: ["communications", "announcements"],
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const items = announcementsQuery.data ?? [];
   const migrationMissing =
@@ -246,7 +279,7 @@ function ComunicacoesPage() {
         parties: [
           {
             label: "Audiência",
-            value: audienceLabel[(item.audience as Audience) ?? "school"] ?? "Escola",
+            value: audienceLabel[(item.audience as Audience) ?? "all_guardians"] ?? "Escola",
           },
           { label: "Canal", value: canalLabel[(item.channel as Channel) ?? "portal"] ?? "Portal" },
         ],
@@ -331,8 +364,51 @@ function ComunicacoesPage() {
       form.reset();
       setDraftAttachment(null);
       await invalidate();
+      let dispatchNote: string | undefined;
+      const text = `${values.title}\n\n${values.body}`;
       if (status === "sent" && values.channel === "email" && resendOn) {
-        await navigator.clipboard.writeText(`${values.title}\n\n${values.body}`);
+        const dispatch = await sendSchoolResendEmail({
+          data: {
+            subject: values.title,
+            text: values.body,
+          },
+        });
+        if (dispatch.mode === "sent") {
+          dispatchNote = `E-mail enviado via Resend a ${dispatch.recipientCount} destinatário(s).`;
+        } else {
+          await navigator.clipboard.writeText(text);
+          dispatchNote = `${dispatch.reason} Texto copiado para colar no Resend.`;
+        }
+      }
+      if (
+        status === "sent" &&
+        (values.channel === "sms" || values.channel === "portal") &&
+        whatsappNotices
+      ) {
+        const dispatch = await sendSchoolWhatsAppMessage({
+          data: { text },
+        });
+        if (dispatch.mode === "sent") {
+          dispatchNote = [
+            dispatchNote,
+            `WhatsApp Cloud API: ${dispatch.recipientCount} destinatário(s).`,
+          ]
+            .filter(Boolean)
+            .join(" ");
+        } else {
+          await navigator.clipboard.writeText(text);
+          window.open(
+            `https://wa.me/?text=${encodeURIComponent(text)}`,
+            "_blank",
+            "noopener,noreferrer",
+          );
+          dispatchNote = [
+            dispatchNote,
+            `${dispatch.reason} Abriu wa.me (sem token ou sem telemóveis).`,
+          ]
+            .filter(Boolean)
+            .join(" ");
+        }
       }
       toast.success(
         status === "sent"
@@ -342,13 +418,7 @@ function ComunicacoesPage() {
             : "Rascunho guardado",
         {
           description:
-            status === "sent"
-              ? values.channel === "email" && resendOn
-                ? "Texto copiado para envio Resend."
-                : whatsappNotices
-                  ? "Use WhatsApp nos cartões publicados para partilhar."
-                  : "Registo interno guardado."
-              : undefined,
+            status === "sent" ? dispatchNote ?? "Registo interno guardado." : undefined,
         },
       );
     } catch (error) {
@@ -380,6 +450,7 @@ function ComunicacoesPage() {
           description="Comunicados institucionais para encarregados, alunos e corpo docente."
           actions={
             <>
+              <DocHelpButton title="Navegação — Comunicações" />
               <Button
                 variant="outline"
                 className="gap-2"
@@ -553,13 +624,22 @@ function ComunicacoesPage() {
                                     variant="outline"
                                     onClick={async () => {
                                       const text = `${c.title}\n\n${c.body}`;
+                                      const dispatch = await sendSchoolWhatsAppMessage({
+                                        data: { text },
+                                      });
+                                      if (dispatch.mode === "sent") {
+                                        toast.success(
+                                          `WhatsApp enviado a ${dispatch.recipientCount} destinatário(s)`,
+                                        );
+                                        return;
+                                      }
                                       await navigator.clipboard.writeText(text);
                                       window.open(
                                         `https://wa.me/?text=${encodeURIComponent(text)}`,
                                         "_blank",
                                         "noopener,noreferrer",
                                       );
-                                      toast.success("Mensagem pronta no WhatsApp");
+                                      toast.success(dispatch.reason || "Mensagem pronta no WhatsApp");
                                     }}
                                   >
                                     WhatsApp
@@ -753,7 +833,7 @@ function ComunicacoesPage() {
             title="Redigir comunicado"
             description={
               canManage
-                ? "Registo interno — envio SMS/e-mail externo ainda não ligado"
+                ? "Registo no portal. Envio externo: instale Resend/WhatsApp em Definições → Integrações."
                 : "Somente leitura para o seu perfil"
             }
           >
@@ -766,6 +846,28 @@ function ComunicacoesPage() {
                 Aplique a migração para activar a redacção de comunicados.
               </p>
             ) : (
+              <>
+                {!resendOn && !whatsappNotices ? (
+                  <p className="mb-3 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    Sem Resend/WhatsApp instalados, o comunicado fica só no portal.{" "}
+                    <Link
+                      to="/configuracoes"
+                      search={{ painel: "integracoes" }}
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      Abrir Integrações
+                    </Link>
+                    {" · "}
+                    <a
+                      href={getDocUrl(DOC_PATHS.guideFeatures)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      Manual DOC
+                    </a>
+                  </p>
+                ) : null}
               <form ref={formRef} className="space-y-4" onSubmit={onSubmitSent}>
                 <div className="space-y-2">
                   <Label htmlFor="titulo">Assunto</Label>
@@ -809,7 +911,7 @@ function ComunicacoesPage() {
                   </select>
                   {resendOn || whatsappNotices ? (
                     <p className="text-xs text-muted-foreground">
-                      {resendOn ? "Canal E-mail: texto copiado para Resend ao publicar. " : ""}
+                      {resendOn ? "Canal E-mail: envio HTTP Resend (ou cópia se faltar API key). " : ""}
                       {whatsappNotices ? "Use WhatsApp nos cartões depois de publicar." : ""}
                     </p>
                   ) : null}
@@ -869,6 +971,7 @@ function ComunicacoesPage() {
                   </Button>
                 </div>
               </form>
+              </>
             )}
           </Panel>
         </div>

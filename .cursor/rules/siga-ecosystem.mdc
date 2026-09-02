@@ -1,0 +1,21 @@
+---
+description: SIGA Plus ecosystem — four apps, four responsibilities. Read before crossing WEB/ADMIN/SIGA/DOC.
+alwaysApply: true
+---
+
+# Ecossistema SIGA Plus
+
+Ler `docs/agents/ARCHITECTURE_HARMONIZATION.md` antes de código que cruze aplicações. Skill: `siga-ecosystem`.
+
+```text
+WEB vende (painel/web :5174).  ADMIN controla (painel/admin :3005).
+SIGA trabalha (raiz :3006).    DOC explica (painel/docs :5173).
+```
+
+- NÃO unificar frontends, fontes, componentes ou frameworks.
+- NÃO criar páginas comerciais no SIGA (`/pricing`, wizard de escola com UI escolar).
+- NÃO mover alunos/notas/propinas para WEB ou ADMIN.
+- NÃO apagar `/saas-admin` até o ADMIN ter a mesma capacidade.
+- Links comerciais → WEB. Gestão SaaS → ADMIN. Ajuda → DOC.
+- URLs: `src/lib/ecosystem-urls.ts` + `VITE_WEB_URL` `VITE_SIGA_URL` `VITE_ADMIN_URL` `VITE_DOCS_URL`.
+- 1 BD, N tenants. Administrador escolar ≠ `platform_admins`.

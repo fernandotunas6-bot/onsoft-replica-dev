@@ -27,9 +27,11 @@ export function isTauriDesktop(): boolean {
 export async function openExternalLink(url: string): Promise<void> {
   if (isTauriDesktop()) {
     try {
-      const { open } = await import("@tauri-apps/plugin-opener");
-      await open(url);
-      return;
+      const opener: any = await import(/* @vite-ignore */ "@tauri-apps/plugin-opener" as any).catch(() => null);
+      if (opener?.open) {
+        await opener.open(url);
+        return;
+      }
     } catch (e) {
       console.warn(
         "Falha ao abrir link via plugin nativo do Tauri, a usar fallback window.open",

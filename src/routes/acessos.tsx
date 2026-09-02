@@ -16,6 +16,7 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -48,10 +49,13 @@ import { documentValidationCode } from "@/features/academic/assessment-views";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
 import {
+  createSchoolInvitation,
   inviteSystemUser,
+  listSchoolInvitations,
   listSystemAccounts,
   resendSystemInvite,
   resetStaffPasswordDirect,
+  revokeSchoolInvitation,
   setSystemAccountDisabled,
   updateSystemAccountCargo,
 } from "@/features/access/server";
@@ -128,6 +132,11 @@ function AcessosPage() {
   const grantsQuery = useQuery({
     queryKey: ["access", "grants"],
     queryFn: () => listStaffModuleGrants(),
+    retry: false,
+  });
+  const invitationsQuery = useQuery({
+    queryKey: ["access", "invitations"],
+    queryFn: () => listSchoolInvitations(),
     retry: false,
   });
   const grantLevels = ["Nenhum", "Leitura", "Escrita", "Total"] as const;
@@ -382,6 +391,7 @@ function AcessosPage() {
           description="Convide contas de login, ajuste cargos e mantenha a equipa escolar no registo de pessoas."
           actions={
             <div className="flex flex-wrap items-center gap-2">
+              <DocHelpButton title="Navegação — Acessos e permissões" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-1.5 text-xs shadow-2xs">
@@ -943,6 +953,91 @@ function AcessosPage() {
                       </TableRow>
                     ))
                   )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </Panel>
+
+        <Panel
+          title="Convites institucionais"
+          description="Convites formais de acesso e vinculação multi-tenant à escola"
+        >
+          {invitationsQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">A carregar convites…</p>
+          ) : (invitationsQuery.data ?? []).length === 0 ? (
+            <p className="py-4 text-sm text-muted-foreground">
+              Nenhum convite institucional registado. Pode convidar novos membros através do botão «Convidar utilizador».
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email Convidado</TableHead>
+                    <TableHead>Papel Proposto</TableHead>
+                    <TableHead>Data do Convite</TableHead>
+                    <TableHead>Expira em</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(invitationsQuery.data ?? []).map((invitation) => {
+                    const isPending = invitation.status === "pending";
+                    const isExpired = new Date(invitation.expires_at).getTime() < Date.now();
+                    const displayStatus = isPending && isExpired ? "Expirado" : invitation.status === "pending" ? "Pendente" : invitation.status === "accepted" ? "Aceite" : "Revogado";
+                    const statusTone = displayStatus === "Aceite" ? toneClass.success : displayStatus === "Pendente" ? toneClass.warning : toneClass.danger;
+
+                    return (
+                      <TableRow key={invitation.id}>
+                        <TableCell className="font-medium">{invitation.email}</TableCell>
+                        <TableCell>
+                          <span className={cn(badgeBase, toneClass.primary)}>
+                            {invitation.role_code}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(invitation.created_at).toLocaleDateString("pt-PT")}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(invitation.expires_at).toLocaleDateString("pt-PT")}
+                        </TableCell>
+                        <TableCell>
+                          <span className={cn(badgeBase, statusTone)}>
+                            {displayStatus}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isPending && !isExpired ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  await revokeSchoolInvitation({
+                                    data: { invitationId: invitation.id },
+                                  });
+                                  await queryClient.invalidateQueries({
+                                    queryKey: ["access", "invitations"],
+                                  });
+                                  toast.success("Convite revogado");
+                                } catch (err) {
+                                  toast.error("Não foi possível revogar o convite", {
+                                    description: err instanceof Error ? err.message : undefined,
+                                  });
+                                }
+                              }}
+                            >
+                              Revogar
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

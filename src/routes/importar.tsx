@@ -3,6 +3,7 @@ import { FileUp, History, ShieldCheck, Download, FileSpreadsheet } from "lucide-
 import { z } from "zod";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
+import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -60,6 +61,7 @@ export function ImportarDadosPage() {
           group="Secretaria"
           title="Importar Dados Escolares"
           description="Migre e alimente alunos, professores, turmas, notas e pagamentos a partir de ficheiros Excel/CSV com validação, staging e auditoria."
+          actions={<DocHelpButton title="Navegação — Importar no mapa de módulos" />}
         />
 
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-xs">

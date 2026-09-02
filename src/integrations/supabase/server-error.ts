@@ -1,3 +1,5 @@
+import { sqlApplyHint } from "@/lib/sql-doc-hint";
+
 type DatabaseError = {
   code?: string | undefined;
   message?: string | undefined;
@@ -8,7 +10,7 @@ const publicMessages: Record<string, string> = {
   "23505": "Já existe um registo com estes dados.",
   "23514": "Um ou mais valores não respeitam as regras do sistema.",
   "42501": "Não tem permissão para realizar esta operação.",
-  "42P01": "Tabela em falta no SGA. Corra supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql no SQL Editor.",
+  "42P01": `Tabela em falta no SGA. ${sqlApplyHint("premium")}`,
   PGRST116: "O registo solicitado não foi encontrado.",
 };
 

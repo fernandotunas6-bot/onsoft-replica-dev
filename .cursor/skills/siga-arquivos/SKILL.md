@@ -23,6 +23,10 @@ description: >-
 - Ícones: cada tipo tem cor/ícone próprio (`FileKindIcon` / `FileCover`).
 - Áreas: `escola`, `secretaria` (reservada Admin/Secretaria), `pessoal`, `publico`.
 - Acesso: `visibility` Privado/Escola/Público; o seu nível = Proprietário / Pode editar / Só leitura (`myFileAccess`).
+- **Utilizador obrigatório**: cada ficheiro tem `related_user_id` (inquérito + fallback ao dono); `fileNeedsOrganization` se faltar.
+- **Ficheiros de sistema** (`is_system`): listáveis; conteúdo oculto sem permissão (`canAccessFileContent` / `canManageSystemFile`). Recibos/talões/faturas da tesouraria.
+- Filtros **Meus** / **Sistema**; SQL backfill liga `related_user_id` ao dono e marca financeiros como sistema.
+- Auditoria: tentativa de abertura sem permissão → evento `access_denied` (visível no painel Detalhes).
 - Drive: Microsoft 365 / OneDrive catalog-ready (`m365.onedrive` → `/arquivos`). Sem chave gratuita partilhada entre escolas.
 - Ligação: perfil e logótipo da escola, foto do aluno/pessoa (`applyLibraryPhotoToPerson`), anexo em `person_documents` (`file_id`/`file_name`), referência em comunicados, materiais de turma (`class_group_id` + `ClassMaterialsPanel` em `/pedagogica` e no workspace do professor).
 - Browser: abrir, descarregar, renomear, apagar; filtro por turma (`/arquivos?turma=`). Partilha: `schoolFileShareText` + WhatsApp catalog-ready.

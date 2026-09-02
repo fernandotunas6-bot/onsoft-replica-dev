@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { useTenant } from "@/features/saas/tenant-context";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { AppMark } from "@/features/integrations/app-marks";
 import {
@@ -35,6 +36,7 @@ import { InstallConsentModal } from "@/features/integrations/InstallConsentModal
 import { isCatalogIntegrationId } from "@/features/integrations/catalog";
 import { listInstalledCapabilities } from "@/features/integrations/server";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
+import { calendarIcsFeedUrl } from "@/features/calendar/ics";
 import { cn } from "@/lib/utils";
 
 function WaffleIcon({ className }: { className?: string }) {
@@ -166,7 +168,8 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
     },
   });
   const currentUser = useCurrentAccount();
-  const canManage = canAccessPath("/configuracoes", currentUser.role, currentUser.grants);
+  const { activePlan } = useTenant();
+  const canManage = canAccessPath("/configuracoes", currentUser.role, currentUser.grants, activePlan);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
   const [hubSection, setHubSection] = useState<LauncherSectionId>("workspace");
@@ -193,6 +196,7 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
       role: currentUser.role,
       grants: currentUser.grants,
       statusByProvider,
+      plan: activePlan,
     });
     if (!query.trim() || hubOpen) return sections;
     return sections
@@ -201,37 +205,61 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
         apps: section.apps.filter((app) => matchesLauncherQuery(app, query)),
       }))
       .filter((section) => section.apps.length > 0);
-  }, [currentUser.role, currentUser.grants, statusByProvider, query, hubOpen]);
+  }, [currentUser.role, currentUser.grants, statusByProvider, query, hubOpen, activePlan]);
 
   const visibleHubSections = useMemo(
     () =>
       launcherHubSections.filter(
         (section) =>
-          filterAccessibleApps(appsForHubSection(section.id), currentUser.role, currentUser.grants)
-            .length > 0,
+          filterAccessibleApps(
+            appsForHubSection(section.id),
+            currentUser.role,
+            currentUser.grants,
+            activePlan,
+          ).length > 0,
       ),
-    [currentUser.role, currentUser.grants],
+    [currentUser.role, currentUser.grants, activePlan],
   );
 
   const searching = query.trim().length > 0;
   const hubApps = useMemo(() => {
     if (searching) {
-      return searchLauncherApps(query, currentUser.role, currentUser.grants, statusByProvider);
+      return searchLauncherApps(
+        query,
+        currentUser.role,
+        currentUser.grants,
+        statusByProvider,
+        activePlan,
+      );
     }
     const accessible = filterAccessibleApps(
       appsForHubSection(hubSection),
       currentUser.role,
       currentUser.grants,
+      activePlan,
     );
     return hubSection === "workspace"
       ? accessible
       : sortIntegrationsByStatus(accessible, statusByProvider);
-  }, [hubSection, currentUser.role, currentUser.grants, statusByProvider, query, searching]);
+  }, [
+    hubSection,
+    currentUser.role,
+    currentUser.grants,
+    statusByProvider,
+    query,
+    searching,
+    activePlan,
+  ]);
 
   const bundleApps = useMemo(() => {
     if (searching || hubSection !== "academic") return [];
-    return filterAccessibleApps(teachingBundleApps(), currentUser.role, currentUser.grants);
-  }, [searching, hubSection, currentUser.role, currentUser.grants]);
+    return filterAccessibleApps(
+      teachingBundleApps(),
+      currentUser.role,
+      currentUser.grants,
+      activePlan,
+    );
+  }, [searching, hubSection, currentUser.role, currentUser.grants, activePlan]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -300,7 +328,7 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
     if (app.target.type === "ics") {
       try {
         const feed = await getOrCreateCalendarFeedToken();
-        const url = `${window.location.origin}/calendario/ics?token=${feed.token}`;
+        const url = calendarIcsFeedUrl(window.location.origin, feed.token);
         await navigator.clipboard.writeText(url);
         toast.success(
           app.id === "apple_calendar"

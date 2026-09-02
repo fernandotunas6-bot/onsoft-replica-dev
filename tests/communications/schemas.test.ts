@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  announcementAudienceOptions,
+  announcementChannelOptions,
   archiveAnnouncementInputSchema,
   createAnnouncementInputSchema,
   updateAnnouncementInputSchema,
@@ -7,22 +9,62 @@ import {
 } from "@/features/communications/schemas";
 
 describe("communications schemas", () => {
-  it("accepts a sent announcement", () => {
+  it("audience options match the DB constraint exactly", () => {
+    // These must match public.school_announcements CHECK constraint
+    expect(announcementAudienceOptions).toContain("all_guardians");
+    expect(announcementAudienceOptions).toContain("guardians_with_debt");
+    expect(announcementAudienceOptions).toContain("students_secondary");
+    expect(announcementAudienceOptions).toContain("students_finalists");
+    expect(announcementAudienceOptions).toContain("teaching_staff");
+    // 'school' must NOT be present — it is not in the DB CHECK constraint
+    expect(announcementAudienceOptions).not.toContain("school");
+  });
+
+  it("channel options match the DB constraint exactly", () => {
+    expect(announcementChannelOptions).toEqual(["sms", "email", "portal"]);
+  });
+
+  it("accepts a sent announcement with valid audience", () => {
     const parsed = createAnnouncementInputSchema.parse({
       title: "Reunião de encarregados",
       body: "Encontro no sábado às 09:00.",
-      audience: "school",
+      audience: "all_guardians",
       channel: "sms",
       status: "sent",
     });
     expect(parsed.status).toBe("sent");
+    expect(parsed.audience).toBe("all_guardians");
+  });
+
+  it("rejects legacy 'school' audience value that is not in DB", () => {
+    const result = createAnnouncementInputSchema.safeParse({
+      title: "Teste",
+      body: "Mensagem de teste.",
+      audience: "school",
+      channel: "portal",
+      status: "draft",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts each valid audience", () => {
+    for (const audience of announcementAudienceOptions) {
+      const result = createAnnouncementInputSchema.safeParse({
+        title: `Aviso para ${audience}`,
+        body: "Mensagem de aviso importante.",
+        audience,
+        channel: "portal",
+        status: "draft",
+      });
+      expect(result.success, `audience '${audience}' should be valid`).toBe(true);
+    }
   });
 
   it("requires schedule date when status is scheduled", () => {
     const result = createAnnouncementInputSchema.safeParse({
       title: "Aviso de propinas",
       body: "Regularize até sexta-feira.",
-      audience: "school",
+      audience: "guardians_with_debt",
       channel: "email",
       status: "scheduled",
     });
@@ -33,7 +75,7 @@ describe("communications schemas", () => {
     const parsed = createAnnouncementInputSchema.parse({
       title: "Aviso de propinas",
       body: "Regularize até sexta-feira.",
-      audience: "school",
+      audience: "guardians_with_debt",
       channel: "email",
       status: "scheduled",
       scheduledFor: "2025-07-15",

@@ -1,19 +1,25 @@
 import {
   BookOpen,
+  Building2,
   CalendarDays,
   CheckSquare,
   CreditCard,
   Download,
   FileText,
   FileUp,
+  FolderOpen,
   GraduationCap,
   History,
   LayoutGrid,
+  Link2,
   Megaphone,
   NotebookPen,
   PieChart,
+  Plug,
   QrCode,
   Receipt,
+  Settings,
+  ShieldCheck,
   TrendingUp,
   UserCheck,
   UserCog,
@@ -22,6 +28,7 @@ import {
   User,
 } from "lucide-react";
 import type { ApplicationRole } from "@/features/auth/access-policy";
+import type { Plan } from "@/features/saas/types";
 import { canAccessPath } from "@/features/auth/access-policy";
 
 export type PortalMode = "student" | "guardian" | "teacher" | "admin";
@@ -50,14 +57,39 @@ export type NavItem = {
 
 export type NavGroup = { title: string; items: NavItem[] };
 
+function filterNavGroups(
+  groups: NavGroup[],
+  role: ApplicationRole,
+  grants: Record<string, string> = {},
+  plan?: Plan | null,
+): NavGroup[] {
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) => ({
+          ...item,
+          children: item.children?.filter((child) => canAccessPath(child.to, role, grants, plan)),
+        }))
+        .filter(
+          (item) =>
+            (item.to ? canAccessPath(item.to, role, grants, plan) : false) ||
+            Boolean(item.children?.length),
+        ),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
 export function getPortalNavigation(
   role: ApplicationRole,
   grants: Record<string, string> = {},
+  plan?: Plan | null,
 ): NavGroup[] {
   const mode = resolvePortalMode(role);
 
   if (mode === "student") {
-    return [
+    return filterNavGroups(
+      [
       {
         title: "Portal do Aluno",
         items: [
@@ -103,11 +135,16 @@ export function getPortalNavigation(
           { label: "Meu Perfil", icon: User, to: "/perfil" },
         ],
       },
-    ];
+    ],
+      role,
+      grants,
+      plan,
+    );
   }
 
   if (mode === "guardian") {
-    return [
+    return filterNavGroups(
+      [
       {
         title: "Portal do Encarregado",
         items: [
@@ -134,6 +171,7 @@ export function getPortalNavigation(
                 to: "/pedagogica",
                 search: { tab: "horarios" },
               },
+              { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
             ],
           },
           {
@@ -155,11 +193,16 @@ export function getPortalNavigation(
           { label: "Meu Perfil", icon: User, to: "/perfil" },
         ],
       },
-    ];
+    ],
+      role,
+      grants,
+      plan,
+    );
   }
 
   if (mode === "teacher") {
-    return [
+    return filterNavGroups(
+      [
       {
         title: "Portal do Professor",
         items: [
@@ -205,14 +248,19 @@ export function getPortalNavigation(
                 search: { tab: "horarios" },
               },
               { label: "Planos de Aula", icon: NotebookPen, to: "/planos-aula" },
+              { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
             ],
           },
-          { label: "Biblioteca & Materiais", icon: FileText, to: "/arquivos" },
+          { label: "Biblioteca & Materiais", icon: FolderOpen, to: "/arquivos" },
           { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
           { label: "Meu Perfil", icon: User, to: "/perfil" },
         ],
       },
-    ];
+    ],
+      role,
+      grants,
+      plan,
+    );
   }
 
   // Portal Administrativo (Direção, Secretaria, Tesouraria)
@@ -296,6 +344,11 @@ export function getPortalNavigation(
           icon: Users,
           children: [
             {
+              label: "Lista de Alunos",
+              icon: GraduationCap,
+              to: "/alunos",
+            },
+            {
               label: "Matricular Aluno",
               icon: UserPlus,
               to: "/alunos",
@@ -320,6 +373,7 @@ export function getPortalNavigation(
           icon: FileText,
           children: [{ label: "Emissão de Documentos", icon: FileText, to: "/documentos" }],
         },
+        { label: "Biblioteca de Arquivos", icon: FolderOpen, to: "/arquivos" },
       ],
     },
     {
@@ -328,7 +382,10 @@ export function getPortalNavigation(
         {
           label: "Caixa e Pagamentos",
           icon: CreditCard,
-          children: [{ label: "Movimentos de Caixa", icon: CreditCard, to: "/financeiro" }],
+          children: [
+            { label: "Movimentos de Caixa", icon: CreditCard, to: "/financeiro" },
+            { label: "Faturas e Recibos", icon: Receipt, to: "/faturas" },
+          ],
         },
       ],
     },
@@ -337,7 +394,6 @@ export function getPortalNavigation(
       items: [
         { label: "Relatórios Financeiros", icon: TrendingUp, to: "/relatorios/financeiros" },
         { label: "Relatórios Académicos", icon: PieChart, to: "/relatorios/academicos" },
-        { label: "Faturas", icon: Receipt, to: "/faturas" },
       ],
     },
     {
@@ -348,23 +404,51 @@ export function getPortalNavigation(
         { label: "Comunicações", icon: Megaphone, to: "/comunicacoes" },
       ],
     },
+    {
+      title: "Sistema",
+      items: [
+        {
+          label: "Definições",
+          icon: Settings,
+          children: [
+            {
+              label: "Escola e branding",
+              icon: Building2,
+              to: "/configuracoes",
+              search: { painel: "escola" },
+            },
+            {
+              label: "Matrícula online",
+              icon: Link2,
+              to: "/configuracoes",
+              search: { painel: "matricula" },
+            },
+            {
+              label: "Integrações",
+              icon: Plug,
+              to: "/configuracoes",
+              search: { painel: "integracoes" },
+            },
+            {
+              label: "Financeiro",
+              icon: CreditCard,
+              to: "/configuracoes",
+              search: { painel: "financeiro" },
+            },
+            {
+              label: "Segurança",
+              icon: ShieldCheck,
+              to: "/configuracoes",
+              search: { painel: "seguranca" },
+            },
+          ],
+        },
+        { label: "Meu Perfil", icon: User, to: "/perfil" },
+      ],
+    },
   ];
 
-  return groups
-    .map((group) => ({
-      ...group,
-      items: group.items
-        .map((item) => ({
-          ...item,
-          children: item.children?.filter((child) => canAccessPath(child.to, role, grants)),
-        }))
-        .filter(
-          (item) =>
-            (item.to ? canAccessPath(item.to, role, grants) : false) ||
-            Boolean(item.children?.length),
-        ),
-    }))
-    .filter((group) => group.items.length > 0);
+  return filterNavGroups(groups, role, grants, plan);
 }
 
 export function getPortalContextualSuggestions(role: ApplicationRole) {
@@ -402,9 +486,12 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   return [
     { label: "Gestão de Alunos", to: "/alunos" },
+    { label: "Importar Dados", to: "/importar" },
+    { label: "Biblioteca de Arquivos", to: "/arquivos" },
     { label: "Caixa e Pagamentos", to: "/financeiro" },
     { label: "Relatórios Académicos", to: "/relatorios/academicos" },
     { label: "Emissão de Documentos", to: "/documentos" },
+    { label: "Catracas & Cartão", to: "/catracas" },
     { label: "Gestão de Acessos", to: "/acessos" },
   ];
 }

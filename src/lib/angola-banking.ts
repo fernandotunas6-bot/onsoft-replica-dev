@@ -48,11 +48,20 @@ export function validateAngolaIban(value: string): {
 /** Códigos de banco comerciais frequentes (BNA). */
 export const ANGOLA_BANK_CODES: Record<string, string> = {
   "0000": "BNA — Banco Nacional de Angola",
-  "0044": "BAI — Banco Angolano de Investimentos",
-  "0051": "BIC — Banco BIC",
-  "0066": "BFA — Banco de Fomento Angola",
+  "0005": "BCI — Banco de Comércio e Indústria",
+  "0039": "BCA — Banco Comercial Angolano",
   "0040": "BPC — Banco de Poupança e Crédito",
+  "0043": "Banco Sol",
+  "0044": "BAI — Banco Angolano de Investimentos",
+  "0045": "BE — Banco Económico",
+  "0047": "Banco Keve",
+  "0051": "BIC — Banco BIC",
+  "0052": "BNI — Banco de Negócios Internacional",
   "0055": "Standard Bank Angola",
+  "0059": "BMA — Banco Millennium Atlântico",
+  "0066": "BFA — Banco de Fomento Angola",
+  "0071": "Banco Yetu",
+  "0073": "Access Bank Angola",
 };
 
 export function angolaBankLabelFromIban(iban: string): string | null {

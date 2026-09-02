@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { todayInLuanda } from "@/features/calendar/dates";
 import { listTeacherAttendanceSessions } from "@/features/pedagogica/attendance-server";
 import { listPedagogicalWorkspace } from "@/features/academic/server";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -24,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
+import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 
 export function TeacherPortalDashboard() {
@@ -32,11 +34,11 @@ export function TeacherPortalDashboard() {
   const [selectedCallSessionId, setSelectedCallSessionId] = useState<string | null>(null);
   const [callDialogOpen, setCallDialogOpen] = useState(false);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayInLuanda();
 
   const sessionsQuery = useQuery({
     queryKey: ["teacher-attendance-sessions", todayStr],
-    queryFn: () => listTeacherAttendanceSessions({ date: todayStr }),
+    queryFn: () => listTeacherAttendanceSessions({ data: { date: todayStr } }),
   });
 
   const workspaceQuery = useQuery({
@@ -255,7 +257,7 @@ export function TeacherPortalDashboard() {
               className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card hover:bg-accent/60 transition-all group"
             >
               <div className="flex items-center gap-3">
-                <IconChip icon={item.icon} size="sm" tone="primary" />
+                <IconChip icon={item.icon} size="sm" tone="primary" label={item.label} />
                 <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
                   {item.label}
                 </span>
@@ -265,6 +267,8 @@ export function TeacherPortalDashboard() {
           ))}
         </div>
       </div>
+
+      <DashboardCalendarCard />
 
       {/* DIÁLOGO DA CHAMADA RÁPIDA */}
       {selectedCallSessionId ? (

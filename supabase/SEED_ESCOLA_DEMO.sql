@@ -34,6 +34,89 @@ ON CONFLICT (id) DO UPDATE SET
   address = EXCLUDED.address,
   updated_at = now();
 
+-- 1b. TENANT SAAS (Control Center + subdomínio portal-siga)
+-- Requer APPLY_SAAS_PLATFORM.sql aplicado antes deste seed.
+DO $$
+DECLARE
+  v_demo_school_id uuid := 'd3b07384-d113-4603-9c8e-a2f0714b2201';
+  v_demo_tenant_id uuid := 't3b07384-d113-4603-9c8e-a2f0714b2201';
+  v_plan_id uuid;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'tenants'
+  ) THEN
+    RAISE NOTICE 'Tabela tenants inexistente — aplique APPLY_SAAS_PLATFORM.sql antes do seed demo.';
+    RETURN;
+  END IF;
+
+  SELECT id INTO v_plan_id FROM public.plans WHERE code = 'enterprise' LIMIT 1;
+  IF v_plan_id IS NULL THEN
+    SELECT id INTO v_plan_id FROM public.plans WHERE code = 'professional' LIMIT 1;
+  END IF;
+
+  INSERT INTO public.tenants (
+    id, name, slug, status, plan_id, subscription_status,
+    contact_email, max_students, max_storage_gb
+  )
+  VALUES (
+    v_demo_tenant_id,
+    'Complexo Escolar Polivalente Dom Afonso I — SIGA Demo',
+    'dom-afonso-demo',
+    'active',
+    v_plan_id,
+    'active',
+    'geral@siga-demo.ao',
+    10000,
+    200
+  )
+  ON CONFLICT (slug) DO UPDATE SET
+    name = EXCLUDED.name,
+    status = 'active',
+    plan_id = COALESCE(EXCLUDED.plan_id, public.tenants.plan_id),
+    contact_email = EXCLUDED.contact_email,
+    max_students = EXCLUDED.max_students,
+    max_storage_gb = EXCLUDED.max_storage_gb,
+    updated_at = now();
+
+  SELECT id INTO v_demo_tenant_id FROM public.tenants WHERE slug = 'dom-afonso-demo';
+
+  UPDATE public.schools
+  SET tenant_id = v_demo_tenant_id,
+      commercial_name = COALESCE(commercial_name, 'Dom Afonso I — Demo SIGA'),
+      city = COALESCE(city, 'Luanda')
+  WHERE id = v_demo_school_id;
+
+  INSERT INTO public.tenant_domains (tenant_id, hostname, type, status, ssl_status)
+  VALUES (
+    v_demo_tenant_id,
+    'dom-afonso-demo.portal-siga.com',
+    'siga_subdomain',
+    'active',
+    'active'
+  )
+  ON CONFLICT (hostname) DO NOTHING;
+
+  IF v_plan_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.subscriptions WHERE tenant_id = v_demo_tenant_id
+  ) THEN
+    INSERT INTO public.subscriptions (
+      tenant_id, plan_id, status, current_period_start, current_period_end
+    )
+    VALUES (
+      v_demo_tenant_id,
+      v_plan_id,
+      'active',
+      now(),
+      now() + interval '1 year'
+    );
+  END IF;
+
+  INSERT INTO public.tenant_usage (tenant_id, active_students_count, active_staff_count)
+  VALUES (v_demo_tenant_id, 0, 0)
+  ON CONFLICT (tenant_id) DO NOTHING;
+END $$;
+
 -- Definições da Escola Demo
 INSERT INTO public.school_settings (school_id, academic_year, currency, updated_at)
 VALUES (

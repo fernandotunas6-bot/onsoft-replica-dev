@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
+import { Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { IconChip } from "@/components/ui/icon-chip";
+import { LogoChip } from "@/components/ui/logo-chip";
 import type { ChipTone } from "@/components/ui/icon-chip";
-import { spotlightIcon } from "./icons";
 import type { SpotlightItem, SpotlightTone } from "./schemas";
 
 const wash: Record<SpotlightTone, string> = {
@@ -51,7 +52,6 @@ export function SpotlightCard({
   onInternal?: () => void;
   onSettings?: (panel: string) => void;
 }) {
-  const Icon = spotlightIcon(item.icon);
   const ctaClass = `mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 ${buttonTone[item.tone]}`;
 
   let action: ReactNode = <span className={ctaClass}>{item.cta}</span>;
@@ -76,6 +76,17 @@ export function SpotlightCard({
     );
   }
 
+  const logoMark = item.logoUrl?.trim() ? (
+    <LogoChip
+      src={item.logoUrl.trim()}
+      tone={chipTone[item.tone]}
+      size="md"
+      label={item.title}
+    />
+  ) : (
+    <IconChip icon={Sparkles} tone={chipTone[item.tone]} size="md" label={item.title} />
+  );
+
   return (
     <div className={`overflow-hidden rounded-2xl p-4 ${wash[item.tone]}`}>
       <div className="flex items-start gap-3">
@@ -84,7 +95,7 @@ export function SpotlightCard({
           <p className={`mt-0.5 text-xs ${bodyTone[item.tone]}`}>{item.body}</p>
           {action}
         </div>
-        <IconChip icon={Icon} tone={chipTone[item.tone]} size="md" label={item.title} />
+        {logoMark}
       </div>
     </div>
   );

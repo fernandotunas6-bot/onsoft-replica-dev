@@ -1,0 +1,49 @@
+name: Gateway — taxa de falha (horário)
+
+on:
+  schedule:
+    # De hora a hora — alerta se taxa 24h exceder limiar (secrets opcionais)
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: gateway-failure-rate-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Verificar taxa de falha webhook 24h
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Verificar secrets Supabase
+        id: secrets
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SECRET_KEY" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Secrets em falta — skip verificação horária."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Taxa de falha gateway (Slack / e-mail opcional)
+        if: steps.secrets.outputs.skip != 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SIGA_GATEWAY_FAILURE_RATE_ALERT_SLACK_URL: ${{ secrets.SIGA_GATEWAY_FAILURE_RATE_ALERT_SLACK_URL }}
+          SIGA_GATEWAY_ALERT_SLACK_URL: ${{ secrets.SIGA_GATEWAY_ALERT_SLACK_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SIGA_GATEWAY_FAILURE_RATE_ALERT_EMAIL_TO: ${{ secrets.SIGA_GATEWAY_FAILURE_RATE_ALERT_EMAIL_TO }}
+          SIGA_GATEWAY_FAILURE_RATE_ALERT_EMAIL_FROM: ${{ secrets.SIGA_GATEWAY_FAILURE_RATE_ALERT_EMAIL_FROM }}
+          SIGA_GATEWAY_FAILURE_RATE_THRESHOLD: ${{ vars.SIGA_GATEWAY_FAILURE_RATE_THRESHOLD }}
+          SIGA_GATEWAY_FAILURE_RATE_MIN_EVENTS: ${{ vars.SIGA_GATEWAY_FAILURE_RATE_MIN_EVENTS }}
+          SIGA_GATEWAY_FAILURE_RATE_COOLDOWN_HOURS: ${{ vars.SIGA_GATEWAY_FAILURE_RATE_COOLDOWN_HOURS }}
+        run: node scripts/siga/gateway-failure-rate-check.mjs

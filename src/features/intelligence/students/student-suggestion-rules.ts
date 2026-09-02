@@ -87,6 +87,23 @@ export function buildStudentSuggestionRules(
           : null,
     },
     {
+      id: "enviar-relatorio-narrativo",
+      evaluate: (snapshot) =>
+        snapshot.guardians.count > 0
+          ? {
+              id: "enviar-relatorio-narrativo",
+              priority: 70,
+              category: "academico",
+              module: "comunicacoes",
+              requiresWrite: true,
+              title: "Partilhar Relatório de Inteligência",
+              description: "O Motor de ML gerou um resumo orgânico em texto para o Encarregado.",
+              route: `/alunos/${studentId}`,
+              reason: "Manter o encarregado informado sobre o panorama global do aluno.",
+            }
+          : null,
+    },
+    {
       id: "declaracao-escolar",
       evaluate: () => ({
         id: "declaracao-escolar",

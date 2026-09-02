@@ -28,19 +28,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MediaFrame } from "@/components/ui/media-frame";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { FileCoverTile } from "./FileCoverTile";
 import { documentCodeSearchHint } from "./document-code";
 import { FileKindIcon, initialsFromName } from "./FileKindIcon";
 import { applyLibraryPhotoToPerson } from "./apply-person-photo";
 import { MoveItemsDialog } from "./MoveItemsDialog";
+import { FileDetailsPanel } from "./FileDetailsPanel";
+import { FileBrowserNav } from "./FileBrowserNav";
+import { FileBrowserGrid } from "./FileBrowserGrid";
+import { FileBrowserTable } from "./FileBrowserTable";
 import { FileUploadInquiryModal, type UploadInquiryResult } from "./FileUploadInquiry";
 import {
+  canAccessFileContent,
+  canManageSystemFile,
   canWriteFileArea,
   defaultVisibilityForArea,
   fileAcceptAttr,
@@ -55,6 +61,7 @@ import {
   formatFileSize,
   formatFileWhen,
   isAllowedSchoolFile,
+  isFileRelatedToUser,
   kindFromFile,
   myFileAccess,
   visibleAreasForRole,
@@ -118,6 +125,7 @@ function blankAudit(
   | "relatedPersonId"
   | "parentId"
   | "isFolder"
+  | "isSystem"
   | "relatedUserName"
   | "relatedPersonName"
   | "updatedAt"
@@ -142,6 +150,7 @@ function blankAudit(
     relatedPersonId: null,
     parentId: null,
     isFolder: false,
+    isSystem: false,
     relatedUserName: null,
     relatedPersonName: null,
     updatedAt: null,
@@ -176,6 +185,9 @@ async function downloadRecord(file: SchoolFileRecord) {
   URL.revokeObjectURL(url);
   void logSchoolFileEvent({ data: { id: file.id, action: "downloaded" } }).catch(() => undefined);
 }
+
+const SYSTEM_LOCKED_MSG =
+  "Ficheiro do sistema — visível na lista, mas o conteúdo está oculto sem permissão.";
 
 export function FileBrowser({
   pickMode = false,
@@ -223,6 +235,7 @@ export function FileBrowser({
   const [moveOpen, setMoveOpen] = useState(false);
   const [organizeTarget, setOrganizeTarget] = useState<SchoolFileRecord | null>(null);
   const [needsOrganizeOnly, setNeedsOrganizeOnly] = useState(false);
+  const [ownershipFilter, setOwnershipFilter] = useState<"all" | "mine" | "system">("all");
   const [categoryFilter, setCategoryFilter] = useState<
     (typeof fileCategoryOptions)[number] | "all"
   >("all");
@@ -349,7 +362,12 @@ export function FileBrowser({
       .filter((item) => categoryFilter === "all" || item.category === categoryFilter)
       .filter((item) => relatedUserFilter === "all" || item.relatedUserId === relatedUserFilter)
       .filter((item) => !initialRelatedPersonId || item.relatedPersonId === initialRelatedPersonId)
-      .filter((item) => !needsOrganizeOnly || fileNeedsOrganization(item));
+      .filter((item) => !needsOrganizeOnly || fileNeedsOrganization(item))
+      .filter((item) => {
+        if (ownershipFilter === "mine") return isFileRelatedToUser(item, account.id);
+        if (ownershipFilter === "system") return Boolean(item.isSystem);
+        return true;
+      });
     filtered.sort((a, b) => {
       if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1;
       if (sortBy === "name") return a.name.localeCompare(b.name, "pt");
@@ -359,11 +377,13 @@ export function FileBrowser({
     return filtered.slice(0, 48);
   }, [
     acceptKinds,
+    account.id,
     categoryFilter,
     initialRelatedPersonId,
     kindFilter,
     localQuery.data,
     needsOrganizeOnly,
+    ownershipFilter,
     relatedUserFilter,
     remoteQuery.data?.files,
     sortBy,
@@ -375,10 +395,14 @@ export function FileBrowser({
     () =>
       files
         .filter(
-          (file) => !file.isFolder && file.storageBackend === "sga" && isImageFileKind(file.kind),
+          (file) =>
+            !file.isFolder &&
+            file.storageBackend === "sga" &&
+            isImageFileKind(file.kind) &&
+            canAccessFileContent(file, account.id, account.role),
         )
         .map((file) => file.id),
-    [files],
+    [account.id, account.role, files],
   );
   const previewsQuery = useQuery({
     queryKey: ["arquivos", "previews", imagePreviewIds.join(",")],
@@ -401,9 +425,18 @@ export function FileBrowser({
   const localOnly = remoteQuery.data?.backend === "local";
   const classOptions = classesQuery.data?.classes ?? [];
   const myAccess = selected ? myFileAccess(selected, account.id, account.role) : null;
+  const selectedContentOpen =
+    selected != null && canAccessFileContent(selected, account.id, account.role);
+  const selectedCanManage =
+    selected != null && canManageSystemFile(selected, account.id, account.role);
 
   useEffect(() => {
-    if (!selected || !isImageFileKind(selected.kind) || !detailsOpen) {
+    if (
+      !selected ||
+      !isImageFileKind(selected.kind) ||
+      !detailsOpen ||
+      !canAccessFileContent(selected, account.id, account.role)
+    ) {
       setPreviewUrl(null);
       return;
     }
@@ -425,7 +458,7 @@ export function FileBrowser({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [detailsOpen, selected]);
+  }, [account.id, account.role, detailsOpen, selected]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -435,13 +468,20 @@ export function FileBrowser({
         const tag = (event.target as HTMLElement | null)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
         event.preventDefault();
-        if (pickMode && onPick) onPick(selected);
-        else void openRecord(selected).catch((error) => toast.error(error.message));
+        if (pickMode && onPick) {
+          if (!canAccessFileContent(selected, account.id, account.role)) {
+            toast.error(SYSTEM_LOCKED_MSG);
+            return;
+          }
+          onPick(selected);
+        } else if (!canAccessFileContent(selected, account.id, account.role)) {
+          toast.error(SYSTEM_LOCKED_MSG);
+        } else void openRecord(selected).catch((error) => toast.error(error.message));
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onPick, pickMode, selected]);
+  }, [account.id, account.role, onPick, pickMode, selected]);
 
   const activityQuery = useQuery({
     queryKey: ["arquivos", "activity", selected?.id],
@@ -641,7 +681,7 @@ export function FileBrowser({
           category: meta.category ?? "outro",
           documentDate: meta.documentDate || null,
           referenceCode: meta.referenceCode || null,
-          relatedUserId: meta.relatedUserId ?? null,
+          relatedUserId: meta.relatedUserId || account.id,
           relatedPersonId: meta.relatedPersonId ?? null,
           ownerAvatarUrl: account.avatarUrl,
           lastActionByAvatarUrl: account.avatarUrl,
@@ -715,6 +755,11 @@ export function FileBrowser({
       setOrganizeTarget(null);
       return;
     }
+    if (!canManageSystemFile(organizeTarget, account.id, account.role)) {
+      toast.error("Ficheiro do sistema protegido — sem permissão para alterar.");
+      setOrganizeTarget(null);
+      return;
+    }
     const target = organizeTarget;
     setOrganizeTarget(null);
     try {
@@ -737,7 +782,7 @@ export function FileBrowser({
           category: meta.category ?? "outro",
           documentDate: meta.documentDate || null,
           referenceCode: meta.referenceCode || null,
-          relatedUserId: meta.relatedUserId ?? null,
+          relatedUserId: meta.relatedUserId || account.id,
           relatedPersonId: meta.relatedPersonId ?? null,
           visibility: meta.visibility,
           area: meta.area,
@@ -1002,9 +1047,15 @@ export function FileBrowser({
               size="sm"
               variant="outline"
               className="gap-1"
-              onClick={() =>
-                void downloadRecord(selected).catch((error) => toast.error(error.message))
-              }
+              disabled={!selectedContentOpen}
+              title={selectedContentOpen ? undefined : SYSTEM_LOCKED_MSG}
+              onClick={() => {
+                if (!selectedContentOpen) {
+                  toast.error(SYSTEM_LOCKED_MSG);
+                  return;
+                }
+                void downloadRecord(selected).catch((error) => toast.error(error.message));
+              }}
             >
               <Download className="size-3.5" />
               Descarregar
@@ -1024,7 +1075,7 @@ export function FileBrowser({
               <Copy className="size-3.5" />
               Copiar
             </Button>
-            {canWrite ? (
+            {canWrite && selectedCanManage ? (
               <>
                 <Button
                   type="button"
@@ -1061,58 +1112,17 @@ export function FileBrowser({
           detailsOpen ? "lg:grid-cols-[200px_minmax(0,1fr)_280px]" : "md:grid-cols-[200px_1fr]",
         )}
       >
-        <aside className="border-b border-border bg-secondary/40 p-3 md:border-b-0 md:border-r">
-          <p className="px-2 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-            Repositórios
-          </p>
-          <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
-            {areas.map((item) => {
-              const Icon = repoIcon[item];
-              const meta = fileAreaMeta[item];
-              const active = item === area;
-              return (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => {
-                    setArea(item);
-                    setSelectedId(null);
-                    setFolderId(null);
-                    setSelectedIds(new Set());
-                  }}
-                  className={cn(
-                    "flex min-w-max items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
-                    active ? "bg-primary-soft text-primary" : "text-foreground hover:bg-secondary",
-                  )}
-                >
-                  <Icon className="size-4 shrink-0" />
-                  <span className="min-w-0">
-                    <span className="block truncate">{meta.label}</span>
-                    {meta.reserved ? (
-                      <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Reservado
-                      </span>
-                    ) : null}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-          <button
-            type="button"
-            className="mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-muted-foreground hover:bg-secondary"
-            onClick={() => {
-              toast.message(driveOn ? "OneDrive da escola" : "Drive pessoal", {
-                description: driveOn
-                  ? "O SIGA guarda no armazenamento da escola. OneDrive fica catalog-ready nas Integrações."
-                  : "Instale Microsoft 365 Education em Definições → Integrações.",
-              });
-            }}
-          >
-            <HardDrive className="size-4" />
-            {driveOn ? "OneDrive (escola)" : "Ligar Drive"}
-          </button>
-        </aside>
+        <FileBrowserNav
+          areas={areas}
+          area={area}
+          driveOn={driveOn}
+          onSelectArea={(nextArea) => {
+            setArea(nextArea);
+            setSelectedId(null);
+            setFolderId(null);
+            setSelectedIds(new Set());
+          }}
+        />
 
         <div className="flex min-h-0 min-w-0 flex-col border-b border-border lg:border-b-0 lg:border-r">
           <div className="space-y-2 border-b border-border px-4 py-3">
@@ -1262,14 +1272,41 @@ export function FileBrowser({
               >
                 Por organizar{disorganizedCount ? ` · ${disorganizedCount}` : ""}
               </button>
+              <button
+                type="button"
+                onClick={() => setOwnershipFilter((value) => (value === "mine" ? "all" : "mine"))}
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                  ownershipFilter === "mine"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Meus
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setOwnershipFilter((value) => (value === "system" ? "all" : "system"))
+                }
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                  ownershipFilter === "system"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Sistema
+              </button>
             </div>
           </div>
 
           <div className={cn("relative min-h-0 flex-1 overflow-auto p-0")}>
             {localOnly ? (
               <p className="m-4 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
-                Tabela SGA ainda não aplicada. Os ficheiros ficam neste dispositivo até correr
-                APPLY_ENROLLMENT_AND_PREMIUM.sql (inclui auditoria `siga_file_events`).
+                Tabela SGA ainda não aplicada. Os ficheiros ficam neste dispositivo até correr{" "}
+                <code className="text-[11px]">APPLY_ENROLLMENT_AND_PREMIUM.sql</code> (inclui{" "}
+                <code className="text-[11px]">siga_file_events</code>). <SqlChecklistLink />
               </p>
             ) : null}
             {remoteQuery.isLoading ? (
@@ -1281,194 +1318,46 @@ export function FileBrowser({
                 {activeClassId ? " para esta turma" : ""}.
               </p>
             ) : viewMode === "grid" ? (
-              <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 xl:grid-cols-4">
-                {files.map((file) => (
-                  <div key={file.id} className="relative text-left">
-                    <label className="absolute left-2 top-2 z-10 rounded bg-card/90 p-0.5 shadow-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(file.id)}
-                        onChange={(event) => toggleSelect(file.id, event.target.checked)}
-                        onClick={(event) => event.stopPropagation()}
-                        aria-label={`Seleccionar ${file.name}`}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(file.id)}
-                      onDoubleClick={() => {
-                        if (file.isFolder) {
-                          setFolderId(file.id);
-                          setSelectedIds(new Set());
-                          return;
-                        }
-                        if (pickMode && onPick) onPick(file);
-                        else void openRecord(file).catch((error) => toast.error(error.message));
-                      }}
-                      className="w-full text-left"
-                    >
-                      <FileCoverTile
-                        file={file}
-                        selected={file.id === selectedId}
-                        resolvedPreviewUrl={
-                          !file.isFolder &&
-                          file.storageBackend === "sga" &&
-                          isImageFileKind(file.kind)
-                            ? (previewUrlById[file.id] ?? null)
-                            : undefined
-                        }
-                      />
-                      {(uploadProgress[file.name] ?? 100) < 100 && (
-                        <div className="absolute inset-x-2 bottom-10 h-1.5 overflow-hidden rounded-full bg-secondary">
-                          <div
-                            className="h-full bg-primary transition-all duration-300"
-                            style={{ width: `${uploadProgress[file.name] ?? 0}%` }}
-                          />
-                        </div>
-                      )}
-                      <p className="mt-1 truncate px-1 text-xs font-medium">
-                        {file.title || file.name}
-                      </p>
-                      <p className="px-1 text-[10px] text-muted-foreground">
-                        {file.referenceCode ? (
-                          <span className="font-mono">{file.referenceCode}</span>
-                        ) : (
-                          fileKindMeta[file.kind].label
-                        )}
-                        {" · "}
-                        {fileVisibilityMeta[file.visibility].short}
-                        {fileNeedsOrganization(file) ? " · Por organizar" : ""}
-                      </p>
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <FileBrowserGrid
+                files={files}
+                selectedId={selectedId}
+                selectedIds={selectedIds}
+                previewUrlById={previewUrlById}
+                uploadProgress={uploadProgress}
+                account={account}
+                pickMode={pickMode}
+                systemLockedMsg={SYSTEM_LOCKED_MSG}
+                onPick={onPick}
+                onSelectId={(id) => setSelectedId(id)}
+                onToggleSelect={(id, checked) => toggleSelect(id, checked)}
+                onOpenRecord={(file) => {
+                  void openRecord(file).catch((error) => toast.error(error.message));
+                }}
+                onFolderDoubleClick={(folderId) => {
+                  setFolderId(folderId);
+                  setSelectedIds(new Set());
+                }}
+              />
             ) : (
-              <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-                <thead className="sticky top-0 z-10 bg-card text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <tr className="border-b border-border">
-                    <th className="w-10 px-3 py-2.5 font-semibold">
-                      <span className="sr-only">Seleccionar</span>
-                    </th>
-                    <th className="px-4 py-2.5 font-semibold">Nome</th>
-                    <th className="px-3 py-2.5 font-semibold">ID</th>
-                    <th className="px-3 py-2.5 font-semibold">Modificado</th>
-                    <th className="px-3 py-2.5 font-semibold">Modificado por</th>
-                    <th className="px-3 py-2.5 font-semibold">Tamanho</th>
-                    <th className="px-3 py-2.5 font-semibold">Acesso</th>
-                    <th className="px-3 py-2.5 font-semibold">Actividade</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {files.map((file) => {
-                    const access = myFileAccess(file, account.id, account.role);
-                    const selectedRow = file.id === selectedId;
-                    return (
-                      <tr
-                        key={file.id}
-                        className={cn(
-                          "cursor-pointer border-b border-border/80 transition-colors hover:bg-secondary/50",
-                          selectedRow && "bg-primary-soft/60",
-                        )}
-                        onClick={() => setSelectedId(file.id)}
-                        onDoubleClick={() => {
-                          if (file.isFolder) {
-                            setFolderId(file.id);
-                            setSelectedIds(new Set());
-                            return;
-                          }
-                          if (pickMode && onPick) onPick(file);
-                          else void openRecord(file).catch((error) => toast.error(error.message));
-                        }}
-                      >
-                        <td className="w-10 px-3 py-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(file.id)}
-                            onChange={(event) => toggleSelect(file.id, event.target.checked)}
-                            onClick={(event) => event.stopPropagation()}
-                            aria-label={`Seleccionar ${file.name}`}
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <FileKindIcon kind={file.kind} visibility={file.visibility} />
-                            <span className="min-w-0">
-                              <span className="block truncate font-medium text-foreground">
-                                {file.title || file.name}
-                                {fileNeedsOrganization(file) ? (
-                                  <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-warning-foreground">
-                                    Por organizar
-                                  </span>
-                                ) : null}
-                              </span>
-                              <span className="block text-[10px] text-muted-foreground">
-                                {fileKindMeta[file.kind].label} · {fileMyAccessMeta[access].label}
-                                {file.category ? ` · ${fileCategoryMeta[file.category].label}` : ""}
-                                {file.classGroupId ? " · turma" : ""}
-                                {file.relatedUserName ? ` · ${file.relatedUserName}` : ""}
-                              </span>
-                              {(uploadProgress[file.name] ?? 100) < 100 && (
-                                <div className="mt-1 h-1.5 w-full max-w-[12rem] overflow-hidden rounded-full bg-secondary">
-                                  <div
-                                    className="h-full bg-primary transition-all duration-300"
-                                    style={{ width: `${uploadProgress[file.name] ?? 0}%` }}
-                                  />
-                                </div>
-                              )}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-muted-foreground">
-                          {file.referenceCode || "—"}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">
-                          {formatFileWhen(file.updatedAt ?? file.createdAt)}
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="flex max-w-[10rem] items-center gap-2 truncate text-muted-foreground">
-                            <UserAvatar
-                              url={file.updatedByAvatarUrl ?? file.ownerAvatarUrl}
-                              initials={initialsFromName(file.updatedByName ?? file.ownerName)}
-                              className="size-6 bg-secondary text-[9px] font-bold"
-                            />
-                            <span className="truncate">
-                              {file.updatedByName ?? file.ownerName ?? "—"}
-                            </span>
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">
-                          {formatFileSize(file.sizeBytes)}
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold">
-                            <Users className="size-3 opacity-70" />
-                            {fileVisibilityMeta[file.visibility].short}
-                          </span>
-                        </td>
-                        <td className="max-w-[14rem] px-3 py-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-2 truncate">
-                            <UserAvatar
-                              url={file.lastActionByAvatarUrl ?? file.ownerAvatarUrl}
-                              initials={initialsFromName(file.lastActionByName ?? file.ownerName)}
-                              className="size-5 bg-secondary text-[8px] font-bold"
-                            />
-                            <span className="truncate">
-                              {formatFileActivityLine({
-                                action: file.lastAction,
-                                actorName: file.lastActionByName ?? file.ownerName,
-                                at: file.lastActionAt ?? file.updatedAt,
-                                fallbackCreatedAt: file.createdAt,
-                                fallbackOwnerName: file.ownerName,
-                              })}
-                            </span>
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <FileBrowserTable
+                files={files}
+                selectedId={selectedId}
+                selectedIds={selectedIds}
+                uploadProgress={uploadProgress}
+                account={account}
+                pickMode={pickMode}
+                systemLockedMsg={SYSTEM_LOCKED_MSG}
+                onPick={onPick}
+                onSelectId={(id) => setSelectedId(id)}
+                onToggleSelect={(id, checked) => toggleSelect(id, checked)}
+                onOpenRecord={(file) => {
+                  void openRecord(file).catch((error) => toast.error(error.message));
+                }}
+                onFolderDoubleClick={(folderId) => {
+                  setFolderId(folderId);
+                  setSelectedIds(new Set());
+                }}
+              />
             )}
           </div>
 
@@ -1479,7 +1368,7 @@ export function FileBrowser({
                 : `${files.length} ficheiro${files.length === 1 ? "" : "s"} · só metadados na lista`}
             </p>
             <div className="flex flex-wrap gap-2">
-              {selected && canWrite ? (
+              {selected && canWrite && selectedCanManage ? (
                 <>
                   <Button
                     type="button"
@@ -1510,9 +1399,15 @@ export function FileBrowser({
                     variant="ghost"
                     size="sm"
                     className="gap-1"
-                    onClick={() =>
-                      void downloadRecord(selected).catch((error) => toast.error(error.message))
-                    }
+                    disabled={!selectedContentOpen}
+                    title={selectedContentOpen ? undefined : SYSTEM_LOCKED_MSG}
+                    onClick={() => {
+                      if (!selectedContentOpen) {
+                        toast.error(SYSTEM_LOCKED_MSG);
+                        return;
+                      }
+                      void downloadRecord(selected).catch((error) => toast.error(error.message));
+                    }}
                   >
                     <Download className="size-4" />
                     Descarregar
@@ -1521,16 +1416,41 @@ export function FileBrowser({
                     type="button"
                     variant={pickMode ? "outline" : "default"}
                     size="sm"
-                    onClick={() =>
-                      void openRecord(selected).catch((error) => toast.error(error.message))
-                    }
+                    disabled={!selectedContentOpen && !(pickMode && onPick)}
+                    onClick={() => {
+                      if (pickMode && onPick) {
+                        if (!selectedContentOpen) {
+                          toast.error(SYSTEM_LOCKED_MSG);
+                          return;
+                        }
+                        onPick(selected);
+                        return;
+                      }
+                      if (!selectedContentOpen) {
+                        toast.error(SYSTEM_LOCKED_MSG);
+                        return;
+                      }
+                      void openRecord(selected).catch((error) => toast.error(error.message));
+                    }}
                   >
                     Abrir
                   </Button>
                 </>
               ) : null}
               {pickMode && selected && onPick ? (
-                <Button type="button" size="sm" onClick={() => onPick(selected)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!selectedContentOpen}
+                  title={selectedContentOpen ? undefined : SYSTEM_LOCKED_MSG}
+                  onClick={() => {
+                    if (!selectedContentOpen) {
+                      toast.error(SYSTEM_LOCKED_MSG);
+                      return;
+                    }
+                    onPick(selected);
+                  }}
+                >
                   Escolher
                 </Button>
               ) : null}
@@ -1539,193 +1459,19 @@ export function FileBrowser({
         </div>
 
         {detailsOpen ? (
-          <aside className="flex min-h-0 flex-col bg-card p-4">
-            {selected ? (
-              <>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                  Detalhes
-                </p>
-                {previewUrl ? (
-                  <MediaFrame
-                    src={previewUrl}
-                    alt={`Pré-visualização de ${selected.name}`}
-                    ratio="16/5"
-                    rounded="rounded-xl"
-                    className="mt-3 max-h-36 border border-border bg-secondary/40"
-                  />
-                ) : (
-                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-border bg-secondary/30 px-3 py-3">
-                    <FileKindIcon kind={selected.kind} visibility={selected.visibility} />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{selected.name}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {fileKindMeta[selected.kind].label} · {formatFileSize(selected.sizeBytes)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <h3 className="mt-3 break-words text-base font-semibold">{selected.name}</h3>
-                <dl className="mt-4 space-y-3 text-sm">
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Proprietário</dt>
-                    <dd className="mt-1 flex items-center gap-2 font-medium">
-                      <UserAvatar
-                        url={selected.ownerAvatarUrl}
-                        initials={initialsFromName(selected.ownerName)}
-                        className="size-7 bg-secondary text-[10px] font-bold"
-                      />
-                      {selected.ownerName ?? "—"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">O seu nível</dt>
-                    <dd
-                      className={cn("font-medium", myAccess ? fileMyAccessMeta[myAccess].tone : "")}
-                    >
-                      {myAccess ? fileMyAccessMeta[myAccess].label : "—"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Nível de acesso</dt>
-                    <dd className="mt-1">
-                      {myAccess === "view" ? (
-                        <span className="font-medium">
-                          {fileVisibilityMeta[selected.visibility].label}
-                        </span>
-                      ) : (
-                        <select
-                          value={selected.visibility}
-                          onChange={(event) =>
-                            void changeVisibility(
-                              event.target.value as SchoolFileRecord["visibility"],
-                            )
-                          }
-                          className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-                          aria-label="Nível de acesso"
-                        >
-                          {fileVisibilityOptions.map((value) => (
-                            <option key={value} value={value}>
-                              {fileVisibilityMeta[value].label}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {fileVisibilityMeta[selected.visibility].description}
-                      </p>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Metadados</dt>
-                    <dd className="mt-1 space-y-1 text-sm">
-                      <p>
-                        <span className="text-muted-foreground">Categoria: </span>
-                        {selected.category ? fileCategoryMeta[selected.category].label : "—"}
-                      </p>
-                      <p>
-                        <span className="text-muted-foreground">ID do documento: </span>
-                        <span className="font-mono text-xs">{selected.referenceCode || "—"}</span>
-                      </p>
-                      <p>
-                        <span className="text-muted-foreground">Data doc.: </span>
-                        {selected.documentDate || "—"}
-                      </p>
-                      <p>
-                        <span className="text-muted-foreground">Utilizador: </span>
-                        {selected.relatedUserName || "—"}
-                      </p>
-                      <p>
-                        <span className="text-muted-foreground">Pessoa: </span>
-                        {selected.relatedPersonName || "—"}
-                      </p>
-                      {selected.description ? (
-                        <p className="text-muted-foreground">{selected.description}</p>
-                      ) : (
-                        <p className="text-destructive">Sem descrição — organize este ficheiro.</p>
-                      )}
-                      {fileNeedsOrganization(selected) && myAccess !== "view" ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="mt-1"
-                          onClick={() => setOrganizeTarget(selected)}
-                        >
-                          Completar inquérito
-                        </Button>
-                      ) : null}
-                      {myAccess !== "view" ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="mt-1"
-                          onClick={() => void saveSelectedMeta()}
-                        >
-                          Organizar / editar
-                        </Button>
-                      ) : null}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Tamanho</dt>
-                    <dd className="font-medium">{formatFileSize(selected.sizeBytes)}</dd>
-                  </div>
-                </dl>
-                <div className="mt-6 min-h-0 flex-1">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                    Auditoria
-                  </p>
-                  {activityQuery.isLoading ? (
-                    <p className="mt-2 text-xs text-muted-foreground">A carregar…</p>
-                  ) : (activityQuery.data?.events.length ?? 0) > 0 ? (
-                    <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto text-xs">
-                      {activityQuery.data!.events.map((event) => (
-                        <li key={event.id} className="rounded-lg border border-border px-2.5 py-2">
-                          <div className="flex items-start gap-2">
-                            <UserAvatar
-                              url={event.actorAvatarUrl}
-                              initials={initialsFromName(event.actorName)}
-                              className="mt-0.5 size-6 bg-secondary text-[9px] font-bold"
-                            />
-                            <div className="min-w-0">
-                              <p className="font-medium text-foreground">
-                                {event.actorName ?? "Utilizador"}{" "}
-                                {fileActionLabels[event.action] ?? event.action}
-                              </p>
-                              <p className="text-muted-foreground">
-                                {formatFileWhen(event.createdAt)}
-                              </p>
-                              {event.detail ? (
-                                <p className="mt-0.5 truncate text-muted-foreground">
-                                  {event.detail}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {formatFileActivityLine({
-                        action: selected.lastAction,
-                        actorName: selected.lastActionByName ?? selected.ownerName,
-                        at: selected.lastActionAt ?? selected.updatedAt,
-                        fallbackCreatedAt: selected.createdAt,
-                        fallbackOwnerName: selected.ownerName,
-                      })}
-                      . Aplique o SQL para o histórico completo.
-                    </p>
-                  )}
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Seleccione um ficheiro para ver o proprietário, o nível de acesso e a auditoria.
-                Enter abre · Esc limpa a selecção · arraste ficheiros para carregar.
-              </p>
-            )}
-          </aside>
+          <FileDetailsPanel
+            selected={selected}
+            previewUrl={previewUrl}
+            myAccess={myAccess}
+            selectedContentOpen={selectedContentOpen}
+            selectedCanManage={selectedCanManage}
+            systemLockedMsg={SYSTEM_LOCKED_MSG}
+            activityLoading={activityQuery.isLoading}
+            activityEvents={activityQuery.data?.events ?? []}
+            onChangeVisibility={(visibility) => void changeVisibility(visibility)}
+            onOrganize={(file) => setOrganizeTarget(file)}
+            onEditMeta={() => void saveSelectedMeta()}
+          />
         ) : null}
       </div>
       <FileUploadInquiryModal
@@ -1734,6 +1480,7 @@ export function FileBrowser({
         defaultVisibility={defaultVisibilityForArea(area)}
         defaultArea={area}
         writableAreas={writableAreas}
+        currentUserId={account.id}
         onCancel={() => setPendingFiles([])}
         onConfirm={(meta) => void commitUpload(meta)}
       />
@@ -1754,6 +1501,7 @@ export function FileBrowser({
         defaultVisibility={organizeTarget?.visibility ?? defaultVisibilityForArea(area)}
         defaultArea={organizeTarget?.area ?? area}
         writableAreas={writableAreas}
+        currentUserId={account.id}
         {...(organizeTarget
           ? {
               initial: {

@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
@@ -15,6 +16,8 @@ from device_discovery import (
     save_allowlist,
 )
 from siga_hardware_bridge import TurnstileHardwareController, EscPosThermalPrinter, ZkTecoProtocolHelper
+from bridge_config import load_bridge_config, save_bridge_config
+from siga_cloud_client import validate_gate_pass_remote
 
 
 class TestHardwareBridge(unittest.TestCase):
@@ -100,6 +103,63 @@ class TestDeviceDiscovery(unittest.TestCase):
                 self.assertTrue(Path(tmp, "siga_hardware_allowlist.json").exists())
             finally:
                 os.environ.pop("SIGA_HARDWARE_STATE_DIR", None)
+
+
+class TestBridgeConfig(unittest.TestCase):
+    def test_bridge_config_roundtrip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["SIGA_HARDWARE_STATE_DIR"] = tmp
+            try:
+                saved = save_bridge_config(
+                    {
+                        "siga_app_url": "http://127.0.0.1:3006",
+                        "device_api_key": "KEY-TEST1234",
+                        "turnstile_ip": "192.168.1.50",
+                    }
+                )
+                self.assertEqual(saved["device_api_key"], "KEY-TEST1234")
+                loaded = load_bridge_config()
+                self.assertEqual(loaded["siga_app_url"], "http://127.0.0.1:3006")
+            finally:
+                os.environ.pop("SIGA_HARDWARE_STATE_DIR", None)
+
+
+class TestSigaCloudClient(unittest.TestCase):
+    def test_validate_gate_pass_remote_parses_granted(self):
+        payload = json.dumps({"granted": True, "personName": "Manuel"}).encode("utf-8")
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return payload
+
+        with mock.patch("siga_cloud_client.urllib.request.urlopen", return_value=FakeResponse()):
+            result = validate_gate_pass_remote(
+                "http://127.0.0.1:3006",
+                "KEY-ABCD1234",
+                "STU2026884920",
+                "entry",
+            )
+        self.assertTrue(result["granted"])
+        self.assertEqual(result["personName"], "Manuel")
+
+    def test_validate_gate_pass_remote_network_error(self):
+        with mock.patch(
+            "siga_cloud_client.urllib.request.urlopen",
+            side_effect=urllib.error.URLError("connection refused"),
+        ):
+            result = validate_gate_pass_remote(
+                "http://127.0.0.1:3006",
+                "KEY-ABCD1234",
+                "STU2026884920",
+            )
+        self.assertFalse(result["granted"])
+        self.assertIn("Não foi possível contactar", result["reason"])
 
 
 if __name__ == "__main__":

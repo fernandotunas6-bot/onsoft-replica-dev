@@ -13,6 +13,7 @@ import {
   Pencil,
   Trash2,
   User,
+  UserCog,
   UserPlus,
 } from "lucide-react";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -28,7 +29,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
-import { inferIcon } from "@/lib/auto-icon";
+import { DocHelpButton } from "@/components/ui/doc-help-button";
 import {
   Table,
   TableBody,
@@ -277,10 +278,10 @@ function PeoplePage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <InstalledModuleTools module="comunicacoes" />
+        <InstalledModuleTools module="pessoas" />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-3">
-            <IconChip {...inferIcon("Pessoas")} size="lg" />
+            <IconChip icon={UserCog} size="lg" label="Pessoas" />
             <div>
               <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
                 Pessoas
@@ -291,6 +292,7 @@ function PeoplePage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <DocHelpButton title="Navegação — Pessoas e permissões" />
             <Button
               variant="outline"
               className="gap-2"

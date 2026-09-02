@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Download, FileCheck2, FileDown, FilePlus2, Award, FileStack, X } from "lucide-react";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -9,6 +10,7 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -158,6 +160,25 @@ function DocumentosPage() {
     window.addEventListener("hashchange", scrollToModelos);
     return () => window.removeEventListener("hashchange", scrollToModelos);
   }, []);
+
+  // Realtime — atualiza a lista de pedidos quando há novidades
+  useEffect(() => {
+    const channel = supabase
+      .channel("documentos_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "siga_document_requests" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
+          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const students = workspaceQuery.data?.students ?? [];
   const templates = workspaceQuery.data?.templates ?? [];
@@ -376,6 +397,7 @@ function DocumentosPage() {
           description="Pedidos de declarações e certificados, com estado de emissão e taxas associadas."
           actions={
             <>
+              <DocHelpButton title="Navegação — Documentos e permissões" />
               <Button variant="outline" className="gap-2" asChild>
                 <a href="#modelos">
                   <FileStack className="size-4" /> Modelos

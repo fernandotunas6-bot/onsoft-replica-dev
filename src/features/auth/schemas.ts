@@ -3,6 +3,8 @@ import { validateAngolaPhone } from "@/lib/angola-phone";
 
 export const updateCurrentProfileInputSchema = z.object({
   fullName: z.string().trim().min(2).max(160),
+  firstName: z.string().trim().max(80).optional(),
+  lastName: z.string().trim().max(80).optional(),
   phone: z
     .string()
     .trim()

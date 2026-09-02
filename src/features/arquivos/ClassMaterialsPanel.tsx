@@ -8,8 +8,9 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canWriteModule } from "@/features/auth/access-policy";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { cn } from "@/lib/utils";
+import { sqlApplyHint } from "@/lib/sql-doc-hint";
 import { PickFileButton } from "./PickFileButton";
-import { formatFileSize } from "./kinds";
+import { canAccessFileContent, formatFileSize } from "./kinds";
 import { listLocalFiles, patchLocalFileMeta } from "./local-store";
 import { resolveFileBlob, resolveFileUrl } from "./resolve-file";
 import type { SchoolFileRecord } from "./schemas";
@@ -17,6 +18,9 @@ import { schoolFileShareText } from "./share-text";
 import { linkSchoolFileToClass, listSchoolFiles } from "./server";
 
 export { schoolFileShareText } from "./share-text";
+
+const SYSTEM_LOCKED_MSG =
+  "Ficheiro do sistema — visível, mas o conteúdo está oculto sem permissão.";
 
 async function downloadRecord(file: SchoolFileRecord) {
   const blob = await resolveFileBlob(file);
@@ -89,8 +93,7 @@ export function ClassMaterialsPanel({
       });
       if (result.localOnly) {
         toast.message("Ligado neste dispositivo", {
-          description:
-            "Aplique APPLY_ENROLLMENT_AND_PREMIUM.sql (coluna class_group_id) para sincronizar na escola.",
+          description: sqlApplyHint("premium"),
         });
       } else {
         toast.success("Material ligado à turma");
@@ -156,23 +159,32 @@ export function ClassMaterialsPanel({
         </p>
       ) : (
         <ul className="mt-2 space-y-1.5">
-          {files.map((file) => (
+          {files.map((file) => {
+            const contentOpen = canAccessFileContent(file, account.id, account.role);
+            return (
             <li
               key={file.id}
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-card px-2.5 py-1.5 text-sm"
             >
               <button
                 type="button"
-                className="min-w-0 flex-1 truncate text-left font-medium hover:text-primary"
-                onClick={() =>
+                className="min-w-0 flex-1 truncate text-left font-medium hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!contentOpen}
+                title={contentOpen ? undefined : SYSTEM_LOCKED_MSG}
+                onClick={() => {
+                  if (!contentOpen) {
+                    toast.error(SYSTEM_LOCKED_MSG);
+                    return;
+                  }
                   void resolveFileUrl(file)
                     .then((url) => window.open(url, "_blank", "noopener,noreferrer"))
-                    .catch((error: Error) => toast.error(error.message))
-                }
+                    .catch((error: Error) => toast.error(error.message));
+                }}
               >
                 {file.name}
                 <span className="ml-2 text-[10px] font-normal text-muted-foreground">
                   {formatFileSize(file.sizeBytes)}
+                  {file.isSystem && !contentOpen ? " · Protegido" : ""}
                 </span>
               </button>
               <div className="flex gap-1">
@@ -206,9 +218,15 @@ export function ClassMaterialsPanel({
                   size="sm"
                   variant="ghost"
                   className="h-7 px-2"
-                  onClick={() =>
-                    void downloadRecord(file).catch((error: Error) => toast.error(error.message))
-                  }
+                  disabled={!contentOpen}
+                  title={contentOpen ? undefined : SYSTEM_LOCKED_MSG}
+                  onClick={() => {
+                    if (!contentOpen) {
+                      toast.error(SYSTEM_LOCKED_MSG);
+                      return;
+                    }
+                    void downloadRecord(file).catch((error: Error) => toast.error(error.message));
+                  }}
                 >
                   <Download className="size-3.5" />
                 </Button>
@@ -225,7 +243,8 @@ export function ClassMaterialsPanel({
                 ) : null}
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

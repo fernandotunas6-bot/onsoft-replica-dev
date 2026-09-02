@@ -1,0 +1,57 @@
+/* Instant touch + faster perceived UI on DOC */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+[role="button"],
+[role="tab"],
+summary,
+input,
+select,
+textarea,
+.VPNavBarMenuLink,
+.VPSidebarItem .text,
+.VPButton {
+  touch-action: manipulation;
+}
+
+html {
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+}
+
+@media (hover: none) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  button:active,
+  a:active,
+  [role="button"]:active,
+  .VPButton:active,
+  .VPNavBarMenuLink:active {
+    transform: scale(0.98);
+    opacity: 0.94;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.VPDoc .vp-doc {
+  contain: content;
+}

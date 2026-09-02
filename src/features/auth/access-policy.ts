@@ -1,3 +1,6 @@
+import type { Plan } from "@/features/saas/types";
+import { planIncludesModule } from "@/features/saas/plan-features";
+
 export const applicationRoles = [
   "Administrador",
   "Secretaria",
@@ -33,7 +36,7 @@ export const accessModules = [
       "/planos-aula",
     ],
   },
-  { key: "gestao", label: "Acessos / Config", prefixes: ["/acessos", "/configuracoes"] },
+  { key: "gestao", label: "Acessos / Config", prefixes: ["/acessos", "/configuracoes", "/catracas"] },
   { key: "arquivos", label: "Arquivos", prefixes: ["/arquivos"] },
   { key: "importacao", label: "Importar Dados", prefixes: ["/importar"] },
 ] as const;
@@ -81,13 +84,6 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     prefixes: ["/importar"],
     roles: ["Administrador", "Secretaria", "Tesouraria"],
   },
-  {
-    // Só reduz a superfície de quem tenta a URL directa; o portão real é
-    // requirePlatformAdmin() no servidor (platform_admins, independente de
-    // cargo) — ver src/features/saas/server.ts e src/routes/saas-admin.tsx.
-    prefixes: ["/saas-admin"],
-    roles: ["Administrador"],
-  },
 ];
 
 export type AccessLevel = "Nenhum" | "Leitura" | "Escrita" | "Total";
@@ -108,16 +104,27 @@ function moduleForPath(pathname: string) {
   return matches[0]?.item;
 }
 
-export function canAccessPath(pathname: string, role: string, grants: ModuleGrantMap = {}) {
+export function canAccessPath(
+  pathname: string,
+  role: string,
+  grants: ModuleGrantMap = {},
+  plan?: Plan | null,
+) {
   if (
     pathname === "/alterar-senha" ||
+    pathname === "/perfil" ||
+    pathname === "/criar-escola" ||
+    pathname === "/saas-admin" ||
     pathname.startsWith("/matricula") ||
-    pathname.startsWith("/calendario/ics")
+    pathname.startsWith("/convite") ||
+    pathname.startsWith("/calendario/ics") ||
+    pathname.startsWith("/api/")
   ) {
     return true;
   }
   const module = moduleForPath(pathname);
   if (module) {
+    if (plan && !planIncludesModule(plan, module.key)) return false;
     const grant = grants[module.key];
     if (grant === "Nenhum") return false;
     if (grant) return true;
@@ -150,6 +157,10 @@ export function accessLevelForRole(
   if (moduleKey === "arquivos") {
     if (role === "Administrador" || role === "Secretaria") return "Total";
     return "Escrita";
+  }
+  if (moduleKey === "importacao") {
+    if (role === "Administrador" || role === "Secretaria" || role === "Tesouraria") return "Total";
+    return "Nenhum";
   }
   return "Leitura";
 }

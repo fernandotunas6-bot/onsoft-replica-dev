@@ -7,6 +7,7 @@ import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { getTeacherWorkspace, unassignClassSubjectTeacher } from "@/features/academic/server";
 import { TeacherClassMaterialsBlock } from "@/features/arquivos/ClassMaterialsPanel";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
+import { calendarIcsFeedUrl } from "@/features/calendar/ics";
 import { meetingRoomLink } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -44,7 +45,7 @@ export function TeacherWorkspacePanel({
 
   const copyIcs = async (kind: "google" | "apple" | "plain") => {
     const feed = await getOrCreateCalendarFeedToken();
-    const url = `${window.location.origin}/calendario/ics?token=${feed.token}`;
+    const url = calendarIcsFeedUrl(window.location.origin, feed.token);
     await navigator.clipboard.writeText(url);
     toast.success(
       kind === "google"

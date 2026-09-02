@@ -134,8 +134,8 @@ export const integrationFieldHints: Record<
     callback: "URL de callback",
   },
   whatsapp_business: {
-    merchant: "Phone number ID",
-    callback: "Webhook Meta",
+    merchant: "Phone Number ID (Cloud API)",
+    callback: "Access Token (permanente)",
   },
   resend_email: {
     merchant: "API key Resend",

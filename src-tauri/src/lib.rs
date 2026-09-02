@@ -115,6 +115,39 @@ pub fn get_system_info() -> SystemInfo {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            #[cfg(target_os = "macos")]
+            {
+                if let Ok(menu) = tauri::menu::Menu::default(app.handle()) {
+                    let _ = app.set_menu(menu);
+                }
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                use tauri::Manager;
+                let window = app.get_webview_window("main").unwrap();
+                window.set_decorations(false).unwrap();
+            }
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                window.hide().unwrap();
+                api.prevent_close();
+            }
+        })
+        .on_tray_icon_event(|tray, event| {
+            use tauri::tray::TrayIconEvent;
+            if let TrayIconEvent::Click { .. } = event {
+                if let Some(window) = tray.app_handle().get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        })
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             pulse_turnstile_relay,

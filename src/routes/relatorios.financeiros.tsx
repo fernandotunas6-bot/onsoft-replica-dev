@@ -9,6 +9,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
+import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -373,6 +374,7 @@ function RelatoriosFinanceiros() {
           description="Resultado do ano lectivo, composição das receitas e estrutura de custos da instituição."
           actions={
             <>
+              <DocHelpButton title="Navegação — Relatórios financeiros" />
               <Button variant="outline" className="gap-2" onClick={exportarCobrancaCsv}>
                 <Download className="size-4" /> CSV cobrança
               </Button>

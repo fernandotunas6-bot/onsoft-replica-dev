@@ -7,9 +7,13 @@
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",
     "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
+    "frontendDist": "../.output/public"
   },
   "app": {
+    "trayIcon": {
+      "iconPath": "icons/32x32.png",
+      "tooltip": "SIGA Desktop"
+    },
     "windows": [
       {
         "title": "SIGA - Sistema Integrado de Gestão Académica",
@@ -17,12 +21,17 @@
         "height": 832,
         "resizable": true,
         "fullscreen": false,
-        "center": true
+        "center": true,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "transparent": true
       }
     ],
     "security": {
       "csp": null
-    }
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,

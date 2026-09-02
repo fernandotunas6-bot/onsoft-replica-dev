@@ -36,6 +36,8 @@ const supabase = createClient(url, key, {
 console.log("🚀 A carregar dados da Escola Demo diretamente na base de dados do Supabase...");
 
 const SCHOOL_ID = "d3b07384-d113-4603-9c8e-a2f0714b2201";
+const DEMO_TENANT_ID = "t3b07384-d113-4603-9c8e-a2f0714b2201";
+const DEMO_TENANT_SLUG = "dom-afonso-demo";
 const YEAR_2026_ID = "a2026000-0000-0000-0000-000000002026";
 const YEAR_2025_ID = "a2025000-0000-0000-0000-000000002025";
 const YEAR_2024_ID = "a2024000-0000-0000-0000-000000002024";
@@ -227,6 +229,95 @@ function pad(num, size) {
   return s;
 }
 
+async function linkDemoTenant() {
+  const { data: plan } = await supabase
+    .from("plans")
+    .select("id, max_students, max_storage_gb")
+    .eq("code", "enterprise")
+    .maybeSingle();
+  const planRow =
+    plan ??
+    (
+      await supabase
+        .from("plans")
+        .select("id, max_students, max_storage_gb")
+        .eq("code", "professional")
+        .maybeSingle()
+    ).data;
+  if (!planRow?.id) {
+    console.warn("⚠️  Tabela plans vazia — aplique APPLY_SAAS_PLATFORM.sql antes do tenant demo.");
+    return;
+  }
+
+  const { error: tenantErr } = await supabase.from("tenants").upsert(
+    {
+      id: DEMO_TENANT_ID,
+      name: "Complexo Escolar Polivalente Dom Afonso I — SIGA Demo",
+      slug: DEMO_TENANT_SLUG,
+      status: "active",
+      plan_id: planRow.id,
+      subscription_status: "active",
+      contact_email: "geral@siga-demo.ao",
+      max_students: planRow.max_students ?? 10000,
+      max_storage_gb: planRow.max_storage_gb ?? 200,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "slug" },
+  );
+  if (tenantErr) {
+    console.warn("⚠️  Tenant demo:", tenantErr.message);
+    return;
+  }
+
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("id")
+    .eq("slug", DEMO_TENANT_SLUG)
+    .maybeSingle();
+  const tenantId = tenant?.id ?? DEMO_TENANT_ID;
+
+  await supabase
+    .from("schools")
+    .update({
+      tenant_id: tenantId,
+      commercial_name: "Dom Afonso I — Demo SIGA",
+      city: "Luanda",
+    })
+    .eq("id", SCHOOL_ID);
+
+  await supabase.from("tenant_domains").upsert(
+    {
+      tenant_id: tenantId,
+      hostname: `${DEMO_TENANT_SLUG}.portal-siga.com`,
+      type: "siga_subdomain",
+      status: "active",
+      ssl_status: "active",
+    },
+    { onConflict: "hostname" },
+  );
+
+  const { count } = await supabase
+    .from("subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId);
+  if (!count) {
+    await supabase.from("subscriptions").insert({
+      tenant_id: tenantId,
+      plan_id: planRow.id,
+      status: "active",
+      current_period_start: new Date().toISOString(),
+      current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+  }
+
+  await supabase.from("tenant_usage").upsert(
+    { tenant_id: tenantId, active_students_count: 0, active_staff_count: 0 },
+    { onConflict: "tenant_id" },
+  );
+
+  console.log(`✅ Tenant SaaS «${DEMO_TENANT_SLUG}» ligado à escola demo (ADMIN /tenants).`);
+}
+
 async function runSeed() {
   console.log("1. A registar a Escola Demo e Definições...");
   await supabase.from("schools").upsert({
@@ -246,6 +337,8 @@ async function runSeed() {
     currency: "AOA",
     updated_at: new Date().toISOString(),
   });
+
+  await linkDemoTenant();
 
   await supabase.from("enrollment_forms").upsert({
     id: "e1111111-2222-3333-4444-555555555555",

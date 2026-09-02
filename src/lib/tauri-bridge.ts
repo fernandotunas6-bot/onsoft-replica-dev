@@ -195,6 +195,47 @@ export async function saveLocalHardwareAllowlist(
   return data;
 }
 
+export interface LocalHardwareBridgeConfig {
+  ok?: boolean;
+  siga_app_url?: string;
+  device_api_key?: string;
+  turnstile_ip?: string;
+  default_direction?: "entry" | "exit";
+  error?: string;
+}
+
+/** Lê URL SIGA + API key do dispositivo guardados no daemon local. */
+export async function getLocalHardwareBridgeConfig(): Promise<LocalHardwareBridgeConfig> {
+  try {
+    const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/bridge-config`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return { error: `HTTP ${response.status}` };
+    }
+    return (await response.json()) as LocalHardwareBridgeConfig;
+  } catch {
+    return { error: "Daemon Python offline" };
+  }
+}
+
+/** Guarda ligação SIGA ↔ daemon para webhooks físicos locais. */
+export async function saveLocalHardwareBridgeConfig(
+  config: Pick<LocalHardwareBridgeConfig, "siga_app_url" | "device_api_key" | "turnstile_ip">,
+): Promise<LocalHardwareBridgeConfig> {
+  const response = await fetch(`${PYTHON_BRIDGE_BASE}/hardware/bridge-config`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  });
+  const data = (await response.json()) as LocalHardwareBridgeConfig;
+  if (!response.ok) {
+    throw new Error(data.error || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
 export type HardwareBridgeHealth = {
   online: boolean;
   service?: string;

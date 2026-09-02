@@ -7,13 +7,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { colorThemes, tweakcnThemes } from "@/config/theme-data";
+import type { ImportedTheme, ThemePreset } from "@/types/theme-customizer";
 
 /**
- * Aparência por utilizador (cores do sistema e do sidebar).
- *
- * Tudo é aplicado por tokens CSS no <html>, pelo que nenhum componente precisa
- * de cores fixas: mudando o preset, todo o sistema acompanha (claro e escuro).
- * A preferência é guardada localmente por utilizador.
+ * Aparência e personalização visual completa do SIGA.
+ * Suporta modo, presets nativos SIGA, temas Shadcn, temas Tweakcn,
+ * cores da marca customizadas e importação de CSS.
  */
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -94,7 +94,7 @@ export const sidebarPresets: SidebarPreset[] = [
     vars: {
       "--sidebar": "oklch(0.24 0.055 255)",
       "--sidebar-foreground": "oklch(0.96 0.008 255)",
-      "--sidebar-muted": "oklch(0.7 0.03 255)",
+      "--sidebar-muted": "oklch(0.74 0.03 255)",
       "--sidebar-accent": "oklch(0.3 0.06 255)",
       "--sidebar-accent-foreground": "oklch(0.98 0.008 255)",
       "--sidebar-border": "oklch(0.33 0.055 255)",
@@ -139,6 +139,14 @@ export type AppearanceState = {
   accent: string;
   sidebar: string;
   radius: number;
+  /** Tema Shadcn ativo (ex: 'blue', 'green', ou vazio se usa SIGA nativo) */
+  shadcnTheme?: string;
+  /** Tema Tweakcn ativo (ex: 'modern-minimal', 'neon', ou vazio) */
+  tweakcnTheme?: string;
+  /** Tema importado via CSS customizado */
+  importedTheme?: ImportedTheme | null;
+  /** Sobrescritas manuais de variáveis de cor da marca */
+  customVars?: Record<string, string>;
 };
 
 const STORAGE_KEY = "siga:appearance";
@@ -148,6 +156,10 @@ const defaults: AppearanceState = {
   accent: "violeta",
   sidebar: "tinta",
   radius: 0.875,
+  shadcnTheme: "",
+  tweakcnTheme: "",
+  importedTheme: null,
+  customVars: {},
 };
 
 function accentById(id: string) {
@@ -156,6 +168,19 @@ function accentById(id: string) {
 
 function sidebarById(id: string) {
   return sidebarPresets.find((p) => p.id === id) ?? sidebarPresets[0]!;
+}
+
+/** Limpa todas as propriedades CSS customizadas inline do documento. */
+export function resetCustomCssProperties() {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  const inlineStyles = root.style;
+  for (let i = inlineStyles.length - 1; i >= 0; i--) {
+    const property = inlineStyles[i];
+    if (property && property.startsWith("--")) {
+      root.style.removeProperty(property);
+    }
+  }
 }
 
 /** Tokens derivados de um matiz, para modo claro e escuro. */
@@ -217,13 +242,60 @@ export function applyAppearance(state: AppearanceState) {
   const dark = state.mode === "dark" || (state.mode === "system" && prefersDark);
   root.classList.toggle("dark", dark);
 
+  resetCustomCssProperties();
+
+  // 1. Aplica predefinições básicas SIGA
   const accent = accentById(state.accent);
-  const vars = {
+  const vars: Record<string, string> = {
     ...accentVars(accent, dark),
     ...sidebarVars(sidebarById(state.sidebar), accent),
     "--radius": `${state.radius}rem`,
   };
-  for (const [key, value] of Object.entries(vars)) root.style.setProperty(key, value);
+
+  // 2. Se houver tema Shadcn ativo, aplica as variáveis
+  if (state.shadcnTheme) {
+    const theme = colorThemes.find((t) => t.value === state.shadcnTheme);
+    if (theme) {
+      const styles = dark ? theme.preset.styles.dark : theme.preset.styles.light;
+      Object.entries(styles).forEach(([k, v]) => {
+        if (v) vars[k.startsWith("--") ? k : `--${k}`] = v;
+      });
+    }
+  }
+
+  // 3. Se houver tema Tweakcn ativo, aplica as variáveis
+  if (state.tweakcnTheme) {
+    const theme = tweakcnThemes.find((t) => t.value === state.tweakcnTheme);
+    if (theme) {
+      const styles = dark ? theme.preset.styles.dark : theme.preset.styles.light;
+      Object.entries(styles).forEach(([k, v]) => {
+        if (v) vars[k.startsWith("--") ? k : `--${k}`] = v;
+      });
+    }
+  }
+
+  // 4. Se houver tema importado
+  if (state.importedTheme) {
+    const styles = dark ? state.importedTheme.dark : state.importedTheme.light;
+    Object.entries(styles).forEach(([k, v]) => {
+      if (v) vars[k.startsWith("--") ? k : `--${k}`] = v;
+    });
+  }
+
+  // 5. Sobrescrita de variáveis manuais (Custom Brand Colors)
+  if (state.customVars && Object.keys(state.customVars).length > 0) {
+    Object.entries(state.customVars).forEach(([k, v]) => {
+      if (v) vars[k.startsWith("--") ? k : `--${k}`] = v;
+    });
+  }
+
+  // Garante que o raio escolhido se mantém
+  vars["--radius"] = `${state.radius}rem`;
+
+  for (const [key, value] of Object.entries(vars)) {
+    root.style.setProperty(key, value);
+  }
+
   root.dataset["accent"] = state.accent;
   root.dataset["sidebarTheme"] = state.sidebar;
 }
@@ -233,7 +305,11 @@ type AppearanceContextValue = {
   isDark: boolean;
   set: (patch: Partial<AppearanceState>) => void;
   reset: () => void;
-  toggleDark: () => void;
+  toggleDark: (event?: React.MouseEvent) => void;
+  applyShadcnTheme: (themeKey: string) => void;
+  applyTweakcnTheme: (themeKey: string) => void;
+  applyImportedTheme: (theme: ImportedTheme) => void;
+  setCustomVar: (cssVar: string, value: string) => void;
 };
 
 const AppearanceContext = createContext<AppearanceContextValue | null>(null);
@@ -271,7 +347,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, ...patch }));
   }, []);
 
-  const reset = useCallback(() => setState(defaults), []);
+  const reset = useCallback(() => {
+    resetCustomCssProperties();
+    setState(defaults);
+  }, []);
 
   const isDark =
     state.mode === "dark" ||
@@ -279,13 +358,90 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-color-scheme: dark)").matches === true);
 
-  const toggleDark = useCallback(() => {
-    setState((s) => ({ ...s, mode: s.mode === "dark" ? "light" : "dark" }));
+  const toggleDark = useCallback((event?: React.MouseEvent) => {
+    const nextMode = (state.mode === "dark" ? "light" : "dark") as ThemeMode;
+
+    if (event && "startViewTransition" in document) {
+      const x = (event.clientX / window.innerWidth) * 100;
+      const y = (event.clientY / window.innerHeight) * 100;
+      document.documentElement.style.setProperty("--x", `${x}%`);
+      document.documentElement.style.setProperty("--y", `${y}%`);
+
+      (
+        document as Document & {
+          startViewTransition: (cb: () => void) => { finished: Promise<void> };
+        }
+      ).startViewTransition(() => {
+        setState((s) => ({ ...s, mode: nextMode }));
+      });
+    } else {
+      setState((s) => ({ ...s, mode: nextMode }));
+    }
+  }, [state.mode]);
+
+  const applyShadcnTheme = useCallback((themeKey: string) => {
+    setState((s) => ({
+      ...s,
+      shadcnTheme: themeKey,
+      tweakcnTheme: "",
+      importedTheme: null,
+      customVars: {},
+    }));
+  }, []);
+
+  const applyTweakcnTheme = useCallback((themeKey: string) => {
+    setState((s) => ({
+      ...s,
+      tweakcnTheme: themeKey,
+      shadcnTheme: "",
+      importedTheme: null,
+      customVars: {},
+    }));
+  }, []);
+
+  const applyImportedTheme = useCallback((imported: ImportedTheme) => {
+    setState((s) => ({
+      ...s,
+      importedTheme: imported,
+      shadcnTheme: "",
+      tweakcnTheme: "",
+      customVars: {},
+    }));
+  }, []);
+
+  const setCustomVar = useCallback((cssVar: string, value: string) => {
+    setState((s) => ({
+      ...s,
+      customVars: {
+        ...(s.customVars ?? {}),
+        [cssVar]: value,
+      },
+    }));
   }, []);
 
   const value = useMemo<AppearanceContextValue>(
-    () => ({ state, isDark, set, reset, toggleDark }),
-    [state, isDark, set, reset, toggleDark],
+    () => ({
+      state,
+      isDark,
+      set,
+      reset,
+      toggleDark,
+      applyShadcnTheme,
+      applyTweakcnTheme,
+      applyImportedTheme,
+      setCustomVar,
+    }),
+    [
+      state,
+      isDark,
+      set,
+      reset,
+      toggleDark,
+      applyShadcnTheme,
+      applyTweakcnTheme,
+      applyImportedTheme,
+      setCustomVar,
+    ],
   );
 
   return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;

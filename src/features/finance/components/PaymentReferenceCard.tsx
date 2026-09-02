@@ -1,13 +1,10 @@
 import { useState } from "react";
-import { Copy, Check, CreditCard, Smartphone, Zap, ShieldCheck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Copy, Check, CreditCard, Smartphone, Zap, ShieldCheck, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
-import {
-  generateMulticaixaReference,
-  generateMobileWalletOptions,
-  type MulticaixaReference,
-} from "../emiss-multicaixa";
-import { confirmManualMulticaixaPayment } from "../server";
+import { getFinanceGatewayConfirmUrl } from "@/lib/ecosystem-urls";
+import { confirmManualMulticaixaPayment, generateInvoicePaymentReference } from "../server";
 import { toast } from "sonner";
 
 interface PaymentReferenceCardProps {
@@ -26,12 +23,14 @@ export function PaymentReferenceCard({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
 
-  const referenceData: MulticaixaReference = generateMulticaixaReference(
-    "99824",
-    invoiceId,
-    amount,
-  );
-  const wallets = generateMobileWalletOptions(amount, invoiceNumber);
+  const refQuery = useQuery({
+    queryKey: ["finance", "payment-reference", invoiceId, amount],
+    queryFn: () => generateInvoicePaymentReference({ data: { invoiceId, amount } }),
+    retry: false,
+  });
+
+  const referenceData = refQuery.data?.multicaixa;
+  const wallets = refQuery.data?.mobileWallets ?? [];
 
   const copyToClipboard = (text: string, fieldName: string) => {
     void navigator.clipboard.writeText(text);
@@ -41,6 +40,7 @@ export function PaymentReferenceCard({
   };
 
   const handleConfirmManualPayment = async () => {
+    if (!referenceData) return;
     if (
       !window.confirm(
         `Confirma que viu o comprovativo deste pagamento (${referenceData.amountFormatted}, referência ${referenceData.reference})? Esta acção marca a fatura como paga.`,
@@ -70,6 +70,24 @@ export function PaymentReferenceCard({
       setIsConfirming(false);
     }
   };
+
+  if (refQuery.isLoading) {
+    return (
+      <div className="flex justify-center py-16">
+        <LoaderCircle className="size-7 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (refQuery.isError || !referenceData) {
+    return (
+      <p className="py-8 text-center text-sm text-destructive">
+        {refQuery.error instanceof Error
+          ? refQuery.error.message
+          : "Não foi possível gerar a referência EMIS."}
+      </p>
+    );
+  }
 
   return (
     <div className="surface-card p-6 space-y-6 rounded-2xl border border-border shadow-sm">
@@ -182,11 +200,16 @@ export function PaymentReferenceCard({
         </div>
       </div>
 
-      {/* CONFIRMAÇÃO MANUAL — não há integração automática com o EMIS */}
+      <div className="rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground font-mono break-all">
+        Webhook EMIS: POST {getFinanceGatewayConfirmUrl()}
+      </div>
+
+      {/* CONFIRMAÇÃO MANUAL — fallback quando o EMIS ainda não chama o webhook */}
       <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <ShieldCheck className="size-4 text-primary" />
-          Referência gerada localmente. Confirme aqui só depois de ver o comprovativo do pagamento.
+          Referência estável por fatura. Confirme manualmente ou configure a entidade EMIS e webhook
+          em Integrações.
         </div>
 
         <Button

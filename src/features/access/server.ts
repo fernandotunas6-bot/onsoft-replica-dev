@@ -5,12 +5,16 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { mapAppRoleToSgaCodes, mapSgaRoleCode, sgaClient } from "@/integrations/supabase/sga";
 import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { ensureTeacherHrRecord } from "@/features/people/server";
+import { resolveBiToEmailInputSchema } from "./bi-login";
 import {
   inviteUserInputSchema,
   resendSystemInviteInputSchema,
   resetStaffPasswordInputSchema,
   setAccountDisabledInputSchema,
   updateAccountCargoInputSchema,
+  createSchoolInvitationInputSchema,
+  revokeSchoolInvitationInputSchema,
+  acceptSchoolInvitationInputSchema,
 } from "./schemas";
 
 type AuthedContext = {
@@ -187,6 +191,25 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       });
     }
 
+    // Vinculação idempotente com o registo de pessoa (se já existir na escola com este email)
+    try {
+      const { data: existingPerson } = await admin
+        .from("people")
+        .select("id")
+        .eq("school_id", schoolId)
+        .eq("email", data.email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (existingPerson?.id) {
+        await admin
+          .from("people")
+          .update({ user_id: userId })
+          .eq("id", existingPerson.id);
+      }
+    } catch {
+      // Falha não impeditiva na vinculação biográfica
+    }
+
     return { id: userId, email: data.email, cargo: data.cargo };
   });
 
@@ -325,10 +348,7 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
   });
 
 export const resolveBiToEmailFn = createServerFn({ method: "POST" })
-  .validator((input: unknown) => {
-    const { resolveBiToEmailInputSchema } = require("./bi-login");
-    return resolveBiToEmailInputSchema.parse(input);
-  })
+  .validator((input: unknown) => resolveBiToEmailInputSchema.parse(input))
   .handler(async ({ data }) => {
     const { resolveBiOrEmailToUserEmail } = await import("./bi-login");
     const resolvedEmail = await resolveBiOrEmailToUserEmail(data.identifier);
@@ -361,4 +381,227 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
     }
 
     return { success: true, userId: data.userId };
+  });
+
+export const listSchoolInvitations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const { schoolId } = await requireAdminContext(context);
+    const admin = await loadAdminClient();
+
+    try {
+      const { data: invitations, error } = await admin
+        .from("school_invitations")
+        .select("id, email, role_code, status, expires_at, created_at, accepted_at")
+        .eq("school_id", schoolId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        return [];
+      }
+      return invitations ?? [];
+    } catch {
+      return [];
+    }
+  });
+
+export const createSchoolInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => createSchoolInvitationInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const { schoolId } = await requireAdminContext(context);
+    const admin = await loadAdminClient();
+
+    const rawToken = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    // Hash token for database storage
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(rawToken));
+    const tokenHash = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const { data: invitation, error } = await admin
+      .from("school_invitations")
+      .insert({
+        school_id: schoolId,
+        email: data.email.toLowerCase().trim(),
+        role_code: data.roleCode,
+        invited_by: context.userId,
+        token_hash: tokenHash,
+        status: "pending",
+      })
+      .select("id, email, role_code, expires_at")
+      .single();
+
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível criar o convite institucional.");
+    }
+
+    return {
+      invitation,
+      rawToken,
+    };
+  });
+
+export const revokeSchoolInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => revokeSchoolInvitationInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const { schoolId } = await requireAdminContext(context);
+    const admin = await loadAdminClient();
+
+    const { error } = await admin
+      .from("school_invitations")
+      .update({ status: "revoked", updated_at: new Date().toISOString() })
+      .eq("id", data.invitationId)
+      .eq("school_id", schoolId);
+
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível revogar o convite.");
+    }
+
+    return { success: true };
+  });
+
+/**
+ * Aceitar um convite institucional.
+ * Fluxo:
+ *  1. Calcular SHA-256 do token em bruto recebido no link
+ *  2. Procurar invitation pendente com esse token_hash
+ *  3. Verificar que não expirou
+ *  4. Criar (ou recuperar) school_membership para o utilizador autenticado
+ *  5. Atribuir o role_code do convite ao membership
+ *  6. Ligar people.user_id se existir registo biográfico com o mesmo email
+ *  7. Marcar invitation como "accepted"
+ */
+export const acceptSchoolInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => acceptSchoolInvitationInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const { supabase, userId } = context;
+    const admin = await loadAdminClient();
+
+    // 1. Hash do token
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(data.token));
+    const tokenHash = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    // 2. Lookup invitation por token_hash (índice parcial em status='pending')
+    const { data: invitation, error: invErr } = await admin
+      .from("school_invitations")
+      .select("id, school_id, email, role_code, expires_at, status")
+      .eq("token_hash", tokenHash)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (invErr || !invitation) {
+      throw new Error("Convite inválido ou já utilizado.");
+    }
+
+    // 3. Verificar expiração
+    if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
+      await admin
+        .from("school_invitations")
+        .update({ status: "expired" })
+        .eq("id", invitation.id);
+      throw new Error("O convite expirou. Solicite um novo convite ao administrador da escola.");
+    }
+
+    const schoolId = invitation.school_id as string;
+
+    // 4. Criar ou recuperar membership
+    const { data: existingMembership } = await admin
+      .from("school_memberships")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    let membershipId: string;
+    if (existingMembership?.id) {
+      membershipId = existingMembership.id as string;
+      // Reactivar se estava suspensa
+      await admin
+        .from("school_memberships")
+        .update({ status: "active", updated_at: new Date().toISOString() })
+        .eq("id", membershipId);
+    } else {
+      const { data: newMembership, error: memErr } = await admin
+        .from("school_memberships")
+        .insert({
+          school_id: schoolId,
+          user_id: userId,
+          status: "active",
+          invited_at: invitation.expires_at
+            ? new Date(invitation.expires_at).toISOString()
+            : new Date().toISOString(),
+          activated_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+      if (memErr || !newMembership) {
+        throw publicDatabaseError(memErr, "Não foi possível associar a sua conta à escola.");
+      }
+      membershipId = newMembership.id as string;
+    }
+
+    // 5. Atribuir role do convite
+    const roleCode = (invitation.role_code as string) || "teacher";
+    const { data: role } = await admin
+      .from("roles")
+      .select("id")
+      .eq("code", roleCode)
+      .maybeSingle();
+
+    if (role?.id) {
+      // Idempotente: só insere se ainda não tiver este role neste membership
+      await admin
+        .from("member_roles")
+        .upsert(
+          { membership_id: membershipId, role_id: role.id },
+          { onConflict: "membership_id,role_id", ignoreDuplicates: true },
+        );
+    }
+
+    // 6. Ligar people.user_id por email (idempotente)
+    const invitedEmail = (invitation.email as string).toLowerCase().trim();
+    try {
+      await admin
+        .from("people")
+        .update({ user_id: userId })
+        .eq("school_id", schoolId)
+        .ilike("email", invitedEmail)
+        .is("user_id", null);
+    } catch {
+      // Não crítico — falha silenciosa se people não tiver coluna email ou user_id
+    }
+
+    // 7. Marcar como aceite
+    const { error: updateErr } = await admin
+      .from("school_invitations")
+      .update({
+        status: "accepted",
+        accepted_at: new Date().toISOString(),
+        accepted_by: userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", invitation.id);
+
+    if (updateErr) {
+      throw publicDatabaseError(updateErr, "Não foi possível confirmar a aceitação do convite.");
+    }
+
+    // Invalidar sessão client (forçar refresh de memberships)
+    void supabase.auth.refreshSession().catch(() => undefined);
+
+    return { success: true, schoolId, roleCode };
   });

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "question": "Posso mudar de plano a qualquer momento?",
+    "answer": "Sim. Pode subir ou descer de plano quando quiser. A alteração reflecte-se no ciclo de facturação seguinte."
+  },
+  {
+    "id": 2,
+    "question": "Há um período de avaliação gratuito?",
+    "answer": "Sim. O trial público é de 14 dias, sem cartão. Pode explorar a escola no SIGA durante esse período."
+  },
+  {
+    "id": 3,
+    "question": "Que métodos de pagamento aceitam?",
+    "answer": "A facturação SaaS será liquidada pelos canais da plataforma. Na tesouraria da escola usa Multicaixa Express, Unitel Money e transferência IBAN AO."
+  },
+  {
+    "id": 4,
+    "question": "Há desconto no plano anual?",
+    "answer": "Sim. A facturação anual poupa cerca de 20% relativamente ao pagamento mensal."
+  },
+  {
+    "id": 5,
+    "question": "O que acontece se ultrapassar o limite de alunos?",
+    "answer": "O SIGA avisa perto do limite e o ADMIN mostra o estado. Pode subir de plano ou sincronizar a utilização no Control Center."
+  },
+  {
+    "id": 6,
+    "question": "Posso cancelar a subscrição?",
+    "answer": "Sim. Cancela nas definições de facturação. Mantém acesso até ao fim do período já pago."
+  }
+]

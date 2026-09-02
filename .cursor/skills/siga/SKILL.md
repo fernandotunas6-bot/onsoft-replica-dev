@@ -10,6 +10,7 @@ description: >-
 # SIGA — sistema de gestão escolar
 
 Ler primeiro [docs/agents/CONTINUE.md](../../../docs/agents/CONTINUE.md).
+Ecossistema (WEB / ADMIN / SIGA / DOC): [ARCHITECTURE_HARMONIZATION.md](../../../docs/agents/ARCHITECTURE_HARMONIZATION.md) e skill `siga-ecosystem`.
 Inventário: [scripts/siga/modules.json](../../../scripts/siga/modules.json).
 
 ## Sempre
@@ -48,6 +49,11 @@ Abrir o skill do módulo antes de editar (`.cursor/skills/siga-<id>/SKILL.md`).
 | Matrícula pública     | `siga-matricula`    |
 | Integrações           | `siga-integracoes`  |
 | Arquivos              | `siga-arquivos`     |
+| Ecossistema 4 apps    | `siga-ecosystem`    |
+| WEB comercial         | `siga-web`          |
+| ADMIN SaaS            | `siga-admin`        |
+| DOC                   | `siga-docs`         |
+| Backend SaaS (ainda no SIGA) | `siga-saas`  |
 
 ## Stack
 

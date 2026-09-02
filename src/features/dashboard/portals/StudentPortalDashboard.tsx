@@ -26,6 +26,7 @@ import { IconChip } from "@/components/ui/icon-chip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
+import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { SubmitAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { VirtualCardModal } from "@/features/catracas/components/VirtualCardModal";
@@ -50,7 +51,9 @@ export function StudentPortalDashboard() {
     queryKey: ["student-attendance-history", currentUser.linkedEntities.student_id],
     queryFn: () =>
       getStudentAttendanceHistory({
-        studentId: currentUser.linkedEntities.student_id ?? undefined,
+        data: {
+          studentId: currentUser.linkedEntities.student_id ?? undefined,
+        },
       }),
   });
 
@@ -84,7 +87,7 @@ export function StudentPortalDashboard() {
       to: "/pedagogica",
       search: { tab: "presencas" },
     },
-    { label: "Propinas", icon: CreditCard, to: "/financeiro" },
+    { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
     { label: "Documentos", icon: FileText, to: "/documentos" },
     { label: "Comunicações", icon: Megaphone, to: "/comunicacoes" },
     { label: "Meu Perfil", icon: User, to: "/perfil" },
@@ -197,7 +200,7 @@ export function StudentPortalDashboard() {
               className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card hover:bg-accent/60 transition-all group"
             >
               <div className="flex items-center gap-3">
-                <IconChip icon={item.icon} size="sm" tone="primary" />
+                <IconChip icon={item.icon} size="sm" tone="primary" label={item.label} />
                 <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
                   {item.label}
                 </span>
@@ -207,6 +210,8 @@ export function StudentPortalDashboard() {
           ))}
         </div>
       </div>
+
+      <DashboardCalendarCard />
 
       {/* GRELHA COM HISTÓRICO DE FREQUÊNCIA E COMUNICADOS DA ESCOLA */}
       <div className="grid gap-6 lg:grid-cols-2">

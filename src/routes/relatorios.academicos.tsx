@@ -9,6 +9,7 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -294,6 +295,7 @@ function RelatoriosAcademicos() {
           description="Indicadores de aproveitamento, evolução das médias e desempenho comparado das turmas."
           actions={
             <>
+              <DocHelpButton title="Navegação — Relatórios académicos" />
               <Button
                 variant="outline"
                 className="gap-2"

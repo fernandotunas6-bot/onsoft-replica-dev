@@ -68,6 +68,7 @@ export function FileUploadInquiryModal({
   defaultVisibility,
   defaultArea,
   writableAreas,
+  currentUserId,
   mode = "upload",
   initial,
   onCancel,
@@ -78,6 +79,8 @@ export function FileUploadInquiryModal({
   defaultVisibility: SchoolFileRecord["visibility"];
   defaultArea: FileArea;
   writableAreas: readonly FileArea[];
+  /** Conta SIGA actual — predefinida como utilizador relacionado. */
+  currentUserId: string;
   mode?: "upload" | "organize";
   initial?: Partial<UploadInquiryResult> & { name?: string };
   onCancel: () => void;
@@ -147,7 +150,7 @@ export function FileUploadInquiryModal({
       initial?.referenceCode?.trim() || generateDocumentCode(prefixForCategory(nextCategory));
     const nextVisibility =
       initial?.visibility ?? defaultVisibilityForArea(nextArea) ?? defaultVisibility;
-    const nextRelatedUserId = initial?.relatedUserId || "";
+    const nextRelatedUserId = initial?.relatedUserId || currentUserId || "";
     const nextRelatedPersonId = initial?.relatedPersonId || "";
     const nextApplyAsProfilePhoto = initial?.applyAsProfilePhoto ?? true;
     setTitle(nextTitle);
@@ -191,6 +194,7 @@ export function FileUploadInquiryModal({
   }, [
     defaultArea,
     defaultVisibility,
+    currentUserId,
     firstKind,
     firstName,
     initial,
@@ -429,24 +433,31 @@ export function FileUploadInquiryModal({
               ))}
             </select>
           </div>
-          {!isPhotoCategory ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="file-meta-user">Relacionar a utilizador (conta SIGA)</Label>
-              <select
-                id="file-meta-user"
-                className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-                value={relatedUserId}
-                onChange={(event) => setRelatedUserId(event.target.value)}
-              >
-                <option value="">Nenhum</option>
-                {(usersQuery.data?.users ?? []).map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
+          <div className="space-y-1.5">
+            <Label htmlFor="file-meta-user">
+              Utilizador relacionado <span className="text-destructive">*</span>
+            </Label>
+            <select
+              id="file-meta-user"
+              className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+              value={relatedUserId}
+              onChange={(event) => {
+                setRelatedUserId(event.target.value);
+                setFormError(null);
+              }}
+            >
+              <option value="">Seleccione a conta SIGA…</option>
+              {(usersQuery.data?.users ?? []).map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name}
+                  {user.id === currentUserId ? " (eu)" : ""}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-muted-foreground">
+              Todo o documento fica ligado a uma conta (metadados). Por omissão: a sua.
+            </p>
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="file-meta-person-q">
               {isPhotoCategory ? "Aluno (obrigatório)" : "Relacionar a pessoa (registo)"}
@@ -523,6 +534,10 @@ export function FileUploadInquiryModal({
                 setFormError("Seleccione o aluno a quem a fotografia pertence.");
                 return;
               }
+              if (!relatedUserId) {
+                setFormError("Seleccione o utilizador SIGA a quem o documento se relaciona.");
+                return;
+              }
               if (isPhotoCategory && mode === "upload" && !photoLike && files.length) {
                 setFormError("Fotografias de aluno devem ser PNG, JPEG, WebP ou GIF.");
                 return;
@@ -538,7 +553,7 @@ export function FileUploadInquiryModal({
                 category,
                 documentDate: documentDate || undefined,
                 referenceCode: referenceCode.trim() || undefined,
-                relatedUserId: isPhotoCategory ? null : relatedUserId || null,
+                relatedUserId,
                 relatedPersonId: relatedPersonId || null,
                 visibility,
                 area,
