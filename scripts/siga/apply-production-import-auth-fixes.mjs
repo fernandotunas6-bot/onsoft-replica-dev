@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
+// Deterministic patch runner. A branch push triggers the guarded maintenance workflows.
 function replaceRequired(source, from, to, label) {
   if (source.includes(to)) return source;
   if (!source.includes(from)) throw new Error(`Patch não encontrado: ${label}`);
