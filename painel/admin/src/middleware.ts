@@ -55,16 +55,21 @@ export async function middleware(request: NextRequest) {
 
   let response = NextResponse.next({ request })
 
-  const DEFAULT_SUPABASE_URL = "https://xodgfmxiaunpamctfeea.supabase.co";
-  const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td";
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const supabaseKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    DEFAULT_SUPABASE_PUBLISHABLE_KEY;
+    ''
+
   if (!supabaseUrl || !supabaseKey) {
-    return response;
+    // Protected ADMIN routes must fail closed when deployment configuration is incomplete.
+    if (isPlatformRoute(pathname)) {
+      return new NextResponse('ADMIN indisponível: configuração Supabase em falta.', {
+        status: 503,
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+      })
+    }
+    return response
   }
 
   const supabase = createServerClient(
