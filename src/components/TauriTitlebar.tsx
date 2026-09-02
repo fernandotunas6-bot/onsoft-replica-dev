@@ -8,7 +8,7 @@ export function TauriTitlebar() {
 
   useEffect(() => {
     // Check if running in Tauri
-    if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+    if ((window as any).__TAURI_INTERNALS__ || (window as any).__TAURI__) {
       setIsTauri(true);
       if (navigator.userAgent.includes('Mac')) {
         setIsMac(true);

@@ -1,5 +1,4 @@
-import type { StudentRow } from "@/features/students/schemas";
-
+// EMIS integration logic
 /**
  * Normaliza o grau de ensino para a taxonomia do EMIS (Angola).
  */
@@ -26,7 +25,7 @@ export function normalizeEmisGradeLevel(gradeName: string | null): string {
 /**
  * Exporta dados de estudantes no formato requerido pelo gateway EMIS.
  */
-export function buildEmisExportPayload(schoolId: string, students: StudentRow[]) {
+export function buildEmisExportPayload(schoolId: string, students: any[]) {
   return students.map((student) => ({
     emis_school_id: schoolId,
     student_id: student.id,

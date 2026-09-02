@@ -320,7 +320,7 @@ export function AssessmentCenter({
           row.subject_id === selectedSubject?.id &&
           row.term === term,
       );
-      const row: AssessmentCenterFormValues[string] = {
+      const row: Record<string, string> = {
         mac: grade?.mac != null ? String(grade.mac) : "",
         npp: grade?.npp != null ? String(grade.npp) : "",
         npt: grade?.npt != null ? String(grade.npt) : "",

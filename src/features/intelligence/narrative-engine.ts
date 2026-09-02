@@ -22,12 +22,15 @@ export function generateStudentNarrativeReport(
   }
 
   // Comportamento / Assiduidade
-  if (snapshot.academic.absences > 5) {
-    lines.push(`⚠️ Registo de ${snapshot.academic.absences} faltas não justificadas. Por favor, regularize a situação.`);
-  } else if (snapshot.academic.absences > 0) {
-    lines.push(`ℹ️ Registo de ${snapshot.academic.absences} faltas.`);
-  } else {
-    lines.push(`🌟 Assiduidade perfeita! Nenhuma falta registada.`);
+  if (snapshot.academic.attendanceRate != null) {
+    const rate = snapshot.academic.attendanceRate;
+    if (rate < 80) {
+      lines.push(`⚠️ Assiduidade baixa (${rate.toFixed(1)}%). Recomenda-se acompanhamento.`);
+    } else if (rate >= 95) {
+      lines.push(`🌟 Assiduidade excelente (${rate.toFixed(1)}%).`);
+    } else {
+      lines.push(`ℹ️ Assiduidade regular (${rate.toFixed(1)}%).`);
+    }
   }
 
   // Financeiro

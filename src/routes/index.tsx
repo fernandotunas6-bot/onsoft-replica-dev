@@ -197,10 +197,10 @@ function Dashboard() {
       schoolId: school?.id ?? "desconhecida",
       data: {
         academicYear: data.academicYear,
-        overviewCounts: { students: data.totals.students, classes: data.totals.classes },
+        overviewCounts: { students: data.totals.students, classes: data.totals.classGroups },
         pendingEnrollmentApplications: data.totals.applicants ?? 0,
-        unpaidInvoices: 0, // Placeholder se nÃ£o vier na query principal (pode cruzar num endpoint estendido)
-        upcomingEvents: data.upcoming.length,
+        unpaidInvoices: 0, // Placeholder se não vier na query principal (pode cruzar num endpoint estendido)
+        upcomingEvents: data.upcomingEvents.length,
       },
     };
   }, [data, school]);
