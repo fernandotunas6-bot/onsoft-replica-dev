@@ -437,6 +437,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
                         code: mfaCode.trim(),
                       });
                       if (verified.error) throw verified.error;
+                      const { data: sessionData } = await supabase.auth.getSession();
+                      if (sessionData?.session) {
+                        setSession(sessionData.session);
+                      }
                       setMfaFactorId(null);
                       setMfaCode("");
                     } catch (verifyError) {

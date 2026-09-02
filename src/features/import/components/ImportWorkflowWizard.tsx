@@ -69,7 +69,7 @@ type AnalyzedSheet = {
 };
 
 const STAGE_CHUNK = 300;
-const COMMIT_BATCH = 200;
+const COMMIT_BATCH = 5;
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -280,8 +280,8 @@ export function ImportWorkflowWizard({
     const totals = { inserted: 0, updated: 0, ignored: 0, failed: 0, processed: 0 };
     try {
       let afterRow = 0;
-      // Amostra limitada — simula até 1000 linhas para não bloquear a UI num ficheiro enorme.
-      for (let guard = 0; guard < 5; guard++) {
+      // Amostra limitada — simula até 250 linhas para não bloquear a UI num ficheiro enorme.
+      for (let guard = 0; guard < 50; guard++) {
         const res = await commitImportBatch({
           data: {
             job_id: job.id,
@@ -316,7 +316,7 @@ export function ImportWorkflowWizard({
     try {
       let completed = false;
       let guard = 0;
-      while (!completed && guard < 200) {
+      while (!completed && guard < 6000) {
         guard += 1;
         const res = await commitImportBatch({
           data: {
