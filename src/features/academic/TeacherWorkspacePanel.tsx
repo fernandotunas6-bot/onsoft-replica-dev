@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Award, GraduationCap, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Panel } from "@/components/layout/PageHeader";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { getTeacherWorkspace, unassignClassSubjectTeacher } from "@/features/academic/server";
@@ -141,7 +142,7 @@ export function TeacherWorkspacePanel({
           }
         >
           {workspaceQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">A carregar turmas…</p>
+            <div className="space-y-3 p-4"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-[85%]" /></div>
           ) : classes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Ainda sem turmas associadas a este professor. A secretaria liga disciplinas em Área

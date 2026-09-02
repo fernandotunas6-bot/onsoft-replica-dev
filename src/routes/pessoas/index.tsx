@@ -27,6 +27,7 @@ import { signSchoolFile } from "@/features/arquivos/server";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
@@ -500,7 +501,7 @@ function PeoplePage() {
                       colSpan={5}
                       className="py-8 text-center text-sm text-muted-foreground"
                     >
-                      A carregar professores…
+                      <div className="space-y-3 p-4"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-[90%]" /><Skeleton className="h-6 w-[95%]" /></div>
                     </TableCell>
                   </TableRow>
                 ) : teachers.length === 0 ? (
@@ -698,7 +699,7 @@ function PeoplePage() {
                       colSpan={4}
                       className="py-10 text-center text-sm text-muted-foreground"
                     >
-                      A carregar…
+                      <div className="space-y-3 p-4"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-[90%]" /><Skeleton className="h-6 w-[95%]" /><Skeleton className="h-6 w-[80%]" /><Skeleton className="h-6 w-[85%]" /></div>
                     </TableCell>
                   </TableRow>
                 ) : peopleQuery.isError ? (
@@ -811,7 +812,7 @@ function PeoplePage() {
           />
           <ModalContent>
             {personQuery.isLoading ? (
-              <p className="text-sm text-muted-foreground">A carregar ficha…</p>
+              <div className="space-y-4"><div className="flex items-center gap-4"><Skeleton className="size-20 rounded-full" /><div className="space-y-2 flex-1"><Skeleton className="h-6 w-[50%]" /><Skeleton className="h-4 w-[30%]" /></div></div><Skeleton className="h-20 w-full" /><Skeleton className="h-20 w-full" /></div>
             ) : personQuery.isError ? (
               <p className="text-sm text-destructive">
                 {personQuery.error instanceof Error
