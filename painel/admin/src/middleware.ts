@@ -55,12 +55,16 @@ export async function middleware(request: NextRequest) {
 
   let response = NextResponse.next({ request })
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const DEFAULT_SUPABASE_URL = "https://xodgfmxiaunpamctfeea.supabase.co";
+  const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td";
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const supabaseKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    DEFAULT_SUPABASE_PUBLISHABLE_KEY;
   if (!supabaseUrl || !supabaseKey) {
-    return response
+    return response;
   }
 
   const supabase = createServerClient(
