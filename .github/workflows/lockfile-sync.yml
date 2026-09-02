@@ -1,0 +1,36 @@
+name: Sync Bun Lockfile
+
+on:
+  push:
+    branches: ["fix/tenant-security-payment-mfa-2026-09-03"]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: ${{ !contains(github.event.head_commit.message, 'chore(lock): sync bun lockfile') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/tenant-security-payment-mfa-2026-09-03
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Resolve dependencies and update lockfile
+        run: bun install
+
+      - name: Commit synchronized lockfile
+        run: |
+          if git diff --quiet -- bun.lock; then
+            echo "bun.lock já está sincronizado."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          git commit -m "chore(lock): sync bun lockfile"
+          git push origin HEAD:fix/tenant-security-payment-mfa-2026-09-03
