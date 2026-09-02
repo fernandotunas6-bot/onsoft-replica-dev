@@ -8,11 +8,14 @@
  * - DOC (Documentação, Manuais, APIs): PORT 5173
  */
 
+const isBrowser = typeof window !== "undefined";
+const isLocal = isBrowser && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
 export const ECOSYSTEM_URLS = {
-  web: import.meta.env.VITE_WEB_URL || "http://localhost:5174",
-  siga: import.meta.env.VITE_SIGA_URL || "http://localhost:3006",
-  admin: import.meta.env.VITE_ADMIN_URL || "http://localhost:3005",
-  docs: import.meta.env.VITE_DOCS_URL || "http://localhost:5173",
+  web: import.meta.env.VITE_WEB_URL || (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
+  siga: import.meta.env.VITE_SIGA_URL || (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
+  admin: import.meta.env.VITE_ADMIN_URL || (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
+  docs: import.meta.env.VITE_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
 } as const;
 
 /** Caminhos DOC frequentes (suffix `.html` para links estáticos VitePress). */

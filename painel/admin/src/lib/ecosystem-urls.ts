@@ -1,8 +1,11 @@
+const isBrowser = typeof window !== "undefined";
+const isLocal = isBrowser && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
 export const ECOSYSTEM_URLS = {
-  web: process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:5174",
-  siga: process.env.NEXT_PUBLIC_SIGA_URL || "http://localhost:3006",
-  admin: process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3005",
-  docs: process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:5173",
+  web: process.env.NEXT_PUBLIC_WEB_URL || (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
+  siga: process.env.NEXT_PUBLIC_SIGA_URL || (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
+  admin: process.env.NEXT_PUBLIC_ADMIN_URL || (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
+  docs: process.env.NEXT_PUBLIC_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
 } as const;
 
 export function getCreateSchoolUrl(): string {
