@@ -152,6 +152,9 @@ export type CreatePersonInput = z.infer<typeof createPersonInputSchema>;
 
 export const searchPeopleInputSchema = z.object({
   query: z.string().trim().max(160).default(""),
+  province: optionalText,
+  municipality: optionalText,
+  commune: optionalText,
   limit: z.number().int().min(1).max(50).default(20),
 });
 export type SearchPeopleInput = z.infer<typeof searchPeopleInputSchema>;
@@ -190,6 +193,10 @@ export const updatePersonInputSchema = z
     email: z.union([z.literal(""), z.string().trim().email()]).optional(),
     phone: optionalText,
     nif: optionalText,
+    province: optionalText,
+    municipality: optionalText,
+    commune: optionalText,
+    address: optionalText,
   })
   .superRefine((value, ctx) => {
     if (!value.nif) return;
