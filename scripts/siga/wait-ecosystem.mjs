@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Aguarda as 4 apps do ecossistema (portas 3006/5174/3005/5173).
+ * Aguarda as 5 apps do ecossistema (portas 3006/5174/3005/5173/3007).
  */
 const targets = [
   { label: "SIGA", url: "http://localhost:3006/", ok: [200, 302] },
   { label: "WEB", url: "http://localhost:5174/", ok: [200] },
   { label: "ADMIN", url: "http://localhost:3005/", ok: [200, 307] },
-  { label: "DOC", url: "http://localhost:5173/", ok: [200] },
+  { label: "DOC", url: "http://localhost:5173/", ok: [200] },\n  { label: "PAYFLOW", url: "http://localhost:3007/", ok: [200] },
 ];
 
 const maxAttempts = Number(process.env.SIGA_E2E_WAIT_ATTEMPTS || 90);
@@ -31,7 +31,7 @@ for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
   );
   const pending = results.filter((row) => !row.ready).map((row) => row.target.label);
   if (pending.length === 0) {
-    console.log("Ecossistema pronto (4 apps).");
+    console.log("Ecossistema pronto (5 apps).");
     process.exit(0);
   }
   console.log(`[${attempt}/${maxAttempts}] A aguardar: ${pending.join(", ")}`);
