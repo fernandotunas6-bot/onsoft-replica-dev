@@ -10,7 +10,7 @@ import {
   createAssessment,
   updateAssessmentItem,
   deleteAssessmentItem,
-} from "@/features/academic/server";
+} from "@/features/academic/assessment-server";
 import { assessmentComponents, assessmentKinds } from "@/lib/angola-academic";
 
 export type AssessmentItemDraft = {
