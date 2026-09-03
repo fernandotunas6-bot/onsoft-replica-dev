@@ -88,6 +88,17 @@ describe("searchPeopleInputSchema", () => {
   it("rejects a limit above 50", () => {
     expect(searchPeopleInputSchema.safeParse({ limit: 500 }).success).toBe(false);
   });
+
+  it("accepts territorial filters", () => {
+    const result = searchPeopleInputSchema.parse({
+      province: "Huambo",
+      municipality: "Caála",
+      commune: "Cuima",
+    });
+    expect(result.province).toBe("Huambo");
+    expect(result.municipality).toBe("Caála");
+    expect(result.commune).toBe("Cuima");
+  });
 });
 
 describe("findPersonDuplicatesInputSchema", () => {
@@ -147,6 +158,19 @@ describe("updatePersonInputSchema", () => {
       nif: "000204688CA010",
     });
     expect(parsed.nif).toBe("000204688CA010");
+  });
+
+  it("aceita localização territorial na actualização", () => {
+    const parsed = updatePersonInputSchema.parse({
+      personId: "11111111-1111-1111-1111-111111111111",
+      fullName: "Ana Domingos",
+      province: "Huambo",
+      municipality: "Huambo",
+      commune: "Calima",
+      address: "Bairro Académico",
+    });
+    expect(parsed.province).toBe("Huambo");
+    expect(parsed.address).toBe("Bairro Académico");
   });
 
   it("aceita referência a ficheiro da biblioteca no documento", () => {
