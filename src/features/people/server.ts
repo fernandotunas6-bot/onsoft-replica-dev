@@ -126,8 +126,8 @@ function normalizePhone(value: string | null | undefined) {
 function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
   return Boolean(
     error &&
-      (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
-        error.code === "42703"),
+    (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
+      error.code === "42703"),
   );
 }
 
@@ -372,9 +372,9 @@ export const createPerson = createServerFn({ method: "POST" })
     };
     const hasGeography = Boolean(
       personInput.province ||
-        personInput.municipality ||
-        personInput.commune ||
-        personInput.address,
+      personInput.municipality ||
+      personInput.commune ||
+      personInput.address,
     );
     if (hasGeography) {
       personPayload["province"] = personInput.province || null;
@@ -879,7 +879,9 @@ export const updatePerson = createServerFn({ method: "POST" })
       national_id: normalizedNif,
       updated_by: context.userId,
     };
-    const hasGeography = Boolean(data.province || data.municipality || data.commune || data.address);
+    const hasGeography = Boolean(
+      data.province || data.municipality || data.commune || data.address,
+    );
     if (hasGeography) {
       personPatch["province"] = data.province || null;
       personPatch["municipality"] = data.municipality || null;
