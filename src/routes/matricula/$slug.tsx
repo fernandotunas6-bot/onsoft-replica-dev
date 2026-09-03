@@ -14,6 +14,7 @@ import { overlayTalao } from "@/features/documents/print-overlays";
 import { printBundledTemplate } from "@/features/documents/print-issue-loader";
 import { whatsappHref } from "@/features/integrations/actions";
 import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
+import { angolaProvinces } from "@/lib/angola-territory";
 
 // style-check: route-exempt - formulário público com identidade própria da escola.
 
@@ -79,6 +80,9 @@ function PublicEnrollmentPage() {
             sex: (String(data.get("sex") || "") || undefined) as "M" | "F" | "outro" | undefined,
             phone_primary: String(data.get("phone_primary") || "") || undefined,
             email: String(data.get("email") || "") || undefined,
+            province: String(data.get("province") || "") || undefined,
+            municipality: String(data.get("municipality") || "") || undefined,
+            commune: String(data.get("commune") || "") || undefined,
             address: String(data.get("address") || "") || undefined,
             nif: String(data.get("nif") || "") || undefined,
             notes: String(data.get("notes") || "") || undefined,
@@ -256,10 +260,49 @@ function PublicEnrollmentPage() {
                   </div>
                 ) : null}
               </div>
+              {hasField(form?.visible_fields, "province") ||
+              hasField(form?.visible_fields, "municipality") ||
+              hasField(form?.visible_fields, "commune") ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {hasField(form?.visible_fields, "province") ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="province">Província</Label>
+                      <select
+                        id="province"
+                        name="province"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="">Seleccionar província</option>
+                        {angolaProvinces.map((province) => (
+                          <option key={province} value={province}>
+                            {province}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+                  {hasField(form?.visible_fields, "municipality") ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="municipality">Município</Label>
+                      <Input id="municipality" name="municipality" />
+                    </div>
+                  ) : null}
+                  {hasField(form?.visible_fields, "commune") ? (
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="commune">Comuna / localidade</Label>
+                      <Input id="commune" name="commune" />
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               {hasField(form?.visible_fields, "address") ? (
                 <div className="space-y-1.5">
-                  <Label htmlFor="address">Morada</Label>
-                  <Input id="address" name="address" />
+                  <Label htmlFor="address">Morada detalhada</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    placeholder="Bairro, rua, casa ou referência"
+                  />
                 </div>
               ) : null}
               {hasField(form?.visible_fields, "guardian_name") ||
