@@ -38,6 +38,7 @@ ALTER TABLE public.person_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.person_roles FORCE ROW LEVEL SECURITY;
 
 REVOKE ALL ON public.person_roles FROM anon;
+REVOKE INSERT, UPDATE, DELETE ON public.person_roles FROM authenticated;
 GRANT SELECT ON public.person_roles TO authenticated;
 GRANT ALL ON public.person_roles TO service_role;
 
