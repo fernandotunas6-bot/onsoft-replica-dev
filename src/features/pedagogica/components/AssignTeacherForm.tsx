@@ -10,12 +10,10 @@ import {
 } from "@/components/ui/modal-system";
 import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
 import { assignClassSubjectTeacher } from "@/features/academic/server";
-
-type ClassSubjectLink = {
-  class_group_id: string;
-  subject_id: string;
-  status?: string | null;
-};
+import {
+  subjectIdsForTeacherAssignment,
+  type TeacherAssignmentLink,
+} from "@/features/pedagogica/teacher-assignment";
 
 function resolveOptionId(options: string[], selected: string | undefined, ids: string[]) {
   const index = options.indexOf(selected ?? "");
@@ -41,7 +39,7 @@ export function AssignTeacherForm({
   turmaIds: string[];
   subjectIds: string[];
   teacherIds: string[];
-  classSubjectLinks?: ClassSubjectLink[];
+  classSubjectLinks?: TeacherAssignmentLink[];
   defaultTurma?: string;
   triggerLabel?: string;
   triggerSize?: "sm" | "default";
@@ -55,18 +53,15 @@ export function AssignTeacherForm({
   const [subjectId, setSubjectId] = useState("");
   const [teacherId, setTeacherId] = useState("");
 
-  const filteredSubjectIds = useMemo(() => {
-    if (!classGroupId || classSubjectLinks.length === 0) return subjectIds;
-    const linked = classSubjectLinks
-      .filter(
-        (row) =>
-          row.class_group_id === classGroupId &&
-          row.status !== "inactive" &&
-          row.status !== "closed",
-      )
-      .map((row) => row.subject_id);
-    return [...new Set(linked)];
-  }, [classGroupId, classSubjectLinks, subjectIds]);
+  const filteredSubjectIds = useMemo(
+    () =>
+      subjectIdsForTeacherAssignment({
+        classGroupId,
+        subjectIds,
+        classSubjectLinks,
+      }),
+    [classGroupId, classSubjectLinks, subjectIds],
+  );
 
   const filteredSubjects = filteredSubjectIds
     .map((id) => {
@@ -185,20 +180,19 @@ export function AssignTeacherForm({
                     onChange={(event) => setSubjectId(event.target.value)}
                     disabled={!classGroupId}
                   >
-                    <option value="">
-                      {filteredSubjects.length > 0
-                        ? "Seleccionar disciplina"
-                        : "Turma sem disciplinas associadas"}
-                    </option>
+                    <option value="">Seleccionar disciplina</option>
                     {filteredSubjects.map((row) => (
                       <option key={row.id} value={row.id}>
                         {row.label}
                       </option>
                     ))}
                   </select>
-                  {classGroupId && filteredSubjects.length === 0 ? (
+                  {classGroupId &&
+                  classSubjectLinks.length > 0 &&
+                  !classSubjectLinks.some((row) => row.class_group_id === classGroupId) ? (
                     <p className="text-xs text-muted-foreground">
-                      Aplique primeiro o currículo ou associe disciplinas a esta turma.
+                      Esta turma ainda não tem currículo ligado. A primeira atribuição também
+                      associa a disciplina à turma, preservando o fluxo anterior.
                     </p>
                   ) : null}
                 </div>
