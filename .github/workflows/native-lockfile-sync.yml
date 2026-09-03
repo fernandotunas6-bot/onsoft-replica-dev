@@ -1,0 +1,45 @@
+name: SIGA Native Lockfile Sync
+
+on:
+  push:
+    branches:
+      - siga-native-2-foundation
+    paths:
+      - '.github/workflows/native-lockfile-sync.yml'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-lockfiles:
+    name: Regenerate Bun lockfile
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: siga-native-2-foundation
+
+      - name: Setup Bun 1.4.0
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Regenerate bun.lock
+        run: bun install
+
+      - name: Commit generated lockfile
+        shell: bash
+        run: |
+          git add bun.lock
+          if git diff --cached --quiet; then
+            echo 'bun.lock is already synchronized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(ci): refresh bun.lock after Playwright security update'
+          git push origin HEAD:siga-native-2-foundation
