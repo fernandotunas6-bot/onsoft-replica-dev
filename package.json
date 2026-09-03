@@ -9,6 +9,7 @@
     "build": "vite build --mode production",
     "build:dev": "vite build --mode development",
     "deploy:cf": "node scripts/deploy-cf.mjs",
+    "deploy:all": "node scripts/deploy-all.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
     "test": "vitest run",
     "lint": "eslint .",
