@@ -67,6 +67,7 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { PersonProfile360Modal } from "@/features/people/components/PersonProfile360Modal";
 import { PersonWizardModal } from "@/features/people/components/PersonWizardModal";
+import { angolaProvinces } from "@/lib/angola-territory";
 
 export const Route = createFileRoute("/pessoas/")({
   head: () => ({
@@ -96,6 +97,8 @@ const documentTypeLabels: Record<string, string> = {
 
 const pessoasFilterDefaults = {
   q: "",
+  province: "",
+  municipality: "",
   teacherStatus: "all",
   personStatus: "todos",
 };
@@ -121,8 +124,16 @@ function PeoplePage() {
   const [pendingDocFile, setPendingDocFile] = useState<{ id: string; name: string } | null>(null);
 
   const peopleQuery = useQuery({
-    queryKey: ["people", "search", deferredQuery],
-    queryFn: () => searchPeople({ data: { query: deferredQuery, limit: 50 } }),
+    queryKey: ["people", "search", deferredQuery, filters.province, filters.municipality],
+    queryFn: () =>
+      searchPeople({
+        data: {
+          query: deferredQuery,
+          province: filters.province || undefined,
+          municipality: filters.municipality || undefined,
+          limit: 50,
+        },
+      }),
     placeholderData: (previous) => previous,
   });
 
@@ -450,6 +461,25 @@ function PeoplePage() {
               name: "q",
               placeholder: "Pesquisar pessoas e professores…",
               "aria-label": "Pesquisar pessoa",
+            },
+            {
+              name: "province",
+              type: "select",
+              label: "Província",
+              emptyValue: "",
+              options: [
+                { value: "", label: "Todas as províncias" },
+                ...angolaProvinces.map((province) => ({
+                  value: province,
+                  label: province,
+                })),
+              ],
+            },
+            {
+              name: "municipality",
+              label: "Município",
+              placeholder: "Filtrar município…",
+              "aria-label": "Filtrar pessoas por município",
             },
             {
               name: "teacherStatus",
