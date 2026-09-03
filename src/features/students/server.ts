@@ -25,6 +25,14 @@ import {
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 
+function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
+  return Boolean(
+    error &&
+      (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
+        error.code === "42703"),
+  );
+}
+
 async function linkGuardian(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
   input: {
@@ -607,29 +615,48 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
     const fullName = personInput.full_name.trim();
     if (!fullName) throw new Error("Nome do aluno é obrigatório.");
 
+    const personPayload: Record<string, unknown> = {
+      school_id: membership.schoolId,
+      full_name: fullName,
+      preferred_name:
+        personInput.preferred_name || personInput.first_name || fullName.split(/\s+/)[0],
+      email: personInput.email || null,
+      phone: personInput.phone_primary || null,
+      national_id: personInput.nif || null,
+      date_of_birth: personInput.birth_date || null,
+      sex:
+        personInput.sex === "M"
+          ? "male"
+          : personInput.sex === "F"
+            ? "female"
+            : personInput.sex || null,
+      status: "active",
+      created_by: context.userId,
+      updated_by: context.userId,
+    };
+    const hasGeography = Boolean(
+      personInput.province ||
+        personInput.municipality ||
+        personInput.commune ||
+        personInput.address,
+    );
+    if (hasGeography) {
+      personPayload["province"] = personInput.province || null;
+      personPayload["municipality"] = personInput.municipality || null;
+      personPayload["commune"] = personInput.commune || null;
+      personPayload["address"] = personInput.address || null;
+    }
+
     const { data: person, error: personError } = await db
       .from("people")
-      .insert({
-        school_id: membership.schoolId,
-        full_name: fullName,
-        preferred_name:
-          personInput.preferred_name || personInput.first_name || fullName.split(/\s+/)[0],
-        email: personInput.email || null,
-        phone: personInput.phone_primary || null,
-        national_id: personInput.nif || null,
-        date_of_birth: personInput.birth_date || null,
-        sex:
-          personInput.sex === "M"
-            ? "male"
-            : personInput.sex === "F"
-              ? "female"
-              : personInput.sex || null,
-        status: "active",
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
+      .insert(personPayload)
       .select("id")
       .single();
+    if (personError && hasGeography && isMissingPeopleGeography(personError)) {
+      throw new Error(
+        "A localização do aluno não pôde ser guardada porque a migration de Pessoas ainda não foi aplicada.",
+      );
+    }
     if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
 
     // register_student cria o aluno (+ 1º encarregado) numa transação atómica: gera o
@@ -747,19 +774,32 @@ export const updateStudentProfile = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    void data.address; // SGA people não tem coluna address
+    const personPatch: Record<string, unknown> = {
+      full_name: data.fullName,
+      email: data.email || null,
+      phone: data.phone ?? null,
+      updated_by: context.userId,
+    };
+    const hasGeography = Boolean(data.province || data.municipality || data.commune || data.address);
+    if (hasGeography) {
+      personPatch["province"] = data.province || null;
+      personPatch["municipality"] = data.municipality || null;
+      personPatch["commune"] = data.commune || null;
+      personPatch["address"] = data.address || null;
+    }
+
     const { data: person, error } = await db
       .from("people")
-      .update({
-        full_name: data.fullName,
-        email: data.email || null,
-        phone: data.phone ?? null,
-        updated_by: context.userId,
-      })
+      .update(personPatch)
       .eq("id", data.personId)
       .eq("school_id", membership.schoolId)
       .select("id")
       .maybeSingle();
+    if (error && hasGeography && isMissingPeopleGeography(error)) {
+      throw new Error(
+        "A localização não pôde ser actualizada porque a migration de Pessoas ainda não foi aplicada.",
+      );
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a ficha.");
     if (!person) throw new Error("Pessoa não encontrada.");
     return { id: person.id, version: data.expectedVersion };
