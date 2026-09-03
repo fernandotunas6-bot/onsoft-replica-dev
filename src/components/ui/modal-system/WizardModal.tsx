@@ -94,11 +94,10 @@ export function WizardModal({
         }
       >
         {visualPanel ? (
-          <aside className="hidden min-h-0 overflow-hidden border-r border-border bg-muted/20 lg:block">
+          <aside className="hidden min-h-0 overflow-hidden border-r border-border bg-muted/20 lg:row-span-4 lg:block">
             {visualPanel}
           </aside>
         ) : null}
-        <div className={visualPanel ? "flex min-h-0 flex-col" : "contents"}>
         <ModalHeader
           {...(icon ? { icon } : {})}
           title={title}
@@ -179,7 +178,6 @@ export function WizardModal({
             ) : null
           }
         />
-        </div>
       </form>
     </ModalShell>
   );
