@@ -73,7 +73,9 @@ export function SequentialSheetModal({
       isSubmitting={saving}
       hasUnsavedChanges={hasUnsavedChanges}
       submitLabel={submitLabel}
-      visualPanel={current && visualPanel ? visualPanel({ stepId: current.id, stepIndex }) : undefined}
+      visualPanel={
+        current && visualPanel ? visualPanel({ stepId: current.id, stepIndex }) : undefined
+      }
       size={visualPanel ? "2xl" : "xl"}
     >
       <div className="space-y-3">
