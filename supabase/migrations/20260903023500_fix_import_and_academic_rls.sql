@@ -7,17 +7,68 @@
 -- As migrations originais de cada módulo já têm políticas por operação; uma política
 -- FOR ALL permissiva é combinada por OR com elas e acaba por alargar o acesso.
 -- ---------------------------------------------------------------------------
-DROP POLICY IF EXISTS "School members can access students" ON public.students;
-DROP POLICY IF EXISTS "School members can access student guardians" ON public.student_guardians;
-DROP POLICY IF EXISTS "School members can access courses" ON public.courses;
-DROP POLICY IF EXISTS "School members can access grade levels" ON public.grade_levels;
-DROP POLICY IF EXISTS "School members can access rooms" ON public.rooms;
-DROP POLICY IF EXISTS "School members can access class groups" ON public.class_groups;
-DROP POLICY IF EXISTS "School members can access subjects" ON public.subjects;
-DROP POLICY IF EXISTS "School members can access term grades" ON public.term_grades;
-DROP POLICY IF EXISTS "School members can access class schedule slots" ON public.class_schedule_slots;
-DROP POLICY IF EXISTS "School members can access enrollments" ON public.enrollments;
-DROP POLICY IF EXISTS "School members can access student status history" ON public.student_status_history;
+DO $do$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN (
+    SELECT 'public.students'::text AS tbl, 'School members can access students'::text AS pol UNION ALL
+    SELECT 'public.student_guardians', 'School members can access student guardians' UNION ALL
+    SELECT 'public.courses', 'School members can access courses' UNION ALL
+    SELECT 'public.grade_levels', 'School members can access grade levels' UNION ALL
+    SELECT 'public.rooms', 'School members can access rooms' UNION ALL
+    SELECT 'public.class_groups', 'School members can access class groups' UNION ALL
+    SELECT 'public.subjects', 'School members can access subjects' UNION ALL
+    SELECT 'public.term_grades', 'School members can access term grades' UNION ALL
+    SELECT 'public.class_schedule_slots', 'School members can access class schedule slots' UNION ALL
+    SELECT 'public.enrollments', 'School members can access enrollments' UNION ALL
+    SELECT 'public.student_status_history', 'School members can access student status history'
+  ) LOOP
+    IF to_regclass(r.tbl) IS NOT NULL THEN
+      EXECUTE format('DROP POLICY IF EXISTS %I ON %s', r.pol, r.tbl);
+    END IF;
+  END LOOP;
+END
+$do$;
+
+CREATE OR REPLACE FUNCTION public.can_read_students()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  SELECT COALESCE(
+    public.current_school_role_is(
+      ARRAY['owner','admin','administrator','administrador','diretor geral','director geral','coordenação pedagógica','coordenacao pedagogica','secretaria','secretário','secretario','professor','teacher']::text[]
+    ),
+    (SELECT public.current_profile_role()) IN ('Administrador', 'Secretaria', 'Professor', 'admin', 'secretary', 'teacher'),
+    false
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.can_read_students() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_read_students() TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.can_manage_students()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  SELECT COALESCE(
+    public.current_school_role_is(
+      ARRAY['owner','admin','administrator','administrador','diretor geral','director geral','coordenação pedagógica','coordenacao pedagogica','secretaria','secretário','secretario']::text[]
+    ),
+    (SELECT public.current_profile_role()) IN ('Administrador', 'Secretaria', 'admin', 'secretary'),
+    false
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.can_manage_students() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_manage_students() TO authenticated, service_role;
+
 
 -- ---------------------------------------------------------------------------
 -- 2) Corrigir RLS do motor de importação.

@@ -30,7 +30,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $$
   SELECT CASE
-    WHEN count(*) = 1 THEN min(sm.school_id)
+    WHEN count(*) = 1 THEN min(sm.school_id::text)::uuid
     ELSE NULL::uuid
   END
   FROM public.school_memberships sm
@@ -43,6 +43,8 @@ GRANT EXECUTE ON FUNCTION public.current_school_id() TO authenticated, service_r
 
 COMMENT ON FUNCTION public.current_school_id() IS
   'Resolve a escola apenas quando o utilizador tem exactamente uma membership activa. Em contexto ambíguo devolve NULL para falhar fechado.';
+
+ALTER TABLE public.member_roles ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
 
 -- -----------------------------------------------------------------------------
 -- 2. Role corrente sempre ligada à escola resolvida.
@@ -70,7 +72,7 @@ AS $$
         AND sm.status = 'active'
         AND ctx.school_id IS NOT NULL
         AND sm.school_id = ctx.school_id
-      ORDER BY mr.created_at ASC NULLS LAST, r.code ASC
+      ORDER BY r.code ASC
       LIMIT 1
     ),
     (

@@ -55,6 +55,65 @@ $$;
 REVOKE ALL ON FUNCTION public.current_profile_role() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.current_profile_role() TO authenticated, service_role;
 
+-- -----------------------------------------------------------------------------
+-- Funções Utilitárias de Segurança / RLS (necessárias para policies abaixo)
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.is_school_member(p_school_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.school_memberships
+    WHERE school_id = p_school_id
+      AND user_id = (SELECT auth.uid())
+      AND status = 'active'
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.is_school_member(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_school_member(uuid) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.has_school_permission(p_school_id uuid, p_permission text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.school_memberships sm
+    JOIN public.member_roles mr ON mr.membership_id = sm.id
+    JOIN public.roles r ON r.id = mr.role_id
+    JOIN public.role_permissions rp ON rp.role_id = r.id
+    JOIN public.permissions p ON p.id = rp.permission_id
+    WHERE sm.school_id = p_school_id
+      AND sm.user_id = (SELECT auth.uid())
+      AND sm.status = 'active'
+      AND p.code = p_permission
+  ) OR EXISTS (
+    SELECT 1
+    FROM public.school_memberships sm
+    JOIN public.member_roles mr ON mr.membership_id = sm.id
+    JOIN public.roles r ON r.id = mr.role_id
+    WHERE sm.school_id = p_school_id
+      AND sm.user_id = (SELECT auth.uid())
+      AND sm.status = 'active'
+      AND r.code IN ('owner', 'admin', 'administrator', 'director')
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.has_school_permission(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.has_school_permission(uuid, text) TO authenticated, service_role;
+
+-- Garantir colunas soft-delete para pessoas e alunos
+ALTER TABLE public.people ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
+
 -- APPLY_IN_SQL_EDITOR.sql cria o bucket antes desta função existir. Ao reaplicar
 -- este script, as políticas passam a limitar os uploads ao prefixo da própria escola.
 DROP POLICY IF EXISTS "Authenticated users can upload school logos" ON storage.objects;
@@ -637,6 +696,8 @@ ALTER TABLE public.siga_files
   ADD COLUMN IF NOT EXISTS parent_id uuid REFERENCES public.siga_files(id) ON DELETE CASCADE;
 ALTER TABLE public.siga_files
   ADD COLUMN IF NOT EXISTS is_system boolean NOT NULL DEFAULT false;
+ALTER TABLE public.siga_files
+  ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 
 CREATE INDEX IF NOT EXISTS siga_files_school_area_idx
   ON public.siga_files (school_id, area, created_at DESC);
@@ -1088,7 +1149,7 @@ CREATE POLICY "Read school import rows"
   FOR SELECT TO authenticated
   USING (
     import_job_id IN (
-      SELECT j.id FROM public.import_jobs j WHERE j.public.is_school_member(school_id)
+      SELECT j.id FROM public.import_jobs j WHERE public.is_school_member(j.school_id)
     )
   );
 
@@ -1147,7 +1208,7 @@ CREATE POLICY "Read school import audits"
   FOR SELECT TO authenticated
   USING (
     import_job_id IN (
-      SELECT j.id FROM public.import_jobs j WHERE j.public.is_school_member(school_id)
+      SELECT j.id FROM public.import_jobs j WHERE public.is_school_member(j.school_id)
     )
   );
 
@@ -1503,7 +1564,7 @@ CREATE POLICY "Read member_roles in own school" ON public.member_roles
     EXISTS (
       SELECT 1 FROM public.school_memberships sm
       WHERE sm.id = public.member_roles.membership_id
-        AND (sm.user_id = (SELECT auth.uid()) OR sm.public.is_school_member(school_id))
+        AND (sm.user_id = (SELECT auth.uid()) OR public.is_school_member(sm.school_id))
     )
   );
 

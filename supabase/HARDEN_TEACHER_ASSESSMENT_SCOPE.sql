@@ -14,6 +14,12 @@
 
 BEGIN;
 
+ALTER TABLE public.teachers ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+UPDATE public.teachers t
+SET user_id = p.user_id
+FROM public.people p
+WHERE p.id = t.person_id AND t.user_id IS NULL AND p.user_id IS NOT NULL;
+
 CREATE OR REPLACE FUNCTION public.current_teacher_id()
 RETURNS uuid
 LANGUAGE sql
@@ -22,12 +28,13 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $$
   SELECT CASE
-    WHEN count(*) = 1 THEN min(t.id)
+    WHEN count(*) = 1 THEN min(t.id::text)::uuid
     ELSE NULL::uuid
   END
   FROM public.teachers t
+  LEFT JOIN public.people p ON p.id = t.person_id
   WHERE t.school_id = public.current_school_id()
-    AND t.user_id = (SELECT auth.uid());
+    AND (t.user_id = (SELECT auth.uid()) OR p.user_id = (SELECT auth.uid()));
 $$;
 
 REVOKE ALL ON FUNCTION public.current_teacher_id() FROM PUBLIC, anon;

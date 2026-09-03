@@ -145,6 +145,8 @@ ALTER TABLE public.enrollments
 -- Pessoa (registo biográfico humano — Conta é opcional)
 ALTER TABLE public.people ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE public.people ADD COLUMN IF NOT EXISTS photo_url text;
+ALTER TABLE public.people ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 
 CREATE INDEX IF NOT EXISTS people_user_id_idx
   ON public.people (school_id, user_id)
