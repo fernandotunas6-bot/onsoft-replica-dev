@@ -190,50 +190,53 @@ async function syncPersonInstitutionRoles(
     .map((row) => row.id);
   const toInsert = [...selected].filter((role) => !byRole.has(role));
 
-  const operations: Array<PromiseLike<{ error: { message: string } | null }>> = [];
   if (toActivate.length) {
-    operations.push(
-      db
-        .from("person_roles")
-        .update({
-          active: true,
-          deleted_at: null,
-          updated_at: now,
-          updated_by: input.userId,
-        })
-        .in("id", toActivate),
-    );
-  }
-  if (toDeactivate.length) {
-    operations.push(
-      db
-        .from("person_roles")
-        .update({
-          active: false,
-          updated_at: now,
-          updated_by: input.userId,
-        })
-        .in("id", toDeactivate),
-    );
-  }
-  if (toInsert.length) {
-    operations.push(
-      db.from("person_roles").insert(
-        toInsert.map((role) => ({
-          school_id: input.schoolId,
-          person_id: input.personId,
-          role,
-          active: true,
-          created_by: input.userId,
-          updated_by: input.userId,
-        })),
-      ),
-    );
+    const { error: activateError } = await db
+      .from("person_roles")
+      .update({
+        active: true,
+        deleted_at: null,
+        updated_at: now,
+        updated_by: input.userId,
+      })
+      .in("id", toActivate);
+    if (activateError) {
+      throw publicDatabaseError(activateError, "Não foi possível activar os vínculos da pessoa.");
+    }
   }
 
-  const results = await Promise.all(operations);
-  const failed = results.find((result) => result.error)?.error;
-  if (failed) throw publicDatabaseError(failed, "Não foi possível guardar os vínculos da pessoa.");
+  if (toDeactivate.length) {
+    const { error: deactivateError } = await db
+      .from("person_roles")
+      .update({
+        active: false,
+        updated_at: now,
+        updated_by: input.userId,
+      })
+      .in("id", toDeactivate);
+    if (deactivateError) {
+      throw publicDatabaseError(
+        deactivateError,
+        "Não foi possível desactivar os vínculos da pessoa.",
+      );
+    }
+  }
+
+  if (toInsert.length) {
+    const { error: insertError } = await db.from("person_roles").insert(
+      toInsert.map((role) => ({
+        school_id: input.schoolId,
+        person_id: input.personId,
+        role,
+        active: true,
+        created_by: input.userId,
+        updated_by: input.userId,
+      })),
+    );
+    if (insertError) {
+      throw publicDatabaseError(insertError, "Não foi possível criar os vínculos da pessoa.");
+    }
+  }
 
   return [...selected];
 }
