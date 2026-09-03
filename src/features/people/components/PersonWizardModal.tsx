@@ -29,6 +29,7 @@ import { createPerson, findPersonDuplicates, searchPeople } from "@/features/peo
 import { personRelationshipTypeOptions, personRoleOptions } from "@/features/people/schemas";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
+import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
 
 type PersonRole = (typeof personRoleOptions)[number];
 type RelationshipType = (typeof personRelationshipTypeOptions)[number];
@@ -237,6 +238,22 @@ export function PersonWizardModal({
   };
 
   const hasUnsavedChanges = Boolean(fullName.trim() && !createdPersonId);
+  const visualScene =
+    step === 7
+      ? "success"
+      : step === 4
+        ? "guardian"
+        : step === 5 && roles.includes("professor")
+          ? "teacher"
+          : "people";
+  const visualTitle =
+    step === 7
+      ? "Pessoa pronta para continuar"
+      : step === 5
+        ? "Defina os vínculos da pessoa"
+        : fullName.trim()
+          ? `Organizar ${fullName.trim()}`
+          : undefined;
 
   return (
     <ModalShell
@@ -245,10 +262,22 @@ export function PersonWizardModal({
         if (!val) resetForm();
         onOpenChange(val);
       }}
-      size="xl"
+      size="2xl"
       hasUnsavedChanges={hasUnsavedChanges}
     >
-      <div className="flex flex-col h-full">
+      <div className="grid min-h-[78vh] max-h-[90vh] overflow-hidden lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]">
+        <aside className="hidden min-h-0 overflow-hidden border-r border-border bg-muted/20 lg:block">
+          <EducationWorkflowVisual
+            scene={visualScene}
+            title={visualTitle}
+            description={
+              step === 5
+                ? "Uma pessoa pode assumir mais de um papel. Reutilize a mesma identidade e crie apenas os vínculos necessários."
+                : undefined
+            }
+          />
+        </aside>
+        <div className="flex min-h-0 flex-col">
         <ModalHeader
           icon={UserPlus}
           title="Nova Pessoa — Núcleo de Identidade"
@@ -779,6 +808,7 @@ export function PersonWizardModal({
             )}
           </div>
         ) : null}
+        </div>
       </div>
     </ModalShell>
   );
