@@ -55,7 +55,7 @@ import {
   updatePersonStatus,
   updateTeacher,
 } from "@/features/people/server";
-import { personDocumentTypeOptions } from "@/features/people/schemas";
+import { personDocumentTypeOptions, personRoleOptions } from "@/features/people/schemas";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
@@ -95,10 +95,23 @@ const documentTypeLabels: Record<string, string> = {
   outro: "Outro",
 };
 
+const personRoleFilterLabels: Record<(typeof personRoleOptions)[number], string> = {
+  aluno: "Aluno",
+  encarregado: "Encarregado",
+  professor: "Professor",
+  funcionario: "Funcionário",
+  diretor: "Diretor",
+  coordenador: "Coordenador",
+  utilizador: "Utilizador",
+  fornecedor: "Fornecedor",
+  contacto_institucional: "Contacto institucional",
+};
+
 const pessoasFilterDefaults = {
   q: "",
   province: "",
   municipality: "",
+  role: "",
   teacherStatus: "all",
   personStatus: "todos",
 };
@@ -124,13 +137,22 @@ function PeoplePage() {
   const [pendingDocFile, setPendingDocFile] = useState<{ id: string; name: string } | null>(null);
 
   const peopleQuery = useQuery({
-    queryKey: ["people", "search", deferredQuery, filters.province, filters.municipality],
+    queryKey: [
+      "people",
+      "search",
+      deferredQuery,
+      filters.province,
+      filters.municipality,
+      filters.role,
+    ],
     queryFn: () =>
       searchPeople({
         data: {
           query: deferredQuery,
           province: filters.province || undefined,
           municipality: filters.municipality || undefined,
+          role:
+            (filters.role as (typeof personRoleOptions)[number] | "") || undefined,
           limit: 50,
         },
       }),
@@ -480,6 +502,19 @@ function PeoplePage() {
               label: "Município",
               placeholder: "Filtrar município…",
               "aria-label": "Filtrar pessoas por município",
+            },
+            {
+              name: "role",
+              type: "select",
+              label: "Vínculo",
+              emptyValue: "",
+              options: [
+                { value: "", label: "Todos os vínculos" },
+                ...personRoleOptions.map((role) => ({
+                  value: role,
+                  label: personRoleFilterLabels[role],
+                })),
+              ],
             },
             {
               name: "teacherStatus",
