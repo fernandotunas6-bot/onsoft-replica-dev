@@ -165,6 +165,7 @@ export const searchPeopleInputSchema = z.object({
   province: optionalText,
   municipality: optionalText,
   commune: optionalText,
+  role: z.enum(personRoleOptions).optional(),
   limit: z.number().int().min(1).max(50).default(20),
 });
 export type SearchPeopleInput = z.infer<typeof searchPeopleInputSchema>;
