@@ -342,12 +342,22 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       db
         .from("people")
         .select(
-          "id, full_name, preferred_name, email, phone, date_of_birth, sex, national_id, status, photo_url",
+          "id, full_name, preferred_name, email, phone, date_of_birth, sex, national_id, status, photo_url, province, municipality, commune, address",
         )
         .eq("id", student.person_id)
         .eq("school_id", membership.schoolId)
         .maybeSingle()
         .then(async (result) => {
+          if (result.error && isMissingPeopleGeography(result.error)) {
+            return db
+              .from("people")
+              .select(
+                "id, full_name, preferred_name, email, phone, date_of_birth, sex, national_id, status, photo_url",
+              )
+              .eq("id", student.person_id)
+              .eq("school_id", membership.schoolId)
+              .maybeSingle();
+          }
           if (result.error && /photo_url|42703|schema cache/i.test(result.error.message)) {
             return db
               .from("people")
@@ -383,6 +393,10 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       sex?: string | null;
       date_of_birth?: string | null;
       photo_url?: string | null;
+      province?: string | null;
+      municipality?: string | null;
+      commune?: string | null;
+      address?: string | null;
     } | null;
     const guardians = guardiansResult.data;
     let enrollment = enrollmentResult.data as {
@@ -485,7 +499,10 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         final_average: enrollment?.final_average == null ? null : Number(enrollment.final_average),
         attendance_rate:
           enrollment?.attendance_rate == null ? null : Number(enrollment.attendance_rate),
-        address: null,
+        province: person?.province ?? null,
+        municipality: person?.municipality ?? null,
+        commune: person?.commune ?? null,
+        address: person?.address ?? null,
         gender: person?.sex ?? null,
         birth_date: person?.date_of_birth ?? null,
         photo_url: person?.photo_url ?? null,
