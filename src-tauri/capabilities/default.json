@@ -8,6 +8,10 @@
     "opener:default",
     "core:window:default",
     "store:default",
-    "window-state:default"
+    "window-state:default",
+    "stronghold:default",
+    "notification:default",
+    "updater:default",
+    "process:default"
   ]
 }

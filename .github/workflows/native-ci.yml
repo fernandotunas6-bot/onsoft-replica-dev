@@ -1,0 +1,95 @@
+name: SIGA Native CI
+
+on:
+  pull_request:
+    paths:
+      - 'src-tauri/**'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/native-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src-tauri/**'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/native-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: siga-native-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-check:
+    name: Rust check (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Report Cargo lockfile state
+        shell: bash
+        run: |
+          if [ -f src-tauri/Cargo.lock ]; then
+            echo 'src-tauri/Cargo.lock present: reproducible Cargo resolution enabled.'
+          else
+            echo '::warning::src-tauri/Cargo.lock is missing. Compile validation will resolve dependencies dynamically; add and commit the lockfile before release.'
+          fi
+
+      - name: Cargo check
+        working-directory: src-tauri
+        run: cargo check
+
+  frontend-build:
+    name: Frontend build for Tauri
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Check Bun lockfile consistency
+        id: bun-lock
+        continue-on-error: true
+        run: bun install --frozen-lockfile
+
+      - name: Report Bun lockfile drift
+        if: steps.bun-lock.outcome == 'failure'
+        run: echo '::warning::bun.lock is out of sync with package.json. Installing without --frozen-lockfile only to continue native build validation.'
+
+      - name: Install dependencies for compile validation
+        if: steps.bun-lock.outcome == 'failure'
+        run: bun install
+
+      - name: Build frontend
+        run: bun run build
+
+      - name: Verify Tauri frontendDist
+        shell: bash
+        run: |
+          test -d .output/public || {
+            echo 'Expected Tauri frontendDist .output/public was not generated.'
+            echo 'Generated top-level directories:'
+            find . -maxdepth 2 -type d | sort | head -120
+            exit 1
+          }

@@ -1,3 +1,5 @@
+import { isTauri } from "@tauri-apps/api/core";
+
 /**
  * Utilitários para integração do SIGA com o ambiente Desktop (Tauri v2).
  */
@@ -14,11 +16,15 @@ export interface SystemInfo {
   is_desktop_native: boolean;
 }
 
+interface OpenerModule {
+  open?: (url: string) => Promise<unknown> | unknown;
+}
+
 /**
- * Verifica se o SIGA está a ser executado dentro da janela nativa do Tauri.
+ * Verifica se o SIGA está a ser executado dentro do runtime nativo do Tauri.
  */
 export function isTauriDesktop(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+  return isTauri();
 }
 
 /**
@@ -27,7 +33,10 @@ export function isTauriDesktop(): boolean {
 export async function openExternalLink(url: string): Promise<void> {
   if (isTauriDesktop()) {
     try {
-      const opener: any = await import(/* @vite-ignore */ "@tauri-apps/plugin-opener" as any).catch(() => null);
+      const openerModuleName = "@tauri-apps/plugin-opener";
+      const opener = (await import(/* @vite-ignore */ openerModuleName).catch(
+        () => null,
+      )) as OpenerModule | null;
       if (opener?.open) {
         await opener.open(url);
         return;
@@ -40,6 +49,35 @@ export async function openExternalLink(url: string): Promise<void> {
     }
   }
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/**
+ * Envia uma notificação nativa apenas quando o SIGA está no runtime Tauri.
+ * A permissão é solicitada somente quando esta função é chamada explicitamente.
+ */
+export async function notifyNative(title: string, body?: string): Promise<boolean> {
+  if (!isTauriDesktop()) return false;
+
+  try {
+    const {
+      isPermissionGranted,
+      requestPermission,
+      sendNotification,
+    } = await import("@tauri-apps/plugin-notification");
+
+    let permissionGranted = await isPermissionGranted();
+    if (!permissionGranted) {
+      permissionGranted = (await requestPermission()) === "granted";
+    }
+
+    if (!permissionGranted) return false;
+
+    sendNotification({ title, body });
+    return true;
+  } catch (e) {
+    console.warn("Erro ao enviar notificação nativa do SIGA", e);
+    return false;
+  }
 }
 
 /**
