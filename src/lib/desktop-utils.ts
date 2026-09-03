@@ -45,6 +45,35 @@ export async function openExternalLink(url: string): Promise<void> {
 }
 
 /**
+ * Envia uma notificação nativa apenas quando o SIGA está no runtime Tauri.
+ * A permissão é solicitada somente quando esta função é chamada explicitamente.
+ */
+export async function notifyNative(title: string, body?: string): Promise<boolean> {
+  if (!isTauriDesktop()) return false;
+
+  try {
+    const {
+      isPermissionGranted,
+      requestPermission,
+      sendNotification,
+    } = await import("@tauri-apps/plugin-notification");
+
+    let permissionGranted = await isPermissionGranted();
+    if (!permissionGranted) {
+      permissionGranted = (await requestPermission()) === "granted";
+    }
+
+    if (!permissionGranted) return false;
+
+    sendNotification({ title, body });
+    return true;
+  } catch (e) {
+    console.warn("Erro ao enviar notificação nativa do SIGA", e);
+    return false;
+  }
+}
+
+/**
  * Aciona o relé da catraca via TCP Socket diretamente pelo Rust nativo (Desktop).
  */
 export async function pulseTurnstileRelay(
