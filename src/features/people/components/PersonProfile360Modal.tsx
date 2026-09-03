@@ -244,9 +244,7 @@ export function PersonProfile360Modal({
 
   const handleStartRoleEdit = () => {
     setInstitutionRoleDraft(
-      roles.filter((role) =>
-        (personInstitutionRoleOptions as readonly string[]).includes(role),
-      ),
+      roles.filter((role) => (personInstitutionRoleOptions as readonly string[]).includes(role)),
     );
     setRoleEditing(true);
   };
@@ -258,9 +256,7 @@ export function PersonProfile360Modal({
       await setPersonInstitutionRoles({
         data: {
           personId,
-          roles: institutionRoleDraft as Array<
-            (typeof personInstitutionRoleOptions)[number]
-          >,
+          roles: institutionRoleDraft as Array<(typeof personInstitutionRoleOptions)[number]>,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["people", "get", personId] });
