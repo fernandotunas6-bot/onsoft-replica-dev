@@ -6,6 +6,7 @@ import {
   personCoreFieldsSchema,
   personDocumentInputSchema,
   searchPeopleInputSchema,
+  setPersonInstitutionRolesInputSchema,
   setPersonPhotoUrlInputSchema,
   updatePersonInputSchema,
 } from "@/features/people/schemas";
@@ -181,6 +182,31 @@ describe("updatePersonInputSchema", () => {
       file_name: "bi-scan.pdf",
     });
     expect(parsed.file_name).toBe("bi-scan.pdf");
+  });
+});
+
+describe("setPersonInstitutionRolesInputSchema", () => {
+  it("accepts multiple institutional roles without student or teacher pseudo-links", () => {
+    const parsed = setPersonInstitutionRolesInputSchema.parse({
+      personId: "11111111-1111-1111-1111-111111111111",
+      roles: ["encarregado", "coordenador", "contacto_institucional"],
+    });
+    expect(parsed.roles).toEqual(["encarregado", "coordenador", "contacto_institucional"]);
+  });
+
+  it("rejects aluno/professor because those roles come from domain records", () => {
+    expect(
+      setPersonInstitutionRolesInputSchema.safeParse({
+        personId: "11111111-1111-1111-1111-111111111111",
+        roles: ["aluno"],
+      }).success,
+    ).toBe(false);
+    expect(
+      setPersonInstitutionRolesInputSchema.safeParse({
+        personId: "11111111-1111-1111-1111-111111111111",
+        roles: ["professor"],
+      }).success,
+    ).toBe(false);
   });
 });
 
