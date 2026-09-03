@@ -15,6 +15,9 @@ import { pagamentosImporter } from "../importers/pagamentos-importer";
 import { dividasImporter } from "../importers/dividas-importer";
 import { funcionariosImporter } from "../importers/funcionarios-importer";
 import { horariosImporter } from "../importers/horarios-importer";
+import { presencasImporter } from "../importers/presencas-importer";
+import { pautasImporter } from "../importers/pautas-importer";
+import { propinasImporter } from "../importers/propinas-importer";
 
 /**
  * Registo central do motor de importação. Apenas módulos com RowImporter real
@@ -37,6 +40,9 @@ export const IMPORTER_REGISTRY: Partial<Record<ImportModule, RowImporter>> = {
   dividas: dividasImporter,
   funcionarios: funcionariosImporter,
   horarios: horariosImporter,
+  presencas: presencasImporter,
+  pautas: pautasImporter,
+  propinas: propinasImporter,
 };
 
 export function getImporter(module: ImportModule): RowImporter {

@@ -56,6 +56,7 @@ import {
   updateEnrollment,
   updateEnrollmentAttendance,
   updateStudentProfile,
+} from "@/features/students/server";
 import { searchPeople, setPersonPhotoUrl } from "@/features/people/server";
 import { supabase } from "@/integrations/supabase/client";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
