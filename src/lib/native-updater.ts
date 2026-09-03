@@ -44,7 +44,8 @@ export async function checkNativeUpdate(): Promise<NativeUpdateInfo> {
 
 /**
  * Faz download e instala a atualização encontrada.
- * No Windows o instalador encerra a aplicação; em macOS/Linux relança após instalar.
+ * No Windows, `downloadAndInstall()` encerra a aplicação ao lançar o instalador.
+ * Em macOS/Linux, a execução continua e o SIGA relança explicitamente o app.
  */
 export async function installNativeUpdate(): Promise<boolean> {
   if (!isTauri() || !isNativeUpdaterEnabled()) return false;
@@ -55,16 +56,10 @@ export async function installNativeUpdate(): Promise<boolean> {
 
   await update.downloadAndInstall();
 
-  const platform = (await import("@tauri-apps/plugin-os").catch(() => null)) as
-    | { platform?: () => string }
-    | null;
-
-  // O updater do Windows encerra o app após lançar o instalador.
-  // Nos demais desktops, relançamos explicitamente quando possível.
-  if (platform?.platform?.() !== "windows") {
-    const { relaunch } = await import("@tauri-apps/plugin-process");
-    await relaunch();
-  }
+  // No Windows o processo já é encerrado pelo updater antes deste ponto.
+  // Nos restantes desktops, relançamos explicitamente a nova versão.
+  const { relaunch } = await import("@tauri-apps/plugin-process");
+  await relaunch();
 
   return true;
 }
