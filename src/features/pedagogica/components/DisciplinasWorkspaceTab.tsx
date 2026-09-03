@@ -81,6 +81,10 @@ export function DisciplinasWorkspaceTab({
                 turmaIds={classGroups.map((group) => group.id)}
                 subjectIds={subjects.map((subject) => subject.id)}
                 teacherIds={teachers.map((teacher) => teacher.id)}
+                classSubjectLinks={(workspace?.classSubjects ?? []).map((row) => ({
+                  class_group_id: row.class_group_id,
+                  subject_id: row.subject_id,
+                }))}
                 triggerLabel="Atribuir professor"
                 onAssigned={onRefresh}
               />
