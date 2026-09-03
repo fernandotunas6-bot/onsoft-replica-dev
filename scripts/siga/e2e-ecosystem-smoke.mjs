@@ -19,7 +19,7 @@ const endpoints = [
   { label: "DOC web manual", url: "http://localhost:5173/web/criar-escola", expect: [200] },
   { label: "DOC admin manual", url: "http://localhost:5173/admin/control-center", expect: [200] },
   { label: "ADMIN tenants", url: "http://localhost:3005/tenants", expect: [200, 307] },
-  { label: "DOC", url: "http://localhost:5173/", expect: [200] },
+  { label: "DOC", url: "http://localhost:5173/", expect: [200] },\n  { label: "PAYFLOW", url: "http://localhost:3007/", expect: [200] },\n  { label: "PAYFLOW checkout shell", url: "http://localhost:3007/checkout/00000000000000000000000000000000", expect: [200] },
   { label: "API plans", url: "http://localhost:3006/api/saas/plans", expect: [200] },
   {
     label: "API tenant lookup (missing slug)",
@@ -31,7 +31,7 @@ const endpoints = [
     url: "http://localhost:3006/api/saas/tenants/lookup?slug=nao-existe-e2e",
     expect: [404],
   },
-  { label: "API me (anon)", url: "http://localhost:3006/api/saas/me", expect: [401] },
+  { label: "API me (anon)", url: "http://localhost:3006/api/saas/me", expect: [401] },\n  { label: "API PayFlow invalid checkout", url: "http://localhost:3006/api/payflow/checkouts/00000000000000000000000000000000", expect: [404] },
   { label: "API stats (anon GET)", url: "http://localhost:3006/api/saas/stats", expect: [401] },
   {
     label: "API subscription (anon POST)",
