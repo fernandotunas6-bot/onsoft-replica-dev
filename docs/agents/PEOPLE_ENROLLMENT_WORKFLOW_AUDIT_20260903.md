@@ -49,3 +49,44 @@ Depois de validar UI/build/CI:
 2. Selector universal de pessoas com pesquisa server-side e paginação.
 3. Vínculos institucionais explícitos para papéis múltiplos sem duplicação.
 4. Filtros de disciplina/período em fluxos onde são semanticamente necessários (atribuição docente, pauta, horário), sem forçar esses campos na matrícula simples.
+
+
+## Fase 2 — Localização, filtros e vínculo docente
+
+Implementação executada depois da primeira validação visual, mantendo o princípio aditivo e sem reescrever o SGA.
+
+### Localização de Pessoas
+
+- Foi criada uma migration idempotente que garante `province`, `municipality`, `commune` e `address` em `public.people`.
+- Foram adicionados índices por escola/província e escola/província/município para os filtros operacionais.
+- O servidor de Pessoas passou a persistir, devolver e filtrar estes campos.
+- Enquanto a migration não estiver aplicada numa instalação antiga, leituras sem filtros territoriais mantêm fallback compatível; operações que tentem gravar localização falham com mensagem explícita em vez de perder dados silenciosamente.
+- O catálogo local de províncias usa a divisão político-administrativa vigente com 21 províncias.
+- Município e comuna permanecem texto livre nesta fase. Não foi inventado um catálogo municipal incompleto.
+
+### Fluxos cobertos
+
+- Nova Pessoa: província, município, comuna/localidade e morada detalhada.
+- Matrícula interna: os mesmos campos são persistidos na pessoa criada.
+- Matrícula pública: a escola pode activar os campos territoriais na campanha e a candidatura conserva estes dados.
+- Aceitação de candidatura: a localização é transferida para a ficha de Pessoa.
+- Lista de Pessoas: filtros persistentes por província e município.
+- Perfil 360 da Pessoa e perfil do Aluno: passam a mostrar a localização persistida.
+- Edição da Pessoa/Aluno: localização deixa de ser descartada.
+
+### Vínculo professor → turma → disciplina
+
+- O selector de atribuição docente foi convertido para o mesmo split-view do SIGA.
+- A ordem passou a ser Turma → Disciplina → Professor.
+- Quando a turma já tem currículo/`class_subjects`, só são mostradas as disciplinas ligadas a essa turma.
+- Para preservar o fluxo legado, uma turma ainda sem currículo pode fazer a primeira atribuição; o backend continua a criar a ligação `class_subjects` com validação por `school_id`.
+- Pautas e lançamento de notas já possuíam filtro de período/trimestre e disciplinas por turma; estes comportamentos foram preservados em vez de adicionar `term` artificialmente ao vínculo docente.
+
+### Testes adicionados
+
+- catálogo territorial de Angola;
+- schema de Pessoas com filtros territoriais;
+- candidatura pública com localização;
+- perfil de aluno com localização;
+- filtragem de disciplinas na atribuição docente;
+- pgTAP para colunas e índices territoriais.
