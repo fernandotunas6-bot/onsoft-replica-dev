@@ -18,11 +18,13 @@ import {
   listTeachersInputSchema,
   mergePeopleInputSchema,
   searchPeopleInputSchema,
+  setPersonInstitutionRolesInputSchema,
   setPersonPhotoUrlInputSchema,
   updatePersonInputSchema,
   updatePersonStatusInputSchema,
   updateTeacherInputSchema,
   normalizePersonPhone,
+  personInstitutionRoleOptions,
 } from "./schemas";
 import { isAngolaBiNif, normalizePersonNif } from "@/lib/angola-identity";
 
@@ -129,6 +131,111 @@ function isMissingPeopleGeography(error: { message?: string; code?: string } | n
     (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
       error.code === "42703"),
   );
+}
+
+function isMissingPersonRoles(error: { message?: string; code?: string } | null | undefined) {
+  return Boolean(
+    error &&
+    (/person_roles|42P01|42703|schema cache|PGRST/i.test(error.message ?? "") ||
+      error.code === "42P01"),
+  );
+}
+
+const institutionRoleSet = new Set<string>(personInstitutionRoleOptions);
+
+async function assertPersonRoleStoreAvailable(db: AdminDb) {
+  const probe = await db.from("person_roles").select("id").limit(1);
+  if (probe.error && isMissingPersonRoles(probe.error)) {
+    throw new Error(
+      "Os vínculos institucionais ainda não estão activos nesta base. Aplique a migration person_institution_roles.",
+    );
+  }
+  if (probe.error) {
+    throw publicDatabaseError(probe.error, "Não foi possível validar os vínculos da pessoa.");
+  }
+}
+
+async function syncPersonInstitutionRoles(
+  db: AdminDb,
+  input: {
+    schoolId: string;
+    personId: string;
+    roles: string[];
+    userId: string;
+  },
+) {
+  const selected = new Set(input.roles.filter((role) => institutionRoleSet.has(role)));
+  const { data: existing, error } = await db
+    .from("person_roles")
+    .select("id, role, active")
+    .eq("school_id", input.schoolId)
+    .eq("person_id", input.personId);
+
+  if (error && isMissingPersonRoles(error)) {
+    throw new Error(
+      "Os vínculos institucionais ainda não estão activos nesta base. Aplique a migration person_institution_roles.",
+    );
+  }
+  if (error) throw publicDatabaseError(error, "Não foi possível carregar os vínculos da pessoa.");
+
+  const rows = (existing ?? []) as Array<{ id: string; role: string; active: boolean }>;
+  const byRole = new Map(rows.map((row) => [row.role, row] as const));
+  const now = new Date().toISOString();
+
+  const toActivate = rows
+    .filter((row) => institutionRoleSet.has(row.role) && selected.has(row.role) && !row.active)
+    .map((row) => row.id);
+  const toDeactivate = rows
+    .filter((row) => institutionRoleSet.has(row.role) && !selected.has(row.role) && row.active)
+    .map((row) => row.id);
+  const toInsert = [...selected].filter((role) => !byRole.has(role));
+
+  const operations: Array<PromiseLike<{ error: { message: string } | null }>> = [];
+  if (toActivate.length) {
+    operations.push(
+      db
+        .from("person_roles")
+        .update({
+          active: true,
+          deleted_at: null,
+          updated_at: now,
+          updated_by: input.userId,
+        })
+        .in("id", toActivate),
+    );
+  }
+  if (toDeactivate.length) {
+    operations.push(
+      db
+        .from("person_roles")
+        .update({
+          active: false,
+          updated_at: now,
+          updated_by: input.userId,
+        })
+        .in("id", toDeactivate),
+    );
+  }
+  if (toInsert.length) {
+    operations.push(
+      db.from("person_roles").insert(
+        toInsert.map((role) => ({
+          school_id: input.schoolId,
+          person_id: input.personId,
+          role,
+          active: true,
+          created_by: input.userId,
+          updated_by: input.userId,
+        })),
+      ),
+    );
+  }
+
+  const results = await Promise.all(operations);
+  const failed = results.find((result) => result.error)?.error;
+  if (failed) throw publicDatabaseError(failed, "Não foi possível guardar os vínculos da pessoa.");
+
+  return [...selected];
 }
 
 export const searchPeople = createServerFn({ method: "GET" })
@@ -353,6 +460,10 @@ export const createPerson = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
 
     const personInput = data.person;
+    const roles = data.roles ?? [];
+    const institutionRoles = roles.filter((role) => institutionRoleSet.has(role));
+    if (institutionRoles.length) await assertPersonRoleStoreAvailable(db);
+
     const normalizedNif = normalizePersonNif(personInput.nif);
     const personPayload: Record<string, unknown> = {
       school_id: membership.schoolId,
@@ -414,7 +525,15 @@ export const createPerson = createServerFn({ method: "POST" })
     }
     await syncBiDocumentFromNif(db, membership.schoolId, person.id, normalizedNif, context.userId);
 
-    const roles = data.roles ?? [];
+    if (institutionRoles.length) {
+      await syncPersonInstitutionRoles(db, {
+        schoolId: membership.schoolId,
+        personId: person.id,
+        roles: institutionRoles,
+        userId: context.userId,
+      });
+    }
+
     if (roles.includes("professor")) {
       const { count } = await db
         .from("teachers")
@@ -914,6 +1033,36 @@ export const updatePerson = createServerFn({ method: "POST" })
       ...person,
       phone_primary: person.phone,
     };
+  });
+
+export const setPersonInstitutionRoles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => setPersonInstitutionRolesInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: person, error: personError } = await db
+      .from("people")
+      .select("id")
+      .eq("id", data.personId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (personError) throw publicDatabaseError(personError, "Não foi possível validar a pessoa.");
+    if (!person) throw new Error("Pessoa não encontrada nesta escola.");
+
+    await assertPersonRoleStoreAvailable(db);
+    const roles = await syncPersonInstitutionRoles(db, {
+      schoolId: membership.schoolId,
+      personId: data.personId,
+      roles: data.roles,
+      userId: context.userId,
+    });
+    return { personId: data.personId, roles };
   });
 
 export const setPersonPhotoUrl = createServerFn({ method: "POST" })
