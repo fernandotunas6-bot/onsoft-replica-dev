@@ -33,6 +33,21 @@ describe("enrollment form schemas", () => {
     ).toBe(true);
   });
 
+  it("aceita localização na candidatura pública", () => {
+    const parsed = submitPublicEnrollmentInputSchema.parse({
+      slug: "escola-matricula",
+      person: {
+        full_name: "Ana Domingos",
+        province: "Huambo",
+        municipality: "Caála",
+        commune: "Cuima",
+        address: "Bairro Central",
+      },
+    });
+    expect(parsed.person.province).toBe("Huambo");
+    expect(parsed.person.municipality).toBe("Caála");
+  });
+
   it("rejeita NIF/BI inválido na candidatura pública", () => {
     expect(
       submitPublicEnrollmentInputSchema.safeParse({
