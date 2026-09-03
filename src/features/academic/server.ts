@@ -11,6 +11,7 @@ import {
 // as mutações de horário que precisam de transportar o actor humano para os
 // guards de service_role no PostgreSQL.
 export * from "./server-secure-legacy";
+export * from "./academic-calendar";
 
 function scheduleTime(value: unknown) {
   return String(value ?? "").slice(0, 5);
