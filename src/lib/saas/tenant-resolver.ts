@@ -1,4 +1,8 @@
-import { getPlatformDomain, isReservedSubdomain } from "@/lib/saas/platform-domain";
+import {
+  getPlatformDomain,
+  isReservedSubdomain,
+  validateTenantSlug,
+} from "@/lib/saas/platform-domain";
 
 /**
  * Resolve o tenant activo a partir do hostname (subdomínio da plataforma,
@@ -10,7 +14,8 @@ export type TenantLookup =
   | { mode: "hostname"; hostname: string };
 
 function normalizeHost(hostname?: string): string {
-  return (hostname || (typeof window !== "undefined" ? window.location.hostname : "")).toLowerCase();
+  const raw = hostname || (typeof window !== "undefined" ? window.location.hostname : "");
+  return raw.trim().toLowerCase().replace(/\.+$/g, "");
 }
 
 export function isLocalDevHostname(hostname?: string): boolean {
@@ -32,7 +37,9 @@ export function isPortalSigaHostname(hostname?: string): boolean {
 export function resolveTenantLookup(hostname?: string): TenantLookup {
   const host = normalizeHost(hostname);
 
-  if (!host) return { mode: "slug", slug: "minha-escola" };
+  // Sem hostname não há tenant implícito. Falhar fechado é mais seguro do que
+  // mapear silenciosamente para uma escola de demonstração.
+  if (!host) return { mode: "hostname", hostname: "" };
 
   // Selecção manual de tenant existe somente em desenvolvimento local.
   if (isLocalDevHostname(host)) {
@@ -61,8 +68,10 @@ export function resolveTenantLookup(hostname?: string): TenantLookup {
       const subdomain = host.slice(0, -suffix.length).toLowerCase();
 
       // Subdomínios de infraestrutura/plataforma nunca devem ser resolvidos
-      // como tenants escolares.
-      if (!subdomain || isReservedSubdomain(subdomain)) {
+      // como tenants escolares. Também rejeitamos labels aninhados ou slugs
+      // fora do formato canónico para impedir resolução ambígua.
+      const slugValidation = validateTenantSlug(subdomain);
+      if (!subdomain || subdomain.includes(".") || isReservedSubdomain(subdomain) || !slugValidation.valid) {
         return { mode: "hostname", hostname: host };
       }
 
