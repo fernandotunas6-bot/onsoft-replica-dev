@@ -5,6 +5,8 @@ on:
     paths:
       - 'src/features/academic/**'
       - 'src/features/import/**'
+      - 'tests/academic/**'
+      - 'tests/import/**'
       - 'supabase/migrations/**'
       - 'supabase/tests/**'
       - 'package.json'
@@ -16,6 +18,8 @@ on:
     paths:
       - 'src/features/academic/**'
       - 'src/features/import/**'
+      - 'tests/academic/**'
+      - 'tests/import/**'
       - 'supabase/migrations/**'
       - 'supabase/tests/**'
       - 'package.json'
@@ -56,6 +60,7 @@ jobs:
           src/features/import/importers/notas-importer.ts
           src/features/import/importers/professores-importer.ts
           src/features/import/importers/turmas-importer.ts
+          tests/import/academic-core.test.ts
 
       - name: Lint academic and import changes
         run: >-
@@ -70,9 +75,10 @@ jobs:
           src/features/import/importers/notas-importer.ts
           src/features/import/importers/professores-importer.ts
           src/features/import/importers/turmas-importer.ts
+          tests/import/academic-core.test.ts
 
-      - name: Unit tests (Vitest)
-        run: bun run test
+      - name: Unit tests (Vitest — Academic + Import)
+        run: bunx vitest run tests/academic tests/import
 
       - name: Production build
         if: always()
