@@ -326,12 +326,7 @@ export const searchPeople = createServerFn({ method: "GET" })
             .eq("active", true)
             .in("person_id", personIds),
         ])
-      : [
-          { data: [] },
-          { data: [] },
-          { data: [] },
-          { data: [] },
-        ];
+      : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
 
     const rolesByPerson = new Map<string, Set<string>>();
     const addRole = (personId: unknown, role: string) => {
