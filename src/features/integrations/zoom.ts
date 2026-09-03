@@ -19,7 +19,7 @@ function basicAuth() {
 }
 
 function redirectUri() {
-  return process.env.ZOOM_REDIRECT_URI?.trim() || "";
+  return process.env.ZOOM_REDIRECT_URI?.trim() || "http://localhost:3000/api/integrations/zoom/callback";
 }
 
 function randomState() {

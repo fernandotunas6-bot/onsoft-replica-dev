@@ -10,6 +10,7 @@ import { TeacherClassMaterialsBlock } from "@/features/arquivos/ClassMaterialsPa
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { calendarIcsFeedUrl } from "@/features/calendar/ics";
 import { meetingRoomLink } from "@/features/integrations/actions";
+import { ZoomMeetingButton } from "@/features/integrations/ZoomMeetingButton";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -382,17 +383,12 @@ export function TeacherWorkspacePanel({
                   {zoomOn || teamsOn ? (
                     <span className="mt-1 flex flex-wrap gap-3">
                       {zoomOn ? (
-                        <button
-                          type="button"
-                          className="text-[11px] font-semibold text-primary hover:underline"
-                          onClick={async () => {
-                            const link = meetingRoomLink("zoom");
-                            await navigator.clipboard.writeText(link);
-                            toast.success("Link Zoom copiado", { description: link });
-                          }}
-                        >
-                          Abrir Zoom
-                        </button>
+                        <ZoomMeetingButton
+                          lessonTitle={`${slot.subject_name} · ${slot.class_group_name}`}
+                          size="sm"
+                          variant="ghost"
+                          className="h-auto p-0 text-[11px] font-semibold text-primary hover:underline hover:bg-transparent"
+                        />
                       ) : null}
                       {teamsOn ? (
                         <button

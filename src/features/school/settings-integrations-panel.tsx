@@ -11,6 +11,7 @@ import { DOC_PATHS, getDocUrl, getFinanceGatewayConfirmUrl, getUnitelGatewayConf
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { groupCatalogItems, integrationFieldHints } from "@/features/integrations/catalog";
 import { InstallConsentModal } from "@/features/integrations/InstallConsentModal";
+import { ZoomIntegrationCard } from "@/features/integrations/ZoomIntegrationCard";
 import { installPackageFor } from "@/features/integrations/install";
 import {
   consumeIntegrationFocus,
@@ -329,55 +330,59 @@ function AcademicIntegrationsCatalog() {
                         .join(" · ")}
                     </p>
                   ) : null}
-                  <form
-                    key={`${item.id}-${item.status}-${String(config["merchantId"] ?? "")}`}
-                    className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const data = new FormData(event.currentTarget);
-                      void upsertSchoolIntegration({
-                        data: {
-                          provider: item.id,
-                          status: "configured",
-                          merchantId: String(data.get("merchantId") || ""),
-                          callbackUrl: String(data.get("callbackUrl") || ""),
-                          sandbox: true,
-                        },
-                      })
-                        .then(() => {
-                          toast.success(`${item.name} configurado.`);
-                          return queryClient.invalidateQueries({
-                            queryKey: ["school", "integrations"],
-                          });
+                  {item.id === "zoom" ? (
+                    <ZoomIntegrationCard item={item} />
+                  ) : (
+                    <form
+                      key={`${item.id}-${item.status}-${String(config["merchantId"] ?? "")}`}
+                      className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const data = new FormData(event.currentTarget);
+                        void upsertSchoolIntegration({
+                          data: {
+                            provider: item.id,
+                            status: "configured",
+                            merchantId: String(data.get("merchantId") || ""),
+                            callbackUrl: String(data.get("callbackUrl") || ""),
+                            sandbox: true,
+                          },
                         })
-                        .catch((error) =>
-                          toast.error(error instanceof Error ? error.message : "Falha ao guardar."),
-                        );
-                    }}
-                  >
-                    <Input
-                      name="merchantId"
-                      aria-label={`Identificador de comerciante ${item.name}`}
-                      defaultValue={String(config["merchantId"] ?? "")}
-                      placeholder={hints.merchant}
-                      className="h-8 text-xs"
-                    />
-                    <Input
-                      name="callbackUrl"
-                      aria-label={`URL de retorno ${item.name}`}
-                      defaultValue={String(
-                        config["callbackUrl"] ??
-                          (item.id === "multicaixa_express" || item.id === "unitel_money"
-                            ? getFinanceGatewayConfirmUrl()
-                            : ""),
-                      )}
-                      placeholder={hints.callback}
-                      className="h-8 text-xs"
-                    />
-                    <Button type="submit" size="sm" variant="outline">
-                      Guardar
-                    </Button>
-                  </form>
+                          .then(() => {
+                            toast.success(`${item.name} configurado.`);
+                            return queryClient.invalidateQueries({
+                              queryKey: ["school", "integrations"],
+                            });
+                          })
+                          .catch((error) =>
+                            toast.error(error instanceof Error ? error.message : "Falha ao guardar."),
+                          );
+                      }}
+                    >
+                      <Input
+                        name="merchantId"
+                        aria-label={`Identificador de comerciante ${item.name}`}
+                        defaultValue={String(config["merchantId"] ?? "")}
+                        placeholder={hints.merchant}
+                        className="h-8 text-xs"
+                      />
+                      <Input
+                        name="callbackUrl"
+                        aria-label={`URL de retorno ${item.name}`}
+                        defaultValue={String(
+                          config["callbackUrl"] ??
+                            (item.id === "multicaixa_express" || item.id === "unitel_money"
+                              ? getFinanceGatewayConfirmUrl()
+                              : ""),
+                        )}
+                        placeholder={hints.callback}
+                        className="h-8 text-xs"
+                      />
+                      <Button type="submit" size="sm" variant="outline">
+                        Guardar
+                      </Button>
+                    </form>
+                  )}
                   <GatewayWebhookHint provider={item.id} config={config} />
                 </li>
               );

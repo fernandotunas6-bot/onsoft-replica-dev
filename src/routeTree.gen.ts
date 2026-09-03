@@ -50,6 +50,7 @@ import { Route as ApiSaasStatsRouteImport } from './routes/api/saas/stats'
 import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subscriptions'
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
 import { Route as ApiFinanceGatewayConfirmRouteImport } from './routes/api/finance/gateway.confirm'
+import { Route as ApiIntegrationsZoomCallbackRouteImport } from './routes/api/integrations/zoom/callback'
 import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domains.check'
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
 import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
@@ -269,6 +270,12 @@ const ApiFinanceGatewayConfirmRoute =
     path: '/api/finance/gateway/confirm',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiIntegrationsZoomCallbackRoute =
+  ApiIntegrationsZoomCallbackRouteImport.update({
+    id: '/api/integrations/zoom/callback',
+    path: '/api/integrations/zoom/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiSaasDomainsCheckRoute = ApiSaasDomainsCheckRouteImport.update({
   id: '/check',
   path: '/check',
@@ -376,6 +383,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
+  '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -431,6 +439,7 @@ export interface FileRoutesByTo {
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
+  '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -487,6 +496,7 @@ export interface FileRoutesById {
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
+  '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -544,6 +554,7 @@ export interface FileRouteTypes {
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
     | '/api/finance/gateway/confirm'
+    | '/api/integrations/zoom/callback'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -599,6 +610,7 @@ export interface FileRouteTypes {
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
     | '/api/finance/gateway/confirm'
+    | '/api/integrations/zoom/callback'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -654,6 +666,7 @@ export interface FileRouteTypes {
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
     | '/api/finance/gateway/confirm'
+    | '/api/integrations/zoom/callback'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -709,6 +722,7 @@ export interface RootRouteChildren {
   ApiSaasSubscriptionsRoute: typeof ApiSaasSubscriptionsRouteWithChildren
   ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
   ApiFinanceGatewayConfirmRoute: typeof ApiFinanceGatewayConfirmRoute
+  ApiIntegrationsZoomCallbackRoute: typeof ApiIntegrationsZoomCallbackRoute
   ApiSaasEmailRoutesRoute: typeof ApiSaasEmailRoutesRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
@@ -1003,6 +1017,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFinanceGatewayConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/integrations/zoom/callback': {
+      id: '/api/integrations/zoom/callback'
+      path: '/api/integrations/zoom/callback'
+      fullPath: '/api/integrations/zoom/callback'
+      preLoaderRoute: typeof ApiIntegrationsZoomCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/saas/domains/check': {
       id: '/api/saas/domains/check'
       path: '/check'
@@ -1201,6 +1222,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasSubscriptionsRoute: ApiSaasSubscriptionsRouteWithChildren,
   ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,
   ApiFinanceGatewayConfirmRoute: ApiFinanceGatewayConfirmRoute,
+  ApiIntegrationsZoomCallbackRoute: ApiIntegrationsZoomCallbackRoute,
   ApiSaasEmailRoutesRoute: ApiSaasEmailRoutesRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
