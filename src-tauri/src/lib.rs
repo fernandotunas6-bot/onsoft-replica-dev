@@ -28,7 +28,7 @@ fn resolve_socket_address(ip_address: &str, port: u16) -> Result<SocketAddr, Str
 
 /// Comando nativo Tauri 2 para disparo direto de relé de catraca via TCP Socket em Rust.
 #[tauri::command]
-pub fn pulse_turnstile_relay(
+fn pulse_turnstile_relay(
     ip_address: String,
     gate: u8,
     direction: String,
@@ -101,7 +101,7 @@ pub fn pulse_turnstile_relay(
 
 /// Comando nativo Tauri 2 para impressão térmica ESC/POS direta em Rust.
 #[tauri::command]
-pub fn print_thermal_receipt_native(
+fn print_thermal_receipt_native(
     printer_ip: String,
     text: String,
 ) -> HardwareCommandResult {
@@ -156,7 +156,7 @@ pub fn print_thermal_receipt_native(
 
 /// Retorna informações nativas da plataforma em execução.
 #[tauri::command]
-pub fn get_system_info() -> SystemInfo {
+fn get_system_info() -> SystemInfo {
     SystemInfo {
         os_type: std::env::consts::OS.to_string(),
         arch: std::env::consts::ARCH.to_string(),
