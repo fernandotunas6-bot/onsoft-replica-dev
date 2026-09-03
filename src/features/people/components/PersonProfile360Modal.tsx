@@ -42,6 +42,7 @@ import { getPerson, updatePersonStatus, updatePerson } from "@/features/people/s
 import { whatsappHref } from "@/features/integrations/actions";
 import { formatAngolaBi } from "@/lib/angola-identity";
 import { kwanza } from "@/lib/currency";
+import { angolaProvinces } from "@/lib/angola-territory";
 
 export type PersonRecord = {
   id: string;
@@ -59,6 +60,10 @@ export type PersonRecord = {
   email?: string | null;
   phone?: string | null;
   phone_primary?: string | null;
+  province?: string | null;
+  municipality?: string | null;
+  commune?: string | null;
+  address?: string | null;
   status?: string | null;
   roles?: string[];
   documents?: Array<{
@@ -139,7 +144,16 @@ export function PersonProfile360Modal({
   const [activeTab, setActiveTab] = useState("visao_geral");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editValues, setEditValues] = useState({ fullName: "", email: "", phone: "", nif: "" });
+  const [editValues, setEditValues] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    nif: "",
+    province: "",
+    municipality: "",
+    commune: "",
+    address: "",
+  });
 
   const personQuery = useQuery({
     queryKey: ["people", "get", personId],
@@ -176,6 +190,10 @@ export function PersonProfile360Modal({
       email: email,
       phone: phone,
       nif: nifOrBi,
+      province: person.province ?? "",
+      municipality: person.municipality ?? "",
+      commune: person.commune ?? "",
+      address: person.address ?? "",
     });
     setActiveTab("dados_pessoais");
     setEditing(true);
@@ -197,6 +215,10 @@ export function PersonProfile360Modal({
           email: editValues.email.trim(),
           phone: editValues.phone.trim(),
           nif: editValues.nif.trim(),
+          province: editValues.province.trim(),
+          municipality: editValues.municipality.trim(),
+          commune: editValues.commune.trim(),
+          address: editValues.address.trim(),
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["people", "get", personId] });
@@ -520,6 +542,67 @@ export function PersonProfile360Modal({
                         }
                       />
                     </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-province" className="text-xs">
+                        Província
+                      </Label>
+                      <select
+                        id="edit-province"
+                        value={editValues.province}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({
+                            ...prev,
+                            province: e.target.value,
+                            municipality: "",
+                            commune: "",
+                          }))
+                        }
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="">Seleccionar província</option>
+                        {angolaProvinces.map((province) => (
+                          <option key={province} value={province}>
+                            {province}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-municipality" className="text-xs">
+                        Município
+                      </Label>
+                      <Input
+                        id="edit-municipality"
+                        value={editValues.municipality}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, municipality: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-commune" className="text-xs">
+                        Comuna / localidade
+                      </Label>
+                      <Input
+                        id="edit-commune"
+                        value={editValues.commune}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, commune: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-address" className="text-xs">
+                        Morada detalhada
+                      </Label>
+                      <Input
+                        id="edit-address"
+                        value={editValues.address}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, address: e.target.value }))
+                        }
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center justify-end gap-2 pt-2">
                     <Button
@@ -650,6 +733,17 @@ export function PersonProfile360Modal({
                       <span className="text-muted-foreground block">Correio Eletrónico</span>
                       <span className="font-bold text-sm truncate">
                         {email || "Sem e-mail registrado"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/20 sm:col-span-2">
+                    <MapPin className="mt-0.5 size-5 shrink-0 text-primary" />
+                    <div className="min-w-0">
+                      <span className="text-muted-foreground block">Localização</span>
+                      <span className="font-bold text-sm">
+                        {[person?.address, person?.commune, person?.municipality, person?.province]
+                          .filter(Boolean)
+                          .join(" · ") || "Sem localização registada"}
                       </span>
                     </div>
                   </div>
