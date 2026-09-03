@@ -228,7 +228,7 @@ export function AssignTeacherForm({
               onSubmit={() => void submit()}
               submitLabel="Atribuir professor"
               isSubmitting={saving}
-              submitDisabled={!classGroupId || !subjectId || !teacherId}
+              disabled={!classGroupId || !subjectId || !teacherId}
             />
           </div>
         </div>
