@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Award,
   BookOpen,
   Calendar,
+  Camera,
   Clock,
   FileCheck,
   FileText,
@@ -19,6 +20,7 @@ import {
   Save,
   ShieldAlert,
   ShieldCheck,
+  Upload,
   UserCheck,
   UserPlus,
   Users,
@@ -39,9 +41,13 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { applyLibraryPhotoToPerson } from "@/features/arquivos/apply-person-photo";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getPerson,
   setPersonInstitutionRoles,
+  setPersonPhotoUrl,
   updatePersonStatus,
   updatePerson,
 } from "@/features/people/server";
@@ -183,6 +189,80 @@ export function PersonProfile360Modal({
   const nifOrBi = person?.nif || person?.national_id || "";
   const photoUrl = person?.photo_url || null;
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !personId) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor seleccione uma imagem válida (PNG, JPEG ou WebP).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem não pode ultrapassar 5 MB.");
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `avatars/${personId}-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("school-logos")
+        .upload(filePath, file, { upsert: true });
+
+      let newPhotoUrl: string | null = null;
+      if (!uploadError) {
+        const { data: publicUrlData } = supabase.storage
+          .from("school-logos")
+          .getPublicUrl(filePath);
+        newPhotoUrl = publicUrlData.publicUrl;
+      }
+
+      if (!newPhotoUrl) {
+        const { error: avatarError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, file, { upsert: true });
+        if (!avatarError) {
+          const { data: publicUrlData } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(filePath);
+          newPhotoUrl = publicUrlData.publicUrl;
+        }
+      }
+
+      if (!newPhotoUrl) {
+        throw new Error("Não foi possível carregar a imagem para o servidor de ficheiros.");
+      }
+
+      await setPersonPhotoUrl({
+        data: {
+          personId,
+          photoUrl: newPhotoUrl,
+        },
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["people", "detail", personId] }),
+        queryClient.invalidateQueries({ queryKey: ["people"] }),
+        queryClient.invalidateQueries({ queryKey: ["students"] }),
+      ]);
+
+      toast.success("Foto de perfil actualizada com sucesso!");
+    } catch (err) {
+      toast.error("Erro ao actualizar a foto de perfil", {
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const sidebarItems: ModalSidebarItem[] = [
     { value: "visao_geral", label: "Visão Geral", icon: UserCheck },
     { value: "dados_pessoais", label: "Dados Pessoais", icon: IdCard },
@@ -283,11 +363,33 @@ export function PersonProfile360Modal({
         <div className="border-b border-border bg-gradient-to-r from-card via-card to-secondary/30 px-6 py-5 pr-20">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4 min-w-0">
-              <UserAvatar
-                url={photoUrl}
-                initials={person?.full_name?.slice(0, 2)?.toUpperCase() ?? "P"}
-                className="size-16 text-xl font-bold ring-2 ring-primary/20 shadow-md"
-              />
+              <div className="relative group shrink-0">
+                <UserAvatar
+                  url={photoUrl}
+                  initials={person?.full_name?.slice(0, 2)?.toUpperCase() ?? "P"}
+                  className="size-16 text-xl font-bold ring-2 ring-primary/20 shadow-md transition-transform group-hover:scale-[1.02]"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingPhoto}
+                  title="Alterar foto de perfil"
+                  className="absolute -bottom-1 -right-1 size-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center shadow hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
+                >
+                  {isUploadingPhoto ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <Camera className="size-3" />
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handleDirectPhotoUpload}
+                />
+              </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="truncate text-xl font-extrabold text-foreground">
