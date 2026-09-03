@@ -110,7 +110,6 @@ const roleLabels: Record<string, string> = {
   utilizador: "Utilizador com Acesso",
   fornecedor: "Fornecedor Institucional",
   contacto_institucional: "Contacto Institucional",
-  utilizador: "Utilizador com Acesso",
 };
 
 const roleBadges: Record<
@@ -277,7 +276,12 @@ export function PersonProfile360Modal({
   };
 
   return (
-    <ModalShell open={open} onOpenChange={onOpenChange} size="2xl" hasUnsavedChanges={editing}>
+    <ModalShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="2xl"
+      hasUnsavedChanges={editing || roleEditing}
+    >
       <div className="flex h-full max-h-[88vh] flex-col overflow-hidden">
         {/* CABEÇALHO 360° PREMIUM */}
         <div className="border-b border-border bg-gradient-to-r from-card via-card to-secondary/30 px-6 py-5 pr-20">
@@ -378,12 +382,13 @@ export function PersonProfile360Modal({
           type="button"
           onClick={() => {
             if (
-              editing &&
+              (editing || roleEditing) &&
               !window.confirm("Existem alterações não guardadas. Fechar sem guardar?")
             ) {
               return;
             }
             setEditing(false);
+            setRoleEditing(false);
             onOpenChange(false);
           }}
           aria-label="Fechar"
