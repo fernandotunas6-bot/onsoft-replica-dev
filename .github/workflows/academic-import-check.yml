@@ -51,7 +51,10 @@ jobs:
         run: >-
           bunx prettier --write
           src/features/academic/server.ts
+          src/features/academic/server-secure-legacy.ts
           src/features/academic/sga-grades.ts
+          src/features/academic/academic-bootstrap.ts
+          src/features/academic/academic-calendar.ts
           src/features/import/server.ts
           src/features/import/engine/registry.ts
           src/features/import/importers/academic-core.ts
@@ -60,13 +63,18 @@ jobs:
           src/features/import/importers/notas-importer.ts
           src/features/import/importers/professores-importer.ts
           src/features/import/importers/turmas-importer.ts
+          tests/academic/academic-bootstrap.test.ts
+          tests/academic/academic-calendar.test.ts
           tests/import/academic-core.test.ts
 
       - name: Lint academic and import changes
         run: >-
           bunx eslint
           src/features/academic/server.ts
+          src/features/academic/server-secure-legacy.ts
           src/features/academic/sga-grades.ts
+          src/features/academic/academic-bootstrap.ts
+          src/features/academic/academic-calendar.ts
           src/features/import/server.ts
           src/features/import/engine/registry.ts
           src/features/import/importers/academic-core.ts
@@ -75,6 +83,8 @@ jobs:
           src/features/import/importers/notas-importer.ts
           src/features/import/importers/professores-importer.ts
           src/features/import/importers/turmas-importer.ts
+          tests/academic/academic-bootstrap.test.ts
+          tests/academic/academic-calendar.test.ts
           tests/import/academic-core.test.ts
 
       - name: Unit tests (Vitest — Academic + Import)
