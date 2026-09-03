@@ -15,6 +15,16 @@ export const personRoleOptions = [
   "fornecedor",
   "contacto_institucional",
 ] as const;
+
+export const personInstitutionRoleOptions = [
+  "encarregado",
+  "funcionario",
+  "diretor",
+  "coordenador",
+  "utilizador",
+  "fornecedor",
+  "contacto_institucional",
+] as const;
 export const personRelationshipTypeOptions = [
   "pai",
   "mae",
@@ -185,6 +195,12 @@ export const updatePersonStatusInputSchema = z.object({
   status: z.enum(["active", "inactive"]),
 });
 export type UpdatePersonStatusInput = z.infer<typeof updatePersonStatusInputSchema>;
+
+export const setPersonInstitutionRolesInputSchema = z.object({
+  personId: z.string().uuid(),
+  roles: z.array(z.enum(personInstitutionRoleOptions)).max(personInstitutionRoleOptions.length),
+});
+export type SetPersonInstitutionRolesInput = z.infer<typeof setPersonInstitutionRolesInputSchema>;
 
 export const updatePersonInputSchema = z
   .object({
