@@ -13,7 +13,8 @@ const apps = [
   { label: "SIGA", cwd: root, command: "npm", args: ["run", "dev"] },
   { label: "WEB", cwd: resolve(root, "painel/web"), command: "npm", args: ["run", "dev"] },
   { label: "ADMIN", cwd: resolve(root, "painel/admin"), command: "npm", args: ["run", "dev"] },
-  { label: "DOC", cwd: resolve(root, "painel/docs"), command: "npm", args: ["run", "dev"] },\n  { label: "PAYFLOW", cwd: resolve(root, "painel/payflow"), command: "npm", args: ["run", "dev"] },
+  { label: "DOC", cwd: resolve(root, "painel/docs"), command: "npm", args: ["run", "dev"] },
+  { label: "PAYFLOW", cwd: resolve(root, "painel/payflow"), command: "npm", args: ["run", "dev"] },
 ];
 
 const children = [];
@@ -34,10 +35,11 @@ process.on("SIGTERM", () => {
 });
 
 console.log("Ecossistema SIGA Plus — a arrancar 5 apps…");
-console.log("  SIGA  → http://localhost:3006");
-console.log("  WEB   → http://localhost:5174");
-console.log("  ADMIN → http://localhost:3005/tenants");
-console.log("  DOC   → http://localhost:5173");\nconsole.log("  PAYFLOW → http://localhost:3007");
+console.log("  SIGA    → http://localhost:3006");
+console.log("  WEB     → http://localhost:5174");
+console.log("  ADMIN   → http://localhost:3005/tenants");
+console.log("  DOC     → http://localhost:5173");
+console.log("  PAYFLOW → http://localhost:3007");
 console.log("Ctrl+C para parar todos.\n");
 
 for (const app of apps) {
@@ -49,7 +51,7 @@ for (const app of apps) {
   child.on("exit", (code, signal) => {
     if (signal) return;
     if (code && code !== 0) {
-      console.error(`[${app.label}] terminou com código ${code}`);
+      console.error("[" + app.label + "] terminou com código " + code);
     }
   });
   children.push(child);
