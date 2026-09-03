@@ -3,7 +3,7 @@ export type EnrollmentClassGroup = {
   name: string;
   grade_name: string;
   course_name: string;
-  academic_year_id: string;
+  academic_year_id: string | null;
   academic_year_name?: string;
   course_id?: string | null;
   shift?: string;
@@ -67,8 +67,8 @@ export function buildEnrollmentDirectory(
 
   const academicYears = uniqueOptions(
     active,
-    (group) => group.academic_year_id,
-    (group) => group.academic_year_name || group.academic_year_id,
+    (group) => group.academic_year_id || "",
+    (group) => group.academic_year_name || group.academic_year_id || "",
   );
 
   const yearRows = filters.academicYearId
