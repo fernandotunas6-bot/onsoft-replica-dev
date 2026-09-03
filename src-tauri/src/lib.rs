@@ -2,8 +2,6 @@ use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::net::{SocketAddr, TcpStream};
 use std::time::Duration;
-
-#[cfg(desktop)]
 use tauri::Manager;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -168,6 +166,15 @@ fn get_system_info() -> SystemInfo {
 pub fn run() {
     let builder = tauri::Builder::default()
         .setup(|app| {
+            let stronghold_salt_path = app
+                .path()
+                .app_local_data_dir()?
+                .join("stronghold-salt.txt");
+
+            app.handle().plugin(
+                tauri_plugin_stronghold::Builder::with_argon2(&stronghold_salt_path).build(),
+            )?;
+
             #[cfg(target_os = "macos")]
             {
                 if let Ok(menu) = tauri::menu::Menu::default(app.handle()) {
