@@ -91,7 +91,27 @@ runStep("Deploy ADMIN (painel/admin → siga-admin.pages.dev)", () => {
   });
 });
 
-// 4. SIGA (raiz)
+// 4. PAYFLOW (painel/payflow)
+runStep("Deploy PAYFLOW (painel/payflow → payflow.portal-siga.com)", () => {
+  const payflowDir = path.resolve(root, "painel/payflow");
+  console.log("==> Building PAYFLOW (vinext)...");
+  execSync("npm run build", { cwd: payflowDir, stdio: "inherit", env: mergedEnv });
+  console.log("==> Deploying PAYFLOW to Cloudflare Workers...");
+  const wranglerDist = path.resolve(payflowDir, "dist/server/wrangler.json");
+  if (fs.existsSync(wranglerDist)) {
+    const cfg = JSON.parse(fs.readFileSync(wranglerDist, "utf-8"));
+    cfg.r2_buckets = [];
+    cfg.d1_databases = [];
+    fs.writeFileSync(wranglerDist, JSON.stringify(cfg, null, 2), "utf-8");
+  }
+  execSync("npx wrangler deploy --config wrangler.json", {
+    cwd: path.resolve(payflowDir, "dist/server"),
+    stdio: "inherit",
+    env: mergedEnv,
+  });
+});
+
+// 5. SIGA (raiz)
 runStep("Deploy SIGA Plus (raiz → Cloudflare Workers / portal-siga.com)", () => {
   execSync("node scripts/deploy-cf.mjs", { cwd: root, stdio: "inherit", env: mergedEnv });
 });
@@ -100,6 +120,7 @@ console.log(`\n======================================================`);
 console.log(`🎉 DEPLOY DE TODO O ECOSSISTEMA CONCLUÍDO COM SUCESSO!`);
 console.log(`======================================================`);
 console.log(`  SIGA PLUS : https://portal-siga.com`);
+console.log(`  PAYFLOW   : https://payflow.portal-siga.com`);
 console.log(`  WEB       : https://siga-web.pages.dev`);
 console.log(`  ADMIN     : https://siga-admin.pages.dev`);
 console.log(`  DOCS      : https://siga-docs.pages.dev`);
