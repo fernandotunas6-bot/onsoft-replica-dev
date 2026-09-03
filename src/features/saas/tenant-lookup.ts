@@ -30,6 +30,8 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
 export async function fetchTenantByHostname(hostname: string): Promise<Tenant | null> {
   const db = await loadSgaAdminClient();
   const host = hostname.trim().toLowerCase();
+  if (!host) return null;
+
   const { data: domain, error: domainErr } = await db
     .from("tenant_domains")
     .select("tenant_id")
@@ -52,7 +54,7 @@ export async function fetchTenantByHostname(hostname: string): Promise<Tenant | 
 export interface SlugAvailabilityResult {
   slug: string;
   available: boolean;
-  reason?: "invalid" | "reserved" | "taken" | null;
+  reason?: "invalid" | "reserved" | "taken" | "unavailable" | null;
   message: string;
 }
 
@@ -72,11 +74,20 @@ export async function checkSlugAvailability(rawSlug: string): Promise<SlugAvaila
 
   try {
     const db = await loadSgaAdminClient();
-    const { data: existing } = await db
+    const { data: existing, error } = await db
       .from("tenants")
       .select("id")
       .eq("slug", slug)
       .maybeSingle();
+
+    if (error) {
+      return {
+        slug,
+        available: false,
+        reason: "unavailable",
+        message: "Não foi possível confirmar a disponibilidade deste endereço agora. Tente novamente.",
+      };
+    }
 
     if (existing) {
       return {
@@ -96,9 +107,9 @@ export async function checkSlugAvailability(rawSlug: string): Promise<SlugAvaila
   } catch {
     return {
       slug,
-      available: true,
-      reason: null,
-      message: "Endereço válido.",
+      available: false,
+      reason: "unavailable",
+      message: "Não foi possível confirmar a disponibilidade deste endereço agora. Tente novamente.",
     };
   }
 }
