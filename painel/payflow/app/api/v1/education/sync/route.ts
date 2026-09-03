@@ -34,8 +34,22 @@ const syncSchema = z.object({
   student: z.object({
     id: z.string().trim().min(3).max(100),
     code: z.string().regex(/^\d{7}$/),
+    enrollment_id: z.string().trim().min(3).max(100),
+    academic_year_id: z.string().trim().min(3).max(100),
+    class_id: z.string().trim().min(3).max(100),
+    guardian_id: z.string().trim().min(3).max(100).nullable().optional().default(null),
     full_name: z.string().trim().min(2).max(160),
     class_name: z.string().trim().max(120).optional().default(""),
+    enrollment_status: z
+      .enum(["pending", "active", "suspended", "transferred", "withdrawn", "completed", "cancelled"])
+      .default("active"),
+    financial_responsible: z
+      .object({
+        name: z.string().trim().min(2).max(160),
+        email: z.string().trim().email().or(z.literal("")).optional().default(""),
+        phone: z.string().trim().max(30).optional().default(""),
+      })
+      .optional(),
     payment_pin: z.string().regex(/^\d{4,8}$/),
   }),
   invoices: z
@@ -112,8 +126,16 @@ export async function POST(request: Request) {
         id: parsed.data.student.id,
         schoolId: parsed.data.school.id,
         studentCode: parsed.data.student.code,
+        enrollmentId: parsed.data.student.enrollment_id,
+        academicYearId: parsed.data.student.academic_year_id,
+        classId: parsed.data.student.class_id,
+        guardianId: parsed.data.student.guardian_id,
         fullName: parsed.data.student.full_name,
         className: parsed.data.student.class_name,
+        financialResponsibleName: parsed.data.student.financial_responsible?.name ?? "",
+        financialResponsibleEmail: parsed.data.student.financial_responsible?.email ?? "",
+        financialResponsiblePhone: parsed.data.student.financial_responsible?.phone ?? "",
+        enrollmentStatus: parsed.data.student.enrollment_status,
         paymentPinHash: pinHash,
         updatedAt: now,
       })
@@ -122,8 +144,16 @@ export async function POST(request: Request) {
         set: {
           schoolId: parsed.data.school.id,
           studentCode: parsed.data.student.code,
+          enrollmentId: parsed.data.student.enrollment_id,
+          academicYearId: parsed.data.student.academic_year_id,
+          classId: parsed.data.student.class_id,
+          guardianId: parsed.data.student.guardian_id,
           fullName: parsed.data.student.full_name,
           className: parsed.data.student.class_name,
+          financialResponsibleName: parsed.data.student.financial_responsible?.name ?? "",
+          financialResponsibleEmail: parsed.data.student.financial_responsible?.email ?? "",
+          financialResponsiblePhone: parsed.data.student.financial_responsible?.phone ?? "",
+          enrollmentStatus: parsed.data.student.enrollment_status,
           paymentPinHash: pinHash,
           status: "active",
           updatedAt: now,
@@ -212,6 +242,11 @@ export async function POST(request: Request) {
         school_id: parsed.data.school.id,
         student_id: parsed.data.student.id,
         student_code: parsed.data.student.code,
+        enrollment_id: parsed.data.student.enrollment_id,
+        academic_year_id: parsed.data.student.academic_year_id,
+        class_id: parsed.data.student.class_id,
+        guardian_id: parsed.data.student.guardian_id,
+        enrollment_status: parsed.data.student.enrollment_status,
         invoices_received: parsed.data.invoices.length,
         bank_accounts_received: parsed.data.bank_accounts.length,
         synced_at: now,

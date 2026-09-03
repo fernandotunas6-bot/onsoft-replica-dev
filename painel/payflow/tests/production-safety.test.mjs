@@ -111,3 +111,33 @@ test("bank verification matches authoritative movement data before issuing a rec
   assert.match(verifyRoute, /type: "bank_transfer\.verified"/);
   assert.match(verifyRoute, /db\.insert\(paymentReceipts\)/);
 });
+
+test("education sync preserves the complete SIGA academic and financial context", async () => {
+  const syncRoute = await readFile(
+    path.join(root, "app/api/v1/education/sync/route.ts"),
+    "utf8",
+  );
+  const schema = await readFile(path.join(root, "db/schema.ts"), "utf8");
+  const migration = await readFile(
+    path.join(root, "drizzle/0004_majestic_triathlon.sql"),
+    "utf8",
+  );
+
+  for (const field of [
+    "enrollment_id",
+    "academic_year_id",
+    "class_id",
+    "guardian_id",
+    "financial_responsible",
+    "enrollment_status",
+  ]) {
+    assert.match(syncRoute, new RegExp(field), `education sync must require ${field}`);
+  }
+
+  assert.match(schema, /enrollmentId: text\("enrollment_id"\)/);
+  assert.match(schema, /guardianId: text\("guardian_id"\)/);
+  assert.match(schema, /financialResponsibleName/);
+  assert.match(migration, /ADD `enrollment_id` text DEFAULT '' NOT NULL/);
+  assert.match(migration, /students_enrollment_idx/);
+  assert.match(migration, /students_guardian_idx/);
+});

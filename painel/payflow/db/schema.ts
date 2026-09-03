@@ -150,8 +150,16 @@ export const students = sqliteTable(
       .notNull()
       .references(() => schools.id, { onDelete: "cascade" }),
     studentCode: text("student_code").notNull(),
+    enrollmentId: text("enrollment_id").notNull().default(""),
+    academicYearId: text("academic_year_id").notNull().default(""),
+    classId: text("class_id").notNull().default(""),
+    guardianId: text("guardian_id"),
     fullName: text("full_name").notNull(),
     className: text("class_name").notNull().default(""),
+    financialResponsibleName: text("financial_responsible_name").notNull().default(""),
+    financialResponsibleEmail: text("financial_responsible_email").notNull().default(""),
+    financialResponsiblePhone: text("financial_responsible_phone").notNull().default(""),
+    enrollmentStatus: text("enrollment_status").notNull().default("active"),
     paymentPinHash: text("payment_pin_hash").notNull(),
     status: text("status").notNull().default("active"),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -160,6 +168,8 @@ export const students = sqliteTable(
   (table) => [
     uniqueIndex("students_school_code_unique").on(table.schoolId, table.studentCode),
     index("students_school_status_idx").on(table.schoolId, table.status),
+    index("students_enrollment_idx").on(table.schoolId, table.enrollmentId),
+    index("students_guardian_idx").on(table.schoolId, table.guardianId),
   ],
 );
 
