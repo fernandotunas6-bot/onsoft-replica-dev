@@ -13,6 +13,7 @@ import {
   getStudentAcademicHistoryInputSchema,
   getTeacherWorkspaceInputSchema,
   listAssessmentsInputSchema,
+  deleteAssessmentInputSchema,
   listPedagogicalWorkspaceInputSchema,
   listTermGradesInputSchema,
 } from "./schemas";
@@ -37,7 +38,6 @@ export {
   createScheduleSlot,
   createSubject,
   deactivateSubject,
-  deleteAssessmentItem,
   deleteClassGroup,
   deleteScheduleSlot,
   ensureAcademicDefaults,
@@ -492,6 +492,46 @@ export const listAssessments = createServerFn({ method: "GET" })
       throw publicDatabaseError(scoreError, "Não foi possível carregar as notas das avaliações.");
     }
     return { available: true, items, scores: scores ?? [] };
+  });
+
+export const deleteAssessmentItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => deleteAssessmentInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireAcademicMembership(context.userId);
+    const db = await loadSgaAdminClient();
+
+    if (isTeacherOnly(membership)) {
+      const scope = await resolveTeacherScope(db, membership.schoolId, context.userId);
+      if (!scope.teacherId) {
+        throw new Error("Perfil de professor não associado a esta escola.");
+      }
+      const { data: item, error: itemError } = await db
+        .from("siga_assessment_items")
+        .select("id, class_group_id, subject_id")
+        .eq("id", data.itemId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (itemError) {
+        throw publicDatabaseError(itemError, "Não foi possível validar a avaliação.");
+      }
+      if (!item) throw new Error("Avaliação não encontrada nesta escola.");
+      if (!scope.pairKeys.has(pairKey(item.class_group_id, item.subject_id))) {
+        throw new Error("O professor só pode eliminar avaliações da sua turma e disciplina atribuídas.");
+      }
+    }
+
+    const { data: deletedCount, error } = await db.rpc("delete_sga_assessment_item", {
+      p_school_id: membership.schoolId,
+      p_item_id: data.itemId,
+      p_actor_id: context.userId,
+      p_force: data.force,
+    });
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível eliminar a avaliação.");
+    }
+    return { success: true, deletedScoresCount: Number(deletedCount ?? 0) };
   });
 
 export const getStudentAcademicHistory = createServerFn({ method: "GET" })
