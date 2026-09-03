@@ -1,13 +1,15 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useRef, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowLeft,
   CalendarDays,
+  Camera,
   FileDown,
   FilePlus2,
   GraduationCap,
+  Loader2,
   Mail,
   Receipt,
   MapPin,
@@ -17,6 +19,7 @@ import {
   QrCode,
   Smartphone,
   Trash2,
+  Upload,
   User,
   UserCheck,
   UserPlus,
@@ -53,8 +56,8 @@ import {
   updateEnrollment,
   updateEnrollmentAttendance,
   updateStudentProfile,
-} from "@/features/students/server";
-import { searchPeople } from "@/features/people/server";
+import { searchPeople, setPersonPhotoUrl } from "@/features/people/server";
+import { supabase } from "@/integrations/supabase/client";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
 import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
 import {
@@ -301,6 +304,80 @@ function StudentDetail() {
 
   const { student, guardians } = profileData!;
   if (!student) return <NotFoundOrError title="Aluno não encontrado" />;
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !student?.person_id) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor seleccione uma imagem válida (PNG, JPEG ou WebP).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem não pode ultrapassar 5 MB.");
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `avatars/${student.person_id}-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("school-logos")
+        .upload(filePath, file, { upsert: true });
+
+      let newPhotoUrl: string | null = null;
+      if (!uploadError) {
+        const { data: publicUrlData } = supabase.storage
+          .from("school-logos")
+          .getPublicUrl(filePath);
+        newPhotoUrl = publicUrlData.publicUrl;
+      }
+
+      if (!newPhotoUrl) {
+        const { error: avatarError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, file, { upsert: true });
+        if (!avatarError) {
+          const { data: publicUrlData } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(filePath);
+          newPhotoUrl = publicUrlData.publicUrl;
+        }
+      }
+
+      if (!newPhotoUrl) {
+        throw new Error("Não foi possível carregar a imagem para o servidor de ficheiros.");
+      }
+
+      await setPersonPhotoUrl({
+        data: {
+          personId: student.person_id,
+          photoUrl: newPhotoUrl,
+        },
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["students", "profile", studentId] }),
+        queryClient.invalidateQueries({ queryKey: ["people", "get", student.person_id] }),
+        queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+      ]);
+
+      toast.success("Foto de perfil actualizada com sucesso!");
+    } catch (err) {
+      toast.error("Erro ao actualizar a foto de perfil", {
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const studentInvoices = (invoicesQuery.data ?? []).filter(
     (invoice) => invoice.student_id === studentId,
@@ -793,47 +870,84 @@ function StudentDetail() {
         <InstalledModuleTools module="documentos" />
 
         <div className="flex flex-wrap items-center gap-5 rounded-xl border border-border bg-card p-6 shadow-soft">
-          <div className="flex flex-col items-center gap-2">
-            <MediaAvatar
-              src={student.photo_url}
-              alt={student.full_name}
-              fallback={initials}
-              className="size-16 rounded-2xl text-xl"
-            />
-            <PickFileButton
-              label="Foto"
-              area="secretaria"
-              acceptKinds={["png", "jpeg"]}
-              variant="outline"
-              size="sm"
-              onPick={(file) => {
-                void (async () => {
-                  try {
-                    await applyLibraryPhotoToPerson({
-                      personId: student.person_id,
-                      schoolId: String(student.school_id),
-                      file,
-                    });
-                    await Promise.all([
-                      queryClient.invalidateQueries({
-                        queryKey: ["students", "profile", student.id],
-                      }),
-                      queryClient.invalidateQueries({
-                        queryKey: ["people", "get", student.person_id],
-                      }),
-                      queryClient.invalidateQueries({
-                        queryKey: ["arquivos", "student-related", student.person_id],
-                      }),
-                    ]);
-                    toast.success("Foto actualizada a partir da biblioteca");
-                  } catch (error) {
-                    toast.error("Não foi possível actualizar a foto", {
-                      description: error instanceof Error ? error.message : "Tente novamente.",
-                    });
-                  }
-                })();
-              }}
-            />
+          <div className="flex flex-col items-center gap-2.5">
+            <div className="relative group shrink-0">
+              <MediaAvatar
+                src={student.photo_url}
+                alt={student.full_name}
+                fallback={initials}
+                className="size-20 rounded-2xl text-xl object-cover ring-2 ring-primary/25 shadow-sm transition-transform duration-200 group-hover:scale-[1.02]"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+                title="Carregar nova foto de perfil"
+                className="absolute -bottom-1 -right-1 size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
+              >
+                {isUploadingPhoto ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Camera className="size-3.5" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleDirectPhotoUpload}
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1 px-2 font-medium"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+              >
+                <Camera className="size-3" /> Foto
+              </Button>
+              <PickFileButton
+                label="Biblioteca"
+                area="secretaria"
+                acceptKinds={["png", "jpeg"]}
+                variant="outline"
+                size="sm"
+                onPick={(file) => {
+                  void (async () => {
+                    try {
+                      await applyLibraryPhotoToPerson({
+                        personId: student.person_id,
+                        schoolId: String(student.school_id),
+                        file,
+                      });
+                      await Promise.all([
+                        queryClient.invalidateQueries({
+                          queryKey: ["students", "profile", student.id],
+                        }),
+                        queryClient.invalidateQueries({
+                          queryKey: ["people", "get", student.person_id],
+                        }),
+                        queryClient.invalidateQueries({
+                          queryKey: ["arquivos", "student-related", student.person_id],
+                        }),
+                        queryClient.invalidateQueries({
+                          queryKey: ["students", "search"],
+                        }),
+                      ]);
+                      toast.success("Foto actualizada a partir da biblioteca");
+                    } catch (error) {
+                      toast.error("Não foi possível actualizar a foto", {
+                        description: error instanceof Error ? error.message : "Tente novamente.",
+                      });
+                    }
+                  })();
+                }}
+              />
+            </div>
           </div>
 
           <div className="min-w-0">

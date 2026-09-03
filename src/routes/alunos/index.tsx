@@ -21,6 +21,7 @@ import {
   ArrowRightLeft,
   UserPlus,
   Users,
+  Eye,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
@@ -40,6 +41,7 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { buildEmisExportPayload } from "@/features/integrations/emis";
 import { StudentEnrollmentSheet } from "@/features/students/StudentEnrollmentSheet";
+import { StudentExtensiveModal } from "@/features/students/components/StudentExtensiveModal";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -222,6 +224,7 @@ function StudentsPage() {
   const pageSize = Number(filters.pageSize) || 10;
   const page = Math.max(1, Number(filters.page) || 1);
   const setPage = (next: number) => setFilter("page", String(next));
+  const [extensiveModalStudent, setExtensiveModalStudent] = useState<StudentRow | null>(null);
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const sigeOn = installed.hasCapability("sige.export_students");
@@ -372,6 +375,19 @@ function StudentsPage() {
     selectedYear,
     activeYearLabel,
   ]);
+
+  const quickCounts = useMemo(
+    () => ({
+      all: allStudents.length,
+      active: allStudents.filter((s) => s.student_status === "active").length,
+      applicant: allStudents.filter((s) => s.student_status === "applicant").length,
+      overdue: allStudents.filter((s) => s.payment_status === "overdue").length,
+      other: allStudents.filter((s) =>
+        ["inactive", "transferred", "graduated"].includes(s.student_status),
+      ).length,
+    }),
+    [allStudents],
+  );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -811,6 +827,124 @@ function StudentsPage() {
             </div>
           </div>
 
+          {/* Barra de Filtros Rápidos com Contadores & Selector de Tamanho Premium */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-secondary/30 p-2.5 border border-border/70">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground mr-1 hidden sm:inline">
+                Filtrar:
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter("estado", "todos");
+                  setFilter("pagamento", "todos");
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  estado === "todos" && pagamento === "todos"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-background text-foreground hover:bg-muted border border-border/60",
+                )}
+              >
+                Todos ({quickCounts.all})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter("estado", "active");
+                  setFilter("pagamento", "todos");
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  estado === "active" && pagamento === "todos"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-background text-foreground hover:bg-muted border border-border/60",
+                )}
+              >
+                Activos ({quickCounts.active})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter("estado", "applicant");
+                  setFilter("pagamento", "todos");
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  estado === "applicant" && pagamento === "todos"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-background text-foreground hover:bg-muted border border-border/60",
+                )}
+              >
+                Candidatos ({quickCounts.applicant})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter("pagamento", "overdue");
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  pagamento === "overdue"
+                    ? "bg-destructive text-destructive-foreground shadow-xs"
+                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20",
+                )}
+              >
+                Com Dívida ({quickCounts.overdue})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter("estado", "inactive");
+                  setFilter("pagamento", "todos");
+                  setPage(1);
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  estado === "inactive" && pagamento === "todos"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-background text-foreground hover:bg-muted border border-border/60",
+                )}
+              >
+                Inactivos/Outros ({quickCounts.other})
+              </button>
+            </div>
+
+            {/* Controlo de Tamanho de Lista Premium */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
+              <span className="hidden md:inline font-medium text-[11px]">Linhas por página:</span>
+              <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+                {[10, 25, 50, 100].map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => {
+                      setFilter("pageSize", String(size));
+                      setPage(1);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer",
+                      pageSize === size
+                        ? "bg-primary text-primary-foreground shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+              <span className="font-mono text-[11px] font-semibold text-foreground hidden xl:inline">
+                {filtered.length > 0
+                  ? `${start + 1}–${Math.min(start + pageSize, filtered.length)} de ${filtered.length}`
+                  : "0 alunos"}
+              </span>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <Table className="min-w-[880px]">
               <TableHeader>
@@ -846,7 +980,11 @@ function StudentsPage() {
                   </TableRow>
                 ) : (
                   paged.map((s) => (
-                    <TableRow key={s.id}>
+                    <TableRow
+                      key={s.id}
+                      className="cursor-pointer transition-colors hover:bg-muted/60 group"
+                      onClick={() => setExtensiveModalStudent(s)}
+                    >
                       <TableCell className="font-mono text-xs font-semibold text-primary">
                         {s.registration_number}
                       </TableCell>
@@ -854,7 +992,9 @@ function StudentsPage() {
                         <div className="flex items-center gap-3">
                           <StudentAvatar photoUrl={s.photo_url} name={s.full_name} />
                           <div className="min-w-0">
-                            <p className="whitespace-nowrap font-semibold">{s.full_name}</p>
+                            <p className="whitespace-nowrap font-semibold group-hover:text-primary transition-colors">
+                              {s.full_name}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {s.grade_name ?? "Sem classe"}
                               {s.class_name ? (
@@ -919,10 +1059,23 @@ function StudentsPage() {
                       <TableCell>
                         <div className="flex justify-end gap-2">
                           <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setExtensiveModalStudent(s);
+                            }}
+                          >
+                            <Eye className="size-3.5" /> Visualizar
+                          </Button>
+                          <Button
                             asChild
                             variant="outline"
                             size="sm"
                             className="h-8 gap-1 px-2 text-xs"
+                            onClick={(event) => event.stopPropagation()}
                           >
                             <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
                               <FileText className="size-3.5" /> Ficha
@@ -1135,6 +1288,15 @@ function StudentsPage() {
               setPage(1);
             }}
             pageSizeOptions={[10, 25, 50, 100]}
+          />
+
+          <StudentExtensiveModal
+            open={Boolean(extensiveModalStudent)}
+            onOpenChange={(open) => {
+              if (!open) setExtensiveModalStudent(null);
+            }}
+            studentId={extensiveModalStudent?.id ?? null}
+            initialData={extensiveModalStudent}
           />
         </div>
       </div>

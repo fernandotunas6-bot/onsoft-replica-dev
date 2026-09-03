@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   Award,
   Banknote,
+  CreditCard,
   Download,
   FileDown,
   FileUp,
@@ -22,6 +23,7 @@ import { archiveFinanceDocument } from "@/features/arquivos/server";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { warmFinanceCharts } from "@/lib/warm-charts";
 import { cn } from "@/lib/utils";
+import { getPayflowPayerUrl } from "@/lib/ecosystem-urls";
 
 const FinanceiroCashChart = lazy(() =>
   import("@/features/finance/FinanceiroCashChart").then((module) => ({
@@ -436,6 +438,15 @@ function FinanceiroPage() {
                 <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
                   <FileUp className="size-4 text-emerald-600" /> Importar Pagamentos
                 </Link>
+              </Button>
+              <Button variant="outline" className="gap-2" asChild>
+                <a
+                  href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <CreditCard className="size-4 text-emerald-600" /> Portal PayFlow
+                </a>
               </Button>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/relatorios/financeiros">

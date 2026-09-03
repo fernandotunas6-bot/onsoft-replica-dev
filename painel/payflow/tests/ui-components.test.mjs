@@ -15,6 +15,7 @@ const vite = await createServer({
   root,
   resolve: { alias: { "@": root } },
   server: { middlewareMode: true },
+  ssr: { noExternal: ["radix-ui"] },
 });
 
 after(async () => {

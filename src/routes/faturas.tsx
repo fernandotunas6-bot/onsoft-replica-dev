@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Award,
   ChevronDown,
+  CreditCard,
   Download,
   FileDown,
   FileText,
@@ -21,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
-import { DOC_PATHS } from "@/lib/ecosystem-urls";
+import { DOC_PATHS, getPayflowPayerUrl } from "@/lib/ecosystem-urls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
@@ -636,6 +637,15 @@ function FaturasPage() {
                     <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
                       <FileUp className="size-3.5 text-emerald-600" /> Importar Pagamentos (Excel)
                     </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <a
+                      href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <CreditCard className="size-3.5 text-primary" /> Portal PayFlow (Pagamentos)
+                    </a>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
