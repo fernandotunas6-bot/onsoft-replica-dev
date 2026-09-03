@@ -1,0 +1,41 @@
+name: Verify education workflow
+
+on:
+  push:
+    branches:
+      - feature/education-workflow-ui
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Formatação dos ficheiros alterados
+        run: >
+          bunx prettier --check
+          src/components/workflows/EducationWorkflowVisual.tsx
+          src/components/ui/modal-system/WizardModal.tsx
+          src/components/modals/SequentialSheetModal.tsx
+          src/features/people/components/PersonWizardModal.tsx
+          src/features/students/StudentEnrollmentSheet.tsx
+          src/features/students/enrollment-directory.ts
+          src/routes/matricula/\$slug.tsx
+          tests/ui/education-workflow-visual.test.ts
+          tests/students/enrollment-directory.test.ts
+
+      - name: Testes focados
+        run: >
+          bun test
+          tests/ui/education-workflow-visual.test.ts
+          tests/students/enrollment-directory.test.ts
+
+      - name: Build
+        run: bun run build
