@@ -16,6 +16,7 @@ export const importModuleOptions = [
   "horarios",
   "notas",
   "avaliacoes",
+  "pautas",
   "presencas",
   "propinas",
   "pagamentos",
@@ -79,9 +80,20 @@ export const stageImportRowsInputSchema = z.object({
 
 export type StageImportRowsInput = z.infer<typeof stageImportRowsInputSchema>;
 
+/**
+ * O cliente antigo chegou a pedir lotes de apenas 5 linhas. Isso multiplicava
+ * chamadas HTTP em importações grandes. O servidor impõe um piso de 200 linhas
+ * e continua a aceitar no máximo 500, mantendo compatibilidade com clientes já publicados.
+ */
 export const commitImportBatchSchema = z.object({
   job_id: z.string().uuid(),
-  batch_size: z.number().int().positive().max(500).default(200),
+  batch_size: z
+    .number()
+    .int()
+    .positive()
+    .max(500)
+    .default(200)
+    .transform((size) => Math.max(200, size)),
   dry_run: z.boolean().default(false),
   duplicate_strategy: z.enum(["update", "ignore", "create_new"]).default("update"),
   /** Só usado em dry_run: como o estado da linha não muda, pagina por row_number em vez de por status. */
