@@ -1,3 +1,5 @@
+export * from "./server";
+
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -7,13 +9,14 @@ import {
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { pedagogySettingsSchema } from "@/features/school/schemas";
-import { upsertSgaTermGradesBatch } from "./sga-grades";
+import { upsertSgaTermGrade, upsertSgaTermGradesBatch } from "./sga-grades";
 import {
   createAssessmentInputSchema,
   updateAssessmentInputSchema,
   deleteAssessmentInputSchema,
   listAssessmentsInputSchema,
   upsertAssessmentScoresInputSchema,
+  upsertTermGradeInputSchema,
   upsertTermGradesBatchInputSchema,
 } from "./schemas";
 
@@ -325,6 +328,38 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
       if (result.error) throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
     }
     return { saved: data.rows.length };
+  });
+
+export const upsertTermGrade = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => upsertTermGradeInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
+    const db = await loadSgaAdminClient();
+    await assertTermGradeScope({
+      db,
+      membership,
+      userId: context.userId,
+      subjectId: data.subjectId,
+      enrollmentIds: [data.enrollmentId],
+    });
+    await assertTermOpen(db, membership.schoolId, data.term);
+    return upsertSgaTermGrade({
+      db,
+      schoolId: membership.schoolId,
+      userId: context.userId,
+      enrollmentId: data.enrollmentId,
+      subjectId: data.subjectId,
+      term: data.term,
+      mac: data.mac,
+      npp: data.npp,
+      npt: data.npt,
+    });
   });
 
 export const upsertTermGradesBatch = createServerFn({ method: "POST" })
