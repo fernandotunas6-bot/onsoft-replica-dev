@@ -302,31 +302,42 @@ export const searchPeople = createServerFn({ method: "GET" })
     }));
 
     const personIds = mapped.map((person) => person.id);
-    const [studentRoles, teacherRoles, guardianRoles, declaredRoles] = personIds.length
-      ? await Promise.all([
-          db
-            .from("students")
-            .select("person_id")
-            .eq("school_id", membership.schoolId)
-            .in("person_id", personIds),
-          db
-            .from("teachers")
-            .select("person_id")
-            .eq("school_id", membership.schoolId)
-            .in("person_id", personIds),
-          db
-            .from("student_guardians")
-            .select("guardian_person_id")
-            .eq("school_id", membership.schoolId)
-            .in("guardian_person_id", personIds),
-          db
-            .from("person_roles")
-            .select("person_id, role")
-            .eq("school_id", membership.schoolId)
-            .eq("active", true)
-            .in("person_id", personIds),
-        ])
-      : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
+    if (!personIds.length) return [];
+
+    const [studentRoles, teacherRoles, guardianRoles, declaredRoles] = await Promise.all([
+      db
+        .from("students")
+        .select("person_id")
+        .eq("school_id", membership.schoolId)
+        .in("person_id", personIds),
+      db
+        .from("teachers")
+        .select("person_id")
+        .eq("school_id", membership.schoolId)
+        .in("person_id", personIds),
+      db
+        .from("student_guardians")
+        .select("guardian_person_id")
+        .eq("school_id", membership.schoolId)
+        .in("guardian_person_id", personIds),
+      db
+        .from("person_roles")
+        .select("person_id, role")
+        .eq("school_id", membership.schoolId)
+        .eq("active", true)
+        .in("person_id", personIds),
+    ]);
+
+    if (
+      data.role &&
+      institutionRoleSet.has(data.role) &&
+      declaredRoles.error &&
+      isMissingPersonRoles(declaredRoles.error)
+    ) {
+      throw new Error(
+        "O filtro por vínculo institucional requer a migration person_institution_roles.",
+      );
+    }
 
     const rolesByPerson = new Map<string, Set<string>>();
     const addRole = (personId: unknown, role: string) => {
