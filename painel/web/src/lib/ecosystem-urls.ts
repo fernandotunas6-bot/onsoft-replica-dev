@@ -10,7 +10,7 @@ export const ECOSYSTEM_URLS = {
   web: import.meta.env.VITE_WEB_URL || (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
   siga: import.meta.env.VITE_SIGA_URL || (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
   admin: import.meta.env.VITE_ADMIN_URL || (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
-  docs: import.meta.env.VITE_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
+  docs: import.meta.env.VITE_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),\n  payflow: import.meta.env.VITE_PAYFLOW_URL || (isLocal ? "http://localhost:3007" : "https://payflow.portal-siga.com"),
 } as const;
 
 export function getSigaLoginUrl(): string {
@@ -43,3 +43,4 @@ export function getSaasApiUrl(path: string): string {
   const clean = path.startsWith("/") ? path : `/${path}`;
   return `${ECOSYSTEM_URLS.siga}${clean}`;
 }
+\nexport function getPayflowUrl(path = "/"): string {\n  const clean = path.startsWith("/") ? path : "/" + path;\n  return ECOSYSTEM_URLS.payflow + clean;\n}\n
