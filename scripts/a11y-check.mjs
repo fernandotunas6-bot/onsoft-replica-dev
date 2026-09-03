@@ -11,13 +11,17 @@
  *     inputs/selects/textarea com id+Label, aria-label ou placeholder+aria-label.
  *  4. Teclado — onClick em <div>/<span> exige role + tabIndex + onKeyDown.
  *
- * Uso: node scripts/a11y-check.mjs   (exit 1 quando há falhas)
+ * Uso normal: node scripts/a11y-check.mjs
+ * Em PRs, STYLE_CHECK_CHANGED_FROM=<git-ref> limita falhas a ficheiros alterados,
+ * mantendo o relatório HTML completo com a dívida de acessibilidade existente.
  */
+import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 
 const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
+const CHANGED_FROM = process.env.STYLE_CHECK_CHANGED_FROM?.trim();
 
 const IGNORE = [
   /src[\\/]components[\\/]ui[\\/]/, // primitivos shadcn/Radix (ARIA correcto por defeito)
@@ -37,6 +41,33 @@ const OFF_PALETTE = [
   /\b(?:bg|text|border)-(?:red|blue|green|yellow|purple|indigo|pink|orange|teal|cyan|lime|amber|emerald|violet|fuchsia|rose|sky)-\d{2,3}\b/g,
 ];
 
+function normalizePath(path) {
+  return path.replaceAll("\\", "/");
+}
+
+function changedFilesFrom(ref) {
+  try {
+    const output = execFileSync(
+      "git",
+      ["diff", "--name-only", `${ref}...HEAD`, "--", "src"],
+      { cwd: ROOT, encoding: "utf8" },
+    );
+
+    return new Set(
+      output
+        .split(/\r?\n/)
+        .map((path) => normalizePath(path.trim()))
+        .filter(Boolean),
+    );
+  } catch (error) {
+    console.error(`Não foi possível calcular ficheiros alterados desde ${ref}.`);
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(2);
+  }
+}
+
+const changedFiles = CHANGED_FROM ? changedFilesFrom(CHANGED_FROM) : null;
+
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
@@ -47,8 +78,17 @@ function walk(dir, out = []) {
 }
 
 const files = walk(SRC).filter((f) => !IGNORE.some((re) => re.test(f)));
-const issues = [];
+const allIssues = [];
+const blockingIssues = [];
 let checks = 0;
+
+function addIssue(rel, message) {
+  const issue = `${rel}: ${message}`;
+  allIssues.push(issue);
+  if (!changedFiles || changedFiles.has(normalizePath(rel))) {
+    blockingIssues.push(issue);
+  }
+}
 
 /** Extrai a abertura de cada tag <name ...>, respeitando expressões {…} e strings. */
 function tags(code, name) {
@@ -84,8 +124,9 @@ for (const file of files) {
   for (const re of [...LOW_CONTRAST, ...OFF_PALETTE]) {
     const found = code.match(re);
     if (found) {
-      issues.push(
-        `${rel}: contraste/paleta -> ${[...new Set(found)].join(", ")} (usar tokens: text-foreground, text-muted-foreground)`,
+      addIssue(
+        rel,
+        `contraste/paleta -> ${[...new Set(found)].join(", ")} (usar tokens: text-foreground, text-muted-foreground)`,
       );
     }
   }
@@ -94,20 +135,20 @@ for (const file of files) {
   for (const m of code.matchAll(/(?:focus:)?outline-none/g)) {
     const window = code.slice(Math.max(0, m.index - 400), m.index + 400);
     if (!/focus-visible:/.test(window)) {
-      issues.push(`${rel}: outline-none sem estilo focus-visible correspondente`);
+      addIssue(rel, "outline-none sem estilo focus-visible correspondente");
       break;
     }
   }
 
   // 3a. imagens com alt
   for (const tag of tags(code, "img")) {
-    if (!/\salt=/.test(tag)) issues.push(`${rel}: <img> sem atributo alt`);
+    if (!/\salt=/.test(tag)) addIssue(rel, "<img> sem atributo alt");
   }
 
   // 3b. botões só de ícone
   for (const tag of tags(code, "Button")) {
     if (/size=\{?"icon"/.test(tag) && !/aria-label|aria-labelledby/.test(tag)) {
-      issues.push(`${rel}: Button size="icon" sem aria-label`);
+      addIssue(rel, 'Button size="icon" sem aria-label');
     }
   }
 
@@ -118,7 +159,7 @@ for (const file of files) {
       const hasId = /\sid=/.test(tag);
       const hasAria = /aria-label|aria-labelledby/.test(tag);
       if (!hasId && !hasAria) {
-        issues.push(`${rel}: <${name}> sem id associado a Label nem aria-label`);
+        addIssue(rel, `<${name}> sem id associado a Label nem aria-label`);
       }
     }
   }
@@ -135,24 +176,31 @@ for (const file of files) {
     for (const tag of tags(code, name)) {
       if (!/\sonClick=/.test(tag)) continue;
       const ok = /role=/.test(tag) && /tabIndex=/.test(tag) && /onKey(?:Down|Up|Press)=/.test(tag);
-      if (!ok) issues.push(`${rel}: <${name}> com onClick sem role+tabIndex+onKeyDown`);
+      if (!ok) addIssue(rel, `<${name}> com onClick sem role+tabIndex+onKeyDown`);
     }
   }
 }
 
 console.log(`Ficheiros analisados: ${checks}`);
+if (changedFiles) {
+  console.log(
+    `Modo incremental: ${changedFiles.size} ficheiro(s) em src alterado(s) desde ${CHANGED_FROM}.`,
+  );
+}
 
-const unique = [...new Set(issues)];
+const uniqueAll = [...new Set(allIssues)];
+const uniqueBlocking = [...new Set(blockingIssues)];
 
 // Relatório HTML (para artefacto do CI): node scripts/a11y-check.mjs --html reports/a11y.html
 const htmlFlag = process.argv.indexOf("--html");
 if (htmlFlag !== -1) {
   const out = process.argv[htmlFlag + 1] || "reports/a11y.html";
-  const rows = unique
+  const rows = uniqueAll
     .map((i) => {
       const [file, ...rest] = i.split(": ");
       const msg = rest.join(": ");
-      return `<tr><td><code>${file}</code></td><td>${msg.replace(/[<>]/g, (c) => (c === "<" ? "&lt;" : "&gt;"))}</td></tr>`;
+      const blocking = !changedFiles || changedFiles.has(normalizePath(file));
+      return `<tr><td><code>${file}</code></td><td>${msg.replace(/[<>]/g, (c) => (c === "<" ? "&lt;" : "&gt;"))}</td><td>${blocking ? "bloqueante" : "histórico"}</td></tr>`;
     })
     .join("\n");
   const html = `<!doctype html>
@@ -170,10 +218,10 @@ if (htmlFlag !== -1) {
   code { font-size:.8rem }
 </style></head><body>
 <h1>Relatório de acessibilidade — SIGA</h1>
-<p><strong>Ficheiros analisados:</strong> ${checks} &middot; <strong>Problemas:</strong> ${unique.length}</p>
-<p class="badge ${unique.length ? "bad" : "ok"}">${unique.length ? `${unique.length} problema(s) encontrado(s)` : "Sem problemas de acessibilidade"}</p>
+<p><strong>Ficheiros analisados:</strong> ${checks} &middot; <strong>Problemas totais:</strong> ${uniqueAll.length} &middot; <strong>Bloqueantes:</strong> ${uniqueBlocking.length}</p>
+<p class="badge ${uniqueBlocking.length ? "bad" : "ok"}">${uniqueBlocking.length ? `${uniqueBlocking.length} regressão(ões) bloqueante(s)` : "Sem novas regressões de acessibilidade"}</p>
 <p>Verificações: contraste/paleta, foco visível, <code>alt</code>, botões só de ícone com <code>aria-label</code>, rótulos de campos e teclado em elementos não interativos.</p>
-${unique.length ? `<table><thead><tr><th>Ficheiro / rota</th><th>Elemento e problema</th></tr></thead><tbody>${rows}</tbody></table>` : ""}
+${uniqueAll.length ? `<table><thead><tr><th>Ficheiro / rota</th><th>Elemento e problema</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table>` : ""}
 <p style="margin-top:2rem;color:#6b7280;font-size:.8rem">Gerado em ${new Date().toISOString()}</p>
 </body></html>`;
   mkdirSync(dirname(out), { recursive: true });
@@ -181,10 +229,16 @@ ${unique.length ? `<table><thead><tr><th>Ficheiro / rota</th><th>Elemento e prob
   console.log(`Relatório HTML: ${out}`);
 }
 
-if (unique.length) {
-  console.log("\nProblemas de acessibilidade:");
-  for (const i of unique) console.log(" - " + i);
+if (uniqueBlocking.length) {
+  console.log("\nProblemas de acessibilidade bloqueantes:");
+  for (const i of uniqueBlocking) console.log(" - " + i);
   process.exit(1);
 }
 
-console.log("OK — contraste, foco visível, labels e navegação por teclado validados.");
+if (changedFiles) {
+  console.log(
+    `OK — nenhuma nova regressão de acessibilidade; ${uniqueAll.length} problema(s) histórico(s) permanecem documentados no relatório.`,
+  );
+} else {
+  console.log("OK — contraste, foco visível, labels e navegação por teclado validados.");
+}
