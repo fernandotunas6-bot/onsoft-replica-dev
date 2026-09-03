@@ -611,9 +611,9 @@ function StudentsPage() {
                 </Button>
               )}
             />
-            <Link to="/importar">
+            <Link to="/importar" search={{ tab: "novo", modulo: "alunos" }}>
               <Button variant="outline" className="gap-1.5">
-                <FileUp className="size-4" /> Importar Excel
+                <FileUp className="size-4" /> Importar Alunos (Excel)
               </Button>
             </Link>
           </div>

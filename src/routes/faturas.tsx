@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
@@ -10,6 +10,7 @@ import {
   Download,
   FileDown,
   FileText,
+  FileUp,
   Plus,
   QrCode,
   Wallet,
@@ -629,6 +630,12 @@ function FaturasPage() {
                     className="gap-2 text-xs cursor-pointer"
                   >
                     <Download className="size-3.5" /> Ficheiro CSV
+                  </DropdownMenuItem>
+                  <div className="my-1 border-t border-border" />
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
+                      <FileUp className="size-3.5 text-emerald-600" /> Importar Pagamentos (Excel)
+                    </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

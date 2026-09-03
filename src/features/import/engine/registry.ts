@@ -6,6 +6,15 @@ import { professoresImporter } from "../importers/professores-importer";
 import { turmasImporter } from "../importers/turmas-importer";
 import { matriculasImporter } from "../importers/matriculas-importer";
 import { notasImporter } from "../importers/notas-importer";
+import { cursosImporter } from "../importers/cursos-importer";
+import { classesImporter } from "../importers/classes-importer";
+import { disciplinasImporter } from "../importers/disciplinas-importer";
+import { salasImporter } from "../importers/salas-importer";
+import { encarregadosImporter } from "../importers/encarregados-importer";
+import { pagamentosImporter } from "../importers/pagamentos-importer";
+import { dividasImporter } from "../importers/dividas-importer";
+import { funcionariosImporter } from "../importers/funcionarios-importer";
+import { horariosImporter } from "../importers/horarios-importer";
 
 /**
  * Registo central do motor de importação. Apenas módulos com RowImporter real
@@ -19,6 +28,15 @@ export const IMPORTER_REGISTRY: Partial<Record<ImportModule, RowImporter>> = {
   turmas: turmasImporter,
   matriculas: matriculasImporter,
   notas: notasImporter,
+  cursos: cursosImporter,
+  classes: classesImporter,
+  disciplinas: disciplinasImporter,
+  salas: salasImporter,
+  encarregados: encarregadosImporter,
+  pagamentos: pagamentosImporter,
+  dividas: dividasImporter,
+  funcionarios: funcionariosImporter,
+  horarios: horariosImporter,
 };
 
 export function getImporter(module: ImportModule): RowImporter {

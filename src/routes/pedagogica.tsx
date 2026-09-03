@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import {
   Download,
   FileDown,
+  FileUp,
   Award,
   Plus,
   Sparkles,
@@ -633,6 +634,27 @@ function PedagogicaPage() {
                     className="gap-2 text-xs cursor-pointer"
                   >
                     <Download className="size-3.5" /> Exportar Turmas CSV
+                  </DropdownMenuItem>
+                  <div className="my-1 border-t border-border" />
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "turmas" }}>
+                      <FileUp className="size-3.5 text-emerald-600" /> Importar Turmas (Excel)
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "disciplinas" }}>
+                      <FileUp className="size-3.5 text-emerald-600" /> Importar Disciplinas (Excel)
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "salas" }}>
+                      <FileUp className="size-3.5 text-emerald-600" /> Importar Salas (Excel)
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "notas" }}>
+                      <FileUp className="size-3.5 text-emerald-600" /> Importar Notas (Excel)
+                    </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

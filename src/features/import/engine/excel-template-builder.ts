@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { FIELD_CATALOG, type ModuleFieldCatalog, type FieldDefinition } from "./field-catalog";
 import { OFFICIAL_TEMPLATES } from "../official-templates";
+import { MODULE_DEMO_ROWS } from "./demo-data";
 import type { ImportModule } from "../schemas";
 
 /**
@@ -71,12 +72,12 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   sheetReadme.lastRow!.font = { bold: true, size: 12, color: { argb: "FFB91C1C" } };
 
   const instructions = [
-    ["1. Inserção de Dados", "Insira os seus dados exclusivamente na aba \"DADOS\". Não altere os nomes dos cabeçalhos na primeira linha."],
+    ["1. Inserção de Dados & Dados Demo", "A aba \"DADOS\" já vem com registos práticos de demonstração. Pode simplesmente editar estas linhas com os dados reais da sua instituição, mantendo o formato, e submeter o ficheiro para importação."],
     ["2. Campos Obrigatórios", "As colunas com o símbolo (*) no cabeçalho e destacadas a azul escuro são obrigatórias."],
     ["3. Formato de Datas", "Insira datas no formato AAAA-MM-DD (exemplo: 2010-04-15) para evitar erros de leitura."],
     ["4. Identificadores Humanos", "Não é necessário preencher UUIDs ou códigos técnicos. Use Nº de Processo, BI, ou Nome da Turma."],
     ["5. Validações Automáticas", "Alguns campos possuem listas suspensas (ex: Sexo, Turno). Selecione a opção directamente na célula."],
-    ["6. Exemplos de Referência", "Consulte a aba \"EXEMPLOS\" para visualizar linhas modelo com preenchimento correto."],
+    ["6. Exemplos de Referência", "Consulte a aba \"EXEMPLOS\" para visualizar mais linhas modelo com preenchimento correto."],
     ["7. Aba METADADOS", "A aba \"METADADOS\" contém assinaturas técnicas do SIGA. Não a remova nem a modifique."],
   ];
 
@@ -149,6 +150,33 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   });
 
   // ---------------------------------------------------------------------------
+  // Linhas de demonstração práticas na aba "DADOS"
+  // ---------------------------------------------------------------------------
+  const spec = OFFICIAL_TEMPLATES[moduleKey];
+  const demoRowsSource =
+    spec?.demoRows && spec.demoRows.length > 0
+      ? spec.demoRows
+      : MODULE_DEMO_ROWS[moduleKey] || [];
+
+  for (const demoItem of demoRowsSource) {
+    const rowValues = catalog.fields.map((f) =>
+      demoItem[f.key] !== undefined ? demoItem[f.key] : (f.example || ""),
+    );
+    const dataRow = sheetData.addRow(rowValues);
+    dataRow.height = 22;
+    dataRow.eachCell((cell) => {
+      cell.font = { size: 10, color: { argb: "FF1E293B" } };
+      cell.alignment = { vertical: "middle" };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFE2E8F0" } },
+        left: { style: "thin", color: { argb: "FFE2E8F0" } },
+        bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+        right: { style: "thin", color: { argb: "FFE2E8F0" } },
+      };
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // 3. ABA: EXEMPLOS
   // ---------------------------------------------------------------------------
   const sheetExamples = workbook.addWorksheet("EXEMPLOS", {
@@ -167,21 +195,18 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
     cell.font = { bold: true, color: { argb: "FF1F2937" } };
   });
 
-  // Linha de exemplo 1 baseada no catálogo
-  const exampleRowValues1 = catalog.fields.map((f) => f.example || "—");
-  sheetExamples.addRow(exampleRowValues1);
-
-  // Linha de exemplo 2 (variando dados para teste)
-  const exampleRowValues2 = catalog.fields.map((f) => {
-    if (f.key === "full_name") return "Teresa Domingos de Oliveira";
-    if (f.key === "gender") return "F";
-    if (f.key === "student_number") return "2026-0043";
-    if (f.key === "national_id") return "009876543LA099";
-    if (f.key === "phone") return "931223344";
-    if (f.key === "email") return "teresa.oliveira@escola.ao";
-    return f.example || "—";
-  });
-  sheetExamples.addRow(exampleRowValues2);
+  // Linhas de exemplo completas baseadas nos dados de demonstração
+  for (const demoItem of demoRowsSource) {
+    const rowValues = catalog.fields.map((f) =>
+      demoItem[f.key] !== undefined ? demoItem[f.key] : (f.example || ""),
+    );
+    const exRow = sheetExamples.addRow(rowValues);
+    exRow.height = 22;
+    exRow.eachCell((cell) => {
+      cell.font = { size: 10, color: { argb: "FF374151" } };
+      cell.alignment = { vertical: "middle" };
+    });
+  }
 
   catalog.fields.forEach((_, idx) => {
     sheetExamples.getColumn(idx + 1).width = sheetData.getColumn(idx + 1).width;

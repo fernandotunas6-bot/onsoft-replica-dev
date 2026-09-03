@@ -7,6 +7,7 @@ import {
   Download,
   FileDown,
   FileText,
+  FileUp,
   FolderOpen,
   GitMerge,
   GraduationCap,
@@ -318,6 +319,11 @@ function PeoplePage() {
             </Button>
             <Button variant="outline" className="gap-2" onClick={exportarProfessoresOficial}>
               <Award className="size-4" /> Oficial
+            </Button>
+            <Button variant="outline" className="gap-2" asChild>
+              <Link to="/importar" search={{ tab: "novo", modulo: "professores" }}>
+                <FileUp className="size-4 text-emerald-600" /> Importar Docentes
+              </Link>
             </Button>
             <QuickFormModal
               title="Novo professor"
