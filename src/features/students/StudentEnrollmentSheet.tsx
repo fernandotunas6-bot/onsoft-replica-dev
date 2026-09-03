@@ -20,6 +20,7 @@ import {
   formatEnrollmentClassGroupLabel,
   type EnrollmentClassGroup,
 } from "@/features/students/enrollment-directory";
+import { angolaProvinces } from "@/lib/angola-territory";
 
 const steps = [
   { id: "identidade", label: "Identidade", description: "Dados pessoais do aluno." },
@@ -54,6 +55,9 @@ const emptyValues = {
   nif: "",
   telefone: "",
   email: "",
+  provincia: "",
+  municipio: "",
+  comuna: "",
   morada: "",
   obs: "",
   processo: "",
@@ -252,6 +256,9 @@ export function StudentEnrollmentSheet({
                     : undefined,
                 phone_primary: values.telefone || undefined,
                 email: values.email || undefined,
+                province: values.provincia || undefined,
+                municipality: values.municipio || undefined,
+                commune: values.comuna || undefined,
                 address: values.morada || undefined,
                 nif: values.nif || undefined,
                 notes: values.obs || undefined,
@@ -355,7 +362,43 @@ export function StudentEnrollmentSheet({
                     </button>
                   ) : null}
                 </SheetCell>
-                <SheetCell label="Morada" full>
+                <SheetCell label="Província">
+                  <select
+                    aria-label="Província"
+                    className={fieldClass}
+                    value={values.provincia}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        provincia: e.target.value,
+                        municipio: "",
+                        comuna: "",
+                      }))
+                    }
+                  >
+                    <option value="">Seleccionar província</option>
+                    {angolaProvinces.map((province) => (
+                      <option key={province} value={province}>
+                        {province}
+                      </option>
+                    ))}
+                  </select>
+                </SheetCell>
+                <SheetCell label="Município">
+                  <Input
+                    aria-label="Município"
+                    value={values.municipio}
+                    onChange={(e) => setField("municipio", e.target.value)}
+                  />
+                </SheetCell>
+                <SheetCell label="Comuna / Localidade">
+                  <Input
+                    aria-label="Comuna ou localidade"
+                    value={values.comuna}
+                    onChange={(e) => setField("comuna", e.target.value)}
+                  />
+                </SheetCell>
+                <SheetCell label="Morada">
                   <Input
                     aria-label="Morada"
                     value={values.morada}
