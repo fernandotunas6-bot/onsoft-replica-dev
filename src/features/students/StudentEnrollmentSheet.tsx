@@ -11,7 +11,7 @@ import {
   SheetGrid,
 } from "@/components/modals/SequentialSheetModal";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
-import { findPersonDuplicates } from "@/features/people/server";
+import { findPersonDuplicates, searchPeople } from "@/features/people/server";
 import { enrollNewStudent } from "@/features/students/server";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
@@ -84,14 +84,55 @@ export function StudentEnrollmentSheet({
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.send");
   const [values, setValues] = useState(emptyValues);
+  const [guardianQuery, setGuardianQuery] = useState("");
+  const [guardianResults, setGuardianResults] = useState<PersonOption[]>([]);
+  const [searchingGuardians, setSearchingGuardians] = useState(false);
 
   // Fecho sem gravar (cancelado ou X) não deve deixar dados da tentativa
   // anterior visíveis da próxima vez que a folha abrir.
   const wasOpen = useRef(open);
   useEffect(() => {
-    if (wasOpen.current && !open) setValues(emptyValues);
+    if (wasOpen.current && !open) {
+      setValues(emptyValues);
+      setGuardianQuery("");
+      setGuardianResults([]);
+    }
     wasOpen.current = open;
   }, [open]);
+
+  useEffect(() => {
+    const query = guardianQuery.trim();
+    if (query.length < 2) {
+      setGuardianResults([]);
+      setSearchingGuardians(false);
+      return;
+    }
+    let cancelled = false;
+    setSearchingGuardians(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const rows = await searchPeople({ data: { query, limit: 20 } });
+        if (!cancelled) {
+          setGuardianResults(
+            rows.map((row) => ({
+              id: row.id,
+              full_name: row.full_name,
+              status: row.status,
+            })),
+          );
+        }
+      } catch {
+        if (!cancelled) setGuardianResults([]);
+      } finally {
+        if (!cancelled) setSearchingGuardians(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [guardianQuery]);
 
   const hasUnsavedChanges = values.nome.trim() !== "";
 
@@ -126,7 +167,13 @@ export function StudentEnrollmentSheet({
     () => directory.classGroups.find((group) => group.id === values.turmaId) ?? null,
     [directory.classGroups, values.turmaId],
   );
-  const guardians = useMemo(() => people.filter((row) => row.status !== "inactive"), [people]);
+  const guardians = useMemo(
+    () =>
+      (guardianQuery.trim().length >= 2 ? guardianResults : people).filter(
+        (row) => row.status !== "inactive",
+      ),
+    [guardianQuery, guardianResults, people],
+  );
 
   const setField = (name: keyof typeof values, value: string) => {
     setValues((prev) => ({ ...prev, [name]: value }));
@@ -211,7 +258,7 @@ export function StudentEnrollmentSheet({
               },
               registrationNumber: values.processo,
               classGroupId: turma?.id,
-              academicYearId: turma?.academic_year_id,
+              academicYearId: turma?.academic_year_id || undefined,
               guardians:
                 values.encarregadoId && relationship
                   ? [
@@ -328,6 +375,21 @@ export function StudentEnrollmentSheet({
           if (stepId === "encarregado") {
             return (
               <SheetGrid>
+                <SheetCell label="Pesquisar pessoa" full>
+                  <Input
+                    aria-label="Pesquisar encarregado"
+                    value={guardianQuery}
+                    onChange={(e) => setGuardianQuery(e.target.value)}
+                    placeholder="Nome, BI, telefone ou email"
+                  />
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    {searchingGuardians
+                      ? "A pesquisar no registo de Pessoas…"
+                      : guardianQuery.trim().length === 1
+                        ? "Escreva pelo menos 2 caracteres."
+                        : "A pesquisa usa o registo central da escola e evita carregar milhares de pessoas."}
+                  </p>
+                </SheetCell>
                 <SheetCell label="Encarregado já registado" full>
                   <select
                     aria-label="Encarregado já registado"
