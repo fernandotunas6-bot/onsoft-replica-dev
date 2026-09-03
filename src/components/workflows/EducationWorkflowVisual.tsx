@@ -105,21 +105,10 @@ export function EducationWorkflowVisual({
           />
 
           <g className="text-primary">
-            <rect
-              x="52"
-              y="58"
-              width="48"
-              height="48"
-              rx="4"
-              className="fill-current opacity-15"
-            />
+            <rect x="52" y="58" width="48" height="48" rx="4" className="fill-current opacity-15" />
             <path d="M76 58v48M52 82h48" className="stroke-current" strokeWidth="3" />
             <circle cx="310" cy="116" r="24" className="fill-current opacity-10" />
-            <path
-              d="M310 92v48M286 116h48"
-              className="stroke-current opacity-45"
-              strokeWidth="3"
-            />
+            <path d="M310 92v48M286 116h48" className="stroke-current opacity-45" strokeWidth="3" />
           </g>
 
           <path
@@ -269,9 +258,7 @@ export function EducationWorkflowVisual({
           {eyebrow ?? copy.eyebrow}
         </p>
         <h3 className="text-2xl font-bold tracking-tight text-foreground">{title ?? copy.title}</h3>
-        <p className="text-sm leading-6 text-muted-foreground">
-          {description ?? copy.description}
-        </p>
+        <p className="text-sm leading-6 text-muted-foreground">{description ?? copy.description}</p>
       </div>
     </section>
   );
