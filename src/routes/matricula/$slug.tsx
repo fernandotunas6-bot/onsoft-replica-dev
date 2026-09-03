@@ -109,13 +109,13 @@ function PublicEnrollmentPage() {
           <EducationWorkflowVisual
             scene={sent ? "success" : "enrollment"}
             eyebrow={form?.school_name ?? "SIGA Plus"}
-            title={sent ? "Candidatura enviada" : form?.title ?? "Matrícula"}
+            title={sent ? "Candidatura enviada" : (form?.title ?? "Matrícula")}
             description={
               sent
                 ? "Os dados foram recebidos. A secretaria pode agora rever e continuar o processo."
-                : form?.hero_text ??
+                : (form?.hero_text ??
                   form?.subtitle ??
-                  "Preencha os dados do aluno. A secretaria confirma a matrícula."
+                  "Preencha os dados do aluno. A secretaria confirma a matrícula.")
             }
             className="min-h-[380px] rounded-3xl border border-border lg:min-h-[620px]"
           />
