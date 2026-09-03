@@ -84,6 +84,9 @@ export const updateStudentProfileInputSchema = z.object({
   fullName: z.string().trim().min(2).max(160),
   email: z.union([z.literal(""), z.string().trim().email()]).optional(),
   phone: optionalText,
+  province: optionalText,
+  municipality: optionalText,
+  commune: optionalText,
   address: optionalText,
 });
 

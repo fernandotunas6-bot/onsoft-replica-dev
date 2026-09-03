@@ -36,12 +36,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { getPerson, updatePersonStatus, updatePerson } from "@/features/people/server";
+import {
+  getPerson,
+  setPersonInstitutionRoles,
+  updatePersonStatus,
+  updatePerson,
+} from "@/features/people/server";
 import { whatsappHref } from "@/features/integrations/actions";
 import { formatAngolaBi } from "@/lib/angola-identity";
 import { kwanza } from "@/lib/currency";
+import { angolaProvinces } from "@/lib/angola-territory";
+import { personInstitutionRoleOptions } from "@/features/people/schemas";
 
 export type PersonRecord = {
   id: string;
@@ -59,6 +67,10 @@ export type PersonRecord = {
   email?: string | null;
   phone?: string | null;
   phone_primary?: string | null;
+  province?: string | null;
+  municipality?: string | null;
+  commune?: string | null;
+  address?: string | null;
   status?: string | null;
   roles?: string[];
   documents?: Array<{
@@ -97,6 +109,7 @@ const roleLabels: Record<string, string> = {
   coordenador: "Coordenador Pedagógico",
   utilizador: "Utilizador com Acesso",
   fornecedor: "Fornecedor Institucional",
+  contacto_institucional: "Contacto Institucional",
 };
 
 const roleBadges: Record<
@@ -139,7 +152,19 @@ export function PersonProfile360Modal({
   const [activeTab, setActiveTab] = useState("visao_geral");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editValues, setEditValues] = useState({ fullName: "", email: "", phone: "", nif: "" });
+  const [roleEditing, setRoleEditing] = useState(false);
+  const [savingRoles, setSavingRoles] = useState(false);
+  const [institutionRoleDraft, setInstitutionRoleDraft] = useState<string[]>([]);
+  const [editValues, setEditValues] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    nif: "",
+    province: "",
+    municipality: "",
+    commune: "",
+    address: "",
+  });
 
   const personQuery = useQuery({
     queryKey: ["people", "get", personId],
@@ -176,6 +201,10 @@ export function PersonProfile360Modal({
       email: email,
       phone: phone,
       nif: nifOrBi,
+      province: person.province ?? "",
+      municipality: person.municipality ?? "",
+      commune: person.commune ?? "",
+      address: person.address ?? "",
     });
     setActiveTab("dados_pessoais");
     setEditing(true);
@@ -197,6 +226,10 @@ export function PersonProfile360Modal({
           email: editValues.email.trim(),
           phone: editValues.phone.trim(),
           nif: editValues.nif.trim(),
+          province: editValues.province.trim(),
+          municipality: editValues.municipality.trim(),
+          commune: editValues.commune.trim(),
+          address: editValues.address.trim(),
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["people", "get", personId] });
@@ -209,8 +242,42 @@ export function PersonProfile360Modal({
     }
   };
 
+  const handleStartRoleEdit = () => {
+    setInstitutionRoleDraft(
+      roles.filter((role) => (personInstitutionRoleOptions as readonly string[]).includes(role)),
+    );
+    setRoleEditing(true);
+  };
+
+  const handleSaveRoles = async () => {
+    if (!personId) return;
+    setSavingRoles(true);
+    try {
+      await setPersonInstitutionRoles({
+        data: {
+          personId,
+          roles: institutionRoleDraft as Array<(typeof personInstitutionRoleOptions)[number]>,
+        },
+      });
+      await queryClient.invalidateQueries({ queryKey: ["people", "get", personId] });
+      toast.success("Vínculos institucionais actualizados.");
+      setRoleEditing(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível actualizar os vínculos.",
+      );
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
   return (
-    <ModalShell open={open} onOpenChange={onOpenChange} size="2xl" hasUnsavedChanges={editing}>
+    <ModalShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="2xl"
+      hasUnsavedChanges={editing || roleEditing}
+    >
       <div className="flex h-full max-h-[88vh] flex-col overflow-hidden">
         {/* CABEÇALHO 360° PREMIUM */}
         <div className="border-b border-border bg-gradient-to-r from-card via-card to-secondary/30 px-6 py-5 pr-20">
@@ -311,12 +378,13 @@ export function PersonProfile360Modal({
           type="button"
           onClick={() => {
             if (
-              editing &&
+              (editing || roleEditing) &&
               !window.confirm("Existem alterações não guardadas. Fechar sem guardar?")
             ) {
               return;
             }
             setEditing(false);
+            setRoleEditing(false);
             onOpenChange(false);
           }}
           aria-label="Fechar"
@@ -520,6 +588,67 @@ export function PersonProfile360Modal({
                         }
                       />
                     </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-province" className="text-xs">
+                        Província
+                      </Label>
+                      <select
+                        id="edit-province"
+                        value={editValues.province}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({
+                            ...prev,
+                            province: e.target.value,
+                            municipality: "",
+                            commune: "",
+                          }))
+                        }
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="">Seleccionar província</option>
+                        {angolaProvinces.map((province) => (
+                          <option key={province} value={province}>
+                            {province}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-municipality" className="text-xs">
+                        Município
+                      </Label>
+                      <Input
+                        id="edit-municipality"
+                        value={editValues.municipality}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, municipality: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-commune" className="text-xs">
+                        Comuna / localidade
+                      </Label>
+                      <Input
+                        id="edit-commune"
+                        value={editValues.commune}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, commune: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-address" className="text-xs">
+                        Morada detalhada
+                      </Label>
+                      <Input
+                        id="edit-address"
+                        value={editValues.address}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, address: e.target.value }))
+                        }
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center justify-end gap-2 pt-2">
                     <Button
@@ -653,6 +782,17 @@ export function PersonProfile360Modal({
                       </span>
                     </div>
                   </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/20 sm:col-span-2">
+                    <MapPin className="mt-0.5 size-5 shrink-0 text-primary" />
+                    <div className="min-w-0">
+                      <span className="text-muted-foreground block">Localização</span>
+                      <span className="font-bold text-sm">
+                        {[person?.address, person?.commune, person?.municipality, person?.province]
+                          .filter(Boolean)
+                          .join(" · ") || "Sem localização registada"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -660,25 +800,93 @@ export function PersonProfile360Modal({
             {/* ABA 5: VÍNCULOS E MATRÍCULAS */}
             <TabsContent value="vinculos" className="space-y-4">
               <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h4 className="text-sm font-bold flex items-center gap-2">
                     <GraduationCap className="size-4 text-primary" />
-                    Histórico Temporal de Matrículas
+                    Vínculos institucionais & matrículas
                   </h4>
-                  {hasStudentRole && onAction && person ? (
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
                       size="sm"
-                      onClick={() => {
-                        onOpenChange(false);
-                        onAction("enroll", person);
-                      }}
+                      variant="outline"
+                      onClick={handleStartRoleEdit}
                       className="gap-1.5 text-xs"
                     >
-                      <UserPlus className="size-3.5" /> Nova Matrícula
+                      <UserCheck className="size-3.5" /> Gerir vínculos
                     </Button>
-                  ) : null}
+                    {hasStudentRole && onAction && person ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          onOpenChange(false);
+                          onAction("enroll", person);
+                        }}
+                        className="gap-1.5 text-xs"
+                      >
+                        <UserPlus className="size-3.5" /> Nova Matrícula
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
+
+                {roleEditing ? (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">
+                        Papéis institucionais declarativos
+                      </p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Aluno e Professor são controlados pelos respectivos registos de domínio.
+                        Aqui pode acumular os demais vínculos sem criar uma nova Pessoa.
+                      </p>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {personInstitutionRoleOptions.map((role) => {
+                        const checked = institutionRoleDraft.includes(role);
+                        return (
+                          <label
+                            key={role}
+                            className="flex items-center gap-2 rounded-md border border-border bg-background p-2.5 text-xs"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(value) =>
+                                setInstitutionRoleDraft((current) =>
+                                  value
+                                    ? [...new Set([...current, role])]
+                                    : current.filter((item) => item !== role),
+                                )
+                              }
+                            />
+                            <span>{roleLabels[role] ?? role}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={savingRoles}
+                        onClick={() => setRoleEditing(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={savingRoles}
+                        onClick={() => void handleSaveRoles()}
+                      >
+                        {savingRoles ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                        Guardar vínculos
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
 
                 {hasStudentRole && person?.academic_summary?.active_enrollment ? (
                   <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-xs space-y-1.5">

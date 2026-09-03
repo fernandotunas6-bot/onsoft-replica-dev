@@ -18,6 +18,14 @@ import {
   updateEnrollmentFormInputSchema,
 } from "./schemas";
 
+function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
+  return Boolean(
+    error &&
+    (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
+      error.code === "42703"),
+  );
+}
+
 function slugFromSchoolName(name: string) {
   const base = name
     .normalize("NFD")
@@ -69,6 +77,18 @@ export const getOrCreateEnrollmentForm = createServerFn({ method: "POST" })
         hero_text: "Bem-vindo. A sua candidatura fica pendente até a secretaria validar.",
         accent_color: "#1d4ed8",
         is_open: true,
+        visible_fields: [
+          "birth_date",
+          "sex",
+          "phone_primary",
+          "email",
+          "province",
+          "municipality",
+          "address",
+          "guardian_name",
+          "guardian_phone",
+          "guardian_relationship",
+        ],
         created_by: context.userId,
         updated_by: context.userId,
       })
@@ -266,6 +286,10 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           nif?: string;
           birth_date?: string;
           sex?: string;
+          province?: string;
+          municipality?: string;
+          commune?: string;
+          address?: string;
         };
         guardianName?: string;
         guardianPhone?: string;
@@ -274,23 +298,39 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       const person = payload.person ?? {};
       const fullName = String(person.full_name ?? application.full_name).trim();
       const normalizedNif = normalizePersonNif(person.nif);
+      const personPayload: Record<string, unknown> = {
+        school_id: membership.schoolId,
+        full_name: fullName,
+        preferred_name: fullName.split(/\s+/)[0],
+        email: person.email || null,
+        phone: person.phone_primary || null,
+        national_id: normalizedNif,
+        date_of_birth: person.birth_date || null,
+        sex: person.sex === "M" ? "male" : person.sex === "F" ? "female" : person.sex || null,
+        status: "active",
+        created_by: context.userId,
+        updated_by: context.userId,
+      };
+      const hasGeography = Boolean(
+        person.province || person.municipality || person.commune || person.address,
+      );
+      if (hasGeography) {
+        personPayload["province"] = person.province || null;
+        personPayload["municipality"] = person.municipality || null;
+        personPayload["commune"] = person.commune || null;
+        personPayload["address"] = person.address || null;
+      }
+
       const { data: personRow, error: personError } = await db
         .from("people")
-        .insert({
-          school_id: membership.schoolId,
-          full_name: fullName,
-          preferred_name: fullName.split(/\s+/)[0],
-          email: person.email || null,
-          phone: person.phone_primary || null,
-          national_id: normalizedNif,
-          date_of_birth: person.birth_date || null,
-          sex: person.sex === "M" ? "male" : person.sex === "F" ? "female" : person.sex || null,
-          status: "active",
-          created_by: context.userId,
-          updated_by: context.userId,
-        })
+        .insert(personPayload)
         .select("id")
         .single();
+      if (personError && hasGeography && isMissingPeopleGeography(personError)) {
+        throw new Error(
+          "A candidatura contém localização, mas a migration territorial de Pessoas ainda não foi aplicada.",
+        );
+      }
       if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
 
       if (isAngolaBiNif(normalizedNif) && normalizedNif) {

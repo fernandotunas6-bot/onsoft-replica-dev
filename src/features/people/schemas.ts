@@ -15,6 +15,16 @@ export const personRoleOptions = [
   "fornecedor",
   "contacto_institucional",
 ] as const;
+
+export const personInstitutionRoleOptions = [
+  "encarregado",
+  "funcionario",
+  "diretor",
+  "coordenador",
+  "utilizador",
+  "fornecedor",
+  "contacto_institucional",
+] as const;
 export const personRelationshipTypeOptions = [
   "pai",
   "mae",
@@ -152,6 +162,10 @@ export type CreatePersonInput = z.infer<typeof createPersonInputSchema>;
 
 export const searchPeopleInputSchema = z.object({
   query: z.string().trim().max(160).default(""),
+  province: optionalText,
+  municipality: optionalText,
+  commune: optionalText,
+  role: z.enum(personRoleOptions).optional(),
   limit: z.number().int().min(1).max(50).default(20),
 });
 export type SearchPeopleInput = z.infer<typeof searchPeopleInputSchema>;
@@ -183,6 +197,12 @@ export const updatePersonStatusInputSchema = z.object({
 });
 export type UpdatePersonStatusInput = z.infer<typeof updatePersonStatusInputSchema>;
 
+export const setPersonInstitutionRolesInputSchema = z.object({
+  personId: z.string().uuid(),
+  roles: z.array(z.enum(personInstitutionRoleOptions)).max(personInstitutionRoleOptions.length),
+});
+export type SetPersonInstitutionRolesInput = z.infer<typeof setPersonInstitutionRolesInputSchema>;
+
 export const updatePersonInputSchema = z
   .object({
     personId: z.string().uuid(),
@@ -190,6 +210,10 @@ export const updatePersonInputSchema = z
     email: z.union([z.literal(""), z.string().trim().email()]).optional(),
     phone: optionalText,
     nif: optionalText,
+    province: optionalText,
+    municipality: optionalText,
+    commune: optionalText,
+    address: optionalText,
   })
   .superRefine((value, ctx) => {
     if (!value.nif) return;

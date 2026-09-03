@@ -29,6 +29,8 @@ import { createPerson, findPersonDuplicates, searchPeople } from "@/features/peo
 import { personRelationshipTypeOptions, personRoleOptions } from "@/features/people/schemas";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
+import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
+import { angolaProvinces } from "@/lib/angola-territory";
 
 type PersonRole = (typeof personRoleOptions)[number];
 type RelationshipType = (typeof personRelationshipTypeOptions)[number];
@@ -95,6 +97,9 @@ export function PersonWizardModal({
   const [phonePrimary, setPhonePrimary] = useState("");
   const [phoneAlt, setPhoneAlt] = useState("");
   const [email, setEmail] = useState("");
+  const [province, setProvince] = useState("");
+  const [municipality, setMunicipality] = useState("");
+  const [commune, setCommune] = useState("");
   const [address, setAddress] = useState("");
   const [docType, setDocType] = useState<"bi" | "passaporte" | "cedula" | "outro">("bi");
   const [docNumber, setDocNumber] = useState("");
@@ -150,6 +155,9 @@ export function PersonWizardModal({
     setPhonePrimary("");
     setPhoneAlt("");
     setEmail("");
+    setProvince("");
+    setMunicipality("");
+    setCommune("");
     setAddress("");
     setDocType("bi");
     setDocNumber("");
@@ -207,6 +215,9 @@ export function PersonWizardModal({
             phone_primary: phonePrimary.trim() || undefined,
             phone_alternative: phoneAlt.trim() || undefined,
             email: email.trim() || undefined,
+            province: province || undefined,
+            municipality: municipality.trim() || undefined,
+            commune: commune.trim() || undefined,
             address: address.trim() || undefined,
           },
           roles,
@@ -237,6 +248,22 @@ export function PersonWizardModal({
   };
 
   const hasUnsavedChanges = Boolean(fullName.trim() && !createdPersonId);
+  const visualScene =
+    step === 7
+      ? "success"
+      : step === 4
+        ? "guardian"
+        : step === 5 && roles.includes("professor")
+          ? "teacher"
+          : "people";
+  const visualTitle =
+    step === 7
+      ? "Pessoa pronta para continuar"
+      : step === 5
+        ? "Defina os vínculos da pessoa"
+        : fullName.trim()
+          ? `Organizar ${fullName.trim()}`
+          : undefined;
 
   return (
     <ModalShell
@@ -245,10 +272,21 @@ export function PersonWizardModal({
         if (!val) resetForm();
         onOpenChange(val);
       }}
-      size="xl"
+      size="2xl"
       hasUnsavedChanges={hasUnsavedChanges}
     >
-      <div className="flex flex-col h-full">
+      <div className="relative flex h-full min-h-[78vh] flex-col lg:pl-[38%]">
+        <aside className="absolute inset-y-0 left-0 hidden w-[38%] overflow-hidden border-r border-border bg-muted/20 lg:block">
+          <EducationWorkflowVisual
+            scene={visualScene}
+            title={visualTitle}
+            description={
+              step === 5
+                ? "Uma pessoa pode assumir mais de um papel. Reutilize a mesma identidade e crie apenas os vínculos necessários."
+                : undefined
+            }
+          />
+        </aside>
         <ModalHeader
           icon={UserPlus}
           title="Nova Pessoa — Núcleo de Identidade"
@@ -452,13 +490,54 @@ export function PersonWizardModal({
                     />
                   </div>
 
-                  <div className="sm:col-span-2 space-y-1.5">
-                    <Label htmlFor="wiz_address">Endereço de Residência / Município</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wiz_province">Província</Label>
+                    <select
+                      id="wiz_province"
+                      value={province}
+                      onChange={(e) => {
+                        setProvince(e.target.value);
+                        setMunicipality("");
+                        setCommune("");
+                      }}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="">Seleccionar província</option>
+                      {angolaProvinces.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wiz_municipality">Município</Label>
+                    <Input
+                      id="wiz_municipality"
+                      value={municipality}
+                      onChange={(e) => setMunicipality(e.target.value)}
+                      placeholder="Ex.: Huambo"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wiz_commune">Comuna / Localidade</Label>
+                    <Input
+                      id="wiz_commune"
+                      value={commune}
+                      onChange={(e) => setCommune(e.target.value)}
+                      placeholder="Opcional"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wiz_address">Morada detalhada</Label>
                     <Input
                       id="wiz_address"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Bairro, Rua, Casa, Município"
+                      placeholder="Bairro, rua, casa ou referência"
                     />
                   </div>
                 </div>
@@ -544,6 +623,8 @@ export function PersonWizardModal({
                       <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                         <Input
+                          id="wiz_guardian_search"
+                          aria-label="Pesquisar encarregado"
                           value={guardianQuery}
                           onChange={(e) => setGuardianQuery(e.target.value)}
                           placeholder="Pesquisar por nome, telefone ou BI…"

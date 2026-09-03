@@ -55,7 +55,7 @@ import {
   updatePersonStatus,
   updateTeacher,
 } from "@/features/people/server";
-import { personDocumentTypeOptions } from "@/features/people/schemas";
+import { personDocumentTypeOptions, personRoleOptions } from "@/features/people/schemas";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
@@ -67,6 +67,7 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { PersonProfile360Modal } from "@/features/people/components/PersonProfile360Modal";
 import { PersonWizardModal } from "@/features/people/components/PersonWizardModal";
+import { angolaProvinces } from "@/lib/angola-territory";
 
 export const Route = createFileRoute("/pessoas/")({
   head: () => ({
@@ -94,8 +95,23 @@ const documentTypeLabels: Record<string, string> = {
   outro: "Outro",
 };
 
+const personRoleFilterLabels: Record<(typeof personRoleOptions)[number], string> = {
+  aluno: "Aluno",
+  encarregado: "Encarregado",
+  professor: "Professor",
+  funcionario: "Funcionário",
+  diretor: "Diretor",
+  coordenador: "Coordenador",
+  utilizador: "Utilizador",
+  fornecedor: "Fornecedor",
+  contacto_institucional: "Contacto institucional",
+};
+
 const pessoasFilterDefaults = {
   q: "",
+  province: "",
+  municipality: "",
+  role: "",
   teacherStatus: "all",
   personStatus: "todos",
 };
@@ -121,8 +137,24 @@ function PeoplePage() {
   const [pendingDocFile, setPendingDocFile] = useState<{ id: string; name: string } | null>(null);
 
   const peopleQuery = useQuery({
-    queryKey: ["people", "search", deferredQuery],
-    queryFn: () => searchPeople({ data: { query: deferredQuery, limit: 50 } }),
+    queryKey: [
+      "people",
+      "search",
+      deferredQuery,
+      filters.province,
+      filters.municipality,
+      filters.role,
+    ],
+    queryFn: () =>
+      searchPeople({
+        data: {
+          query: deferredQuery,
+          province: filters.province || undefined,
+          municipality: filters.municipality || undefined,
+          role: (filters.role as (typeof personRoleOptions)[number] | "") || undefined,
+          limit: 50,
+        },
+      }),
     placeholderData: (previous) => previous,
   });
 
@@ -452,6 +484,38 @@ function PeoplePage() {
               "aria-label": "Pesquisar pessoa",
             },
             {
+              name: "province",
+              type: "select",
+              label: "Província",
+              emptyValue: "",
+              options: [
+                { value: "", label: "Todas as províncias" },
+                ...angolaProvinces.map((province) => ({
+                  value: province,
+                  label: province,
+                })),
+              ],
+            },
+            {
+              name: "municipality",
+              label: "Município",
+              placeholder: "Filtrar município…",
+              "aria-label": "Filtrar pessoas por município",
+            },
+            {
+              name: "role",
+              type: "select",
+              label: "Vínculo",
+              emptyValue: "",
+              options: [
+                { value: "", label: "Todos os vínculos" },
+                ...personRoleOptions.map((role) => ({
+                  value: role,
+                  label: personRoleFilterLabels[role],
+                })),
+              ],
+            },
+            {
               name: "teacherStatus",
               type: "select",
               label: "Professores",
@@ -501,7 +565,11 @@ function PeoplePage() {
                       colSpan={5}
                       className="py-8 text-center text-sm text-muted-foreground"
                     >
-                      <div className="space-y-3 p-4"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-[90%]" /><Skeleton className="h-6 w-[95%]" /></div>
+                      <div className="space-y-3 p-4">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-6 w-[90%]" />
+                        <Skeleton className="h-6 w-[95%]" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : teachers.length === 0 ? (
@@ -699,7 +767,13 @@ function PeoplePage() {
                       colSpan={4}
                       className="py-10 text-center text-sm text-muted-foreground"
                     >
-                      <div className="space-y-3 p-4"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-[90%]" /><Skeleton className="h-6 w-[95%]" /><Skeleton className="h-6 w-[80%]" /><Skeleton className="h-6 w-[85%]" /></div>
+                      <div className="space-y-3 p-4">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-6 w-[90%]" />
+                        <Skeleton className="h-6 w-[95%]" />
+                        <Skeleton className="h-6 w-[80%]" />
+                        <Skeleton className="h-6 w-[85%]" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : peopleQuery.isError ? (
@@ -812,7 +886,17 @@ function PeoplePage() {
           />
           <ModalContent>
             {personQuery.isLoading ? (
-              <div className="space-y-4"><div className="flex items-center gap-4"><Skeleton className="size-20 rounded-full" /><div className="space-y-2 flex-1"><Skeleton className="h-6 w-[50%]" /><Skeleton className="h-4 w-[30%]" /></div></div><Skeleton className="h-20 w-full" /><Skeleton className="h-20 w-full" /></div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="size-20 rounded-full" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-6 w-[50%]" />
+                    <Skeleton className="h-4 w-[30%]" />
+                  </div>
+                </div>
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
             ) : personQuery.isError ? (
               <p className="text-sm text-destructive">
                 {personQuery.error instanceof Error
@@ -865,10 +949,30 @@ function PeoplePage() {
                       icon={<Pencil className="size-5" />}
                       submitLabel="Guardar Alterações"
                       fields={[
-                        { name: "nome", label: "Nome completo", defaultValue: person.full_name, full: true },
-                        { name: "email", label: "E-mail", defaultValue: person.email ?? "", required: false },
-                        { name: "telefone", label: "Telefone", defaultValue: person.phone_primary ?? "", required: false },
-                        { name: "nif", label: "BI/NIF", defaultValue: person.nif ?? "", required: false },
+                        {
+                          name: "nome",
+                          label: "Nome completo",
+                          defaultValue: person.full_name,
+                          full: true,
+                        },
+                        {
+                          name: "email",
+                          label: "E-mail",
+                          defaultValue: person.email ?? "",
+                          required: false,
+                        },
+                        {
+                          name: "telefone",
+                          label: "Telefone",
+                          defaultValue: person.phone_primary ?? "",
+                          required: false,
+                        },
+                        {
+                          name: "nif",
+                          label: "BI/NIF",
+                          defaultValue: person.nif ?? "",
+                          required: false,
+                        },
                       ]}
                       onSubmit={async (values) => {
                         await updatePerson({
@@ -878,7 +982,7 @@ function PeoplePage() {
                             email: values["email"] || undefined,
                             phone: values["telefone"] || undefined,
                             nif: values["nif"] || undefined,
-                          }
+                          },
                         });
                         await queryClient.invalidateQueries({ queryKey: ["people"] });
                       }}

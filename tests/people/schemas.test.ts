@@ -6,6 +6,7 @@ import {
   personCoreFieldsSchema,
   personDocumentInputSchema,
   searchPeopleInputSchema,
+  setPersonInstitutionRolesInputSchema,
   setPersonPhotoUrlInputSchema,
   updatePersonInputSchema,
 } from "@/features/people/schemas";
@@ -88,6 +89,19 @@ describe("searchPeopleInputSchema", () => {
   it("rejects a limit above 50", () => {
     expect(searchPeopleInputSchema.safeParse({ limit: 500 }).success).toBe(false);
   });
+
+  it("accepts territorial filters", () => {
+    const result = searchPeopleInputSchema.parse({
+      province: "Huambo",
+      municipality: "Caála",
+      commune: "Cuima",
+      role: "encarregado",
+    });
+    expect(result.province).toBe("Huambo");
+    expect(result.municipality).toBe("Caála");
+    expect(result.commune).toBe("Cuima");
+    expect(result.role).toBe("encarregado");
+  });
 });
 
 describe("findPersonDuplicatesInputSchema", () => {
@@ -149,6 +163,19 @@ describe("updatePersonInputSchema", () => {
     expect(parsed.nif).toBe("000204688CA010");
   });
 
+  it("aceita localização territorial na actualização", () => {
+    const parsed = updatePersonInputSchema.parse({
+      personId: "11111111-1111-1111-1111-111111111111",
+      fullName: "Ana Domingos",
+      province: "Huambo",
+      municipality: "Huambo",
+      commune: "Calima",
+      address: "Bairro Académico",
+    });
+    expect(parsed.province).toBe("Huambo");
+    expect(parsed.address).toBe("Bairro Académico");
+  });
+
   it("aceita referência a ficheiro da biblioteca no documento", () => {
     const parsed = personDocumentInputSchema.parse({
       document_type: "outro",
@@ -157,6 +184,31 @@ describe("updatePersonInputSchema", () => {
       file_name: "bi-scan.pdf",
     });
     expect(parsed.file_name).toBe("bi-scan.pdf");
+  });
+});
+
+describe("setPersonInstitutionRolesInputSchema", () => {
+  it("accepts multiple institutional roles without student or teacher pseudo-links", () => {
+    const parsed = setPersonInstitutionRolesInputSchema.parse({
+      personId: "11111111-1111-1111-1111-111111111111",
+      roles: ["encarregado", "coordenador", "contacto_institucional"],
+    });
+    expect(parsed.roles).toEqual(["encarregado", "coordenador", "contacto_institucional"]);
+  });
+
+  it("rejects aluno/professor because those roles come from domain records", () => {
+    expect(
+      setPersonInstitutionRolesInputSchema.safeParse({
+        personId: "11111111-1111-1111-1111-111111111111",
+        roles: ["aluno"],
+      }).success,
+    ).toBe(false);
+    expect(
+      setPersonInstitutionRolesInputSchema.safeParse({
+        personId: "11111111-1111-1111-1111-111111111111",
+        roles: ["professor"],
+      }).success,
+    ).toBe(false);
   });
 });
 

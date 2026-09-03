@@ -1498,8 +1498,13 @@ function StudentDetail() {
               ) : (
                 <p className="text-muted-foreground">Sem encarregados associados.</p>
               )}
-              <p className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="size-4" /> Morada não disponível no SGA
+              <p className="flex items-start gap-2 text-muted-foreground">
+                <MapPin className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  {[student.address, student.commune, student.municipality, student.province]
+                    .filter(Boolean)
+                    .join(" · ") || "Morada não registada"}
+                </span>
               </p>
             </div>
           </section>
