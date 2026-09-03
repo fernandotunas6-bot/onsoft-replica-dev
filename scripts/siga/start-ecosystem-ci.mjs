@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Arranca SIGA, WEB, ADMIN e DOC em background (CI / E2E).
+ * Arranca SIGA, WEB, ADMIN, DOC e PAYFLOW em background (CI / E2E).
  * Grava PIDs em .e2e-ecosystem-pids.json na raiz do repo.
  */
 import { spawn } from "node:child_process";
@@ -15,7 +15,7 @@ const apps = [
   { label: "SIGA", cwd: root, command: "npm", args: ["run", "dev"] },
   { label: "WEB", cwd: resolve(root, "painel/web"), command: "npm", args: ["run", "dev"] },
   { label: "ADMIN", cwd: resolve(root, "painel/admin"), command: "npm", args: ["run", "dev"] },
-  { label: "DOC", cwd: resolve(root, "painel/docs"), command: "npm", args: ["run", "dev"] },
+  { label: "DOC", cwd: resolve(root, "painel/docs"), command: "npm", args: ["run", "dev"] },\n  { label: "PAYFLOW", cwd: resolve(root, "painel/payflow"), command: "npm", args: ["run", "dev"] },
 ];
 
 const pids = [];
