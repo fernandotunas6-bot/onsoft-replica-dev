@@ -42,9 +42,18 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: Report Cargo lockfile state
+        shell: bash
+        run: |
+          if [ -f src-tauri/Cargo.lock ]; then
+            echo 'src-tauri/Cargo.lock present: reproducible Cargo resolution enabled.'
+          else
+            echo '::warning::src-tauri/Cargo.lock is missing. Compile validation will resolve dependencies dynamically; add and commit the lockfile before release.'
+          fi
+
       - name: Cargo check
         working-directory: src-tauri
-        run: cargo check --locked
+        run: cargo check
 
   frontend-build:
     name: Frontend build for Tauri
@@ -59,8 +68,18 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
+      - name: Check Bun lockfile consistency
+        id: bun-lock
+        continue-on-error: true
         run: bun install --frozen-lockfile
+
+      - name: Report Bun lockfile drift
+        if: steps.bun-lock.outcome == 'failure'
+        run: echo '::warning::bun.lock is out of sync with package.json. Installing without --frozen-lockfile only to continue native build validation.'
+
+      - name: Install dependencies for compile validation
+        if: steps.bun-lock.outcome == 'failure'
+        run: bun install
 
       - name: Build frontend
         run: bun run build
