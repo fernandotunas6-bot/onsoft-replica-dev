@@ -28,6 +28,8 @@ export interface WizardModalProps {
   hasUnsavedChanges?: boolean;
   size?: "md" | "lg" | "xl" | "2xl";
   canProceed?: boolean;
+  submitLabel?: React.ReactNode;
+  visualPanel?: React.ReactNode;
 }
 
 export function WizardModal({
@@ -45,6 +47,8 @@ export function WizardModal({
   hasUnsavedChanges = false,
   size = "xl",
   canProceed = true,
+  submitLabel = "Concluir",
+  visualPanel,
 }: WizardModalProps) {
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === steps.length - 1;
@@ -81,7 +85,20 @@ export function WizardModal({
       size={size}
       hasUnsavedChanges={hasUnsavedChanges}
     >
-      <form onSubmit={handleSubmit} className="flex flex-col">
+      <form
+        onSubmit={handleSubmit}
+        className={
+          visualPanel
+            ? "grid min-h-[78vh] max-h-[90vh] overflow-hidden lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]"
+            : "flex flex-col"
+        }
+      >
+        {visualPanel ? (
+          <aside className="hidden min-h-0 overflow-hidden border-r border-border bg-muted/20 lg:block">
+            {visualPanel}
+          </aside>
+        ) : null}
+        <div className={visualPanel ? "flex min-h-0 flex-col" : "contents"}>
         <ModalHeader
           {...(icon ? { icon } : {})}
           title={title}
@@ -145,7 +162,7 @@ export function WizardModal({
           onCancel={guardedClose}
           cancelLabel="Cancelar"
           onSubmit={handleSubmit}
-          submitLabel={isLastStep ? "Concluir" : "Avançar"}
+          submitLabel={isLastStep ? submitLabel : "Avançar"}
           disabled={!canProceed}
           isSubmitting={isSubmitting}
           extraActions={
@@ -162,6 +179,7 @@ export function WizardModal({
             ) : null
           }
         />
+        </div>
       </form>
     </ModalShell>
   );
