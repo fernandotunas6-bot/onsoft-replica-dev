@@ -531,7 +531,11 @@ function PeoplePage() {
                       colSpan={5}
                       className="py-8 text-center text-sm text-muted-foreground"
                     >
-                      <div className="space-y-3 p-4"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-[90%]" /><Skeleton className="h-6 w-[95%]" /></div>
+                      <div className="space-y-3 p-4">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-6 w-[90%]" />
+                        <Skeleton className="h-6 w-[95%]" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : teachers.length === 0 ? (
@@ -729,7 +733,13 @@ function PeoplePage() {
                       colSpan={4}
                       className="py-10 text-center text-sm text-muted-foreground"
                     >
-                      <div className="space-y-3 p-4"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-[90%]" /><Skeleton className="h-6 w-[95%]" /><Skeleton className="h-6 w-[80%]" /><Skeleton className="h-6 w-[85%]" /></div>
+                      <div className="space-y-3 p-4">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-6 w-[90%]" />
+                        <Skeleton className="h-6 w-[95%]" />
+                        <Skeleton className="h-6 w-[80%]" />
+                        <Skeleton className="h-6 w-[85%]" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : peopleQuery.isError ? (
@@ -842,7 +852,17 @@ function PeoplePage() {
           />
           <ModalContent>
             {personQuery.isLoading ? (
-              <div className="space-y-4"><div className="flex items-center gap-4"><Skeleton className="size-20 rounded-full" /><div className="space-y-2 flex-1"><Skeleton className="h-6 w-[50%]" /><Skeleton className="h-4 w-[30%]" /></div></div><Skeleton className="h-20 w-full" /><Skeleton className="h-20 w-full" /></div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="size-20 rounded-full" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-6 w-[50%]" />
+                    <Skeleton className="h-4 w-[30%]" />
+                  </div>
+                </div>
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
             ) : personQuery.isError ? (
               <p className="text-sm text-destructive">
                 {personQuery.error instanceof Error
@@ -895,10 +915,30 @@ function PeoplePage() {
                       icon={<Pencil className="size-5" />}
                       submitLabel="Guardar Alterações"
                       fields={[
-                        { name: "nome", label: "Nome completo", defaultValue: person.full_name, full: true },
-                        { name: "email", label: "E-mail", defaultValue: person.email ?? "", required: false },
-                        { name: "telefone", label: "Telefone", defaultValue: person.phone_primary ?? "", required: false },
-                        { name: "nif", label: "BI/NIF", defaultValue: person.nif ?? "", required: false },
+                        {
+                          name: "nome",
+                          label: "Nome completo",
+                          defaultValue: person.full_name,
+                          full: true,
+                        },
+                        {
+                          name: "email",
+                          label: "E-mail",
+                          defaultValue: person.email ?? "",
+                          required: false,
+                        },
+                        {
+                          name: "telefone",
+                          label: "Telefone",
+                          defaultValue: person.phone_primary ?? "",
+                          required: false,
+                        },
+                        {
+                          name: "nif",
+                          label: "BI/NIF",
+                          defaultValue: person.nif ?? "",
+                          required: false,
+                        },
                       ]}
                       onSubmit={async (values) => {
                         await updatePerson({
@@ -908,7 +948,7 @@ function PeoplePage() {
                             email: values["email"] || undefined,
                             phone: values["telefone"] || undefined,
                             nif: values["nif"] || undefined,
-                          }
+                          },
                         });
                         await queryClient.invalidateQueries({ queryKey: ["people"] });
                       }}
