@@ -238,7 +238,7 @@ CREATE TABLE IF NOT EXISTS public.payflow_transactions (
   UNIQUE (school_id, idempotency_key)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS payflow_transactions_external_unique_idx
+CREATE UNIQUE INDEX IF NOT EXISTS payflow_transactions_intent_unique_idx\n  ON public.payflow_transactions (intent_id);\n\nCREATE UNIQUE INDEX IF NOT EXISTS payflow_transactions_external_unique_idx
   ON public.payflow_transactions (provider, external_transaction_id)
   WHERE external_transaction_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS payflow_transactions_school_recent_idx
