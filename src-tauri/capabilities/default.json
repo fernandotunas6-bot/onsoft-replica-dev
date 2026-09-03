@@ -9,6 +9,7 @@
     "core:window:default",
     "store:default",
     "window-state:default",
-    "stronghold:default"
+    "stronghold:default",
+    "notification:default"
   ]
 }
