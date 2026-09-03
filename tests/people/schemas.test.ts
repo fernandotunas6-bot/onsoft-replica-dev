@@ -95,10 +95,12 @@ describe("searchPeopleInputSchema", () => {
       province: "Huambo",
       municipality: "Caála",
       commune: "Cuima",
+      role: "encarregado",
     });
     expect(result.province).toBe("Huambo");
     expect(result.municipality).toBe("Caála");
     expect(result.commune).toBe("Cuima");
+    expect(result.role).toBe("encarregado");
   });
 });
 
