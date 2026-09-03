@@ -10,10 +10,24 @@ describe("tenant host security", () => {
     });
   });
 
+  it("normalizes a trailing DNS dot before resolving the school", () => {
+    expect(resolveTenantLookup("colegio-esperanca.portal-siga.com.")).toEqual({
+      mode: "slug",
+      slug: "colegio-esperanca",
+    });
+  });
+
   it("does not map the platform root domain to a demo tenant", () => {
     expect(resolveTenantLookup("portal-siga.com")).toEqual({
       mode: "hostname",
       hostname: "portal-siga.com",
+    });
+  });
+
+  it("fails closed when no hostname is available", () => {
+    expect(resolveTenantLookup("")).toEqual({
+      mode: "hostname",
+      hostname: "",
     });
   });
 
@@ -25,6 +39,13 @@ describe("tenant host security", () => {
     expect(resolveTenantLookup("docs.portal-siga.com")).toEqual({
       mode: "hostname",
       hostname: "docs.portal-siga.com",
+    });
+  });
+
+  it("does not resolve nested platform subdomains as a school slug", () => {
+    expect(resolveTenantLookup("foo.bar.portal-siga.com")).toEqual({
+      mode: "hostname",
+      hostname: "foo.bar.portal-siga.com",
     });
   });
 
