@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, GraduationCap, LoaderCircle } from "lucide-react";
+import { CheckCircle2, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
@@ -13,6 +13,7 @@ import type { EnrollmentVisibleField } from "@/features/enrollment/schemas";
 import { overlayTalao } from "@/features/documents/print-overlays";
 import { printBundledTemplate } from "@/features/documents/print-issue-loader";
 import { whatsappHref } from "@/features/integrations/actions";
+import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
 
 // style-check: route-exempt - formulário público com identidade própria da escola.
 
@@ -104,42 +105,36 @@ function PublicEnrollmentPage() {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,color-mix(in_oklab,var(--accent)_18%,transparent),transparent_42%),linear-gradient(180deg,var(--background),var(--secondary)/35%)]">
       <style>{`:root { --accent: ${accent}; }`}</style>
       <div className="mx-auto grid min-h-screen max-w-6xl gap-10 px-5 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-        <section className="space-y-6">
-          <div className="inline-flex items-center gap-3 rounded-2xl bg-primary px-3 py-2 text-primary-foreground shadow-lg">
-            <GraduationCap className="size-5" />
-            <span className="text-sm font-extrabold tracking-wide">
-              {form?.school_name ?? "SIGA"}
-            </span>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              Candidatura pública
-            </p>
-            <h1 className="mt-3 font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-              {form?.title ?? "Matrícula"}
-            </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-              {form?.hero_text ??
-                form?.subtitle ??
-                "Preencha os dados do aluno. A secretaria confirma a matrícula."}
-            </p>
-            {schoolWhatsapp || schoolMailto ? (
-              <div className="mt-5 flex flex-wrap gap-2">
-                {schoolWhatsapp ? (
-                  <Button variant="outline" asChild>
-                    <a href={schoolWhatsapp} target="_blank" rel="noreferrer">
-                      WhatsApp da secretaria
-                    </a>
-                  </Button>
-                ) : null}
-                {schoolMailto ? (
-                  <Button variant="outline" asChild>
-                    <a href={schoolMailto}>E-mail da secretaria</a>
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+        <section className="space-y-4">
+          <EducationWorkflowVisual
+            scene={sent ? "success" : "enrollment"}
+            eyebrow={form?.school_name ?? "SIGA Plus"}
+            title={sent ? "Candidatura enviada" : form?.title ?? "Matrícula"}
+            description={
+              sent
+                ? "Os dados foram recebidos. A secretaria pode agora rever e continuar o processo."
+                : form?.hero_text ??
+                  form?.subtitle ??
+                  "Preencha os dados do aluno. A secretaria confirma a matrícula."
+            }
+            className="min-h-[380px] rounded-3xl border border-border lg:min-h-[620px]"
+          />
+          {schoolWhatsapp || schoolMailto ? (
+            <div className="flex flex-wrap gap-2">
+              {schoolWhatsapp ? (
+                <Button variant="outline" asChild>
+                  <a href={schoolWhatsapp} target="_blank" rel="noreferrer">
+                    WhatsApp da secretaria
+                  </a>
+                </Button>
+              ) : null}
+              {schoolMailto ? (
+                <Button variant="outline" asChild>
+                  <a href={schoolMailto}>E-mail da secretaria</a>
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur">
