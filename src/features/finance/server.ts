@@ -816,6 +816,11 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
     if (!invoice?.id) throw new Error("Fatura não encontrada nesta escola.");
 
     const emisEntity = await resolveSchoolEmisEntity(db, membership.schoolId);
+    if (!emisEntity) {
+      throw new Error(
+        "Multicaixa Express não está configurado nesta escola. Use PayFlow por IBAN ou configure credenciais EMIS reais.",
+      );
+    }
     const mcx = generateMulticaixaReference(emisEntity, data.invoiceId, data.amount);
     const wallets = generateMobileWalletOptions(data.amount, data.invoiceId);
     return {
