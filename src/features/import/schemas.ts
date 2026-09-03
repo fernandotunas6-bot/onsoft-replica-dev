@@ -27,6 +27,26 @@ export const importModuleOptions = [
 
 export type ImportModule = (typeof importModuleOptions)[number];
 
+export const IMPLEMENTED_IMPORT_MODULES = [
+  "matriculas",
+  "alunos",
+  "encarregados",
+  "professores",
+  "funcionarios",
+  "turmas",
+  "classes",
+  "cursos",
+  "disciplinas",
+  "salas",
+  "horarios",
+  "notas",
+  "pagamentos",
+  "dividas",
+  "pessoas",
+] as const satisfies readonly ImportModule[];
+
+export type ImplementedImportModule = (typeof IMPLEMENTED_IMPORT_MODULES)[number];
+
 export const importJobStatusOptions = [
   "uploaded",
   "analyzing",

@@ -51,6 +51,7 @@ import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subs
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
 import { Route as ApiFinanceGatewayConfirmRouteImport } from './routes/api/finance/gateway.confirm'
 import { Route as ApiIntegrationsZoomCallbackRouteImport } from './routes/api/integrations/zoom/callback'
+import { Route as ApiPayflowCheckoutsIndexRouteImport } from './routes/api/payflow/checkouts/index'
 import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domains.check'
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
 import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
@@ -63,6 +64,10 @@ import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tena
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
 import { Route as ApiSaasUsageSyncRouteImport } from './routes/api/saas/usage.sync'
 import { Route as ApiFinanceGatewayUnitelConfirmRouteImport } from './routes/api/finance/gateway.unitel.confirm'
+import { Route as ApiPayflowCheckoutsCheckoutIdIndexRouteImport } from './routes/api/payflow/checkouts/$checkoutId/index'
+import { Route as ApiPayflowCheckoutsCheckoutIdBankTransferRouteImport } from './routes/api/payflow/checkouts/$checkoutId/bank-transfer'
+import { Route as ApiPayflowCheckoutsCheckoutIdProofRouteImport } from './routes/api/payflow/checkouts/$checkoutId/proof'
+import { Route as ApiPayflowCheckoutsCheckoutIdStatusRouteImport } from './routes/api/payflow/checkouts/$checkoutId/status'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -276,6 +281,12 @@ const ApiIntegrationsZoomCallbackRoute =
     path: '/api/integrations/zoom/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPayflowCheckoutsIndexRoute =
+  ApiPayflowCheckoutsIndexRouteImport.update({
+    id: '/api/payflow/checkouts/',
+    path: '/api/payflow/checkouts/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiSaasDomainsCheckRoute = ApiSaasDomainsCheckRouteImport.update({
   id: '/check',
   path: '/check',
@@ -340,6 +351,30 @@ const ApiFinanceGatewayUnitelConfirmRoute =
     path: '/api/finance/gateway/unitel/confirm',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPayflowCheckoutsCheckoutIdIndexRoute =
+  ApiPayflowCheckoutsCheckoutIdIndexRouteImport.update({
+    id: '/api/payflow/checkouts/$checkoutId/',
+    path: '/api/payflow/checkouts/$checkoutId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPayflowCheckoutsCheckoutIdBankTransferRoute =
+  ApiPayflowCheckoutsCheckoutIdBankTransferRouteImport.update({
+    id: '/api/payflow/checkouts/$checkoutId/bank-transfer',
+    path: '/api/payflow/checkouts/$checkoutId/bank-transfer',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPayflowCheckoutsCheckoutIdProofRoute =
+  ApiPayflowCheckoutsCheckoutIdProofRouteImport.update({
+    id: '/api/payflow/checkouts/$checkoutId/proof',
+    path: '/api/payflow/checkouts/$checkoutId/proof',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPayflowCheckoutsCheckoutIdStatusRoute =
+  ApiPayflowCheckoutsCheckoutIdStatusRouteImport.update({
+    id: '/api/payflow/checkouts/$checkoutId/status',
+    path: '/api/payflow/checkouts/$checkoutId/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -395,7 +430,12 @@ export interface FileRoutesByFullPath {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/api/payflow/checkouts/': typeof ApiPayflowCheckoutsIndexRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
+  '/api/payflow/checkouts/$checkoutId/bank-transfer': typeof ApiPayflowCheckoutsCheckoutIdBankTransferRoute
+  '/api/payflow/checkouts/$checkoutId/proof': typeof ApiPayflowCheckoutsCheckoutIdProofRoute
+  '/api/payflow/checkouts/$checkoutId/status': typeof ApiPayflowCheckoutsCheckoutIdStatusRoute
+  '/api/payflow/checkouts/$checkoutId/': typeof ApiPayflowCheckoutsCheckoutIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -451,7 +491,12 @@ export interface FileRoutesByTo {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/api/payflow/checkouts': typeof ApiPayflowCheckoutsIndexRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
+  '/api/payflow/checkouts/$checkoutId/bank-transfer': typeof ApiPayflowCheckoutsCheckoutIdBankTransferRoute
+  '/api/payflow/checkouts/$checkoutId/proof': typeof ApiPayflowCheckoutsCheckoutIdProofRoute
+  '/api/payflow/checkouts/$checkoutId/status': typeof ApiPayflowCheckoutsCheckoutIdStatusRoute
+  '/api/payflow/checkouts/$checkoutId': typeof ApiPayflowCheckoutsCheckoutIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -508,7 +553,12 @@ export interface FileRoutesById {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/api/payflow/checkouts/': typeof ApiPayflowCheckoutsIndexRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
+  '/api/payflow/checkouts/$checkoutId/bank-transfer': typeof ApiPayflowCheckoutsCheckoutIdBankTransferRoute
+  '/api/payflow/checkouts/$checkoutId/proof': typeof ApiPayflowCheckoutsCheckoutIdProofRoute
+  '/api/payflow/checkouts/$checkoutId/status': typeof ApiPayflowCheckoutsCheckoutIdStatusRoute
+  '/api/payflow/checkouts/$checkoutId/': typeof ApiPayflowCheckoutsCheckoutIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -566,7 +616,12 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/api/payflow/checkouts/'
     | '/api/finance/gateway/unitel/confirm'
+    | '/api/payflow/checkouts/$checkoutId/bank-transfer'
+    | '/api/payflow/checkouts/$checkoutId/proof'
+    | '/api/payflow/checkouts/$checkoutId/status'
+    | '/api/payflow/checkouts/$checkoutId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -622,7 +677,12 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/api/payflow/checkouts'
     | '/api/finance/gateway/unitel/confirm'
+    | '/api/payflow/checkouts/$checkoutId/bank-transfer'
+    | '/api/payflow/checkouts/$checkoutId/proof'
+    | '/api/payflow/checkouts/$checkoutId/status'
+    | '/api/payflow/checkouts/$checkoutId'
   id:
     | '__root__'
     | '/'
@@ -678,7 +738,12 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/api/payflow/checkouts/'
     | '/api/finance/gateway/unitel/confirm'
+    | '/api/payflow/checkouts/$checkoutId/bank-transfer'
+    | '/api/payflow/checkouts/$checkoutId/proof'
+    | '/api/payflow/checkouts/$checkoutId/status'
+    | '/api/payflow/checkouts/$checkoutId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -725,7 +790,12 @@ export interface RootRouteChildren {
   ApiIntegrationsZoomCallbackRoute: typeof ApiIntegrationsZoomCallbackRoute
   ApiSaasEmailRoutesRoute: typeof ApiSaasEmailRoutesRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
+  ApiPayflowCheckoutsIndexRoute: typeof ApiPayflowCheckoutsIndexRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
+  ApiPayflowCheckoutsCheckoutIdBankTransferRoute: typeof ApiPayflowCheckoutsCheckoutIdBankTransferRoute
+  ApiPayflowCheckoutsCheckoutIdProofRoute: typeof ApiPayflowCheckoutsCheckoutIdProofRoute
+  ApiPayflowCheckoutsCheckoutIdStatusRoute: typeof ApiPayflowCheckoutsCheckoutIdStatusRoute
+  ApiPayflowCheckoutsCheckoutIdIndexRoute: typeof ApiPayflowCheckoutsCheckoutIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1024,6 +1094,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiIntegrationsZoomCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/payflow/checkouts/': {
+      id: '/api/payflow/checkouts/'
+      path: '/api/payflow/checkouts'
+      fullPath: '/api/payflow/checkouts/'
+      preLoaderRoute: typeof ApiPayflowCheckoutsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/saas/domains/check': {
       id: '/api/saas/domains/check'
       path: '/check'
@@ -1106,6 +1183,34 @@ declare module '@tanstack/react-router' {
       path: '/api/finance/gateway/unitel/confirm'
       fullPath: '/api/finance/gateway/unitel/confirm'
       preLoaderRoute: typeof ApiFinanceGatewayUnitelConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payflow/checkouts/$checkoutId/': {
+      id: '/api/payflow/checkouts/$checkoutId/'
+      path: '/api/payflow/checkouts/$checkoutId'
+      fullPath: '/api/payflow/checkouts/$checkoutId/'
+      preLoaderRoute: typeof ApiPayflowCheckoutsCheckoutIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payflow/checkouts/$checkoutId/bank-transfer': {
+      id: '/api/payflow/checkouts/$checkoutId/bank-transfer'
+      path: '/api/payflow/checkouts/$checkoutId/bank-transfer'
+      fullPath: '/api/payflow/checkouts/$checkoutId/bank-transfer'
+      preLoaderRoute: typeof ApiPayflowCheckoutsCheckoutIdBankTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payflow/checkouts/$checkoutId/proof': {
+      id: '/api/payflow/checkouts/$checkoutId/proof'
+      path: '/api/payflow/checkouts/$checkoutId/proof'
+      fullPath: '/api/payflow/checkouts/$checkoutId/proof'
+      preLoaderRoute: typeof ApiPayflowCheckoutsCheckoutIdProofRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payflow/checkouts/$checkoutId/status': {
+      id: '/api/payflow/checkouts/$checkoutId/status'
+      path: '/api/payflow/checkouts/$checkoutId/status'
+      fullPath: '/api/payflow/checkouts/$checkoutId/status'
+      preLoaderRoute: typeof ApiPayflowCheckoutsCheckoutIdStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1225,7 +1330,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiIntegrationsZoomCallbackRoute: ApiIntegrationsZoomCallbackRoute,
   ApiSaasEmailRoutesRoute: ApiSaasEmailRoutesRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
+  ApiPayflowCheckoutsIndexRoute: ApiPayflowCheckoutsIndexRoute,
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
+  ApiPayflowCheckoutsCheckoutIdBankTransferRoute:
+    ApiPayflowCheckoutsCheckoutIdBankTransferRoute,
+  ApiPayflowCheckoutsCheckoutIdProofRoute:
+    ApiPayflowCheckoutsCheckoutIdProofRoute,
+  ApiPayflowCheckoutsCheckoutIdStatusRoute:
+    ApiPayflowCheckoutsCheckoutIdStatusRoute,
+  ApiPayflowCheckoutsCheckoutIdIndexRoute:
+    ApiPayflowCheckoutsCheckoutIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

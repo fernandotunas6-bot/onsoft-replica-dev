@@ -21,7 +21,9 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -40,11 +42,13 @@ import {
 } from "@/features/import/server";
 import {
   importModuleOptions,
+  IMPLEMENTED_IMPORT_MODULES,
   type ImportModule,
   type ImportJobRecord,
   type ImportRowRecord,
 } from "@/features/import/schemas";
 import { suggestColumnMapping } from "@/features/import/engine/suggest";
+import { FIELD_CATALOG } from "@/features/import/engine/field-catalog";
 
 const STEPS = [
   "1. Arquivo",
@@ -56,8 +60,26 @@ const STEPS = [
   "7. Resultado",
 ];
 
-/** Módulos com importador implementado — os restantes aparecem desactivados no Select. */
-const IMPLEMENTED_MODULES = new Set<ImportModule>(["pessoas", "alunos"]);
+/** Módulos com importador implementado no motor SIGA */
+const IMPLEMENTED_MODULES = new Set<ImportModule>(IMPLEMENTED_IMPORT_MODULES);
+
+const MODULE_DISPLAY_LABELS: Record<string, string> = {
+  // Secretaria & Alunos
+  alunos: "Alunos & Estudantes",
+  encarregados: "Encarregados de Educação",
+  matriculas: "Matrículas & Confirmações",
+  pessoas: "Pessoas & Encarregados (Base Geral)",
+  // Estrutura Pedagógica & Docência
+  professores: "Professores & Corpo Docente",
+  turmas: "Turmas & Salas",
+  classes: "Classes Escolares",
+  cursos: "Cursos & Especialidades",
+  disciplinas: "Disciplinas Curriculares",
+  salas: "Salas & Infraestruturas",
+  notas: "Notas & Avaliações Trimestrais",
+  // Tesouraria & Finanças
+  pagamentos: "Pagamentos & Cobrança de Propinas",
+};
 
 type AnalyzedSheet = {
   name: string;
@@ -69,7 +91,7 @@ type AnalyzedSheet = {
 };
 
 const STAGE_CHUNK = 300;
-const COMMIT_BATCH = 5;
+const COMMIT_BATCH = 50;
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -82,9 +104,11 @@ function readFileAsBase64(file: File): Promise<string> {
 
 export function ImportWorkflowWizard({
   academicYearId,
+  initialModule,
   onComplete,
 }: {
   academicYearId?: string | null;
+  initialModule?: ImportModule;
   onComplete?: () => void;
 }) {
   const [step, setStep] = useState(1);
@@ -92,13 +116,16 @@ export function ImportWorkflowWizard({
   const [analyzing, setAnalyzing] = useState(false);
   const [sheets, setSheets] = useState<AnalyzedSheet[]>([]);
   const [selectedSheetIdx, setSelectedSheetIdx] = useState(0);
-  const [selectedModule, setSelectedModule] = useState<ImportModule>("alunos");
+  const [selectedModule, setSelectedModule] = useState<ImportModule>(
+    initialModule && IMPLEMENTED_MODULES.has(initialModule) ? initialModule : "alunos",
+  );
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
 
   const [job, setJob] = useState<ImportJobRecord | null>(null);
   const [staging, setStaging] = useState(false);
   const [stageProgress, setStageProgress] = useState({ done: 0, total: 0 });
   const [stageCounts, setStageCounts] = useState({ valid: 0, invalid: 0, duplicate: 0 });
+
 
   const [stagingRows, setStagingRows] = useState<ImportRowRecord[]>([]);
   const [stagingTotal, setStagingTotal] = useState(0);
@@ -145,7 +172,14 @@ export function ImportWorkflowWizard({
       }
       setSheets(res.sheets);
       setSelectedSheetIdx(0);
-      setSelectedModule(firstSheet.suggested_module);
+      if (IMPLEMENTED_MODULES.has(firstSheet.suggested_module)) {
+        setSelectedModule(firstSheet.suggested_module);
+      } else {
+        setSelectedModule("alunos");
+        toast.info(
+          `O ficheiro sugere "${firstSheet.suggested_module}" (em desenvolvimento). Seleccionado "Alunos" por omissão.`,
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao analisar o ficheiro.");
       setFile(null);
@@ -401,6 +435,18 @@ export function ImportWorkflowWizard({
               Suporta tabelas escolares até 25 000 linhas por folha. .xls (Excel 97-2003) ainda não
               é suportado — grave como .xlsx.
             </p>
+            {initialModule ? (
+              <div className="mx-auto mt-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary font-medium">
+                <span>Módulo focado: <strong>{MODULE_DISPLAY_LABELS[initialModule] || initialModule}</strong></span>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="inline-flex items-center gap-1 font-semibold text-primary underline underline-offset-2 hover:opacity-80 ml-1"
+                >
+                  <Download className="size-3" /> Baixar modelo
+                </button>
+              </div>
+            ) : null}
             <Input
               type="file"
               accept=".xlsx,.xlsm,.csv"
@@ -475,19 +521,69 @@ export function ImportWorkflowWizard({
                 <SelectValue placeholder="Selecione o módulo" />
               </SelectTrigger>
               <SelectContent>
-                {importModuleOptions.map((mod) => (
-                  <SelectItem
-                    key={mod}
-                    value={mod}
-                    disabled={!IMPLEMENTED_MODULES.has(mod)}
-                    className="text-xs capitalize"
-                  >
-                    {mod.replace(/_/g, " ")}
-                    {!IMPLEMENTED_MODULES.has(mod) ? " (em breve)" : ""}
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  <SelectLabel className="text-[11px] font-semibold text-primary">
+                    Secretaria &amp; Alunos
+                  </SelectLabel>
+                  {(["alunos", "encarregados", "matriculas", "pessoas"] as const).map((mod) => (
+                    <SelectItem key={mod} value={mod} className="text-xs font-medium">
+                      {MODULE_DISPLAY_LABELS[mod] || mod}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="text-[11px] font-semibold text-primary">
+                    Estrutura Pedagógica &amp; Docência
+                  </SelectLabel>
+                  {(["professores", "turmas", "classes", "cursos", "disciplinas", "salas", "notas"] as const).map((mod) => (
+                    <SelectItem key={mod} value={mod} className="text-xs font-medium">
+                      {MODULE_DISPLAY_LABELS[mod] || mod}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="text-[11px] font-semibold text-primary">
+                    Tesouraria &amp; Finanças
+                  </SelectLabel>
+                  {(["pagamentos"] as const).map((mod) => (
+                    <SelectItem key={mod} value={mod} className="text-xs font-medium">
+                      {MODULE_DISPLAY_LABELS[mod] || mod}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="text-[11px] font-semibold text-muted-foreground">
+                    Em Breve
+                  </SelectLabel>
+                  {importModuleOptions
+                    .filter((mod) => !IMPLEMENTED_MODULES.has(mod))
+                    .map((mod) => (
+                      <SelectItem
+                        key={mod}
+                        value={mod}
+                        disabled
+                        className="text-xs text-muted-foreground capitalize"
+                      >
+                        {mod.replace(/_/g, " ")} (em breve)
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
+
+            {!academicYearId &&
+            (selectedModule === "matriculas" ||
+              selectedModule === "turmas" ||
+              selectedModule === "notas") ? (
+              <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+                <AlertTriangle className="size-4 shrink-0" />
+                <span>
+                  Atenção: Nenhum ano lectivo activo seleccionado no cabeçalho. O módulo{" "}
+                  <strong>{MODULE_DISPLAY_LABELS[selectedModule] || selectedModule}</strong> requer
+                  um ano lectivo associado para validação relacional das turmas e alunos.
+                </span>
+              </div>
+            ) : null}
 
             <div className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 p-2.5 text-xs text-primary">
               <Sparkles className="size-4 shrink-0" />
@@ -495,7 +591,7 @@ export function ImportWorkflowWizard({
                 Sugestão automática, com base nos cabeçalhos (
                 {selectedSheet.headers.slice(0, 4).join(", ")}
                 {selectedSheet.headers.length > 4 ? "…" : ""}):{" "}
-                <strong>{selectedSheet.suggested_module}</strong> (
+                <strong>{MODULE_DISPLAY_LABELS[selectedSheet.suggested_module] || selectedSheet.suggested_module}</strong> (
                 {Math.round(selectedSheet.suggested_module_score * 100)}% de confiança). Confirme ou
                 corrija.
               </span>
@@ -539,11 +635,16 @@ export function ImportWorkflowWizard({
                     <SelectItem value="ignore" className="text-xs text-muted-foreground">
                       Ignorar coluna
                     </SelectItem>
-                    {OFFICIAL_TEMPLATES[selectedModule]?.columns.map((col) => (
+                    {OFFICIAL_TEMPLATES[selectedModule]?.columns?.map((col) => (
                       <SelectItem key={col.key} value={col.key} className="text-xs">
                         {col.header} {col.required ? "*" : ""}
                       </SelectItem>
-                    ))}
+                    )) ??
+                      FIELD_CATALOG[selectedModule]?.fields.map((f) => (
+                        <SelectItem key={f.key} value={f.key} className="text-xs">
+                          {f.label} {f.required ? "*" : ""}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

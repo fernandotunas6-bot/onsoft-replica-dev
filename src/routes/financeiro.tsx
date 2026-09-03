@@ -10,6 +10,7 @@ import {
   Banknote,
   Download,
   FileDown,
+  FileUp,
   Plus,
   Undo2,
   Wallet,
@@ -430,6 +431,11 @@ function FinanceiroPage() {
               </Button>
               <Button variant="outline" className="gap-2" onClick={exportarCaixaOficial}>
                 <Award className="size-4" /> Oficial
+              </Button>
+              <Button variant="outline" className="gap-2" asChild>
+                <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
+                  <FileUp className="size-4 text-emerald-600" /> Importar Pagamentos
+                </Link>
               </Button>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/relatorios/financeiros">
