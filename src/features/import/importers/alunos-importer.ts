@@ -164,7 +164,7 @@ export const alunosImporter: RowImporter = {
         table_name: "students",
         target_id: student.id,
         action_type: "inserted",
-        after_data: student,
+        after_data: { school_id: ctx.schoolId, ...student },
       });
     }
 
@@ -190,7 +190,11 @@ export const alunosImporter: RowImporter = {
             table_name: "student_guardians",
             target_id: student.id,
             action_type: "inserted",
-            after_data: { student_id: student.id, guardian_person_id: guardianMatch.id },
+            after_data: {
+              school_id: ctx.schoolId,
+              student_id: student.id,
+              guardian_person_id: guardianMatch.id,
+            },
           });
         }
       } else {
@@ -217,12 +221,35 @@ export const alunosImporter: RowImporter = {
             "Esta conta precisa de 2FA activo para matricular numa turma (enroll_student).",
           );
         } else {
-          audits.push({
-            table_name: "enrollments",
-            target_id: student.id,
-            action_type: "inserted",
-            after_data: { student_id: student.id, class_group_id: found.id },
-          });
+          const { data: enrollment, error: enrollmentLookupError } = await ctx.db
+            .from("enrollments")
+            .select("id")
+            .eq("school_id", ctx.schoolId)
+            .eq("student_id", student.id)
+            .eq("academic_year_id", ctx.academicYearId)
+            .eq("class_group_id", found.id)
+            .in("status", ["pending", "active"])
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (enrollmentLookupError || !enrollment?.id) {
+            warnings.push(
+              "Matrícula criada, mas não foi possível resolver o ID para auditoria/rollback.",
+            );
+          } else {
+            audits.push({
+              table_name: "enrollments",
+              target_id: String(enrollment.id),
+              action_type: "inserted",
+              after_data: {
+                school_id: ctx.schoolId,
+                student_id: student.id,
+                academic_year_id: ctx.academicYearId,
+                class_group_id: found.id,
+              },
+            });
+          }
         }
       } else {
         warnings.push(

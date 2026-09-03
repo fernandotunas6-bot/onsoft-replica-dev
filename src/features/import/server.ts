@@ -464,9 +464,7 @@ export const commitImportBatch = createServerFn({ method: "POST" })
         .eq("id", job.id);
     }
 
-    const lastRow = (pendingRows ?? [])[
-      pendingRows && pendingRows.length > 0 ? pendingRows.length - 1 : -1
-    ];
+    const lastRow = (pendingRows ?? [])[pendingRows && pendingRows.length > 0 ? pendingRows.length - 1 : -1];
     return {
       processed: pendingRows?.length ?? 0,
       remaining: Math.max(remaining, 0),
@@ -478,6 +476,16 @@ export const commitImportBatch = createServerFn({ method: "POST" })
       next_after_row_number: data.dry_run ? (lastRow?.row_number ?? data.after_row_number) : 0,
     };
   });
+
+const ROLLBACK_TABLES = new Set([
+  "people",
+  "students",
+  "student_guardians",
+  "teachers",
+  "class_groups",
+  "enrollments",
+  "grade_scores",
+]);
 
 export const rollbackImportJob = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -495,25 +503,105 @@ export const rollbackImportJob = createServerFn({ method: "POST" })
     if (auditErr) throw publicDatabaseError(auditErr, "Não foi possível carregar a auditoria.");
 
     let reverted = 0;
+    let failed = 0;
+    let skipped = 0;
+
     for (const audit of audits ?? []) {
+      if (!ROLLBACK_TABLES.has(audit.table_name)) {
+        skipped += 1;
+        continue;
+      }
+
+      const beforeData = (audit.before_data ?? null) as Record<string, unknown> | null;
+      const afterData = (audit.after_data ?? null) as Record<string, unknown> | null;
+      const auditedSchoolId = String(afterData?.["school_id"] ?? beforeData?.["school_id"] ?? "");
+      if (auditedSchoolId && auditedSchoolId !== job.school_id) {
+        failed += 1;
+        continue;
+      }
+
       try {
-        if (audit.action_type === "inserted") {
-          await db.from(audit.table_name).delete().eq("id", audit.target_id);
-        } else if (audit.action_type === "updated" && audit.before_data) {
-          await db.from(audit.table_name).update(audit.before_data).eq("id", audit.target_id);
+        let operationError: { message?: string } | null = null;
+
+        if (audit.table_name === "student_guardians") {
+          const studentId = String(afterData?.["student_id"] ?? beforeData?.["student_id"] ?? "");
+          const guardianPersonId = String(
+            afterData?.["guardian_person_id"] ?? beforeData?.["guardian_person_id"] ?? "",
+          );
+          if (!studentId || !guardianPersonId) {
+            failed += 1;
+            continue;
+          }
+
+          if (audit.action_type === "inserted") {
+            const result = await db
+              .from("student_guardians")
+              .delete()
+              .eq("school_id", job.school_id)
+              .eq("student_id", studentId)
+              .eq("guardian_person_id", guardianPersonId);
+            operationError = result.error;
+          } else if (audit.action_type === "updated" && beforeData) {
+            const safeBefore = { ...beforeData, school_id: job.school_id };
+            const result = await db
+              .from("student_guardians")
+              .update(safeBefore)
+              .eq("school_id", job.school_id)
+              .eq("student_id", studentId)
+              .eq("guardian_person_id", guardianPersonId);
+            operationError = result.error;
+          } else {
+            skipped += 1;
+            continue;
+          }
+        } else if (audit.action_type === "inserted") {
+          const result = await db
+            .from(audit.table_name)
+            .delete()
+            .eq("id", audit.target_id)
+            .eq("school_id", job.school_id);
+          operationError = result.error;
+        } else if (audit.action_type === "updated" && beforeData) {
+          const safeBefore = { ...beforeData, school_id: job.school_id };
+          delete safeBefore["id"];
+          const result = await db
+            .from(audit.table_name)
+            .update(safeBefore)
+            .eq("id", audit.target_id)
+            .eq("school_id", job.school_id);
+          operationError = result.error;
+        } else {
+          skipped += 1;
+          continue;
+        }
+
+        if (operationError) {
+          failed += 1;
+          continue;
         }
         reverted += 1;
       } catch {
-        // Regista mas não interrompe: reversão é melhor-esforço por linha, nunca tudo-ou-nada.
+        failed += 1;
       }
     }
 
-    await db
-      .from("import_jobs")
-      .update({ status: "rolled_back", updated_at: new Date().toISOString() })
-      .eq("id", job.id);
+    if (failed === 0) {
+      const { error: statusError } = await db
+        .from("import_jobs")
+        .update({ status: "rolled_back", updated_at: new Date().toISOString() })
+        .eq("id", job.id)
+        .eq("school_id", job.school_id);
+      if (statusError) {
+        throw publicDatabaseError(statusError, "Dados revertidos, mas falhou a actualização do processo.");
+      }
+    }
 
-    return { revertedCount: reverted };
+    return {
+      revertedCount: reverted,
+      failedCount: failed,
+      skippedCount: skipped,
+      completed: failed === 0,
+    };
   });
 
 export function generateErrorReportCsv(rows: ImportRowRecord[]): string {

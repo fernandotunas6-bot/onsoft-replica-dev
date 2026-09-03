@@ -1,50 +1,84 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { ensureDefaultTeacher } from "@/features/academic/sga-grades";
+import * as legacy from "./academic-bootstrap-legacy";
 
-export type BootstrapAcademicOptions = {
-  /** Propaga erros em vez de ignorar (ex.: botão em Pedagógica). */
-  strict?: boolean;
+export * from "./academic-bootstrap-legacy";
+
+export type BootstrapAcademicOptions = legacy.BootstrapAcademicOptions;
+
+type CalendarState = {
+  academicYearId: string;
+  academicYearName: string;
 };
 
-export const DEFAULT_ACADEMIC_SUBJECTS = [
-  { code: "MAT", name: "Matemática", short_name: "Mat" },
-  { code: "PORT", name: "Língua Portuguesa", short_name: "Port" },
-  { code: "CN", name: "Ciências Naturais", short_name: "CN" },
-  { code: "HIST", name: "História", short_name: "Hist" },
-  { code: "ING", name: "Inglês", short_name: "Ing" },
-] as const;
+async function requireConfiguredAcademicCalendar(
+  db: SupabaseClient,
+  schoolId: string,
+  options?: BootstrapAcademicOptions,
+): Promise<CalendarState | null> {
+  const { data: year, error: yearError } = await db
+    .from("academic_years")
+    .select("id, name")
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .order("starts_on", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-export function defaultAcademicYearLabel(referenceDate = new Date()): string {
-  const year = referenceDate.getFullYear();
-  return `${year}/${year + 1}`;
-}
-
-function isMissingTable(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
-  );
-}
-
-function handleBootstrapError(
-  error: { code?: string; message?: string } | null,
-  context: string,
-  strict?: boolean,
-) {
-  if (!error) return;
-  if (isMissingTable(error)) {
-    if (strict) throw new Error(`${context}: aplique o SQL SGA em falta.`);
-    return;
+  if (yearError) {
+    if (options?.strict) {
+      throw new Error(`Não foi possível validar o ano lectivo configurado: ${yearError.message}`);
+    }
+    return null;
   }
-  if (strict) throw publicDatabaseError(error, context);
-  console.warn(`[academic-bootstrap] ${context}:`, error.message);
+  if (!year?.id) {
+    if (options?.strict) {
+      throw new Error(
+        "Configure primeiro o ano lectivo real da escola antes de preparar a estrutura académica.",
+      );
+    }
+    return null;
+  }
+
+  const { data: terms, error: termsError } = await db
+    .from("terms")
+    .select("id, sequence, starts_on, ends_on")
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", year.id)
+    .order("sequence");
+
+  if (termsError) {
+    if (options?.strict) {
+      throw new Error(`Não foi possível validar os períodos académicos: ${termsError.message}`);
+    }
+    return null;
+  }
+
+  const bySequence = new Map(
+    (terms ?? []).map((term) => [Number(term.sequence), term] as const),
+  );
+  for (const sequence of [1, 2, 3]) {
+    const term = bySequence.get(sequence);
+    if (!term?.starts_on || !term?.ends_on) {
+      if (options?.strict) {
+        throw new Error(
+          `Configure as datas reais do ${sequence}º trimestre antes de preparar a estrutura académica.`,
+        );
+      }
+      return null;
+    }
+  }
+
+  return {
+    academicYearId: String(year.id),
+    academicYearName: String(year.name ?? ""),
+  };
 }
 
 /**
- * Cria ano lectivo activo se a escola ainda não tiver nenhum.
+ * Compatibilidade segura: um ano lectivo só pode ser criado automaticamente
+ * quando nome e datas foram fornecidos explicitamente pelo fluxo chamador.
+ * Nunca deriva datas fictícias do relógio nem fixa 2026/2027.
  */
 export async function bootstrapAcademicYearIfMissing(
   db: SupabaseClient,
@@ -56,296 +90,87 @@ export async function bootstrapAcademicYearIfMissing(
   },
   options?: BootstrapAcademicOptions,
 ): Promise<{ seeded: string[] }> {
-  const { data: existing } = await db
+  const { data: existing, error } = await db
     .from("academic_years")
     .select("id")
     .eq("school_id", input.schoolId)
+    .eq("status", "active")
     .limit(1)
     .maybeSingle();
-  if (existing?.id) return { seeded: [] };
 
-  const year = new Date().getFullYear();
-  const { error } = await db.from("academic_years").insert({
-    school_id: input.schoolId,
-    name: input.yearName ?? defaultAcademicYearLabel(),
-    starts_on: input.startsOn ?? `${year}-09-01`,
-    ends_on: input.endsOn ?? `${year + 1}-07-31`,
-    status: "active",
-  });
   if (error) {
-    handleBootstrapError(error, "Não foi possível criar o ano lectivo.", options?.strict);
+    if (options?.strict) {
+      throw new Error(`Não foi possível validar o ano lectivo: ${error.message}`);
+    }
     return { seeded: [] };
   }
-  return { seeded: ["ano lectivo"] };
+  if (existing?.id) return { seeded: [] };
+
+  if (!input.yearName?.trim() || !input.startsOn || !input.endsOn) {
+    if (options?.strict) {
+      throw new Error(
+        "Ano lectivo não configurado. Informe nome, data de início e data de fim no calendário escolar.",
+      );
+    }
+    return { seeded: [] };
+  }
+
+  return legacy.bootstrapAcademicYearIfMissing(
+    db,
+    {
+      schoolId: input.schoolId,
+      yearName: input.yearName.trim(),
+      startsOn: input.startsOn,
+      endsOn: input.endsOn,
+    },
+    options,
+  );
 }
 
 /**
- * Estrutura académica mínima para escola nova: nível, programa, campus,
- * disciplinas, trimestres e uma turma inicial. Falhas parciais são ignoradas
- * unless `strict`.
+ * Só prepara a estrutura complementar depois de existir calendário real.
+ * O legado é chamado apenas quando já existem os três trimestres; por isso o
+ * ramo antigo que criava datas 2026/2027 nunca é alcançado através desta API.
  */
 export async function bootstrapAcademicStructure(
   db: SupabaseClient,
   input: { schoolId: string; userId: string | null },
   options?: BootstrapAcademicOptions,
 ): Promise<{ seeded: string[] }> {
-  const strict = options?.strict;
-  const seeded: string[] = [];
-  const schoolId = input.schoolId;
-  const auditUser = input.userId;
-
-  let yearId: string | null = null;
-  const { data: yearRow } = await db
-    .from("academic_years")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-  yearId = (yearRow?.id as string | undefined) ?? null;
-
-  let levelId: string | null = null;
-  const { data: existingLevel } = await db
-    .from("academic_levels")
-    .select("id")
-    .eq("school_id", schoolId)
-    .limit(1)
-    .maybeSingle();
-  if (existingLevel?.id) {
-    levelId = existingLevel.id as string;
-  } else {
-    const { data: createdLevel, error } = await db
-      .from("academic_levels")
-      .insert({
-        school_id: schoolId,
-        code: "GERAL",
-        name: "Ensino Geral",
-        is_active: true,
-      })
-      .select("id")
-      .single();
-    if (!error && createdLevel?.id) {
-      levelId = createdLevel.id as string;
-      seeded.push("nível académico");
-    } else {
-      handleBootstrapError(error, "Não foi possível criar o nível académico.", strict);
-    }
-  }
-
-  let programId: string | null = null;
-  const { data: existingProgram } = await db
-    .from("programs")
-    .select("id")
-    .eq("school_id", schoolId)
-    .limit(1)
-    .maybeSingle();
-  if (existingProgram?.id) {
-    programId = existingProgram.id as string;
-  } else if (levelId) {
-    const { data: createdProgram, error } = await db
-      .from("programs")
-      .insert({
-        school_id: schoolId,
-        academic_level_id: levelId,
-        code: "GERAL",
-        name: "Ensino Geral",
-        kind: "general",
-        is_active: true,
-      })
-      .select("id")
-      .single();
-    if (!error && createdProgram?.id) {
-      programId = createdProgram.id as string;
-      seeded.push("programa");
-    } else {
-      handleBootstrapError(error, "Não foi possível criar o programa.", strict);
-    }
-  } else if (strict) {
-    throw new Error("Crie primeiro um nível académico na escola SGA.");
-  }
-
-  const { data: existingCampus } = await db
-    .from("campuses")
-    .select("id")
-    .eq("school_id", schoolId)
-    .limit(1)
-    .maybeSingle();
-  let campusId = (existingCampus?.id as string | undefined) ?? null;
-  if (!campusId) {
-    const { data: campus, error } = await db
-      .from("campuses")
-      .insert({
-        school_id: schoolId,
-        code: "SEDE",
-        name: "Campus Principal",
-        is_active: true,
-      })
-      .select("id")
-      .single();
-    if (!error && campus?.id) {
-      campusId = campus.id as string;
-      seeded.push("campus");
-    } else {
-      handleBootstrapError(error, "Não foi possível criar o campus.", strict);
-    }
-  }
-
-  const { data: existingSubjects } = await db
-    .from("subjects")
-    .select("id")
-    .eq("school_id", schoolId)
-    .limit(1);
-  if ((existingSubjects ?? []).length === 0) {
-    const subjectRows = DEFAULT_ACADEMIC_SUBJECTS.map((subject) => ({
-      school_id: schoolId,
-      code: subject.code,
-      name: subject.name,
-      short_name: subject.short_name,
-      status: "active",
-      ...(auditUser ? { created_by: auditUser, updated_by: auditUser } : {}),
-    }));
-    const { error } = await db.from("subjects").insert(subjectRows);
-    if (!error) seeded.push("disciplinas");
-    else handleBootstrapError(error, "Não foi possível criar disciplinas iniciais.", strict);
-  }
-
-  if (yearId) {
-    const { data: termRows } = await db
-      .from("terms")
-      .select("id")
-      .eq("school_id", schoolId)
-      .eq("academic_year_id", yearId)
-      .limit(1);
-    if ((termRows ?? []).length === 0) {
-      const { error } = await db.from("terms").insert([
-        {
-          school_id: schoolId,
-          academic_year_id: yearId,
-          name: "1º Trimestre",
-          sequence: 1,
-          starts_on: "2026-09-01",
-          ends_on: "2026-12-15",
-        },
-        {
-          school_id: schoolId,
-          academic_year_id: yearId,
-          name: "2º Trimestre",
-          sequence: 2,
-          starts_on: "2027-01-05",
-          ends_on: "2027-03-20",
-        },
-        {
-          school_id: schoolId,
-          academic_year_id: yearId,
-          name: "3º Trimestre",
-          sequence: 3,
-          starts_on: "2027-04-01",
-          ends_on: "2027-07-15",
-        },
-      ]);
-      if (!error) seeded.push("trimestres");
-      else handleBootstrapError(error, "Não foi possível criar trimestres.", strict);
-    }
-  }
-
-  let gradeLevelId: string | null = null;
-  const { data: existingGrade } = await db
-    .from("grade_levels")
-    .select("id")
-    .eq("school_id", schoolId)
-    .limit(1)
-    .maybeSingle();
-  if (existingGrade?.id) {
-    gradeLevelId = existingGrade.id as string;
-  } else if (programId) {
-    const { data: grade, error } = await db
-      .from("grade_levels")
-      .insert({
-        school_id: schoolId,
-        program_id: programId,
-        code: "10A",
-        name: "10ª Classe",
-        sequence: 10,
-        is_active: true,
-      })
-      .select("id")
-      .single();
-    if (!error && grade?.id) {
-      gradeLevelId = grade.id as string;
-      seeded.push("classe");
-    } else {
-      handleBootstrapError(error, "Não foi possível criar a classe.", strict);
-    }
-  }
-
-  if (yearId && gradeLevelId) {
-    const { data: existingGroup } = await db
-      .from("class_groups")
-      .select("id")
-      .eq("school_id", schoolId)
-      .limit(1)
-      .maybeSingle();
-    if (!existingGroup?.id) {
-      const groupPayload: Record<string, unknown> = {
-        school_id: schoolId,
-        academic_year_id: yearId,
-        grade_level_id: gradeLevelId,
-        campus_id: campusId,
-        code: "10A-M",
-        name: "10ª A — Manhã",
-        shift: "morning",
-        capacity: 35,
-        status: "active",
-        ...(auditUser ? { created_by: auditUser, updated_by: auditUser } : {}),
-      };
-      let { error } = await db.from("class_groups").insert(groupPayload);
-      if (error && /whatsapp_/i.test(error.message)) {
-        const { campus_id: _c, ...withoutWhatsapp } = groupPayload;
-        ({ error } = await db.from("class_groups").insert(withoutWhatsapp));
-      }
-      if (!error) seeded.push("turma inicial");
-      else handleBootstrapError(error, "Não foi possível criar a turma inicial.", strict);
-    }
-  }
-
-  return { seeded };
+  const calendar = await requireConfiguredAcademicCalendar(db, input.schoolId, options);
+  if (!calendar) return { seeded: [] };
+  return legacy.bootstrapAcademicStructure(db, input, options);
 }
 
 /**
- * Prepara estrutura académica completa (ano + árvore + professor por omissão).
- * Usado por Pedagógica e partilhado com o bootstrap de provisionamento.
+ * Botão "Preparar estrutura": não cria ano/períodos fictícios. A escola deve
+ * configurar o calendário primeiro; depois são preparados apenas os elementos
+ * estruturais que faltam.
  */
 export async function ensureAcademicDefaultsCore(
   db: SupabaseClient,
   input: { schoolId: string; userId: string; yearName?: string },
   options: BootstrapAcademicOptions = { strict: true },
 ): Promise<{ created: string[] }> {
-  const created: string[] = [];
-
-  const year = await bootstrapAcademicYearIfMissing(
-    db,
-    {
-      schoolId: input.schoolId,
-      yearName: input.yearName ?? "2026/2027",
-      startsOn: "2026-09-01",
-      endsOn: "2027-07-31",
-    },
-    options,
-  );
-  created.push(...year.seeded);
+  await requireConfiguredAcademicCalendar(db, input.schoolId, options);
 
   const academic = await bootstrapAcademicStructure(
     db,
     { schoolId: input.schoolId, userId: input.userId },
     options,
   );
-  created.push(...academic.seeded);
+  const created = [...academic.seeded];
 
-  const { data: teachers } = await db
+  const { data: teachers, error: teachersError } = await db
     .from("teachers")
     .select("id")
     .eq("school_id", input.schoolId)
+    .eq("status", "active")
     .limit(1);
+  if (teachersError && options.strict) {
+    throw new Error(`Não foi possível validar os professores: ${teachersError.message}`);
+  }
+
   if ((teachers ?? []).length === 0) {
     await ensureDefaultTeacher(db, input.schoolId, input.userId);
     created.push("professor");
