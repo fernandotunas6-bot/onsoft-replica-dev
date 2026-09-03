@@ -12,8 +12,8 @@
  *  4. Teclado — onClick em <div>/<span> exige role + tabIndex + onKeyDown.
  *
  * Uso normal: node scripts/a11y-check.mjs
- * Em PRs, STYLE_CHECK_CHANGED_FROM=<git-ref> limita falhas a ficheiros alterados,
- * mantendo o relatório HTML completo com a dívida de acessibilidade existente.
+ * Em PRs, limita falhas a ficheiros alterados em relação à base, mantendo o
+ * relatório HTML completo com a dívida de acessibilidade existente.
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -21,7 +21,11 @@ import { dirname, join, relative } from "node:path";
 
 const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
-const CHANGED_FROM = process.env.STYLE_CHECK_CHANGED_FROM?.trim();
+const CHANGED_FROM =
+  process.env.STYLE_CHECK_CHANGED_FROM?.trim() ||
+  (process.env.GITHUB_EVENT_NAME === "pull_request" && process.env.GITHUB_BASE_REF
+    ? `origin/${process.env.GITHUB_BASE_REF}`
+    : undefined);
 
 const IGNORE = [
   /src[\\/]components[\\/]ui[\\/]/, // primitivos shadcn/Radix (ARIA correcto por defeito)
