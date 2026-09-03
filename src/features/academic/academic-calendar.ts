@@ -17,7 +17,7 @@ const calendarTermSchema = z.object({
   endsOn: isoDate,
 });
 
-const saveAcademicCalendarInputSchema = z
+export const saveAcademicCalendarInputSchema = z
   .object({
     academicYearId: z.string().uuid().optional(),
     yearName: z.string().trim().min(4).max(40),
@@ -139,138 +139,18 @@ export const saveAcademicCalendar = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    let academicYearId = data.academicYearId ?? null;
-
-    if (academicYearId) {
-      const { data: current, error: currentError } = await db
-        .from("academic_years")
-        .select("id")
-        .eq("id", academicYearId)
-        .eq("school_id", membership.schoolId)
-        .maybeSingle();
-      if (currentError) {
-        throw publicDatabaseError(currentError, "Não foi possível validar o ano lectivo.");
-      }
-      if (!current) throw new Error("Ano lectivo não encontrado nesta escola.");
-
-      const { error } = await db
-        .from("academic_years")
-        .update({
-          name: data.yearName,
-          starts_on: data.startsOn,
-          ends_on: data.endsOn,
-          status: "active",
-          updated_by: context.userId,
-        })
-        .eq("id", academicYearId)
-        .eq("school_id", membership.schoolId);
-      if (error) {
-        throw publicDatabaseError(error, "Não foi possível actualizar o ano lectivo.");
-      }
-    } else {
-      const { data: activeYear, error: activeError } = await db
-        .from("academic_years")
-        .select("id")
-        .eq("school_id", membership.schoolId)
-        .eq("status", "active")
-        .order("starts_on", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (activeError) {
-        throw publicDatabaseError(activeError, "Não foi possível validar o ano lectivo activo.");
-      }
-
-      if (activeYear?.id) {
-        academicYearId = String(activeYear.id);
-        const { error } = await db
-          .from("academic_years")
-          .update({
-            name: data.yearName,
-            starts_on: data.startsOn,
-            ends_on: data.endsOn,
-            updated_by: context.userId,
-          })
-          .eq("id", academicYearId)
-          .eq("school_id", membership.schoolId);
-        if (error) {
-          throw publicDatabaseError(error, "Não foi possível actualizar o ano lectivo activo.");
-        }
-      } else {
-        const { data: created, error } = await db
-          .from("academic_years")
-          .insert({
-            school_id: membership.schoolId,
-            name: data.yearName,
-            starts_on: data.startsOn,
-            ends_on: data.endsOn,
-            status: "active",
-            created_by: context.userId,
-            updated_by: context.userId,
-          })
-          .select("id")
-          .single();
-        if (error) {
-          throw publicDatabaseError(error, "Não foi possível criar o ano lectivo.");
-        }
-        academicYearId = String(created.id);
-      }
+    const { data: academicYearId, error } = await db.rpc("save_academic_calendar", {
+      p_school_id: membership.schoolId,
+      p_actor_id: context.userId,
+      p_academic_year_id: data.academicYearId ?? null,
+      p_year_name: data.yearName,
+      p_starts_on: data.startsOn,
+      p_ends_on: data.endsOn,
+      p_terms: data.terms,
+    });
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível guardar o calendário académico.");
     }
 
-    if (!academicYearId) throw new Error("Não foi possível resolver o ano lectivo.");
-
-    const { data: existingTerms, error: existingError } = await db
-      .from("terms")
-      .select("id, sequence")
-      .eq("school_id", membership.schoolId)
-      .eq("academic_year_id", academicYearId);
-    if (existingError) {
-      throw publicDatabaseError(existingError, "Não foi possível validar os trimestres existentes.");
-    }
-
-    const bySequence = new Map<number, string>();
-    for (const term of existingTerms ?? []) {
-      const sequence = Number(term.sequence);
-      if (bySequence.has(sequence)) {
-        throw new Error(
-          `Existem trimestres duplicados na sequência ${sequence}. Corrija os dados antes de continuar.`,
-        );
-      }
-      bySequence.set(sequence, String(term.id));
-    }
-
-    for (const term of [...data.terms].sort((a, b) => a.sequence - b.sequence)) {
-      const existingId = bySequence.get(term.sequence);
-      if (existingId) {
-        const { error } = await db
-          .from("terms")
-          .update({
-            name: term.name,
-            starts_on: term.startsOn,
-            ends_on: term.endsOn,
-            updated_by: context.userId,
-          })
-          .eq("id", existingId)
-          .eq("school_id", membership.schoolId)
-          .eq("academic_year_id", academicYearId);
-        if (error) {
-          throw publicDatabaseError(error, `Não foi possível actualizar o ${term.sequence}º trimestre.`);
-        }
-      } else {
-        const { error } = await db.from("terms").insert({
-          school_id: membership.schoolId,
-          academic_year_id: academicYearId,
-          name: term.name,
-          sequence: term.sequence,
-          starts_on: term.startsOn,
-          ends_on: term.endsOn,
-          created_by: context.userId,
-          updated_by: context.userId,
-        });
-        if (error) {
-          throw publicDatabaseError(error, `Não foi possível criar o ${term.sequence}º trimestre.`);
-        }
-      }
-    }
-
-    return { academicYearId, savedTerms: 3 };
+    return { academicYearId: String(academicYearId), savedTerms: 3 };
   });
