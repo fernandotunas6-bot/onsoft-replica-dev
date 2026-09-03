@@ -43,6 +43,20 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Format focused files in runner
+        run: >-
+          bunx prettier --write
+          src/features/academic/server.ts
+          src/features/academic/sga-grades.ts
+          src/features/import/server.ts
+          src/features/import/engine/registry.ts
+          src/features/import/importers/academic-core.ts
+          src/features/import/importers/alunos-importer.ts
+          src/features/import/importers/matriculas-importer.ts
+          src/features/import/importers/notas-importer.ts
+          src/features/import/importers/professores-importer.ts
+          src/features/import/importers/turmas-importer.ts
+
       - name: Lint academic and import changes
         run: >-
           bunx eslint
