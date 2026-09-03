@@ -2,12 +2,7 @@ import { useMemo, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalShell,
-} from "@/components/ui/modal-system";
+import { ModalContent, ModalFooter, ModalHeader, ModalShell } from "@/components/ui/modal-system";
 import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
 import { assignClassSubjectTeacher } from "@/features/academic/server";
 import {
@@ -45,8 +40,7 @@ export function AssignTeacherForm({
   triggerSize?: "sm" | "default";
   onAssigned: () => Promise<void>;
 }) {
-  const defaultTurmaId =
-    resolveOptionId(turmaOptions, defaultTurma, turmaIds) ?? turmaIds[0] ?? "";
+  const defaultTurmaId = resolveOptionId(turmaOptions, defaultTurma, turmaIds) ?? turmaIds[0] ?? "";
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [classGroupId, setClassGroupId] = useState(defaultTurmaId);
