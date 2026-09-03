@@ -141,3 +141,43 @@ test("education sync preserves the complete SIGA academic and financial context"
   assert.match(migration, /students_enrollment_idx/);
   assert.match(migration, /students_guardian_idx/);
 });
+
+test("SSO assertions are signed, short-lived and reject tampering", async () => {
+  const { createSsoAssertion, verifySsoAssertion } = await import("../lib/sso-assertion.ts");
+  const now = Date.now();
+  const nowSeconds = Math.floor(now / 1000);
+  const secret = "payflow-sso-test-secret-with-at-least-32-characters";
+  const claims = {
+    iss: "siga-plus",
+    aud: "payflow",
+    sub: "user-001",
+    tenant_id: "tenant-001",
+    school_id: "school-001",
+    role: "treasurer",
+    iat: nowSeconds,
+    exp: nowSeconds + 60,
+    jti: "assertion-unique-001",
+  };
+  const assertion = await createSsoAssertion(claims, secret);
+
+  assert.deepEqual(await verifySsoAssertion(assertion, secret, now), claims);
+  assert.equal(await verifySsoAssertion(`${assertion.slice(0, -1)}x`, secret, now), null);
+  assert.equal(await verifySsoAssertion(assertion, `${secret}-wrong`, now), null);
+  assert.equal(await verifySsoAssertion(assertion, secret, now + 61_000), null);
+});
+
+test("administrative RBAC derives permissions server-side and scopes reconciliation by school", async () => {
+  const sessions = await readFile(path.join(root, "lib/admin-session.ts"), "utf8");
+  const exchange = await readFile(path.join(root, "app/api/v1/sso/exchange/route.ts"), "utf8");
+  const reconciliation = await readFile(
+    path.join(root, "app/api/v1/reconciliation/route.ts"),
+    "utf8",
+  );
+
+  assert.match(sessions, /finance_admin:[\s\S]*reconciliation:write/);
+  assert.match(sessions, /auditor:[\s\S]*audit:read/);
+  assert.doesNotMatch(sessions, /auditor:[^\n]*reconciliation:write/);
+  assert.match(exchange, /sso_assertion_replayed/);
+  assert.match(exchange, /HttpOnly|sessionCookie/);
+  assert.match(reconciliation, /eq\(payments\.schoolId, adminSession\.schoolId\)/);
+});

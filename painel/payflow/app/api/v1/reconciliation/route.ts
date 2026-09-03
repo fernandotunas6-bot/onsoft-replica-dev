@@ -8,6 +8,7 @@ import {
   payments,
 } from "@/db/schema";
 import { corsHeaders, isIntegrationAuthorized, jsonResponse } from "@/lib/payflow";
+import { requireAdminPermission } from "@/lib/admin-session";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,10 @@ export async function OPTIONS() {
 }
 
 export async function GET(request: Request) {
-  if (!isIntegrationAuthorized(request)) {
+  const adminSession = isIntegrationAuthorized(request)
+    ? null
+    : await requireAdminPermission(request, "reconciliation:read");
+  if (!isIntegrationAuthorized(request) && !adminSession) {
     return jsonResponse(
       { error: { code: "unauthorized", message: "Chave de integração inválida." } },
       { status: 401 },
@@ -41,6 +45,7 @@ export async function GET(request: Request) {
     }
 
     const filters = [isNotNull(payments.schoolId)];
+    if (adminSession) filters.push(eq(payments.schoolId, adminSession.schoolId));
     if (status !== "all") filters.push(eq(payments.status, status));
 
     const rows = await getDb()

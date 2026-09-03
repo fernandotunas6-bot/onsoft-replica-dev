@@ -90,6 +90,7 @@ const adminContent = buildBlock("SIGA Plus ADMIN — ecossistema", [
 const payflowContent = buildBlock("PayFlow — integração SIGA Plus", [
   ["PAYFLOW_RUNTIME_MODE", pick(env, "PAYFLOW_RUNTIME_MODE") || "production"],
   ["PAYFLOW_INTEGRATION_API_KEY", pick(env, "PAYFLOW_INTEGRATION_API_KEY")],
+  ["PAYFLOW_SSO_SECRET", pick(env, "PAYFLOW_SSO_SECRET")],
   ["PAYFLOW_SIGA_URL", pick(env, "PAYFLOW_SIGA_URL") || sigaUrl],
   ["PAYFLOW_TRANSFER_EXPIRY_HOURS", pick(env, "PAYFLOW_TRANSFER_EXPIRY_HOURS") || "72"],
   ["EMIS_BASE_URL", pick(env, "EMIS_BASE_URL")],

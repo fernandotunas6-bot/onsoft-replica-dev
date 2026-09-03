@@ -226,6 +226,26 @@ export const studentAccessLimits = sqliteTable(
   (table) => [index("student_access_limits_updated_at_idx").on(table.updatedAt)],
 );
 
+export const adminSessions = sqliteTable(
+  "admin_sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    assertionId: text("assertion_id").notNull(),
+    userId: text("user_id").notNull(),
+    tenantId: text("tenant_id").notNull(),
+    schoolId: text("school_id").notNull(),
+    role: text("role").notNull(),
+    permissions: text("permissions").notNull().default("[]"),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("admin_sessions_assertion_unique").on(table.assertionId),
+    index("admin_sessions_user_school_idx").on(table.userId, table.schoolId),
+    index("admin_sessions_expiry_idx").on(table.expiresAt),
+  ],
+);
+
 export const emisTransactions = sqliteTable(
   "emis_transactions",
   {
