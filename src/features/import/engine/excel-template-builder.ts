@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { FIELD_CATALOG, type ModuleFieldCatalog, type FieldDefinition } from "./field-catalog";
+import { OFFICIAL_TEMPLATES } from "../official-templates";
 import type { ImportModule } from "../schemas";
 
 /**
@@ -7,9 +8,28 @@ import type { ImportModule } from "../schemas";
  * para o módulo especificado em conformidade com os padrões do SIGA.
  */
 export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promise<Buffer> {
-  const catalog: ModuleFieldCatalog | undefined = FIELD_CATALOG[moduleKey];
+  let catalog: ModuleFieldCatalog | undefined = FIELD_CATALOG[moduleKey];
   if (!catalog) {
-    throw new Error(`Módulo "${moduleKey}" não encontrado no catálogo de importação.`);
+    const fallbackTemplate = OFFICIAL_TEMPLATES[moduleKey];
+    if (fallbackTemplate) {
+      catalog = {
+        module: moduleKey,
+        label: fallbackTemplate.label,
+        description: `Modelo oficial de dados para ${fallbackTemplate.label}`,
+        naturalKey: [fallbackTemplate.columns[0]?.key || "id"],
+        fields: fallbackTemplate.columns.map((c) => ({
+          key: c.key,
+          label: c.header,
+          description: c.description,
+          type: c.type,
+          required: c.required,
+          example: c.example,
+          aliases: [c.key, c.header.toLowerCase()],
+        })),
+      };
+    } else {
+      throw new Error(`Módulo "${moduleKey}" não encontrado no catálogo de importação.`);
+    }
   }
 
   const workbook = new ExcelJS.Workbook();

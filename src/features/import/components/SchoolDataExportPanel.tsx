@@ -40,6 +40,24 @@ const AVAILABLE_EXPORT_MODULES: Array<{
     desc: "Vínculos anuais activos de estudantes às turmas",
     badge: "Académico",
   },
+  {
+    id: "pessoas",
+    label: "Pessoas & Comunidade Escolar",
+    desc: "Cadastros gerais com BI, gênero, data de nascimento e contactos",
+    badge: "Identidade",
+  },
+  {
+    id: "disciplinas",
+    label: "Disciplinas & Plano Curricular",
+    desc: "Catálogo oficial de disciplinas, siglas e carga horária semanal",
+    badge: "Curricular",
+  },
+  {
+    id: "pagamentos",
+    label: "Faturas, Propinas & Pagamentos",
+    desc: "Mensalidades emitidas, pagas, canais de cobrança e datas de vencimento",
+    badge: "Financeiro",
+  },
 ];
 
 export function SchoolDataExportPanel({

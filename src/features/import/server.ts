@@ -641,7 +641,7 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const db = await loadSgaAdminClient();
-    const membership = await requireSgaWriter(context.supabase, context.user.id, [
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Tesouraria",

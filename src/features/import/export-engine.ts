@@ -275,6 +275,145 @@ export async function exportSchoolData(
       }
       autoFitColumns(sheet);
     }
+
+    if (mod === "pessoas") {
+      const { data: people } = await db
+        .from("people")
+        .select("id, full_name, national_id, gender, date_of_birth, phone, email, address")
+        .eq("school_id", options.schoolId)
+        .is("deleted_at", null);
+
+      const rows = people || [];
+      counts["pessoas"] = rows.length;
+      totalRecords += rows.length;
+
+      const sheet = workbook.addWorksheet("PESSOAS", {
+        properties: { tabColor: { argb: "FF0284C7" } },
+      });
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+
+      const headers = [
+        "Nome Completo",
+        "Bilhete de Identidade / Cédula",
+        "Gênero / Sexo",
+        "Data de Nascimento",
+        "Telefone de Contacto",
+        "Correio Electrónico (E-mail)",
+        "Endereço / Residência",
+      ];
+      const hRow = sheet.addRow(headers);
+      styleHeaderRow(hRow, options.mode);
+
+      for (const p of rows) {
+        sheet.addRow([
+          p.full_name || "",
+          p.national_id || "",
+          p.gender || "",
+          p.date_of_birth || "",
+          p.phone || "",
+          p.email || "",
+          p.address || "",
+        ]);
+      }
+      autoFitColumns(sheet);
+    }
+
+    if (mod === "disciplinas") {
+      const { data: subjects } = await db
+        .from("subjects")
+        .select("id, name, code, short_name, workload_hours")
+        .eq("school_id", options.schoolId)
+        .is("deleted_at", null);
+
+      const rows = subjects || [];
+      counts["disciplinas"] = rows.length;
+      totalRecords += rows.length;
+
+      const sheet = workbook.addWorksheet("DISCIPLINAS", {
+        properties: { tabColor: { argb: "FFE11D48" } },
+      });
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+
+      const headers = [
+        "Nome da Disciplina",
+        "Código / Sigla",
+        "Abreviatura",
+        "Carga Horária (Horas)",
+      ];
+      const hRow = sheet.addRow(headers);
+      styleHeaderRow(hRow, options.mode);
+
+      for (const sub of rows) {
+        sheet.addRow([
+          sub.name || "",
+          sub.code || "",
+          sub.short_name || "",
+          sub.workload_hours != null ? sub.workload_hours : "",
+        ]);
+      }
+      autoFitColumns(sheet);
+    }
+
+    if (mod === "pagamentos" || mod === "propinas") {
+      const { data: invoices } = await db
+        .from("finance_invoices")
+        .select(`
+          id,
+          invoice_number,
+          amount,
+          amount_paid,
+          status,
+          due_date,
+          paid_at,
+          payment_channel,
+          students(
+            student_number,
+            people(full_name)
+          )
+        `)
+        .eq("school_id", options.schoolId)
+        .is("deleted_at", null);
+
+      const rows = invoices || [];
+      counts[mod] = rows.length;
+      totalRecords += rows.length;
+
+      const sheet = workbook.addWorksheet(mod === "propinas" ? "PROPINAS" : "PAGAMENTOS", {
+        properties: { tabColor: { argb: "FFD97706" } },
+      });
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+
+      const headers = [
+        "Nº da Fatura / Recibo",
+        "Nº de Processo do Aluno",
+        "Nome do Aluno",
+        "Valor Total (AOA)",
+        "Valor Pago (AOA)",
+        "Estado da Fatura",
+        "Data de Vencimento",
+        "Data de Liquidação",
+        "Canal de Pagamento",
+      ];
+      const hRow = sheet.addRow(headers);
+      styleHeaderRow(hRow, options.mode);
+
+      for (const inv of rows) {
+        const std = Array.isArray(inv.students) ? inv.students[0] : inv.students;
+        const p = std?.people ? (Array.isArray(std.people) ? std.people[0] : std.people) : null;
+        sheet.addRow([
+          inv.invoice_number || "",
+          std?.student_number || "",
+          p?.full_name || "",
+          inv.amount != null ? inv.amount : "",
+          inv.amount_paid != null ? inv.amount_paid : "",
+          inv.status || "",
+          inv.due_date || "",
+          inv.paid_at ? inv.paid_at.slice(0, 10) : "",
+          inv.payment_channel || "",
+        ]);
+      }
+      autoFitColumns(sheet);
+    }
   }
 
   // ---------------------------------------------------------------------------
