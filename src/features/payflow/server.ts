@@ -849,6 +849,99 @@ async function adminData(request: Request) {
     });
   }
 
+  if (resource === "student-finance") {
+    const studentId = url.searchParams.get("studentId");
+    if (!studentId) return json({ error: "studentId em falta." }, { status: 400 });
+
+    const { data: student, error: studentError } = await db
+      .from("students")
+      .select("id, student_number, person_id, status")
+      .eq("id", studentId)
+      .eq("school_id", actor.schoolId)
+      .maybeSingle();
+    if (studentError) throw studentError;
+    if (!student) return json({ error: "Estudante não encontrado." }, { status: 404 });
+
+    const { data: person } = await db
+      .from("people")
+      .select("full_name, email, phone")
+      .eq("id", student.person_id)
+      .eq("school_id", actor.schoolId)
+      .maybeSingle();
+
+    const { data: enrollments, error: enrollmentError } = await db
+      .from("enrollments")
+      .select("id, status, academic_year_id, class_group_id, enrolled_on")
+      .eq("student_id", studentId)
+      .eq("school_id", actor.schoolId);
+    if (enrollmentError) throw enrollmentError;
+    const enrollmentIds = (enrollments ?? []).map((row: { id: string }) => row.id);
+
+    const { data: contracts, error: contractError } = enrollmentIds.length
+      ? await db
+          .from("finance_contracts")
+          .select("id, enrollment_id")
+          .eq("school_id", actor.schoolId)
+          .in("enrollment_id", enrollmentIds)
+      : { data: [] as Array<{ id: string; enrollment_id: string }>, error: null };
+    if (contractError) throw contractError;
+    const contractIds = (contracts ?? []).map((row: { id: string }) => row.id);
+
+    const { data: invoices, error: invoiceError } = contractIds.length
+      ? await db
+          .from("finance_invoices")
+          .select(
+            "id, invoice_number, contract_id, fee_item_id, amount, discount_amount, penalty_amount, due_date, competence_month, status, created_at",
+          )
+          .eq("school_id", actor.schoolId)
+          .in("contract_id", contractIds)
+          .order("created_at", { ascending: false })
+      : { data: [] as Array<Record<string, unknown>>, error: null };
+    if (invoiceError) throw invoiceError;
+    const invoiceIds = (invoices ?? []).map((row: { id: string }) => row.id);
+
+    const { data: payments, error: paymentError } = invoiceIds.length
+      ? await db
+          .from("finance_receipts")
+          .select(
+            "id, receipt_number, invoice_id, amount, paid_on, payment_method, status, reversal_reason, created_at",
+          )
+          .eq("school_id", actor.schoolId)
+          .in("invoice_id", invoiceIds)
+          .order("paid_on", { ascending: false })
+      : { data: [] as Array<Record<string, unknown>>, error: null };
+    if (paymentError) throw paymentError;
+
+    const billed = (invoices ?? [])
+      .filter((row: any) => row.status !== "cancelled")
+      .reduce(
+        (sum: number, row: any) =>
+          sum +
+          normalizedMoney(row.amount) -
+          normalizedMoney(row.discount_amount) +
+          normalizedMoney(row.penalty_amount),
+        0,
+      );
+    const paid = (payments ?? [])
+      .filter((row: any) => row.status !== "reversed")
+      .reduce((sum: number, row: any) => sum + normalizedMoney(row.amount), 0);
+
+    return json({
+      studentId: student.id,
+      studentNumber: student.student_number,
+      studentStatus: student.status,
+      fullName: person?.full_name ?? "Estudante",
+      email: person?.email ?? null,
+      phone: person?.phone ?? null,
+      billed,
+      paid,
+      outstanding: Math.max(billed - paid, 0),
+      enrollments: enrollments ?? [],
+      invoices: invoices ?? [],
+      payments: payments ?? [],
+    });
+  }
+
   if (resource === "reports") {
     const [{ data: tx }, { data: refunds }, { data: invoices }] = await Promise.all([
       db
