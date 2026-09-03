@@ -244,6 +244,19 @@ export function StudentEnrollmentSheet({
             }
           }
           const turma = classGroups.find((group) => group.id === values.turmaId);
+          if (
+            turma &&
+            typeof turma.capacity === "number" &&
+            turma.capacity > 0 &&
+            (turma.enrolled_count ?? 0) >= turma.capacity
+          ) {
+            const proceedCapacity = window.confirm(
+              `Aviso de lotação: a turma "${turma.name}" já atingiu a sua lotação máxima (${turma.enrolled_count ?? 0}/${turma.capacity} alunos).\n\nDeseja continuar com a matrícula extraordinária nesta turma?`,
+            );
+            if (!proceedCapacity) {
+              throw new Error("Matrícula cancelada — selecione outra turma com vagas disponíveis.");
+            }
+          }
           const relationship = values.parentesco || "encarregado";
           await enrollNewStudent({
             data: {
@@ -606,20 +619,34 @@ export function StudentEnrollmentSheet({
                     ))}
                   </select>
                   {selectedTurma ? (
-                    <p className="mt-2 text-[11px] text-muted-foreground">
-                      {selectedTurma.room_name && selectedTurma.room_name !== "—"
-                        ? `${selectedTurma.room_name} · `
-                        : ""}
-                      {selectedTurma.shift ? `${selectedTurma.shift} · ` : ""}
-                      {typeof selectedTurma.capacity === "number"
-                        ? `${selectedTurma.enrolled_count ?? 0}/${selectedTurma.capacity} alunos`
-                        : "Capacidade não definida"}
-                    </p>
+                    <>
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        {selectedTurma.room_name && selectedTurma.room_name !== "—"
+                          ? `${selectedTurma.room_name} · `
+                          : ""}
+                        {selectedTurma.shift ? `${selectedTurma.shift} · ` : ""}
+                        {typeof selectedTurma.capacity === "number"
+                          ? `${selectedTurma.enrolled_count ?? 0}/${selectedTurma.capacity} alunos`
+                          : "Capacidade não definida"}
+                      </p>
+                      {typeof selectedTurma.capacity === "number" &&
+                      selectedTurma.capacity > 0 &&
+                      (selectedTurma.enrolled_count ?? 0) >= selectedTurma.capacity ? (
+                        <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+                          ⚠️ <strong>Lotação atingida:</strong> Esta turma já tem {selectedTurma.enrolled_count ?? 0} de {selectedTurma.capacity} vagas preenchidas. Uma nova matrícula constituirá sobrelotação.
+                        </div>
+                      ) : null}
+                    </>
                   ) : null}
                 </SheetCell>
               </SheetGrid>
             );
           }
+          const isOverCapacity =
+            selectedTurma &&
+            typeof selectedTurma.capacity === "number" &&
+            selectedTurma.capacity > 0 &&
+            (selectedTurma.enrolled_count ?? 0) >= selectedTurma.capacity;
           const turmaLabel =
             turmaOptions.find((option) => option.id === values.turmaId)?.label ?? "Sem turma";
           const guardianLabel =
@@ -634,6 +661,11 @@ export function StudentEnrollmentSheet({
               </p>
               <p>
                 <strong>Turma:</strong> {turmaLabel}
+                {isOverCapacity ? (
+                  <span className="ml-1.5 inline-flex items-center rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">
+                    Sobrelotação
+                  </span>
+                ) : null}
               </p>
               <p>
                 <strong>Encarregado:</strong> {guardianLabel}

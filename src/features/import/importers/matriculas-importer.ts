@@ -87,11 +87,9 @@ export const matriculasImporter: RowImporter = {
     if (group.ambiguous) errors.push(`Turma "${groupText}" é ambígua; use o código exacto.`);
     else if (groupText && !group.row) errors.push(`Turma "${groupText}" não encontrada no ano lectivo seleccionado.`);
 
-    const rowYear = normalizeText(normalized["academic_year"] ?? normalized["ano_lectivo"] ?? normalized["Ano Lectivo"]);
-    if (rowYear && cache.academicYearId) {
-      // O ID do job é a autoridade. O texto da folha nunca pode redireccionar para outro ano.
-      const groupYear = group.row?.academic_year_id;
-      if (groupYear && groupYear !== cache.academicYearId) errors.push("A turma indicada não pertence ao ano lectivo do processo de importação.");
+    const groupYear = group.row?.academic_year_id;
+    if (groupYear && cache.academicYearId && groupYear !== cache.academicYearId) {
+      errors.push("A turma indicada não pertence ao ano lectivo do processo de importação.");
     }
     if (errors.length) return { status: "error", warnings: [], errors };
     const existing = student.row ? cache.enrollmentByStudent.get(student.row.id) : null;
