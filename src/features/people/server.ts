@@ -123,6 +123,14 @@ function normalizePhone(value: string | null | undefined) {
   return (value ?? "").replace(/\D/g, "");
 }
 
+function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
+  return Boolean(
+    error &&
+      (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
+        error.code === "42703"),
+  );
+}
+
 export const searchPeople = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => searchPeopleInputSchema.parse(input))
@@ -132,14 +140,36 @@ export const searchPeople = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
 
-    const { data: people, error } = await db
+    const baseColumns =
+      "id, full_name, preferred_name, email, phone, national_id, status, date_of_birth, photo_url, updated_at";
+    const geographyColumns = `${baseColumns}, province, municipality, commune, address`;
+
+    let peopleQuery = db
       .from("people")
-      .select(
-        "id, full_name, preferred_name, email, phone, national_id, status, date_of_birth, photo_url, updated_at",
-      )
+      .select(geographyColumns)
       .eq("school_id", membership.schoolId)
       .order("full_name")
       .limit(Math.max(data.limit * 3, 50));
+    if (data.province) peopleQuery = peopleQuery.eq("province", data.province);
+    if (data.municipality) peopleQuery = peopleQuery.eq("municipality", data.municipality);
+    if (data.commune) peopleQuery = peopleQuery.eq("commune", data.commune);
+
+    let { data: people, error } = await peopleQuery;
+    if (error && isMissingPeopleGeography(error)) {
+      if (data.province || data.municipality || data.commune) {
+        throw new Error(
+          "Os filtros territoriais ainda não estão activos nesta base. Aplique a migration de localização de Pessoas.",
+        );
+      }
+      const fallback = await db
+        .from("people")
+        .select(baseColumns)
+        .eq("school_id", membership.schoolId)
+        .order("full_name")
+        .limit(Math.max(data.limit * 3, 50));
+      people = fallback.data;
+      error = fallback.error;
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível pesquisar pessoas.");
 
     const query = (data.query ?? "").trim().toLowerCase();
@@ -152,6 +182,10 @@ export const searchPeople = createServerFn({ method: "GET" })
       birth_date: (person["date_of_birth"] as string | null) ?? null,
       nif: (person["national_id"] as string | null) ?? null,
       photo_url: (person["photo_url"] as string | null) ?? null,
+      province: (person["province"] as string | null) ?? null,
+      municipality: (person["municipality"] as string | null) ?? null,
+      commune: (person["commune"] as string | null) ?? null,
+      address: (person["address"] as string | null) ?? null,
       updated_at: person["updated_at"] as string,
       roles: [] as string[],
     }));
@@ -164,6 +198,10 @@ export const searchPeople = createServerFn({ method: "GET" })
           person.email ?? "",
           person.phone_primary ?? "",
           person.nif ?? "",
+          person.province ?? "",
+          person.municipality ?? "",
+          person.commune ?? "",
+          person.address ?? "",
         ]
           .join(" ")
           .toLowerCase();
@@ -316,26 +354,45 @@ export const createPerson = createServerFn({ method: "POST" })
 
     const personInput = data.person;
     const normalizedNif = normalizePersonNif(personInput.nif);
+    const personPayload: Record<string, unknown> = {
+      school_id: membership.schoolId,
+      full_name: personInput.full_name,
+      preferred_name:
+        personInput.preferred_name ||
+        personInput.first_name ||
+        personInput.full_name.split(/\s+/)[0],
+      email: personInput.email || null,
+      phone: normalizePersonPhone(personInput.phone_primary),
+      national_id: normalizedNif,
+      date_of_birth: personInput.birth_date || null,
+      sex: mapSex(personInput.sex),
+      status: "active",
+      created_by: context.userId,
+      updated_by: context.userId,
+    };
+    const hasGeography = Boolean(
+      personInput.province ||
+        personInput.municipality ||
+        personInput.commune ||
+        personInput.address,
+    );
+    if (hasGeography) {
+      personPayload["province"] = personInput.province || null;
+      personPayload["municipality"] = personInput.municipality || null;
+      personPayload["commune"] = personInput.commune || null;
+      personPayload["address"] = personInput.address || null;
+    }
+
     const { data: person, error } = await db
       .from("people")
-      .insert({
-        school_id: membership.schoolId,
-        full_name: personInput.full_name,
-        preferred_name:
-          personInput.preferred_name ||
-          personInput.first_name ||
-          personInput.full_name.split(/\s+/)[0],
-        email: personInput.email || null,
-        phone: normalizePersonPhone(personInput.phone_primary),
-        national_id: normalizedNif,
-        date_of_birth: personInput.birth_date || null,
-        sex: mapSex(personInput.sex),
-        status: "active",
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
+      .insert(personPayload)
       .select("*")
       .single();
+    if (error && hasGeography && isMissingPeopleGeography(error)) {
+      throw new Error(
+        "A localização não pôde ser guardada porque a migration de Pessoas ainda não foi aplicada.",
+      );
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível criar a pessoa.");
 
     if (data.documents.length) {
@@ -815,19 +872,33 @@ export const updatePerson = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
     const normalizedNif = normalizePersonNif(data.nif);
+    const personPatch: Record<string, unknown> = {
+      full_name: data.fullName,
+      email: data.email || null,
+      phone: normalizePersonPhone(data.phone),
+      national_id: normalizedNif,
+      updated_by: context.userId,
+    };
+    const hasGeography = Boolean(data.province || data.municipality || data.commune || data.address);
+    if (hasGeography) {
+      personPatch["province"] = data.province || null;
+      personPatch["municipality"] = data.municipality || null;
+      personPatch["commune"] = data.commune || null;
+      personPatch["address"] = data.address || null;
+    }
+
     const { data: person, error } = await db
       .from("people")
-      .update({
-        full_name: data.fullName,
-        email: data.email || null,
-        phone: normalizePersonPhone(data.phone),
-        national_id: normalizedNif,
-        updated_by: context.userId,
-      })
+      .update(personPatch)
       .eq("id", data.personId)
       .eq("school_id", membership.schoolId)
       .select("id, full_name, email, phone, status")
       .maybeSingle();
+    if (error && hasGeography && isMissingPeopleGeography(error)) {
+      throw new Error(
+        "A localização não pôde ser actualizada porque a migration de Pessoas ainda não foi aplicada.",
+      );
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a ficha.");
     if (!person) throw new Error("Pessoa não encontrada.");
     await syncBiDocumentFromNif(
