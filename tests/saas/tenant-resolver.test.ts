@@ -19,9 +19,15 @@ describe("resolveTenantLookup", () => {
     });
   });
 
-  it("ignora www e app no portal-siga", () => {
-    expect(resolveTenantLookup("www.portal-siga.com")).toEqual({ mode: "slug", slug: "minha-escola" });
-    expect(resolveTenantLookup("app.portal-siga.com")).toEqual({ mode: "slug", slug: "minha-escola" });
+  it("trata subdomínios reservados www e app no portal-siga como hostname institucional", () => {
+    expect(resolveTenantLookup("www.portal-siga.com")).toEqual({
+      mode: "hostname",
+      hostname: "www.portal-siga.com",
+    });
+    expect(resolveTenantLookup("app.portal-siga.com")).toEqual({
+      mode: "hostname",
+      hostname: "app.portal-siga.com",
+    });
   });
 
   it("resolve domínio customizado por hostname completo", () => {
