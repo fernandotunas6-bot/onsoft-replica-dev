@@ -34,6 +34,7 @@ import { getStudentProfile } from "@/features/students/server";
 import { setPersonPhotoUrl } from "@/features/people/server";
 import { whatsappHref } from "@/features/integrations/actions";
 import { supabase } from "@/integrations/supabase/client";
+import { StudentDigitalCardModal } from "./StudentDigitalCardModal";
 import { cn } from "@/lib/utils";
 
 const statusColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -83,6 +84,7 @@ export function StudentExtensiveModal({
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(initialData?.photo_url ?? null);
   const [resolvedPhotoSrc, setResolvedPhotoSrc] = useState<string | null>(null);
+  const [showDigitalCard, setShowDigitalCard] = useState(false);
 
   const profileQuery = useQuery({
     queryKey: ["students", "profile", studentId],
@@ -529,15 +531,43 @@ export function StudentExtensiveModal({
 
         <div className="flex items-center gap-2">
           {studentId ? (
-            <Button asChild variant="default" size="sm" className="gap-1.5 font-semibold">
-              <Link to="/alunos/$studentId" params={{ studentId }}>
-                <ExternalLink className="size-3.5" />
-                Abrir Ficha Completa
-              </Link>
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 font-medium"
+                onClick={() => setShowDigitalCard(true)}
+              >
+                <QrCode className="size-3.5 text-primary" />
+                Cartão Digital
+              </Button>
+              <Button asChild variant="default" size="sm" className="gap-1.5 font-semibold">
+                <Link to="/alunos/$studentId" params={{ studentId }}>
+                  <ExternalLink className="size-3.5" />
+                  Abrir Ficha Completa
+                </Link>
+              </Button>
+            </>
           ) : null}
         </div>
       </ModalFooter>
+
+      {studentId ? (
+        <StudentDigitalCardModal
+          open={showDigitalCard}
+          onOpenChange={setShowDigitalCard}
+          student={{
+            id: studentId,
+            full_name: fullName,
+            process_number: studentNumber,
+            class_name: initialData?.class_name || (enrollment as any)?.class_name || undefined,
+            academic_year: initialData?.academic_year || undefined,
+            photo_url: resolvedPhotoSrc || currentPhotoUrl,
+            status: statusKey,
+          }}
+        />
+      ) : null}
     </ModalShell>
   );
 }
