@@ -42,6 +42,7 @@ const WEB_URL = envVars["VITE_WEB_URL"] || "https://siga-web.pages.dev";
 const ADMIN_URL = envVars["VITE_ADMIN_URL"] || "https://siga-admin.pages.dev";
 const DOCS_URL = envVars["VITE_DOCS_URL"] || "https://siga-docs.pages.dev";
 const SIGA_URL = envVars["VITE_SIGA_URL"] || "https://portal-siga.com";
+const PAYFLOW_URL = envVars["VITE_PAYFLOW_URL"] || "https://payflow.portal-siga.com";
 
 execSync("npx vite build --mode production", {
   stdio: "inherit",
@@ -55,6 +56,7 @@ execSync("npx vite build --mode production", {
     VITE_ADMIN_URL: ADMIN_URL,
     VITE_DOCS_URL: DOCS_URL,
     VITE_SIGA_URL: SIGA_URL,
+    VITE_PAYFLOW_URL: PAYFLOW_URL,
   },
 });
 
@@ -76,6 +78,7 @@ if (fs.existsSync(wranglerPath)) {
     VITE_ADMIN_URL: ADMIN_URL,
     VITE_DOCS_URL: DOCS_URL,
     VITE_SIGA_URL: SIGA_URL,
+    VITE_PAYFLOW_URL: PAYFLOW_URL,
     ...(envVars["RESEND_API_KEY"] ? { RESEND_API_KEY: envVars["RESEND_API_KEY"] } : {}),
   };
   fs.writeFileSync(wranglerPath, JSON.stringify(config, null, 2), "utf-8");

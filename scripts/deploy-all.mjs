@@ -37,6 +37,7 @@ if (fs.existsSync(envFile)) {
 const mergedEnv = {
   ...process.env,
   ...envVars,
+  VITE_PAYFLOW_URL: envVars["VITE_PAYFLOW_URL"] || process.env.VITE_PAYFLOW_URL || "https://payflow.portal-siga.com",
 };
 
 function runStep(title, fn) {
