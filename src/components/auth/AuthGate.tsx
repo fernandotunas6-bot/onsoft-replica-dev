@@ -254,9 +254,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
     let email = inputIdentifier.trim().toLowerCase();
     try {
       if (!email.includes("@") && email.length >= 3) {
-        // Server function: resolve BI/telefone -> email corre no servidor, nunca
-        // no browser — não trocar por um import directo de "@/features/access/bi-login",
-        // que arrastaria o cliente admin (chave service_role) para o bundle do cliente.
         const { resolveBiToEmailFn } = await import("@/features/access/server");
         const resolved = await resolveBiToEmailFn({ data: { identifier: inputIdentifier.trim() } });
         email = resolved.email;
@@ -337,7 +334,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return (
     <AuthSessionContext.Provider value={null}>
       <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr]">
-        {/* Painel Institucional */}
         <section className="relative hidden overflow-hidden flex-col justify-between bg-primary p-12 text-primary-foreground lg:flex">
           <div
             aria-hidden
@@ -372,7 +368,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
           </div>
         </section>
 
-        {/* Formulário de Login */}
         <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-7 shadow-sm sm:p-9">
             {installPrompt && (
@@ -402,18 +397,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
             </p>
 
             {error ? (
-              <p
-                role="alert"
-                className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
-              >
+              <p role="alert" className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
                 {error}
               </p>
             ) : null}
             {info ? (
-              <p
-                role="status"
-                className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success"
-              >
+              <p role="status" className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
                 {info}
               </p>
             ) : null}
@@ -427,9 +416,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                     setSubmitting(true);
                     setError(null);
                     try {
-                      const challenge = await supabase.auth.mfa.challenge({
-                        factorId: mfaFactorId,
-                      });
+                      const challenge = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
                       if (challenge.error) throw challenge.error;
                       const verified = await supabase.auth.mfa.verify({
                         factorId: mfaFactorId,
@@ -437,10 +424,21 @@ export function AuthGate({ children }: { children: ReactNode }) {
                         code: mfaCode.trim(),
                       });
                       if (verified.error) throw verified.error;
-                      const { data: sessionData } = await supabase.auth.getSession();
-                      if (sessionData?.session) {
-                        setSession(sessionData.session);
+
+                      const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+                      if (assurance.error) throw assurance.error;
+                      if (assurance.data?.currentLevel !== "aal2") {
+                        throw new Error("A verificação 2FA não elevou a sessão para AAL2. Tente novamente.");
                       }
+
+                      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                      if (sessionError) throw sessionError;
+                      if (!sessionData.session) {
+                        throw new Error("A sessão não ficou disponível após a verificação 2FA.");
+                      }
+
+                      localStorage.setItem(activityKey(sessionData.session.user.id), String(Date.now()));
+                      setSession(sessionData.session);
                       setMfaFactorId(null);
                       setMfaCode("");
                     } catch (verifyError) {
@@ -465,11 +463,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   placeholder="000000"
                   required
                 />
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={submitting || mfaCode.length < 6}
-                >
+                <Button type="submit" className="w-full" disabled={submitting || mfaCode.length < 6}>
                   {submitting ? "A verificar…" : "Confirmar 2FA"}
                 </Button>
               </form>
@@ -545,21 +539,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 />
                 Lembrar email neste dispositivo
               </label>
-              <Button
-                type="submit"
-                className="w-full gap-2 h-10 text-sm font-semibold"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <LockKeyhole className="size-4" />
-                )}
+              <Button type="submit" className="w-full gap-2 h-10 text-sm font-semibold" disabled={submitting}>
+                {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <LockKeyhole className="size-4" />}
                 {submitting ? "A entrar…" : "Entrar no Portal"}
               </Button>
             </form>
 
-            {/* PWA Direct Installation Prompt on Desktop/Mobile */}
             {installPrompt && (
               <div className="mt-4 pt-3 border-t border-border/60">
                 <Button

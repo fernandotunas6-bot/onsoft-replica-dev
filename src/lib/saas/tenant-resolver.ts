@@ -1,7 +1,11 @@
-import { getPlatformDomain, isReservedSubdomain } from "@/lib/saas/platform-domain";
+import {
+  getPlatformDomain,
+  isReservedSubdomain,
+  validateTenantSlug,
+} from "@/lib/saas/platform-domain";
 
 /**
- * Resolve o tenant activo a partir do hostname (subdomínio portal-siga,
+ * Resolve o tenant activo a partir do hostname (subdomínio da plataforma,
  * domínio customizado ou ambiente local de desenvolvimento).
  */
 
@@ -10,30 +14,35 @@ export type TenantLookup =
   | { mode: "hostname"; hostname: string };
 
 function normalizeHost(hostname?: string): string {
-  return (hostname || (typeof window !== "undefined" ? window.location.hostname : "")).toLowerCase();
+  const raw = hostname || (typeof window !== "undefined" ? window.location.hostname : "");
+  return raw.trim().toLowerCase().replace(/\.+$/g, "");
 }
 
 export function isLocalDevHostname(hostname?: string): boolean {
   const host = normalizeHost(hostname);
-  return host === "localhost" || host === "127.0.0.1" || host.startsWith("192.168.");
+  return host === "localhost" || host === "127.0.0.1" || host.startsWith("192.168.") || host.endsWith(".local");
 }
 
 export function isPortalSigaHostname(hostname?: string): boolean {
   const host = normalizeHost(hostname);
   const platformDomain = getPlatformDomain();
-  return host === platformDomain || host.endsWith(`.${platformDomain}`) || host.endsWith(".portal-siga.com");
+  return host === platformDomain || host.endsWith(`.${platformDomain}`) || host === "portal-siga.com" || host.endsWith(".portal-siga.com");
 }
 
 /**
- * Devolve como resolver o tenant: slug (subdomínio ou dev) ou hostname
- * (domínio customizado registado em tenant_domains).
+ * Devolve como resolver o tenant: slug apenas para subdomínios escolares
+ * válidos; hostnames de plataforma/reservados são tratados como hostname
+ * para evitar mapear silenciosamente para uma escola fictícia.
  */
 export function resolveTenantLookup(hostname?: string): TenantLookup {
   const host = normalizeHost(hostname);
 
-  if (!host) return { mode: "slug", slug: "minha-escola" };
+  // Sem hostname não há tenant implícito. Falhar fechado é mais seguro do que
+  // mapear silenciosamente para uma escola de demonstração.
+  if (!host) return { mode: "hostname", hostname: "" };
 
-  if (isLocalDevHostname(host) || host.endsWith(".workers.dev") || host.endsWith(".pages.dev")) {
+  // Selecção manual de tenant existe somente em desenvolvimento local.
+  if (isLocalDevHostname(host)) {
     if (typeof window !== "undefined") {
       const devSlug = localStorage.getItem("siga_dev_tenant_slug");
       if (devSlug) return { mode: "slug", slug: devSlug };
@@ -43,11 +52,12 @@ export function resolveTenantLookup(hostname?: string): TenantLookup {
 
   if (isPortalSigaHostname(host)) {
     const platformDomain = getPlatformDomain();
+
+    // O domínio raiz é da plataforma, não de um tenant.
     if (host === platformDomain || host === "portal-siga.com") {
-      return { mode: "slug", slug: "minha-escola" };
+      return { mode: "hostname", hostname: host };
     }
 
-    // Se o host termina com o domínio configurado (ex: .portal-siga.com ou .siga.ao)
     const suffix = host.endsWith(`.${platformDomain}`)
       ? `.${platformDomain}`
       : host.endsWith(".portal-siga.com")
@@ -56,16 +66,22 @@ export function resolveTenantLookup(hostname?: string): TenantLookup {
 
     if (suffix) {
       const subdomain = host.slice(0, -suffix.length).toLowerCase();
-      // Se for subdomínio reservado ou landing/app (ex.: www, app, login) → fallback geral
-      if (!subdomain || subdomain === "www" || subdomain === "app" || subdomain === "portal" || subdomain === "web") {
-        return { mode: "slug", slug: "minha-escola" };
+
+      // Subdomínios de infraestrutura/plataforma nunca devem ser resolvidos
+      // como tenants escolares. Também rejeitamos labels aninhados ou slugs
+      // fora do formato canónico para impedir resolução ambígua.
+      const slugValidation = validateTenantSlug(subdomain);
+      if (!subdomain || subdomain.includes(".") || isReservedSubdomain(subdomain) || !slugValidation.valid) {
+        return { mode: "hostname", hostname: host };
       }
+
       return { mode: "slug", slug: subdomain };
     }
 
-    return { mode: "slug", slug: "minha-escola" };
+    return { mode: "hostname", hostname: host };
   }
 
+  // Domínios personalizados são validados em tenant_domains no servidor.
   return { mode: "hostname", hostname: host };
 }
 
@@ -76,7 +92,12 @@ export function getTenantSlugFromHostname(hostname?: string): string {
 }
 
 export function isAdminSubdomain(hostname?: string): boolean {
-  const lookup = resolveTenantLookup(hostname);
-  if (lookup.mode !== "slug") return false;
-  return lookup.slug === "admin" || lookup.slug === "saas-admin";
+  const host = normalizeHost(hostname);
+  const platformDomain = getPlatformDomain();
+  return (
+    host === `admin.${platformDomain}` ||
+    host === `saas-admin.${platformDomain}` ||
+    host === "admin.portal-siga.com" ||
+    host === "saas-admin.portal-siga.com"
+  );
 }

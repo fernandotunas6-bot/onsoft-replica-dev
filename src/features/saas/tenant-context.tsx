@@ -58,6 +58,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveSlug(slug);
 
     const isAdmin = isAdminSubdomain(hostname);
+    const allowDevFallback = isLocalDevHostname(hostname);
     setIsAdminArea(isAdmin);
 
     try {
@@ -69,14 +70,22 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (tenant) {
         setActiveTenant(tenant);
         setActivePlan(tenant.plans ?? null);
-      } else {
-        // Fallback robusto — permite operação mesmo se o registo SaaS ainda não estiver inicializado
+      } else if (allowDevFallback) {
         setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug });
+        setActivePlan(null);
+      } else {
+        // Fail closed in production: never fabricate a tenant when lookup fails.
+        setActiveTenant(null);
         setActivePlan(null);
       }
     } catch (err) {
       console.warn("[TenantProvider] Error loading tenant:", err);
-      setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug });
+      if (allowDevFallback) {
+        setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug });
+      } else {
+        setActiveTenant(null);
+      }
+      setActivePlan(null);
     } finally {
       setIsLoadingTenant(false);
     }
@@ -87,7 +96,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const setDevSlug = (slug: string) => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && isLocalDevHostname(window.location.hostname)) {
       localStorage.setItem("siga_dev_tenant_slug", slug);
       loadTenant();
     }
