@@ -90,3 +90,31 @@ Implementação executada depois da primeira validação visual, mantendo o prin
 - perfil de aluno com localização;
 - filtragem de disciplinas na atribuição docente;
 - pgTAP para colunas e índices territoriais.
+
+
+## Fase 3 — Vínculos institucionais sem duplicar Pessoas
+
+A selecção de papéis no wizard deixou de ser apenas visual para os vínculos que não possuem uma tabela de domínio própria.
+
+### Modelo
+
+- `students` continua a ser a fonte canónica do papel **Aluno**.
+- `teachers` continua a ser a fonte canónica do papel **Professor**.
+- `student_guardians` continua a provar o papel **Encarregado** quando já existe uma relação real com aluno.
+- A nova tabela `person_roles` guarda vínculos institucionais declarativos: encarregado pré-registado, funcionário, diretor, coordenador, utilizador, fornecedor e contacto institucional.
+- `resolvePersonContext` une os papéis declarativos com os papéis derivados das tabelas de domínio; a identidade da pessoa continua única.
+
+### Segurança
+
+- `person_roles` é `school_id` scoped, com RLS forçada.
+- Contas autenticadas recebem leitura conforme membership/permissão.
+- Escrita directa pelo cliente não é concedida; alterações passam pelo servidor SIGA com `requireSgaWriter`.
+- A migration é aditiva e não remove qualquer estrutura anterior.
+- Antes de criar uma Pessoa com vínculo institucional declarativo, o servidor confirma que a tabela de vínculos já está disponível para evitar perda silenciosa do papel escolhido.
+
+### Experiência
+
+- O Perfil 360 ganhou **Gerir vínculos**.
+- Uma Pessoa pode acumular vários vínculos institucionais sem criar outra ficha.
+- Aluno e Professor não podem ser simulados pelo editor de vínculos: continuam a exigir os respectivos fluxos académicos.
+- A lista de Pessoas agora deriva os papéis reais e permite filtrar por vínculo, além de província e município.
