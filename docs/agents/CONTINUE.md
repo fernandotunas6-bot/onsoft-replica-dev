@@ -4,11 +4,26 @@ Ler isto **antes** de alterar código. Ecossistema (4 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-08-30)
+## Estado (2026-09-03)
 
-Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise completo (Fases 1–15).
-Identidade global, multi-tenant, RBAC, RLS, convites, índices de performance e testes hostis de isolamento.
-Não unificar frontends. Pontes `/saas-admin` e `/criar-escola` mantidas.
+Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise completo (Fases 1–15) + Ciclos 50 (Import/Export Engine) e 51 (Zoom Meetings).
+861/861 testes passando em 120 ficheiros de teste no repositório com 100% de sucesso.
+
+### Ciclo 51 — Zoom End-to-End Meeting Integration (2026-09-03)
+
+- **Rota OAuth Callback:** `src/routes/api/integrations/zoom/callback.tsx` implementada para TanStack Start com validação de `code`/`state`, persistência segura de tokens e tratamento gracioso de erros.
+- **Definições & Integrações:** `ZoomIntegrationCard.tsx` integrado em `settings-integrations-panel.tsx` com `startZoomOAuth`, visualização de conta e `disconnectZoom`.
+- **Aulas Online:** `ZoomMeetingButton.tsx` integrado no painel do professor (`TeacherWorkspacePanel.tsx`) ligado a `siga_attendance_sessions` e `siga_lesson_meetings`. Regra cumprida: **Título da Aula = título da aula (sem "Zoom")**.
+- **Testes:** `tests/integrations/zoom-integration.test.ts` (53/53 testes de integrações verdes).
+
+### Ciclo 50 — SIGA Data Import & Export Engine (2026-09-03)
+
+- **Catálogo Mestre de Campos:** `field-catalog.ts` com aliases angolanos/internacionais tolerantes a acentos (`foldForCompare`) e preposições (`stripStopWords`).
+- **Resolvedor Relacional em Grafo:** `reference-resolver.ts` converte chaves humanas em UUIDs de `people`, `students`, `class_groups` e `subjects` sem expor identificadores técnicos.
+- **Modelos Oficiais Excel (.xlsx):** `excel-template-builder.ts` com 6 abas padronizadas (`LEIA-ME`, `DADOS`, `EXEMPLOS`, `LISTAS`, `REFERENCIAS`, `METADADOS`).
+- **Motor de Exportação Reimportável:** `export-engine.ts` com manifesto oficial `SIGA-EXCHANGE`, versão 1.0 e checksum SHA-256 para reimportação idempotente.
+- **Interface /importar:** Painel de exportação `SchoolDataExportPanel.tsx` e 4 abas integradas na rota.
+- **Testes:** `tests/import/` com 45/45 testes verdes (incluindo o teste de ciclo bidirecional).
 
 ### Ciclo 49 — Identidade Enterprise: Multi-Tenant, RBAC, Convites, Performance (2026-08-30 / 2026-08-31)
 
