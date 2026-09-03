@@ -573,6 +573,8 @@ export function PersonWizardModal({
                       <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                         <Input
+                          id="wiz_guardian_search"
+                          aria-label="Pesquisar encarregado"
                           value={guardianQuery}
                           onChange={(e) => setGuardianQuery(e.target.value)}
                           placeholder="Pesquisar por nome, telefone ou BI…"
