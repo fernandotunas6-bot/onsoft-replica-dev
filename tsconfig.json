@@ -24,7 +24,7 @@
     "exactOptionalPropertyTypes": false,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/features/academic/server": ["./src/features/academic/assessment-server.ts"],
+      "@/features/academic/server": ["./src/features/academic/server-secure.ts"],
       "@/*": ["./src/*"]
     }
   }
