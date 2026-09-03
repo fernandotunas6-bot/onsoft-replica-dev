@@ -163,3 +163,17 @@ export interface ImportRowRecord {
   target_record_id?: string | null;
   created_at: string;
 }
+
+export const downloadOfficialTemplateSchema = z.object({
+  module: z.enum(importModuleOptions),
+});
+export type DownloadOfficialTemplateInput = z.infer<typeof downloadOfficialTemplateSchema>;
+
+export const exportSchoolDataSchema = z.object({
+  academic_year_id: z.string().uuid().optional().nullable(),
+  class_group_id: z.string().uuid().optional().nullable(),
+  modules: z.array(z.enum(importModuleOptions)).min(1),
+  mode: z.enum(["human", "siga_exchange"]),
+});
+export type ExportSchoolDataInput = z.infer<typeof exportSchoolDataSchema>;
+

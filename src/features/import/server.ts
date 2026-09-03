@@ -7,6 +7,8 @@ import {
   analyzeImportFileInputSchema,
   commitImportBatchSchema,
   createImportJobSchema,
+  downloadOfficialTemplateSchema,
+  exportSchoolDataSchema,
   rollbackImportJobSchema,
   stageImportRowsInputSchema,
   updateStagingRowSchema,
@@ -615,3 +617,59 @@ export function generateErrorReportCsv(rows: ImportRowRecord[]): string {
   }
   return csv;
 }
+
+/** Gera e descarrega o modelo Excel (.xlsx) profissional de 6 abas para o módulo. */
+export const downloadOfficialExcelTemplateFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => downloadOfficialTemplateSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const { buildOfficialExcelTemplate } = await import("./engine/excel-template-builder");
+    const buffer = await buildOfficialExcelTemplate(data.module);
+    const fileName = `Modelo_${data.module.toUpperCase()}_SIGA.xlsx`;
+    return {
+      fileName,
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      base64: buffer.toString("base64"),
+    };
+  });
+
+/** Exporta dados escolares em formato Humano ou SIGA Exchange reimportável. */
+export const exportSchoolDataFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => exportSchoolDataSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const db = await loadSgaAdminClient();
+    const membership = await requireSgaWriter(context.supabase, context.user.id, [
+      "Administrador",
+      "Secretaria",
+      "Tesouraria",
+    ]);
+
+    // Carregar nome da escola
+    const { data: school } = await db
+      .from("schools")
+      .select("name")
+      .eq("id", membership.schoolId)
+      .maybeSingle();
+
+    const { exportSchoolData } = await import("./export-engine");
+    const result = await exportSchoolData(db, {
+      schoolId: membership.schoolId,
+      schoolName: school?.name || "Escola",
+      academicYearId: data.academic_year_id,
+      classGroupId: data.class_group_id,
+      modules: data.modules,
+      mode: data.mode,
+    });
+
+    return {
+      fileName: result.fileName,
+      mimeType: result.mimeType,
+      base64: result.buffer.toString("base64"),
+      recordCount: result.recordCount,
+      manifest: result.manifest,
+    };
+  });
+

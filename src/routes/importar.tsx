@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FileUp, History, ShieldCheck, Download, FileSpreadsheet } from "lucide-react";
+import { FileUp, History, ShieldCheck, Download, FileSpreadsheet, Sparkles } from "lucide-react";
 import { z } from "zod";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
@@ -9,24 +10,27 @@ import { Button } from "@/components/ui/button";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ImportWorkflowWizard } from "@/features/import/components/ImportWorkflowWizard";
 import { ImportHistoryPanel } from "@/features/import/components/ImportHistoryPanel";
+import { SchoolDataExportPanel } from "@/features/import/components/SchoolDataExportPanel";
 import {
   OFFICIAL_TEMPLATES,
   generateOfficialCsvTemplate,
 } from "@/features/import/official-templates";
+import { downloadOfficialExcelTemplateFn } from "@/features/import/server";
+import type { ImportModule } from "@/features/import/schemas";
 
 const importarSearchSchema = z.object({
-  tab: z.enum(["novo", "historico", "modelos"]).optional(),
+  tab: z.enum(["novo", "historico", "modelos", "exportar"]).optional(),
 });
 
 export const Route = createFileRoute("/importar")({
   validateSearch: (search) => importarSearchSchema.parse(search),
   head: () => ({
     meta: [
-      { title: "Importar Dados Escolares · SIGA" },
+      { title: "Importar & Exportar Dados Escolares · SIGA" },
       {
         name: "description",
         content:
-          "Motor central de importação e migração de dados escolares Excel/CSV do SIGA com staging, validação e auditoria.",
+          "Motor central de importação, migração e exportação de dados escolares Excel/CSV do SIGA com staging, validação e auditoria.",
       },
     ],
   }),
@@ -39,19 +43,53 @@ export function ImportarDadosPage() {
   const navigate = useNavigate({ from: Route.id });
 
   const activeTab = search.tab || "novo";
-  const setActiveTab = (tab: "novo" | "historico" | "modelos") => {
+  const setActiveTab = (tab: "novo" | "historico" | "modelos" | "exportar") => {
     navigate({ search: (prev) => ({ ...prev, tab }) });
   };
 
-  const handleDownloadTemplate = (moduleKey: string) => {
+  const handleDownloadCsvTemplate = (moduleKey: string) => {
     const csvContent = generateOfficialCsvTemplate(moduleKey);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Modelo_${moduleKey}_SIGA.csv`;
+    link.download = `Modelo_${moduleKey.toUpperCase()}_SIGA.csv`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    toast.success(`Modelo CSV descarregado: ${moduleKey.toUpperCase()}`);
+  };
+
+  const handleDownloadXlsxTemplate = async (moduleKey: ImportModule) => {
+    try {
+      toast.info("A gerar modelo Excel (.xlsx) profissional de 6 abas...");
+      const result = await downloadOfficialExcelTemplateFn({
+        data: { module: moduleKey },
+      });
+
+      const byteCharacters = atob(result.base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: result.mimeType });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = result.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Modelo Excel descarregado com sucesso!");
+    } catch (err: any) {
+      toast.error("Falha ao gerar modelo Excel", {
+        description: err?.message || "Tente descarregar o formato CSV.",
+      });
+    }
   };
 
   return (
@@ -59,8 +97,8 @@ export function ImportarDadosPage() {
       <div className="space-y-4">
         <PageHeader
           group="Secretaria"
-          title="Importar Dados Escolares"
-          description="Migre e alimente alunos, professores, turmas, notas e pagamentos a partir de ficheiros Excel/CSV com validação, staging e auditoria."
+          title="Importação & Exportação de Dados"
+          description="Motor central de intercâmbio de dados do SIGA: importe ou exporte alunos, professores, turmas, notas e finanças com integridade relacional, staging e auditoria."
           actions={<DocHelpButton title="Navegação — Importar no mapa de módulos" />}
         />
 
@@ -77,22 +115,25 @@ export function ImportarDadosPage() {
         </div>
 
         <Panel
-          title="Motor de Importação"
-          description="Excel/CSV → validação → staging → confirmação → auditoria"
+          title="SIGA Data Import & Export Engine"
+          description="Excel/CSV bidirecional → validação relacional → staging → confirmação → auditoria → exportação reimportável"
         >
           <Tabs
             value={activeTab}
-            onValueChange={(v) => setActiveTab(v as "novo" | "historico" | "modelos")}
+            onValueChange={(v) => setActiveTab(v as "novo" | "historico" | "modelos" | "exportar")}
           >
             <TabsList className="mb-4">
               <TabsTrigger value="novo" className="gap-1.5">
                 <FileUp className="size-3.5" /> Nova Importação
               </TabsTrigger>
+              <TabsTrigger value="exportar" className="gap-1.5">
+                <FileSpreadsheet className="size-3.5 text-emerald-600" /> Exportar Dados
+              </TabsTrigger>
               <TabsTrigger value="historico" className="gap-1.5">
                 <History className="size-3.5" /> Histórico &amp; Auditoria
               </TabsTrigger>
               <TabsTrigger value="modelos" className="gap-1.5">
-                <Download className="size-3.5" /> Modelos Oficiais Excel
+                <Download className="size-3.5" /> Modelos Oficiais
               </TabsTrigger>
             </TabsList>
 
@@ -100,6 +141,13 @@ export function ImportarDadosPage() {
               <ImportWorkflowWizard
                 academicYearId={selectedYearId}
                 onComplete={() => setActiveTab("historico")}
+              />
+            </TabsContent>
+
+            <TabsContent value="exportar">
+              <SchoolDataExportPanel
+                academicYearId={selectedYearId}
+                academicYearLabel={activeYearLabel}
               />
             </TabsContent>
 
@@ -112,7 +160,7 @@ export function ImportarDadosPage() {
                 <div>
                   <h3 className="text-base font-semibold">Modelos Oficiais de Importação</h3>
                   <p className="text-xs text-muted-foreground">
-                    Descarregue modelos de exemplo pré-formatados com cabeçalhos oficiais do SIGA.
+                    Descarregue modelos oficiais pré-formatados com validações de lista suspensa, exemplos e orientações.
                   </p>
                 </div>
 
@@ -127,18 +175,29 @@ export function ImportarDadosPage() {
                         <div>
                           <p className="font-semibold text-xs text-foreground">{spec.label}</p>
                           <p className="text-[11px] text-muted-foreground">
-                            {spec.columns.length} colunas pré-definidas
+                            {spec.columns.length} colunas mapeadas
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-1.5 text-xs"
-                        onClick={() => handleDownloadTemplate(key)}
-                      >
-                        <Download className="size-3.5" /> Descarregar Modelo
-                      </Button>
+
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="w-full gap-1.5 text-xs font-semibold"
+                          onClick={() => handleDownloadXlsxTemplate(spec.module)}
+                        >
+                          <Sparkles className="size-3.5" /> Modelo Excel (.xlsx)
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-1.5 text-xs"
+                          onClick={() => handleDownloadCsvTemplate(key)}
+                        >
+                          <Download className="size-3.5" /> Modelo CSV Simples
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
