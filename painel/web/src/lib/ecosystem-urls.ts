@@ -10,7 +10,8 @@ export const ECOSYSTEM_URLS = {
   web: import.meta.env.VITE_WEB_URL || (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
   siga: import.meta.env.VITE_SIGA_URL || (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
   admin: import.meta.env.VITE_ADMIN_URL || (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
-  docs: import.meta.env.VITE_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),\n  payflow: import.meta.env.VITE_PAYFLOW_URL || (isLocal ? "http://localhost:3007" : "https://payflow.portal-siga.com"),
+  docs: import.meta.env.VITE_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
+  payflow: import.meta.env.VITE_PAYFLOW_URL || (isLocal ? "http://localhost:3007" : "https://payflow.portal-siga.com"),
 } as const;
 
 export function getSigaLoginUrl(): string {
@@ -18,29 +19,33 @@ export function getSigaLoginUrl(): string {
 }
 
 export function getCreateSchoolUrl(): string {
-  return `${ECOSYSTEM_URLS.web}/start`;
+  return ECOSYSTEM_URLS.web + "/start";
 }
 
 export function getPricingUrl(): string {
-  return `${ECOSYSTEM_URLS.web}/pricing`;
+  return ECOSYSTEM_URLS.web + "/pricing";
 }
 
 export function getDocsUrl(path = "/arquitetura/"): string {
-  const clean = path.startsWith("/") ? path : `/${path}`;
-  return `${ECOSYSTEM_URLS.docs}${clean}`;
+  const clean = path.startsWith("/") ? path : "/" + path;
+  return ECOSYSTEM_URLS.docs + clean;
 }
 
 export function getSigaUrl(path = "/"): string {
-  const clean = path.startsWith("/") ? path : `/${path}`;
-  return `${ECOSYSTEM_URLS.siga}${clean}`;
+  const clean = path.startsWith("/") ? path : "/" + path;
+  return ECOSYSTEM_URLS.siga + clean;
 }
 
 export function getAdminTenantsUrl(): string {
-  return `${ECOSYSTEM_URLS.admin}/tenants`;
+  return ECOSYSTEM_URLS.admin + "/tenants";
 }
 
 export function getSaasApiUrl(path: string): string {
-  const clean = path.startsWith("/") ? path : `/${path}`;
-  return `${ECOSYSTEM_URLS.siga}${clean}`;
+  const clean = path.startsWith("/") ? path : "/" + path;
+  return ECOSYSTEM_URLS.siga + clean;
 }
-\nexport function getPayflowUrl(path = "/"): string {\n  const clean = path.startsWith("/") ? path : "/" + path;\n  return ECOSYSTEM_URLS.payflow + clean;\n}\n
+
+export function getPayflowUrl(path = "/"): string {
+  const clean = path.startsWith("/") ? path : "/" + path;
+  return ECOSYSTEM_URLS.payflow + clean;
+}
