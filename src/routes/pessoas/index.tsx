@@ -151,8 +151,7 @@ function PeoplePage() {
           query: deferredQuery,
           province: filters.province || undefined,
           municipality: filters.municipality || undefined,
-          role:
-            (filters.role as (typeof personRoleOptions)[number] | "") || undefined,
+          role: (filters.role as (typeof personRoleOptions)[number] | "") || undefined,
           limit: 50,
         },
       }),
