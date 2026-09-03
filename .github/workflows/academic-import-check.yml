@@ -71,8 +71,9 @@ jobs:
           src/features/import/importers/professores-importer.ts
           src/features/import/importers/turmas-importer.ts
 
-      - name: Unit tests
-        run: bun test
+      - name: Unit tests (Vitest)
+        run: bun run test
 
       - name: Production build
+        if: always()
         run: bun run build
