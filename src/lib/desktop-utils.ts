@@ -48,7 +48,10 @@ export async function openExternalLink(url: string): Promise<void> {
       );
     }
   }
-  window.open(url, "_blank", "noopener,noreferrer");
+
+  if (typeof window !== "undefined") {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 }
 
 /**
