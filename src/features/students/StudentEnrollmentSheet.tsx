@@ -14,6 +14,12 @@ import { personRelationshipTypeOptions } from "@/features/people/schemas";
 import { findPersonDuplicates } from "@/features/people/server";
 import { enrollNewStudent } from "@/features/students/server";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
+import {
+  buildEnrollmentDirectory,
+  formatEnrollmentClassGroupLabel,
+  type EnrollmentClassGroup,
+} from "@/features/students/enrollment-directory";
 
 const steps = [
   { id: "identidade", label: "Identidade", description: "Dados pessoais do aluno." },
@@ -37,13 +43,7 @@ const relationshipLabels: Record<string, string> = {
 
 const fieldClass = "h-10 w-full rounded-md border border-input bg-background px-3 text-sm";
 
-type ClassGroupOption = {
-  id: string;
-  name: string;
-  grade_name: string;
-  course_name: string;
-  academic_year_id: string;
-};
+type ClassGroupOption = EnrollmentClassGroup;
 
 type PersonOption = { id: string; full_name: string; status?: string };
 
@@ -57,6 +57,11 @@ const emptyValues = {
   morada: "",
   obs: "",
   processo: "",
+  academicYearId: "",
+  courseId: "",
+  gradeName: "",
+  shift: "",
+  roomName: "",
   turmaId: "",
   encarregadoId: "",
   parentesco: "encarregado",
@@ -90,14 +95,36 @@ export function StudentEnrollmentSheet({
 
   const hasUnsavedChanges = values.nome.trim() !== "";
 
+  const directory = useMemo(
+    () =>
+      buildEnrollmentDirectory(classGroups, {
+        academicYearId: values.academicYearId || undefined,
+        courseId: values.courseId || undefined,
+        gradeName: values.gradeName || undefined,
+        shift: values.shift || undefined,
+        roomName: values.roomName || undefined,
+      }),
+    [
+      classGroups,
+      values.academicYearId,
+      values.courseId,
+      values.gradeName,
+      values.shift,
+      values.roomName,
+    ],
+  );
   const turmaOptions = useMemo(
     () =>
-      classGroups.map((group) => ({
+      directory.classGroups.map((group) => ({
         id: group.id,
-        label: `${group.name} · ${group.grade_name} · ${group.course_name}`,
+        label: formatEnrollmentClassGroupLabel(group),
         academicYearId: group.academic_year_id,
       })),
-    [classGroups],
+    [directory.classGroups],
+  );
+  const selectedTurma = useMemo(
+    () => directory.classGroups.find((group) => group.id === values.turmaId) ?? null,
+    [directory.classGroups, values.turmaId],
   );
   const guardians = useMemo(() => people.filter((row) => row.status !== "inactive"), [people]);
 
@@ -118,6 +145,28 @@ export function StudentEnrollmentSheet({
         steps={steps}
         submitLabel="Criar matrícula"
         successDescription="Aluno criado. A ficha fica disponível na lista."
+        visualPanel={({ stepId }) => (
+          <EducationWorkflowVisual
+            scene={
+              stepId === "encarregado"
+                ? "guardian"
+                : stepId === "turma"
+                  ? "classroom"
+                  : stepId === "revisao"
+                    ? "enrollment"
+                    : "people"
+            }
+            title={
+              stepId === "turma"
+                ? "Escolha o contexto académico"
+                : stepId === "encarregado"
+                  ? "Ligue o responsável certo"
+                  : values.nome
+                    ? `Organizar ${values.nome}`
+                    : undefined
+            }
+          />
+        )}
         onSubmit={async () => {
           if (values.nome.trim().length < 2) throw new Error("Indique o nome completo.");
           if (!values.processo.trim()) throw new Error("O número de processo é obrigatório.");
@@ -314,7 +363,7 @@ export function StudentEnrollmentSheet({
           if (stepId === "turma") {
             return (
               <SheetGrid>
-                <SheetCell label="Nº de processo">
+                <SheetCell label="Nº de processo" full>
                   <Input
                     aria-label="Número de processo"
                     value={values.processo}
@@ -322,7 +371,122 @@ export function StudentEnrollmentSheet({
                     placeholder="2026-0001"
                   />
                 </SheetCell>
-                <SheetCell label="Turma">
+                <SheetCell label="Ano lectivo">
+                  <select
+                    aria-label="Ano lectivo"
+                    className={fieldClass}
+                    value={values.academicYearId}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        academicYearId: e.target.value,
+                        courseId: "",
+                        gradeName: "",
+                        shift: "",
+                        roomName: "",
+                        turmaId: "",
+                      }))
+                    }
+                  >
+                    <option value="">Todos os anos</option>
+                    {directory.academicYears.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </SheetCell>
+                <SheetCell label="Curso">
+                  <select
+                    aria-label="Curso"
+                    className={fieldClass}
+                    value={values.courseId}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        courseId: e.target.value,
+                        gradeName: "",
+                        shift: "",
+                        roomName: "",
+                        turmaId: "",
+                      }))
+                    }
+                  >
+                    <option value="">Todos os cursos</option>
+                    {directory.courses.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </SheetCell>
+                <SheetCell label="Classe / nível">
+                  <select
+                    aria-label="Classe ou nível"
+                    className={fieldClass}
+                    value={values.gradeName}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        gradeName: e.target.value,
+                        shift: "",
+                        roomName: "",
+                        turmaId: "",
+                      }))
+                    }
+                  >
+                    <option value="">Todas as classes</option>
+                    {directory.grades.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </SheetCell>
+                <SheetCell label="Turno">
+                  <select
+                    aria-label="Turno"
+                    className={fieldClass}
+                    value={values.shift}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        shift: e.target.value,
+                        roomName: "",
+                        turmaId: "",
+                      }))
+                    }
+                  >
+                    <option value="">Todos os turnos</option>
+                    {directory.shifts.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </SheetCell>
+                <SheetCell label="Sala">
+                  <select
+                    aria-label="Sala"
+                    className={fieldClass}
+                    value={values.roomName}
+                    onChange={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        roomName: e.target.value,
+                        turmaId: "",
+                      }))
+                    }
+                  >
+                    <option value="">Todas as salas</option>
+                    {directory.rooms.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </SheetCell>
+                <SheetCell label="Turma" full>
                   <select
                     aria-label="Turma"
                     className={fieldClass}
@@ -336,6 +500,17 @@ export function StudentEnrollmentSheet({
                       </option>
                     ))}
                   </select>
+                  {selectedTurma ? (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {selectedTurma.room_name && selectedTurma.room_name !== "—"
+                        ? `${selectedTurma.room_name} · `
+                        : ""}
+                      {selectedTurma.shift ? `${selectedTurma.shift} · ` : ""}
+                      {typeof selectedTurma.capacity === "number"
+                        ? `${selectedTurma.enrolled_count ?? 0}/${selectedTurma.capacity} alunos`
+                        : "Capacidade não definida"}
+                    </p>
+                  ) : null}
                 </SheetCell>
               </SheetGrid>
             );
