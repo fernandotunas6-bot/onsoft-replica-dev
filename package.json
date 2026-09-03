@@ -53,7 +53,12 @@
     "siga:clean-cache": "rm -rf node_modules/.vite .vite .output .tanstack .nitro",
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
-    "desktop:build": "tauri build"
+    "desktop:build": "tauri build",
+    "dev:payflow": "npm --prefix painel/payflow run dev",
+    "payflow:install": "npm ci --prefix painel/payflow",
+    "payflow:lint": "npm --prefix painel/payflow run lint",
+    "payflow:test": "npm --prefix painel/payflow test",
+    "payflow:build": "npm --prefix painel/payflow run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

@@ -4,10 +4,10 @@
 > cruze aplicações, provisione escolas, ligue URLs, ou toque em billing SaaS.
 > Handoff operacional: [CONTINUE.md](./CONTINUE.md).
 
-**Filosofia:** um ecossistema, quatro responsabilidades, uma experiência integrada.
+**Filosofia:** um ecossistema, cinco responsabilidades, uma experiência integrada.
 
 ```text
-WEB vende.    ADMIN controla.    SIGA trabalha.    DOC explica.
+WEB vende.    ADMIN controla.    SIGA trabalha.    PAYFLOW cobra.    DOC explica.
 Todos comunicam. Nenhum substitui o outro. Nenhum precisa do mesmo frontend.
 ```
 
@@ -17,13 +17,14 @@ Todos comunicam. Nenhum substitui o outro. Nenhum precisa do mesmo frontend.
 
 ---
 
-## 1. Mapa das quatro aplicações (auditoria)
+## 1. Mapa das cinco aplicações (auditoria)
 
 | App | Pasta | Framework | Entrypoint | Porta dest. | Auth actual |
 | --- | ----- | --------- | ---------- | ----------- | ----------- |
 | **WEB** | `painel/web` | Vite 7 + React 19 + React Router 7 + Tailwind 4 | `src/main.tsx` → `AppRouter` | **5174** | Sem auth de produto (template) |
 | **ADMIN** | `painel/admin` | Next.js 16 App Router + Tailwind 4 | `src/app/page.tsx` | **3005** | Supabase SSR + `platform_admins` (middleware + gate) |
 | **SIGA PLUS** | raiz `/` | TanStack Start + Vite + React Query + Zod | `src/routes/__root.tsx` | **3006** | Supabase Auth + `AuthGate` + MFA TOTP |
+| **PAYFLOW** | `painel/payflow` | Vinext + React + Cloudflare D1 | `app/page.tsx` | **3007** | Portal do pagador; SSO administrativo por integrar |
 | **DOC** | `painel/docs` | VitePress + Vue 3 | `.vitepress/config.ts` | **5173** | Público |
 
 Dev:
@@ -34,6 +35,9 @@ npm run dev                          # :3006
 
 # ADMIN
 cd painel/admin && npm run dev       # :3005 (já fixo no package.json)
+
+# PAYFLOW
+cd painel/payflow && npm run dev      # :3007
 
 # WEB    — forçar 5174 para não colidir com DOC
 cd painel/web && npx vite --port 5174
@@ -135,6 +139,12 @@ Experiência single-school: o hostname resolve `tenant → school → user →
 permissions`. A escola vê só a si. Sem «Seleccionar escola», salvo grupos
 empresariais futuros explícitos.
 
+### PAYFLOW — camada financeira transacional
+
+Pagamentos, referências de provedor, estados transacionais, recibos e reconciliação.
+Recebe identidade académica e obrigações do SIGA por contrato; não recadastra escola,
+aluno, matrícula ou ano letivo. Produção falha de forma fechada sem provedor homologado.
+
 ### DOC — documentação do ecossistema
 
 Manuais SIGA, Admin SaaS, Web, APIs, arquitectura, BD, integrações,
@@ -156,7 +166,7 @@ independente.
 | Tenants / planos / billing SaaS | Tabelas SGA + UI SIGA | ADMIN |
 | Domínios / subdomínios | `tenant_domains` + resolver SIGA | ADMIN gere; SIGA resolve hostname |
 | Alunos, turmas, notas, pautas | SIGA | SIGA |
-| Propinas / recibos escolares | SIGA `/financeiro` `/faturas` | SIGA |
+| Propinas / recibos escolares | SIGA `/financeiro` `/faturas` | SIGA cria a obrigação; PayFlow orquestra pagamento e recibo, sem duplicar a verdade |
 | Assinatura / upgrade / renovar SIGA | Links e wizard no SIGA | WEB (checkout) + ADMIN (gestão) |
 | Manuais / API docs | DOC ainda no template (Vite vs Next, componentes) | DOC (conteúdo do ecossistema) |
 
@@ -175,6 +185,8 @@ ligar backend → actualizar links → testar → só então remover a UI antiga
 - Criar páginas «falsas WEB» no SIGA (`/siga/pricing`, wizard comercial com
   UI escolar).
 - Mover operação escolar (alunos, notas, propinas) para WEB ou ADMIN.
+- Duplicar alunos, matrículas ou regras de propina no PayFlow.
+- Marcar como pago por redirect ou ação do browser; confirmação é sempre do backend/provedor.
 - Deixar billing SaaS, tenants globais ou «criar escola» como produto SIGA.
 - Criar um PostgreSQL por escola.
 - Hardcode URLs de produção. Duplicar pricing/subscriptions/manuais.
@@ -262,6 +274,7 @@ Fonte no SIGA: [`src/lib/ecosystem-urls.ts`](../../src/lib/ecosystem-urls.ts).
 | --- | --- | --- |
 | `VITE_WEB_URL` | WEB | `http://localhost:5174` |
 | `VITE_SIGA_URL` | SIGA | `http://localhost:3006` |
+| `VITE_PAYFLOW_URL` | PAYFLOW | `http://localhost:3007` |
 | `VITE_ADMIN_URL` | ADMIN | `http://localhost:3005` |
 | `VITE_DOCS_URL` | DOC | `http://localhost:5173` |
 
@@ -269,7 +282,7 @@ Helpers SIGA: `getPricingUrl()`, `getCreateSchoolUrl()` → `/start`,
 `getSaasAdminUrl()`, `getDocUrl(path)`.
 
 ADMIN/WEB/DOC ainda não têm módulo equivalente (Fase 3). Não espalhar
-URLs hardcoded. Redirects: só destinos da allowlist das quatro apps.
+URLs hardcoded. Redirects: só destinos da allowlist das cinco apps.
 
 ---
 
@@ -278,6 +291,7 @@ URLs hardcoded. Redirects: só destinos da allowlist das quatro apps.
 | App | Estado | Objectivo |
 | --- | --- | --- |
 | SIGA | Supabase Auth, sessão, MFA TOTP, `requireSupabaseAuth` | Identidade + autorização **escolar** |
+| PAYFLOW | Portal do pagador com sessão curta; SSO administrativo pendente | Reutilizar identidade, tenant, escola e RBAC do SIGA |
 | ADMIN | `@supabase/ssr` presente; UI template | Identidade central + `platform_admins` |
 | WEB | Público; signup chama API SaaS | Público + criação de conta no provisionamento |
 | DOC | Público | Eventual auth só para docs internos |
@@ -322,6 +336,7 @@ canónicos). RLS destas tabelas: só `is_platform_admin()`.
 | SIGA | Ver planos / upgrade / conhecer Business | WEB `/pricing` |
 | SIGA | Criar escola | WEB `/start` (hoje ponte `/criar-escola`) |
 | SIGA | Ajuda / docs da página | DOC artigo (ex. pautas) |
+| SIGA | Cobranças, pagamento e recibos | PAYFLOW, com contexto autorizado e sem tokens na URL |
 | SIGA | Gestão global SaaS | ADMIN (não UI SIGA a longo prazo) |
 | WEB | Login escola existente | SIGA |
 | WEB | Criar escola | WEB onboarding → API → SIGA |
@@ -418,8 +433,9 @@ Após cada fase de código: `npm run siga:check`, lint, build, testes (Node 24).
 - WEB vende e inicia criação de escola.
 - ADMIN gere tenant, assinatura, pagamento e domínio.
 - SIGA gere só a escola.
+- PAYFLOW executa pagamentos e emite recibos confirmados sem duplicar o académico.
 - DOC documenta o ecossistema.
-- Os quatro comunicam e continuam visualmente independentes.
+- Os cinco comunicam e continuam visualmente independentes.
 - Escola nova: WEB → SIGA automaticamente.
 - Isolamento: A não vê B.
 - SIGA sem responsabilidades comerciais/SaaS desnecessárias.
@@ -434,8 +450,17 @@ Após cada fase de código: `npm run siga:check`, lint, build, testes (Node 24).
 | `siga-web` | `painel/web` |
 | `siga-admin` | `painel/admin` |
 | `siga-docs` | `painel/docs` |
+| `siga-financeiro` + `siga-ecosystem` | Contratos e integração com `painel/payflow` |
 | `siga-saas` | Backend SaaS ainda no SIGA (`features/saas`) |
 | `siga` + `siga-<modulo>` | Operação escolar |
 
 SQL SGA: `APPLY_IN_SQL_EDITOR.sql` → `APPLY_ENROLLMENT_AND_PREMIUM.sql` →
 `APPLY_SAAS_PLATFORM.sql`. Nunca migrações Lovable.
+
+---
+
+## 18. PayFlow
+
+A integração detalhada, os limites de fonte de verdade e os gates de produção estão em
+[`PAYFLOW_INTEGRATION.md`](./PAYFLOW_INTEGRATION.md). O PayFlow usa D1 próprio nesta fase;
+as migrações Drizzle de `painel/payflow` nunca são aplicadas ao Supabase SGA.

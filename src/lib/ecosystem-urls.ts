@@ -5,6 +5,7 @@
  * - WEB (Landing, Preços, Criar Escola, Comercial): PORT 5174
  * - ADMIN (Control Center SaaS, Tenants, Billing): PORT 3005
  * - SIGA PLUS (Operação Escolar, Alunos, Pautas): PORT 3006
+ * - PAYFLOW (Pagamentos, Recibos, Reconciliação): PORT 3007
  * - DOC (Documentação, Manuais, APIs): PORT 5173
  */
 
@@ -21,6 +22,7 @@ const isLocal = isBrowser ? isLocalBrowser : Boolean(import.meta.env.DEV);
 export const ECOSYSTEM_URLS = {
   web: import.meta.env.VITE_WEB_URL || (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
   siga: import.meta.env.VITE_SIGA_URL || (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
+  payflow: import.meta.env.VITE_PAYFLOW_URL || (isLocal ? "http://localhost:3007" : ""),
   admin: import.meta.env.VITE_ADMIN_URL || (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
   docs: import.meta.env.VITE_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
 } as const;
@@ -101,4 +103,16 @@ export function getSigaLoginUrl(): string {
 export function getPublicEnrollmentUrl(slug: string): string {
   const clean = slug.replace(/^\/+|\/+$/g, "");
   return `${ECOSYSTEM_URLS.siga}/matricula/${clean}`;
+}
+
+/** URL PayFlow configurada; em produção não existe fallback hardcoded. */
+export function getPayflowUrl(path = "/"): string | null {
+  if (!ECOSYSTEM_URLS.payflow) return null;
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `${ECOSYSTEM_URLS.payflow}${clean}`;
+}
+
+/** Portal público do pagador no PayFlow. */
+export function getPayflowPayerUrl(): string | null {
+  return getPayflowUrl("/aluno/pagar");
 }

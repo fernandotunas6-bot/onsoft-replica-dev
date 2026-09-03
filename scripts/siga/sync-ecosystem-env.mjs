@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Propaga variáveis do .env raiz para painel/web/.env.local e painel/admin/.env.local.
+ * Propaga variáveis do .env raiz para painel/web, painel/admin e painel/payflow.
  * Nunca imprime valores — apenas chaves sincronizadas.
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -54,6 +54,7 @@ const env = parseEnv(readFileSync(envPath, "utf8"));
 
 const webUrl = pick(env, "VITE_WEB_URL") || "http://localhost:5174";
 const sigaUrl = pick(env, "VITE_SIGA_URL") || "http://localhost:3006";
+const payflowUrl = pick(env, "VITE_PAYFLOW_URL") || "http://localhost:3007";
 const adminUrl = pick(env, "VITE_ADMIN_URL") || "http://localhost:3005";
 const docsUrl = pick(env, "VITE_DOCS_URL") || "http://localhost:5173";
 
@@ -67,10 +68,12 @@ const supabaseKey = pick(
 
 const webLocal = resolve(root, "painel/web/.env.local");
 const adminLocal = resolve(root, "painel/admin/.env.local");
+const payflowLocal = resolve(root, "painel/payflow/.env.local");
 
 const webContent = buildBlock("SIGA Plus WEB — ecossistema", [
   ["VITE_WEB_URL", webUrl],
   ["VITE_SIGA_URL", sigaUrl],
+  ["VITE_PAYFLOW_URL", payflowUrl],
   ["VITE_ADMIN_URL", adminUrl],
   ["VITE_DOCS_URL", docsUrl],
   ["VITE_SUPABASE_URL", supabaseUrl],
@@ -80,22 +83,37 @@ const webContent = buildBlock("SIGA Plus WEB — ecossistema", [
 const adminContent = buildBlock("SIGA Plus ADMIN — ecossistema", [
   ["NEXT_PUBLIC_WEB_URL", webUrl],
   ["NEXT_PUBLIC_SIGA_URL", sigaUrl],
+  ["NEXT_PUBLIC_PAYFLOW_URL", payflowUrl],
   ["NEXT_PUBLIC_ADMIN_URL", adminUrl],
   ["NEXT_PUBLIC_DOCS_URL", docsUrl],
   ["NEXT_PUBLIC_SUPABASE_URL", supabaseUrl],
   ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", supabaseKey],
 ]);
 
+const payflowContent = buildBlock("PayFlow — integração SIGA Plus", [
+  ["PAYFLOW_RUNTIME_MODE", pick(env, "PAYFLOW_RUNTIME_MODE") || "production"],
+  ["PAYFLOW_INTEGRATION_API_KEY", pick(env, "PAYFLOW_INTEGRATION_API_KEY")],
+  ["PAYFLOW_SIGA_URL", pick(env, "PAYFLOW_SIGA_URL") || sigaUrl],
+  ["PAYFLOW_TRANSFER_EXPIRY_HOURS", pick(env, "PAYFLOW_TRANSFER_EXPIRY_HOURS") || "72"],
+  ["EMIS_BASE_URL", pick(env, "EMIS_BASE_URL")],
+  ["EMIS_MERCHANT_ID", pick(env, "EMIS_MERCHANT_ID")],
+  ["EMIS_TERMINAL_ID", pick(env, "EMIS_TERMINAL_ID")],
+  ["EMIS_API_KEY", pick(env, "EMIS_API_KEY")],
+  ["EMIS_WEBHOOK_SECRET", pick(env, "EMIS_WEBHOOK_SECRET")],
+]);
+
 writeFileSync(webLocal, webContent);
 writeFileSync(adminLocal, adminContent);
+writeFileSync(payflowLocal, payflowContent);
 
 const syncedKeys = [
   "VITE_WEB_URL",
   "VITE_SIGA_URL",
+  "VITE_PAYFLOW_URL",
   "VITE_ADMIN_URL",
   "VITE_DOCS_URL",
   ...(supabaseUrl ? ["SUPABASE_URL"] : []),
   ...(supabaseKey ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
 ];
-console.log(`sync-ecosystem-env: OK → painel/web/.env.local, painel/admin/.env.local`);
+console.log(`sync-ecosystem-env: OK → painel/web/.env.local, painel/admin/.env.local, painel/payflow/.env.local`);
 console.log(`  chaves propagadas: ${syncedKeys.join(", ")}`);
