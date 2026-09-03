@@ -21,8 +21,8 @@ import {
 function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
   return Boolean(
     error &&
-      (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
-        error.code === "42703"),
+    (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
+      error.code === "42703"),
   );
 }
 
