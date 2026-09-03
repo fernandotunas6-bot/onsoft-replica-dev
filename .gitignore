@@ -55,3 +55,7 @@ playwright-report/
 
 # Arquivos de referência grandes que não devem entrar no repo (>100MB, rejeitados pelo GitHub)
 public/turmas/*.zip
+
+# Tauri build artifacts
+src-tauri/target/
+target/
