@@ -20,6 +20,7 @@ export function SequentialSheetModal({
   successDescription = "Registo guardado com sucesso.",
   onSubmit,
   hasUnsavedChanges = false,
+  visualPanel,
   children,
 }: {
   open: boolean;
@@ -33,6 +34,7 @@ export function SequentialSheetModal({
   successDescription?: string;
   onSubmit: () => Promise<void>;
   hasUnsavedChanges?: boolean;
+  visualPanel?: (ctx: { stepId: string; stepIndex: number }) => ReactNode;
   children: (ctx: { stepId: string; stepIndex: number }) => ReactNode;
 }) {
   const [stepIndex, setStepIndex] = useState(0);
@@ -70,7 +72,9 @@ export function SequentialSheetModal({
       onSubmit={handleFinish}
       isSubmitting={saving}
       hasUnsavedChanges={hasUnsavedChanges}
-      size="xl"
+      submitLabel={submitLabel}
+      visualPanel={current && visualPanel ? visualPanel({ stepId: current.id, stepIndex }) : undefined}
+      size={visualPanel ? "2xl" : "xl"}
     >
       <div className="space-y-3">
         {current?.description && (
