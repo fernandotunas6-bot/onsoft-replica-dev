@@ -30,6 +30,7 @@ import { personRelationshipTypeOptions, personRoleOptions } from "@/features/peo
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
+import { angolaProvinces } from "@/lib/angola-territory";
 
 type PersonRole = (typeof personRoleOptions)[number];
 type RelationshipType = (typeof personRelationshipTypeOptions)[number];
@@ -96,6 +97,9 @@ export function PersonWizardModal({
   const [phonePrimary, setPhonePrimary] = useState("");
   const [phoneAlt, setPhoneAlt] = useState("");
   const [email, setEmail] = useState("");
+  const [province, setProvince] = useState("");
+  const [municipality, setMunicipality] = useState("");
+  const [commune, setCommune] = useState("");
   const [address, setAddress] = useState("");
   const [docType, setDocType] = useState<"bi" | "passaporte" | "cedula" | "outro">("bi");
   const [docNumber, setDocNumber] = useState("");
@@ -151,6 +155,9 @@ export function PersonWizardModal({
     setPhonePrimary("");
     setPhoneAlt("");
     setEmail("");
+    setProvince("");
+    setMunicipality("");
+    setCommune("");
     setAddress("");
     setDocType("bi");
     setDocNumber("");
@@ -208,6 +215,9 @@ export function PersonWizardModal({
             phone_primary: phonePrimary.trim() || undefined,
             phone_alternative: phoneAlt.trim() || undefined,
             email: email.trim() || undefined,
+            province: province || undefined,
+            municipality: municipality.trim() || undefined,
+            commune: commune.trim() || undefined,
             address: address.trim() || undefined,
           },
           roles,
@@ -480,13 +490,54 @@ export function PersonWizardModal({
                     />
                   </div>
 
-                  <div className="sm:col-span-2 space-y-1.5">
-                    <Label htmlFor="wiz_address">Endereço de Residência / Município</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wiz_province">Província</Label>
+                    <select
+                      id="wiz_province"
+                      value={province}
+                      onChange={(e) => {
+                        setProvince(e.target.value);
+                        setMunicipality("");
+                        setCommune("");
+                      }}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="">Seleccionar província</option>
+                      {angolaProvinces.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wiz_municipality">Município</Label>
+                    <Input
+                      id="wiz_municipality"
+                      value={municipality}
+                      onChange={(e) => setMunicipality(e.target.value)}
+                      placeholder="Ex.: Huambo"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wiz_commune">Comuna / Localidade</Label>
+                    <Input
+                      id="wiz_commune"
+                      value={commune}
+                      onChange={(e) => setCommune(e.target.value)}
+                      placeholder="Opcional"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wiz_address">Morada detalhada</Label>
                     <Input
                       id="wiz_address"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Bairro, Rua, Casa, Município"
+                      placeholder="Bairro, rua, casa ou referência"
                     />
                   </div>
                 </div>
