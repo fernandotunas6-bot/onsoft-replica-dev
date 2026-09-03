@@ -8,6 +8,22 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise completo (Fases 1–15) + Ciclos 50 (Import/Export Engine) e 51 (Zoom Meetings).
 861/861 testes passando em 120 ficheiros de teste no repositório com 100% de sucesso.
+### Ciclo 52 — Sincronização GitHub, Visual de Matrículas e Ecossistema PayFlow (2026-09-03)
+
+- **Sincronização & Fusão Remota:** Consolidação limpa dos ramos `feature/education-workflow-ui` (PR #6) e `feat/payflow-integration-production` (PR #7) com 15 importadores oficiais do motor SIGA Exchange e zero conflitos.
+- **Fluxo Visual & Validação de Matrículas:**
+  - `EducationWorkflowVisual.tsx` integrado no fluxo de pessoas e matrículas (`StudentEnrollmentSheet.tsx` e `PersonWizardModal.tsx`).
+  - Suporte ao território angolano (21 províncias em `lib/angola-territory.ts`).
+  - Alerta de lotação máxima preenchida (`enrolled_count >= capacity`) com confirmação de matrícula extraordinária e selo visual *Sobrelotação*.
+  - Filtros contextuais hierárquicos: Ano Lectivo → Curso → Classe → Turno → Sala → Turma com occupancy indicators.
+  - Validação estrita de ano lectivo no importador de matrículas (`matriculas-importer.ts`).
+  - Modal extensivo do aluno (`StudentExtensiveModal.tsx`) na listagem de alunos com suporte a emissão directa do Cartão Digital do Aluno (`QrCode`).
+- **Ecossistema PayFlow (`painel/payflow`):**
+  - Aplicação compilada em modo de produção via Vinext/Cloudflare Workers (18 endpoints de API e 4 páginas de checkout/portal).
+  - Verificação de transferências bancárias com IBAN angolano (validação ISO mod-97), SSO assinado e RBAC administrativo.
+  - Abstração de ambiente `lib/cf-env.ts` compatível com Workers e testes locais Node.js.
+  - Links de navegação e atalhos rápidos integrados nas telas de `src/routes/faturas.tsx` e `src/routes/financeiro.tsx`.
+- **Validação:** 900/900 testes Vitest passando no monorepo (128 ficheiros) + 16/16 testes PayFlow passando. Todas as 4 aplicações (SIGA, WEB, ADMIN, PAYFLOW) compilam com 100% de sucesso.
 
 ### Ciclo 51 — Zoom End-to-End Meeting Integration (2026-09-03)
 
