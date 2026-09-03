@@ -5,7 +5,7 @@
   "identifier": "ao.onsoft.siga",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:3000",
+    "devUrl": "http://localhost:3006",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../.output/public"
   },
@@ -19,6 +19,8 @@
         "title": "SIGA - Sistema Integrado de Gestão Académica",
         "width": 1280,
         "height": 832,
+        "minWidth": 1024,
+        "minHeight": 700,
         "resizable": true,
         "fullscreen": false,
         "center": true,
