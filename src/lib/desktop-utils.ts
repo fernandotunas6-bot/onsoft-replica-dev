@@ -16,6 +16,10 @@ export interface SystemInfo {
   is_desktop_native: boolean;
 }
 
+interface OpenerModule {
+  open?: (url: string) => Promise<unknown> | unknown;
+}
+
 /**
  * Verifica se o SIGA está a ser executado dentro do runtime nativo do Tauri.
  */
@@ -29,7 +33,10 @@ export function isTauriDesktop(): boolean {
 export async function openExternalLink(url: string): Promise<void> {
   if (isTauriDesktop()) {
     try {
-      const opener: any = await import(/* @vite-ignore */ "@tauri-apps/plugin-opener" as any).catch(() => null);
+      const openerModuleName = "@tauri-apps/plugin-opener";
+      const opener = (await import(/* @vite-ignore */ openerModuleName).catch(
+        () => null,
+      )) as OpenerModule | null;
       if (opener?.open) {
         await opener.open(url);
         return;
