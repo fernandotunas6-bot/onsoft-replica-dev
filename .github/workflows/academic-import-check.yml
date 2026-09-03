@@ -1,0 +1,64 @@
+name: Academic Import Check
+
+on:
+  pull_request:
+    paths:
+      - 'src/features/academic/**'
+      - 'src/features/import/**'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/academic-import-check.yml'
+  push:
+    branches:
+      - fix/import-academic-rls-20260903
+    paths:
+      - 'src/features/academic/**'
+      - 'src/features/import/**'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/academic-import-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  academic-import:
+    name: Academic / Import verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint academic and import changes
+        run: >-
+          bunx eslint
+          src/features/academic/server.ts
+          src/features/academic/sga-grades.ts
+          src/features/import/server.ts
+          src/features/import/engine/registry.ts
+          src/features/import/importers/academic-core.ts
+          src/features/import/importers/alunos-importer.ts
+          src/features/import/importers/matriculas-importer.ts
+          src/features/import/importers/notas-importer.ts
+          src/features/import/importers/professores-importer.ts
+          src/features/import/importers/turmas-importer.ts
+
+      - name: Unit tests
+        run: bun test
+
+      - name: Production build
+        run: bun run build
