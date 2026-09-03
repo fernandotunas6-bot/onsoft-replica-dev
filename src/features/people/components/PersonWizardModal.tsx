@@ -265,8 +265,8 @@ export function PersonWizardModal({
       size="2xl"
       hasUnsavedChanges={hasUnsavedChanges}
     >
-      <div className="grid min-h-[78vh] max-h-[90vh] overflow-hidden lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]">
-        <aside className="hidden min-h-0 overflow-hidden border-r border-border bg-muted/20 lg:block">
+      <div className="relative flex h-full min-h-[78vh] flex-col lg:pl-[38%]">
+        <aside className="absolute inset-y-0 left-0 hidden w-[38%] overflow-hidden border-r border-border bg-muted/20 lg:block">
           <EducationWorkflowVisual
             scene={visualScene}
             title={visualTitle}
@@ -277,7 +277,6 @@ export function PersonWizardModal({
             }
           />
         </aside>
-        <div className="flex min-h-0 flex-col">
         <ModalHeader
           icon={UserPlus}
           title="Nova Pessoa — Núcleo de Identidade"
@@ -810,7 +809,6 @@ export function PersonWizardModal({
             )}
           </div>
         ) : null}
-        </div>
       </div>
     </ModalShell>
   );
