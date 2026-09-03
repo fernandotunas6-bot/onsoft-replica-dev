@@ -42,6 +42,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -51,6 +53,8 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Checklist de estilo (IconChip / MediaFrame / paleta)
+        env:
+          STYLE_CHECK_CHANGED_FROM: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
         run: bun run check:style
 
       - name: Verificação de acessibilidade (contraste, foco, labels)
