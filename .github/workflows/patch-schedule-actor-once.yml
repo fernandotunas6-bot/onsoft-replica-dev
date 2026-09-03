@@ -1,0 +1,70 @@
+name: One-shot Schedule Actor Patch
+
+on:
+  push:
+    branches:
+      - fix/import-academic-rls-20260903
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[schedule-actor-patch]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/import-academic-rls-20260903
+          fetch-depth: 0
+
+      - name: Patch schedule actor fields safely
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/academic/server-legacy.ts')
+          text = path.read_text()
+
+          old_update = '''      .update({
+        weekday: data.weekday,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        room,
+      })'''
+          new_update = '''      .update({
+        weekday: data.weekday,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        room,
+        updated_by: context.userId,
+      })'''
+
+          old_delete = '.update({ status: "inactive" })\n      .eq("id", data.slotId)'
+          new_delete = '.update({ status: "inactive", updated_by: context.userId })\n      .eq("id", data.slotId)'
+
+          for old, new, label in [
+              (old_update, new_update, 'updateScheduleSlot'),
+              (old_delete, new_delete, 'deleteScheduleSlot'),
+          ]:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one {label} anchor, found {count}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+
+          workflow = Path('.github/workflows/patch-schedule-actor-once.yml')
+          workflow.unlink()
+          PY
+
+      - name: Commit one-shot patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(academic): attach actor to schedule mutations [schedule-actor-patch]"
+          git push origin HEAD:fix/import-academic-rls-20260903
