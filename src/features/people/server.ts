@@ -25,6 +25,7 @@ import {
   updateTeacherInputSchema,
   normalizePersonPhone,
   personInstitutionRoleOptions,
+  personRoleOptions,
 } from "./schemas";
 import { isAngolaBiNif, normalizePersonNif } from "@/lib/angola-identity";
 
@@ -300,9 +301,61 @@ export const searchPeople = createServerFn({ method: "GET" })
       roles: [] as string[],
     }));
 
-    if (!query) return mapped.slice(0, data.limit);
-    return mapped
-      .filter((person) => {
+    const personIds = mapped.map((person) => person.id);
+    const [studentRoles, teacherRoles, guardianRoles, declaredRoles] = personIds.length
+      ? await Promise.all([
+          db
+            .from("students")
+            .select("person_id")
+            .eq("school_id", membership.schoolId)
+            .in("person_id", personIds),
+          db
+            .from("teachers")
+            .select("person_id")
+            .eq("school_id", membership.schoolId)
+            .in("person_id", personIds),
+          db
+            .from("student_guardians")
+            .select("guardian_person_id")
+            .eq("school_id", membership.schoolId)
+            .in("guardian_person_id", personIds),
+          db
+            .from("person_roles")
+            .select("person_id, role")
+            .eq("school_id", membership.schoolId)
+            .eq("active", true)
+            .in("person_id", personIds),
+        ])
+      : [
+          { data: [] },
+          { data: [] },
+          { data: [] },
+          { data: [] },
+        ];
+
+    const rolesByPerson = new Map<string, Set<string>>();
+    const addRole = (personId: unknown, role: string) => {
+      const id = String(personId ?? "");
+      if (!id) return;
+      const current = rolesByPerson.get(id) ?? new Set<string>();
+      current.add(role);
+      rolesByPerson.set(id, current);
+    };
+    for (const row of studentRoles.data ?? []) addRole(row.person_id, "aluno");
+    for (const row of teacherRoles.data ?? []) addRole(row.person_id, "professor");
+    for (const row of guardianRoles.data ?? []) addRole(row.guardian_person_id, "encarregado");
+    for (const row of declaredRoles.data ?? []) addRole(row.person_id, String(row.role ?? ""));
+
+    let filtered = mapped.map((person) => {
+      const personRoles = rolesByPerson.get(person.id) ?? new Set<string>();
+      return {
+        ...person,
+        roles: personRoleOptions.filter((role) => personRoles.has(role)),
+      };
+    });
+
+    if (query) {
+      filtered = filtered.filter((person) => {
         const haystack = [
           person.full_name,
           person.email ?? "",
@@ -312,12 +365,17 @@ export const searchPeople = createServerFn({ method: "GET" })
           person.municipality ?? "",
           person.commune ?? "",
           person.address ?? "",
+          person.roles.join(" "),
         ]
           .join(" ")
           .toLowerCase();
         return haystack.includes(query);
-      })
-      .slice(0, data.limit);
+      });
+    }
+    if (data.role) {
+      filtered = filtered.filter((person) => person.roles.includes(data.role!));
+    }
+    return filtered.slice(0, data.limit);
   });
 
 export const findPersonDuplicates = createServerFn({ method: "POST" })
