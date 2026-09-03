@@ -76,7 +76,7 @@ describe("Import académico — resolução estrita de referências", () => {
 
     expect(resolveSubject("MAT", subjects).row?.id).toBe("subject-math");
     expect(resolveSubject("Física", subjects).row?.id).toBe("subject-physics");
-    expect(resolveSubject("Fis", subjects).row).toBeNull();
+    expect(resolveSubject("Físic", subjects).row).toBeNull();
   });
 
   it("normaliza os três períodos angolanos sem inventar um quarto período", () => {
