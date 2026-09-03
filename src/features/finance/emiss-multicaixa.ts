@@ -1,21 +1,26 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Referências EMIS/Multicaixa determinísticas (mesma fatura → mesma referência).
- * Confirmação automática via POST /api/finance/gateway/confirm quando o EMIS
- * (ou simulador) notifica o SIGA com a API key da escola.
+ * Referências EMIS/Multicaixa determinísticas.
+ *
+ * Production invariant:
+ * - não existe entidade EMIS de fallback;
+ * - não existem números de telefone, merchant codes ou carteiras simuladas;
+ * - sem configuração real, a funcionalidade deve falhar fechada.
  */
 
-export const DEFAULT_EMIS_ENTITY = "99824";
+/** Mantido apenas por compatibilidade de import. Nunca usar como entidade real. */
+export const DEFAULT_EMIS_ENTITY: null = null;
 
-/** Lê entidade EMIS do config de integração (merchantId ou emisEntity). */
-export function emisEntityFromIntegrationConfig(config: Record<string, unknown> | null | undefined) {
+/** Lê entidade EMIS real do config de integração. */
+export function emisEntityFromIntegrationConfig(
+  config: Record<string, unknown> | null | undefined,
+): string | null {
   const raw = String(config?.emisEntity ?? config?.merchantId ?? "").trim();
-  if (/^\d{4,6}$/.test(raw)) return raw;
-  return DEFAULT_EMIS_ENTITY;
+  return /^\d{4,6}$/.test(raw) ? raw : null;
 }
 
-/** Entidade EMIS configurada em Integrações → Multicaixa (merchantId / emisEntity). */
+/** Entidade EMIS configurada em Integrações → Multicaixa. */
 export async function resolveSchoolEmisEntity(db: SupabaseClient, schoolId: string) {
   const { data } = await db
     .from("school_integrations")
@@ -24,6 +29,7 @@ export async function resolveSchoolEmisEntity(db: SupabaseClient, schoolId: stri
     .eq("provider", "multicaixa_express")
     .in("status", ["configured", "connected"])
     .maybeSingle();
+
   return emisEntityFromIntegrationConfig((data?.config ?? {}) as Record<string, unknown>);
 }
 
@@ -72,14 +78,22 @@ function emisCheckDigit(raw8: string) {
 }
 
 /**
- * Gera referência Multicaixa de 9 dígitos estável para a mesma fatura.
+ * Gera referência Multicaixa estável quando existe entidade EMIS real.
+ * Nunca fabrica uma entidade de teste.
  */
 export function generateMulticaixaReference(
-  entity: string = DEFAULT_EMIS_ENTITY,
+  entity: string,
   invoiceId: string,
   amount: number,
   expiryDays: number = 30,
 ): MulticaixaReference {
+  if (!/^\d{4,6}$/.test(entity)) {
+    throw new Error("Entidade EMIS não configurada.");
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Montante inválido para referência Multicaixa.");
+  }
+
   const digits = invoiceId.replace(/\D/g, "");
   const seed = hashInvoiceSeed(invoiceId);
   const raw8 = `${digits.padEnd(4, "0").slice(0, 4)}${String(seed % 10000).padStart(4, "0")}`.slice(
@@ -93,8 +107,6 @@ export function generateMulticaixaReference(
   const expDate = new Date();
   expDate.setDate(expDate.getDate() + expiryDays);
 
-  const qrCodeText = `EMIS|ENT:${entity}|REF:${referenceDigits}|AMT:${amount.toFixed(2)}|CUR:AOA`;
-
   return {
     entity,
     reference: formattedRef,
@@ -105,42 +117,19 @@ export function generateMulticaixaReference(
     amountNumber: amount,
     expiresAt: expDate.toISOString().split("T")[0] ?? expDate.toISOString(),
     status: "pending",
-    qrCodeText,
+    qrCodeText: `EMIS|ENT:${entity}|REF:${referenceDigits}|AMT:${amount.toFixed(2)}|CUR:AOA`,
   };
 }
 
+/**
+ * Legacy API kept for compatibility.
+ * Provider options must now come from real school_integrations configuration.
+ */
 export function generateMobileWalletOptions(
-  amount: number,
-  invoiceNumber: string,
+  _amount: number,
+  _invoiceNumber: string,
 ): MobileWalletPayment[] {
-  const cleanRef = invoiceNumber.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-
-  return [
-    {
-      provider: "multicaixa_express",
-      providerName: "Multicaixa Express",
-      phoneOrAccount: "+244 923 000 000",
-      merchantCode: "SIGA-EXP-AO",
-      transactionRef: `MCX-${cleanRef}`,
-      status: "pending",
-    },
-    {
-      provider: "unitel_money",
-      providerName: "Unitel Money",
-      phoneOrAccount: "*444# ou App Unitel Money",
-      merchantCode: "923-SIGA",
-      transactionRef: `UM-${cleanRef}`,
-      status: "pending",
-    },
-    {
-      provider: "kwik",
-      providerName: "Kwik (Rede EMIS)",
-      phoneOrAccount: "Transferência Instantânea Kwik",
-      merchantCode: "KWIK-SIGA-01",
-      transactionRef: `KWK-${cleanRef}`,
-      status: "pending",
-    },
-  ];
+  return [];
 }
 
 export const GATEWAY_CHANNELS = new Set([

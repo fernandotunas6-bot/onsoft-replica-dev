@@ -222,7 +222,7 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: node scripts/siga/prepare-ci-env.mjs
 
-      - name: Arrancar ecossistema (4 apps)
+      - name: Arrancar ecossistema (5 apps)
         run: node scripts/siga/start-ecosystem-ci.mjs
 
       - name: Aguardar portas do ecossistema

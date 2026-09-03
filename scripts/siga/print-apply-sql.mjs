@@ -104,6 +104,35 @@ export const SQL_CHECKLIST = {
       "Wildcard *.PLATFORM_DOMAIN resolve para a aplicação sem DNS manual",
     ],
   },
+  "supabase/PAYFLOW_PREFLIGHT.sql": {
+    title: "PayFlow — preflight sem escrita",
+    tables: [],
+    notes: [
+      "Valida finance_invoices, finance_receipts, register_payment e permissões antes do patch",
+      "Falha explicitamente se o SGA real estiver incompleto ou divergente",
+    ],
+  },
+  "supabase/APPLY_PAYFLOW.sql": {
+    title: "PayFlow — orquestração, IBAN, reconciliação e auditoria",
+    tables: [
+      "payflow_bank_accounts",
+      "payflow_checkouts",
+      "payflow_checkout_items",
+      "payflow_payment_intents",
+      "payflow_bank_transfers",
+      "payflow_transactions",
+      "payflow_refunds",
+      "payflow_reconciliation_events",
+      "payflow_webhook_events",
+      "payflow_notification_events",
+      "payflow_audit_events",
+    ],
+    notes: [
+      "Não cria um segundo ledger: finance_invoices/finance_receipts continuam canónicos",
+      "Endurece RLS de school_integrations e finance_payment_plans",
+      "Cria bucket privado payflow-proofs; comprovativo nunca liquida sozinho",
+    ],
+  },
 };
 
 function printChecklist() {
@@ -132,7 +161,7 @@ function printChecklist() {
   console.log("DEPOIS DE APLICAR — confirmar no Table Editor (ou siga:sql:verify):\n");
   console.log("  [ ] current_school_id() existe (SQL: select current_school_id();)");
   console.log("  [ ] Arquivos / Planos de aula / Mensagens sem banner «aplique SQL»");
-  console.log("  [ ] WEB /start cria tenant; ADMIN /tenants lista");
+  console.log("  [ ] WEB /start cria tenant; ADMIN /tenants lista");\n  console.log("  [ ] PayFlow preflight OK; tabelas payflow_* existem e RLS está forçado");\n  console.log("  [ ] payflow-proofs é privado; finance_payment_plans tem FKs válidas");
   console.log("  [ ] Storage: school-logos público restrito; siga-files e avatars privados\n");
 
   console.log("NUNCA aplicar ao SGA:");

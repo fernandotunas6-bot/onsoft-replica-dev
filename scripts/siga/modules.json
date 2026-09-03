@@ -6,7 +6,9 @@
     "supabase/APPLY_IN_SQL_EDITOR.sql",
     "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
     "supabase/APPLY_SAAS_PLATFORM.sql",
-    "supabase/APPLY_DIGITAL_IDENTITY.sql"
+    "supabase/APPLY_DIGITAL_IDENTITY.sql",
+    "supabase/PAYFLOW_PREFLIGHT.sql",
+    "supabase/APPLY_PAYFLOW.sql"
   ],
   "sqlPatchAfterVerify": "supabase/APPLY_MISSING_FROM_VERIFY.sql",
   "sqlNeverApplyToSga": [
@@ -19,7 +21,9 @@
       "id": "dashboard",
       "skill": "siga-dashboard",
       "label": "Dashboard",
-      "routes": ["src/routes/index.tsx"],
+      "routes": [
+        "src/routes/index.tsx"
+      ],
       "feature": [
         "src/features/dashboard/server.ts",
         "src/features/dashboard/alerts.ts",
@@ -28,7 +32,10 @@
         "src/features/spotlight/schemas.ts",
         "src/features/spotlight/server.ts"
       ],
-      "tests": ["tests/dashboard/alerts.test.ts", "tests/spotlight/catalog.test.ts"],
+      "tests": [
+        "tests/dashboard/alerts.test.ts",
+        "tests/spotlight/catalog.test.ts"
+      ],
       "accessKey": "dashboard",
       "navPath": "/"
     },
@@ -36,13 +43,18 @@
       "id": "alunos",
       "skill": "siga-alunos",
       "label": "Alunos / matrículas internas",
-      "routes": ["src/routes/alunos/index.tsx", "src/routes/alunos/$studentId.tsx"],
+      "routes": [
+        "src/routes/alunos/index.tsx",
+        "src/routes/alunos/$studentId.tsx"
+      ],
       "feature": [
         "src/features/students/schemas.ts",
         "src/features/students/server.ts",
         "src/features/students/StudentEnrollmentSheet.tsx"
       ],
-      "tests": ["tests/students/schemas.test.ts"],
+      "tests": [
+        "tests/students/schemas.test.ts"
+      ],
       "accessKey": "pessoas",
       "navPath": "/alunos"
     },
@@ -50,9 +62,17 @@
       "id": "pessoas",
       "skill": "siga-pessoas",
       "label": "Pessoas e professores",
-      "routes": ["src/routes/pessoas/index.tsx", "src/routes/professores/$teacherId.tsx"],
-      "feature": ["src/features/people/schemas.ts", "src/features/people/server.ts"],
-      "tests": ["tests/people/schemas.test.ts"],
+      "routes": [
+        "src/routes/pessoas/index.tsx",
+        "src/routes/professores/$teacherId.tsx"
+      ],
+      "feature": [
+        "src/features/people/schemas.ts",
+        "src/features/people/server.ts"
+      ],
+      "tests": [
+        "tests/people/schemas.test.ts"
+      ],
       "accessKey": "pessoas",
       "navPath": "/pessoas"
     },
@@ -60,17 +80,24 @@
       "id": "pedagogica",
       "skill": "siga-pedagogica",
       "label": "Área pedagógica / turmas",
-      "routes": ["src/routes/pedagogica.tsx", "src/routes/relatorios.academicos.tsx"],
+      "routes": [
+        "src/routes/pedagogica.tsx",
+        "src/routes/relatorios.academicos.tsx"
+      ],
       "feature": [
         "src/features/academic/schemas.ts",
         "src/features/academic/server.ts",
         "src/features/academic/ClassGroupSheet.tsx",
         "src/features/academic/sga-grades.ts"
       ],
-      "tests": ["tests/academic/schemas.test.ts"],
+      "tests": [
+        "tests/academic/schemas.test.ts"
+      ],
       "accessKey": "pedagogica",
       "navPath": "/pedagogica",
-      "secondaryNavPaths": ["/relatorios/academicos"]
+      "secondaryNavPaths": [
+        "/relatorios/academicos"
+      ]
     },
     {
       "id": "financeiro",
@@ -81,17 +108,28 @@
         "src/routes/faturas.tsx",
         "src/routes/relatorios.financeiros.tsx"
       ],
-      "feature": ["src/features/finance/schemas.ts", "src/features/finance/server.ts"],
+      "feature": [
+        "src/features/finance/schemas.ts",
+        "src/features/finance/server.ts"
+      ],
       "accessKey": "financeiro",
       "navPath": "/financeiro",
-      "secondaryNavPaths": ["/faturas", "/relatorios/financeiros"]
+      "secondaryNavPaths": [
+        "/faturas",
+        "/relatorios/financeiros"
+      ]
     },
     {
       "id": "documentos",
       "skill": "siga-documentos",
       "label": "Documentos",
-      "routes": ["src/routes/documentos.tsx"],
-      "feature": ["src/features/documents/schemas.ts", "src/features/documents/server.ts"],
+      "routes": [
+        "src/routes/documentos.tsx"
+      ],
+      "feature": [
+        "src/features/documents/schemas.ts",
+        "src/features/documents/server.ts"
+      ],
       "accessKey": "pessoas",
       "navPath": "/documentos"
     },
@@ -99,13 +137,18 @@
       "id": "calendario",
       "skill": "siga-calendario",
       "label": "Calendário e ICS",
-      "routes": ["src/routes/calendario.tsx", "src/routes/calendario.ics.tsx"],
+      "routes": [
+        "src/routes/calendario.tsx",
+        "src/routes/calendario.ics.tsx"
+      ],
       "feature": [
         "src/features/calendar/schemas.ts",
         "src/features/calendar/server.ts",
         "src/features/calendar/feed.ts"
       ],
-      "tests": ["tests/calendar/schemas.test.ts"],
+      "tests": [
+        "tests/calendar/schemas.test.ts"
+      ],
       "accessKey": "pedagogica",
       "navPath": "/calendario"
     },
@@ -113,14 +156,19 @@
       "id": "comunicacoes",
       "skill": "siga-comunicacoes",
       "label": "Comunicações",
-      "routes": ["src/routes/comunicacoes.tsx"],
+      "routes": [
+        "src/routes/comunicacoes.tsx"
+      ],
       "feature": [
         "src/features/communications/schemas.ts",
         "src/features/communications/server.ts",
         "src/features/messages/schemas.ts",
         "src/features/messages/server.ts"
       ],
-      "tests": ["tests/communications/schemas.test.ts", "tests/messages/schemas.test.ts"],
+      "tests": [
+        "tests/communications/schemas.test.ts",
+        "tests/messages/schemas.test.ts"
+      ],
       "accessKey": "pedagogica",
       "navPath": "/comunicacoes"
     },
@@ -128,7 +176,10 @@
       "id": "acessos",
       "skill": "siga-acessos",
       "label": "Acessos, grants e 2FA",
-      "routes": ["src/routes/acessos.tsx", "src/routes/alterar-senha.tsx"],
+      "routes": [
+        "src/routes/acessos.tsx",
+        "src/routes/alterar-senha.tsx"
+      ],
       "feature": [
         "src/features/access/schemas.ts",
         "src/features/access/server.ts",
@@ -136,7 +187,9 @@
         "src/features/auth/access-policy.ts",
         "src/components/auth/AuthGate.tsx"
       ],
-      "tests": ["tests/auth/access-policy.test.ts"],
+      "tests": [
+        "tests/auth/access-policy.test.ts"
+      ],
       "accessKey": "gestao",
       "navPath": "/acessos"
     },
@@ -144,13 +197,17 @@
       "id": "matricula",
       "skill": "siga-matricula",
       "label": "Matrícula pública",
-      "routes": ["src/routes/matricula/$slug.tsx"],
+      "routes": [
+        "src/routes/matricula/$slug.tsx"
+      ],
       "feature": [
         "src/features/enrollment/schemas.ts",
         "src/features/enrollment/server.ts",
         "src/features/enrollment/EnrollmentCampaignPanel.tsx"
       ],
-      "tests": ["tests/enrollment/schemas.test.ts"],
+      "tests": [
+        "tests/enrollment/schemas.test.ts"
+      ],
       "publicPath": "/matricula",
       "navPath": "/configuracoes",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
@@ -171,7 +228,9 @@
       "id": "arquivos",
       "skill": "siga-arquivos",
       "label": "Arquivos",
-      "routes": ["src/routes/arquivos.tsx"],
+      "routes": [
+        "src/routes/arquivos.tsx"
+      ],
       "feature": [
         "src/features/arquivos/schemas.ts",
         "src/features/arquivos/server.ts",
@@ -180,7 +239,9 @@
         "src/features/arquivos/FilePickerModal.tsx",
         "src/features/arquivos/resolve-file.ts"
       ],
-      "tests": ["tests/arquivos/schemas.test.ts"],
+      "tests": [
+        "tests/arquivos/schemas.test.ts"
+      ],
       "accessKey": "arquivos",
       "navPath": "/arquivos",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
@@ -189,13 +250,17 @@
       "id": "lesson-plans",
       "skill": "siga-lesson-plans",
       "label": "Planos de Aula",
-      "routes": ["src/routes/planos-aula.tsx"],
+      "routes": [
+        "src/routes/planos-aula.tsx"
+      ],
       "feature": [
         "src/features/lesson-plans/schemas.ts",
         "src/features/lesson-plans/server.ts",
         "src/features/lesson-plans/LessonPlanModal.tsx"
       ],
-      "tests": ["tests/lesson-plans/schemas.test.ts"],
+      "tests": [
+        "tests/lesson-plans/schemas.test.ts"
+      ],
       "accessKey": "pedagogica",
       "navPath": "/planos-aula",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
@@ -204,7 +269,9 @@
       "id": "importar",
       "skill": "siga-importar",
       "label": "Motor Central de Importação",
-      "routes": ["src/routes/importar.tsx"],
+      "routes": [
+        "src/routes/importar.tsx"
+      ],
       "feature": [
         "src/features/import/schemas.ts",
         "src/features/import/server.ts",
@@ -212,7 +279,9 @@
         "src/features/import/components/ImportWorkflowWizard.tsx",
         "src/features/import/components/ImportHistoryPanel.tsx"
       ],
-      "tests": ["tests/import/schemas.test.ts"],
+      "tests": [
+        "tests/import/schemas.test.ts"
+      ],
       "accessKey": "importacao",
       "navPath": "/importar",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
@@ -221,7 +290,10 @@
       "id": "catracas",
       "skill": "siga-catracas",
       "label": "Catracas e Cartão Virtual",
-      "routes": ["src/routes/catracas.tsx", "src/routes/api/catracas/device-scan.tsx"],
+      "routes": [
+        "src/routes/catracas.tsx",
+        "src/routes/api/catracas/device-scan.tsx"
+      ],
       "feature": [
         "src/features/catracas/schemas.ts",
         "src/features/catracas/server.ts",
@@ -246,7 +318,10 @@
       "id": "saas",
       "skill": "siga-saas",
       "label": "SaaS Control Center (plataforma)",
-      "routes": ["src/routes/saas-admin.tsx", "src/routes/criar-escola.tsx"],
+      "routes": [
+        "src/routes/saas-admin.tsx",
+        "src/routes/criar-escola.tsx"
+      ],
       "feature": [
         "src/features/saas/schemas.ts",
         "src/features/saas/server.ts",
@@ -255,7 +330,9 @@
         "src/lib/saas/provisioning-service.ts",
         "src/lib/saas/tenant-resolver.ts"
       ],
-      "tests": ["tests/saas/schemas.test.ts"],
+      "tests": [
+        "tests/saas/schemas.test.ts"
+      ],
       "publicPath": "/criar-escola"
     }
   ]
