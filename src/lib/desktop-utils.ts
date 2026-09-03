@@ -1,3 +1,5 @@
+import { isTauri } from "@tauri-apps/api/core";
+
 /**
  * Utilitários para integração do SIGA com o ambiente Desktop (Tauri v2).
  */
@@ -15,10 +17,10 @@ export interface SystemInfo {
 }
 
 /**
- * Verifica se o SIGA está a ser executado dentro da janela nativa do Tauri.
+ * Verifica se o SIGA está a ser executado dentro do runtime nativo do Tauri.
  */
 export function isTauriDesktop(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+  return isTauri();
 }
 
 /**
