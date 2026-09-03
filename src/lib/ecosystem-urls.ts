@@ -1,6 +1,6 @@
 /**
  * Resolução Centralizada de URLs do Ecossistema SIGA Plus.
- * 
+ *
  * Permite navegação harmonizada entre:
  * - WEB (Landing, Preços, Criar Escola, Comercial): PORT 5174
  * - ADMIN (Control Center SaaS, Tenants, Billing): PORT 3005
@@ -20,11 +20,19 @@ const isLocalBrowser =
 const isLocal = isBrowser ? isLocalBrowser : Boolean(import.meta.env.DEV);
 
 export const ECOSYSTEM_URLS = {
-  web: import.meta.env.VITE_WEB_URL || (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
-  siga: import.meta.env.VITE_SIGA_URL || (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
+  web:
+    import.meta.env.VITE_WEB_URL ||
+    (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
+  siga:
+    import.meta.env.VITE_SIGA_URL ||
+    (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
   payflow: import.meta.env.VITE_PAYFLOW_URL || (isLocal ? "http://localhost:3007" : ""),
-  admin: import.meta.env.VITE_ADMIN_URL || (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
-  docs: import.meta.env.VITE_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
+  admin:
+    import.meta.env.VITE_ADMIN_URL ||
+    (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
+  docs:
+    import.meta.env.VITE_DOCS_URL ||
+    (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
 } as const;
 
 /** Caminhos DOC frequentes (suffix `.html` para links estáticos VitePress). */

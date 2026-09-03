@@ -19,10 +19,7 @@ function parseEnv(text) {
     if (eq === -1) continue;
     const key = trimmed.slice(0, eq).trim();
     let val = trimmed.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
     out[key] = val;
@@ -115,5 +112,7 @@ const syncedKeys = [
   ...(supabaseUrl ? ["SUPABASE_URL"] : []),
   ...(supabaseKey ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
 ];
-console.log(`sync-ecosystem-env: OK → painel/web/.env.local, painel/admin/.env.local, painel/payflow/.env.local`);
+console.log(
+  `sync-ecosystem-env: OK → painel/web/.env.local, painel/admin/.env.local, painel/payflow/.env.local`,
+);
 console.log(`  chaves propagadas: ${syncedKeys.join(", ")}`);
