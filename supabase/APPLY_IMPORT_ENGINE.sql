@@ -93,8 +93,11 @@ CREATE POLICY "Read school import rows"
   ON public.import_rows
   FOR SELECT TO authenticated
   USING (
-    import_job_id IN (
-      SELECT j.id FROM public.import_jobs j WHERE j.public.is_school_member(school_id)
+    EXISTS (
+      SELECT 1
+      FROM public.import_jobs j
+      WHERE j.id = import_job_id
+        AND public.is_school_member(j.school_id)
     )
   );
 
@@ -152,8 +155,11 @@ CREATE POLICY "Read school import audits"
   ON public.import_audits
   FOR SELECT TO authenticated
   USING (
-    import_job_id IN (
-      SELECT j.id FROM public.import_jobs j WHERE j.public.is_school_member(school_id)
+    EXISTS (
+      SELECT 1
+      FROM public.import_jobs j
+      WHERE j.id = import_job_id
+        AND public.is_school_member(j.school_id)
     )
   );
 
