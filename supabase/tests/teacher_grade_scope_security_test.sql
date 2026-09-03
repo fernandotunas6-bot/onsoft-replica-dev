@@ -37,7 +37,7 @@ SELECT ok(
   to_regclass('public.class_subjects') IS NULL OR EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgrelid = 'public.class_subjects'::regclass
+    WHERE tgrelid = to_regclass('public.class_subjects')
       AND tgname = 'enforce_teacher_class_subject_scope'
       AND NOT tgisinternal
   ),
@@ -48,7 +48,7 @@ SELECT ok(
   to_regclass('public.grade_scores') IS NULL OR EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgrelid = 'public.grade_scores'::regclass
+    WHERE tgrelid = to_regclass('public.grade_scores')
       AND tgname = 'enforce_teacher_grade_score_scope'
       AND NOT tgisinternal
   ),
@@ -59,7 +59,7 @@ SELECT ok(
   to_regclass('public.siga_assessment_items') IS NULL OR EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgrelid = 'public.siga_assessment_items'::regclass
+    WHERE tgrelid = to_regclass('public.siga_assessment_items')
       AND tgname = 'enforce_teacher_assessment_item_scope'
       AND NOT tgisinternal
   ),
@@ -70,7 +70,7 @@ SELECT ok(
   to_regclass('public.siga_assessment_scores') IS NULL OR EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgrelid = 'public.siga_assessment_scores'::regclass
+    WHERE tgrelid = to_regclass('public.siga_assessment_scores')
       AND tgname = 'enforce_teacher_assessment_score_scope'
       AND NOT tgisinternal
   ),
