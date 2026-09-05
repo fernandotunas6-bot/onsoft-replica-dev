@@ -12,6 +12,11 @@ export async function GET() {
         runtime: getPublicRuntimeStatus(),
       },
     },
-    { headers: { "Cache-Control": "no-store" } },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+        "Access-Control-Allow-Origin": "*",
+      },
+    },
   );
 }

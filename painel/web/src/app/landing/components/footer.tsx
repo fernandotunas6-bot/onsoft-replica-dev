@@ -87,7 +87,7 @@ export function LandingFooter() {
               </a>
             </div>
             <p className="text-muted-foreground mb-6 max-lg:text-center max-lg:flex max-lg:justify-center">
-              Plataforma de gestão escolar para Angola. WEB vende, ADMIN controla, SIGA trabalha, DOC explica.
+              Plataforma de gestão escolar para Angola. WEB vende, ADMIN controla, SIGA trabalha, PayFlow cobra, DOC explica.
             </p>
             <div className="flex space-x-4 max-lg:justify-center">
               {socialLinks.map((social) => (

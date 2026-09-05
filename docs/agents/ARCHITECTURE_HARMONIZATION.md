@@ -291,7 +291,7 @@ URLs hardcoded. Redirects: só destinos da allowlist das cinco apps.
 | App | Estado | Objectivo |
 | --- | --- | --- |
 | SIGA | Supabase Auth, sessão, MFA TOTP, `requireSupabaseAuth` | Identidade + autorização **escolar** |
-| PAYFLOW | Portal do pagador com sessão curta; SSO administrativo pendente | Reutilizar identidade, tenant, escola e RBAC do SIGA |
+| PAYFLOW | Portal do pagador com sessão curta; SSO administrativo via SIGA (`createPayflowAdminLaunch`) | Reutilizar identidade, tenant, escola e RBAC do SIGA |
 | ADMIN | `@supabase/ssr` presente; UI template | Identidade central + `platform_admins` |
 | WEB | Público; signup chama API SaaS | Público + criação de conta no provisionamento |
 | DOC | Público | Eventual auth só para docs internos |
@@ -341,7 +341,8 @@ canónicos). RLS destas tabelas: só `is_platform_admin()`.
 | WEB | Login escola existente | SIGA |
 | WEB | Criar escola | WEB onboarding → API → SIGA |
 | ADMIN | Abrir escola (autorizado) | SIGA do tenant |
-| DOC | Produto | WEB ou SIGA conforme contexto |
+| ADMIN | Estado da camada de cobrança | PAYFLOW `/api/v1/health` (sem propinas) |
+| DOC | Produto | WEB, SIGA ou PAYFLOW conforme contexto |
 
 Query strings: contexto útil e não sensível. Nunca `tenant_id` secreto,
 tokens, permissões ou dados privados.

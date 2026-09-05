@@ -33,12 +33,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { kwanza } from "@/lib/currency";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { SubmitAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { VirtualCardModal } from "@/features/catracas/components/VirtualCardModal";
+import { PayflowPayerLink } from "@/features/finance/components/PayflowPayerLink";
 import { QrCode } from "lucide-react";
 
 export function GuardianPortalDashboard() {
@@ -175,6 +175,7 @@ export function GuardianPortalDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <PayflowPayerLink label="Pagar propinas" />
             <Button
               type="button"
               variant="outline"
@@ -224,11 +225,12 @@ export function GuardianPortalDashboard() {
 
           <div className="flex items-start gap-3 p-3 rounded-xl bg-secondary/60">
             <CreditCard className="size-4 text-success shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-bold text-foreground">Situação de Propinas</p>
-              <p className="text-[11px] text-success font-semibold mt-0.5">
-                Propinas em dia. Próxima mensalidade dia 10.
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold text-foreground">Propinas</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Pagamentos e recibos abrem no PayFlow — a app de cobrança do SIGA Plus.
               </p>
+              <PayflowPayerLink label="Abrir PayFlow" variant="ghost" className="h-7 px-0" />
             </div>
           </div>
         </div>

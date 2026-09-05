@@ -25,9 +25,9 @@ const stats = [
   },
   {
     icon: Users,
-    value: '4 apps',
+    value: '5 apps',
     label: 'Ecossistema',
-    description: 'WEB, ADMIN, SIGA, DOC'
+    description: 'WEB, ADMIN, SIGA, PayFlow, DOC'
   },
   {
     icon: Star,

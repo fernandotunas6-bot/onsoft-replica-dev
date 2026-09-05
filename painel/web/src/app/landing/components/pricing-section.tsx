@@ -29,6 +29,7 @@ const plans = [
     monthlyPrice: 19,
     yearlyPrice: 15,
     features: [
+      'Cobrança PayFlow (recibos e conciliação)',
       'Multicaixa Express e Unitel Money',
       'Arquivos e materiais de turma',
       'WhatsApp Business',

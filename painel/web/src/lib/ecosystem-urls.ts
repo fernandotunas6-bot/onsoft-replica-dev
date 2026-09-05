@@ -6,12 +6,25 @@ const isLocal =
     window.location.hostname.startsWith("192.168.") ||
     window.location.hostname.endsWith(".local"));
 
+const PLATFORM_DOMAIN = String(
+  import.meta.env.VITE_PLATFORM_DOMAIN || import.meta.env.PLATFORM_DOMAIN || "portal-siga.com",
+)
+  .trim()
+  .toLowerCase()
+  .replace(/^\.+|\.+$/g, "");
+
+function platformOrigin(sub: string): string {
+  return `https://${sub}.${PLATFORM_DOMAIN}`;
+}
+
 export const ECOSYSTEM_URLS = {
-  web: import.meta.env.VITE_WEB_URL || (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
-  siga: import.meta.env.VITE_SIGA_URL || (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
-  admin: import.meta.env.VITE_ADMIN_URL || (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
-  docs: import.meta.env.VITE_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
-  payflow: import.meta.env.VITE_PAYFLOW_URL || (isLocal ? "http://localhost:3007" : "https://payflow.portal-siga.com"),
+  web: import.meta.env.VITE_WEB_URL || (isLocal ? "http://localhost:5174" : platformOrigin("www")),
+  siga: import.meta.env.VITE_SIGA_URL || (isLocal ? "http://localhost:3006" : `https://${PLATFORM_DOMAIN}`),
+  admin: import.meta.env.VITE_ADMIN_URL || (isLocal ? "http://localhost:3005" : platformOrigin("admin")),
+  docs: import.meta.env.VITE_DOCS_URL || (isLocal ? "http://localhost:5173" : platformOrigin("docs")),
+  payflow:
+    import.meta.env.VITE_PAYFLOW_URL ||
+    (isLocal ? "http://localhost:3007" : platformOrigin("payflow")),
 } as const;
 
 export function getSigaLoginUrl(): string {

@@ -5,7 +5,6 @@ import {
   BookOpen,
   CalendarDays,
   CheckSquare,
-  CreditCard,
   FileText,
   GraduationCap,
   Megaphone,
@@ -30,6 +29,7 @@ import { DashboardCalendarCard } from "@/features/dashboard/components/Dashboard
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { SubmitAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { VirtualCardModal } from "@/features/catracas/components/VirtualCardModal";
+import { PayflowPayerLink } from "@/features/finance/components/PayflowPayerLink";
 
 export function StudentPortalDashboard() {
   const currentUser = useCurrentAccount();
@@ -119,6 +119,7 @@ export function StudentPortalDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
+          <PayflowPayerLink label="Pagar propinas" />
           <Button
             type="button"
             variant="default"

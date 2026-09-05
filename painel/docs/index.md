@@ -25,6 +25,9 @@ hero:
       text: Control Center
       link: /admin/control-center
     - theme: alt
+      text: PayFlow
+      link: /financeiro/payflow
+    - theme: alt
       text: Entrar no SIGA
       link: https://portal-siga.com
       target: _blank
@@ -45,6 +48,11 @@ features:
       alt: ADMIN SaaS
     title: ADMIN — controla
     details: Tenants, subscrições, domínios, operadores platform_admins e auditoria
+  - icon:
+      src: /icons/smartphone.svg
+      alt: PayFlow
+    title: PAYFLOW — cobra
+    details: Pagamentos, recibos e conciliação escolar, com marca própria
   - icon:
       src: /icons/rocket.svg
       alt: DOC
@@ -94,6 +102,13 @@ features:
     <p>Alunos, pautas, finanças e catracas</p>
     <a href="https://portal-siga.com" class="demo-button" target="_blank" rel="noreferrer">Abrir SIGA</a>
     <a href="/siga/navegacao" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Mapa de navegação</a>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-icon"><img src="/icons/smartphone.svg" alt="PayFlow" width="48" height="48" style="margin: 0 auto;" /></div>
+    <h3>PayFlow (Cobrança)</h3>
+    <p>Pagamentos, recibos e conciliação — app própria, integrada ao SIGA</p>
+    <a href="/financeiro/payflow" class="demo-button">Manual PayFlow</a>
   </div>
   
   <div class="demo-card">

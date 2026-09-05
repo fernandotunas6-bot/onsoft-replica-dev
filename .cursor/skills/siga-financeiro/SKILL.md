@@ -13,7 +13,7 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
 
 - Rotas: `financeiro.tsx`, `faturas.tsx`, `relatorios.financeiros.tsx`
 - Domínio: `src/features/finance/{schemas,server,payflow-sso,payflow-education-sync,payflow-sync-execute}.ts`
-- PayFlow UI: `PayflowAdminLaunchButton`, `PayflowStudentSyncButton`, `PayflowBankSyncButton`
+- PayFlow UI: `PayflowAdminLaunchButton`, `PayflowStudentSyncButton`, `PayflowBankSyncButton`, `PayflowPayerLink` (portais aluno/encarregado)
 - Acesso: Admin/Tesouraria
 - Recibos SGA: método efectivo muitas vezes só `cash`.
 

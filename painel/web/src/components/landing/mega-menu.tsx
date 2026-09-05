@@ -13,7 +13,7 @@ import {
   Crown,
   Palette
 } from 'lucide-react'
-import { getDocsUrl } from '@/lib/ecosystem-urls'
+import { getDocsUrl, getPayflowUrl } from '@/lib/ecosystem-urls'
 
 const menuSections = [
   {
@@ -62,9 +62,16 @@ const menuSections = [
       },
       {
         title: 'Tesouraria',
-        description: 'Propinas, Multicaixa e recibos',
+        description: 'Propinas no SIGA, cobrança no PayFlow',
         icon: BarChart3,
         href: '/pricing'
+      },
+      {
+        title: 'PayFlow',
+        description: 'Pagamentos, recibos e conciliação',
+        icon: Zap,
+        href: getPayflowUrl('/'),
+        target: '_blank'
       },
       {
         title: 'Segurança',
@@ -120,6 +127,8 @@ export function MegaMenu() {
                 <a
                   key={item.title}
                   href={item.href}
+                  target={'target' in item ? item.target : undefined}
+                  rel={'target' in item && item.target === '_blank' ? 'noreferrer' : undefined}
                   className="group block space-y-1 lg:space-y-2 hover:bg-accent rounded-md p-2 lg:p-3 -mx-2 lg:-mx-3 transition-colors duration-100 my-0"
                 >
                   <div className="flex items-center gap-2 lg:gap-3">

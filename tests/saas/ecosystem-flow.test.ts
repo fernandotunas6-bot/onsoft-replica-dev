@@ -97,5 +97,14 @@ describe("ecossistema — contratos Fase 13", () => {
     expect(getPublicEnrollmentUrl("dom-afonso-demo")).toMatch(/\/matricula\/dom-afonso-demo$/);
     expect(getSigaNavDocUrl()).toContain(DOC_PATHS.sigaNavigation);
     expect(DOC_PATHS.adminControlCenter).toMatch(/\/admin\/control-center/);
+    expect(DOC_PATHS.financePayflow).toMatch(/\/financeiro\/payflow/);
+  });
+
+  it("expõe URLs PayFlow sem hardcode de produção", async () => {
+    const { getPayflowPayerUrl, getPayflowAdminUrl, getPayflowUrl } = await import("@/lib/ecosystem-urls");
+    expect(getPayflowUrl("/api/v1/health")).toMatch(/\/api\/v1\/health$/);
+    expect(getPayflowPayerUrl()).toMatch(/\/aluno\/pagar$/);
+    expect(getPayflowAdminUrl()).toMatch(/\/admin$/);
+    expect(getPayflowUrl("/")).not.toMatch(/portal-siga\.com/);
   });
 });

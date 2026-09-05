@@ -9,13 +9,14 @@ Rotas, sidebar, launcher e matriz RBAC actualizada:
 
 ---
 
-## Quatro aplicações
+## Cinco aplicações
 
 | App | Função | Onde |
 | --- | --- | --- |
 | **WEB** | Marketing, planos, wizard «criar escola» | `painel/web` |
 | **ADMIN** | SaaS Control Center (tenants, subscrições, domínios) | `painel/admin` |
 | **SIGA** | Operação diária da escola | raiz do repositório |
+| **PAYFLOW** | Cobrança, recibos e conciliação | `painel/payflow` |
 | **DOC** | Manuais (este site) | `painel/docs` |
 
 Detalhe arquitectural: [Ecossistema](/arquitetura/).
@@ -32,7 +33,7 @@ Detalhe arquitectural: [Ecossistema](/arquitetura/).
 | Pedagógica | `/pedagogica`, `/relatorios/academicos` | `siga-pedagogica` |
 | Planos de Aula | `/planos-aula` | `siga-lesson-plans` |
 | Calendário | `/calendario`, ICS | `siga-calendario` |
-| Tesouraria | `/financeiro`, `/faturas`, `/relatorios/financeiros` | `siga-financeiro` |
+| Tesouraria | `/financeiro`, `/faturas`, `/relatorios/financeiros` | `siga-financeiro` (+ PayFlow) |
 | Documentos | `/documentos` | `siga-documentos` |
 | Arquivos | `/arquivos` | `siga-arquivos` |
 | Importação | `/importar` | `siga-importar` |
