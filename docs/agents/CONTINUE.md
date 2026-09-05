@@ -13,15 +13,17 @@ Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise com
 - **Lista `/alunos`:** filtros rápidos (Todos / Activos / Candidatos / Dívida / Inactivos), badges `StudentStatusBadge` + `StudentFinanceBadge`, selecção em lote com `batchAssignClass` e `batchUpdateStudentStatus`, pesquisa alargada (BI, telefone, turma).
 - **`searchStudents`:** agrega faturas via `finance_contracts` → `finance_invoices` → `finance_receipts`; usa `deriveAcademicStatus` + `deriveFinancialSnapshot`.
 - **Modal extensivo:** badges canónicos, resumo financeiro e aba **Histórico** com `StudentStatusHistoryTimeline` + `getStudentStatusHistory`.
+- **Histórico de estados:** helper `recordStudentStatusHistory` — criação/matrícula interna, candidatura aceite, colocação em turma, mudança de estado e lote.
 - **SQL SGA:** tabelas `student_status_history` e `student_academic_history` em `APPLY_ENROLLMENT_AND_PREMIUM.sql`; **verify live 2026-09-05:** 33/33 smoke tables OK no projecto `xodgfmxiaunpamctfeea` (incl. Ciclo 55), `current_school_id()` presente, RLS activo nas duas tabelas de histórico.
 - **Importadores:** 22 módulos oficiais — novos `inscricoes`, `avaliacoes`, `historico_academico`, `historico_financeiro`.
 - **Exportação:** folhas Excel para os 4 módulos novos no `export-engine`; painel `/importar` → Exportar lista os 11 módulos exportáveis (incl. históricos e candidaturas).
 - **Lista `/alunos`:** contador de candidatos inclui candidaturas `pending` de `enrollment_applications` (realtime).
 - **Persistência `historico_academico`:** tabela `student_academic_history` em `APPLY_ENROLLMENT_AND_PREMIUM.sql`; importador grava/actualiza com idempotência por (aluno, ano, classe).
 - **`APPLY_IMPORT_ENGINE.sql`:** cabeçalho actualizado — 22 módulos TS; aponta para `student_status_history` / `student_academic_history` no script de matrícula.
-- **PayFlow P0:** login fail-closed fora de sandbox; SSO só via `/api/v1/sso/exchange` (anti-replay + redirect 303); verify bancário scoped à `school_id` da sessão; botão «Conciliação PayFlow» no SIGA (`createPayflowAdminLaunch` + `PayflowAdminLaunchButton`); **Sync PayFlow** (`syncStudentToPayflow` → `/api/v1/education/sync`) no modal/ficha do aluno; **Sync IBAN** (`syncSchoolBankToPayflow` → `/api/v1/bank-accounts/sync` com upsert da escola) em Definições → Financeiro; revisão manual exige `finance_admin`.
+- **PayFlow P0:** login fail-closed fora de sandbox; SSO só via `/api/v1/sso/exchange` (anti-replay + redirect 303); verify bancário scoped à `school_id` da sessão; botão «Conciliação PayFlow» (`createPayflowAdminLaunch`); **Sync PayFlow** (`syncStudentToPayflow` → `executePayflowStudentSync`); **Sync IBAN** (`syncSchoolBankToPayflow`); revisão manual `finance_admin`; auto-sync após fatura só com `PAYFLOW_AUTO_SYNC=1`.
+- **PayFlow extrato:** `POST /api/v1/bank-statements/import` casa referência + valor + moeda no âmbito da escola; dry-run por omissão; conciliação explícita usa fonte `bank_statement` (não liquida por CSV sozinho).
 - **Guards:** `analyzeImportFile` e `downloadOfficialExcelTemplateFn` passam a exigir `requireSgaWriter`.
-- **Validação:** testes `academic-status` + importadores + export + `payflow-sso` + `payflow-education-sync` (Node 24); PayFlow production-safety actualizado; SQL SGA verificado via Management API.
+- **Validação:** testes `academic-status` + importadores + export + `payflow-sso` + `payflow-education-sync` + `status-history` (Node 24); PayFlow production-safety actualizado; SQL SGA verificado via Management API.
 
 ### Ciclo 52 — Sincronização GitHub, Visual de Matrículas e Ecossistema PayFlow (2026-09-03)
 
@@ -950,7 +952,7 @@ Implementado sem unificar frontends:
 0b. **Ecossistema:** seguir Fases 10–13 em `ARCHITECTURE_HARMONIZATION.md`. Não
    unificar frontends. Não apagar `/saas-admin` sem destino no ADMIN.
 0c. **Integrações:** credenciais reais de portal bancário e sincronização automática EMIS.
-0d. **PayFlow:** SSO + sync aluno + sync IBAN no código; falta fonte de movimentos bancários (API/extrato) e homologação EMIS.
+0d. **PayFlow:** SSO + sync aluno + sync IBAN + extrato CSV no código; falta API bancária automática e homologação EMIS.
 2. Manter commits pequenos por alteração e nunca incluir `.env` nem `.claude/worktrees/`.
 3. Aceitar candidatura cria aluno, encarregado (se veio no formulário) e opcionalmente turma (`classGroupId`). Sem turma fica `applicant`. Em `/alunos`: **Turma** (candidato), **Mudar** (activo), **Estado** e PDF **Oficial**. Campanha de matrícula (Definições) liga a `/documentos#modelos` para talões.
 4. Emitir em `/documentos` usa o modelo `.hbs` escolhido em **Modelos de impressão** (Ver / Editar / Usar). Cabeçalho da página tem botão **Modelos** (`#modelos`). Atalhos: Definições → Escola → **Atalhos**, `/configuracoes?painel=documentos` ou campanha de matrícula. A lista de pedidos também tem **Oficial**. A ficha do aluno emite **Boletim**, **Histórico**, **Declaração** e **Mais modelos** (dossiê, certificado, credenciais). Pedagógica: pauta, boletim, mapa, acta e validação. Workspace do professor: **Diário**. Relatórios académicos e talões de candidatura/matrícula também. Sem modelo ou se falhar, cai no PDF MINED. Pedidos já emitidos têm **PDF**. Pedidos em curso: **Recusar** e **Cancelar**. Ficha também: **Fatura** e **Documento**.

@@ -102,17 +102,33 @@ test("bank verification matches authoritative movement data before issuing a rec
     path.join(root, "app/api/v1/bank-transfers/verify/route.ts"),
     "utf8",
   );
+  const verifyCore = await readFile(path.join(root, "lib/bank-transfer-verify.ts"), "utf8");
 
   assert.match(verifyRoute, /isIntegrationAuthorized/);
-  assert.match(verifyRoute, /adminSession\.schoolId/);
-  assert.match(verifyRoute, /transfer_school_mismatch/);
-  assert.match(verifyRoute, /manual_review_requires_finance_admin/);
-  assert.match(verifyRoute, /expectedAmountMinor !== parsed\.data\.amount/);
-  assert.match(verifyRoute, /expectedCurrency !== parsed\.data\.currency/);
-  assert.match(verifyRoute, /bank_transaction_already_used/);
-  assert.match(verifyRoute, /proof_required_for_manual_review/);
-  assert.match(verifyRoute, /type: "bank_transfer\.verified"/);
-  assert.match(verifyRoute, /db\.insert\(paymentReceipts\)/);
+  assert.match(verifyCore, /adminSession\.schoolId/);
+  assert.match(verifyCore, /transfer_school_mismatch/);
+  assert.match(verifyCore, /manual_review_requires_finance_admin/);
+  assert.match(verifyCore, /expectedAmountMinor !== input\.amount/);
+  assert.match(verifyCore, /expectedCurrency !== input\.currency/);
+  assert.match(verifyCore, /bank_transaction_already_used/);
+  assert.match(verifyCore, /proof_required_for_manual_review/);
+  assert.match(verifyCore, /type: "bank_transfer\.verified"/);
+  assert.match(verifyCore, /db\.insert\(paymentReceipts\)/);
+});
+
+test("statement import matches reference/amount/currency and never pays from CSV parse alone", async () => {
+  const parser = await readFile(path.join(root, "lib/bank-statement.ts"), "utf8");
+  const importRoute = await readFile(
+    path.join(root, "app/api/v1/bank-statements/import/route.ts"),
+    "utf8",
+  );
+
+  assert.match(parser, /amount_mismatch/);
+  assert.match(parser, /unknown_reference/);
+  assert.doesNotMatch(parser, /status: "paid"/);
+  assert.match(importRoute, /eq\(payments\.schoolId, requestedSchoolId\)/);
+  assert.match(importRoute, /source: "bank_statement"/);
+  assert.match(importRoute, /dry_run: !apply/);
 });
 
 test("admin login is fail-closed outside sandbox and SSO uses exchange with redirect guard", async () => {

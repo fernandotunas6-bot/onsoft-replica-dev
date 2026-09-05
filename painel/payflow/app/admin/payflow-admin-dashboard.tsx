@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   TrendingUp,
+  Upload,
   WalletCards,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -95,6 +96,34 @@ type ReconciliationData = {
   items: ReconciliationItem[];
 };
 
+type StatementMatch = {
+  line: number;
+  outcome: string;
+  transferReference: string | null;
+  bankTransactionId: string;
+  amountMinor: number | null;
+  currency: string;
+};
+
+type StatementImportData = {
+  summary: {
+    rows: number;
+    matched: number;
+    amount_mismatch: number;
+    unknown_reference: number;
+    invalid_row: number;
+    applied: number;
+    dry_run: boolean;
+  };
+  matches: StatementMatch[];
+  apply_errors: Array<{ line: number; code: string; message: string }>;
+};
+
+const SIGA_FINANCE_URL = `${process.env.NEXT_PUBLIC_SIGA_URL || "http://localhost:3006"}/financeiro`;
+const STATEMENT_TEMPLATE = `data;referencia;valor;moeda;movimento;descricao
+05/09/2026;PF-TF-20260905-XXXXXXXXXX;15.000,00;AOA;MOV-001;Propina Setembro
+`;
+
 export function PayflowAdminDashboard() {
   const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,6 +140,9 @@ export function PayflowAdminDashboard() {
   const [selectedItem, setSelectedItem] = useState<ReconciliationItem | null>(null);
   const [bankTxId, setBankTxId] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [statementApply, setStatementApply] = useState(false);
+  const [statementBusy, setStatementBusy] = useState(false);
+  const [statementResult, setStatementResult] = useState<StatementImportData | null>(null);
 
   async function checkSession() {
     try {
@@ -221,6 +253,35 @@ export function PayflowAdminDashboard() {
       toast.error("Falha ao comunicar com o serviço bancário.");
     } finally {
       setVerifying(false);
+    }
+  }
+
+  async function importBankStatement(file: File) {
+    try {
+      setStatementBusy(true);
+      const body = new FormData();
+      body.append("file", file);
+      if (statementApply) body.append("apply", "true");
+      const res = await fetch("/api/v1/bank-statements/import", { method: "POST", body });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error?.message || "Não foi possível ler o extrato.");
+        return;
+      }
+      setStatementResult(json.data as StatementImportData);
+      const summary = json.data?.summary;
+      if (summary?.dry_run) {
+        toast.message(
+          `${summary.matched} correspondência(s) exactas. Confirme «Conciliar correspondências» para emitir recibos.`,
+        );
+      } else {
+        toast.success(`${summary?.applied ?? 0} movimento(s) conciliados a partir do extrato.`);
+        await loadReconciliation();
+      }
+    } catch {
+      toast.error("Falha ao enviar o extrato bancário.");
+    } finally {
+      setStatementBusy(false);
     }
   }
 
@@ -350,7 +411,7 @@ export function PayflowAdminDashboard() {
             </Button>
 
             <Button asChild variant="outline" size="sm">
-              <a href="http://localhost:3006/financeiro" target="_blank" rel="noreferrer">
+              <a href={SIGA_FINANCE_URL} target="_blank" rel="noreferrer">
                 <ExternalLink className="size-3.5 mr-1" />
                 <span className="hidden sm:inline">SIGA Plus</span>
               </a>
@@ -560,7 +621,9 @@ export function PayflowAdminDashboard() {
                                   </a>
                                 </Button>
                               )}
-                              {item.provider === "bank_transfer" && item.status === "pending" && (
+                              {item.provider === "bank_transfer" &&
+                                item.status === "pending" &&
+                                session.permissions.includes("reconciliation:write") && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -587,6 +650,70 @@ export function PayflowAdminDashboard() {
 
           {/* ABA 2: VALIDAÇÃO DE TRANSFERÊNCIAS */}
           <TabsContent value="transfers" className="space-y-4">
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-lg">Importar extrato bancário</CardTitle>
+                <CardDescription>
+                  CSV da escola (`;` ou `,`). Só liquidamos linhas com a mesma referência PayFlow, valor e moeda.
+                  O ficheiro sozinho não confirma pagamentos — é preciso conciliar as correspondências.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {session.permissions.includes("reconciliation:write") ? (
+                  <>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <Input
+                        type="file"
+                        accept=".csv,text/csv,text/plain"
+                        disabled={statementBusy}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) void importBankStatement(file);
+                          event.target.value = "";
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const blob = new Blob([STATEMENT_TEMPLATE], { type: "text/csv;charset=utf-8" });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement("a");
+                          link.href = url;
+                          link.download = "payflow-extrato-modelo.csv";
+                          link.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
+                        <Upload className="mr-1.5 size-3.5" />
+                        Modelo CSV
+                      </Button>
+                    </div>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={statementApply}
+                        onChange={(event) => setStatementApply(event.target.checked)}
+                      />
+                      Conciliar correspondências exactas e emitir recibo (fonte: extrato)
+                    </label>
+                    {statementResult && (
+                      <p className="text-sm text-muted-foreground">
+                        {statementResult.summary.rows} linhas · {statementResult.summary.matched} exactas ·{" "}
+                        {statementResult.summary.amount_mismatch} valor diferente ·{" "}
+                        {statementResult.summary.unknown_reference} referência desconhecida
+                        {statementResult.summary.dry_run ? " · pré-visualização" : ` · ${statementResult.summary.applied} liquidado(s)`}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    A importação de extrato exige permissão de conciliação (tesouraria ou administrador financeiro).
+                  </p>
+                )}
+              </CardContent>
+            </Card>
             <Card className="border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Conferência de Transferências Bancárias</CardTitle>
@@ -630,6 +757,7 @@ export function PayflowAdminDashboard() {
                               {item.merchant_reference || "N/D"}
                             </TableCell>
                             <TableCell>
+                              {session.permissions.includes("reconciliation:write") ? (
                               <Button
                                 size="sm"
                                 className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -641,6 +769,9 @@ export function PayflowAdminDashboard() {
                               >
                                 Validar no Extrato
                               </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Só leitura</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))
@@ -676,6 +807,10 @@ export function PayflowAdminDashboard() {
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="text-muted-foreground">Prazo de Expiração</span>
                     <span>72 horas</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Importação de extrato CSV</span>
+                    <span>Referência + valor + moeda</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Segurança R2</span>

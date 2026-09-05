@@ -582,6 +582,11 @@ function FaturasPage() {
             <>
               <DocHelpButton title="Navegação — Faturas e tesouraria" />
               <DocPathHelpButton
+                path={DOC_PATHS.financePayflow}
+                label="PayFlow"
+                title="PayFlow — cobrança e conciliação"
+              />
+              <DocPathHelpButton
                 path={DOC_PATHS.financeSaft}
                 label="SAFT-AO"
                 title="Exportação SAFT-AO / AGT"

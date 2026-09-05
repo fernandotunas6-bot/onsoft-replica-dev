@@ -432,6 +432,18 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           );
         }
       }
+
+      const { recordStudentStatusHistory } = await import("@/features/students/status-history");
+      await recordStudentStatusHistory(db, {
+        schoolId: membership.schoolId,
+        studentId: studentOutcome.studentId,
+        previousStatus: null,
+        newStatus: data.classGroupId ? "active" : "applicant",
+        reason: data.classGroupId
+          ? "Candidatura aceite e colocado em turma"
+          : "Candidatura aceite (aguardando turma)",
+        changedBy: context.userId,
+      });
     }
 
     const updatePayload: Record<string, unknown> = {

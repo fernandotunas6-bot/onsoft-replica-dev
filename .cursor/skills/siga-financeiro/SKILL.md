@@ -33,7 +33,8 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
 8. **Arquivo na biblioteca**: receber/emitir/criar plano (e imprimir talão) grava stub em `siga_files` com ID pesquisável (`library_document_code`) e liga ao aluno via `related_person_id` quando existe.
 9. **PayFlow:**
    - SSO admin: `createPayflowAdminLaunch` + botão Conciliação (requer `PAYFLOW_SSO_SECRET`).
-   - Sync aluno: `syncStudentToPayflow` (matrícula activa + faturas + IBAN) → `/api/v1/education/sync`.
+   - Sync aluno: `syncStudentToPayflow` / `executePayflowStudentSync`.
    - Sync IBAN: `syncSchoolBankToPayflow` em Definições → Financeiro (também após «Guardar banco»).
+   - Auto-sync após emitir fatura: só com `PAYFLOW_AUTO_SYNC=1` (best-effort, não bloqueia).
    - Segredos só no servidor: `PAYFLOW_INTEGRATION_API_KEY`, `PAYFLOW_SSO_SECRET` (nunca `VITE_`).
-   - DOC: `/financeiro/payflow` (`DOC_PATHS.financePayflow`).
+   - Extrato CSV: `POST /api/v1/bank-statements/import` no painel admin (aba Transferências). Pré-visualiza; com «Conciliar» usa fonte `bank_statement`.

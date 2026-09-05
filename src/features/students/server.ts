@@ -30,6 +30,7 @@ import {
   deriveFinancialSnapshot,
   type InvoiceLike,
 } from "./academic-status";
+import { recordStudentStatusHistory } from "./status-history";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 
@@ -703,10 +704,20 @@ export const createStudent = createServerFn({ method: "POST" })
 
     queueTenantUsageSync(membership.schoolId);
 
+    const finalStatus = enrollmentOutcome ? "active" : studentOutcome.status;
+    await recordStudentStatusHistory(db, {
+      schoolId: membership.schoolId,
+      studentId: studentOutcome.studentId,
+      previousStatus: null,
+      newStatus: finalStatus,
+      reason: enrollmentOutcome ? "Aluno criado e matriculado em turma" : "Aluno criado",
+      changedBy: context.userId,
+    });
+
     return {
       id: studentOutcome.studentId,
       student_number: studentOutcome.studentNumber,
-      status: enrollmentOutcome ? "active" : studentOutcome.status,
+      status: finalStatus,
       person_id: data.personId,
       enrollment_number: enrollmentOutcome?.enrollmentNumber ?? null,
     };
@@ -842,10 +853,20 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
 
     queueTenantUsageSync(membership.schoolId);
 
+    const finalStatus = enrollmentOutcome ? "active" : studentOutcome.status;
+    await recordStudentStatusHistory(db, {
+      schoolId: membership.schoolId,
+      studentId: studentOutcome.studentId,
+      previousStatus: null,
+      newStatus: finalStatus,
+      reason: enrollmentOutcome ? "Nova matrícula interna com turma" : "Nova matrícula interna",
+      changedBy: context.userId,
+    });
+
     return {
       id: studentOutcome.studentId,
       student_number: studentOutcome.studentNumber,
-      status: enrollmentOutcome ? "active" : studentOutcome.status,
+      status: finalStatus,
       person_id: person.id,
       enrollment_number: enrollmentOutcome?.enrollmentNumber ?? null,
     };
@@ -887,27 +908,14 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
     if (error) throw publicDatabaseError(error, "Não foi possível alterar o estado do aluno.");
     if (!student) throw new Error("Aluno não encontrado");
 
-    try {
-      const { error: historyError } = await db.from("student_status_history").insert({
-        school_id: membership.schoolId,
-        student_id: data.studentId,
-        previous_status: previousStatus,
-        new_status: nextStatus,
-        reason: data.reason || null,
-        changed_by: context.userId,
-      });
-      if (
-        historyError &&
-        !/student_status_history|42P01|schema cache|does not exist/i.test(historyError.message)
-      ) {
-        throw publicDatabaseError(historyError, "Não foi possível registar o histórico de estado.");
-      }
-    } catch (error) {
-      if (error instanceof Error && /Não foi possível registar o histórico/.test(error.message)) {
-        throw error;
-      }
-      // Tabela em falta: estado do aluno já foi actualizado; degradar sem bloquear.
-    }
+    await recordStudentStatusHistory(db, {
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+      previousStatus,
+      newStatus: nextStatus,
+      reason: data.reason || null,
+      changedBy: context.userId,
+    });
 
     try {
       await db.from("audit_logs").insert({
@@ -994,6 +1002,14 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
     }
 
     if (existing) {
+      const { data: beforeStudent } = await db
+        .from("students")
+        .select("status")
+        .eq("id", data.studentId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      const previousStatus = beforeStudent?.status ?? null;
+
       const { data: updated, error } = await db
         .from("enrollments")
         .update({
@@ -1012,12 +1028,30 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
         .update({ status: "active", updated_by: context.userId })
         .eq("id", data.studentId)
         .eq("school_id", membership.schoolId);
+      if (previousStatus && previousStatus !== "active") {
+        await recordStudentStatusHistory(db, {
+          schoolId: membership.schoolId,
+          studentId: data.studentId,
+          previousStatus,
+          newStatus: "active",
+          reason: "Colocado em turma",
+          changedBy: context.userId,
+        });
+      }
       return updated;
     }
 
     // enroll_student tranca a turma (FOR UPDATE), valida capacidade/ano lectivo/estado
     // do aluno e gera o número de matrícula atomicamente — substitui o insert directo
     // que não protegia contra duas matrículas simultâneas excederem a capacidade da turma.
+    const { data: beforeRpcStudent } = await db
+      .from("students")
+      .select("status")
+      .eq("id", data.studentId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    const previousRpcStatus = beforeRpcStudent?.status ?? null;
+
     const { data: enrolled, error } = await context.supabase.rpc("enroll_student", {
       school_id: membership.schoolId,
       student_id: data.studentId,
@@ -1031,6 +1065,16 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
         );
       }
       throw publicDatabaseError(error, "Não foi possível matricular o aluno na turma.");
+    }
+    if (previousRpcStatus && previousRpcStatus !== "active") {
+      await recordStudentStatusHistory(db, {
+        schoolId: membership.schoolId,
+        studentId: data.studentId,
+        previousStatus: previousRpcStatus,
+        newStatus: "active",
+        reason: "Matrícula em turma",
+        changedBy: context.userId,
+      });
     }
     const outcome = enrolled as {
       enrollmentId: string;
@@ -1537,20 +1581,14 @@ export const batchUpdateStudentStatus = createServerFn({ method: "POST" })
         .eq("school_id", membership.schoolId);
 
       try {
-        const { error: historyError } = await db.from("student_status_history").insert({
-          school_id: membership.schoolId,
-          student_id: s.id,
-          previous_status: s.status,
-          new_status: data.newStatus,
+        await recordStudentStatusHistory(db, {
+          schoolId: membership.schoolId,
+          studentId: s.id,
+          previousStatus: s.status,
+          newStatus: data.newStatus,
           reason: data.reason || "Atualização em lote",
-          changed_by: context.userId,
+          changedBy: context.userId,
         });
-        if (
-          historyError &&
-          !/student_status_history|42P01|schema cache|does not exist/i.test(historyError.message)
-        ) {
-          throw publicDatabaseError(historyError, "Não foi possível registar o histórico de estado.");
-        }
       } catch (error) {
         if (error instanceof Error && /Não foi possível registar o histórico/.test(error.message)) {
           throw error;

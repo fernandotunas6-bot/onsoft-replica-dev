@@ -12,6 +12,19 @@ Referência técnica no repositório: `docs/agents/PAYFLOW_INTEGRATION.md`.
 2. **Sync IBAN → PayFlow** — no mesmo painel (também corre após «Guardar banco»).
 3. **Aluno** — na ficha ou no modal extensivo → **Sync PayFlow** (matrícula activa + faturas).
 4. **Conciliação** — em `/financeiro` ou `/faturas` → **Conciliação PayFlow** (SSO assinado).
+5. **Extrato CSV** — no `/admin` do PayFlow (aba Transferências): descarregar modelo, importar, pré-visualizar e marcar «Conciliar correspondências» para liquidar.
+
+Opcional: `PAYFLOW_AUTO_SYNC=1` no `.env` do SIGA sincroniza o aluno no PayFlow após cada emissão de fatura (background, não bloqueia).
+5. **Extrato** — no PayFlow Admin → Transferências → importar CSV (pré-visualização; opcionalmente conciliar correspondências exactas).
+
+Modelo CSV (`;` ou `,`):
+
+```csv
+data;referencia;valor;moeda;movimento;descricao
+05/09/2026;PF-TF-20260905-ABC123DEAD;15.000,00;AOA;MOV-001;Propina
+```
+
+`valor` é em AOA (vírgula decimal). Use `valor_centimos` se o banco exportar cêntimos. Linhas com valor ou referência diferentes **não** são liquidadas.
 
 ## Segredos no servidor (nunca no browser)
 
@@ -21,6 +34,7 @@ Referência técnica no repositório: `docs/agents/PAYFLOW_INTEGRATION.md`.
 | `PAYFLOW_INTEGRATION_API_KEY` | Sync servidor→servidor (≥24 chars) |
 | `PAYFLOW_SSO_SECRET` | JWT SSO admin (≥32 chars), igual no SIGA e no PayFlow |
 | `PAYFLOW_RUNTIME_MODE` | `production` por omissão; `sandbox` só em local |
+| `PAYFLOW_AUTO_SYNC` | `1` = após emitir fatura, sync aluno no PayFlow em background (opt-in) |
 
 Propagação: `npm run siga:sync-env`.
 
@@ -35,7 +49,7 @@ Propagação: `npm run siga:sync-env`.
 
 - [ ] IBAN real sincronizado por escola
 - [ ] `PAYFLOW_SSO_SECRET` e `PAYFLOW_INTEGRATION_API_KEY` configurados
-- [ ] Fonte de movimentos (API bancária ou extrato) definida
+- [x] Fonte de movimentos (extrato CSV no PayFlow Admin; API bancária ainda não)
 - [ ] Homologação EMIS/Unitel no portal externo (se aplicável)
 - [ ] Teste de isolamento entre duas escolas
 
