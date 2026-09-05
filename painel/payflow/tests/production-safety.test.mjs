@@ -211,7 +211,9 @@ test("SSO assertions are signed, short-lived and reject tampering", async () => 
   const assertion = await createSsoAssertion(claims, secret);
 
   assert.deepEqual(await verifySsoAssertion(assertion, secret, now), claims);
-  assert.equal(await verifySsoAssertion(`${assertion.slice(0, -1)}x`, secret, now), null);
+  const [header, payload, signature] = assertion.split(".");
+  const tamperedSig = (signature.startsWith("A") ? "B" : "A") + signature.slice(1);
+  assert.equal(await verifySsoAssertion(`${header}.${payload}.${tamperedSig}`, secret, now), null);
   assert.equal(await verifySsoAssertion(assertion, `${secret}-wrong`, now), null);
   assert.equal(await verifySsoAssertion(assertion, secret, now + 61_000), null);
 });
@@ -254,4 +256,66 @@ test("refund keeps the receipt, requires finance_admin and stays school-scoped",
   assert.match(refund, /type: "payment\.refunded"/);
   assert.match(route, /payments:refund/);
   assert.match(getPayment, /school_id/);
+});
+
+test("external alerts and bank pull stay fail-closed and never take a URL from the request", async () => {
+  const alert = await readFile(path.join(root, "lib/ops-alert.ts"), "utf8");
+  const report = await readFile(path.join(root, "lib/ops-report.ts"), "utf8");
+  const runtime = await readFile(path.join(root, "lib/runtime.ts"), "utf8");
+  const connector = await readFile(path.join(root, "lib/bank-connector.ts"), "utf8");
+  const pull = await readFile(path.join(root, "app/api/v1/bank-movements/pull/route.ts"), "utf8");
+  const emis = await readFile(path.join(root, "lib/providers/emis.ts"), "utf8");
+
+  assert.match(alert, /ALERT_FIELD_ALLOWLIST/);
+  assert.doesNotMatch(alert, /iban/);
+  assert.match(report, /getAlertWebhookUrl/);
+  assert.match(runtime, /PAYFLOW_ALERT_WEBHOOK_URL/);
+  assert.match(runtime, /PAYFLOW_EMIS_HOMOLOGATED/);
+  assert.match(connector, /bank_connector_not_configured/);
+  assert.match(pull, /getBankConnectorUrl/);
+  assert.match(pull, /bankConnectorEligibility/);
+  assert.match(pull, /reconciliation:write/);
+  assert.doesNotMatch(pull, /body\.connector_url|body\.url/);
+  assert.match(emis, /payment_provider_not_configured/);
+  assert.doesNotMatch(emis, /isEmisHomologated/);
+
+  const emisWebhook = await readFile(path.join(root, "lib/providers/emis-webhook.ts"), "utf8");
+  const emisWebhookRoute = await readFile(
+    path.join(root, "app/api/v1/webhooks/emis/route.ts"),
+    "utf8",
+  );
+  assert.match(emisWebhook, /isEmisProductionAdapterEnabled/);
+  assert.match(emisWebhook, /return false/);
+  assert.match(emisWebhook, /emis_adapter_not_ready/);
+  assert.match(emisWebhookRoute, /settle: false/);
+  assert.match(emisWebhookRoute, /verifyEmisWebhookSignature/);
+  assert.doesNotMatch(emisWebhookRoute, /status:\s*"paid"|markPaymentPaid|executeBankTransfer/);
+});
+
+test("PayFlow notifies SIGA after paid or refunded without blocking the financial write", async () => {
+  const notify = await readFile(path.join(root, "lib/siga-notify.ts"), "utf8");
+  const verifyCore = await readFile(path.join(root, "lib/bank-transfer-verify.ts"), "utf8");
+  const refund = await readFile(path.join(root, "lib/payment-refund.ts"), "utf8");
+
+  assert.match(notify, /\/api\/finance\/payflow\/settlement/);
+  assert.match(notify, /void fetch/);
+  assert.match(notify, /getSigaBaseUrl/);
+  assert.match(notify, /siga\.settlement\.notify_failed/);
+  assert.match(notify, /reportPayflowEvent/);
+  assert.match(verifyCore, /notifySigaSettlementBestEffort/);
+  assert.match(refund, /notifySigaSettlementBestEffort/);
+  assert.match(refund, /event: "payment.refunded"/);
+});
+
+test("public health exposes bank/alert/settlement/emis readiness without secrets", async () => {
+  const runtime = await readFile(path.join(root, "lib/runtime.ts"), "utf8");
+  const alert = await readFile(path.join(root, "lib/ops-alert.ts"), "utf8");
+
+  assert.match(runtime, /bankConnectorConfigured/);
+  assert.match(runtime, /alertWebhookConfigured/);
+  assert.match(runtime, /sigaSettlementConfigured/);
+  assert.match(runtime, /emisHomologated/);
+  assert.doesNotMatch(runtime, /integrationApiKey|ssoSecret|connectorKey|webhookSecret/);
+  assert.match(alert, /siga\.settlement\.notify_failed/);
+  assert.match(alert, /http_status/);
 });

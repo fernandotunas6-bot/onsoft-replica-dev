@@ -79,6 +79,12 @@ export function kzToMinorUnits(amount: number): number {
   return Math.round(amount * 100);
 }
 
+/** Converte cêntimos PayFlow para Kz (2 casas). */
+export function minorUnitsToKz(amountMinor: number): number {
+  if (!Number.isInteger(amountMinor) || amountMinor <= 0) return 0;
+  return Math.round(amountMinor) / 100;
+}
+
 export type PayflowEducationSyncPayload = {
   school: {
     id: string;

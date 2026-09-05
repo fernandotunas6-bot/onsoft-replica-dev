@@ -35,6 +35,7 @@ describe("ecossistema — contratos Fase 13", () => {
     expect(isPublicAppPath("/api/saas/plans")).toBe(true);
     expect(isPublicAppPath("/api/saas/tenants/lookup")).toBe(true);
     expect(isPublicAppPath("/api/finance/gateway/confirm")).toBe(true);
+    expect(isPublicAppPath("/api/finance/payflow/settlement")).toBe(true);
     expect(isPublicAppPath("/api/calendar/ics")).toBe(true);
     expect(isPublicAppPath("/calendario/ics")).toBe(true);
     expect(isPublicAppPath("/criar-escola")).toBe(true);

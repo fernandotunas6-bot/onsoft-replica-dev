@@ -107,12 +107,12 @@ nem em produção.
 Antes de ativar tráfego real:
 
 1. sincronizar as contas bancárias reais da plataforma e das escolas — **Sync IBAN → PayFlow** em Definições → Financeiro (upsert escola+conta);
-2. ~~escolher e configurar a fonte de movimentos: API bancária ou importação de extrato~~ — extrato CSV em `/admin` via `POST /api/v1/bank-statements/import`; conector bancário via `POST /api/v1/bank-movements/ingest` (chave de integração + `school_id`, fonte fixa `bank_api`); CLI local `npm run siga:payflow-bank-ingest`; falta ligar o portal/banco real ao ingest;
+2. ~~escolher e configurar a fonte de movimentos: API bancária ou importação de extrato~~ — extrato CSV em `/admin` via `POST /api/v1/bank-statements/import`; ingest `POST /api/v1/bank-movements/ingest`; pull `POST /api/v1/bank-movements/pull` só com `PAYFLOW_BANK_CONNECTOR_URL` HTTPS no servidor (nunca URL no pedido) + `PAYFLOW_BANK_CONNECTOR_KEY`; CLI `npm run siga:payflow-bank-ingest`;
 3. ~~definir papéis para revisão manual~~ — `manual_review` exige `finance_admin` + comprovativo;
-4. obter contrato, documentação, credenciais e homologação da EMIS;
+4. obter contrato, documentação, credenciais e homologação da EMIS — checklist em `painel/docs/financeiro/payflow.md`; `PAYFLOW_EMIS_HOMOLOGATED=1` só marca prontidão no health; ingress `POST /api/v1/webhooks/emis` valida assinatura mas responde `501 emis_adapter_not_ready` (não liquida);
 5. ~~ligar SSO admin~~ — feito (`createPayflowAdminLaunch` + `/api/v1/sso/exchange`);
 6. ~~executar testes de isolamento entre escolas e reconciliação ponta a ponta~~ — extrato só vê pendentes da escola; verify exige `school_id` na chave de integração; sync recusa aluno/fatura/conta de outra escola;
-7. observabilidade JSON + estorno auditável (`payments:refund`); alertas externos (Sentry/pager) ainda não ligados.
+7. ~~observabilidade JSON + estorno + alertas + acerto SIGA~~ — `reportPayflowEvent` + `PAYFLOW_ALERT_WEBHOOK_URL`; falha de `siga.settlement.notify` alerta; health expõe `bankConnectorConfigured` / `sigaSettlementConfigured` / `emisHomologated`.
 
 ## Reversão de conciliação incorrecta
 
@@ -120,7 +120,7 @@ Antes de ativar tráfego real:
 
 1. O recibo original **não** é apagado (`receipt_preserved`).
 2. O pagamento passa a `refunded`; a instrução bancária a `reversed` (o `bank_transaction_id` mantém-se para não liquidar outro pagamento).
-3. A fatura no PayFlow volta a `open`. Corrija também o caixa no SIGA.
+3. A fatura no PayFlow volta a `open`. O PayFlow notifica o SIGA (`POST /api/finance/payflow/settlement`) para anular recibos de caixa e reabrir a fatura.
 4. Evento de auditoria `payment.refunded` com o motivo (≥8 caracteres).
 5. Tesoureiro e chave de integração **não** estornam.
 

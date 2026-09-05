@@ -5,6 +5,7 @@ import { matchStatementMovements, parseBankStatementCsv } from "../lib/bank-stat
 import { schoolScopeForVerification } from "../lib/school-scope.ts";
 import { foreignSchoolRecord, foreignStudentRecord } from "../lib/education-isolation.ts";
 import { logPayflowEvent } from "../lib/ops-log.ts";
+import { buildSigaSettlementPayload } from "../lib/siga-settlement-payload.ts";
 
 test("statement matching ignores pending transfers from another school", () => {
   const csv =
@@ -70,4 +71,31 @@ test("operational logs are JSON and omit payer names", () => {
   assert.equal(payload.school_id, "school-a");
   assert.equal("customer" in payload, false);
   assert.equal("iban" in payload, false);
+});
+
+test("SIGA settlement payload requires school and invoice and drops incomplete notifies", () => {
+  assert.equal(
+    buildSigaSettlementPayload({
+      event: "payment.paid",
+      schoolId: "school-a",
+      invoiceId: null,
+      paymentId: "pay_1",
+      amountMinor: 100,
+      currency: "AOA",
+    }),
+    null,
+  );
+  const body = buildSigaSettlementPayload({
+    event: "payment.refunded",
+    schoolId: "school-a",
+    invoiceId: "inv-1",
+    paymentId: "pay_1",
+    amountMinor: 150000,
+    currency: "aoa",
+    receiptCode: "REC-1",
+    reason: "duplicado",
+  });
+  assert.equal(body?.event, "payment.refunded");
+  assert.equal(body?.currency, "AOA");
+  assert.equal(body?.invoice_id, "inv-1");
 });

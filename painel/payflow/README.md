@@ -25,6 +25,7 @@ O modo padrão é `production` e opera de forma fechada:
 - a chave de integração é lida somente de `PAYFLOW_INTEGRATION_API_KEY` no servidor;
 - rotas de integração recusam pedidos quando a chave não está configurada;
 - pagamentos EMIS são recusados enquanto não existir um adaptador real homologado;
+- o webhook `POST /api/v1/webhooks/emis` valida HMAC mas responde `501` (não liquida);
 - transferências funcionam somente quando existe uma conta bancária ativa e sincronizada;
 - o navegador não pode confirmar ou marcar um pagamento como pago em produção;
 - enviar um comprovativo nunca equivale a confirmar a entrada do dinheiro;
@@ -44,6 +45,9 @@ PAYFLOW_RUNTIME_MODE=production
 PAYFLOW_INTEGRATION_API_KEY=<segredo-servidor-com-pelo-menos-24-caracteres>
 PAYFLOW_SIGA_URL=http://localhost:3006
 PAYFLOW_TRANSFER_EXPIRY_HOURS=72
+# PAYFLOW_ALERT_WEBHOOK_URL=https://example.com/payflow-alerts
+# PAYFLOW_BANK_CONNECTOR_URL=https://banco.example/movements
+# PAYFLOW_BANK_CONNECTOR_KEY=
 ```
 
 As credenciais EMIS somente poderão ser ativadas depois da contratação, documentação técnica

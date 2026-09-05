@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import type { requireAdminPermission } from "@/lib/admin-session";
 import { createOpaqueId, createReceiptCode } from "@/lib/identifiers";
+import { notifySigaSettlementBestEffort } from "@/lib/siga-notify";
 
 export type BankTransferVerificationInput = {
   transfer_reference: string;
@@ -145,6 +146,15 @@ export async function executeBankTransferVerification(
       record.receiptCode &&
       record.receiptIssuedAt
     ) {
+      notifySigaSettlementBestEffort({
+        event: "payment.paid",
+        schoolId: record.schoolId,
+        invoiceId: record.invoiceId,
+        paymentId: record.paymentId,
+        amountMinor: record.amountMinor,
+        currency: record.currency,
+        receiptCode: record.receiptCode,
+      });
       return {
         ok: true,
         paymentId: record.paymentId,
@@ -289,6 +299,15 @@ export async function executeBankTransferVerification(
     ]);
   }
 
+  notifySigaSettlementBestEffort({
+    event: "payment.paid",
+    schoolId: record.schoolId,
+    invoiceId: record.invoiceId,
+    paymentId: record.paymentId,
+    amountMinor: record.amountMinor,
+    currency: record.currency,
+    receiptCode,
+  });
   return {
     ok: true,
     paymentId: record.paymentId,

@@ -119,6 +119,18 @@ type StatementImportData = {
   apply_errors: Array<{ line: number; code: string; message: string }>;
 };
 
+type RuntimeStatus = {
+  mode: string;
+  integrationConfigured: boolean;
+  ssoConfigured: boolean;
+  bankConnectorConfigured: boolean;
+  alertWebhookConfigured: boolean;
+  sigaSettlementConfigured: boolean;
+  emisHomologated: boolean;
+  paymentInitiationEnabled: boolean;
+  provider: string;
+};
+
 const SIGA_FINANCE_URL = `${process.env.NEXT_PUBLIC_SIGA_URL || "http://localhost:3006"}/financeiro`;
 const STATEMENT_TEMPLATE = `data;referencia;valor;moeda;movimento;descricao
 05/09/2026;PF-TF-20260905-XXXXXXXXXX;15.000,00;AOA;MOV-001;Propina Setembro
@@ -146,6 +158,8 @@ export function PayflowAdminDashboard() {
   const [statementApply, setStatementApply] = useState(false);
   const [statementBusy, setStatementBusy] = useState(false);
   const [statementResult, setStatementResult] = useState<StatementImportData | null>(null);
+  const [pullBusy, setPullBusy] = useState(false);
+  const [runtime, setRuntime] = useState<RuntimeStatus | null>(null);
 
   async function checkSession() {
     try {
@@ -165,6 +179,17 @@ export function PayflowAdminDashboard() {
     }
   }
 
+  async function loadRuntimeStatus() {
+    try {
+      const res = await fetch("/api/v1/health");
+      if (!res.ok) return;
+      const json = (await res.json()) as { data?: { runtime?: RuntimeStatus } };
+      if (json.data?.runtime) setRuntime(json.data.runtime);
+    } catch {
+      /* health is best-effort */
+    }
+  }
+
   async function loadReconciliation() {
     try {
       setRefreshing(true);
@@ -173,6 +198,7 @@ export function PayflowAdminDashboard() {
         const json = (await res.json()) as { data: ReconciliationData };
         setData(json.data);
       }
+      await loadRuntimeStatus();
     } catch (err) {
       console.error(err);
       toast.error("Erro ao carregar dados de conciliação.");
@@ -315,6 +341,34 @@ export function PayflowAdminDashboard() {
       toast.error("Falha ao enviar o extrato bancário.");
     } finally {
       setStatementBusy(false);
+    }
+  }
+
+  async function pullBankConnector() {
+    try {
+      setPullBusy(true);
+      const res = await fetch("/api/v1/bank-movements/pull", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error?.message || "Conector bancário indisponível.");
+        return;
+      }
+      const applied = Number(json.data?.applied ?? 0);
+      const rejected = Number(json.data?.rejected ?? 0);
+      toast.success(
+        applied > 0
+          ? `${applied} movimento(s) liquidados pelo conector (${rejected} rejeitado(s)).`
+          : `Nenhum movimento liquidado (${rejected} rejeitado(s)).`,
+      );
+      if (applied > 0) await loadReconciliation();
+    } catch {
+      toast.error("Falha ao contactar o conector bancário.");
+    } finally {
+      setPullBusy(false);
     }
   }
 
@@ -753,6 +807,31 @@ export function PayflowAdminDashboard() {
                         {statementResult.summary.dry_run ? " · pré-visualização" : ` · ${statementResult.summary.applied} liquidado(s)`}
                       </p>
                     )}
+                    <Separator />
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        Conector bancário (`PAYFLOW_BANK_CONNECTOR_URL` no servidor). Sem URL configurada, o pedido falha fechado.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={pullBusy}
+                        onClick={() => void pullBankConnector()}
+                      >
+                        {pullBusy ? (
+                          <>
+                            <LoaderCircle className="mr-1.5 size-3.5 animate-spin" />
+                            A puxar…
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-1.5 size-3.5" />
+                            Puxar movimentos
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
@@ -832,6 +911,57 @@ export function PayflowAdminDashboard() {
 
           {/* ABA 3: CANAIS & PROVEDORES */}
           <TabsContent value="providers" className="space-y-4">
+            {runtime && (
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-base">Estado operacional</CardTitle>
+                  <CardDescription>
+                    Valores públicos de `/api/v1/health` — sem segredos. Actualiza com o botão «Atualizar».
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Modo</span>
+                    <Badge variant="outline">{runtime.mode}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">SSO / Integração</span>
+                    <span>
+                      {runtime.ssoConfigured ? "SSO ok" : "SSO em falta"} ·{" "}
+                      {runtime.integrationConfigured ? "chave ok" : "chave em falta"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Conector bancário</span>
+                    <Badge variant={runtime.bankConnectorConfigured ? "secondary" : "outline"}>
+                      {runtime.bankConnectorConfigured ? "Configurado" : "Não configurado"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Acerto SIGA</span>
+                    <Badge variant={runtime.sigaSettlementConfigured ? "secondary" : "outline"}>
+                      {runtime.sigaSettlementConfigured ? "Pronto" : "Em falta"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Alertas externos</span>
+                    <Badge variant={runtime.alertWebhookConfigured ? "secondary" : "outline"}>
+                      {runtime.alertWebhookConfigured ? "Webhook activo" : "Só logs"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">EMIS</span>
+                    <span>
+                      {runtime.emisHomologated
+                        ? "Credenciais homologadas (adaptador produção ainda fechado)"
+                        : runtime.paymentInitiationEnabled
+                          ? "Sandbox local"
+                          : "Não homologado"}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="border-border">
                 <CardHeader>

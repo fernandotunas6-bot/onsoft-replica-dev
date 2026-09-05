@@ -96,6 +96,20 @@ const endpoints = [
     expect: [401],
   },
   {
+    label: "API PayFlow settlement (anon POST)",
+    url: "http://localhost:3006/api/finance/payflow/settlement",
+    method: "POST",
+    body: JSON.stringify({
+      event: "payment.paid",
+      school_id: "11111111-1111-4111-8111-111111111111",
+      invoice_id: "11111111-1111-4111-8111-111111111111",
+      payment_id: "pay_e2e",
+      amount_minor: 100,
+      currency: "AOA",
+    }),
+    expect: [401],
+  },
+  {
     label: "SIGA matrícula demo",
     url: "http://localhost:3006/matricula/dom-afonso-demo",
     expect: [200],

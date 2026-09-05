@@ -7,7 +7,7 @@ import {
   executeBankTransferVerification,
   verifiedPayload,
 } from "@/lib/bank-transfer-verify";
-import { logPayflowEvent } from "@/lib/ops-log";
+import { reportPayflowEvent } from "@/lib/ops-report";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       requiredSchoolId: scope.schoolId,
     });
     if (!result.ok) {
-      logPayflowEvent("bank_transfer.verify.rejected", {
+      reportPayflowEvent("bank_transfer.verify.rejected", {
         code: result.code,
         school_id: scope.schoolId,
         source: parsed.data.source,
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
         { status: result.status },
       );
     }
-    logPayflowEvent("bank_transfer.verify.ok", {
+    reportPayflowEvent("bank_transfer.verify.ok", {
       school_id: scope.schoolId,
       payment_id: result.paymentId,
       source: parsed.data.source,

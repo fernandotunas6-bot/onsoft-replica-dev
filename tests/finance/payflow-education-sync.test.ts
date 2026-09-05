@@ -4,6 +4,7 @@ import {
   buildPayflowBankAccount,
   derivePayflowPaymentPin,
   kzToMinorUnits,
+  minorUnitsToKz,
   mapEnrollmentStatusToPayflow,
   mapInvoiceStatusToPayflow,
   toPayflowSchoolCode,
@@ -36,6 +37,7 @@ describe("payflow-education-sync", () => {
   it("converts Kz to minor units and builds bank accounts", () => {
     expect(kzToMinorUnits(1500.5)).toBe(150050);
     expect(kzToMinorUnits(0)).toBe(0);
+    expect(minorUnitsToKz(150050)).toBe(1500.5);
     expect(
       buildPayflowBankAccount({
         schoolId: "school-1",

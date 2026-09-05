@@ -1,4 +1,7 @@
-import { env } from "@/lib/cf-env";
+import { env } from "./cf-env.ts";
+import { resolveTrustedHttpsUrl } from "./trusted-url.ts";
+
+export { resolveTrustedHttpsUrl } from "./trusted-url.ts";
 
 export type PayflowRuntimeMode = "production" | "sandbox";
 
@@ -47,20 +50,39 @@ export function isIntegrationConfigured() {
 }
 
 export function getSigaBaseUrl() {
-  const value = readRuntimeValue("PAYFLOW_SIGA_URL");
-  if (!value) return null;
+  const resolved = resolveTrustedHttpsUrl(readRuntimeValue("PAYFLOW_SIGA_URL"));
+  if (!resolved) return null;
+  return new URL(resolved).origin;
+}
 
-  try {
-    const url = new URL(value);
-    const localHostname = url.hostname === "localhost" || url.hostname === "127.0.0.1";
-    return url.protocol === "https:" || localHostname ? url.origin : null;
-  } catch {
-    return null;
-  }
+export function getAlertWebhookUrl() {
+  return resolveTrustedHttpsUrl(readRuntimeValue("PAYFLOW_ALERT_WEBHOOK_URL"));
+}
+
+export function getBankConnectorUrl() {
+  return resolveTrustedHttpsUrl(readRuntimeValue("PAYFLOW_BANK_CONNECTOR_URL"));
+}
+
+export function getBankConnectorKey() {
+  return readRuntimeValue("PAYFLOW_BANK_CONNECTOR_KEY");
+}
+
+export function isBankConnectorConfigured() {
+  return Boolean(getBankConnectorUrl() && getBankConnectorKey().length >= 16);
+}
+
+export function isEmisHomologated() {
+  return (
+    readRuntimeValue("PAYFLOW_EMIS_HOMOLOGATED") === "1" &&
+    Boolean(resolveTrustedHttpsUrl(readRuntimeValue("EMIS_BASE_URL"))) &&
+    readRuntimeValue("EMIS_API_KEY").length >= 16 &&
+    readRuntimeValue("EMIS_WEBHOOK_SECRET").length >= 16
+  );
 }
 
 export function getPublicRuntimeStatus() {
   const mode = getPayflowRuntimeMode();
+  const emisReady = isEmisHomologated();
   return {
     mode,
     sandboxEnabled: mode === "sandbox",
@@ -68,10 +90,14 @@ export function getPublicRuntimeStatus() {
     browserConfirmationEnabled: mode === "sandbox",
     integrationConfigured: isIntegrationConfigured(),
     ssoConfigured: isSsoConfigured(),
-    provider: mode === "sandbox" ? "emis_sandbox" : "unconfigured",
+    provider: mode === "sandbox" ? "emis_sandbox" : emisReady ? "emis_pending_adapter" : "unconfigured",
     providerConfigured: mode === "sandbox",
+    emisHomologated: emisReady,
     paymentInitiationEnabled: mode === "sandbox",
     bankTransferSupported: true,
+    bankConnectorConfigured: isBankConnectorConfigured(),
+    alertWebhookConfigured: Boolean(getAlertWebhookUrl()),
+    sigaSettlementConfigured: Boolean(getSigaBaseUrl() && isIntegrationConfigured()),
     sigaUrl: getSigaBaseUrl(),
   } as const;
 }

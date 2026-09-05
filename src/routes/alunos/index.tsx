@@ -1143,7 +1143,7 @@ function StudentsPage() {
                       checked={paged.length > 0 && selectedIds.length >= paged.length}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedIds([...new Set([...selectedIds, ...paged.map((s) => s.id))]);
+                          setSelectedIds([...new Set([...selectedIds, ...paged.map((s) => s.id)])]);
                         } else {
                           const pagedIdSet = new Set(paged.map((s) => s.id));
                           setSelectedIds(selectedIds.filter((id) => !pagedIdSet.has(id)));

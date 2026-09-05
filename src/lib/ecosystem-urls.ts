@@ -92,6 +92,11 @@ export function getFinanceGatewayConfirmUrl(): string {
   return `${ECOSYSTEM_URLS.siga}/api/finance/gateway/confirm`;
 }
 
+/** Acerto PayFlow → caixa SIGA (POST autenticado). */
+export function getPayflowSettlementUrl(): string {
+  return `${ECOSYSTEM_URLS.siga}/api/finance/payflow/settlement`;
+}
+
 /** URL dedicada Unitel Money (POST — canal fixo unitel_money). */
 export function getUnitelGatewayConfirmUrl(): string {
   return `${ECOSYSTEM_URLS.siga}/api/finance/gateway/unitel/confirm`;

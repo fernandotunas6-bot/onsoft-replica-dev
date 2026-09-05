@@ -1146,56 +1146,58 @@ function StudentDetail() {
               </>
             ) : null}
             {canIssueInvoice && student.enrollment_id ? (
-              <QuickFormModal
-                eyebrow={student.registration_number}
-                title="Emitir fatura"
-                description="Cria a fatura neste aluno. Precisa de plano financeiro activo e matrícula na turma."
-                icon={<Receipt className="size-5" />}
-                submitLabel="Emitir"
-                successDescription="Fatura emitida."
-                onSubmit={async (values) => {
-                  const nifNote = agtOn && school?.nif ? ` NIF ${school.nif} (AGT).` : "";
-                  await issueInvoice({
-                    data: {
-                      studentId,
-                      number: values["numero"],
-                      dueOn: values["vencimento"],
-                      category: values["categoria"],
-                      amount: Number(values["valor"]),
-                      description: `${values["descricao"] || ""}${nifNote}`.trim() || undefined,
+              <>
+                <QuickFormModal
+                  eyebrow={student.registration_number}
+                  title="Emitir fatura"
+                  description="Cria a fatura neste aluno. Precisa de plano financeiro activo e matrícula na turma."
+                  icon={<Receipt className="size-5" />}
+                  submitLabel="Emitir"
+                  successDescription="Fatura emitida."
+                  onSubmit={async (values) => {
+                    const nifNote = agtOn && school?.nif ? ` NIF ${school.nif} (AGT).` : "";
+                    await issueInvoice({
+                      data: {
+                        studentId,
+                        number: values["numero"],
+                        dueOn: values["vencimento"],
+                        category: values["categoria"],
+                        amount: Number(values["valor"]),
+                        description: `${values["descricao"] || ""}${nifNote}`.trim() || undefined,
+                      },
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+                  }}
+                  fields={[
+                    {
+                      name: "numero",
+                      label: "Número",
+                      defaultValue: suggestedInvoiceNumber,
                     },
-                  });
-                  await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-                }}
-                fields={[
-                  {
-                    name: "numero",
-                    label: "Número",
-                    defaultValue: suggestedInvoiceNumber,
-                  },
-                  {
-                    name: "categoria",
-                    label: "Categoria",
-                    type: "select",
-                    options: ["Mensalidade", "Matrícula", "Documento", "Outro"],
-                  },
-                  { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "45000" },
-                  { name: "vencimento", label: "Vencimento", type: "date" },
-                  {
-                    name: "descricao",
-                    label: "Descrição",
-                    type: "textarea",
-                    full: true,
-                    required: false,
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button variant="outline" className="gap-2" onClick={open}>
-                    <Receipt className="size-4" /> Fatura
-                  </Button>
-                )}
-              />
-              <PayflowStudentSyncButton studentId={studentId} />
+                    {
+                      name: "categoria",
+                      label: "Categoria",
+                      type: "select",
+                      options: ["Mensalidade", "Matrícula", "Documento", "Outro"],
+                    },
+                    { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "45000" },
+                    { name: "vencimento", label: "Vencimento", type: "date" },
+                    {
+                      name: "descricao",
+                      label: "Descrição",
+                      type: "textarea",
+                      full: true,
+                      required: false,
+                    },
+                  ]}
+                  trigger={(open) => (
+                    <Button variant="outline" className="gap-2" onClick={open}>
+                      <Receipt className="size-4" /> Fatura
+                    </Button>
+                  )}
+                />
+                <PayflowStudentSyncButton studentId={studentId} />
+              </>
             ) : null}
             {canRequestDocument && templateOptions.length > 0 ? (
               <QuickFormModal

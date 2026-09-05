@@ -9,6 +9,7 @@ import {
   studentInvoices,
 } from "@/db/schema";
 import { refundEligibility } from "@/lib/payment-refund-policy";
+import { notifySigaSettlementBestEffort } from "@/lib/siga-notify";
 
 export { refundEligibility } from "@/lib/payment-refund-policy";
 
@@ -37,6 +38,8 @@ export async function executePaymentRefund(input: {
       paymentStatus: payments.status,
       schoolId: payments.schoolId,
       invoiceId: payments.invoiceId,
+      amountMinor: payments.amountMinor,
+      currency: payments.currency,
       instructionId: bankTransferInstructions.id,
       instructionStatus: bankTransferInstructions.status,
       receiptCode: paymentReceipts.receiptCode,
@@ -66,6 +69,16 @@ export async function executePaymentRefund(input: {
   if (!gate.ok) return gate;
 
   if (record.paymentStatus === "refunded") {
+    notifySigaSettlementBestEffort({
+      event: "payment.refunded",
+      schoolId: record.schoolId,
+      invoiceId: record.invoiceId,
+      paymentId: record.paymentId,
+      amountMinor: record.amountMinor,
+      currency: record.currency,
+      receiptCode: record.receiptCode,
+      reason: input.reason,
+    });
     return {
       ok: true,
       paymentId: record.paymentId,
@@ -113,6 +126,17 @@ export async function executePaymentRefund(input: {
     );
   }
   await db.batch(statements as typeof statements & [typeof updatePayment, typeof refundEvent]);
+
+  notifySigaSettlementBestEffort({
+    event: "payment.refunded",
+    schoolId: record.schoolId,
+    invoiceId: record.invoiceId,
+    paymentId: record.paymentId,
+    amountMinor: record.amountMinor,
+    currency: record.currency,
+    receiptCode: record.receiptCode,
+    reason: input.reason,
+  });
 
   return {
     ok: true,

@@ -38,5 +38,8 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
    - Auto-sync após emitir fatura: só com `PAYFLOW_AUTO_SYNC=1` (best-effort, não bloqueia).
    - Segredos só no servidor: `PAYFLOW_INTEGRATION_API_KEY`, `PAYFLOW_SSO_SECRET` (nunca `VITE_`).
    - Extrato CSV: `POST /api/v1/bank-statements/import` (dry-run; conciliar = `bank_statement`). Isolamento por `school_id`.
-   - Estorno: `POST /api/v1/payments/:id/refund` (só `finance_admin`; não apaga recibo).
-   - API bancária: `POST /api/v1/bank-movements/ingest` (integração + `school_id`, fonte `bank_api`). CLI: `npm run siga:payflow-bank-ingest`.
+   - Estorno: `POST /api/v1/payments/:id/refund` (só `finance_admin`; não apaga recibo). Acerto SIGA: `POST /api/finance/payflow/settlement`.
+   - API bancária: `POST /api/v1/bank-movements/ingest` (integração + `school_id`, fonte `bank_api`). Pull no admin: **Puxar movimentos** → `POST /api/v1/bank-movements/pull` (`PAYFLOW_BANK_CONNECTOR_URL` no servidor; SSO ou chave). CLI: `npm run siga:payflow-bank-ingest`.
+   - Alertas: `PAYFLOW_ALERT_WEBHOOK_URL` (opt-in HTTPS; fail-closed). Inclui falhas de acerto SIGA.
+   - Health: `GET /api/v1/health` → banco / settlement / alertas / EMIS (sem segredos).
+   - Webhook EMIS: `POST /api/v1/webhooks/emis` (HMAC; fail-closed; não liquida até adaptador de produção).

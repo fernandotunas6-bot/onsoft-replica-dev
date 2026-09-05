@@ -12,12 +12,12 @@ Referência técnica no repositório: `docs/agents/PAYFLOW_INTEGRATION.md`.
 2. **Sync IBAN → PayFlow** — no mesmo painel (também corre após «Guardar banco»).
 3. **Aluno** — na ficha ou no modal extensivo → **Sync PayFlow** (matrícula activa + faturas).
 4. **Conciliação** — em `/financeiro` ou `/faturas` → **Conciliação PayFlow** (SSO assinado).
-5. **Extrato CSV** — no `/admin` do PayFlow (aba Transferências): descarregar modelo, importar, pré-visualizar e marcar «Conciliar correspondências» para liquidar.
-6. **API bancária** — conector externo chama `POST /api/v1/bank-movements/ingest` com a chave de integração, `school_id` e o movimento (referência PF-TF-…, valor em cêntimos, `bank_transaction_id`).
-   Simulação local: `npm run siga:payflow-bank-ingest -- --school-id=… --transfer-reference=PF-TF-… --amount-minor=1500000`.
+5. **Extrato CSV** — no `/admin` do PayFlow (aba Transferências): modelo CSV → importar → pré-visualizar → «Conciliar correspondências».
+6. **API bancária** — o banco chama `POST /api/v1/bank-movements/ingest`, ou o painel usa **Puxar movimentos** (`POST /api/v1/bank-movements/pull`) se `PAYFLOW_BANK_CONNECTOR_URL` estiver definida.
+7. **Alertas** — opcional: `PAYFLOW_ALERT_WEBHOOK_URL` (Sentry/pager). Sem URL, só logs JSON.
+8. **Acerto SIGA** — liquidação/estorno no PayFlow notifica `POST /api/finance/payflow/settlement` (mesma chave de integração).
 
 Opcional: `PAYFLOW_AUTO_SYNC=1` no `.env` do SIGA sincroniza o aluno no PayFlow após cada emissão de fatura (background, não bloqueia).
-5. **Extrato** — no PayFlow Admin → Transferências → importar CSV (pré-visualização; opcionalmente conciliar correspondências exactas).
 
 Modelo CSV (`;` ou `,`):
 
@@ -35,8 +35,13 @@ data;referencia;valor;moeda;movimento;descricao
 | `VITE_PAYFLOW_URL` | URL pública do PayFlow |
 | `PAYFLOW_INTEGRATION_API_KEY` | Sync servidor→servidor (≥24 chars) |
 | `PAYFLOW_SSO_SECRET` | JWT SSO admin (≥32 chars), igual no SIGA e no PayFlow |
+| `PAYFLOW_SIGA_URL` | Origem do SIGA para acerto de caixa |
 | `PAYFLOW_RUNTIME_MODE` | `production` por omissão; `sandbox` só em local |
 | `PAYFLOW_AUTO_SYNC` | `1` = após emitir fatura, sync aluno no PayFlow em background (opt-in) |
+| `PAYFLOW_ALERT_WEBHOOK_URL` | Webhook HTTPS para rejeições/estornos/falhas de acerto SIGA |
+| `PAYFLOW_BANK_CONNECTOR_URL` | Endpoint do banco para o pull (HTTPS; nunca no pedido) |
+| `PAYFLOW_BANK_CONNECTOR_KEY` | Bearer do conector (≥16 chars) |
+| `PAYFLOW_EMIS_HOMOLOGATED` | `1` só após contrato EMIS — **não** activa o adaptador de produção sozinho |
 
 Propagação: `npm run siga:sync-env`.
 
@@ -47,16 +52,27 @@ Propagação: `npm run siga:sync-env`.
 - Revisão manual no painel exige papel `finance_admin` (Administrador SIGA via SSO) + comprovativo já submetido.
 - Login por chave no `/admin` do PayFlow fica reservado a **sandbox**.
 - Isolamento: a conciliação e o extrato só vêem a escola da sessão; o sync recusa IDs que já pertençam a outra escola.
-- Estorno: no painel admin, **Estornar** (só Administrador via SSO). O recibo original fica; corrija o caixa no SIGA.
-- Logs JSON `app=payflow` (sem IBAN nem nomes).
+- Estorno: no painel admin, **Estornar** (só Administrador via SSO). O recibo PayFlow original fica; o SIGA anula o recibo de caixa via webhook de acerto.
+- Logs JSON `app=payflow` (sem IBAN nem nomes). Falha de acerto SIGA dispara alerta se o webhook estiver configurado.
+- Estado operacional: aba **Canais & Infraestrutura** ou `GET /api/v1/health`.
+
+## Checklist EMIS (antes de Multicaixa real)
+
+1. Contrato + credenciais (`EMIS_BASE_URL`, `EMIS_API_KEY`, `EMIS_WEBHOOK_SECRET`, merchant/terminal).
+2. Homologação no portal EMIS com referências de teste.
+3. Só então `PAYFLOW_EMIS_HOMOLOGATED=1` — o adaptador de produção **continua fechado** até existir implementação dedicada; o flag só marca prontidão no health.
+4. Ingress `POST /api/v1/webhooks/emis` valida HMAC (`X-Emis-Signature: sha256=<hex>`) e responde `501 emis_adapter_not_ready` — **não liquida**.
+5. Manter transferências IBAN como canal principal até o adaptador EMIS estar ligado.
 
 ## Checklist antes de produção
 
 - [ ] IBAN real sincronizado por escola
-- [ ] `PAYFLOW_SSO_SECRET` e `PAYFLOW_INTEGRATION_API_KEY` configurados
-- [x] Fonte de movimentos (extrato CSV no PayFlow Admin; API bancária ainda não)
+- [ ] `PAYFLOW_SSO_SECRET`, `PAYFLOW_INTEGRATION_API_KEY` e `PAYFLOW_SIGA_URL` configurados
+- [x] Fonte de movimentos (CSV, ingest e pull fail-closed; falta o URL real do banco)
+- [x] Acerto caixa SIGA (`/api/finance/payflow/settlement`)
 - [ ] Homologação EMIS/Unitel no portal externo (se aplicável)
 - [x] Teste de isolamento entre duas escolas (unitário no PayFlow; validar com dois tenants reais antes de tráfego)
+- [ ] `PAYFLOW_ALERT_WEBHOOK_URL` em staging/produção
 
 ## Ajuda relacionada
 

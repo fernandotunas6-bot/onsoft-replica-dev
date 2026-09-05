@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { requireAdminPermission } from "@/lib/admin-session";
-import { logPayflowEvent } from "@/lib/ops-log";
+import { reportPayflowEvent } from "@/lib/ops-report";
 import { corsHeaders, jsonResponse } from "@/lib/payflow";
 import { executePaymentRefund } from "@/lib/payment-refund";
 
@@ -56,7 +56,7 @@ export async function POST(
       reason: parsed.data.reason,
     });
     if (!result.ok) {
-      logPayflowEvent("payment.refund.rejected", {
+      reportPayflowEvent("payment.refund.rejected", {
         code: result.code,
         school_id: session.schoolId,
         payment_id: id,
@@ -67,7 +67,7 @@ export async function POST(
       );
     }
 
-    logPayflowEvent("payment.refund.ok", {
+    reportPayflowEvent("payment.refund.ok", {
       school_id: session.schoolId,
       payment_id: result.paymentId,
       idempotent: result.idempotent,
