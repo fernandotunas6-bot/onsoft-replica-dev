@@ -140,6 +140,9 @@ export function PayflowAdminDashboard() {
   const [selectedItem, setSelectedItem] = useState<ReconciliationItem | null>(null);
   const [bankTxId, setBankTxId] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [refunding, setRefunding] = useState(false);
   const [statementApply, setStatementApply] = useState(false);
   const [statementBusy, setStatementBusy] = useState(false);
   const [statementResult, setStatementResult] = useState<StatementImportData | null>(null);
@@ -253,6 +256,36 @@ export function PayflowAdminDashboard() {
       toast.error("Falha ao comunicar com o serviço bancário.");
     } finally {
       setVerifying(false);
+    }
+  }
+
+  async function confirmRefund() {
+    if (!selectedItem) return;
+    if (refundReason.trim().length < 8) {
+      toast.error("Descreva o motivo do estorno (mínimo 8 caracteres).");
+      return;
+    }
+    try {
+      setRefunding(true);
+      const res = await fetch(`/api/v1/payments/${selectedItem.payment_id}/refund`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: refundReason.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error?.message || "Não foi possível estornar.");
+        return;
+      }
+      toast.success("Pagamento estornado. O recibo original mantém-se para auditoria.");
+      setRefundModalOpen(false);
+      setSelectedItem(null);
+      setRefundReason("");
+      await loadReconciliation();
+    } catch {
+      toast.error("Falha ao comunicar o estorno.");
+    } finally {
+      setRefunding(false);
     }
   }
 
@@ -637,6 +670,20 @@ export function PayflowAdminDashboard() {
                                   Verificar
                                 </Button>
                               )}
+                              {item.status === "paid" && session.permissions.includes("payments:refund") && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 px-2 text-xs text-destructive"
+                                  onClick={() => {
+                                    setSelectedItem(item);
+                                    setRefundReason("");
+                                    setRefundModalOpen(true);
+                                  }}
+                                >
+                                  Estornar
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))
@@ -917,6 +964,49 @@ export function PayflowAdminDashboard() {
                 </>
               ) : (
                 "Confirmar & Emitir Recibo"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={refundModalOpen} onOpenChange={setRefundModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Estornar pagamento</DialogTitle>
+            <DialogDescription>
+              O recibo original não é apagado. A fatura no PayFlow volta a aberta. Corrija também o caixa no SIGA.
+              Só o administrador financeiro (SSO) pode estornar.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedItem && (
+            <div className="space-y-3 py-2">
+              <p className="text-sm">
+                {selectedItem.description} · {formatCurrency(selectedItem.amount)}
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="refundReason">Motivo *</Label>
+                <Input
+                  id="refundReason"
+                  value={refundReason}
+                  onChange={(event) => setRefundReason(event.target.value)}
+                  placeholder="Conciliação incorrecta no extrato de 5 Set"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setRefundModalOpen(false)} disabled={refunding}>
+              Cancelar
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => void confirmRefund()} disabled={refunding}>
+              {refunding ? (
+                <>
+                  <LoaderCircle className="mr-2 size-4 animate-spin" />
+                  A estornar…
+                </>
+              ) : (
+                "Confirmar estorno"
               )}
             </Button>
           </DialogFooter>

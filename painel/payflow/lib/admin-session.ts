@@ -8,7 +8,7 @@ import type { PayflowAdminRole } from "@/lib/sso-assertion";
 export const adminSessionCookie = "payflow_admin_session";
 
 const rolePermissions: Record<PayflowAdminRole, readonly string[]> = {
-  finance_admin: ["dashboard:read", "payments:read", "reconciliation:read", "reconciliation:write", "bank_accounts:write", "reports:read"],
+  finance_admin: ["dashboard:read", "payments:read", "payments:refund", "reconciliation:read", "reconciliation:write", "bank_accounts:write", "reports:read"],
   treasurer: ["dashboard:read", "payments:read", "reconciliation:read", "reconciliation:write", "reports:read"],
   cashier: ["dashboard:read", "payments:read", "payments:create"],
   auditor: ["dashboard:read", "payments:read", "reconciliation:read", "reports:read", "audit:read"],

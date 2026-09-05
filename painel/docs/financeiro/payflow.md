@@ -47,7 +47,8 @@ Propagação: `npm run siga:sync-env`.
 - Revisão manual no painel exige papel `finance_admin` (Administrador SIGA via SSO) + comprovativo já submetido.
 - Login por chave no `/admin` do PayFlow fica reservado a **sandbox**.
 - Isolamento: a conciliação e o extrato só vêem a escola da sessão; o sync recusa IDs que já pertençam a outra escola.
-- Logs JSON `app=payflow` (sem IBAN nem nomes). Conciliação errada: não apagar recibo — corrigir no SIGA e auditar o `payment_id`.
+- Estorno: no painel admin, **Estornar** (só Administrador via SSO). O recibo original fica; corrija o caixa no SIGA.
+- Logs JSON `app=payflow` (sem IBAN nem nomes).
 
 ## Checklist antes de produção
 

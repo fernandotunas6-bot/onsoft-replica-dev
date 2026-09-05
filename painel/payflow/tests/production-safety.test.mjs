@@ -238,3 +238,20 @@ test("administrative RBAC derives permissions server-side and scopes reconciliat
   assert.match(exchange, /HttpOnly|sessionCookie/);
   assert.match(reconciliation, /eq\(payments\.schoolId, adminSession\.schoolId\)/);
 });
+
+test("refund keeps the receipt, requires finance_admin and stays school-scoped", async () => {
+  const policy = await readFile(path.join(root, "lib/payment-refund-policy.ts"), "utf8");
+  const refund = await readFile(path.join(root, "lib/payment-refund.ts"), "utf8");
+  const route = await readFile(path.join(root, "app/api/v1/payments/[id]/refund/route.ts"), "utf8");
+  const sessions = await readFile(path.join(root, "lib/admin-session.ts"), "utf8");
+  const getPayment = await readFile(path.join(root, "app/api/v1/payments/[id]/route.ts"), "utf8");
+
+  assert.match(sessions, /finance_admin:[\s\S]*payments:refund/);
+  assert.doesNotMatch(sessions, /treasurer:[^\n]*payments:refund/);
+  assert.match(policy, /refund_requires_finance_admin/);
+  assert.match(refund, /receipt_preserved: true/);
+  assert.doesNotMatch(refund, /delete\(paymentReceipts\)/);
+  assert.match(refund, /type: "payment\.refunded"/);
+  assert.match(route, /payments:refund/);
+  assert.match(getPayment, /school_id/);
+});

@@ -112,16 +112,19 @@ Antes de ativar tráfego real:
 4. obter contrato, documentação, credenciais e homologação da EMIS;
 5. ~~ligar SSO admin~~ — feito (`createPayflowAdminLaunch` + `/api/v1/sso/exchange`);
 6. ~~executar testes de isolamento entre escolas e reconciliação ponta a ponta~~ — extrato só vê pendentes da escola; verify exige `school_id` na chave de integração; sync recusa aluno/fatura/conta de outra escola;
-7. observabilidade estruturada (`logPayflowEvent`) + procedimento de reversão abaixo; alertas externos (Sentry/pager) ainda não ligados.
+7. observabilidade JSON + estorno auditável (`payments:refund`); alertas externos (Sentry/pager) ainda não ligados.
 
 ## Reversão de conciliação incorrecta
 
-Não existe endpoint público que anule um recibo a partir do browser. Se um movimento for conciliado por engano:
+`POST /api/v1/payments/:id/refund` (SSO `finance_admin`, permissão `payments:refund`):
 
-1. Não apagar o recibo nem o evento `bank_transfer.verified` — são prova de auditoria.
-2. Tratar o caso como estorno operacional: o financeiro da escola emite nota/recibo de correcção no SIGA (caixa) e o PayFlow mantém o estado `paid` até existir um fluxo de `refunded` homologado.
-3. Procurar nos logs JSON `app=payflow` os eventos `bank_transfer.verify.ok` / `bank_statement.import` com `school_id` e `payment_id`.
-4. Não correr SQL ad hoc em produção para voltar o pagamento a `pending` sem ticket e sem segundo revisor `finance_admin`.
+1. O recibo original **não** é apagado (`receipt_preserved`).
+2. O pagamento passa a `refunded`; a instrução bancária a `reversed` (o `bank_transaction_id` mantém-se para não liquidar outro pagamento).
+3. A fatura no PayFlow volta a `open`. Corrija também o caixa no SIGA.
+4. Evento de auditoria `payment.refunded` com o motivo (≥8 caracteres).
+5. Tesoureiro e chave de integração **não** estornam.
+
+Logs JSON: `payment.refund.ok` / `payment.refund.rejected`.
 
 Não apagar o financeiro existente do SIGA antes de o novo fluxo ter paridade, migração
 validada e rollback documentado.

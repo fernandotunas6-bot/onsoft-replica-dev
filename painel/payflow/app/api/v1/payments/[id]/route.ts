@@ -28,6 +28,7 @@ export async function GET(
   }
 
   const { id } = await context.params;
+  const schoolId = new URL(request.url).searchParams.get("school_id");
   try {
     const [payment] = await getDb()
       .select()
@@ -35,7 +36,7 @@ export async function GET(
       .where(eq(payments.id, id))
       .limit(1);
 
-    if (!payment) {
+    if (!payment || !schoolId || payment.schoolId !== schoolId) {
       return jsonResponse(
         { error: { code: "not_found", message: "Pagamento não encontrado." } },
         { status: 404 },
