@@ -105,7 +105,8 @@ test("bank verification matches authoritative movement data before issuing a rec
   const verifyCore = await readFile(path.join(root, "lib/bank-transfer-verify.ts"), "utf8");
 
   assert.match(verifyRoute, /isIntegrationAuthorized/);
-  assert.match(verifyCore, /adminSession\.schoolId/);
+  assert.match(verifyRoute, /schoolScopeForVerification/);
+  assert.match(verifyCore, /requiredSchoolId/);
   assert.match(verifyCore, /transfer_school_mismatch/);
   assert.match(verifyCore, /manual_review_requires_finance_admin/);
   assert.match(verifyCore, /expectedAmountMinor !== input\.amount/);
@@ -162,6 +163,9 @@ test("education sync preserves the complete SIGA academic and financial context"
     "guardian_id",
     "financial_responsible",
     "enrollment_status",
+    "student_school_mismatch",
+    "invoice_school_mismatch",
+    "bank_account_school_mismatch",
   ]) {
     assert.match(syncRoute, new RegExp(field), `education sync must require ${field}`);
   }
