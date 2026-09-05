@@ -2,10 +2,12 @@ import { z } from "zod";
 
 import { corsHeaders, isIntegrationAuthorized, jsonResponse } from "@/lib/payflow";
 import { requireAdminPermission } from "@/lib/admin-session";
+import { schoolScopeForVerification } from "@/lib/school-scope";
 import {
   executeBankTransferVerification,
   verifiedPayload,
 } from "@/lib/bank-transfer-verify";
+import { logPayflowEvent } from "@/lib/ops-log";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,7 @@ const verificationSchema = z.object({
   booked_at: z.string().datetime({ offset: true }),
   source: z.enum(["bank_api", "bank_statement", "manual_review"]),
   verified_by: z.string().trim().min(2).max(160),
+  school_id: z.string().trim().min(8).max(80).optional(),
 });
 
 export async function OPTIONS() {
@@ -49,16 +52,39 @@ export async function POST(request: Request) {
       );
     }
 
+    const scope = schoolScopeForVerification({
+      adminSchoolId: adminSession?.schoolId,
+      requestedSchoolId: parsed.data.school_id,
+    });
+    if (!scope.ok) {
+      return jsonResponse(
+        { error: { code: scope.code, message: scope.message } },
+        { status: scope.status },
+      );
+    }
+
     const result = await executeBankTransferVerification(parsed.data, {
       adminSession,
       integrationAuthorized: isIntegrationAuthorized(request),
+      requiredSchoolId: scope.schoolId,
     });
     if (!result.ok) {
+      logPayflowEvent("bank_transfer.verify.rejected", {
+        code: result.code,
+        school_id: scope.schoolId,
+        source: parsed.data.source,
+      });
       return jsonResponse(
         { error: { code: result.code, message: result.message } },
         { status: result.status },
       );
     }
+    logPayflowEvent("bank_transfer.verify.ok", {
+      school_id: scope.schoolId,
+      payment_id: result.paymentId,
+      source: parsed.data.source,
+      idempotent: result.idempotent,
+    });
     return jsonResponse({ data: verifiedPayload(result, request.url) });
   } catch (error) {
     console.error("bank_transfer_verification_failed", error);

@@ -222,9 +222,12 @@ export function parseBankStatementCsv(csv: string, options?: { maxRows?: number 
 export function matchStatementMovements(
   movements: BankStatementMovement[],
   pending: PendingTransferMatchInput[],
+  options: { schoolId: string },
 ): StatementMatch[] {
   const byReference = new Map(
-    pending.map((item) => [item.transferReference.toUpperCase(), item] as const),
+    pending
+      .filter((item) => item.schoolId === options.schoolId)
+      .map((item) => [item.transferReference.toUpperCase(), item] as const),
   );
   const usedTransactions = new Set<string>();
   return movements.map((movement) => {

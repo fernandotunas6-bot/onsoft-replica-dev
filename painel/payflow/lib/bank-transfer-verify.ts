@@ -46,6 +46,9 @@ export type BankTransferVerificationResult =
 
 type AdminSession = Awaited<ReturnType<typeof requireAdminPermission>>;
 
+// Scoping por adminSession.schoolId e prevenção de transfer_school_mismatch
+export { schoolScopeForVerification } from "./education-isolation";
+
 export function verifiedPayload(record: BankTransferVerificationSuccess, requestUrl: string) {
   return {
     payment_id: record.paymentId,
@@ -62,7 +65,7 @@ export function verifiedPayload(record: BankTransferVerificationSuccess, request
 
 export async function executeBankTransferVerification(
   input: BankTransferVerificationInput,
-  ctx: { adminSession: AdminSession; integrationAuthorized: boolean },
+  ctx: { adminSession: AdminSession; integrationAuthorized: boolean; requiredSchoolId: string },
 ): Promise<BankTransferVerificationResult> {
   const db = getDb();
   const [record] = await db
@@ -98,7 +101,7 @@ export async function executeBankTransferVerification(
     };
   }
 
-  if (ctx.adminSession && record.schoolId !== ctx.adminSession.schoolId) {
+  if (record.schoolId !== ctx.requiredSchoolId) {
     return {
       ok: false,
       status: 403,

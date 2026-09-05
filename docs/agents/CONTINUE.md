@@ -944,7 +944,7 @@ Implementado sem unificar frontends:
   - Criado o `narrative-engine.ts` que compila relatórios contextuais em formato SMS humano a partir de *snapshots*. O motor infere e acopla a sugestão "Partilhar Relatório de Inteligência" sempre que um encarregado esteja associado ao perfil.
 - **Validação & Estado**:
   - `npm run siga:check`: **100% aprovado**.
-  - `npm test`: **102 ficheiros · 721 testes aprovados** (100% verde em Node 24).
+  - `npm test`: **134 ficheiros · 944 testes aprovados** (100% verde em Node 24) + **16 testes PayFlow**.
 
 ## Próximos passos úteis
 

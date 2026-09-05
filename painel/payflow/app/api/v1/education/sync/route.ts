@@ -4,6 +4,8 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import { bankAccounts, schools, studentInvoices, students } from "@/db/schema";
 import { validateAngolaIban } from "@/lib/angola-banking";
+import { foreignSchoolRecord, foreignStudentRecord } from "@/lib/education-isolation";
+import { logPayflowEvent } from "@/lib/ops-log";
 import { isIntegrationAuthorized, jsonResponse, corsHeaders } from "@/lib/payflow";
 import { hashPaymentPin } from "@/lib/identifiers";
 
@@ -99,6 +101,43 @@ export async function POST(request: Request) {
     const db = getDb();
     const now = new Date().toISOString();
     const pinHash = await hashPaymentPin(parsed.data.student.payment_pin);
+    const incomingSchoolId = parsed.data.school.id;
+
+    const [existingStudent] = await db
+      .select({ id: students.id, schoolId: students.schoolId })
+      .from(students)
+      .where(eq(students.id, parsed.data.student.id))
+      .limit(1);
+    if (foreignSchoolRecord(existingStudent?.schoolId, incomingSchoolId)) {
+      return jsonResponse(
+        {
+          error: {
+            code: "student_school_mismatch",
+            message: "Este aluno já está associado a outra escola no PayFlow.",
+          },
+        },
+        { status: 409 },
+      );
+    }
+
+    const [codeOwner] = await db
+      .select({ id: students.id })
+      .from(students)
+      .where(
+        and(eq(students.schoolId, incomingSchoolId), eq(students.studentCode, parsed.data.student.code)),
+      )
+      .limit(1);
+    if (codeOwner && codeOwner.id !== parsed.data.student.id) {
+      return jsonResponse(
+        {
+          error: {
+            code: "student_code_taken",
+            message: "O código de 7 dígitos já pertence a outro aluno desta escola.",
+          },
+        },
+        { status: 409 },
+      );
+    }
 
     await db
       .insert(schools)
@@ -142,7 +181,6 @@ export async function POST(request: Request) {
       .onConflictDoUpdate({
         target: students.id,
         set: {
-          schoolId: parsed.data.school.id,
           studentCode: parsed.data.student.code,
           enrollmentId: parsed.data.student.enrollment_id,
           academicYearId: parsed.data.student.academic_year_id,
@@ -163,6 +201,22 @@ export async function POST(request: Request) {
     for (const account of parsed.data.bank_accounts) {
       const iban = validateAngolaIban(account.iban);
       if (!iban.ok) continue;
+      const [existingAccount] = await db
+        .select({ id: bankAccounts.id, schoolId: bankAccounts.schoolId, scope: bankAccounts.scope })
+        .from(bankAccounts)
+        .where(eq(bankAccounts.id, account.id))
+        .limit(1);
+      if (existingAccount?.scope === "platform" || foreignSchoolRecord(existingAccount?.schoolId, incomingSchoolId)) {
+        return jsonResponse(
+          {
+            error: {
+              code: "bank_account_school_mismatch",
+              message: "Esta conta bancária já pertence a outro âmbito no PayFlow.",
+            },
+          },
+          { status: 409 },
+        );
+      }
       if (account.is_primary) {
         await db
           .update(bankAccounts)
@@ -207,6 +261,29 @@ export async function POST(request: Request) {
     }
 
     for (const invoice of parsed.data.invoices) {
+      const [existingInvoice] = await db
+        .select({
+          id: studentInvoices.id,
+          schoolId: studentInvoices.schoolId,
+          studentId: studentInvoices.studentId,
+        })
+        .from(studentInvoices)
+        .where(eq(studentInvoices.id, invoice.id))
+        .limit(1);
+      if (
+        foreignSchoolRecord(existingInvoice?.schoolId, incomingSchoolId) ||
+        foreignStudentRecord(existingInvoice?.studentId, parsed.data.student.id)
+      ) {
+        return jsonResponse(
+          {
+            error: {
+              code: "invoice_school_mismatch",
+              message: "Esta fatura já está associada a outra escola ou aluno no PayFlow.",
+            },
+          },
+          { status: 409 },
+        );
+      }
       await db
         .insert(studentInvoices)
         .values({
@@ -236,6 +313,13 @@ export async function POST(request: Request) {
           },
         });
     }
+
+    logPayflowEvent("education.sync.ok", {
+      school_id: parsed.data.school.id,
+      student_id: parsed.data.student.id,
+      invoices_received: parsed.data.invoices.length,
+      bank_accounts_received: parsed.data.bank_accounts.length,
+    });
 
     return jsonResponse({
       data: {

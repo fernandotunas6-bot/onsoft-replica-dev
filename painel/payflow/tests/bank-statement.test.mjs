@@ -29,24 +29,28 @@ test("extracts PayFlow references from statement description and skips mismatche
   assert.equal(movements[0].amountMinor, 1_500_000);
   assert.equal(movements[2].parseErrors.includes("missing_reference"), true);
 
-  const matches = matchStatementMovements(movements, [
-    {
-      transferReference: "PF-TF-20260905-ABC123DEAD",
-      expectedAmountMinor: 1_500_000,
-      currency: "AOA",
-      status: "awaiting_transfer",
-      paymentStatus: "pending",
-      schoolId: "school-a",
-    },
-    {
-      transferReference: "PF-TF-20260905-FFFF000011",
-      expectedAmountMinor: 800_000,
-      currency: "AOA",
-      status: "awaiting_transfer",
-      paymentStatus: "pending",
-      schoolId: "school-a",
-    },
-  ]);
+  const matches = matchStatementMovements(
+    movements,
+    [
+      {
+        transferReference: "PF-TF-20260905-ABC123DEAD",
+        expectedAmountMinor: 1_500_000,
+        currency: "AOA",
+        status: "awaiting_transfer",
+        paymentStatus: "pending",
+        schoolId: "school-a",
+      },
+      {
+        transferReference: "PF-TF-20260905-FFFF000011",
+        expectedAmountMinor: 800_000,
+        currency: "AOA",
+        status: "awaiting_transfer",
+        paymentStatus: "pending",
+        schoolId: "school-a",
+      },
+    ],
+    { schoolId: "school-a" },
+  );
 
   assert.equal(matches[0].outcome, "matched");
   assert.equal(matches[1].outcome, "amount_mismatch");
@@ -58,6 +62,6 @@ test("does not match a transfer absent from the school-scoped pending list", () 
   const csv =
     "referencia;valor;moeda;movimento;data\nPF-TF-20260905-SCHOOLB01;100,00;AOA;TX-1;2026-09-05\n";
   const movements = parseBankStatementCsv(csv);
-  const matches = matchStatementMovements(movements, []);
+  const matches = matchStatementMovements(movements, [], { schoolId: "school-a" });
   assert.equal(matches[0].outcome, "unknown_reference");
 });

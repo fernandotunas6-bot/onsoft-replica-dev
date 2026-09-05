@@ -9,10 +9,12 @@ import {
   parseBankStatementCsv,
   type BankStatementMovement,
 } from "@/lib/bank-statement";
+import { schoolScopeForVerification } from "@/lib/school-scope";
 import {
   executeBankTransferVerification,
   verifiedPayload,
 } from "@/lib/bank-transfer-verify";
+import { logPayflowEvent } from "@/lib/ops-log";
 import { corsHeaders, isIntegrationAuthorized, jsonResponse } from "@/lib/payflow";
 
 export const dynamic = "force-dynamic";
@@ -80,19 +82,17 @@ export async function POST(request: Request) {
 
     const csv = "csv" in payload ? payload.csv : "";
     const apply = "apply" in payload ? Boolean(payload.apply) : false;
-    const requestedSchoolId =
-      adminSession?.schoolId ?? ("school_id" in payload ? payload.school_id : undefined);
-    if (!requestedSchoolId) {
+    const scope = schoolScopeForVerification({
+      adminSchoolId: adminSession?.schoolId,
+      requestedSchoolId: "school_id" in payload ? payload.school_id : undefined,
+    });
+    if (!scope.ok) {
       return jsonResponse(
-        {
-          error: {
-            code: "school_required",
-            message: "Indique a escola (sessão SSO ou school_id na integração).",
-          },
-        },
-        { status: 400 },
+        { error: { code: scope.code, message: scope.message } },
+        { status: scope.status },
       );
     }
+    const requestedSchoolId = scope.schoolId;
 
     const movements = parseBankStatementCsv(csv);
     if (movements.length === 0) {
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
       .innerJoin(payments, eq(payments.id, bankTransferInstructions.paymentId))
       .where(and(eq(payments.schoolId, requestedSchoolId), eq(payments.provider, "bank_transfer")));
 
-    const matches = matchStatementMovements(movements, pending);
+    const matches = matchStatementMovements(movements, pending, { schoolId: requestedSchoolId });
     const applied: Array<ReturnType<typeof verifiedPayload>> = [];
     const applyErrors: Array<{ line: number; code: string; message: string }> = [];
 
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
             source: "bank_statement",
             verified_by: adminSession?.userId ?? "bank_statement_import",
           },
-          { adminSession, integrationAuthorized },
+          { adminSession, integrationAuthorized, requiredSchoolId: requestedSchoolId },
         );
         if (!result.ok) {
           applyErrors.push({ line: row.line, code: result.code, message: result.message });
@@ -158,6 +158,15 @@ export async function POST(request: Request) {
       applied: applied.length,
       dry_run: !apply,
     };
+
+    logPayflowEvent("bank_statement.import", {
+      school_id: requestedSchoolId,
+      apply,
+      matched: summary.matched,
+      applied: summary.applied,
+      unknown_reference: summary.unknown_reference,
+      amount_mismatch: summary.amount_mismatch,
+    });
 
     return jsonResponse({
       data: {
