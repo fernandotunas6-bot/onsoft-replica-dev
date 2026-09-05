@@ -2,6 +2,7 @@ name: PayFlow
 
 on:
   push:
+    branches: [main]
     paths:
       - "painel/payflow/**"
       - ".github/workflows/payflow.yml"

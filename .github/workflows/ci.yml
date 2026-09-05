@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  # Só push em main: em feature branches o mesmo trabalho já corre via pull_request
+  # (evita double-run e minutos duplicados no plano Free).
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
   schedule:
     # Scan de segurança semanal (segundas, 04:00 UTC)
