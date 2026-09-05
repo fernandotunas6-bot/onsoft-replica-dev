@@ -121,3 +121,8 @@ export function paymentStatusFromInvoices(
   if (open.some((invoice) => invoice.due_on && invoice.due_on < today)) return "overdue";
   return "pending";
 }
+
+export const syncStudentToPayflowInputSchema = z.object({
+  studentId: z.string().uuid(),
+});
+export type SyncStudentToPayflowInput = z.infer<typeof syncStudentToPayflowInputSchema>;

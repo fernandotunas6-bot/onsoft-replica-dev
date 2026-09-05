@@ -9,8 +9,9 @@ description: >-
 # SIGA · Alunos
 
 - Rotas: `src/routes/alunos/index.tsx`, `src/routes/alunos/$studentId.tsx`
-- Domínio: `src/features/students/{schemas,server}.ts`, `StudentEnrollmentSheet.tsx`
-- Testes: `tests/students/schemas.test.ts`
+- Domínio: `src/features/students/{schemas,server,academic-status}.ts`, `StudentEnrollmentSheet.tsx`
+- UI: `StudentStatusBadge`, `StudentFinanceBadge`, `StudentStatusHistoryTimeline`, `StudentExtensiveModal`
+- Testes: `tests/students/schemas.test.ts`, `tests/students/academic-status.test.ts`
 - Acesso: módulo `pessoas` (Admin/Secretaria). Público não entra aqui.
 
 ## Regras

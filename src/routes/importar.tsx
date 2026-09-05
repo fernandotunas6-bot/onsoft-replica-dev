@@ -135,7 +135,7 @@ export function ImportarDadosPage() {
 
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-xs">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="size-4 text-emerald-600" />
+            <ShieldCheck className="size-4 text-primary" />
             <span>
               Escola: <strong>{school?.name || "—"}</strong>
             </span>
@@ -158,7 +158,7 @@ export function ImportarDadosPage() {
                 <FileUp className="size-3.5" /> Nova Importação
               </TabsTrigger>
               <TabsTrigger value="exportar" className="gap-1.5">
-                <FileSpreadsheet className="size-3.5 text-emerald-600" /> Exportar Dados
+                <FileSpreadsheet className="size-3.5 text-primary" /> Exportar Dados
               </TabsTrigger>
               <TabsTrigger value="historico" className="gap-1.5">
                 <History className="size-3.5" /> Histórico &amp; Auditoria
@@ -253,7 +253,7 @@ export function ImportarDadosPage() {
                     >
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-start gap-2.5">
-                          <FileSpreadsheet className="size-5 shrink-0 text-emerald-600 mt-0.5" />
+                          <FileSpreadsheet className="size-5 shrink-0 text-primary mt-0.5" />
                           <div>
                             <p className="font-semibold text-xs text-foreground">{spec.label}</p>
                             <p className="text-[11px] text-muted-foreground">

@@ -632,7 +632,7 @@ export function StudentEnrollmentSheet({
                       {typeof selectedTurma.capacity === "number" &&
                       selectedTurma.capacity > 0 &&
                       (selectedTurma.enrolled_count ?? 0) >= selectedTurma.capacity ? (
-                        <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+                        <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
                           ⚠️ <strong>Lotação atingida:</strong> Esta turma já tem {selectedTurma.enrolled_count ?? 0} de {selectedTurma.capacity} vagas preenchidas. Uma nova matrícula constituirá sobrelotação.
                         </div>
                       ) : null}
@@ -662,7 +662,7 @@ export function StudentEnrollmentSheet({
               <p>
                 <strong>Turma:</strong> {turmaLabel}
                 {isOverCapacity ? (
-                  <span className="ml-1.5 inline-flex items-center rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">
+                  <span className="ml-1.5 inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-destructive">
                     Sobrelotação
                   </span>
                 ) : null}

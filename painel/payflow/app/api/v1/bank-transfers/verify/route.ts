@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { createOpaqueId, createReceiptCode } from "@/lib/identifiers";
 import { corsHeaders, isIntegrationAuthorized, jsonResponse } from "@/lib/payflow";
+import { requireAdminPermission } from "@/lib/admin-session";
 
 export const dynamic = "force-dynamic";
 
@@ -55,9 +56,12 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: Request) {
-  if (!isIntegrationAuthorized(request)) {
+  const adminSession = isIntegrationAuthorized(request)
+    ? null
+    : await requireAdminPermission(request, "reconciliation:write");
+  if (!isIntegrationAuthorized(request) && !adminSession) {
     return jsonResponse(
-      { error: { code: "unauthorized", message: "Chave de integração inválida." } },
+      { error: { code: "unauthorized", message: "Chave de integração ou sessão administrativa com permissão necessária." } },
       { status: 401 },
     );
   }
@@ -106,6 +110,35 @@ export async function POST(request: Request) {
       return jsonResponse(
         { error: { code: "transfer_not_found", message: "Referência de transferência não encontrada." } },
         { status: 404 },
+      );
+    }
+
+    if (adminSession && record.schoolId !== adminSession.schoolId) {
+      return jsonResponse(
+        {
+          error: {
+            code: "transfer_school_mismatch",
+            message: "Esta transferência não pertence à escola da sessão administrativa.",
+          },
+        },
+        { status: 403 },
+      );
+    }
+
+    if (
+      adminSession &&
+      parsed.data.source === "manual_review" &&
+      adminSession.role !== "finance_admin"
+    ) {
+      return jsonResponse(
+        {
+          error: {
+            code: "manual_review_requires_finance_admin",
+            message:
+              "A confirmação manual no extrato exige o papel finance_admin (Administrador SIGA).",
+          },
+        },
+        { status: 403 },
       );
     }
 
@@ -212,6 +245,9 @@ export async function POST(request: Request) {
       verified_by: parsed.data.verified_by,
       bank_transaction_id: parsed.data.bank_transaction_id,
       booked_at: parsed.data.booked_at,
+      admin_role: adminSession?.role ?? null,
+      admin_user_id: adminSession?.userId ?? null,
+      school_id: record.schoolId,
     });
 
     const updatePayment = db

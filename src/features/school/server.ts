@@ -76,7 +76,7 @@ async function upsertSettingDomain(
   return data;
 }
 
-async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
+export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
   const { data: school, error } = await db
     .from("schools")
     .select(

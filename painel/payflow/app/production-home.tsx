@@ -45,11 +45,16 @@ export function ProductionHome() {
             <p className="text-[15px] font-semibold tracking-[-0.02em]">PayFlow</p>
             <p className="text-xs text-muted-foreground">Financeiro escolar · SIGA Plus</p>
           </div>
-          {runtime.sandboxEnabled && (
-            <Badge variant="outline" className="ml-auto border-amber-300 text-amber-800">
-              Ambiente local
-            </Badge>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {runtime.sandboxEnabled && (
+              <Badge variant="outline" className="border-amber-300 text-amber-800">
+                Ambiente local
+              </Badge>
+            )}
+            <Button asChild size="sm" variant="outline">
+              <a href="/admin">Painel Admin</a>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -70,6 +75,9 @@ export function ProductionHome() {
               <a href="/aluno/pagar">
                 Entrar no portal do pagador <ArrowRight />
               </a>
+            </Button>
+            <Button asChild size="lg" variant="secondary" className="h-12">
+              <a href="/admin">Painel Administrativo</a>
             </Button>
             {runtime.sigaUrl && (
               <Button asChild size="lg" variant="outline" className="h-12">

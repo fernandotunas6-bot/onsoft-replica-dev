@@ -354,7 +354,7 @@ function PeoplePage() {
             </Button>
             <Button variant="outline" className="gap-2" asChild>
               <Link to="/importar" search={{ tab: "novo", modulo: "professores" }}>
-                <FileUp className="size-4 text-emerald-600" /> Importar Docentes
+                <FileUp className="size-4 text-primary" /> Importar Docentes
               </Link>
             </Button>
             <QuickFormModal

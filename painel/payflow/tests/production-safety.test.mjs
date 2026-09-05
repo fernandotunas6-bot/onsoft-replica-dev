@@ -104,12 +104,28 @@ test("bank verification matches authoritative movement data before issuing a rec
   );
 
   assert.match(verifyRoute, /isIntegrationAuthorized/);
+  assert.match(verifyRoute, /adminSession\.schoolId/);
+  assert.match(verifyRoute, /transfer_school_mismatch/);
+  assert.match(verifyRoute, /manual_review_requires_finance_admin/);
   assert.match(verifyRoute, /expectedAmountMinor !== parsed\.data\.amount/);
   assert.match(verifyRoute, /expectedCurrency !== parsed\.data\.currency/);
   assert.match(verifyRoute, /bank_transaction_already_used/);
   assert.match(verifyRoute, /proof_required_for_manual_review/);
   assert.match(verifyRoute, /type: "bank_transfer\.verified"/);
   assert.match(verifyRoute, /db\.insert\(paymentReceipts\)/);
+});
+
+test("admin login is fail-closed outside sandbox and SSO uses exchange with redirect guard", async () => {
+  const login = await readFile(path.join(root, "app/api/v1/admin/login/route.ts"), "utf8");
+  const exchange = await readFile(path.join(root, "app/api/v1/sso/exchange/route.ts"), "utf8");
+
+  assert.match(login, /use_sso_exchange/);
+  assert.match(login, /isSandboxRuntime\(\)/);
+  assert.doesNotMatch(login, /NODE_ENV !== "production"/);
+  assert.match(login, /school_required/);
+  assert.match(exchange, /status: 303/);
+  assert.match(exchange, /open redirect/);
+  assert.match(exchange, /redirect_to/);
 });
 
 test("education sync preserves the complete SIGA academic and financial context", async () => {
@@ -164,6 +180,13 @@ test("SSO assertions are signed, short-lived and reject tampering", async () => 
   assert.equal(await verifySsoAssertion(`${assertion.slice(0, -1)}x`, secret, now), null);
   assert.equal(await verifySsoAssertion(assertion, `${secret}-wrong`, now), null);
   assert.equal(await verifySsoAssertion(assertion, secret, now + 61_000), null);
+});
+
+test("bank account sync can upsert the school in the same request", async () => {
+  const bankSync = await readFile(path.join(root, "app/api/v1/bank-accounts/sync/route.ts"), "utf8");
+  assert.match(bankSync, /schoolUpsertSchema|school: schoolUpsertSchema/);
+  assert.match(bankSync, /insert\(schools\)/);
+  assert.match(bankSync, /school_not_found/);
 });
 
 test("administrative RBAC derives permissions server-side and scopes reconciliation by school", async () => {

@@ -414,6 +414,288 @@ export async function exportSchoolData(
       }
       autoFitColumns(sheet);
     }
+
+    if (mod === "inscricoes") {
+      const { data: applications } = await db
+        .from("enrollment_applications")
+        .select("id, full_name, status, payload, created_at, decided_at")
+        .eq("school_id", options.schoolId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+
+      const rows = applications || [];
+      counts["inscricoes"] = rows.length;
+      totalRecords += rows.length;
+
+      const sheet = workbook.addWorksheet("INSCRICOES", {
+        properties: { tabColor: { argb: "FF2563EB" } },
+      });
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+
+      const headers = [
+        "Nome do Candidato",
+        "Estado da Candidatura",
+        "Telefone",
+        "E-mail",
+        "Classe Pretendida",
+        "Data de Submissão",
+        "Data de Decisão",
+      ];
+      const hRow = sheet.addRow(headers);
+      styleHeaderRow(hRow, options.mode);
+
+      for (const app of rows) {
+        const payload = (app.payload ?? {}) as Record<string, any>;
+        const person = payload.person ?? {};
+        sheet.addRow([
+          app.full_name || person.full_name || "",
+          app.status || "",
+          person.phone_primary || payload.guardianPhone || "",
+          person.email || "",
+          payload.grade_level || payload.desired_grade || "",
+          app.created_at ? String(app.created_at).slice(0, 10) : "",
+          app.decided_at ? String(app.decided_at).slice(0, 10) : "",
+        ]);
+      }
+      autoFitColumns(sheet);
+    }
+
+    if (mod === "avaliacoes") {
+      const { data: items } = await db
+        .from("siga_assessment_items")
+        .select("id, name, kind, component, term, max_score, assessed_on, created_at")
+        .eq("school_id", options.schoolId)
+        .order("created_at", { ascending: false });
+
+      let rows = (items || []).map((item: any) => ({
+        id: item.id,
+        title: item.name,
+        code: item.component || item.kind || "",
+        max_score: item.max_score,
+        weight: 1,
+        term_label: item.term != null ? `${item.term}º Trimestre` : "",
+        created_at: item.assessed_on || item.created_at,
+      }));
+
+      if (!rows.length) {
+        const { data: gradeItems } = await db
+          .from("grade_items")
+          .select("id, name, code, max_score, weight, created_at")
+          .eq("school_id", options.schoolId);
+        rows = (gradeItems || []).map((gi: any) => ({
+          id: gi.id,
+          title: gi.name,
+          code: gi.code,
+          max_score: gi.max_score,
+          weight: gi.weight,
+          term_label: "",
+          created_at: gi.created_at,
+        }));
+      }
+
+      counts["avaliacoes"] = rows.length;
+      totalRecords += rows.length;
+
+      const sheet = workbook.addWorksheet("AVALIACOES", {
+        properties: { tabColor: { argb: "FF7C3AED" } },
+      });
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+
+      const headers = [
+        "Título da Avaliação",
+        "Código / Sigla",
+        "Cotação Máxima",
+        "Peso",
+        "Trimestre / Período",
+        "Data de Registo",
+      ];
+      const hRow = sheet.addRow(headers);
+      styleHeaderRow(hRow, options.mode);
+
+      for (const item of rows) {
+        sheet.addRow([
+          item.title || "",
+          item.code || "",
+          item.max_score != null ? item.max_score : "",
+          item.weight != null ? item.weight : "",
+          item.term_label || "",
+          item.created_at ? String(item.created_at).slice(0, 10) : "",
+        ]);
+      }
+      autoFitColumns(sheet);
+    }
+
+    if (mod === "historico_academico") {
+      const { data: historyRows } = await db
+        .from("student_academic_history")
+        .select(`
+          id,
+          academic_year_label,
+          grade_level,
+          previous_school,
+          final_average,
+          outcome,
+          students(student_number, people(full_name, national_id))
+        `)
+        .eq("school_id", options.schoolId)
+        .order("academic_year_label", { ascending: false });
+
+      let rows = historyRows || [];
+
+      if (!rows.length) {
+        const { data: enrollments } = await db
+          .from("enrollments")
+          .select(`
+            id,
+            status,
+            enrolled_on,
+            students(student_number, people(full_name, national_id)),
+            academic_years(name, code),
+            class_groups(name, grade_levels(name))
+          `)
+          .eq("school_id", options.schoolId)
+          .order("enrolled_on", { ascending: false });
+
+        rows = (enrollments || []).map((enr: any) => {
+          const std = Array.isArray(enr.students) ? enr.students[0] : enr.students;
+          const person = std?.people
+            ? Array.isArray(std.people)
+              ? std.people[0]
+              : std.people
+            : null;
+          const year = Array.isArray(enr.academic_years)
+            ? enr.academic_years[0]
+            : enr.academic_years;
+          const cg = Array.isArray(enr.class_groups) ? enr.class_groups[0] : enr.class_groups;
+          const grade = cg?.grade_levels
+            ? Array.isArray(cg.grade_levels)
+              ? cg.grade_levels[0]
+              : cg.grade_levels
+            : null;
+          return {
+            id: enr.id,
+            academic_year_label: year?.name || year?.code || "",
+            grade_level: grade?.name || "",
+            previous_school: null,
+            final_average: null,
+            outcome: enr.status || "",
+            students: {
+              student_number: std?.student_number,
+              people: person,
+            },
+          };
+        });
+      }
+
+      counts["historico_academico"] = rows.length;
+      totalRecords += rows.length;
+
+      const sheet = workbook.addWorksheet("HISTORICO_ACADEMICO", {
+        properties: { tabColor: { argb: "FF0F766E" } },
+      });
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+
+      const headers = [
+        "Nº Processo",
+        "Nome do Aluno",
+        "BI / Cédula",
+        "Ano Lectivo",
+        "Classe",
+        "Escola de Proveniência",
+        "Média Final",
+        "Desfecho",
+      ];
+      const hRow = sheet.addRow(headers);
+      styleHeaderRow(hRow, options.mode);
+
+      for (const row of rows) {
+        const std = Array.isArray(row.students) ? row.students[0] : row.students;
+        const person = std?.people
+          ? Array.isArray(std.people)
+            ? std.people[0]
+            : std.people
+          : null;
+        sheet.addRow([
+          std?.student_number || "",
+          person?.full_name || "",
+          person?.national_id || "",
+          row.academic_year_label || "",
+          row.grade_level || "",
+          row.previous_school || "",
+          row.final_average != null ? row.final_average : "",
+          row.outcome || "",
+        ]);
+      }
+      autoFitColumns(sheet);
+    }
+
+    if (mod === "historico_financeiro") {
+      const { data: invoices } = await db
+        .from("finance_invoices")
+        .select(`
+          id,
+          invoice_number,
+          amount,
+          amount_paid,
+          status,
+          due_date,
+          paid_at,
+          payment_channel,
+          students(
+            student_number,
+            people(full_name, national_id)
+          )
+        `)
+        .eq("school_id", options.schoolId)
+        .is("deleted_at", null)
+        .order("due_date", { ascending: false });
+
+      const rows = invoices || [];
+      counts["historico_financeiro"] = rows.length;
+      totalRecords += rows.length;
+
+      const sheet = workbook.addWorksheet("HISTORICO_FINANCEIRO", {
+        properties: { tabColor: { argb: "FFB45309" } },
+      });
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+
+      const headers = [
+        "Nº Fatura / Recibo",
+        "Nº Processo",
+        "Nome do Aluno",
+        "BI / Cédula",
+        "Valor Total (AOA)",
+        "Valor Pago (AOA)",
+        "Estado",
+        "Data de Vencimento",
+        "Data de Liquidação",
+        "Canal",
+      ];
+      const hRow = sheet.addRow(headers);
+      styleHeaderRow(hRow, options.mode);
+
+      for (const inv of rows) {
+        const std = Array.isArray(inv.students) ? inv.students[0] : inv.students;
+        const person = std?.people
+          ? Array.isArray(std.people)
+            ? std.people[0]
+            : std.people
+          : null;
+        sheet.addRow([
+          inv.invoice_number || "",
+          std?.student_number || "",
+          person?.full_name || "",
+          person?.national_id || "",
+          inv.amount != null ? inv.amount : "",
+          inv.amount_paid != null ? inv.amount_paid : "",
+          inv.status || "",
+          inv.due_date || "",
+          inv.paid_at ? String(inv.paid_at).slice(0, 10) : "",
+          inv.payment_channel || "",
+        ]);
+      }
+      autoFitColumns(sheet);
+    }
   }
 
   // ---------------------------------------------------------------------------

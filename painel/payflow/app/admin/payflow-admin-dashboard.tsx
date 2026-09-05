@@ -1,0 +1,792 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Banknote,
+  Building2,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  FileCheck2,
+  Filter,
+  Landmark,
+  Layers,
+  LoaderCircle,
+  Lock,
+  LogOut,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  TrendingUp,
+  WalletCards,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { Money } from "@/components/payflow/money";
+import { PaymentStatusBadge } from "@/components/payflow/payment-status-badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatCurrency } from "@/lib/formatters";
+
+type AdminSession = {
+  user_id: string;
+  tenant_id: string;
+  school_id: string;
+  role: string;
+  permissions: string[];
+  expires_at: string;
+};
+
+type ReconciliationItem = {
+  payment_id: string;
+  school_id: string;
+  student_id: string | null;
+  invoice_id: string | null;
+  invoice_code: string | null;
+  description: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "paid" | "failed" | "refunded";
+  method: string;
+  provider: string;
+  merchant_reference: string | null;
+  provider_transaction_id: string | null;
+  provider_status: string | null;
+  receipt_code: string | null;
+  receipt_issued_at: string | null;
+  reconciliation_status: "reconciled" | "attention" | "awaiting" | "closed";
+  created_at: string;
+  verification_url: string | null;
+};
+
+type ReconciliationData = {
+  summary: {
+    records: number;
+    paid_amount: number;
+    pending_amount: number;
+    reconciled: number;
+    attention: number;
+  };
+  items: ReconciliationItem[];
+};
+
+export function PayflowAdminDashboard() {
+  const [session, setSession] = useState<AdminSession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [accessKey, setAccessKey] = useState("");
+  const [data, setData] = useState<ReconciliationData | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("reconciliation");
+
+  // Modal para verificação manual de transferência
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ReconciliationItem | null>(null);
+  const [bankTxId, setBankTxId] = useState("");
+  const [verifying, setVerifying] = useState(false);
+
+  async function checkSession() {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/v1/admin/session");
+      if (res.ok) {
+        const json = (await res.json()) as { data: AdminSession };
+        setSession(json.data);
+        await loadReconciliation();
+      } else {
+        setSession(null);
+      }
+    } catch {
+      setSession(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadReconciliation() {
+    try {
+      setRefreshing(true);
+      const res = await fetch("/api/v1/reconciliation?status=all&limit=100");
+      if (res.ok) {
+        const json = (await res.json()) as { data: ReconciliationData };
+        setData(json.data);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao carregar dados de conciliação.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      setLoggingIn(true);
+      const res = await fetch("/api/v1/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: accessKey.trim() || undefined }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error?.message || "Credencial inválida.");
+        return;
+      }
+      toast.success("Sessão administrativa iniciada com sucesso!");
+      setSession(json.data);
+      await loadReconciliation();
+    } catch {
+      toast.error("Não foi possível conectar ao servidor.");
+    } finally {
+      setLoggingIn(false);
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/v1/admin/logout", { method: "POST" });
+      setSession(null);
+      setData(null);
+      toast.info("Sessão terminada.");
+    } catch {
+      setSession(null);
+    }
+  }
+
+  async function confirmManualTransfer() {
+    if (!selectedItem) return;
+    if (!bankTxId.trim()) {
+      toast.error("Informe o número do movimento bancário.");
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      const res = await fetch("/api/v1/bank-transfers/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transfer_reference: selectedItem.merchant_reference || selectedItem.payment_id,
+          amount: selectedItem.amount,
+          currency: selectedItem.currency,
+          bank_transaction_id: bankTxId.trim(),
+          booked_at: new Date().toISOString(),
+          source: "manual_review",
+          verified_by: session?.user_id || "gestor_financeiro",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error?.message || "Erro ao verificar transferência.");
+        return;
+      }
+      toast.success(`Transferência confirmada! Recibo: ${json.data?.receipt_code || "Emitido"}`);
+      setVerifyModalOpen(false);
+      setSelectedItem(null);
+      setBankTxId("");
+      await loadReconciliation();
+    } catch {
+      toast.error("Falha ao comunicar com o serviço bancário.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
+        <LoaderCircle className="size-10 animate-spin text-primary" />
+        <p className="mt-4 text-sm text-muted-foreground">A carregar Painel Administrativo PayFlow…</p>
+      </div>
+    );
+  }
+
+  // TELA DE AUTENTICAÇÃO ADMINISTRATIVA
+  if (!session) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 px-4 py-12">
+        <Card className="w-full max-w-md border-border bg-card shadow-lg">
+          <CardHeader className="space-y-2 text-center">
+            <div className="mx-auto grid size-12 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <WalletCards className="size-6" />
+            </div>
+            <CardTitle className="text-2xl font-bold tracking-tight">Painel PayFlow</CardTitle>
+            <CardDescription>
+              Aceda à gestão de cobranças, conciliação e comprovativos de pagamento
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="key">Chave de Acesso / Integração</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 size-4 text-muted-foreground" />
+                  <Input
+                    id="key"
+                    type="password"
+                    placeholder="Chave de segurança ou PIN institucional"
+                    value={accessKey}
+                    onChange={(e) => setAccessKey(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Em sandbox, pode entrar com a chave de integração ou o atalho local. Em produção,
+                  use o botão «Conciliação PayFlow» no SIGA (SSO assinado).
+                </p>
+              </div>
+
+              <Button type="submit" className="w-full h-11" disabled={loggingIn}>
+                {loggingIn ? (
+                  <>
+                    <LoaderCircle className="mr-2 size-4 animate-spin" />
+                    A autenticar…
+                  </>
+                ) : (
+                  <>
+                    Entrar no Painel <ArrowRight className="ml-2 size-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <Separator />
+
+            <div className="flex flex-col gap-2">
+              <Button asChild variant="outline" className="w-full">
+                <a href="/aluno/pagar">
+                  <ExternalLink className="mr-2 size-4" /> Ir para o Portal do Aluno
+                </a>
+              </Button>
+              <Button asChild variant="ghost" className="w-full text-xs text-muted-foreground">
+                <a href="/">Voltar à Página Inicial</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  // DADOS FILTRADOS
+  const filteredItems = (data?.items || []).filter((item) => {
+    if (statusFilter !== "all" && item.status !== statusFilter) return false;
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      item.description.toLowerCase().includes(term) ||
+      (item.invoice_code && item.invoice_code.toLowerCase().includes(term)) ||
+      (item.merchant_reference && item.merchant_reference.toLowerCase().includes(term)) ||
+      (item.receipt_code && item.receipt_code.toLowerCase().includes(term))
+    );
+  });
+
+  const pendingTransfers = (data?.items || []).filter(
+    (item) => item.provider === "bank_transfer" && item.status === "pending",
+  );
+
+  return (
+    <div className="min-h-screen bg-muted/20 text-foreground">
+      {/* HEADER SUPERIOR */}
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <WalletCards className="size-5" />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold tracking-tight">PayFlow</span>
+                <Badge variant="secondary" className="text-xs">
+                  Admin
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">Conciliação & Pagamentos Escolares</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadReconciliation}
+              disabled={refreshing}
+              className="gap-1.5"
+            >
+              <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Atualizar</span>
+            </Button>
+
+            <Button asChild variant="outline" size="sm">
+              <a href="http://localhost:3006/financeiro" target="_blank" rel="noreferrer">
+                <ExternalLink className="size-3.5 mr-1" />
+                <span className="hidden sm:inline">SIGA Plus</span>
+              </a>
+            </Button>
+
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive">
+              <LogOut className="size-4 mr-1" />
+              <span className="hidden sm:inline">Sair</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* CONTEÚDO PRINCIPAL */}
+      <main className="mx-auto max-w-7xl p-4 sm:p-6 sm:py-8 space-y-6">
+        {/* CARDS DE RESUMO FINANCEIRO */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Liquidado</CardTitle>
+              <CheckCircle2 className="size-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(data?.summary.paid_amount || 0)}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {data?.summary.reconciled || 0} pagamentos conciliados
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Pendente / Em Curso</CardTitle>
+              <Clock className="size-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                {formatCurrency(data?.summary.pending_amount || 0)}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Aguardando liquidação ou validação
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Comprovativos para Rever</CardTitle>
+              <ShieldAlert className="size-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {data?.summary.attention || 0}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Transferências a aguardar conferência
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Volume de Registros</CardTitle>
+              <Layers className="size-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data?.summary.records || 0}</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Transações monitoradas no gateway
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* NAVEGAÇÃO POR ABAS */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="bg-background border border-border">
+            <TabsTrigger value="reconciliation">Conciliação & Cobranças</TabsTrigger>
+            <TabsTrigger value="transfers" className="relative">
+              Transferências Bancárias
+              {pendingTransfers.length > 0 && (
+                <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
+                  {pendingTransfers.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="providers">Canais & Infraestrutura</TabsTrigger>
+          </TabsList>
+
+          {/* ABA 1: CONCILIAÇÃO GERAL */}
+          <TabsContent value="reconciliation" className="space-y-4">
+            <Card className="border-border">
+              <CardHeader className="pb-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Extrato de Pagamentos & Conciliação</CardTitle>
+                    <CardDescription>
+                      Consulte todas as operações sincronizadas pelo SIGA Plus e gateways
+                    </CardDescription>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar por fatura ou recibo..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 h-9"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant={statusFilter === "all" ? "secondary" : "ghost"}
+                        onClick={() => setStatusFilter("all")}
+                      >
+                        Todos
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={statusFilter === "paid" ? "secondary" : "ghost"}
+                        onClick={() => setStatusFilter("paid")}
+                      >
+                        Pagos
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={statusFilter === "pending" ? "secondary" : "ghost"}
+                        onClick={() => setStatusFilter("pending")}
+                      >
+                        Pendentes
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Fatura / Referência</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Método</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Conciliação</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredItems.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                            Nenhum registo de pagamento encontrado com os filtros atuais.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredItems.map((item) => (
+                          <TableRow key={item.payment_id}>
+                            <TableCell className="font-mono text-xs">
+                              <div>{item.invoice_code || item.payment_id.slice(0, 12)}</div>
+                              {item.merchant_reference && (
+                                <div className="text-[11px] text-muted-foreground">
+                                  Ref: {item.merchant_reference}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-[220px] truncate text-sm">
+                              {item.description}
+                            </TableCell>
+                            <TableCell className="font-semibold">
+                              {formatCurrency(item.amount)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize text-xs">
+                                {item.method.replace("_", " ")}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <PaymentStatusBadge status={item.status} />
+                            </TableCell>
+                            <TableCell>
+                              {item.reconciliation_status === "reconciled" ? (
+                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                  Conciliado
+                                </Badge>
+                              ) : item.reconciliation_status === "attention" ? (
+                                <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                  Requer Atenção
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">
+                                  Aguardando
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right space-x-1">
+                              {item.receipt_code && (
+                                <Button asChild size="sm" variant="ghost" className="h-8 px-2 text-xs">
+                                  <a href={`/comprovativo/${item.receipt_code}`} target="_blank" rel="noreferrer">
+                                    <FileCheck2 className="size-3.5 mr-1" /> Recibo
+                                  </a>
+                                </Button>
+                              )}
+                              {item.provider === "bank_transfer" && item.status === "pending" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs border-amber-300 text-amber-800"
+                                  onClick={() => {
+                                    setSelectedItem(item);
+                                    setBankTxId("");
+                                    setVerifyModalOpen(true);
+                                  }}
+                                >
+                                  Verificar
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ABA 2: VALIDAÇÃO DE TRANSFERÊNCIAS */}
+          <TabsContent value="transfers" className="space-y-4">
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-lg">Conferência de Transferências Bancárias</CardTitle>
+                <CardDescription>
+                  Comprovativos submetidos pelos alunos/encarregados aguardando conciliação com o extrato
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data / Ref</TableHead>
+                        <TableHead>Aluno / Fatura</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Referência Bancária</TableHead>
+                        <TableHead>Ação</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingTransfers.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                            Não existem transferências pendentes para verificação no momento.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        pendingTransfers.map((item) => (
+                          <TableRow key={item.payment_id}>
+                            <TableCell className="text-xs">
+                              {new Date(item.created_at).toLocaleDateString("pt-AO")}
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium text-sm">{item.description}</div>
+                              <div className="text-xs text-muted-foreground">{item.invoice_code}</div>
+                            </TableCell>
+                            <TableCell className="font-bold">
+                              {formatCurrency(item.amount)}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {item.merchant_reference || "N/D"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                                onClick={() => {
+                                  setSelectedItem(item);
+                                  setBankTxId("");
+                                  setVerifyModalOpen(true);
+                                }}
+                              >
+                                Validar no Extrato
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ABA 3: CANAIS & PROVEDORES */}
+          <TabsContent value="providers" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Landmark className="size-4 text-primary" /> Transferências por IBAN Angolano
+                  </CardTitle>
+                  <CardDescription>Validação ISO mod-97 e conciliação bancária</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Suporte IBAN (AO06)</span>
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                      Ativo (21 Bancos)
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Upload de Comprovativos</span>
+                    <span>PDF, JPEG, PNG, WEBP</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Prazo de Expiração</span>
+                    <span>72 horas</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Segurança R2</span>
+                    <span>Armazenamento Criptografado</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Building2 className="size-4 text-primary" /> Gateway EMIS / Multicaixa
+                  </CardTitle>
+                  <CardDescription>Pagamentos por Referência e Multicaixa Express</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Ambiente de Operação</span>
+                    <Badge variant="outline">Sandbox Local / Produção</Badge>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Multicaixa Express</span>
+                    <span>Autorização por telemóvel</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Pagamento por Referência</span>
+                    <span>Entidade + Referência</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Recibos Verificáveis</span>
+                    <Badge variant="secondary">Emitidos com QR Code</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* MODAL DE CONFIRMAÇÃO MANUAL DE TRANSFERÊNCIA */}
+      <Dialog open={verifyModalOpen} onOpenChange={setVerifyModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar Movimento Bancário</DialogTitle>
+            <DialogDescription>
+              Valide o crédito no extrato bancário oficial da escola para emitir o recibo definitivo.
+              A confirmação manual exige o papel finance_admin (Administrador no SIGA via SSO).
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedItem && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg bg-muted/60 p-3 text-sm space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Descrição:</span>
+                  <span className="font-semibold">{selectedItem.description}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Valor:</span>
+                  <span className="font-bold text-emerald-600">
+                    {formatCurrency(selectedItem.amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Referência:</span>
+                  <span className="font-mono text-xs">{selectedItem.merchant_reference || selectedItem.payment_id}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="txId">ID da Transação no Banco / Extrato *</Label>
+                <Input
+                  id="txId"
+                  placeholder="Ex: TXN-2026-98124 ou Número de Lote"
+                  value={bankTxId}
+                  onChange={(e) => setBankTxId(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Identificador que consta no extrato bancário para auditoria e rastreabilidade fiscal.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setVerifyModalOpen(false)}
+              disabled={verifying}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmManualTransfer}
+              disabled={verifying}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {verifying ? (
+                <>
+                  <LoaderCircle className="mr-2 size-4 animate-spin" />
+                  A validar…
+                </>
+              ) : (
+                "Confirmar & Emitir Recibo"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

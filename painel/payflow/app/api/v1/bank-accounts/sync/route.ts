@@ -8,6 +8,13 @@ import { corsHeaders, isIntegrationAuthorized, jsonResponse } from "@/lib/payflo
 
 export const dynamic = "force-dynamic";
 
+const schoolUpsertSchema = z.object({
+  id: z.string().trim().min(3).max(100),
+  tenant_id: z.string().trim().min(3).max(100),
+  code: z.string().trim().toUpperCase().min(3).max(30),
+  name: z.string().trim().min(2).max(160),
+});
+
 const accountSchema = z
   .object({
     id: z.string().trim().min(3).max(100),
@@ -19,6 +26,8 @@ const accountSchema = z
     currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).default("AOA"),
     status: z.enum(["active", "inactive"]).default("active"),
     is_primary: z.boolean().default(true),
+    /** Quando a escola ainda não existe no PayFlow, permite criá-la no mesmo pedido. */
+    school: schoolUpsertSchema.optional(),
   })
   .superRefine((value, context) => {
     if (value.scope === "school" && !value.school_id) {
@@ -26,6 +35,13 @@ const accountSchema = z
     }
     if (value.scope === "platform" && value.school_id) {
       context.addIssue({ code: "custom", path: ["school_id"], message: "A conta da plataforma não pertence a uma escola." });
+    }
+    if (value.school && value.school_id && value.school.id !== value.school_id) {
+      context.addIssue({
+        code: "custom",
+        path: ["school", "id"],
+        message: "O ID da escola no bloco school deve coincidir com school_id.",
+      });
     }
     const iban = validateAngolaIban(value.iban);
     if (!iban.ok) {
@@ -69,6 +85,30 @@ export async function POST(request: Request) {
     }
 
     const db = getDb();
+    const now = new Date().toISOString();
+
+    if (parsed.data.school) {
+      await db
+        .insert(schools)
+        .values({
+          id: parsed.data.school.id,
+          tenantId: parsed.data.school.tenant_id,
+          publicCode: parsed.data.school.code,
+          name: parsed.data.school.name,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: schools.id,
+          set: {
+            tenantId: parsed.data.school.tenant_id,
+            publicCode: parsed.data.school.code,
+            name: parsed.data.school.name,
+            status: "active",
+            updatedAt: now,
+          },
+        });
+    }
+
     if (parsed.data.scope === "school") {
       const [school] = await db
         .select({ id: schools.id })
@@ -77,13 +117,18 @@ export async function POST(request: Request) {
         .limit(1);
       if (!school) {
         return jsonResponse(
-          { error: { code: "school_not_found", message: "Sincronize a escola antes da conta bancária." } },
+          {
+            error: {
+              code: "school_not_found",
+              message:
+                "Escola inexistente no PayFlow. Envie o bloco school no mesmo pedido ou sincronize um aluno primeiro.",
+            },
+          },
           { status: 409 },
         );
       }
     }
 
-    const now = new Date().toISOString();
     if (parsed.data.is_primary) {
       const ownership = parsed.data.scope === "school"
         ? eq(bankAccounts.schoolId, parsed.data.school_id!)

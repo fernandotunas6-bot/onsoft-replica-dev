@@ -77,6 +77,7 @@ import {
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { officialDeclarationBody } from "@/features/documents/schemas";
 import { issueInvoice, listInvoices, recordInvoicePayment } from "@/features/finance/server";
+import { PayflowStudentSyncButton } from "@/features/finance/components/PayflowStudentSyncButton";
 import { officialReceiptBody, paymentStatusFromInvoices } from "@/features/finance/schemas";
 import { kwanza } from "@/lib/currency";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
@@ -1194,6 +1195,7 @@ function StudentDetail() {
                   </Button>
                 )}
               />
+              <PayflowStudentSyncButton studentId={studentId} />
             ) : null}
             {canRequestDocument && templateOptions.length > 0 ? (
               <QuickFormModal

@@ -24,6 +24,7 @@ import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { warmFinanceCharts } from "@/lib/warm-charts";
 import { cn } from "@/lib/utils";
 import { getPayflowPayerUrl } from "@/lib/ecosystem-urls";
+import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
 
 const FinanceiroCashChart = lazy(() =>
   import("@/features/finance/FinanceiroCashChart").then((module) => ({
@@ -436,7 +437,7 @@ function FinanceiroPage() {
               </Button>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                  <FileUp className="size-4 text-emerald-600" /> Importar Pagamentos
+                  <FileUp className="size-4 text-primary" /> Importar Pagamentos
                 </Link>
               </Button>
               <Button variant="outline" className="gap-2" asChild>
@@ -445,9 +446,12 @@ function FinanceiroPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <CreditCard className="size-4 text-emerald-600" /> Portal PayFlow
+                  <CreditCard className="size-4 text-primary" /> Portal PayFlow
                 </a>
               </Button>
+              <PayflowAdminLaunchButton variant="outline" className="gap-2">
+                <Banknote className="size-4 text-primary" /> Conciliação PayFlow
+              </PayflowAdminLaunchButton>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/relatorios/financeiros">
                   <Banknote className="size-4" /> Resumo do caixa
@@ -465,6 +469,10 @@ function FinanceiroPage() {
                 </Button>
               )}
               <DocHelpButton title="Navegação e permissões — tesouraria" />
+              <DocPathHelpButton
+                path={DOC_PATHS.financePayflow}
+                title="PayFlow — cobrança e conciliação"
+              />
               <DocPathHelpButton
                 path={DOC_PATHS.integracoesEmis}
                 label="Pagamentos"
@@ -830,8 +838,8 @@ function FinanceiroPage() {
         ) : null}
 
         {!schemaBlocked && missingActiveFeePlan ? (
-          <Alert className="border-amber-500/40 bg-amber-500/10">
-            <AlertCircle className="size-4 text-amber-700 dark:text-amber-300" />
+          <Alert variant="default" className="border-border bg-card">
+            <AlertCircle className="size-4 text-primary" />
             <AlertTitle>Plano de propinas em falta</AlertTitle>
             <AlertDescription className="space-y-2">
               <p>

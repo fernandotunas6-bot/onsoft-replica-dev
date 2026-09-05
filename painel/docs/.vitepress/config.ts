@@ -105,6 +105,7 @@ export default defineConfig({
           text: 'Financeiro escolar',
           items: [
             { text: 'Exportação SAFT-AO / AGT', link: '/financeiro/saft-agt-exportacao' },
+            { text: 'PayFlow (cobrança)', link: '/financeiro/payflow' },
           ],
         },
       ],

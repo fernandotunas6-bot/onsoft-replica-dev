@@ -13,6 +13,9 @@ import {
   enrollNewStudentInputSchema,
   enrollStudentInClassInputSchema,
   getStudentInputSchema,
+  getStudentStatusHistoryInputSchema,
+  batchAssignClassInputSchema,
+  batchUpdateStudentStatusInputSchema,
   assignGuardianInputSchema,
   mapSgaGuardianRelationship,
   listEnrollmentsInputSchema,
@@ -22,6 +25,11 @@ import {
   updateEnrollmentInputSchema,
   updateStudentProfileInputSchema,
 } from "./schemas";
+import {
+  deriveAcademicStatus,
+  deriveFinancialSnapshot,
+  type InvoiceLike,
+} from "./academic-status";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 
@@ -82,6 +90,12 @@ type StudentListRow = {
   primary_guardian_name: string | null;
   person_id: string;
   school_id: string;
+  debt_amount?: number;
+  overdue_count?: number;
+  has_debt?: boolean;
+  total_billed?: number;
+  total_paid?: number;
+  national_id?: string | null;
 };
 
 export const searchStudents = createServerFn({ method: "GET" })
@@ -105,11 +119,11 @@ export const searchStudents = createServerFn({ method: "GET" })
     const personIds = [...new Set(rows.map((row: { person_id: string }) => row.person_id))];
     const studentIds = rows.map((row: { id: string }) => row.id);
 
-    const [{ data: people }, { data: enrollments }, { data: guardians }] = await Promise.all([
+    const [{ data: people }, { data: allEnrollments }, { data: guardians }] = await Promise.all([
       personIds.length
         ? db
             .from("people")
-            .select("id, full_name, email, phone, photo_url")
+            .select("id, full_name, email, phone, photo_url, national_id")
             .eq("school_id", membership.schoolId)
             .in("id", personIds)
         : Promise.resolve({
@@ -119,21 +133,24 @@ export const searchStudents = createServerFn({ method: "GET" })
               email: string | null;
               phone: string | null;
               photo_url?: string | null;
+              national_id?: string | null;
             }>,
           }),
       studentIds.length
         ? db
             .from("enrollments")
-            .select("student_id, class_group_id, academic_year_id, status")
+            .select("id, student_id, class_group_id, academic_year_id, status, enrolled_on")
             .in("student_id", studentIds)
             .eq("school_id", membership.schoolId)
-            .eq("status", "active")
+            .order("enrolled_on", { ascending: false })
         : Promise.resolve({
             data: [] as Array<{
+              id: string;
               student_id: string;
               class_group_id: string | null;
               academic_year_id: string | null;
               status: string;
+              enrolled_on?: string | null;
             }>,
           }),
       studentIds.length
@@ -152,6 +169,82 @@ export const searchStudents = createServerFn({ method: "GET" })
           }),
     ]);
 
+    // Map de matrículas: prioriza a matrícula activa; se não houver, usa a mais recente
+    const enrollmentByStudent = new Map<string, Record<string, unknown>>();
+    for (const enr of allEnrollments ?? []) {
+      const existing = enrollmentByStudent.get(enr.student_id);
+      if (!existing || enr.status === "active") {
+        enrollmentByStudent.set(enr.student_id, enr as Record<string, unknown>);
+      }
+    }
+
+    // Carregamento financeiro para os alunos pesquisados
+    const enrollmentIds = (allEnrollments ?? []).map((e) => e.id);
+    let invoicesByStudent = new Map<string, InvoiceLike[]>();
+    try {
+      if (enrollmentIds.length) {
+        const { data: contracts } = await db
+          .from("finance_contracts")
+          .select("id, enrollment_id")
+          .in("enrollment_id", enrollmentIds)
+          .eq("school_id", membership.schoolId);
+
+        const contractIds = (contracts ?? []).map((c) => c.id);
+        if (contractIds.length) {
+          const { data: invoices } = await db
+            .from("finance_invoices")
+            .select("id, contract_id, amount, discount_amount, due_date, status")
+            .in("contract_id", contractIds)
+            .eq("school_id", membership.schoolId)
+            .neq("status", "cancelled");
+
+          const invoiceIds = (invoices ?? []).map((inv) => inv.id);
+          const { data: receipts } = invoiceIds.length
+            ? await db
+                .from("finance_receipts")
+                .select("invoice_id, amount, status")
+                .in("invoice_id", invoiceIds)
+                .eq("school_id", membership.schoolId)
+            : { data: [] };
+
+          const paidByInvoice = new Map<string, number>();
+          for (const r of receipts ?? []) {
+            if (r.status === "reversed") continue;
+            paidByInvoice.set(
+              r.invoice_id,
+              (paidByInvoice.get(r.invoice_id) ?? 0) + Number(r.amount ?? 0),
+            );
+          }
+
+          const studentIdByContract = new Map<string, string>();
+          const studentByEnrollment = new Map((allEnrollments ?? []).map((e) => [e.id, e.student_id]));
+          for (const c of contracts ?? []) {
+            const sid = studentByEnrollment.get(c.enrollment_id);
+            if (sid) studentIdByContract.set(c.id, sid);
+          }
+
+          for (const inv of invoices ?? []) {
+            const sid = studentIdByContract.get(inv.contract_id);
+            if (sid) {
+              const list = invoicesByStudent.get(sid) ?? [];
+              list.push({
+                id: inv.id,
+                amount: inv.amount,
+                discount_amount: inv.discount_amount,
+                amount_paid: paidByInvoice.get(inv.id) ?? 0,
+                due_date: inv.due_date,
+                status: inv.status,
+              });
+              invoicesByStudent.set(sid, list);
+            }
+          }
+        }
+      }
+    } catch {
+      // Fallback gracioso caso o módulo financeiro ainda não esteja provisionado
+      invoicesByStudent = new Map();
+    }
+
     const peopleById = new Map(
       (people ?? []).map((person: { id: string }) => [
         person.id,
@@ -160,14 +253,14 @@ export const searchStudents = createServerFn({ method: "GET" })
     );
     const classGroupIds = [
       ...new Set(
-        (enrollments ?? [])
+        (allEnrollments ?? [])
           .map((row: { class_group_id: string | null }) => row.class_group_id)
           .filter(Boolean),
       ),
     ] as string[];
     const yearIds = [
       ...new Set(
-        (enrollments ?? [])
+        (allEnrollments ?? [])
           .map((row: { academic_year_id: string | null }) => row.academic_year_id)
           .filter(Boolean),
       ),
@@ -240,12 +333,6 @@ export const searchStudents = createServerFn({ method: "GET" })
         row.full_name,
       ]),
     );
-    const enrollmentByStudent = new Map(
-      (enrollments ?? []).map((row: { student_id: string }) => [
-        row.student_id,
-        row as Record<string, unknown>,
-      ]),
-    );
 
     const query = (data.query ?? "").trim().toLowerCase();
     const mapped: StudentListRow[] = rows.map(
@@ -269,10 +356,16 @@ export const searchStudents = createServerFn({ method: "GET" })
           : null;
         const guardianId = guardianByStudent.get(student.id);
         const enrollmentStatus = enrollment?.["status"] ? String(enrollment["status"]) : null;
-        const effectiveStatus =
-          enrollmentStatus === "active" && student.status === "applicant"
-            ? "active"
-            : student.status;
+        const hasClassGroup = Boolean(enrollment?.["class_group_id"]);
+        const effectiveStatus = deriveAcademicStatus({
+          studentStatus: student.status,
+          enrollmentStatus,
+          hasClassGroup,
+        });
+
+        const studentInvs = invoicesByStudent.get(student.id) ?? [];
+        const finSnapshot = deriveFinancialSnapshot(studentInvs);
+
         return {
           id: student.id,
           registration_number: student.student_number,
@@ -280,10 +373,14 @@ export const searchStudents = createServerFn({ method: "GET" })
           email: (person?.["email"] as string | null) ?? null,
           phone: (person?.["phone"] as string | null) ?? null,
           photo_url: (person?.["photo_url"] as string | null) ?? null,
-          // Matrícula activa no SGA implica aluno activo na UI, mesmo se o
-          // registo ainda estiver como "applicant" por seed/legado.
+          national_id: (person?.["national_id"] as string | null) ?? null,
           student_status: effectiveStatus,
-          payment_status: null,
+          payment_status: finSnapshot.paymentStatus,
+          debt_amount: finSnapshot.debtAmount,
+          overdue_count: finSnapshot.overdueCount,
+          has_debt: finSnapshot.hasDebt,
+          total_billed: finSnapshot.totalBilled,
+          total_paid: finSnapshot.totalPaid,
           grade_name: (grade?.["name"] as string | null) ?? null,
           class_name: (classGroup?.["name"] as string | null) ?? null,
           class_group_id: (classGroup?.["id"] as string | null) ?? null,
@@ -315,6 +412,10 @@ export const searchStudents = createServerFn({ method: "GET" })
         row.full_name.toLowerCase().includes(query) ||
         row.registration_number.toLowerCase().includes(query) ||
         (row.email ?? "").toLowerCase().includes(query) ||
+        (row.phone ?? "").toLowerCase().includes(query) ||
+        (row.national_id ?? "").toLowerCase().includes(query) ||
+        (row.class_name ?? "").toLowerCase().includes(query) ||
+        (row.grade_name ?? "").toLowerCase().includes(query) ||
         (row.primary_guardian_name ?? "").toLowerCase().includes(query),
     );
   });
@@ -768,6 +869,14 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
       applicant: "applicant",
     };
     const nextStatus = statusMap[data.newStatus] ?? data.newStatus;
+    const { data: currentStudent } = await db
+      .from("students")
+      .select("id, status, student_number")
+      .eq("id", data.studentId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    const previousStatus = currentStudent?.status ?? null;
+
     const { data: student, error } = await db
       .from("students")
       .update({ status: nextStatus, updated_by: context.userId })
@@ -777,6 +886,44 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível alterar o estado do aluno.");
     if (!student) throw new Error("Aluno não encontrado");
+
+    try {
+      const { error: historyError } = await db.from("student_status_history").insert({
+        school_id: membership.schoolId,
+        student_id: data.studentId,
+        previous_status: previousStatus,
+        new_status: nextStatus,
+        reason: data.reason || null,
+        changed_by: context.userId,
+      });
+      if (
+        historyError &&
+        !/student_status_history|42P01|schema cache|does not exist/i.test(historyError.message)
+      ) {
+        throw publicDatabaseError(historyError, "Não foi possível registar o histórico de estado.");
+      }
+    } catch (error) {
+      if (error instanceof Error && /Não foi possível registar o histórico/.test(error.message)) {
+        throw error;
+      }
+      // Tabela em falta: estado do aluno já foi actualizado; degradar sem bloquear.
+    }
+
+    try {
+      await db.from("audit_logs").insert({
+        school_id: membership.schoolId,
+        actor_id: context.userId,
+        action: "student.status_change",
+        entity_type: "student",
+        entity_id: data.studentId,
+        reason: data.reason || null,
+        before_data: { status: previousStatus },
+        after_data: { status: nextStatus },
+      });
+    } catch {
+      // Fallback
+    }
+
     queueTenantUsageSync(membership.schoolId);
     return student;
   });
@@ -1205,4 +1352,213 @@ export const removeGuardian = createServerFn({ method: "POST" })
       .eq("school_id", membership.schoolId);
     if (error) throw publicDatabaseError(error, "Não foi possível remover o encarregado.");
     return { studentId: data.studentId, guardianPersonId: data.guardianPersonId };
+  });
+
+export const getStudentStatusHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => getStudentStatusHistoryInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const db = await loadSgaAdminClient();
+
+    // 1. Procurar transições em student_status_history
+    const { data: historyRows } = await db
+      .from("student_status_history")
+      .select("id, previous_status, new_status, reason, changed_by, created_at")
+      .eq("student_id", data.studentId)
+      .eq("school_id", membership.schoolId)
+      .order("created_at", { ascending: false });
+
+    // 2. Procurar candidatura de origem em enrollment_applications
+    const { data: applications } = await db
+      .from("enrollment_applications")
+      .select("id, full_name, status, created_at, decided_at, decided_by")
+      .eq("student_id", data.studentId)
+      .eq("school_id", membership.schoolId);
+
+    // 3. Resolver nomes de utilizadores
+    const userIds = [
+      ...new Set([
+        ...(historyRows ?? []).map((r: { changed_by: string | null }) => r.changed_by).filter(Boolean),
+        ...(applications ?? []).map((a: { decided_by: string | null }) => a.decided_by).filter(Boolean),
+      ]),
+    ] as string[];
+
+    const { data: profiles } = userIds.length
+      ? await db.from("profiles").select("id, full_name, email").in("id", userIds)
+      : { data: [] as Array<{ id: string; full_name: string | null; email: string | null }> };
+    const userMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name || p.email]));
+
+    const events: Array<{
+      id: string;
+      previous_status: string | null;
+      new_status: string;
+      reason: string | null;
+      changed_by_name: string | null;
+      created_at: string;
+      event_type: "status_change" | "candidacy" | "enrollment";
+      details: string | null;
+    }> = [];
+
+    // Candidatura inicial (se houver)
+    for (const app of applications ?? []) {
+      events.push({
+        id: `app-sub-${app.id}`,
+        previous_status: null,
+        new_status: "applicant",
+        reason: "Candidatura institucional submetida",
+        changed_by_name: null,
+        created_at: app.created_at,
+        event_type: "candidacy",
+        details: "Submissão no portal",
+      });
+      if (app.decided_at && app.status === "accepted") {
+        events.push({
+          id: `app-dec-${app.id}`,
+          previous_status: "applicant",
+          new_status: "active",
+          reason: "Candidatura aceite pela secretaria",
+          changed_by_name: app.decided_by ? (userMap.get(app.decided_by) ?? null) : null,
+          created_at: app.decided_at,
+          event_type: "candidacy",
+          details: "Admissão confirmada",
+        });
+      }
+    }
+
+    // Histórico de transições registadas
+    for (const row of historyRows ?? []) {
+      events.push({
+        id: row.id,
+        previous_status: row.previous_status,
+        new_status: row.new_status,
+        reason: row.reason,
+        changed_by_name: row.changed_by ? (userMap.get(row.changed_by) ?? null) : null,
+        created_at: row.created_at,
+        event_type: "status_change",
+        details: null,
+      });
+    }
+
+    return events.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+  });
+
+export const batchAssignClass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => batchAssignClassInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: group } = await db
+      .from("class_groups")
+      .select("id, name, capacity, academic_year_id")
+      .eq("id", data.classGroupId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (!group) throw new Error("Turma não encontrada.");
+
+    const updatedStudents: string[] = [];
+    for (const studentId of data.studentIds) {
+      const { data: existing } = await db
+        .from("enrollments")
+        .select("id")
+        .eq("student_id", studentId)
+        .eq("academic_year_id", data.academicYearId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+
+      if (existing) {
+        await db
+          .from("enrollments")
+          .update({
+            class_group_id: data.classGroupId,
+            status: "active",
+            updated_by: context.userId,
+          })
+          .eq("id", existing.id);
+      } else {
+        await db.from("enrollments").insert({
+          school_id: membership.schoolId,
+          student_id: studentId,
+          class_group_id: data.classGroupId,
+          academic_year_id: data.academicYearId,
+          status: "active",
+          enrolled_on: new Date().toISOString().slice(0, 10),
+          created_by: context.userId,
+          updated_by: context.userId,
+        });
+      }
+
+      await db
+        .from("students")
+        .update({ status: "active", updated_by: context.userId })
+        .eq("id", studentId)
+        .eq("school_id", membership.schoolId);
+
+      updatedStudents.push(studentId);
+    }
+
+    queueTenantUsageSync(membership.schoolId);
+    return { success: true, count: updatedStudents.length, className: group.name };
+  });
+
+export const batchUpdateStudentStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => batchUpdateStudentStatusInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: students } = await db
+      .from("students")
+      .select("id, status")
+      .in("id", data.studentIds)
+      .eq("school_id", membership.schoolId);
+
+    const updatedIds: string[] = [];
+    for (const s of students ?? []) {
+      await db
+        .from("students")
+        .update({ status: data.newStatus, updated_by: context.userId })
+        .eq("id", s.id)
+        .eq("school_id", membership.schoolId);
+
+      try {
+        const { error: historyError } = await db.from("student_status_history").insert({
+          school_id: membership.schoolId,
+          student_id: s.id,
+          previous_status: s.status,
+          new_status: data.newStatus,
+          reason: data.reason || "Atualização em lote",
+          changed_by: context.userId,
+        });
+        if (
+          historyError &&
+          !/student_status_history|42P01|schema cache|does not exist/i.test(historyError.message)
+        ) {
+          throw publicDatabaseError(historyError, "Não foi possível registar o histórico de estado.");
+        }
+      } catch (error) {
+        if (error instanceof Error && /Não foi possível registar o histórico/.test(error.message)) {
+          throw error;
+        }
+      }
+      updatedIds.push(s.id);
+    }
+
+    queueTenantUsageSync(membership.schoolId);
+    return { success: true, count: updatedIds.length, status: data.newStatus };
   });

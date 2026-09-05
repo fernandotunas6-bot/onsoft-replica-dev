@@ -44,6 +44,7 @@ export const DOC_PATHS = {
   guideSqlSga: "/guide/sql-sga.html",
   guideInstallation: "/guide/installation.html",
   financeSaft: "/financeiro/saft-agt-exportacao.html",
+  financePayflow: "/financeiro/payflow.html",
   integracoesEmis: "/integracoes/emis-multicaixa-unitel.html",
   integracoesProducao: "/integracoes/gateway-producao.html",
   integracoesPortalBanco: "/integracoes/gateway-portal-banco.html",
@@ -123,4 +124,9 @@ export function getPayflowUrl(path = "/"): string | null {
 /** Portal público do pagador no PayFlow. */
 export function getPayflowPayerUrl(): string | null {
   return getPayflowUrl("/aluno/pagar");
+}
+
+/** Painel administrativo PayFlow (conciliação, transferências, RBAC financeiro). */
+export function getPayflowAdminUrl(): string | null {
+  return getPayflowUrl("/admin");
 }

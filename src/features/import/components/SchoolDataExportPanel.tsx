@@ -41,6 +41,12 @@ const AVAILABLE_EXPORT_MODULES: Array<{
     badge: "Académico",
   },
   {
+    id: "inscricoes",
+    label: "Inscrições & Candidaturas",
+    desc: "Candidaturas do portal público e ingressos pendentes",
+    badge: "Admissão",
+  },
+  {
     id: "pessoas",
     label: "Pessoas & Comunidade Escolar",
     desc: "Cadastros gerais com BI, gênero, data de nascimento e contactos",
@@ -53,10 +59,28 @@ const AVAILABLE_EXPORT_MODULES: Array<{
     badge: "Curricular",
   },
   {
+    id: "avaliacoes",
+    label: "Instrumentos de Avaliação",
+    desc: "Provas, testes e componentes do centro de avaliação",
+    badge: "Pedagógico",
+  },
+  {
     id: "pagamentos",
     label: "Faturas, Propinas & Pagamentos",
     desc: "Mensalidades emitidas, pagas, canais de cobrança e datas de vencimento",
     badge: "Financeiro",
+  },
+  {
+    id: "historico_academico",
+    label: "Histórico Escolar Anterior",
+    desc: "Anos, classes e escolas de proveniência por aluno",
+    badge: "Histórico",
+  },
+  {
+    id: "historico_financeiro",
+    label: "Histórico Financeiro",
+    desc: "Balanço de faturas e liquidações por estudante",
+    badge: "Tesouraria",
   },
 ];
 

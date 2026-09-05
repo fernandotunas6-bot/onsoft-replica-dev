@@ -48,8 +48,25 @@ Portas:
 servidor-a-servidor protegida por `PAYFLOW_INTEGRATION_API_KEY`; a chave nunca deve chegar
 ao browser nem usar prefixo `VITE_` ou `NEXT_PUBLIC_`.
 
+No SIGA, a server function `syncStudentToPayflow` (botão **Sync PayFlow** no modal extensivo
+do aluno → aba Financeiro) monta o payload a partir de:
+
+- `schools` + `tenant_id`
+- matrícula activa (`enrollments` + turma + ano)
+- faturas do contrato (`finance_invoices`, valores em cêntimos)
+- IBAN institucional (Definições → Financeiro)
+- código público de 7 dígitos e PIN estável derivados de forma determinística
+
 O SIGA continua responsável pela criação da obrigação. O PayFlow não deve alterar turma,
 matrícula, ano letivo nem identidade do aluno.
+
+## SSO administrativo SIGA → PayFlow
+
+`createPayflowAdminLaunch` assina um JWT HMAC (`PAYFLOW_SSO_SECRET`, ≥32 chars) com
+`iss=siga-plus` / `aud=payflow`. O browser faz POST form para
+`/api/v1/sso/exchange` (anti-replay por `jti`) e recebe cookie HttpOnly + redirect 303
+para `/admin`. O login por chave em `/api/v1/admin/login` fica reservado a sandbox /
+integração — não aceita `sso_assertion`.
 
 ## Estado de produção
 
@@ -89,11 +106,11 @@ nem em produção.
 
 Antes de ativar tráfego real:
 
-1. sincronizar as contas bancárias reais da plataforma e das escolas;
+1. sincronizar as contas bancárias reais da plataforma e das escolas — **Sync IBAN → PayFlow** em Definições → Financeiro (upsert escola+conta);
 2. escolher e configurar a fonte de movimentos: API bancária ou importação de extrato;
-3. definir papéis autorizados e dupla validação para revisões manuais;
+3. ~~definir papéis para revisão manual~~ — `manual_review` exige `finance_admin` + comprovativo;
 4. obter contrato, documentação, credenciais e homologação da EMIS;
-5. ligar SSO, tenant, escola, papéis e permissões sem criar um segundo login administrativo;
+5. ~~ligar SSO admin~~ — feito (`createPayflowAdminLaunch` + `/api/v1/sso/exchange`);
 6. executar testes de isolamento entre escolas e reconciliação ponta a ponta;
 7. configurar observabilidade, alertas e procedimento de reversão.
 

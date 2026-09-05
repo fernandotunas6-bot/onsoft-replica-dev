@@ -21,9 +21,30 @@ async function readAssertion(request: Request) {
   return typeof assertion === "string" ? assertion : "";
 }
 
+function readRedirectTo(request: Request, form: FormData | null) {
+  const url = new URL(request.url);
+  const fromQuery = url.searchParams.get("redirect_to")?.trim() || "";
+  const fromForm = form ? String(form.get("redirect_to") ?? "").trim() : "";
+  const candidate = fromForm || fromQuery || "/admin";
+  // Só caminhos relativos internos — evita open redirect.
+  if (!candidate.startsWith("/") || candidate.startsWith("//")) return "/admin";
+  return candidate;
+}
+
 export async function POST(request: Request) {
   try {
-    const assertion = await readAssertion(request);
+    const contentType = request.headers.get("content-type") ?? "";
+    const isForm = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+    let form: FormData | null = null;
+    let assertion = "";
+    if (isForm) {
+      form = await request.formData();
+      const value = form.get("assertion");
+      assertion = typeof value === "string" ? value : "";
+    } else {
+      assertion = await readAssertion(request);
+    }
+
     const claims = await verifySsoAssertion(assertion, getSsoSecret());
     if (!claims) {
       return jsonResponse(
@@ -63,6 +84,19 @@ export async function POST(request: Request) {
       createdAt: now,
     });
 
+    const cookie = sessionCookie(token, request.url, maxAgeSeconds);
+    if (isForm) {
+      const redirectTo = readRedirectTo(request, form);
+      return new Response(null, {
+        status: 303,
+        headers: {
+          Location: new URL(redirectTo, request.url).toString(),
+          "Cache-Control": "no-store",
+          "Set-Cookie": cookie,
+        },
+      });
+    }
+
     return jsonResponse(
       {
         data: {
@@ -78,7 +112,7 @@ export async function POST(request: Request) {
         status: 201,
         headers: {
           "Cache-Control": "no-store",
-          "Set-Cookie": sessionCookie(token, request.url, maxAgeSeconds),
+          "Set-Cookie": cookie,
         },
       },
     );

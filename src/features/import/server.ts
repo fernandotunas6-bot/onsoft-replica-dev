@@ -82,6 +82,12 @@ export const analyzeImportFile = createServerFn({ method: "POST" })
   .validator((input: unknown) => analyzeImportFileInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    // Só membros com papel de importação podem analisar ficheiros (evita abuso anónimo autenticado).
+    await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Tesouraria",
+    ]);
     const { parseImportFile } = await import("./engine/parse");
     const buffer = base64ToBuffer(data.file_base64);
     if (buffer.byteLength > 25 * 1024 * 1024) {
@@ -624,6 +630,11 @@ export const downloadOfficialExcelTemplateFn = createServerFn({ method: "POST" }
   .validator((input: unknown) => downloadOfficialTemplateSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Tesouraria",
+    ]);
     const { buildOfficialExcelTemplate } = await import("./engine/excel-template-builder");
     const buffer = await buildOfficialExcelTemplate(data.module);
     const fileName = `Modelo_${data.module.toUpperCase()}_SIGA.xlsx`;

@@ -7,21 +7,12 @@ import {
   GraduationCap,
   Users,
   Wallet,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
   Camera,
   Upload,
   ExternalLink,
   QrCode,
-  FileText,
-  Clock,
-  Award,
-  CheckCircle2,
-  AlertCircle,
   Loader2,
-  FolderOpen,
+  History,
 } from "lucide-react";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -30,28 +21,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { applyLibraryPhotoToPerson } from "@/features/arquivos/apply-person-photo";
 import { resolvePersonPhotoUrl } from "@/features/arquivos/person-photo-url";
-import { getStudentProfile } from "@/features/students/server";
+import { getStudentProfile, getStudentStatusHistory } from "@/features/students/server";
 import { setPersonPhotoUrl } from "@/features/people/server";
 import { whatsappHref } from "@/features/integrations/actions";
 import { supabase } from "@/integrations/supabase/client";
 import { StudentDigitalCardModal } from "./StudentDigitalCardModal";
-import { cn } from "@/lib/utils";
-
-const statusColors: Record<string, { bg: string; text: string; label: string }> = {
-  active: { bg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20", text: "text-emerald-600", label: "Activo" },
-  applicant: { bg: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20", text: "text-blue-600", label: "Candidato" },
-  inactive: { bg: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20", text: "text-zinc-600", label: "Inactivo" },
-  transferred: { bg: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20", text: "text-amber-600", label: "Transferido" },
-  graduated: { bg: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20", text: "text-purple-600", label: "Concluído" },
-};
-
-const paymentStatusConfig: Record<string, { label: string; badge: string }> = {
-  settled: { label: "Propinas em Dia", badge: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-  paid: { label: "Regular", badge: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-  pending: { label: "Pagamento Pendente", badge: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
-  overdue: { label: "Mensalidade em Mora", badge: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
-  partial: { label: "Pagamento Parcial", badge: "bg-sky-500/15 text-sky-600 border-sky-500/30" },
-};
+import { StudentStatusBadge } from "./StudentStatusBadge";
+import { StudentFinanceBadge } from "./StudentFinanceBadge";
+import { StudentStatusHistoryTimeline } from "./StudentStatusHistoryTimeline";
+import { formatKz } from "@/features/students/academic-status";
+import { PayflowStudentSyncButton } from "@/features/finance/components/PayflowStudentSyncButton";
 
 export interface StudentExtensiveModalProps {
   open: boolean;
@@ -70,6 +49,11 @@ export interface StudentExtensiveModalProps {
     primary_guardian_name: string | null;
     phone: string | null;
     email: string | null;
+    debt_amount?: number;
+    overdue_count?: number;
+    has_debt?: boolean;
+    total_billed?: number;
+    total_paid?: number;
   } | null;
 }
 
@@ -92,6 +76,12 @@ export function StudentExtensiveModal({
     queryFn: () => getStudentProfile({ data: { id: studentId! } }),
   });
 
+  const statusHistoryQuery = useQuery({
+    queryKey: ["students", "status-history", studentId],
+    enabled: Boolean(open && studentId),
+    queryFn: () => getStudentStatusHistory({ data: { studentId: studentId! } }),
+  });
+
   const profile = profileQuery.data;
   const person = profile?.person;
   const student = profile?.student;
@@ -104,7 +94,7 @@ export function StudentExtensiveModal({
   const fullName = person?.full_name || initialData?.full_name || "Aluno";
   const studentNumber = student?.student_number || initialData?.registration_number || "—";
   const statusKey = student?.status || initialData?.student_status || "active";
-  const paymentKey = initialData?.payment_status || "pending";
+  const paymentKey = initialData?.payment_status || null;
 
   useEffect(() => {
     if (person?.photo_url) {
@@ -210,9 +200,6 @@ export function StudentExtensiveModal({
     }
   };
 
-  const statusInfo = statusColors[statusKey] ?? statusColors.active;
-  const paymentInfo = paymentStatusConfig[paymentKey] ?? paymentStatusConfig.pending;
-
   return (
     <ModalShell open={open} onOpenChange={onOpenChange} size="xl" className="overflow-hidden">
       <ModalHeader
@@ -258,12 +245,13 @@ export function StudentExtensiveModal({
               <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
                 {fullName}
               </h2>
-              <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold border", statusInfo.bg)}>
-                {statusInfo.label}
-              </span>
-              <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold border", paymentInfo.badge)}>
-                {paymentInfo.label}
-              </span>
+              <StudentStatusBadge status={statusKey} size="md" />
+              <StudentFinanceBadge
+                status={paymentKey}
+                debtAmount={initialData?.debt_amount}
+                overdueCount={initialData?.overdue_count}
+                size="md"
+              />
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-muted-foreground">
@@ -331,7 +319,7 @@ export function StudentExtensiveModal({
 
         {/* Abas Extensivas de Informação */}
         <Tabs defaultValue="pessoal" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 h-9">
+          <TabsList className="grid w-full grid-cols-5 h-9">
             <TabsTrigger value="pessoal" className="text-xs sm:text-sm gap-1.5">
               <User className="size-3.5" />
               <span className="hidden sm:inline">Dados</span> Pessoais
@@ -347,6 +335,10 @@ export function StudentExtensiveModal({
             <TabsTrigger value="financeiro" className="text-xs sm:text-sm gap-1.5">
               <Wallet className="size-3.5" />
               Financeiro
+            </TabsTrigger>
+            <TabsTrigger value="historico" className="text-xs sm:text-sm gap-1.5">
+              <History className="size-3.5" />
+              Histórico
             </TabsTrigger>
           </TabsList>
 
@@ -447,9 +439,9 @@ export function StudentExtensiveModal({
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
                 <span className="text-xs font-medium text-muted-foreground block">Estado da Matrícula</span>
-                <span className="text-sm font-semibold mt-0.5 block text-foreground">
-                  {statusInfo.label}
-                </span>
+                <div className="mt-1.5">
+                  <StudentStatusBadge status={statusKey} size="md" />
+                </div>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
@@ -503,23 +495,62 @@ export function StudentExtensiveModal({
           {/* 4. Financeiro */}
           <TabsContent value="financeiro" className="space-y-4 pt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-4 rounded-xl bg-card border border-border/70 space-y-1">
+              <div className="p-4 rounded-xl bg-card border border-border/70 space-y-2">
                 <span className="text-xs font-medium text-muted-foreground block">Situação das Propinas</span>
-                <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border", paymentInfo.badge)}>
-                  <CheckCircle2 className="size-3.5" />
-                  {paymentInfo.label}
-                </span>
+                <StudentFinanceBadge
+                  status={paymentKey}
+                  debtAmount={initialData?.debt_amount}
+                  overdueCount={initialData?.overdue_count}
+                  size="lg"
+                />
+                {initialData?.debt_amount && initialData.debt_amount > 0 ? (
+                  <p className="text-xs text-destructive font-medium mt-1">
+                    Em atraso: {formatKz(initialData.debt_amount)}
+                    {initialData.overdue_count
+                      ? ` · ${initialData.overdue_count} fatura(s)`
+                      : ""}
+                  </p>
+                ) : null}
                 <p className="text-xs text-muted-foreground mt-2">
                   As cobranças e recibos podem ser emitidos diretamente a partir da ficha completa do aluno.
                 </p>
               </div>
 
               <div className="p-4 rounded-xl bg-card border border-border/70 space-y-2">
-                <span className="text-xs font-medium text-muted-foreground block">Plano & Modalidade</span>
-                <span className="text-sm font-semibold text-foreground block">Mensalidade Escolar Padronizada</span>
-                <span className="text-xs text-muted-foreground block">Moeda oficial: Kwanzas (AOA)</span>
+                <span className="text-xs font-medium text-muted-foreground block">Resumo Financeiro</span>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground block">Facturado</span>
+                    <span className="font-semibold font-mono text-foreground">
+                      {formatKz(initialData?.total_billed ?? 0)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block">Pago</span>
+                    <span className="font-semibold font-mono text-foreground">
+                      {formatKz(initialData?.total_paid ?? 0)}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground block pt-1">Moeda oficial: Kwanzas (AOA)</span>
               </div>
             </div>
+            {studentId ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-card p-3">
+                <PayflowStudentSyncButton studentId={studentId} />
+                <p className="text-xs text-muted-foreground">
+                  Envia escola, aluno, faturas e IBAN para o PayFlow (servidor a servidor).
+                </p>
+              </div>
+            ) : null}
+          </TabsContent>
+
+          {/* 5. Histórico de estados */}
+          <TabsContent value="historico" className="space-y-4 pt-4">
+            <StudentStatusHistoryTimeline
+              events={statusHistoryQuery.data ?? []}
+              isLoading={statusHistoryQuery.isLoading}
+            />
           </TabsContent>
         </Tabs>
       </ModalContent>

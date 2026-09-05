@@ -46,6 +46,10 @@ export const IMPLEMENTED_IMPORT_MODULES = [
   "pagamentos",
   "dividas",
   "pessoas",
+  "inscricoes",
+  "avaliacoes",
+  "historico_academico",
+  "historico_financeiro",
 ] as const satisfies readonly ImportModule[];
 
 export type ImplementedImportModule = (typeof IMPLEMENTED_IMPORT_MODULES)[number];

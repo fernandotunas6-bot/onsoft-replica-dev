@@ -6,6 +6,7 @@ import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import {
   AlertCircle,
   Award,
+  Banknote,
   ChevronDown,
   CreditCard,
   Download,
@@ -23,6 +24,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
 import { DOC_PATHS, getPayflowPayerUrl } from "@/lib/ecosystem-urls";
+import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
@@ -635,7 +637,7 @@ function FaturasPage() {
                   <div className="my-1 border-t border-border" />
                   <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
                     <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                      <FileUp className="size-3.5 text-emerald-600" /> Importar Pagamentos (Excel)
+                      <FileUp className="size-3.5 text-primary" /> Importar Pagamentos (Excel)
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
@@ -646,6 +648,14 @@ function FaturasPage() {
                     >
                       <CreditCard className="size-3.5 text-primary" /> Portal PayFlow (Pagamentos)
                     </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="gap-2 text-xs cursor-pointer p-0"
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    <PayflowAdminLaunchButton asMenuItem className="px-2 py-1.5">
+                      <Banknote className="size-3.5 text-primary" /> Conciliação PayFlow
+                    </PayflowAdminLaunchButton>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -813,8 +823,8 @@ function FaturasPage() {
         ) : null}
 
         {!schemaBlocked && missingActiveFeePlan ? (
-          <Alert className="border-amber-500/40 bg-amber-500/10">
-            <AlertCircle className="size-4 text-amber-700 dark:text-amber-300" />
+          <Alert variant="default" className="border-border bg-card">
+            <AlertCircle className="size-4 text-primary" />
             <AlertTitle>Plano de propinas em falta</AlertTitle>
             <AlertDescription className="space-y-2">
               <p>

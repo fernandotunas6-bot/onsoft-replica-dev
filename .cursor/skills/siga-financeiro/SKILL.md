@@ -12,7 +12,8 @@ Billing da **plataforma** (assinatura SIGA, upgrade, planos comerciais) não
 pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
 
 - Rotas: `financeiro.tsx`, `faturas.tsx`, `relatorios.financeiros.tsx`
-- Domínio: `src/features/finance/{schemas,server}.ts`
+- Domínio: `src/features/finance/{schemas,server,payflow-sso,payflow-education-sync}.ts`
+- PayFlow UI: `PayflowAdminLaunchButton`, `PayflowStudentSyncButton`, `PayflowBankSyncButton`
 - Acesso: Admin/Tesouraria
 - Recibos SGA: método efectivo muitas vezes só `cash`.
 
@@ -30,3 +31,9 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
 6. `/faturas` recebe pagamento na linha (**Receber**) e imprime o recibo no modelo `service-document` com **Dados de pagamento** (IBAN de Definições → Financeiro; fallback `officialReceiptBody`). **Fatura** imprime o documento de cobrança. A lista tem **Oficial** e toolbars `financeiro` + `faturas`. Faturas pagas têm **Recibo**. Sem recibos: **Anular** (`cancelInvoice` → `cancelled`). Admin também recebe na ficha. Com Resend/WhatsApp: partilha da fatura, do recibo de caixa e da referência do plano. Relatório financeiro tem AGT, WhatsApp e **E-mail** Resend; PDFs oficiais incluem logótipo (`branding.logo_url`) e IBAN.
 7. Relatório financeiro: CSV/PDF das tabelas, **Oficial** completo e **Oficial cobrança** / **Oficial categorias** por secção (fallback `exportOfficialPautaPdf`). Caixa tem **Recibo** por lançamento, **Oficial** na lista filtrada e **Talão** nos planos. `/financeiro` e `/faturas` mostram toolbars de integrações instaladas. Helper: `src/lib/finance-print.ts`.
 8. **Arquivo na biblioteca**: receber/emitir/criar plano (e imprimir talão) grava stub em `siga_files` com ID pesquisável (`library_document_code`) e liga ao aluno via `related_person_id` quando existe.
+9. **PayFlow:**
+   - SSO admin: `createPayflowAdminLaunch` + botão Conciliação (requer `PAYFLOW_SSO_SECRET`).
+   - Sync aluno: `syncStudentToPayflow` (matrícula activa + faturas + IBAN) → `/api/v1/education/sync`.
+   - Sync IBAN: `syncSchoolBankToPayflow` em Definições → Financeiro (também após «Guardar banco»).
+   - Segredos só no servidor: `PAYFLOW_INTEGRATION_API_KEY`, `PAYFLOW_SSO_SECRET` (nunca `VITE_`).
+   - DOC: `/financeiro/payflow` (`DOC_PATHS.financePayflow`).

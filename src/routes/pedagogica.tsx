@@ -638,22 +638,22 @@ function PedagogicaPage() {
                   <div className="my-1 border-t border-border" />
                   <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
                     <Link to="/importar" search={{ tab: "novo", modulo: "turmas" }}>
-                      <FileUp className="size-3.5 text-emerald-600" /> Importar Turmas (Excel)
+                      <FileUp className="size-3.5 text-primary" /> Importar Turmas (Excel)
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
                     <Link to="/importar" search={{ tab: "novo", modulo: "disciplinas" }}>
-                      <FileUp className="size-3.5 text-emerald-600" /> Importar Disciplinas (Excel)
+                      <FileUp className="size-3.5 text-primary" /> Importar Disciplinas (Excel)
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
                     <Link to="/importar" search={{ tab: "novo", modulo: "salas" }}>
-                      <FileUp className="size-3.5 text-emerald-600" /> Importar Salas (Excel)
+                      <FileUp className="size-3.5 text-primary" /> Importar Salas (Excel)
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
                     <Link to="/importar" search={{ tab: "novo", modulo: "notas" }}>
-                      <FileUp className="size-3.5 text-emerald-600" /> Importar Notas (Excel)
+                      <FileUp className="size-3.5 text-primary" /> Importar Notas (Excel)
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

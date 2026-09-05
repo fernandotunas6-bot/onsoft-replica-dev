@@ -22,6 +22,7 @@ import {
   UserPlus,
   Users,
   Eye,
+  CheckCircle2,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
@@ -42,6 +43,19 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { buildEmisExportPayload } from "@/features/integrations/emis";
 import { StudentEnrollmentSheet } from "@/features/students/StudentEnrollmentSheet";
 import { StudentExtensiveModal } from "@/features/students/components/StudentExtensiveModal";
+import { StudentStatusBadge } from "@/features/students/components/StudentStatusBadge";
+import { StudentFinanceBadge } from "@/features/students/components/StudentFinanceBadge";
+import {
+  computeDynamicCounters,
+  matchesQuickCategory,
+  type QuickFilterCategory,
+  type InactiveSubFilter,
+  type CandidateSubFilter,
+} from "@/features/students/academic-status";
+import {
+  batchAssignClass,
+  batchUpdateStudentStatus,
+} from "@/features/students/server";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -102,6 +116,7 @@ import {
   enrollStudentInClass,
   searchStudents,
 } from "@/features/students/server";
+import { listEnrollmentApplications } from "@/features/enrollment/server";
 import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useTenant } from "@/features/saas/tenant-context";
@@ -124,6 +139,9 @@ const alunosSearchSchema = z
 
 const alunosFilterDefaults = {
   q: "",
+  categoria: "todos",
+  subInactivos: "todos",
+  subCandidatos: "todos",
   estado: "todos",
   turma: "todas",
   pagamento: "todos",
@@ -201,6 +219,12 @@ type StudentRow = {
   class_group_id: string | null;
   academic_year: string | null;
   primary_guardian_name: string | null;
+  debt_amount?: number;
+  overdue_count?: number;
+  has_debt?: boolean;
+  total_billed?: number;
+  total_paid?: number;
+  national_id?: string | null;
 };
 
 type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
@@ -216,6 +240,9 @@ function StudentsPage() {
     alunosFilterDefaults,
   );
   const query = filters.q;
+  const categoria = (filters.categoria || "todos") as QuickFilterCategory;
+  const subInactivos = (filters.subInactivos || "todos") as InactiveSubFilter;
+  const subCandidatos = (filters.subCandidatos || "todos") as CandidateSubFilter;
   const estado = filters.estado;
   const turma = filters.turma;
   const pagamento = filters.pagamento;
@@ -225,6 +252,7 @@ function StudentsPage() {
   const page = Math.max(1, Number(filters.page) || 1);
   const setPage = (next: number) => setFilter("page", String(next));
   const [extensiveModalStudent, setExtensiveModalStudent] = useState<StudentRow | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const sigeOn = installed.hasCapability("sige.export_students");
@@ -251,8 +279,13 @@ function StudentsPage() {
   }, [action, capacityBlocked]);
 
   useEffect(() => {
-    if (action === "confirmar") setFilter("estado", "applicant");
-    else if (action === "estado") setFilter("estado", "todos");
+    if (action === "confirmar") {
+      setFilter("categoria", "candidatos");
+      setFilter("estado", "applicant");
+    } else if (action === "estado") {
+      setFilter("categoria", "todos");
+      setFilter("estado", "todos");
+    }
   }, [action, setFilter]);
 
   // Realtime — atualiza a lista de alunos quando há novidades
@@ -272,6 +305,28 @@ function StudentsPage() {
         { event: "*", schema: "public", table: "enrollments" },
         () => {
           void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "finance_invoices" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "finance_receipts" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "enrollment_applications" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["enrollment", "applications", "pending-count"] });
+          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
         },
       )
       .subscribe();
@@ -294,6 +349,10 @@ function StudentsPage() {
     queryKey: ["students", "search"],
     queryFn: () => searchStudents({ data: { limit: 100, offset: 0 } }),
   });
+  const pendingApplicationsQuery = useQuery({
+    queryKey: ["enrollment", "applications", "pending-count"],
+    queryFn: () => listEnrollmentApplications({ data: { status: "pending", limit: 100 } }),
+  });
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
     queryFn: () =>
@@ -309,6 +368,7 @@ function StudentsPage() {
     () => (studentsQuery.data ?? []) as StudentRow[],
     [studentsQuery.data],
   );
+  const pendingApplicationsCount = pendingApplicationsQuery.data?.length ?? 0;
   const classGroups = workspaceQuery.data?.classGroups ?? [];
   const turmaOptions = classGroups
     .filter((group) => group.academic_year_id)
@@ -322,11 +382,21 @@ function StudentsPage() {
           .map((value) => value.toLowerCase())
       : [];
     const rows = allStudents.filter((s) => {
+      const matchCategory = matchesQuickCategory(
+        s,
+        categoria,
+        subInactivos,
+        subCandidatos,
+      );
       const matchQuery =
         !q ||
         s.full_name.toLowerCase().includes(q) ||
         s.registration_number.toLowerCase().includes(q) ||
         (s.email ?? "").toLowerCase().includes(q) ||
+        (s.phone ?? "").toLowerCase().includes(q) ||
+        (s.national_id ?? "").toLowerCase().includes(q) ||
+        (s.class_name ?? "").toLowerCase().includes(q) ||
+        (s.grade_name ?? "").toLowerCase().includes(q) ||
         (s.primary_guardian_name ?? "").toLowerCase().includes(q);
       const matchStatus = estado === "todos" || s.student_status === estado;
       const matchTurma = turma === "todas" || (s.class_name ?? "") === turma;
@@ -339,7 +409,7 @@ function StudentsPage() {
           (hint) =>
             studentYear === hint || studentYear.includes(hint) || hint.includes(studentYear),
         );
-      return matchQuery && matchStatus && matchTurma && matchPagamento && matchYear;
+      return matchCategory && matchQuery && matchStatus && matchTurma && matchPagamento && matchYear;
     });
 
     const valueFor = (row: StudentRow, key: SortKey) => {
@@ -367,6 +437,9 @@ function StudentsPage() {
   }, [
     allStudents,
     query,
+    categoria,
+    subInactivos,
+    subCandidatos,
     estado,
     turma,
     pagamento,
@@ -377,16 +450,8 @@ function StudentsPage() {
   ]);
 
   const quickCounts = useMemo(
-    () => ({
-      all: allStudents.length,
-      active: allStudents.filter((s) => s.student_status === "active").length,
-      applicant: allStudents.filter((s) => s.student_status === "applicant").length,
-      overdue: allStudents.filter((s) => s.payment_status === "overdue").length,
-      other: allStudents.filter((s) =>
-        ["inactive", "transferred", "graduated"].includes(s.student_status),
-      ).length,
-    }),
-    [allStudents],
+    () => computeDynamicCounters(allStudents, pendingApplicationsCount),
+    [allStudents, pendingApplicationsCount],
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -650,7 +715,7 @@ function StudentsPage() {
             className={
               studentCapacity.atLimit
                 ? "rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-                : "rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100"
+                : "rounded-xl border border-border bg-muted/60 px-4 py-3 text-sm text-foreground"
             }
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -827,128 +892,265 @@ function StudentsPage() {
             </div>
           </div>
 
-          {/* Barra de Filtros Rápidos com Contadores & Selector de Tamanho Premium */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-secondary/30 p-2.5 border border-border/70">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground mr-1 hidden sm:inline">
-                Filtrar:
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setFilter("estado", "todos");
-                  setFilter("pagamento", "todos");
-                  setPage(1);
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  estado === "todos" && pagamento === "todos"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "bg-background text-foreground hover:bg-muted border border-border/60",
-                )}
-              >
-                Todos ({quickCounts.all})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFilter("estado", "active");
-                  setFilter("pagamento", "todos");
-                  setPage(1);
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  estado === "active" && pagamento === "todos"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "bg-background text-foreground hover:bg-muted border border-border/60",
-                )}
-              >
-                Activos ({quickCounts.active})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFilter("estado", "applicant");
-                  setFilter("pagamento", "todos");
-                  setPage(1);
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  estado === "applicant" && pagamento === "todos"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "bg-background text-foreground hover:bg-muted border border-border/60",
-                )}
-              >
-                Candidatos ({quickCounts.applicant})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFilter("pagamento", "overdue");
-                  setPage(1);
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  pagamento === "overdue"
-                    ? "bg-destructive text-destructive-foreground shadow-xs"
-                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20",
-                )}
-              >
-                Com Dívida ({quickCounts.overdue})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFilter("estado", "inactive");
-                  setFilter("pagamento", "todos");
-                  setPage(1);
-                }}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  estado === "inactive" && pagamento === "todos"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "bg-background text-foreground hover:bg-muted border border-border/60",
-                )}
-              >
-                Inactivos/Outros ({quickCounts.other})
-              </button>
+          {/* Barra de Filtros Rápidos com Contadores Dinâmicos & Selector de Tamanho Premium */}
+          <div className="flex flex-col gap-2 rounded-xl bg-secondary/30 p-2.5 border border-border/70">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-semibold text-muted-foreground mr-1 hidden sm:inline">
+                  Filtrar:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("categoria", "todos");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    categoria === "todos"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-background text-foreground hover:bg-muted border border-border/60",
+                  )}
+                >
+                  Todos ({quickCounts.all})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("categoria", "activos");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    categoria === "activos"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-background text-foreground hover:bg-muted border border-border/60",
+                  )}
+                >
+                  Activos ({quickCounts.active})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("categoria", "candidatos");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    categoria === "candidatos"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-background text-foreground hover:bg-muted border border-border/60",
+                  )}
+                >
+                  Candidatos ({quickCounts.applicant})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("categoria", "divida");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    categoria === "divida"
+                      ? "bg-destructive text-destructive-foreground shadow-xs"
+                      : "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20",
+                  )}
+                >
+                  Com Dívida ({quickCounts.overdue})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("categoria", "inactivos");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    categoria === "inactivos"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-background text-foreground hover:bg-muted border border-border/60",
+                  )}
+                >
+                  Inactivos/Outros ({quickCounts.other})
+                </button>
+              </div>
+
+              {/* Controlo de Tamanho de Lista Premium */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
+                <span className="hidden md:inline font-medium text-[11px]">Linhas por página:</span>
+                <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+                  {[10, 25, 50, 100].map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => {
+                        setFilter("pageSize", String(size));
+                        setPage(1);
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer",
+                        pageSize === size
+                          ? "bg-primary text-primary-foreground shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+                <span className="font-mono text-[11px] font-semibold text-foreground hidden xl:inline">
+                  {filtered.length > 0
+                    ? `${start + 1}–${Math.min(start + pageSize, filtered.length)} de ${filtered.length}`
+                    : "0 alunos"}
+                </span>
+              </div>
             </div>
 
-            {/* Controlo de Tamanho de Lista Premium */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
-              <span className="hidden md:inline font-medium text-[11px]">Linhas por página:</span>
-              <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
-                {[10, 25, 50, 100].map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => {
-                      setFilter("pageSize", String(size));
-                      setPage(1);
-                    }}
-                    className={cn(
-                      "px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer",
-                      pageSize === size
-                        ? "bg-primary text-primary-foreground shadow-2xs"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {size}
-                  </button>
-                ))}
+            {/* Subfiltros contextuais para Inactivos */}
+            {categoria === "inactivos" ? (
+              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60">
+                <span className="text-[11px] font-semibold text-muted-foreground mr-1">
+                  Sub-estado:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("subInactivos", "todos");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    subInactivos === "todos"
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  )}
+                >
+                  Todos ({quickCounts.other})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("subInactivos", "transferred");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    subInactivos === "transferred"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  )}
+                >
+                  Transferidos ({quickCounts.inactivesDetail.transferred})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("subInactivos", "inactive");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    subInactivos === "inactive"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  )}
+                >
+                  Desistentes ({quickCounts.inactivesDetail.inactive})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("subInactivos", "graduated");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    subInactivos === "graduated"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  )}
+                >
+                  Concluídos ({quickCounts.inactivesDetail.graduated})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("subInactivos", "cancelled");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    subInactivos === "cancelled"
+                      ? "bg-destructive text-destructive-foreground"
+                      : "bg-destructive/10 text-destructive hover:bg-destructive/20",
+                  )}
+                >
+                  Cancelados ({quickCounts.inactivesDetail.cancelled})
+                </button>
               </div>
-              <span className="font-mono text-[11px] font-semibold text-foreground hidden xl:inline">
-                {filtered.length > 0
-                  ? `${start + 1}–${Math.min(start + pageSize, filtered.length)} de ${filtered.length}`
-                  : "0 alunos"}
-              </span>
-            </div>
+            ) : null}
+
+            {/* Subfiltros contextuais para Candidatos */}
+            {categoria === "candidatos" ? (
+              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60">
+                <span className="text-[11px] font-semibold text-muted-foreground mr-1">
+                  Fase:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("subCandidatos", "todos");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    subCandidatos === "todos"
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  )}
+                >
+                  Todos os candidatos ({quickCounts.applicant})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("subCandidatos", "waiting_class");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                    subCandidatos === "waiting_class"
+                      ? "bg-blue-600 text-white"
+                      : "bg-blue-500/10 text-blue-700 dark:text-blue-400 hover:bg-blue-500/20",
+                  )}
+                >
+                  Aguardando turma
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <div className="overflow-x-auto">
             <Table className="min-w-[880px]">
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10 px-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Seleccionar todos nesta página"
+                      className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
+                      checked={paged.length > 0 && selectedIds.length >= paged.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedIds([...new Set([...selectedIds, ...paged.map((s) => s.id))]);
+                        } else {
+                          const pagedIdSet = new Set(paged.map((s) => s.id));
+                          setSelectedIds(selectedIds.filter((id) => !pagedIdSet.has(id)));
+                        }
+                      }}
+                    />
+                  </TableHead>
                   <SortHead label="Nº Estudante" colKey="processo" />
                   <SortHead label="Nome" colKey="nome" />
                   <TableHead className="hidden lg:table-cell">Encarregado</TableHead>
@@ -963,7 +1165,7 @@ function StudentsPage() {
                 {studentsQuery.isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       className="py-10 text-center text-sm text-muted-foreground"
                     >
                       A carregar estudantes…
@@ -971,7 +1173,7 @@ function StudentsPage() {
                   </TableRow>
                 ) : studentsQuery.isError ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-10 text-center text-sm text-destructive">
+                    <TableCell colSpan={9} className="py-10 text-center text-sm text-destructive">
                       Não foi possível carregar os estudantes:{" "}
                       {studentsQuery.error instanceof Error
                         ? studentsQuery.error.message
@@ -982,9 +1184,27 @@ function StudentsPage() {
                   paged.map((s) => (
                     <TableRow
                       key={s.id}
-                      className="cursor-pointer transition-colors hover:bg-muted/60 group"
+                      className={cn(
+                        "cursor-pointer transition-colors hover:bg-muted/60 group",
+                        selectedIds.includes(s.id) && "bg-primary/5",
+                      )}
                       onClick={() => setExtensiveModalStudent(s)}
                     >
+                      <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Seleccionar ${s.full_name}`}
+                          className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
+                          checked={selectedIds.includes(s.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedIds((prev) => [...prev, s.id]);
+                            } else {
+                              setSelectedIds((prev) => prev.filter((id) => id !== s.id));
+                            }
+                          }}
+                        />
+                      </TableCell>
                       <TableCell className="font-mono text-xs font-semibold text-primary">
                         {s.registration_number}
                       </TableCell>
@@ -1047,14 +1267,17 @@ function StudentsPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className={cn(badge, estadoTone[s.student_status])}>
-                          {estadoLabels[s.student_status] ?? s.student_status}
-                        </span>
-                        {s.payment_status ? (
-                          <span className={cn(badge, "ml-1", pagamentoTone[s.payment_status])}>
-                            {pagamentoLabels[s.payment_status] ?? s.payment_status}
-                          </span>
-                        ) : null}
+                        <div className="flex flex-col gap-1 items-start">
+                          <StudentStatusBadge status={s.student_status} size="sm" />
+                          {s.payment_status ? (
+                            <StudentFinanceBadge
+                              status={s.payment_status}
+                              debtAmount={s.debt_amount}
+                              overdueCount={s.overdue_count}
+                              size="sm"
+                            />
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
@@ -1267,16 +1490,157 @@ function StudentsPage() {
                 {!studentsQuery.isLoading && !studentsQuery.isError && filtered.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
-                      className="py-10 text-center text-sm text-muted-foreground"
+                      colSpan={9}
+                      className="py-12 text-center text-sm text-muted-foreground"
                     >
-                      Nenhum aluno encontrado com os filtros aplicados.
+                      {categoria === "divida" ? (
+                        <div className="max-w-md mx-auto space-y-2">
+                          <div className="inline-flex size-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="size-5" />
+                          </div>
+                          <p className="font-semibold text-foreground">Nenhum aluno com dívida</p>
+                          <p className="text-xs text-muted-foreground">
+                            Todas as propinas e faturas emitidas para este conjunto de estudantes encontram-se regularizadas.
+                          </p>
+                        </div>
+                      ) : categoria === "candidatos" ? (
+                        <div className="max-w-md mx-auto space-y-2">
+                          <div className="inline-flex size-10 items-center justify-center rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                            <UserPlus className="size-5" />
+                          </div>
+                          <p className="font-semibold text-foreground">Nenhum candidato pendente</p>
+                          <p className="text-xs text-muted-foreground">
+                            Não existem candidatos ou alunos aguardando colocação em turma para os filtros actuais.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="max-w-md mx-auto space-y-2">
+                          <p className="font-semibold text-foreground">Nenhum aluno encontrado</p>
+                          <p className="text-xs text-muted-foreground">
+                            Ajuste os filtros de pesquisa ou limpe os critérios para ver todos os alunos.
+                          </p>
+                          <Button variant="outline" size="sm" onClick={resetFilters} className="mt-1">
+                            Limpar filtros
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ) : null}
               </TableBody>
             </Table>
           </div>
+
+          {/* Barra Flutuante de Ações em Massa */}
+          {selectedIds.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary-soft/80 p-3 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  {selectedIds.length}
+                </span>
+                <span className="text-xs font-semibold text-foreground">
+                  {selectedIds.length === 1 ? "aluno seleccionado" : "alunos seleccionados"}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {turmaOptions.length > 0 ? (
+                  <QuickFormModal
+                    title={`Atribuir turma a ${selectedIds.length} alunos`}
+                    description="Matricula em massa os alunos seleccionados na turma indicada."
+                    submitLabel="Atribuir turma em lote"
+                    successDescription="Turma atribuída aos alunos seleccionados."
+                    fields={[
+                      {
+                        name: "turma",
+                        label: "Turma",
+                        type: "select",
+                        required: true,
+                        options: turmaOptions,
+                      },
+                    ]}
+                    onSubmit={async (values) => {
+                      const group = classGroups.find(
+                        (item) =>
+                          `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
+                          values["turma"],
+                      );
+                      const yearId = String(group?.academic_year_id ?? "");
+                      if (!group || !yearId) throw new Error("Seleccione uma turma com ano lectivo.");
+                      await batchAssignClass({
+                        data: {
+                          studentIds: selectedIds,
+                          classGroupId: group.id,
+                          academicYearId: yearId,
+                        },
+                      });
+                      toast.success(`${selectedIds.length} alunos matriculados na turma ${group.name}.`);
+                      setSelectedIds([]);
+                      await queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+                    }}
+                    trigger={(open) => (
+                      <Button size="sm" variant="default" className="h-8 gap-1.5 text-xs font-semibold" onClick={open}>
+                        <Users className="size-3.5" /> Atribuir Turma
+                      </Button>
+                    )}
+                  />
+                ) : null}
+
+                <QuickFormModal
+                  title={`Alterar estado de ${selectedIds.length} alunos`}
+                  description="Actualiza o estado institucional de todos os alunos seleccionados."
+                  submitLabel="Actualizar estado em lote"
+                  successDescription="Estado dos alunos actualizado."
+                  fields={[
+                    {
+                      name: "estado",
+                      label: "Novo Estado",
+                      type: "select",
+                      required: true,
+                      options: [
+                        { value: "active", label: "Activo" },
+                        { value: "inactive", label: "Desistente / Inactivo" },
+                        { value: "transferred", label: "Transferido" },
+                        { value: "graduated", label: "Concluído" },
+                        { value: "applicant", label: "Candidato" },
+                      ],
+                    },
+                    {
+                      name: "motivo",
+                      label: "Motivo / Justificação",
+                      type: "text",
+                      placeholder: "Ex: Transferência de ciclo, despacho institucional, etc.",
+                    },
+                  ]}
+                  onSubmit={async (values) => {
+                    await batchUpdateStudentStatus({
+                      data: {
+                        studentIds: selectedIds,
+                        newStatus: values["estado"] as any,
+                        reason: values["motivo"] || undefined,
+                      },
+                    });
+                    toast.success(`Estado de ${selectedIds.length} alunos actualizado.`);
+                    setSelectedIds([]);
+                    await queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+                  }}
+                  trigger={(open) => (
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs font-semibold" onClick={open}>
+                      <ArrowRightLeft className="size-3.5" /> Mudar Estado
+                    </Button>
+                  )}
+                />
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Desmarcar
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
           <ListPaginationBar
             page={currentPage}

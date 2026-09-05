@@ -21,6 +21,8 @@ import {
 import { DOC_PATHS, getDocUrl } from "@/lib/ecosystem-urls";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { BillingParametersSummary, BillingSettingsForm, FeePlanSettingsForm } from "./settings-billing-panel";
+import { PayflowBankSyncButton } from "@/features/finance/components/PayflowBankSyncButton";
+import { syncSchoolBankToPayflow } from "@/features/finance/server";
 
 export function FinancePanel() {
   return (
@@ -114,6 +116,20 @@ function SchoolBankingForm() {
         prev && typeof prev === "object" ? { ...prev, banking: data } : prev,
       );
       toast.success("Dados bancários guardados.");
+      try {
+        const synced = await syncSchoolBankToPayflow();
+        toast.message(
+          synced.ibanMasked
+            ? `PayFlow actualizado (${synced.ibanMasked})`
+            : "IBAN enviado ao PayFlow.",
+        );
+      } catch (syncError) {
+        toast.message(
+          syncError instanceof Error
+            ? `Guardado no SIGA; PayFlow: ${syncError.message}`
+            : "Guardado no SIGA; PayFlow não sincronizado.",
+        );
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível guardar.");
     } finally {
@@ -179,7 +195,8 @@ function SchoolBankingForm() {
         />
       </div>
       {canEdit ? (
-        <div className="sm:col-span-2 flex justify-end">
+        <div className="sm:col-span-2 flex flex-wrap justify-end gap-2">
+          <PayflowBankSyncButton size="default" />
           <Button type="button" onClick={() => void save()} disabled={saving}>
             {saving ? "A guardar…" : "Guardar banco"}
           </Button>

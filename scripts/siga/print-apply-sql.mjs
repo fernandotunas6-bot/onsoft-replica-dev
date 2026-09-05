@@ -64,6 +64,8 @@ export const SQL_CHECKLIST = {
       "roles",
       "permissions",
       "school_invitations",
+      "student_status_history",
+      "student_academic_history",
     ],
     notes: [
       "Função current_school_id() a partir de school_memberships — obrigatória",
