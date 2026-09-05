@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 import { createPayflowAdminLaunch } from "@/features/finance/server";
 import { getPayflowAdminUrl } from "@/lib/ecosystem-urls";
 import { cn } from "@/lib/utils";
@@ -82,7 +83,7 @@ export function PayflowAdminLaunchButton({
         disabled={busy}
         onClick={() => void launch()}
       >
-        {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
+        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <PayflowBrandIcon size={14} />}
         {children}
       </button>
     );
@@ -97,7 +98,7 @@ export function PayflowAdminLaunchButton({
       disabled={busy}
       onClick={() => void launch()}
     >
-      {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+      {busy ? <Loader2 className="size-4 animate-spin" /> : <PayflowBrandIcon size={16} />}
       {children}
     </Button>
   );

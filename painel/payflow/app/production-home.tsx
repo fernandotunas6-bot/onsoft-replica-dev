@@ -1,12 +1,11 @@
 import {
   ArrowRight,
-  CheckCircle2,
   GraduationCap,
   ReceiptText,
   ShieldCheck,
 } from "lucide-react";
 
-import { PayflowBrandLockup } from "@/components/payflow/brand-mark";
+import { PayflowBrandLockup, PayflowBrandMark } from "@/components/payflow/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,19 +83,7 @@ export function ProductionHome() {
         <Card className="border-border py-0 shadow-[var(--shadow-soft)]">
           <CardContent className="p-5 sm:p-6">
             <div className="flex items-start gap-3">
-              <span
-                className={`mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg ${
-                  ready
-                    ? "bg-emerald-50 text-success dark:bg-emerald-950/50"
-                    : "bg-amber-50 text-warning dark:bg-amber-950/50"
-                }`}
-              >
-                {ready ? (
-                  <CheckCircle2 className="size-[18px]" aria-hidden="true" />
-                ) : (
-                  <ShieldCheck className="size-[18px]" aria-hidden="true" />
-                )}
-              </span>
+              <PayflowBrandMark size="sm" className="mt-0.5 shrink-0" />
               <div>
                 <p className="font-semibold">
                   {ready ? "Integração SIGA configurada" : "Ativação financeira controlada"}

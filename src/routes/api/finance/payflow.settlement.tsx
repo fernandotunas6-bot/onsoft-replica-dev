@@ -4,6 +4,7 @@ import {
   payflowSettlementAuthorized,
   payflowSettlementInputSchema,
 } from "@/features/finance/payflow-settlement";
+import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 
 // style-check: route-exempt — webhook HTTP PayFlow → SIGA (sem shell administrativo).
 
@@ -61,6 +62,9 @@ export const Route = createFileRoute("/api/finance/payflow/settlement")({
 function PayflowSettlementPlaceholder() {
   return (
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
+      <div className="mb-4 flex justify-center">
+        <PayflowBrandIcon size={48} className="rounded-xl shadow-sm" />
+      </div>
       <h1 className="font-display text-lg font-extrabold">Acerto PayFlow</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         O PayFlow envia <span className="font-mono text-xs">POST</span> autenticado quando um

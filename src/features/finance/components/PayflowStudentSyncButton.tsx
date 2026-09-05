@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 import { syncStudentToPayflow } from "@/features/finance/server";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +51,7 @@ export function PayflowStudentSyncButton({
       {mutation.isPending ? (
         <Loader2 className="size-3.5 animate-spin" />
       ) : (
-        <RefreshCw className="size-3.5 text-primary" />
+        <PayflowBrandIcon size={14} />
       )}
       Sync PayFlow
     </Button>

@@ -390,8 +390,8 @@ export function PayflowAdminDashboard() {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
-        <LoaderCircle className="size-10 animate-spin text-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">A carregar Painel Administrativo PayFlow…</p>
+        <PayflowBrandMark size="lg" className="mb-4 animate-pulse" />
+        <p className="text-sm text-muted-foreground">A carregar Painel Administrativo PayFlow…</p>
       </div>
     );
   }

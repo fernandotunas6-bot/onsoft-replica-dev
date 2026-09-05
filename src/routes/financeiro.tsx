@@ -25,6 +25,7 @@ import { warmFinanceCharts } from "@/lib/warm-charts";
 import { cn } from "@/lib/utils";
 import { getPayflowPayerUrl } from "@/lib/ecosystem-urls";
 import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
+import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 
 const FinanceiroCashChart = lazy(() =>
   import("@/features/finance/FinanceiroCashChart").then((module) => ({
@@ -446,11 +447,11 @@ function FinanceiroPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <CreditCard className="size-4 text-primary" /> Portal PayFlow
+                  <PayflowBrandIcon size={16} /> Portal PayFlow
                 </a>
               </Button>
               <PayflowAdminLaunchButton variant="outline" className="gap-2">
-                <Banknote className="size-4 text-primary" /> Conciliação PayFlow
+                Conciliação PayFlow
               </PayflowAdminLaunchButton>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/relatorios/financeiros">

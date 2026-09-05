@@ -10,9 +10,11 @@ const sizes = {
 
 export type PayflowBrandSize = keyof typeof sizes;
 
+/** Ícone oficial PayFlow — `public/brands/payflow-icon.png` (nunca assets SIGA). */
+export const PAYFLOW_ICON_SRC = "/brands/payflow-icon.png";
+
 /**
- * Marca PayFlow — ícone oficial SIGA Plus.
- * Favicon leve: `/favicon.png` · Ícone UI: `/brands/siga-plus-icon.png`
+ * Marca PayFlow — azulejos azuis oficiais da pasta `painel/payflow/public`.
  */
 export function PayflowBrandMark({
   size = "md",
@@ -26,16 +28,15 @@ export function PayflowBrandMark({
   title?: string;
 }) {
   const px = sizes[size];
-  const src = size === "xs" || size === "sm" ? "/favicon.png" : "/brands/siga-plus-icon.png";
   return (
     <img
-      src={src}
+      src={PAYFLOW_ICON_SRC}
       alt={title}
       width={px}
       height={px}
       decoding="async"
       className={cn(
-        "object-contain select-none bg-background shadow-sm",
+        "object-contain select-none shadow-sm",
         rounded && "rounded-lg",
         className,
       )}

@@ -9,6 +9,7 @@ export const metadata: Metadata = {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.png", type: "image/png", sizes: "64x64" },
+      { url: "/brands/payflow-icon.png", type: "image/png", sizes: "128x128" },
     ],
     shortcut: "/favicon.png",
     apple: "/apple-touch-icon.png",

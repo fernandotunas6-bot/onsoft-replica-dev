@@ -25,6 +25,7 @@ import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
 import { DOC_PATHS, getPayflowPayerUrl } from "@/lib/ecosystem-urls";
 import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
+import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
@@ -651,7 +652,7 @@ function FaturasPage() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      <CreditCard className="size-3.5 text-primary" /> Portal PayFlow (Pagamentos)
+                      <PayflowBrandIcon size={14} /> Portal PayFlow (Pagamentos)
                     </a>
                   </DropdownMenuItem>
                   <DropdownMenuItem
@@ -659,7 +660,7 @@ function FaturasPage() {
                     onSelect={(event) => event.preventDefault()}
                   >
                     <PayflowAdminLaunchButton asMenuItem className="px-2 py-1.5">
-                      <Banknote className="size-3.5 text-primary" /> Conciliação PayFlow
+                      Conciliação PayFlow
                     </PayflowAdminLaunchButton>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
