@@ -62,7 +62,10 @@ INSERT INTO public.reserved_subdomains (slug, reason) VALUES
   ('noreply',      'email transacional'),
   ('notificacoes', 'email transacional'),
   ('portal',       'infra portal'),
-  ('web',          'infra web')
+  ('web',          'infra web'),
+  ('payflow',      'pagamentos payflow'),
+  ('pagamentos',   'pagamentos payflow'),
+  ('payments',     'pagamentos payflow')
 ON CONFLICT (slug) DO NOTHING;
 
 -- 2. BRANDING E IDENTIDADE VISUAL POR ESCOLA

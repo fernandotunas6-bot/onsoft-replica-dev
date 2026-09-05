@@ -87,7 +87,7 @@ Após criar:
 
 ```sh
 npm run dev:ecosystem
-npm run siga:e2e-smoke          # HTTP (lookup, domains/verify 401, 4 apps)
+npm run siga:e2e-smoke          # HTTP (lookup, domains/verify 401, 5 apps)
 npm run siga:e2e-playwright-ts      # Playwright TS — rotas + wizard
 npm run siga:e2e-playwright-live    # Playwright TS @live (comercial + matrícula)
 SIGA_E2E_LIVE=1 npm run siga:e2e-playwright   # smoke + TS + Python + @live (requer secret)

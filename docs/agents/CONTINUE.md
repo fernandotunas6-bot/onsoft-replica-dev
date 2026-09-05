@@ -1,6 +1,6 @@
 # Handoff — continuar o SIGA
 
-Ler isto **antes** de alterar código. Ecossistema (4 apps):
+Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
@@ -964,7 +964,7 @@ Implementado sem unificar frontends:
    unificar frontends. Não apagar `/saas-admin` sem destino no ADMIN.
 0c. **Integrações:** credenciais reais de portal bancário e sincronização automática EMIS.
 0d. **PayFlow:** SSO + sync + IBAN + extrato + ingest/pull + estorno + alertas + settlement + EMIS ingress fail-closed + feed sandbox local; falta contrato/homologação EMIS (adaptador real) e o URL real do banco.
-0e. **Domínios / Cloudflare:** `payflow` reservado; Zone `a817debe…`; Custom Domain + rota `payflow.portal-siga.com/*` → `siga-plus-payflow` (health OK). Token novo no `.env` sem Zone DNS Edit — alargar permissões para gerir DNS via API. Reaplicar seed `APPLY_DIGITAL_IDENTITY.sql` se faltar.
+0e. **Domínios / Cloudflare:** PayFlow OK (`payflow.portal-siga.com`). WEB/ADMIN/DOC/app preparados no código (`www`/`admin`/`docs`/`app.{{PLATFORM_DOMAIN}}`) + script `npm run siga:configure-domains`. **Bloqueio:** token actual sem Zone DNS / Workers Routes / Pages Edit — precisa de token alargado (ou login no dash) para aplicar.
 0f. **GitHub Actions:** se jobs falharem em ~3s com «payments failed / spending limit», corrigir Billing & plans da conta dona do repo (privado = 2 000 min free). Validar localmente: `bun run test` e `cd painel/payflow && npm test`.
 2. Manter commits pequenos por alteração e nunca incluir `.env` nem `.claude/worktrees/`.
 3. Aceitar candidatura cria aluno, encarregado (se veio no formulário) e opcionalmente turma (`classGroupId`). Sem turma fica `applicant`. Em `/alunos`: **Turma** (candidato), **Mudar** (activo), **Estado** e PDF **Oficial**. Campanha de matrícula (Definições) liga a `/documentos#modelos` para talões.

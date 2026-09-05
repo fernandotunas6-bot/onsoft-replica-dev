@@ -62,7 +62,10 @@ INSERT INTO public.reserved_subdomains (slug, reason) VALUES
   ('root',         'infra'),
   ('cloud',        'infra'),
   ('noreply',      'email transacional'),
-  ('notificacoes', 'email transacional')
+  ('notificacoes', 'email transacional'),
+  ('payflow',      'pagamentos payflow'),
+  ('pagamentos',   'pagamentos payflow'),
+  ('payments',     'pagamentos payflow')
 ON CONFLICT (slug) DO NOTHING;
 ```
 

@@ -37,6 +37,7 @@
     "siga:sync-demo-usage": "node scripts/siga/sync-demo-usage.mjs",
     "siga:scaffold": "node scripts/siga/scaffold-module.mjs",
     "siga:sync-env": "node scripts/siga/sync-ecosystem-env.mjs",
+    "siga:configure-domains": "node scripts/siga/configure-ecosystem-domains.mjs",
     "siga:e2e-smoke": "node scripts/siga/e2e-ecosystem-smoke.mjs",
     "siga:gateway-simulate": "node scripts/siga/gateway-simulate.mjs",
     "siga:payflow-bank-ingest": "node scripts/siga/payflow-bank-ingest-simulate.mjs",

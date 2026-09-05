@@ -36,6 +36,45 @@ PLATFORM_API_URL=
 
 ---
 
+## Zona `portal-siga.com`
+
+| Campo | Valor |
+|---|---|
+| Account ID | `701800d01d428c5141fa1fdb60ee01ae` |
+| Zone ID | `a817debe40353d51e056c77e18e57f19` |
+| Dashboard | [Cloudflare · portal-siga.com](https://dash.cloudflare.com/701800d01d428c5141fa1fdb60ee01ae/portal-siga.com) |
+
+### Workers Custom Domains (activo)
+
+| Hostname | Worker |
+|---|---|
+| `portal-siga.com` | `fernandotunas6-bot-onsoft-replica-dev` (SIGA) |
+| `minha-escola.portal-siga.com` | SIGA (demo) |
+| `payflow.portal-siga.com` | `siga-plus-payflow` |
+
+### Workers Routes (ordem importa)
+
+| Pattern | Script |
+|---|---|
+| `payflow.portal-siga.com/*` | `siga-plus-payflow` (específico — **obrigatório**) |
+| `*.portal-siga.com/*` | SIGA (wildcard escolas) |
+
+Sem a rota específica, o wildcard manda `payflow.*` para o SIGA.
+
+### Token API — permissões mínimas
+
+Para gerir DNS + rotas + custom domains:
+
+- **Account** → Workers Scripts: Edit
+- **Account** → Workers Routes: Edit (ou Zone Workers Routes)
+- **Zone** `portal-siga.com` → DNS: Edit
+- **Zone** → Workers Routes: Edit
+- **Zone** → SSL and Certificates: Edit (custom domains)
+
+Um token só com «Account Workers» sem Zone DNS devolve `10000 Authentication error` nas APIs de DNS.
+
+---
+
 ## Configuração DNS
 
 ### Wildcard (não requer acção por escola)
@@ -47,6 +86,8 @@ Value: IP_DA_APLICAÇÃO
 Proxy: ✅ Cloudflare proxy activo
 ```
 
+Workers Custom Domains também criam/gerem o registo do hostname automaticamente.
+
 ### Subdomínios fixos
 
 ```
@@ -57,6 +98,30 @@ Proxied: ✅
 ```
 
 Este é o destino dos CNAMEs dos domínios personalizados das escolas.
+
+| App | Hostname canónico | Deploy actual |
+|---|---|---|
+| SIGA | `portal-siga.com` + `app.portal-siga.com` + `*.portal-siga.com` | Worker SIGA |
+| PAYFLOW | `payflow.portal-siga.com` | Worker `siga-plus-payflow` |
+| WEB | `www.portal-siga.com` | Pages `siga-web` |
+| ADMIN | `admin.portal-siga.com` | Pages `siga-admin` |
+| DOC | `docs.portal-siga.com` | Pages `siga-docs` |
+
+Fallback Pages (`*.pages.dev`) mantém-se como destino técnico; os hosts canónicos
+acima são os que a app deve usar em produção.
+
+### Script de configuração
+
+```sh
+npm run siga:configure-domains
+```
+
+Cria:
+1. Rotas Worker **bypass** (`script: null`) para `www` / `admin` / `docs` (para o wildcard não engolir o Pages)
+2. Custom domains Pages nesses hosts
+3. Custom domains + rotas Worker para `app` e `payflow`
+
+Token mínimo: Zone DNS Edit + Workers Routes Edit + Cloudflare Pages Edit na conta.
 
 ---
 

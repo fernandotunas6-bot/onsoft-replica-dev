@@ -106,6 +106,7 @@ const tenant =
 | `localhost` / `127.0.0.1` | DEV fallback → slug `minha-escola` |
 | `*.{{DOMINIO_PRINCIPAL}}` | slug = primeiro segmento |
 | `admin.*` / `saas-admin.*` | `isAdminArea = true` |
+| `payflow.*` | PayFlow (`isPayflowSubdomain`) — nunca tenant |
 | outro domínio | lookup em `tenant_domains` |
 
 ---

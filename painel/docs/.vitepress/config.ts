@@ -199,7 +199,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'WEB vende · ADMIN controla · SIGA trabalha · DOC explica',
+      message: 'WEB vende · ADMIN controla · SIGA trabalha · PAYFLOW cobra · DOC explica',
       copyright: 'Copyright © 2024-presente SIGA Plus',
     },
 
