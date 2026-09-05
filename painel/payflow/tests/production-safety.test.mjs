@@ -149,6 +149,7 @@ test("statement import matches reference/amount/currency and never pays from CSV
 test("admin login is fail-closed outside sandbox and SSO uses exchange with redirect guard", async () => {
   const login = await readFile(path.join(root, "app/api/v1/admin/login/route.ts"), "utf8");
   const exchange = await readFile(path.join(root, "app/api/v1/sso/exchange/route.ts"), "utf8");
+  const dashboard = await readFile(path.join(root, "app/admin/payflow-admin-dashboard.tsx"), "utf8");
 
   assert.match(login, /use_sso_exchange/);
   assert.match(login, /isSandboxRuntime\(\)/);
@@ -157,6 +158,9 @@ test("admin login is fail-closed outside sandbox and SSO uses exchange with redi
   assert.match(exchange, /status: 303/);
   assert.match(exchange, /open redirect/);
   assert.match(exchange, /redirect_to/);
+  assert.match(dashboard, /sandboxLoginAllowed/);
+  assert.match(dashboard, /Acesso só via SIGA/);
+  assert.match(dashboard, /sandboxEnabled/);
 });
 
 test("education sync preserves the complete SIGA academic and financial context", async () => {
@@ -290,6 +294,21 @@ test("external alerts and bank pull stay fail-closed and never take a URL from t
   assert.match(emisWebhookRoute, /settle: false/);
   assert.match(emisWebhookRoute, /verifyEmisWebhookSignature/);
   assert.doesNotMatch(emisWebhookRoute, /status:\s*"paid"|markPaymentPaid|executeBankTransfer/);
+});
+
+test("sandbox bank feed is unavailable outside sandbox and never settles alone", async () => {
+  const feed = await readFile(
+    path.join(root, "app/api/v1/bank-movements/sandbox-feed/route.ts"),
+    "utf8",
+  );
+  const helper = await readFile(path.join(root, "lib/bank-sandbox-feed.ts"), "utf8");
+  assert.match(feed, /isSandboxRuntime/);
+  assert.match(feed, /sandbox_only/);
+  assert.match(feed, /getBankConnectorKey/);
+  assert.match(feed, /buildSandboxFeedMovements/);
+  assert.match(helper, /buildSandboxFeedMovements/);
+  assert.doesNotMatch(feed, /executeBankTransferVerification/);
+  assert.doesNotMatch(helper, /executeBankTransferVerification/);
 });
 
 test("PayFlow notifies SIGA after paid or refunded without blocking the financial write", async () => {

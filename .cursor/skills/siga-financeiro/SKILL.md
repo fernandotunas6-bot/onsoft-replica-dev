@@ -39,7 +39,7 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
    - Segredos só no servidor: `PAYFLOW_INTEGRATION_API_KEY`, `PAYFLOW_SSO_SECRET` (nunca `VITE_`).
    - Extrato CSV: `POST /api/v1/bank-statements/import` (dry-run; conciliar = `bank_statement`). Isolamento por `school_id`.
    - Estorno: `POST /api/v1/payments/:id/refund` (só `finance_admin`; não apaga recibo). Acerto SIGA: `POST /api/finance/payflow/settlement`.
-   - API bancária: `POST /api/v1/bank-movements/ingest` (integração + `school_id`, fonte `bank_api`). Pull no admin: **Puxar movimentos** → `POST /api/v1/bank-movements/pull` (`PAYFLOW_BANK_CONNECTOR_URL` no servidor; SSO ou chave). CLI: `npm run siga:payflow-bank-ingest`.
+   - API bancária: `POST /api/v1/bank-movements/ingest`. Pull: `POST /api/v1/bank-movements/pull` ou CLI `npm run siga:payflow-bank-pull`. Sandbox: feed `sandbox-feed` (só `PAYFLOW_RUNTIME_MODE=sandbox`).
    - Alertas: `PAYFLOW_ALERT_WEBHOOK_URL` (opt-in HTTPS; fail-closed). Inclui falhas de acerto SIGA.
    - Health: `GET /api/v1/health` → banco / settlement / alertas / EMIS (sem segredos).
    - Webhook EMIS: `POST /api/v1/webhooks/emis` (HMAC; fail-closed; não liquida até adaptador de produção).

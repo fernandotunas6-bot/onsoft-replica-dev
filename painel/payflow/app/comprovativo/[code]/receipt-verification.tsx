@@ -9,7 +9,6 @@ import {
   FileCheck2,
   GraduationCap,
   LockKeyhole,
-  Network,
   Printer,
   ReceiptText,
   ShieldCheck,
@@ -22,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PayflowBrandLockup } from "@/components/payflow/brand-mark";
 import { formatCurrency } from "@/lib/formatters";
 
 type ReceiptRecord = {
@@ -93,8 +93,7 @@ export function ReceiptVerification({ code }: { code: string }) {
     <main className="payflow-grid min-h-screen bg-[#f3f7fb] px-4 py-6 text-slate-950 print:bg-white print:p-0 sm:px-6 sm:py-9">
       <div className="mx-auto flex w-full max-w-4xl items-center justify-between print:hidden">
         <Link href="/" className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-blue-600 to-emerald-400 text-white shadow-lg shadow-blue-600/20"><Network className="size-5" /></span>
-          <div><p className="font-bold tracking-tight">PayFlow</p><p className="text-xs text-slate-500">Validação de comprovativos</p></div>
+          <PayflowBrandLockup subtitle="Validação de comprovativos" size="sm" />
         </Link>
         <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700"><ShieldCheck className="size-3" /> Consulta pública</Badge>
       </div>

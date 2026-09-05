@@ -22,10 +22,10 @@ import {
   ShieldCheck,
   TrendingUp,
   Upload,
-  WalletCards,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { PayflowBrandLockup, PayflowBrandMark } from "@/components/payflow/brand-mark";
 import { Money } from "@/components/payflow/money";
 import { PaymentStatusBadge } from "@/components/payflow/payment-status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -121,6 +121,7 @@ type StatementImportData = {
 
 type RuntimeStatus = {
   mode: string;
+  sandboxEnabled?: boolean;
   integrationConfigured: boolean;
   ssoConfigured: boolean;
   bankConnectorConfigured: boolean;
@@ -129,6 +130,7 @@ type RuntimeStatus = {
   emisHomologated: boolean;
   paymentInitiationEnabled: boolean;
   provider: string;
+  sigaUrl?: string | null;
 };
 
 const SIGA_FINANCE_URL = `${process.env.NEXT_PUBLIC_SIGA_URL || "http://localhost:3006"}/financeiro`;
@@ -208,11 +210,24 @@ export function PayflowAdminDashboard() {
   }
 
   useEffect(() => {
-    checkSession();
+    void (async () => {
+      await loadRuntimeStatus();
+      await checkSession();
+    })();
   }, []);
+
+  const sandboxLoginAllowed =
+    runtime?.sandboxEnabled === true || runtime?.mode === "sandbox";
+  const sigaFinanceHref = runtime?.sigaUrl
+    ? `${runtime.sigaUrl.replace(/\/+$/, "")}/financeiro`
+    : SIGA_FINANCE_URL;
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    if (!sandboxLoginAllowed) {
+      toast.error("Em produção, abra o painel a partir do SIGA (Conciliação PayFlow).");
+      return;
+    }
     try {
       setLoggingIn(true);
       const res = await fetch("/api/v1/admin/login", {
@@ -387,8 +402,8 @@ export function PayflowAdminDashboard() {
       <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 px-4 py-12">
         <Card className="w-full max-w-md border-border bg-card shadow-lg">
           <CardHeader className="space-y-2 text-center">
-            <div className="mx-auto grid size-12 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <WalletCards className="size-6" />
+            <div className="mx-auto">
+              <PayflowBrandMark size="lg" className="rounded-xl shadow-sm" />
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight">Painel PayFlow</CardTitle>
             <CardDescription>
@@ -396,39 +411,59 @@ export function PayflowAdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="key">Chave de Acesso / Integração</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 size-4 text-muted-foreground" />
-                  <Input
-                    id="key"
-                    type="password"
-                    placeholder="Chave de segurança ou PIN institucional"
-                    value={accessKey}
-                    onChange={(e) => setAccessKey(e.target.value)}
-                    className="pl-9"
-                  />
+            {sandboxLoginAllowed ? (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="key">Chave de Acesso / Integração (sandbox)</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 size-4 text-muted-foreground" />
+                    <Input
+                      id="key"
+                      type="password"
+                      placeholder="Chave de integração ou atalho local"
+                      value={accessKey}
+                      onChange={(e) => setAccessKey(e.target.value)}
+                      className="pl-9"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Sandbox explícito (`PAYFLOW_RUNTIME_MODE=sandbox`). Em produção o formulário
+                    desaparece — use SSO a partir do SIGA.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Em sandbox, pode entrar com a chave de integração ou o atalho local. Em produção,
-                  use o botão «Conciliação PayFlow» no SIGA (SSO assinado).
-                </p>
-              </div>
 
-              <Button type="submit" className="w-full h-11" disabled={loggingIn}>
-                {loggingIn ? (
-                  <>
-                    <LoaderCircle className="mr-2 size-4 animate-spin" />
-                    A autenticar…
-                  </>
-                ) : (
-                  <>
-                    Entrar no Painel <ArrowRight className="ml-2 size-4" />
-                  </>
-                )}
-              </Button>
-            </form>
+                <Button type="submit" className="w-full h-11" disabled={loggingIn}>
+                  {loggingIn ? (
+                    <>
+                      <LoaderCircle className="mr-2 size-4 animate-spin" />
+                      A autenticar…
+                    </>
+                  ) : (
+                    <>
+                      Entrar no Painel <ArrowRight className="ml-2 size-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+            ) : (
+              <Alert>
+                <ShieldCheck className="size-4" />
+                <AlertTitle>Acesso só via SIGA</AlertTitle>
+                <AlertDescription className="space-y-3">
+                  <p>
+                    Em produção não há login por chave neste ecrã. Abra{" "}
+                    <strong>Conciliação PayFlow</strong> em Tesouraria ou Faturas no SIGA
+                    (SSO assinado, anti-replay).
+                  </p>
+                  <Button asChild className="w-full">
+                    <a href={sigaFinanceHref}>
+                      <ExternalLink className="mr-2 size-4" /> Abrir SIGA · Financeiro
+                    </a>
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Separator />
 
@@ -471,18 +506,10 @@ export function PayflowAdminDashboard() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-              <WalletCards className="size-5" />
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold tracking-tight">PayFlow</span>
-                <Badge variant="secondary" className="text-xs">
-                  Admin
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">Conciliação & Pagamentos Escolares</p>
-            </div>
+            <PayflowBrandLockup subtitle="Conciliação & Pagamentos Escolares" size="sm" />
+            <Badge variant="secondary" className="text-xs">
+              Admin
+            </Badge>
           </div>
 
           <div className="flex items-center gap-2">
@@ -810,7 +837,9 @@ export function PayflowAdminDashboard() {
                     <Separator />
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-sm text-muted-foreground">
-                        Conector bancário (`PAYFLOW_BANK_CONNECTOR_URL` no servidor). Sem URL configurada, o pedido falha fechado.
+                        Conector bancário (`PAYFLOW_BANK_CONNECTOR_URL` no servidor). Sem URL
+                        configurada, o pedido falha fechado. Em sandbox local pode apontar para
+                        `/api/v1/bank-movements/sandbox-feed?transfer_reference=…&amount=…`.
                       </p>
                       <Button
                         type="button"

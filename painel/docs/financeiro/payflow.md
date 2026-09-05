@@ -13,7 +13,9 @@ Referência técnica no repositório: `docs/agents/PAYFLOW_INTEGRATION.md`.
 3. **Aluno** — na ficha ou no modal extensivo → **Sync PayFlow** (matrícula activa + faturas).
 4. **Conciliação** — em `/financeiro` ou `/faturas` → **Conciliação PayFlow** (SSO assinado).
 5. **Extrato CSV** — no `/admin` do PayFlow (aba Transferências): modelo CSV → importar → pré-visualizar → «Conciliar correspondências».
-6. **API bancária** — o banco chama `POST /api/v1/bank-movements/ingest`, ou o painel usa **Puxar movimentos** (`POST /api/v1/bank-movements/pull`) se `PAYFLOW_BANK_CONNECTOR_URL` estiver definida.
+6. **API bancária** — ingest, **Puxar movimentos** no admin, ou `npm run siga:payflow-bank-pull -- --school-id=…`.
+   Em sandbox: `PAYFLOW_BANK_CONNECTOR_URL=http://localhost:3007/api/v1/bank-movements/sandbox-feed?transfer_reference=…&amount=…`.
+   Simulação ingest: `npm run siga:payflow-bank-ingest -- --school-id=… --transfer-reference=PF-TF-… --amount-minor=1500000`.
 7. **Alertas** — opcional: `PAYFLOW_ALERT_WEBHOOK_URL` (Sentry/pager). Sem URL, só logs JSON.
 8. **Acerto SIGA** — liquidação/estorno no PayFlow notifica `POST /api/finance/payflow/settlement` (mesma chave de integração).
 
@@ -50,7 +52,7 @@ Propagação: `npm run siga:sync-env`.
 - Confirmação de pagamento **nunca** por redirect do browser.
 - Comprovativo do pagador **não** liquida a fatura sozinho.
 - Revisão manual no painel exige papel `finance_admin` (Administrador SIGA via SSO) + comprovativo já submetido.
-- Login por chave no `/admin` do PayFlow fica reservado a **sandbox**.
+- Login por chave no `/admin` do PayFlow fica reservado a **sandbox** (UI esconde o formulário em produção; API também fail-closed).
 - Isolamento: a conciliação e o extrato só vêem a escola da sessão; o sync recusa IDs que já pertençam a outra escola.
 - Estorno: no painel admin, **Estornar** (só Administrador via SSO). O recibo PayFlow original fica; o SIGA anula o recibo de caixa via webhook de acerto.
 - Logs JSON `app=payflow` (sem IBAN nem nomes). Falha de acerto SIGA dispara alerta se o webhook estiver configurado.

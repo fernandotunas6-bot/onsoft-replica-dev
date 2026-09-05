@@ -107,7 +107,7 @@ nem em produção.
 Antes de ativar tráfego real:
 
 1. sincronizar as contas bancárias reais da plataforma e das escolas — **Sync IBAN → PayFlow** em Definições → Financeiro (upsert escola+conta);
-2. ~~escolher e configurar a fonte de movimentos: API bancária ou importação de extrato~~ — extrato CSV em `/admin` via `POST /api/v1/bank-statements/import`; ingest `POST /api/v1/bank-movements/ingest`; pull `POST /api/v1/bank-movements/pull` só com `PAYFLOW_BANK_CONNECTOR_URL` HTTPS no servidor (nunca URL no pedido) + `PAYFLOW_BANK_CONNECTOR_KEY`; CLI `npm run siga:payflow-bank-ingest`;
+2. ~~escolher e configurar a fonte de movimentos: API bancária ou importação de extrato~~ — extrato CSV; ingest; pull (`PAYFLOW_BANK_CONNECTOR_URL`); CLI `siga:payflow-bank-ingest` / `siga:payflow-bank-pull`; em sandbox, feed local `GET /api/v1/bank-movements/sandbox-feed` (só com `PAYFLOW_RUNTIME_MODE=sandbox`);
 3. ~~definir papéis para revisão manual~~ — `manual_review` exige `finance_admin` + comprovativo;
 4. obter contrato, documentação, credenciais e homologação da EMIS — checklist em `painel/docs/financeiro/payflow.md`; `PAYFLOW_EMIS_HOMOLOGATED=1` só marca prontidão no health; ingress `POST /api/v1/webhooks/emis` valida assinatura mas responde `501 emis_adapter_not_ready` (não liquida);
 5. ~~ligar SSO admin~~ — feito (`createPayflowAdminLaunch` + `/api/v1/sso/exchange`);

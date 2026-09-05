@@ -90,6 +90,15 @@ npm run siga:payflow-bank-ingest -- \
   --amount-minor=1500000
 ```
 
+Pull via conector (`PAYFLOW_BANK_CONNECTOR_URL` no servidor PayFlow). Em sandbox local:
+
+```bash
+# PAYFLOW_RUNTIME_MODE=sandbox
+# PAYFLOW_BANK_CONNECTOR_URL=http://localhost:3007/api/v1/bank-movements/sandbox-feed?transfer_reference=PF-TF-…&amount=1500000
+# PAYFLOW_BANK_CONNECTOR_KEY=local-bank-connector-key
+npm run siga:payflow-bank-pull -- --school-id=<uuid>
+```
+
 O servidor local usa a porta `3007`. A aplicação necessita do binding D1 `DB`, declarado em
 `.openai/hosting.json`; as migrações estão em `drizzle/`.
 
@@ -100,6 +109,9 @@ O servidor local usa a porta `3007`. A aplicação necessita do binding D1 `DB`,
 - `POST /api/v1/bank-accounts/sync` — sincronização de contas da plataforma ou da escola;
 - `POST /api/v1/bank-transfers/verify` — reconciliação autenticada de movimento confirmado;
 - `POST /api/v1/bank-movements/ingest` — conector bancário (chave de integração + `school_id`, fonte `bank_api`);
+- `POST /api/v1/bank-movements/pull` — puxa movimentos de `PAYFLOW_BANK_CONNECTOR_URL` (nunca URL no pedido);
+- `GET /api/v1/bank-movements/sandbox-feed` — feed local só em sandbox (para testar o pull);
+- `POST /api/v1/webhooks/emis` — ingress EMIS (HMAC; não liquida até adaptador real);
 - `POST /api/v1/bank-statements/import` — extrato CSV (dry-run; conciliar com `apply=true`);
 - `POST /api/v1/student/session` — acesso do pagador com código da escola, ID de 7 dígitos e PIN;
 - `GET|POST /api/v1/student/payments` — histórico e início de pagamento no escopo da sessão;

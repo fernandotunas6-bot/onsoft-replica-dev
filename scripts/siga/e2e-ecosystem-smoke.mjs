@@ -109,6 +109,22 @@ const endpoints = [
     }),
     expect: [401],
   },
+  { label: "PAYFLOW home", url: "http://localhost:3007/", expect: [200], optionalInCi: true },
+  { label: "PAYFLOW health", url: "http://localhost:3007/api/v1/health", expect: [200], optionalInCi: true },
+  {
+    label: "PAYFLOW EMIS webhook (anon POST)",
+    url: "http://localhost:3007/api/v1/webhooks/emis",
+    method: "POST",
+    body: "{}",
+    expect: [401, 503],
+    optionalInCi: true,
+  },
+  {
+    label: "PAYFLOW sandbox-feed (production closed)",
+    url: "http://localhost:3007/api/v1/bank-movements/sandbox-feed?school_id=school-e2e-xx",
+    expect: [401, 404],
+    optionalInCi: true,
+  },
   {
     label: "SIGA matrícula demo",
     url: "http://localhost:3006/matricula/dom-afonso-demo",
@@ -133,8 +149,13 @@ for (const item of endpoints) {
     console.log(`${mark}  ${item.label} → ${res.status} ${item.url}`);
     if (!ok) failed += 1;
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (CI && item.optionalInCi) {
+      console.log(`SKIP ${item.label} → ${message}`);
+      continue;
+    }
     failed += 1;
-    console.log(`FAIL  ${item.label} → ${error instanceof Error ? error.message : error}`);
+    console.log(`FAIL  ${item.label} → ${message}`);
   }
 }
 

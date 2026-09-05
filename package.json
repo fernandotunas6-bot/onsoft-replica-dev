@@ -40,6 +40,7 @@
     "siga:e2e-smoke": "node scripts/siga/e2e-ecosystem-smoke.mjs",
     "siga:gateway-simulate": "node scripts/siga/gateway-simulate.mjs",
     "siga:payflow-bank-ingest": "node scripts/siga/payflow-bank-ingest-simulate.mjs",
+    "siga:payflow-bank-pull": "node scripts/siga/payflow-bank-pull.mjs",
     "siga:gateway-events-recent": "node scripts/siga/gateway-events-recent.mjs",
     "siga:gateway-failure-rate-check": "node scripts/siga/gateway-failure-rate-check.mjs",
     "siga:e2e-live": "SIGA_E2E_LIVE=1 node scripts/siga/e2e-ecosystem-playwright.mjs",

@@ -4,9 +4,9 @@ import {
   GraduationCap,
   ReceiptText,
   ShieldCheck,
-  WalletCards,
 } from "lucide-react";
 
+import { PayflowBrandLockup } from "@/components/payflow/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,13 +38,7 @@ export function ProductionHome() {
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 sm:px-6">
-          <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <WalletCards className="size-[18px]" aria-hidden="true" />
-          </span>
-          <div className="leading-tight">
-            <p className="text-[15px] font-semibold tracking-[-0.02em]">PayFlow</p>
-            <p className="text-xs text-muted-foreground">Financeiro escolar · SIGA Plus</p>
-          </div>
+          <PayflowBrandLockup subtitle="Financeiro escolar · SIGA Plus" />
           <div className="ml-auto flex items-center gap-2">
             {runtime.sandboxEnabled && (
               <Badge variant="outline" className="border-amber-300 text-amber-800">

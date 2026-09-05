@@ -6,8 +6,12 @@ export const metadata: Metadata = {
   description:
     "Cobranças, pagamentos, recibos e conciliação escolar profundamente integrados ao SIGA Plus.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.png", type: "image/png", sizes: "64x64" },
+    ],
+    shortcut: "/favicon.png",
+    apple: "/apple-touch-icon.png",
   },
   other: {
     "codex-preview": "development",

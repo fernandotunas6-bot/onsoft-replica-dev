@@ -10,7 +10,6 @@ import {
   Landmark,
   LoaderCircle,
   LockKeyhole,
-  Network,
   RefreshCw,
   ShieldCheck,
   Smartphone,
@@ -22,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PayflowBrandLockup } from "@/components/payflow/brand-mark";
 import { formatCurrency } from "@/lib/formatters";
 
 type CheckoutPayment = {
@@ -207,8 +207,7 @@ export function CheckoutExperience({ token }: { token: string }) {
       <div className="pointer-events-none absolute bottom-[-10rem] right-[-8rem] size-96 rounded-full bg-emerald-200/45 blur-3xl" />
       <div className="relative mx-auto flex w-full max-w-5xl items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-blue-600 to-emerald-400 text-white shadow-lg shadow-blue-600/20"><Network className="size-5" /></span>
-          <div><p className="font-bold tracking-tight">PayFlow</p><p className="text-xs text-slate-500">Checkout seguro</p></div>
+          <PayflowBrandLockup subtitle="Checkout seguro" size="sm" />
         </div>
         {payment?.canConfirm && (
           <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">

@@ -29,11 +29,11 @@ import {
   Smartphone,
   Upload,
   UserRound,
-  WalletCards,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Money } from "@/components/payflow/money";
+import { PayflowBrandLockup } from "@/components/payflow/brand-mark";
 import { PaymentStatusBadge } from "@/components/payflow/payment-status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -230,19 +230,7 @@ function copyValue(value: string, label: string) {
 }
 
 function Brand({ subtitle = "Portal financeiro" }: { subtitle?: string }) {
-  return (
-    <div className="flex min-w-0 items-center gap-3">
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-        <WalletCards className="size-[18px]" aria-hidden="true" />
-      </span>
-      <div className="min-w-0 leading-tight">
-        <p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground">
-          PayFlow
-        </p>
-        <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
-      </div>
-    </div>
-  );
+  return <PayflowBrandLockup subtitle={subtitle} size="sm" />;
 }
 
 function SandboxBadge() {
