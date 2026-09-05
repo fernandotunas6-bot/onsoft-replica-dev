@@ -38,4 +38,4 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
    - Auto-sync após emitir fatura: só com `PAYFLOW_AUTO_SYNC=1` (best-effort, não bloqueia).
    - Segredos só no servidor: `PAYFLOW_INTEGRATION_API_KEY`, `PAYFLOW_SSO_SECRET` (nunca `VITE_`).
    - Extrato CSV: `POST /api/v1/bank-statements/import` (dry-run; conciliar = `bank_statement`). Isolamento por `school_id`.
-   - API bancária: `POST /api/v1/bank-movements/ingest` (integração + `school_id`, fonte `bank_api`).
+   - API bancária: `POST /api/v1/bank-movements/ingest` (integração + `school_id`, fonte `bank_api`). CLI: `npm run siga:payflow-bank-ingest`.

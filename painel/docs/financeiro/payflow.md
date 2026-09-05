@@ -14,6 +14,7 @@ Referência técnica no repositório: `docs/agents/PAYFLOW_INTEGRATION.md`.
 4. **Conciliação** — em `/financeiro` ou `/faturas` → **Conciliação PayFlow** (SSO assinado).
 5. **Extrato CSV** — no `/admin` do PayFlow (aba Transferências): descarregar modelo, importar, pré-visualizar e marcar «Conciliar correspondências» para liquidar.
 6. **API bancária** — conector externo chama `POST /api/v1/bank-movements/ingest` com a chave de integração, `school_id` e o movimento (referência PF-TF-…, valor em cêntimos, `bank_transaction_id`).
+   Simulação local: `npm run siga:payflow-bank-ingest -- --school-id=… --transfer-reference=PF-TF-… --amount-minor=1500000`.
 
 Opcional: `PAYFLOW_AUTO_SYNC=1` no `.env` do SIGA sincroniza o aluno no PayFlow após cada emissão de fatura (background, não bloqueia).
 5. **Extrato** — no PayFlow Admin → Transferências → importar CSV (pré-visualização; opcionalmente conciliar correspondências exactas).

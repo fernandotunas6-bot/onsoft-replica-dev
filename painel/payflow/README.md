@@ -77,6 +77,15 @@ npm test
 npm run build
 ```
 
+Simular ingestão bancária (PayFlow a correr + chave ≥24 chars):
+
+```bash
+npm run siga:payflow-bank-ingest -- \
+  --school-id=<uuid> \
+  --transfer-reference=PF-TF-20260905-ABC123DEAD \
+  --amount-minor=1500000
+```
+
 O servidor local usa a porta `3007`. A aplicação necessita do binding D1 `DB`, declarado em
 `.openai/hosting.json`; as migrações estão em `drizzle/`.
 
@@ -86,6 +95,8 @@ O servidor local usa a porta `3007`. A aplicação necessita do binding D1 `DB`,
 - `POST /api/v1/education/sync` — sincronização SIGA → PayFlow, autenticada no servidor;
 - `POST /api/v1/bank-accounts/sync` — sincronização de contas da plataforma ou da escola;
 - `POST /api/v1/bank-transfers/verify` — reconciliação autenticada de movimento confirmado;
+- `POST /api/v1/bank-movements/ingest` — conector bancário (chave de integração + `school_id`, fonte `bank_api`);
+- `POST /api/v1/bank-statements/import` — extrato CSV (dry-run; conciliar com `apply=true`);
 - `POST /api/v1/student/session` — acesso do pagador com código da escola, ID de 7 dígitos e PIN;
 - `GET|POST /api/v1/student/payments` — histórico e início de pagamento no escopo da sessão;
 - `POST /api/v1/student/payments/:id/proof` — comprovativo privado no escopo do aluno;

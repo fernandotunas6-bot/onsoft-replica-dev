@@ -107,7 +107,7 @@ nem em produção.
 Antes de ativar tráfego real:
 
 1. sincronizar as contas bancárias reais da plataforma e das escolas — **Sync IBAN → PayFlow** em Definições → Financeiro (upsert escola+conta);
-2. ~~escolher e configurar a fonte de movimentos: API bancária ou importação de extrato~~ — extrato CSV em `/admin` via `POST /api/v1/bank-statements/import`; conector bancário via `POST /api/v1/bank-movements/ingest` (chave de integração + `school_id`, fonte fixa `bank_api`); falta ligar o portal/banco real ao ingest;
+2. ~~escolher e configurar a fonte de movimentos: API bancária ou importação de extrato~~ — extrato CSV em `/admin` via `POST /api/v1/bank-statements/import`; conector bancário via `POST /api/v1/bank-movements/ingest` (chave de integração + `school_id`, fonte fixa `bank_api`); CLI local `npm run siga:payflow-bank-ingest`; falta ligar o portal/banco real ao ingest;
 3. ~~definir papéis para revisão manual~~ — `manual_review` exige `finance_admin` + comprovativo;
 4. obter contrato, documentação, credenciais e homologação da EMIS;
 5. ~~ligar SSO admin~~ — feito (`createPayflowAdminLaunch` + `/api/v1/sso/exchange`);
