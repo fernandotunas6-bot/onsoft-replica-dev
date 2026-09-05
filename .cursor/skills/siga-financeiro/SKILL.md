@@ -37,4 +37,4 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
    - Sync IBAN: `syncSchoolBankToPayflow` em Definições → Financeiro (também após «Guardar banco»).
    - Auto-sync após emitir fatura: só com `PAYFLOW_AUTO_SYNC=1` (best-effort, não bloqueia).
    - Segredos só no servidor: `PAYFLOW_INTEGRATION_API_KEY`, `PAYFLOW_SSO_SECRET` (nunca `VITE_`).
-   - Extrato CSV: `POST /api/v1/bank-statements/import` no painel admin (aba Transferências). Pré-visualiza; com «Conciliar» usa fonte `bank_statement`.
+   - Extrato CSV: `POST /api/v1/bank-statements/import` (dry-run; conciliar = `bank_statement`). Isolamento por `school_id`.

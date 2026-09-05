@@ -44,6 +44,8 @@ Propagação: `npm run siga:sync-env`.
 - Comprovativo do pagador **não** liquida a fatura sozinho.
 - Revisão manual no painel exige papel `finance_admin` (Administrador SIGA via SSO) + comprovativo já submetido.
 - Login por chave no `/admin` do PayFlow fica reservado a **sandbox**.
+- Isolamento: a conciliação e o extrato só vêem a escola da sessão; o sync recusa IDs que já pertençam a outra escola.
+- Logs JSON `app=payflow` (sem IBAN nem nomes). Conciliação errada: não apagar recibo — corrigir no SIGA e auditar o `payment_id`.
 
 ## Checklist antes de produção
 
@@ -51,7 +53,7 @@ Propagação: `npm run siga:sync-env`.
 - [ ] `PAYFLOW_SSO_SECRET` e `PAYFLOW_INTEGRATION_API_KEY` configurados
 - [x] Fonte de movimentos (extrato CSV no PayFlow Admin; API bancária ainda não)
 - [ ] Homologação EMIS/Unitel no portal externo (se aplicável)
-- [ ] Teste de isolamento entre duas escolas
+- [x] Teste de isolamento entre duas escolas (unitário no PayFlow; validar com dois tenants reais antes de tráfego)
 
 ## Ajuda relacionada
 

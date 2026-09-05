@@ -127,7 +127,7 @@ test("statement import matches reference/amount/currency and never pays from CSV
   assert.match(parser, /amount_mismatch/);
   assert.match(parser, /unknown_reference/);
   assert.doesNotMatch(parser, /status: "paid"/);
-  assert.match(importRoute, /eq\(payments\.schoolId, requestedSchoolId\)/);
+  assert.match(importRoute, /requiredSchoolId: requestedSchoolId/);
   assert.match(importRoute, /source: "bank_statement"/);
   assert.match(importRoute, /dry_run: !apply/);
 });

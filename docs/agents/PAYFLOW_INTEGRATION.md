@@ -111,8 +111,17 @@ Antes de ativar tráfego real:
 3. ~~definir papéis para revisão manual~~ — `manual_review` exige `finance_admin` + comprovativo;
 4. obter contrato, documentação, credenciais e homologação da EMIS;
 5. ~~ligar SSO admin~~ — feito (`createPayflowAdminLaunch` + `/api/v1/sso/exchange`);
-6. executar testes de isolamento entre escolas e reconciliação ponta a ponta;
-7. configurar observabilidade, alertas e procedimento de reversão.
+6. ~~executar testes de isolamento entre escolas e reconciliação ponta a ponta~~ — extrato só vê pendentes da escola; verify exige `school_id` na chave de integração; sync recusa aluno/fatura/conta de outra escola;
+7. observabilidade estruturada (`logPayflowEvent`) + procedimento de reversão abaixo; alertas externos (Sentry/pager) ainda não ligados.
+
+## Reversão de conciliação incorrecta
+
+Não existe endpoint público que anule um recibo a partir do browser. Se um movimento for conciliado por engano:
+
+1. Não apagar o recibo nem o evento `bank_transfer.verified` — são prova de auditoria.
+2. Tratar o caso como estorno operacional: o financeiro da escola emite nota/recibo de correcção no SIGA (caixa) e o PayFlow mantém o estado `paid` até existir um fluxo de `refunded` homologado.
+3. Procurar nos logs JSON `app=payflow` os eventos `bank_transfer.verify.ok` / `bank_statement.import` com `school_id` e `payment_id`.
+4. Não correr SQL ad hoc em produção para voltar o pagamento a `pending` sem ticket e sem segundo revisor `finance_admin`.
 
 Não apagar o financeiro existente do SIGA antes de o novo fluxo ter paridade, migração
 validada e rollback documentado.

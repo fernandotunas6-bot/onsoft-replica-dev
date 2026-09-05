@@ -247,8 +247,6 @@ export async function POST(request: Request) {
         .onConflictDoUpdate({
           target: bankAccounts.id,
           set: {
-            scope: "school",
-            schoolId: parsed.data.school.id,
             accountHolder: account.account_holder,
             bankName: account.bank_name,
             iban: iban.compact,
