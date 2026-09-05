@@ -23,6 +23,7 @@ Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise com
 - **PayFlow P0:** login fail-closed fora de sandbox; SSO só via `/api/v1/sso/exchange` (anti-replay + redirect 303); verify bancário scoped à `school_id` da sessão; botão «Conciliação PayFlow» (`createPayflowAdminLaunch`); **Sync PayFlow** (`syncStudentToPayflow` → `executePayflowStudentSync`); **Sync IBAN** (`syncSchoolBankToPayflow`); revisão manual `finance_admin`; auto-sync após fatura só com `PAYFLOW_AUTO_SYNC=1`.
 - **PayFlow extrato:** `POST /api/v1/bank-statements/import` casa referência + valor + moeda no âmbito da escola; dry-run por omissão; conciliação explícita usa fonte `bank_statement` (não liquida por CSV sozinho).
 - **PayFlow isolamento:** sync recusa aluno/fatura/IBAN já ligados a outra escola; verify por API exige `school_id`; logs JSON `logPayflowEvent`; upsert de IBAN não reescreve `scope`/`school_id`.
+- **PayFlow bank API:** `POST /api/v1/bank-movements/ingest` — só chave de integração + `school_id`; fonte fixa `bank_api` (sem sessão admin / sem `manual_review`).
 - **CI custo:** `native-ci` (macOS/Windows) só em `main` + `workflow_dispatch`; `ci`/`payflow`/`academic-import` com `push` só em `main` (PRs via `pull_request`, sem double-run). Conta privada: bloquear Actions se Billing falhar — ver Billing & plans.
 - **Guards:** `analyzeImportFile` e `downloadOfficialExcelTemplateFn` passam a exigir `requireSgaWriter`.
 - **Validação:** testes `academic-status` + importadores + export + `payflow-sso` + `payflow-education-sync` + `status-history` (Node 24); PayFlow production-safety + isolation actualizados; SQL SGA verificado via Management API.
@@ -954,7 +955,7 @@ Implementado sem unificar frontends:
 0b. **Ecossistema:** seguir Fases 10–13 em `ARCHITECTURE_HARMONIZATION.md`. Não
    unificar frontends. Não apagar `/saas-admin` sem destino no ADMIN.
 0c. **Integrações:** credenciais reais de portal bancário e sincronização automática EMIS.
-0d. **PayFlow:** SSO + sync + IBAN + extrato CSV + isolamento por escola; falta API bancária, homologação EMIS e alertas externos.
+0d. **PayFlow:** SSO + sync + IBAN + extrato CSV + isolamento + ingest `bank_api`; falta conector bancário real, homologação EMIS e alertas externos.
 0e. **GitHub Actions:** se jobs falharem em ~3s com «payments failed / spending limit», corrigir Billing & plans da conta dona do repo (privado = 2 000 min free). Validar localmente: `bun run test` e `cd painel/payflow && npm test`.
 2. Manter commits pequenos por alteração e nunca incluir `.env` nem `.claude/worktrees/`.
 3. Aceitar candidatura cria aluno, encarregado (se veio no formulário) e opcionalmente turma (`classGroupId`). Sem turma fica `applicant`. Em `/alunos`: **Turma** (candidato), **Mudar** (activo), **Estado** e PDF **Oficial**. Campanha de matrícula (Definições) liga a `/documentos#modelos` para talões.

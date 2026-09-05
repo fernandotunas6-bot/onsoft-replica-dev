@@ -117,6 +117,20 @@ test("bank verification matches authoritative movement data before issuing a rec
   assert.match(verifyCore, /db\.insert\(paymentReceipts\)/);
 });
 
+test("bank API ingest forces bank_api source and requires school-scoped integration key", async () => {
+  const ingest = await readFile(
+    path.join(root, "app/api/v1/bank-movements/ingest/route.ts"),
+    "utf8",
+  );
+
+  assert.match(ingest, /isIntegrationAuthorized/);
+  assert.match(ingest, /school_id: z\.string/);
+  assert.match(ingest, /source: "bank_api"/);
+  assert.doesNotMatch(ingest, /manual_review/);
+  assert.doesNotMatch(ingest, /requireAdminPermission/);
+  assert.match(ingest, /bank_api\.ingest\.ok/);
+});
+
 test("statement import matches reference/amount/currency and never pays from CSV parse alone", async () => {
   const parser = await readFile(path.join(root, "lib/bank-statement.ts"), "utf8");
   const importRoute = await readFile(
