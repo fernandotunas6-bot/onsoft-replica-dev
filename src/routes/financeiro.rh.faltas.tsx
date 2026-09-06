@@ -137,10 +137,10 @@ function HrAbsencesPage() {
             <label className="flex items-center gap-2 text-sm">
               Estado
               <select
+                aria-label="Filtrar faltas por estado"
                 className="rounded-md border bg-background px-3 py-2 text-sm"
                 value={filter}
                 onChange={(event) => setFilter(event.target.value as typeof filter)}
-                aria-label="Filtrar faltas por estado"
               >
                 <option value="pending">Pendentes</option>
                 <option value="validated">Validadas</option>
