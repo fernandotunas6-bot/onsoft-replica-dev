@@ -1,8 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  hrAbsenceTypeSchema,
+  reviewHrAbsenceInputSchema,
+  type HrAbsenceType,
+  type HrRemunerationModel,
+  type HrValidationStatus,
+} from "@/features/hr/schemas";
 
 const ABSENCE_ADMIN_ROLES = new Set(["Administrador", "Tesouraria"]);
 
@@ -33,13 +39,13 @@ export type HrAbsenceReviewRow = {
   personName: string;
   employeeNumber: string | null;
   absenceDate: string;
-  absenceType: "justified_paid" | "justified_unpaid" | "unjustified";
+  absenceType: HrAbsenceType;
   durationMinutes: number;
   reason: string | null;
   evidenceRef: string | null;
-  validationStatus: "pending" | "validated" | "rejected" | "cancelled";
+  validationStatus: HrValidationStatus;
   estimatedDeductionKz: number | null;
-  remunerationModel: "fixed_deduct_absence" | "validated_units" | "hybrid" | null;
+  remunerationModel: HrRemunerationModel | null;
 };
 
 export const listHrAbsencesForReview = createServerFn({ method: "GET" })
@@ -178,29 +184,22 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
           : "Pessoa não encontrada",
         employeeNumber: employment?.employee_number ? String(employment.employee_number) : null,
         absenceDate: String(row.absence_date),
-        absenceType: String(row.absence_type) as HrAbsenceReviewRow["absenceType"],
+        absenceType: hrAbsenceTypeSchema.parse(String(row.absence_type)),
         durationMinutes: Number(row.duration_minutes),
         reason: row.reason ? String(row.reason) : null,
         evidenceRef: row.evidence_ref ? String(row.evidence_ref) : null,
-        validationStatus: String(row.validation_status) as HrAbsenceReviewRow["validationStatus"],
+        validationStatus: String(row.validation_status) as HrValidationStatus,
         estimatedDeductionKz,
         remunerationModel: policy?.remuneration_model
-          ? (String(policy.remuneration_model) as HrAbsenceReviewRow["remunerationModel"])
+          ? (String(policy.remuneration_model) as HrRemunerationModel)
           : null,
       };
     });
   });
 
-const reviewAbsenceSchema = z.object({
-  absenceId: z.string().uuid(),
-  absenceType: z.enum(["justified_paid", "justified_unpaid", "unjustified"]),
-  decision: z.enum(["validate", "reject"]),
-  reason: z.string().trim().min(3).max(1000),
-});
-
 export const reviewHrAbsence = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => reviewAbsenceSchema.parse(input))
+  .validator((input: unknown) => reviewHrAbsenceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireAbsenceAdmin(context.userId);
     const db = await loadSgaAdminClient();

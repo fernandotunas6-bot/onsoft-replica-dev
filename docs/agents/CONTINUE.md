@@ -16,6 +16,7 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 - **Inventário:** módulo `rh` em `modules.json`, skill `siga-rh`, launcher `siga-rh`, sidebar Admin/Tesouraria + atalho professor; access-policy restringe `/financeiro/rh` a Admin/Tesouraria.
 - **Ainda fora:** API bancária real, WebAuthn/App Attest, IRT/INSS versionado, holerite oficial, atomicidade total RH+caixa numa única RPC.
 - **Validação:** `npm run siga:check` ✓ (módulo `rh` + 12/12 navigation-catalog). Prettier nos ficheiros RH corrigido (3 warnings hooks restantes). **SQL SGA live 2026-09-06:** 15/15 migrations `hr_*` aplicadas no projecto `xodgfmxiaunpamctfeea` (20 tabelas `hr_*`); policies alinhadas a `is_school_member() → boolean` (padrão SGA, não Lovable uuid).
+- **Spec Ciclo 56.1:** `src/features/hr/schemas.ts` (enums + máquinas de estado + inputs Zod); skill `siga-rh` expandida; testes `tests/hr/schemas-contract.test.ts`.
 
 Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise completo (Fases 1–15) + Ciclos 50–56.
 ### Ciclo 55 — Estados Académicos Unificados, 22 Importadores e PayFlow Admin (2026-09-05)

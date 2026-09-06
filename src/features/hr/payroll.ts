@@ -1,8 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  createPayrollRunInputSchema,
+  payrollRunIdInputSchema,
+} from "@/features/hr/schemas";
 
 const PAYROLL_ROLES = new Set(["Administrador", "Tesouraria"]);
 
@@ -28,15 +31,7 @@ function missingPayrollSchema(error: { code?: string; message?: string } | null)
 
 export const createPayrollRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) =>
-    z
-      .object({
-        year: z.number().int().min(2000).max(2200),
-        month: z.number().int().min(1).max(12),
-        notes: z.string().trim().max(1000).optional().default(""),
-      })
-      .parse(input),
-  )
+  .validator((input: unknown) => createPayrollRunInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePayrollAdmin(context.userId);
     const { data: result, error } = await context.supabase.rpc("hr_create_payroll_run", {
@@ -50,7 +45,7 @@ export const createPayrollRun = createServerFn({ method: "POST" })
 
 export const calculatePayrollRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ payrollRunId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePayrollAdmin(context.userId);
     const { data: result, error } = await context.supabase.rpc("hr_calculate_payroll_run", {
@@ -63,7 +58,7 @@ export const calculatePayrollRun = createServerFn({ method: "POST" })
 
 export const approvePayrollRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ payrollRunId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePayrollAdmin(context.userId);
     const { data: result, error } = await context.supabase.rpc("hr_approve_payroll_run", {
@@ -94,7 +89,7 @@ export type PayrollItemReviewRow = {
 
 export const getPayrollRunDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ payrollRunId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requirePayrollAdmin(context.userId);
     const db = await loadSgaAdminClient();

@@ -1,8 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  attendanceAssurancePolicySchema,
+  DEFAULT_ATTENDANCE_ASSURANCE_POLICY,
+} from "@/features/hr/schemas";
 
 const ASSURANCE_ADMIN_ROLES = new Set(["Administrador", "Tesouraria"]);
 
@@ -15,54 +18,7 @@ async function requireAssuranceAdmin(userId: string) {
   return membership;
 }
 
-export const attendanceAssurancePolicySchema = z
-  .object({
-    enabled: z.boolean().default(true),
-    centerLatitude: z.number().min(-90).max(90).nullable(),
-    centerLongitude: z.number().min(-180).max(180).nullable(),
-    geofenceRadiusM: z.number().int().min(20).max(5000),
-    maxLocationAccuracyM: z.number().int().min(10).max(5000),
-    requireLocation: z.boolean(),
-    storeExactLocation: z.boolean(),
-    checkinEarlyMinutes: z.number().int().min(0).max(180),
-    checkinLateMinutes: z.number().int().min(0).max(180),
-    checkoutEarlyMinutes: z.number().int().min(0).max(180),
-    checkoutLateMinutes: z.number().int().min(0).max(360),
-    autoApproveScore: z.number().int().min(0).max(100),
-    reviewScore: z.number().int().min(0).max(100),
-  })
-  .superRefine((value, ctx) => {
-    if ((value.centerLatitude == null) !== (value.centerLongitude == null)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["centerLatitude"],
-        message: "Latitude e longitude devem ser definidas em conjunto.",
-      });
-    }
-    if (value.autoApproveScore < value.reviewScore) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["autoApproveScore"],
-        message: "A aprovação automática deve ser igual ou superior ao limiar de revisão.",
-      });
-    }
-  });
-
-const DEFAULT_POLICY = {
-  enabled: true,
-  centerLatitude: null,
-  centerLongitude: null,
-  geofenceRadiusM: 150,
-  maxLocationAccuracyM: 100,
-  requireLocation: false,
-  storeExactLocation: false,
-  checkinEarlyMinutes: 20,
-  checkinLateMinutes: 20,
-  checkoutEarlyMinutes: 20,
-  checkoutLateMinutes: 60,
-  autoApproveScore: 70,
-  reviewScore: 45,
-};
+export { attendanceAssurancePolicySchema };
 
 export const getAttendanceAssurancePolicy = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -78,13 +34,13 @@ export const getAttendanceAssurancePolicy = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) {
       if (error.code === "42P01" || /does not exist|schema cache/i.test(error.message ?? ""))
-        return DEFAULT_POLICY;
+        return DEFAULT_ATTENDANCE_ASSURANCE_POLICY;
       throw publicDatabaseError(
         error,
         "Não foi possível carregar a política de confiança de presença.",
       );
     }
-    if (!data) return DEFAULT_POLICY;
+    if (!data) return DEFAULT_ATTENDANCE_ASSURANCE_POLICY;
     return {
       enabled: Boolean(data.enabled),
       centerLatitude: data.center_latitude == null ? null : Number(data.center_latitude),

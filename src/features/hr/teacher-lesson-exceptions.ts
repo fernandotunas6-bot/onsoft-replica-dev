@@ -2,6 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assignTeacherSubstituteInputSchema,
+  createExtraTeacherLessonInputSchema,
+  occurrenceIdInputSchema,
+  teacherAttendancePolicyInputSchema,
+} from "@/features/hr/schemas";
 
 const HR_EXCEPTION_ROLES = new Set(["Administrador", "Tesouraria"]);
 
@@ -14,41 +20,9 @@ async function requireHrExceptionManager(userId: string) {
   return membership;
 }
 
-function requiredId(value: unknown, label: string) {
-  const id = String(value ?? "").trim();
-  if (!id) throw new Error(`${label} é obrigatório.`);
-  return id;
-}
-
-function requiredText(value: unknown, label: string) {
-  const text = String(value ?? "").trim();
-  if (!text) throw new Error(`${label} é obrigatório.`);
-  if (text.length > 500) throw new Error(`${label} é demasiado longo.`);
-  return text;
-}
-
-function isoDate(value: unknown, label = "Data") {
-  const text = String(value ?? "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new Error(`${label} inválida.`);
-  return text;
-}
-
-function hhmm(value: unknown, label: string) {
-  const text = String(value ?? "").trim();
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(text)) throw new Error(`${label} inválida.`);
-  return text;
-}
-
 export const assignTeacherSubstitute = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => {
-    const value = (input ?? {}) as Record<string, unknown>;
-    return {
-      occurrenceId: requiredId(value.occurrenceId, "A ocorrência"),
-      substituteTeacherId: requiredId(value.substituteTeacherId, "O professor substituto"),
-      reason: requiredText(value.reason, "O motivo"),
-    };
-  })
+  .validator((input: unknown) => assignTeacherSubstituteInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requireHrExceptionManager(context.userId);
     const { data: occurrenceId, error } = await context.supabase.rpc(
@@ -69,19 +43,7 @@ export const assignTeacherSubstitute = createServerFn({ method: "POST" })
 
 export const createExtraTeacherLesson = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => {
-    const value = (input ?? {}) as Record<string, unknown>;
-    const startsAt = hhmm(value.startsAt, "Hora inicial");
-    const endsAt = hhmm(value.endsAt, "Hora final");
-    if (endsAt <= startsAt) throw new Error("A hora final deve ser posterior à hora inicial.");
-    return {
-      classSubjectId: requiredId(value.classSubjectId, "A disciplina/turma"),
-      lessonDate: isoDate(value.lessonDate),
-      startsAt,
-      endsAt,
-      reason: requiredText(value.reason, "O motivo"),
-    };
-  })
+  .validator((input: unknown) => createExtraTeacherLessonInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requireHrExceptionManager(context.userId);
     const { data: occurrenceId, error } = await context.supabase.rpc(
@@ -104,10 +66,7 @@ export const createExtraTeacherLesson = createServerFn({ method: "POST" })
 
 export const evaluateTeacherLessonAttendance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => {
-    const value = (input ?? {}) as Record<string, unknown>;
-    return { occurrenceId: requiredId(value.occurrenceId, "A ocorrência") };
-  })
+  .validator((input: unknown) => occurrenceIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requireHrExceptionManager(context.userId);
     const { data: result, error } = await context.supabase.rpc(
@@ -176,39 +135,7 @@ export const getTeacherAttendancePolicy = createServerFn({ method: "GET" })
 
 export const saveTeacherAttendancePolicy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => {
-    const value = (input ?? {}) as Record<string, unknown>;
-    const lateGraceMinutes = Number(value.lateGraceMinutes);
-    const earlyLeaveGraceMinutes = Number(value.earlyLeaveGraceMinutes);
-    const minimumAttendancePercent = Number(value.minimumAttendancePercent);
-    const outsideGraceMode = value.outsideGraceMode === "proportional" ? "proportional" : "review";
-
-    if (!Number.isInteger(lateGraceMinutes) || lateGraceMinutes < 0 || lateGraceMinutes > 120) {
-      throw new Error("Tolerância de atraso inválida.");
-    }
-    if (
-      !Number.isInteger(earlyLeaveGraceMinutes) ||
-      earlyLeaveGraceMinutes < 0 ||
-      earlyLeaveGraceMinutes > 120
-    ) {
-      throw new Error("Tolerância de saída inválida.");
-    }
-    if (
-      !Number.isFinite(minimumAttendancePercent) ||
-      minimumAttendancePercent < 0 ||
-      minimumAttendancePercent > 100
-    ) {
-      throw new Error("Percentagem mínima de presença inválida.");
-    }
-
-    return {
-      name: String(value.name ?? "Política padrão").trim() || "Política padrão",
-      lateGraceMinutes,
-      earlyLeaveGraceMinutes,
-      minimumAttendancePercent,
-      outsideGraceMode,
-    };
-  })
+  .validator((input: unknown) => teacherAttendancePolicyInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireHrExceptionManager(context.userId);
     const db = await loadSgaAdminClient();

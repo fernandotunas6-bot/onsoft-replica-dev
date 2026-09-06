@@ -3,6 +3,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  createTeacherLessonQrInputSchema,
+  redeemTeacherLessonQrInputSchema,
+} from "@/features/hr/schemas";
 
 const HR_LESSON_ROLES = new Set(["Administrador", "Tesouraria"]);
 
@@ -28,17 +32,6 @@ async function requireHrLessonReader(userId: string) {
 
 function qrTokenHash(token: string) {
   return createHash("sha256").update(token, "utf8").digest("hex");
-}
-
-function qrPurpose(value: unknown): "check_in" | "check_out" {
-  if (value === "check_in" || value === "check_out") return value;
-  throw new Error("Finalidade QR inválida.");
-}
-
-function requiredId(value: unknown, label: string) {
-  const id = String(value ?? "").trim();
-  if (!id) throw new Error(`${label} é obrigatório.`);
-  return id;
 }
 
 export type HrTeacherLessonOccurrence = {
@@ -145,13 +138,7 @@ export const listMyTeacherLessonOccurrences = createServerFn({ method: "GET" })
 
 export const createTeacherLessonQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => {
-    const value = (input ?? {}) as Record<string, unknown>;
-    return {
-      occurrenceId: requiredId(value.occurrenceId, "A ocorrência"),
-      purpose: qrPurpose(value.purpose),
-    };
-  })
+  .validator((input: unknown) => createTeacherLessonQrInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireHrLessonReader(context.userId);
     const db = await loadSgaAdminClient();
@@ -222,25 +209,7 @@ export const createTeacherLessonQr = createServerFn({ method: "POST" })
 
 export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => {
-    const value = (input ?? {}) as Record<string, unknown>;
-    const token = String(value.token ?? "").trim();
-    if (token.length < 32 || token.length > 256) throw new Error("QR inválido.");
-    const latitude = value.latitude == null ? null : Number(value.latitude);
-    const longitude = value.longitude == null ? null : Number(value.longitude);
-    const accuracy = value.accuracy == null ? null : Number(value.accuracy);
-    if ((latitude == null) !== (longitude == null)) throw new Error("Localização incompleta.");
-    if (latitude != null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) {
-      throw new Error("Latitude inválida.");
-    }
-    if (longitude != null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
-      throw new Error("Longitude inválida.");
-    }
-    if (accuracy != null && (!Number.isFinite(accuracy) || accuracy < 0 || accuracy > 10000)) {
-      throw new Error("Precisão de localização inválida.");
-    }
-    return { token, latitude, longitude, accuracy };
-  })
+  .validator((input: unknown) => redeemTeacherLessonQrInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem vínculo activo com uma escola.");

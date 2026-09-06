@@ -1,8 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  canConfirmPaymentItem,
+  confirmPayrollPaymentItemInputSchema,
+  HR_PAYMENT_CONFIRMABLE_STATUSES,
+  maskPaymentDestinationLabel,
+  paymentBatchIdInputSchema,
+  payrollRunIdInputSchema,
+  upsertHrPaymentDestinationInputSchema,
+} from "@/features/hr/schemas";
 
 const PAYMENT_ROLES = new Set(["Administrador", "Tesouraria"]);
 
@@ -24,40 +32,9 @@ function missingPaymentSchema(error: { code?: string; message?: string } | null)
   );
 }
 
-function maskLast4(value: string | null | undefined, label: string) {
-  if (!value) return null;
-  const normalized = value.replace(/\s/g, "");
-  return `${label} ••••${normalized.slice(-4)}`;
-}
-
-const destinationSchema = z
-  .object({
-    employmentId: z.string().uuid(),
-    method: z.enum(["transfer", "cash", "other"]),
-    beneficiaryName: z.string().trim().min(2).max(160),
-    bankName: z.string().trim().max(160).optional().default(""),
-    iban: z.string().trim().max(64).optional().default(""),
-    accountNumber: z.string().trim().max(80).optional().default(""),
-    destinationReference: z.string().trim().max(160).optional().default(""),
-  })
-  .superRefine((value, ctx) => {
-    if (
-      value.method === "transfer" &&
-      !value.iban &&
-      !value.accountNumber &&
-      !value.destinationReference
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["iban"],
-        message: "Indique IBAN, número de conta ou referência segura.",
-      });
-    }
-  });
-
 export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => destinationSchema.parse(input))
+  .validator((input: unknown) => upsertHrPaymentDestinationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId);
     const db = await loadSgaAdminClient();
@@ -141,22 +118,18 @@ export const listHrPaymentDestinations = createServerFn({ method: "GET" })
       method: String(row.method),
       beneficiaryName: String(row.beneficiary_name),
       bankName: row.bank_name ? String(row.bank_name) : null,
-      destinationLabel:
-        maskLast4(
-          row.iban ? String(row.iban) : row.account_number ? String(row.account_number) : null,
-          row.iban ? "IBAN" : "Conta",
-        ) ??
-        (row.destination_reference
-          ? String(row.destination_reference)
-          : row.method === "cash"
-            ? "Numerário"
-            : "Outro"),
+      destinationLabel: maskPaymentDestinationLabel(
+        row.iban ? String(row.iban) : null,
+        row.account_number ? String(row.account_number) : null,
+        row.destination_reference ? String(row.destination_reference) : null,
+        String(row.method),
+      ),
     }));
   });
 
 export const createPayrollPaymentBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ payrollRunId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePaymentAdmin(context.userId);
     const { data: result, error } = await context.supabase.rpc("hr_create_payroll_payment_batch", {
@@ -168,7 +141,7 @@ export const createPayrollPaymentBatch = createServerFn({ method: "POST" })
 
 export const refreshPayrollPaymentBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ batchId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => paymentBatchIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePaymentAdmin(context.userId);
     const { data: result, error } = await context.supabase.rpc("hr_refresh_payroll_payment_batch", {
@@ -181,7 +154,7 @@ export const refreshPayrollPaymentBatch = createServerFn({ method: "POST" })
 
 export const authorizePayrollPaymentBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ batchId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => paymentBatchIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requirePaymentAdmin(context.userId);
     const { data: result, error } = await context.supabase.rpc(
@@ -214,7 +187,7 @@ export const listPayrollPaymentBatches = createServerFn({ method: "GET" })
 
 export const getPayrollPaymentBatchDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ batchId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => paymentBatchIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId);
     const db = await loadSgaAdminClient();
@@ -246,26 +219,9 @@ export const getPayrollPaymentBatchDetail = createServerFn({ method: "GET" })
     return { batch, items: items ?? [] };
   });
 
-const paymentResultSchema = z
-  .object({
-    paymentItemId: z.string().uuid(),
-    result: z.enum(["paid", "failed"]),
-    reference: z.string().trim().min(3).max(160),
-    failureReason: z.string().trim().max(500).optional().default(""),
-  })
-  .superRefine((value, ctx) => {
-    if (value.result === "failed" && value.failureReason.length < 3) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["failureReason"],
-        message: "Indique o motivo da falha.",
-      });
-    }
-  });
-
 export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => paymentResultSchema.parse(input))
+  .validator((input: unknown) => confirmPayrollPaymentItemInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requirePaymentAdmin(context.userId);
     const db = await loadSgaAdminClient();
@@ -297,7 +253,7 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
     if (!batch || !["authorized", "processing", "partial"].includes(String(batch.status)))
       throw new Error("A ordem salarial precisa estar autorizada antes da execução.");
 
-    if (!["authorized", "processing", "failed"].includes(String(item.status))) {
+    if (!canConfirmPaymentItem(String(item.status))) {
       throw new Error("Este item não está pronto para confirmação de pagamento.");
     }
 
@@ -312,7 +268,7 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
         })
         .eq("id", item.id)
         .eq("school_id", membership.schoolId)
-        .in("status", ["authorized", "processing", "failed"])
+        .in("status", [...HR_PAYMENT_CONFIRMABLE_STATUSES])
         .select("id")
         .maybeSingle();
       if (error)
@@ -380,7 +336,7 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
       })
       .eq("id", item.id)
       .eq("school_id", membership.schoolId)
-      .in("status", ["authorized", "processing", "failed"])
+      .in("status", [...HR_PAYMENT_CONFIRMABLE_STATUSES])
       .select("id")
       .maybeSingle();
     if (payError)
