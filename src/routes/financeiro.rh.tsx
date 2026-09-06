@@ -86,29 +86,29 @@ function HrPayrollPage() {
         ) : (
           <>
             <StatGrid
-              stats={[
+              items={[
                 {
                   label: "Funcionários activos",
                   value: String(data?.employeeCount ?? 0),
-                  helper: "Vínculos funcionais activos",
+                  hint: "Vínculos funcionais activos",
                   icon: Users,
                 },
                 {
                   label: "Contratos activos",
                   value: String(data?.activeContractCount ?? 0),
-                  helper: "Mensal, hora ou hora/aula",
+                  hint: "Mensal, hora ou hora/aula",
                   icon: BriefcaseBusiness,
                 },
                 {
                   label: "Folhas em preparação",
                   value: String(data?.payrollDraftCount ?? 0),
-                  helper: "Rascunho, cálculo ou revisão",
+                  hint: "Rascunho, cálculo ou revisão",
                   icon: FileCheck2,
                 },
                 {
                   label: "Último líquido",
                   value: data?.latestPayroll ? kwanza(data.latestPayroll.total_net_kz) : "—",
-                  helper: data?.latestPayroll
+                  hint: data?.latestPayroll
                     ? `${monthNames[data.latestPayroll.competence_month - 1]} ${data.latestPayroll.competence_year}`
                     : "Nenhuma folha processada",
                   icon: Banknote,
