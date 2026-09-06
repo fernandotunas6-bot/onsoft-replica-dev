@@ -60,7 +60,6 @@ const emptyValues = {
   comuna: "",
   morada: "",
   obs: "",
-  processo: "",
   academicYearId: "",
   courseId: "",
   gradeName: "",
@@ -220,7 +219,6 @@ export function StudentEnrollmentSheet({
         )}
         onSubmit={async () => {
           if (values.nome.trim().length < 2) throw new Error("Indique o nome completo.");
-          if (!values.processo.trim()) throw new Error("O número de processo é obrigatório.");
           const duplicates = await findPersonDuplicates({
             data: {
               fullName: values.nome,
@@ -276,7 +274,6 @@ export function StudentEnrollmentSheet({
                 nif: values.nif || undefined,
                 notes: values.obs || undefined,
               },
-              registrationNumber: values.processo,
               classGroupId: turma?.id,
               academicYearId: turma?.academic_year_id || undefined,
               guardians:
@@ -481,14 +478,6 @@ export function StudentEnrollmentSheet({
           if (stepId === "turma") {
             return (
               <SheetGrid>
-                <SheetCell label="Nº de processo" full>
-                  <Input
-                    aria-label="Número de processo"
-                    value={values.processo}
-                    onChange={(e) => setField("processo", e.target.value)}
-                    placeholder="2026-0001"
-                  />
-                </SheetCell>
                 <SheetCell label="Ano lectivo">
                   <select
                     aria-label="Ano lectivo"
@@ -657,7 +646,7 @@ export function StudentEnrollmentSheet({
                 <strong>Aluno:</strong> {values.nome || "—"}
               </p>
               <p>
-                <strong>Processo:</strong> {values.processo || "—"}
+                <strong>Nº de estudante:</strong> gerado automaticamente ao gravar
               </p>
               <p>
                 <strong>Turma:</strong> {turmaLabel}

@@ -594,7 +594,8 @@ export function GradePautaSheet({
           {view === "disciplina" ? ` · ${selectedSubject?.name ?? "Disciplina"}` : null}
         </p>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Escala 0–20 · MAC + NPP + NPT / 3 · Transita com média ≥ {passingGrade}
+          Escala 0–20 · (MAC + NPT) / 2 · NPP exibida sem entrar na média · Transita com média ≥{" "}
+          {passingGrade}
           {termClosed ? ` · ${periodNoun} fechado` : ""}
         </p>
       </div>

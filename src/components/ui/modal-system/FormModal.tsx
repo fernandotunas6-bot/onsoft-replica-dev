@@ -71,6 +71,7 @@ export function FormModal({
         <ModalContent>{children}</ModalContent>
         <ModalFooter
           onCancel={guardedClose}
+          onSubmit={handleSubmit}
           submitLabel={submitLabel}
           cancelLabel={cancelLabel}
           isSubmitting={isSubmitting}

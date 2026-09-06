@@ -55,6 +55,7 @@ export function QuickModal({
         <ModalContent>{children}</ModalContent>
         <ModalFooter
           onCancel={() => onOpenChange(false)}
+          onSubmit={handleSubmit}
           submitLabel={submitLabel}
           cancelLabel={cancelLabel}
           isSubmitting={isSubmitting}

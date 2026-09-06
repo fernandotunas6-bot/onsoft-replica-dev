@@ -7,8 +7,6 @@ export const ANGOLA_ENTITY_NIF_REGEX = /^\d{9,10}$/;
 export const AGT_NIF_PORTAL_URL =
   "https://portaldocontribuinte.minfin.gov.ao/consultar-nif-do-contribuinte";
 
-export const ANGOLA_BI_PUBLIC_API_BASE = "https://angolaapi.herokuapp.com/api/v1/validate/bi";
-
 export function normalizeAngolaIdentity(value: string): string {
   return value
     .trim()
@@ -76,44 +74,6 @@ export function validateSchoolNif(value: string): {
     return { ok: true, compact };
   }
   return { ok: false, error: entity.error ?? "NIF da escola inválido." };
-}
-
-export async function lookupAngolaBiOnline(bi: string): Promise<{
-  ok: boolean;
-  message: string;
-}> {
-  const validated = validateAngolaBi(bi);
-  if (!validated.ok) {
-    return { ok: false, message: validated.error ?? "BI inválido." };
-  }
-  try {
-    const response = await fetch(`${ANGOLA_BI_PUBLIC_API_BASE}/${validated.compact}`);
-    if (!response.ok) {
-      return {
-        ok: false,
-        message: "Serviço público indisponível. Valide o formato ou consulte a AGT.",
-      };
-    }
-    const payload: unknown = await response.json();
-    if (payload && typeof payload === "object" && "valid" in payload) {
-      const valid = Boolean((payload as { valid?: boolean }).valid);
-      return {
-        ok: valid,
-        message: valid
-          ? "Formato confirmado pela API pública (não substitui a AGT)."
-          : "A API pública não reconheceu este número.",
-      };
-    }
-    return {
-      ok: true,
-      message: "Consulta efectuada. Confirme sempre no Portal do Contribuinte.",
-    };
-  } catch {
-    return {
-      ok: false,
-      message: "Sem ligação à API. Use o Portal AGT para confirmar o documento.",
-    };
-  }
 }
 
 export function formatAngolaBi(value: string): string {

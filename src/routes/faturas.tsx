@@ -362,9 +362,6 @@ function FaturasPage() {
         ),
     });
   };
-  const year = new Date().getFullYear();
-  const suggestedInvoiceNumber = `FT-${year}/${String(invoiceCount + 1).padStart(4, "0")}`;
-
   const downloadReceipt = async (
     fatura: {
       numero: string;
@@ -723,12 +720,6 @@ function FaturasPage() {
                     full: true,
                   },
                   {
-                    name: "numero",
-                    label: "Número",
-                    placeholder: "FT 2026/0001",
-                    defaultValue: suggestedInvoiceNumber,
-                  },
-                  {
                     name: "categoria",
                     label: "Categoria",
                     type: "select",
@@ -747,28 +738,28 @@ function FaturasPage() {
                 onSubmit={async (values) => {
                   const student = financeStudents[studentOptions.indexOf(values["aluno"] ?? "")];
                   if (!student) throw new Error("Selecione um aluno válido.");
-                  await issueInvoice({
+                  const created = await issueInvoice({
                     data: {
                       studentId: student.student_id,
-                      number: values["numero"] ?? "",
                       dueOn: values["vencimento"] ?? "",
                       category: values["categoria"] ?? "",
                       amount: Number(values["valor"]),
                       description: values["descricao"] || undefined,
                     },
                   });
+                  const numero = String(created.invoice_number ?? "");
                   await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
                   await queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
                   await downloadReceipt(
                     {
-                      numero: values["numero"] ?? "",
+                      numero,
                       aluno: student.full_name,
                       processo: student.registration_number,
                       valor: Number(values["valor"]),
                       recebido: 0,
                       descricao: values["descricao"] || values["categoria"] || "Fatura escolar",
                     },
-                    values["numero"] ?? "",
+                    numero,
                     Number(values["valor"]),
                     "fatura",
                   );

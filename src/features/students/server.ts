@@ -806,6 +806,9 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       },
     );
     if (registerError) {
+      // Compensa o insert de people acima — sem isto, uma falha aqui (ex.: 2FA em
+      // falta) deixa uma pessoa órfã sem aluno associado.
+      await db.from("people").delete().eq("id", person.id);
       if (rpcAuthError(registerError)) {
         throw new Error(
           "Esta conta precisa de verificação em duas etapas (2FA) activa para matricular alunos.",

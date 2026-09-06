@@ -297,7 +297,7 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
 
     const { error } = await admin
       .from("school_memberships")
-      .update({ status: data.disabled ? "disabled" : "active" })
+      .update({ status: data.disabled ? "suspended" : "active" })
       .eq("id", membership.id);
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado da conta.");
 
@@ -381,6 +381,23 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
     }
 
     return { success: true, userId: data.userId };
+  });
+
+/** Papéis reais da escola (para preencher o cargo do convite institucional). */
+export const listSchoolRoles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const { schoolId } = await requireAdminContext(context);
+    const admin = await loadAdminClient();
+
+    const { data, error } = await admin
+      .from("roles")
+      .select("code, name")
+      .eq("school_id", schoolId)
+      .order("name", { ascending: true });
+    if (error) return [] as Array<{ code: string; name: string }>;
+    return (data ?? []) as Array<{ code: string; name: string }>;
   });
 
 export const listSchoolInvitations = createServerFn({ method: "GET" })

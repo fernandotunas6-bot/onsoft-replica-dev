@@ -387,7 +387,6 @@ function StudentDetail() {
   const paymentStatus = paymentStatusFromInvoices(studentInvoices) ?? student.payment_status;
   const templates = documentsQuery.data?.templates ?? [];
   const templateOptions = templates.map((template) => template.name);
-  const suggestedInvoiceNumber = `FT-${new Date().getFullYear()}-${student.registration_number.replace(/\W/g, "").slice(-6)}`;
   const suggestedDocumentNumber = `DOC-${student.registration_number.replace(/\W/g, "").slice(-8)}`;
   const receiptYear =
     selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "";
@@ -1159,7 +1158,6 @@ function StudentDetail() {
                     await issueInvoice({
                       data: {
                         studentId,
-                        number: values["numero"],
                         dueOn: values["vencimento"],
                         category: values["categoria"],
                         amount: Number(values["valor"]),
@@ -1169,11 +1167,6 @@ function StudentDetail() {
                     await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
                   }}
                   fields={[
-                    {
-                      name: "numero",
-                      label: "Número",
-                      defaultValue: suggestedInvoiceNumber,
-                    },
                     {
                       name: "categoria",
                       label: "Categoria",

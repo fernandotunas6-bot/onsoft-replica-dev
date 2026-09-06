@@ -1355,7 +1355,10 @@ function StudentsPage() {
                                   size="sm"
                                   variant="outline"
                                   className="h-8 gap-1 px-2 text-xs"
-                                  onClick={open}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    open();
+                                  }}
                                 >
                                   <Users className="size-3.5" /> Turma
                                 </Button>
@@ -1413,7 +1416,10 @@ function StudentsPage() {
                                   size="sm"
                                   variant="outline"
                                   className="h-8 gap-1 px-2 text-xs"
-                                  onClick={open}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    open();
+                                  }}
                                 >
                                   <ArrowRightLeft className="size-3.5" /> Mudar
                                 </Button>
@@ -1475,7 +1481,10 @@ function StudentsPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-8 gap-1 px-2 text-xs"
-                                  onClick={open}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    open();
+                                  }}
                                 >
                                   Estado
                                 </Button>

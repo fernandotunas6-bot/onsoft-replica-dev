@@ -27,7 +27,6 @@ export type RecordInvoicePaymentInput = z.infer<typeof recordInvoicePaymentInput
 
 export const issueInvoiceInputSchema = z.object({
   studentId: z.string().uuid(),
-  number: z.string().trim().min(1).max(64),
   dueOn: z.string().date(),
   issuedOn: z.string().date().optional(),
   description: z.string().trim().max(500).optional(),
@@ -65,7 +64,8 @@ export type ReverseCashEntryInput = z.infer<typeof reverseCashEntryInputSchema>;
 
 export const cancelInvoiceInputSchema = z.object({
   invoiceId: z.string().uuid(),
-  reason: z.string().trim().min(3).max(500).optional(),
+  // BD exige 5-300 caracteres quando preenchido (finance_invoices_cancellation_reason_check).
+  reason: z.string().trim().min(5).max(300).optional(),
 });
 export type CancelInvoiceInput = z.infer<typeof cancelInvoiceInputSchema>;
 

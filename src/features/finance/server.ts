@@ -917,10 +917,14 @@ export const cancelInvoice = createServerFn({ method: "POST" })
       throw new Error("Esta fatura já tem recibos. Anule os lançamentos antes de cancelar.");
     }
 
-    void data.reason;
     const { data: updated, error } = await db
       .from("finance_invoices")
-      .update({ status: "cancelled" })
+      .update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: context.userId,
+        cancellation_reason: data.reason ?? null,
+      })
       .eq("id", data.invoiceId)
       .eq("school_id", membership.schoolId)
       .select("id, status")
@@ -1014,23 +1018,51 @@ export const issueInvoice = createServerFn({ method: "POST" })
 
     const competenceMonth =
       (data.issuedOn ?? new Date().toISOString().slice(0, 10)).slice(0, 7) + "-01";
-    const { data: invoice, error } = await db
+
+    // Número gerado pelo servidor (nunca pelo cliente) para nunca aceitar texto livre
+    // (ex.: nº de processo do aluno colado por engano) na numeração fiscal FT-AAAA/NNNN.
+    const invoiceYear = new Date().getFullYear();
+    const { count: yearInvoiceCount } = await db
       .from("finance_invoices")
-      .insert({
-        school_id: membership.schoolId,
-        contract_id: contract.id,
-        fee_item_id: feeItem.id,
-        invoice_number: data.number,
-        competence_month: competenceMonth,
-        amount: data.amount,
-        discount_amount: 0,
-        penalty_amount: 0,
-        due_date: data.dueOn,
-        status: "open",
-        issued_by: context.userId,
-      })
-      .select("*")
-      .single();
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", membership.schoolId)
+      .like("invoice_number", `FT-${invoiceYear}/%`);
+    let sequence = (yearInvoiceCount ?? 0) + 1;
+
+    let invoice: Record<string, unknown> | null = null;
+    let invoiceNumber = "";
+    let error: { code?: string; message: string } | null = null;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      invoiceNumber = `FT-${invoiceYear}/${String(sequence).padStart(4, "0")}`;
+      const result = await db
+        .from("finance_invoices")
+        .insert({
+          school_id: membership.schoolId,
+          contract_id: contract.id,
+          fee_item_id: feeItem.id,
+          invoice_number: invoiceNumber,
+          competence_month: competenceMonth,
+          amount: data.amount,
+          discount_amount: 0,
+          penalty_amount: 0,
+          due_date: data.dueOn,
+          status: "open",
+          issued_by: context.userId,
+        })
+        .select("*")
+        .single();
+      if (!result.error) {
+        invoice = result.data;
+        error = null;
+        break;
+      }
+      error = result.error;
+      if (result.error.code === "23505") {
+        sequence += 1;
+        continue;
+      }
+      break;
+    }
     if (error) {
       if (/penalty_amount/i.test(error.message)) {
         throw new Error(
@@ -1048,18 +1080,19 @@ export const issueInvoice = createServerFn({ method: "POST" })
       }
       throw publicDatabaseError(error, "Não foi possível emitir a fatura.");
     }
+    if (!invoice) throw new Error("Não foi possível emitir a fatura.");
 
     const student = await personIdForStudent(db, membership.schoolId, data.studentId);
-    const documentCode = stableDocumentCode("fatura", String(invoice.id ?? data.number));
+    const documentCode = stableDocumentCode("fatura", String(invoice.id ?? invoiceNumber));
     const archived = await archiveFinanceQuietly(db, {
       schoolId: membership.schoolId,
       userId: context.userId,
       role: membership.appRole,
       category: "fatura",
-      title: `Fatura ${data.number}`,
-      description: `Fatura escolar ${data.number} (${data.category}). ${data.description?.trim() || "Documento de cobrança arquivado na biblioteca."} Processo ${student.studentNumber ?? "—"}.`,
+      title: `Fatura ${invoiceNumber}`,
+      description: `Fatura escolar ${invoiceNumber} (${data.category}). ${data.description?.trim() || "Documento de cobrança arquivado na biblioteca."} Processo ${student.studentNumber ?? "—"}.`,
       relatedPersonId: student.personId,
-      sourceLabel: data.number,
+      sourceLabel: invoiceNumber,
       amountLabel: formatAmountKz(Number(data.amount)),
       documentCode,
     });
@@ -1072,6 +1105,7 @@ export const issueInvoice = createServerFn({ method: "POST" })
 
     return {
       ...invoice,
+      invoice_number: invoiceNumber,
       library_document_code: archived?.documentCode ?? documentCode,
       library_file_id: archived?.fileId ?? null,
     };

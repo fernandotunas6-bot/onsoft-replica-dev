@@ -99,7 +99,9 @@ export type CreateStudentInput = z.infer<typeof createStudentInputSchema>;
 
 export const enrollNewStudentInputSchema = z.object({
   person: personCoreFieldsSchema,
-  registrationNumber: z.string().trim().min(1, "Número de processo é obrigatório"),
+  // Não persistido: o nº do aluno (EST-######) é gerado pela sequência própria
+  // do RPC `register_student`. Mantido opcional só por compatibilidade de tipos.
+  registrationNumber: optionalText,
   classGroupId: z.string().uuid().optional(),
   academicYearId: z.string().uuid().optional(),
   admittedOn: optionalText,

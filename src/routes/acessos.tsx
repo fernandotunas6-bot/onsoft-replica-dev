@@ -52,6 +52,7 @@ import {
   createSchoolInvitation,
   inviteSystemUser,
   listSchoolInvitations,
+  listSchoolRoles,
   listSystemAccounts,
   resendSystemInvite,
   resetStaffPasswordDirect,
@@ -59,7 +60,11 @@ import {
   setSystemAccountDisabled,
   updateSystemAccountCargo,
 } from "@/features/access/server";
-import { listStaffModuleGrants, setStaffModuleGrant } from "@/features/access/grants";
+import {
+  clearStaffModuleGrant,
+  listStaffModuleGrants,
+  setStaffModuleGrant,
+} from "@/features/access/grants";
 import type { AccessLevel } from "@/features/auth/access-policy";
 import { createPerson, listStaffDirectory, updatePersonStatus } from "@/features/people/server";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
@@ -139,6 +144,12 @@ function AcessosPage() {
     queryFn: () => listSchoolInvitations(),
     retry: false,
   });
+  const rolesQuery = useQuery({
+    queryKey: ["access", "roles"],
+    queryFn: () => listSchoolRoles(),
+    retry: false,
+  });
+  const schoolRoles = rolesQuery.data ?? [];
   const grantLevels = ["Nenhum", "Leitura", "Escrita", "Total"] as const;
   const printStaffCredentials = async (person: { full_name: string; email?: string | null }) => {
     const domain = school?.email?.split("@")[1] || person.email?.split("@")[1] || "escola.ao";
@@ -737,7 +748,13 @@ function AcessosPage() {
                               onSubmit={async (values) => {
                                 for (const module of accessModules) {
                                   const selected = values[module.key];
-                                  if (!selected || selected === "Predefinição do cargo") continue;
+                                  if (!selected) continue;
+                                  if (selected === "Predefinição do cargo") {
+                                    await clearStaffModuleGrant({
+                                      data: { userId: account.id, moduleKey: module.key },
+                                    });
+                                    continue;
+                                  }
                                   await setStaffModuleGrant({
                                     data: {
                                       userId: account.id,
@@ -962,6 +979,49 @@ function AcessosPage() {
         <Panel
           title="Convites institucionais"
           description="Convites formais de acesso e vinculação multi-tenant à escola"
+          action={
+            <QuickFormModal
+              eyebrow="Acessos"
+              title="Criar convite institucional"
+              description="Envia um convite formal com token próprio, sem criar já a conta de login."
+              icon={<ShieldCheck className="size-5" />}
+              submitLabel="Criar convite"
+              successDescription="Convite criado. O link foi copiado para a área de transferência."
+              fields={[
+                { name: "email", label: "Email", type: "text" },
+                { name: "nome", label: "Nome completo", required: false },
+                {
+                  name: "cargo",
+                  label: "Cargo",
+                  type: "select",
+                  options: schoolRoles.map((role) => ({ value: role.code, label: role.name })),
+                },
+              ]}
+              onSubmit={async (values) => {
+                const result = await createSchoolInvitation({
+                  data: {
+                    email: values["email"] ?? "",
+                    fullName: values["nome"] || undefined,
+                    roleCode: values["cargo"] ?? "",
+                  },
+                });
+                const link = `${window.location.origin}/convite/${result.rawToken}`;
+                try {
+                  await navigator.clipboard.writeText(link);
+                  toast.message("Link do convite copiado", { description: link });
+                } catch {
+                  // Falha de clipboard (foco/permissões) não deve mascarar o convite criado.
+                  toast.message("Link do convite", { description: link });
+                }
+                await queryClient.invalidateQueries({ queryKey: ["access", "invitations"] });
+              }}
+              trigger={(open) => (
+                <Button size="sm" onClick={open} disabled={!schoolRoles.length}>
+                  <ShieldCheck className="size-4" /> Criar convite
+                </Button>
+              )}
+            />
+          }
         >
           {invitationsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">A carregar convites…</p>
