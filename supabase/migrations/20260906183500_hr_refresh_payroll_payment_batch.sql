@@ -36,19 +36,20 @@ BEGIN
       status = 'pending',
       block_reason = NULL,
       updated_by = auth.uid()
-  FROM LATERAL (
-    SELECT d.*
-    FROM public.hr_payment_destinations d
-    WHERE d.school_id = v_school
-      AND d.employment_id = i.employment_id
-      AND d.active
-      AND d.deleted_at IS NULL
-    ORDER BY d.is_primary DESC, d.created_at DESC
-    LIMIT 1
-  ) dest
+  FROM public.hr_payment_destinations dest
   WHERE i.batch_id = v_batch.id
     AND i.school_id = v_school
-    AND i.status = 'blocked';
+    AND i.status = 'blocked'
+    AND dest.id = (
+      SELECT d2.id
+      FROM public.hr_payment_destinations d2
+      WHERE d2.school_id = v_school
+        AND d2.employment_id = i.employment_id
+        AND d2.active
+        AND d2.deleted_at IS NULL
+      ORDER BY d2.is_primary DESC, d2.created_at DESC
+      LIMIT 1
+    );
 
   UPDATE public.hr_payroll_payment_batches b
   SET payable_count = COALESCE((SELECT count(*) FROM public.hr_payroll_payment_items i WHERE i.batch_id = b.id AND i.status = 'pending'),0),
