@@ -25,6 +25,7 @@ CREATE TABLE public.hr_attendance_assurance_policies (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by uuid REFERENCES auth.users(id),
+  version integer NOT NULL DEFAULT 1,
   CHECK ((center_latitude IS NULL) = (center_longitude IS NULL)),
   CHECK (center_latitude IS NULL OR center_latitude BETWEEN -90 AND 90),
   CHECK (center_longitude IS NULL OR center_longitude BETWEEN -180 AND 180),
@@ -50,7 +51,6 @@ CREATE TABLE public.hr_attendance_assurance_evidence (
   location_accuracy_m numeric(10,2),
   distance_from_school_m numeric(12,2),
   inside_geofence boolean,
-  -- coordenadas exactas são opcionais e só persistem quando a política permitir.
   latitude double precision,
   longitude double precision,
   device_integrity_provider text CHECK (device_integrity_provider IS NULL OR device_integrity_provider IN ('play_integrity','app_attest','webauthn','none')),
@@ -89,8 +89,6 @@ $$;
 REVOKE ALL ON FUNCTION public.hr_haversine_distance_m(double precision,double precision,double precision,double precision) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.hr_haversine_distance_m(double precision,double precision,double precision,double precision) TO authenticated, service_role;
 
--- Avalia contexto da presença. A função não cria pagamento; devolve apenas confiança.
--- Integridade de dispositivo só pode ser marcada por rotas internas/service-role posteriormente.
 CREATE OR REPLACE FUNCTION public.hr_evaluate_teacher_attendance_assurance(
   p_occurrence_id uuid,
   p_purpose text,
@@ -167,8 +165,6 @@ BEGIN
     v_policy.review_score := 45;
   END IF;
 
-  -- QR e identidade são verdadeiros aqui porque esta função só deve ser chamada
-  -- no fluxo autenticado imediatamente após o token ter sido validado pelo servidor.
   v_score := v_score + v_policy.qr_weight + v_policy.identity_weight;
 
   IF p_purpose = 'check_in' THEN
@@ -239,6 +235,42 @@ $$;
 
 REVOKE ALL ON FUNCTION public.hr_evaluate_teacher_attendance_assurance(uuid,text,double precision,double precision,double precision) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.hr_evaluate_teacher_attendance_assurance(uuid,text,double precision,double precision,double precision) TO authenticated;
+
+-- Se uma aula chegar ao motor financeiro com um check-out cuja confiança não é
+-- auto_approve, o evento continua auditável mas fica pending e não entra no cálculo
+-- da folha (o cálculo actual só soma eventos validated).
+CREATE OR REPLACE FUNCTION public.hr_gate_teacher_compensation_by_assurance()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_decision text;
+BEGIN
+  IF NEW.source_type = 'teacher_lesson_occurrence' AND NEW.source_id IS NOT NULL THEN
+    SELECT decision INTO v_decision
+    FROM public.hr_attendance_assurance_evidence
+    WHERE occurrence_id = NEW.source_id
+      AND school_id = NEW.school_id
+      AND purpose = 'check_out'
+    ORDER BY captured_at DESC
+    LIMIT 1;
+
+    IF v_decision IS NOT NULL AND v_decision <> 'auto_approve' THEN
+      NEW.validation_status := 'pending';
+      NEW.validated_at := NULL;
+      NEW.validated_by := NULL;
+      NEW.description := concat_ws(' · ', NEW.description, 'Presença pendente por confiança multifator');
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER hr_gate_teacher_compensation_by_assurance
+  BEFORE INSERT OR UPDATE OF validation_status ON public.hr_compensation_events
+  FOR EACH ROW EXECUTE FUNCTION public.hr_gate_teacher_compensation_by_assurance();
 
 GRANT SELECT ON public.hr_attendance_assurance_policies TO authenticated;
 GRANT SELECT ON public.hr_attendance_assurance_evidence TO authenticated;
