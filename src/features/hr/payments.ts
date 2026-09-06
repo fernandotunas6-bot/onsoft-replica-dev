@@ -133,6 +133,16 @@ export const createPayrollPaymentBatch = createServerFn({ method: "POST" })
     return result;
   });
 
+export const refreshPayrollPaymentBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => z.object({ batchId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await requirePaymentAdmin(context.userId);
+    const { data: result, error } = await context.supabase.rpc("hr_refresh_payroll_payment_batch", { p_batch_id: data.batchId });
+    if (error) throw publicDatabaseError(error, "Não foi possível sincronizar os beneficiários da ordem.");
+    return result;
+  });
+
 export const authorizePayrollPaymentBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => z.object({ batchId: z.string().uuid() }).parse(input))
