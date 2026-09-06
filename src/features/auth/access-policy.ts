@@ -17,8 +17,8 @@ export const accessModules = [
   { key: "dashboard", label: "Dashboard", prefixes: ["/"] },
   {
     key: "pessoas",
-    label: "Pessoas / Alunos",
-    prefixes: ["/pessoas", "/alunos", "/documentos", "/professores"],
+    label: "Pessoas / Alunos / Alumni",
+    prefixes: ["/pessoas", "/alunos", "/alumni", "/documentos", "/professores"],
   },
   {
     key: "financeiro",
@@ -57,7 +57,7 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     roles: ["Administrador", "Tesouraria", "Encarregado", "Aluno"],
   },
   {
-    prefixes: ["/pessoas", "/alunos", "/documentos"],
+    prefixes: ["/pessoas", "/alunos", "/alumni", "/documentos"],
     roles: ["Administrador", "Secretaria", "Encarregado", "Aluno"],
   },
   {
