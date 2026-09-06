@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, CheckCircle2, Clock3, LogIn, LogOut, QrCode, RefreshCw } from "lucide-react";
+import { Camera, CheckCircle2, Clock3, LocateFixed, LogIn, LogOut, QrCode, RefreshCw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Panel } from "@/components/layout/PageHeader";
@@ -12,6 +12,12 @@ type BarcodeDetectorLike = {
 };
 
 type BarcodeDetectorCtor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+
+type LocationProof = {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+} | null;
 
 function formatDateTime(value: string | null) {
   if (!value) return "—";
@@ -27,6 +33,26 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function getLocationProof(): Promise<LocationProof> {
+  if (!navigator.geolocation) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        }),
+      () => resolve(null),
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 15_000,
+      },
+    );
+  });
+}
+
 export function TeacherAttendancePanel() {
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -34,6 +60,7 @@ export function TeacherAttendancePanel() {
   const scanTimerRef = useRef<number | null>(null);
   const [token, setToken] = useState("");
   const [cameraActive, setCameraActive] = useState(false);
+  const [lastLocationAvailable, setLastLocationAvailable] = useState<boolean | null>(null);
 
   const occurrences = useQuery({
     queryKey: ["hr", "teacher", "my-lessons"],
@@ -42,20 +69,35 @@ export function TeacherAttendancePanel() {
   });
 
   const redeem = useMutation({
-    mutationFn: (qrToken: string) => redeemTeacherLessonQr({ data: { token: qrToken } }),
+    mutationFn: async (qrToken: string) => {
+      const location = await getLocationProof();
+      setLastLocationAvailable(Boolean(location));
+      return redeemTeacherLessonQr({
+        data: {
+          token: qrToken,
+          latitude: location?.latitude ?? null,
+          longitude: location?.longitude ?? null,
+          accuracy: location?.accuracy ?? null,
+        },
+      });
+    },
     onSuccess: async (result) => {
+      const assurance = result.assurance;
       if (result.purpose === "check_in") {
         toast.success("Entrada confirmada", {
-          description: "A presença foi aberta. Faça o check-out no fim da aula.",
+          description:
+            assurance.decision === "review"
+              ? `Presença aberta com confiança ${assurance.score}/100 e revisão automática activada.`
+              : `Presença aberta com confiança ${assurance.score}/100. Faça o check-out no fim da aula.`,
         });
-      } else if (result.occurrenceStatus === "pending_review") {
+      } else if (result.occurrenceStatus === "pending_review" || assurance.decision === "review") {
         toast.info("Saída confirmada — presença em revisão", {
           description:
-            "O check-out foi registado, mas a aula ficou pendente de revisão de tolerância antes de gerar remuneração.",
+            `Confiança ${assurance.score}/100. O check-out foi registado, mas a remuneração permanece bloqueada até revisão.`,
         });
       } else {
         toast.success("Saída confirmada", {
-          description: "A aula foi validada e ficou elegível para remuneração conforme o contrato.",
+          description: `Presença validada automaticamente com confiança ${assurance.score}/100 e elegível para remuneração.`,
         });
       }
       setToken("");
@@ -74,6 +116,13 @@ export function TeacherAttendancePanel() {
   };
 
   useEffect(() => () => stopCamera(), []);
+
+  const submitQr = (raw: string) => {
+    const value = raw.trim();
+    if (value.length < 32 || redeem.isPending) return;
+    setToken(value);
+    redeem.mutate(value);
+  };
 
   const startCamera = async () => {
     const Detector = (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector;
@@ -102,8 +151,7 @@ export function TeacherAttendancePanel() {
           const raw = codes.find((item) => item.rawValue)?.rawValue?.trim();
           if (!raw) return;
           stopCamera();
-          setToken(raw);
-          redeem.mutate(raw);
+          submitQr(raw);
         } catch {
           // Alguns browsers lançam erros transitórios enquanto o vídeo inicia.
         }
@@ -127,7 +175,7 @@ export function TeacherAttendancePanel() {
   return (
     <Panel
       title="Presença e hora/aula"
-      description="Faça check-in e check-out por QR. Apenas a saída válida após a entrada fecha a aula para remuneração."
+      description="Validação multifator: QR temporário, identidade autenticada, janela temporal e localização quando disponível. Sinais insuficientes encaminham a presença para revisão."
       action={
         <Button
           variant="outline"
@@ -161,12 +209,35 @@ export function TeacherAttendancePanel() {
             </div>
           </div>
 
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <ShieldCheck className="size-4" /> Confiança multifator
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                QR + professor autenticado + horário + contexto da escola. O score é calculado no servidor.
+              </p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <LocateFixed className="size-4" /> Localização
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {lastLocationAvailable === true
+                  ? "Localização fornecida na última validação."
+                  : lastLocationAvailable === false
+                    ? "Localização indisponível/negada; a presença pode exigir revisão conforme a política da escola."
+                    : "Será solicitada no momento da validação. Coordenadas exactas só são guardadas se a escola activar essa opção."}
+              </p>
+            </div>
+          </div>
+
           <div className="rounded-lg border p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="font-semibold">Ler QR da aula</p>
                 <p className="text-xs text-muted-foreground">
-                  Autorize a câmara traseira no telemóvel ou introduza o código manualmente.
+                  Autorize a câmara e, quando solicitado, a localização. Também pode introduzir o código manualmente.
                 </p>
               </div>
               <QrCode className="size-5 text-muted-foreground" />
@@ -205,10 +276,10 @@ export function TeacherAttendancePanel() {
                 autoComplete="off"
               />
               <Button
-                onClick={() => redeem.mutate(token.trim())}
+                onClick={() => submitQr(token)}
                 disabled={redeem.isPending || token.trim().length < 32}
               >
-                Validar
+                {redeem.isPending ? "A validar…" : "Validar"}
               </Button>
             </div>
           </div>
