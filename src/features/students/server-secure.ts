@@ -5,11 +5,15 @@ import {
   loadSgaAdminClient,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
-import { getStudentInputSchema, searchStudentsInputSchema } from "./schemas";
+import {
+  getStudentInputSchema,
+  listEnrollmentsInputSchema,
+  searchStudentsInputSchema,
+} from "./schemas";
 import * as legacy from "./server";
 
-// Preserve all existing mutations and secondary reads. The two directory/profile
-// reads below intentionally override the legacy exports for every @/.../students/server import.
+// Preserve all existing mutations and secondary reads. The explicit exports below
+// override sensitive legacy reads for every @/.../students/server import.
 export * from "./server";
 
 async function resolveContextualStudentIds(params: {
@@ -121,4 +125,28 @@ export const getStudentProfile = createServerFn({ method: "GET" })
     }
 
     return legacy.getStudentProfile({ data });
+  });
+
+export const listEnrollments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => listEnrollmentsInputSchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa nesta escola.");
+
+    const allowedIds = await resolveContextualStudentIds({
+      schoolId: membership.schoolId,
+      userId: context.userId,
+      appRole: membership.appRole,
+    });
+    if (allowedIds === null) return legacy.listEnrollments({ data });
+    if (!allowedIds.size) return [];
+
+    // The legacy function is tenant-scoped but broad. Ask for its bounded maximum,
+    // then reduce to the authenticated student's/guardian's authorized set before return.
+    const rows = await legacy.listEnrollments({
+      data: { ...data, limit: 250 },
+    });
+    return rows.filter((row) => allowedIds.has(String(row.student_id))).slice(0, data.limit);
   });
