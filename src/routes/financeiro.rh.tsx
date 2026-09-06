@@ -76,6 +76,7 @@ function HrPayrollPage() {
           description="Vínculos funcionais, contratos, salários mensais, pagamento por hora/aula e processamento da folha salarial — integrado à identidade única de Pessoas."
           actions={
             <div className="flex flex-wrap gap-2">
+              <Button asChild><Link to="/financeiro/rh/folha">Processar folha</Link></Button>
               <Button asChild variant="outline"><Link to="/financeiro/rh/presenca">Validação de presença</Link></Button>
               <Button asChild variant="outline"><Link to="/financeiro/rh/faltas">Faltas e assiduidade</Link></Button>
               <Button asChild variant="outline"><Link to="/financeiro">Voltar às Finanças</Link></Button>
@@ -169,7 +170,7 @@ function HrPayrollPage() {
               ) : payrolls.isError ? (
                 <p className="text-sm text-destructive">Não foi possível carregar as folhas salariais.</p>
               ) : (payrolls.data ?? []).length === 0 ? (
-                <div className="rounded-lg border border-dashed p-8 text-center"><p className="font-medium">Ainda não existem folhas salariais.</p><p className="mt-1 text-sm text-muted-foreground">O fluxo de competência, cálculo, revisão, aprovação e pagamento será habilitado progressivamente.</p></div>
+                <div className="rounded-lg border border-dashed p-8 text-center"><p className="font-medium">Ainda não existem folhas salariais.</p><p className="mt-1 text-sm text-muted-foreground">Crie e processe a competência no espaço operacional da folha salarial.</p></div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
