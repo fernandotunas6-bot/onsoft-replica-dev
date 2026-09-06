@@ -57,6 +57,24 @@ export type HrTeacherLessonOccurrence = {
   compensation_event_id: string | null;
 };
 
+function mapOccurrence(row: Record<string, unknown>): HrTeacherLessonOccurrence {
+  return {
+    id: String(row.id),
+    teacher_id: String(row.teacher_id),
+    employment_id: String(row.employment_id),
+    lesson_date: String(row.lesson_date),
+    scheduled_starts_at: String(row.scheduled_starts_at),
+    scheduled_ends_at: String(row.scheduled_ends_at),
+    actual_started_at: row.actual_started_at ? String(row.actual_started_at) : null,
+    actual_ended_at: row.actual_ended_at ? String(row.actual_ended_at) : null,
+    quantity: Number(row.quantity ?? 1),
+    status: row.status as HrTeacherLessonOccurrence["status"],
+    evidence_method: (row.evidence_method ?? null) as HrTeacherLessonOccurrence["evidence_method"],
+    evidence_ref: row.evidence_ref ? String(row.evidence_ref) : null,
+    compensation_event_id: row.compensation_event_id ? String(row.compensation_event_id) : null,
+  };
+}
+
 export const listHrTeacherLessonOccurrences = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<HrTeacherLessonOccurrence[]> => {
@@ -78,23 +96,48 @@ export const listHrTeacherLessonOccurrences = createServerFn({ method: "GET" })
       throw publicDatabaseError(error, "Não foi possível carregar as aulas remuneráveis.");
     }
 
-    return (data ?? []).map((row) => ({
-      id: String(row.id),
-      teacher_id: String(row.teacher_id),
-      employment_id: String(row.employment_id),
-      lesson_date: String(row.lesson_date),
-      scheduled_starts_at: String(row.scheduled_starts_at),
-      scheduled_ends_at: String(row.scheduled_ends_at),
-      actual_started_at: row.actual_started_at ? String(row.actual_started_at) : null,
-      actual_ended_at: row.actual_ended_at ? String(row.actual_ended_at) : null,
-      quantity: Number(row.quantity ?? 1),
-      status: row.status as HrTeacherLessonOccurrence["status"],
-      evidence_method: (row.evidence_method ?? null) as HrTeacherLessonOccurrence["evidence_method"],
-      evidence_ref: row.evidence_ref ? String(row.evidence_ref) : null,
-      compensation_event_id: row.compensation_event_id
-        ? String(row.compensation_event_id)
-        : null,
-    }));
+    return (data ?? []).map((row) => mapOccurrence(row as Record<string, unknown>));
+  });
+
+export const listMyTeacherLessonOccurrences = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<HrTeacherLessonOccurrence[]> => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem vínculo activo com uma escola.");
+    const db = await loadSgaAdminClient();
+
+    const { data: teacher, error: teacherError } = await db
+      .from("teachers")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("user_id", context.userId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
+    if (teacherError) {
+      throw publicDatabaseError(teacherError, "Não foi possível identificar o professor autenticado.");
+    }
+    if (!teacher?.id) return [];
+
+    const { data, error } = await db
+      .from("hr_teacher_lesson_occurrences")
+      .select(
+        "id, teacher_id, employment_id, lesson_date, scheduled_starts_at, scheduled_ends_at, actual_started_at, actual_ended_at, quantity, status, evidence_method, evidence_ref, compensation_event_id",
+      )
+      .eq("school_id", membership.schoolId)
+      .eq("teacher_id", teacher.id)
+      .is("deleted_at", null)
+      .order("lesson_date", { ascending: false })
+      .order("scheduled_starts_at", { ascending: false })
+      .limit(120);
+
+    if (error) {
+      if (missingTeacherLessonSchema(error)) return [];
+      throw publicDatabaseError(error, "Não foi possível carregar as suas aulas e presenças.");
+    }
+
+    return (data ?? []).map((row) => mapOccurrence(row as Record<string, unknown>));
   });
 
 export const createTeacherLessonQr = createServerFn({ method: "POST" })
@@ -196,9 +239,7 @@ export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
     return {
       occurrenceId: String(row.occurrence_id),
       purpose: String(row.purpose) as "check_in" | "check_out",
-      compensationEventId: row.compensation_event_id
-        ? String(row.compensation_event_id)
-        : null,
+      compensationEventId: row.compensation_event_id ? String(row.compensation_event_id) : null,
       occurrenceStatus: String(row.occurrence_status),
     };
   });
