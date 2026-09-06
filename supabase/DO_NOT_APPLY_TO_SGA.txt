@@ -1,10 +1,29 @@
-As migrações nesta pasta (e all_migrations_combined.sql / pending_feature_migrations.sql)
-foram geradas para um schema Lovable antigo e NÃO devem ser aplicadas ao projecto SGA
+As migrações históricas nesta pasta (e all_migrations_combined.sql / pending_feature_migrations.sql)
+foram geradas para schemas/estados anteriores e NÃO devem ser aplicadas em bloco ao projecto SGA
 xodgfmxiaunpamctfeea.
 
+ATENÇÃO: all_migrations_combined.sql contém versões históricas de funções e policies que já
+foram endurecidas posteriormente (incluindo versões antigas de SECURITY DEFINER). Não usar esse
+ficheiro como fonte canónica de produção nem colá-lo integralmente no SQL Editor.
+
 Schema oficial: memberships/roles/programs/campuses/... já existente no SGA.
-Hotfix pontuais da UI: APPLY_IN_SQL_EDITOR.sql (SQL Editor).
-Matrícula pública + ciclos premium: APPLY_ENROLLMENT_AND_PREMIUM.sql
-(não correr 2026081114* isolados — dependiam de current_school_id() Lovable).
+Base canónica, por ordem:
+1. APPLY_IN_SQL_EDITOR.sql
+2. APPLY_ENROLLMENT_AND_PREMIUM.sql
+
+Hardening de segurança identificado na auditoria de 2026-09-06, aplicar SOMENTE depois de
+validar no projecto SGA correcto e confirmar que as duas bases canónicas acima já existem:
+3. migrations/20260906012000_rls_tenant_permission_hardening.sql
+4. migrations/20260906014500_rbac_sensitive_domain_hardening.sql
+5. migrations/20260906020500_storage_multischool_scope_hardening.sql
+
+Não correr 2026081114* isolados — dependiam de current_school_id() Lovable/estado antigo.
 Para limpar tabelas ops não usadas: cleanup_unused_sga_tables.sql
 (não remove notification_preferences nem assessment_rule_sets).
+
+Antes de qualquer execução em produção:
+- confirmar project ref xodgfmxiaunpamctfeea;
+- executar num ambiente de teste/branch quando disponível;
+- correr advisors de segurança/performance;
+- testar isolamento entre duas escolas e um utilizador multi-escola;
+- só então promover/mergear a alteração.

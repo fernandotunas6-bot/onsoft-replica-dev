@@ -20,10 +20,12 @@
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noPropertyAccessFromIndexSignature": false,
-    "noUncheckedIndexedAccess": false,
-    "exactOptionalPropertyTypes": false,
     "noUncheckedSideEffectImports": true,
+    "exactOptionalPropertyTypes": false,
     "paths": {
+      "@/features/students/server": ["./src/features/students/server-hardened.ts"],
+      "@/features/people/server": ["./src/features/people/server-hardened.ts"],
+      "@/features/access/server": ["./src/features/access/server-hardened.ts"],
       "@/*": ["./src/*"]
     }
   }
