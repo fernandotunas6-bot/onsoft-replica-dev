@@ -148,8 +148,6 @@ BEGIN
       PERFORM public.hr_calculate_payroll_item(v_run.id, v_emp.id);
       v_calculated := v_calculated + 1;
     EXCEPTION WHEN OTHERS THEN
-      -- Não aborta toda a folha por um vínculo inconsistente. Mantém o run em review
-      -- e registra item draft/cancelled apenas via revisão administrativa posterior.
       v_skipped := v_skipped + 1;
     END;
   END LOOP;
@@ -235,20 +233,23 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.hr_approve_payroll_run(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.hr_approve_payroll_run(uuid) TO authenticated;
 
--- Bloqueia mutações financeiras de itens depois de a folha sair da revisão.
 CREATE OR REPLACE FUNCTION public.hr_block_locked_payroll_item_mutation()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY INVOKER
 SET search_path = ''
 AS $$
-DECLARE v_status text;
+DECLARE
+  v_payroll_run_id uuid;
+  v_status text;
 BEGIN
-  SELECT status INTO v_status FROM public.hr_payroll_runs WHERE id = COALESCE(NEW.payroll_run_id, OLD.payroll_run_id);
+  v_payroll_run_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.payroll_run_id ELSE NEW.payroll_run_id END;
+  SELECT status INTO v_status FROM public.hr_payroll_runs WHERE id = v_payroll_run_id;
   IF v_status IN ('approved','processing','paid','cancelled') THEN
     RAISE EXCEPTION 'Payroll run is locked';
   END IF;
-  RETURN COALESCE(NEW, OLD);
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
 END;
 $$;
 
