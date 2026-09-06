@@ -181,7 +181,7 @@ function HrAbsencesPage() {
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          {row.absenceDate} · {Math.round(row.durationMinutes / 60 * 100) / 100} h
+                          {row.absenceDate} · {Math.round((row.durationMinutes / 60) * 100) / 100} h
                           {row.employeeNumber ? ` · Nº ${row.employeeNumber}` : ""}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -200,6 +200,7 @@ function HrAbsencesPage() {
                       <label className="space-y-1 text-sm">
                         <span>Classificação</span>
                         <select
+                          aria-label={`Classificação da falta de ${row.personName}`}
                           className="w-full rounded-md border bg-background px-3 py-2"
                           value={draft.absenceType}
                           disabled={!editable}
@@ -220,6 +221,7 @@ function HrAbsencesPage() {
                       <label className="space-y-1 text-sm">
                         <span>Justificação / decisão</span>
                         <Input
+                          aria-label={`Justificação da falta de ${row.personName}`}
                           value={draft.reason}
                           disabled={!editable}
                           onChange={(event) => patchDraft(row, { reason: event.target.value })}
