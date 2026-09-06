@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -10,7 +11,7 @@ function missingTeacherLessonSchema(error: { code?: string; message?: string } |
     error &&
       (error.code === "42P01" ||
         error.code === "PGRST205" ||
-        /hr_teacher_lesson_occurrences|schema cache|does not exist|relation .* does not exist/i.test(
+        /hr_teacher_(lesson_occurrences|qr_sessions)|schema cache|does not exist|relation .* does not exist/i.test(
           error.message ?? "",
         )),
   );
@@ -25,6 +26,21 @@ async function requireHrLessonReader(userId: string) {
   return membership;
 }
 
+function qrTokenHash(token: string) {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+function qrPurpose(value: unknown): "check_in" | "check_out" {
+  if (value === "check_in" || value === "check_out") return value;
+  throw new Error("Finalidade QR inválida.");
+}
+
+function requiredId(value: unknown, label: string) {
+  const id = String(value ?? "").trim();
+  if (!id) throw new Error(`${label} é obrigatório.`);
+  return id;
+}
+
 export type HrTeacherLessonOccurrence = {
   id: string;
   teacher_id: string;
@@ -32,6 +48,8 @@ export type HrTeacherLessonOccurrence = {
   lesson_date: string;
   scheduled_starts_at: string;
   scheduled_ends_at: string;
+  actual_started_at: string | null;
+  actual_ended_at: string | null;
   quantity: number;
   status: "scheduled" | "confirmed" | "rejected" | "cancelled";
   evidence_method: "manual" | "qr" | "attendance_import" | "system" | null;
@@ -47,7 +65,7 @@ export const listHrTeacherLessonOccurrences = createServerFn({ method: "GET" })
     const { data, error } = await db
       .from("hr_teacher_lesson_occurrences")
       .select(
-        "id, teacher_id, employment_id, lesson_date, scheduled_starts_at, scheduled_ends_at, quantity, status, evidence_method, evidence_ref, compensation_event_id",
+        "id, teacher_id, employment_id, lesson_date, scheduled_starts_at, scheduled_ends_at, actual_started_at, actual_ended_at, quantity, status, evidence_method, evidence_ref, compensation_event_id",
       )
       .eq("school_id", membership.schoolId)
       .is("deleted_at", null)
@@ -67,6 +85,8 @@ export const listHrTeacherLessonOccurrences = createServerFn({ method: "GET" })
       lesson_date: String(row.lesson_date),
       scheduled_starts_at: String(row.scheduled_starts_at),
       scheduled_ends_at: String(row.scheduled_ends_at),
+      actual_started_at: row.actual_started_at ? String(row.actual_started_at) : null,
+      actual_ended_at: row.actual_ended_at ? String(row.actual_ended_at) : null,
       quantity: Number(row.quantity ?? 1),
       status: row.status as HrTeacherLessonOccurrence["status"],
       evidence_method: (row.evidence_method ?? null) as HrTeacherLessonOccurrence["evidence_method"],
@@ -75,4 +95,110 @@ export const listHrTeacherLessonOccurrences = createServerFn({ method: "GET" })
         ? String(row.compensation_event_id)
         : null,
     }));
+  });
+
+export const createTeacherLessonQr = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => {
+    const value = (input ?? {}) as Record<string, unknown>;
+    return {
+      occurrenceId: requiredId(value.occurrenceId, "A ocorrência"),
+      purpose: qrPurpose(value.purpose),
+    };
+  })
+  .handler(async ({ data, context }) => {
+    const membership = await requireHrLessonReader(context.userId);
+    const db = await loadSgaAdminClient();
+
+    const { data: occurrence, error: occurrenceError } = await db
+      .from("hr_teacher_lesson_occurrences")
+      .select("id, school_id, status, actual_started_at, actual_ended_at")
+      .eq("id", data.occurrenceId)
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (occurrenceError) {
+      throw publicDatabaseError(occurrenceError, "Não foi possível validar a aula para QR.");
+    }
+    if (!occurrence) throw new Error("Aula não encontrada.");
+    if (occurrence.status === "rejected" || occurrence.status === "cancelled") {
+      throw new Error("Esta aula não aceita registo de presença.");
+    }
+    if (data.purpose === "check_in" && occurrence.actual_started_at) {
+      throw new Error("O professor já efectuou o check-in desta aula.");
+    }
+    if (data.purpose === "check_out" && !occurrence.actual_started_at) {
+      throw new Error("O check-in deve ser efectuado antes do check-out.");
+    }
+    if (data.purpose === "check_out" && occurrence.actual_ended_at) {
+      throw new Error("O professor já efectuou o check-out desta aula.");
+    }
+
+    await db
+      .from("hr_teacher_qr_sessions")
+      .update({
+        status: "revoked",
+        revoked_at: new Date().toISOString(),
+        revoked_by: context.userId,
+      })
+      .eq("school_id", membership.schoolId)
+      .eq("occurrence_id", data.occurrenceId)
+      .eq("purpose", data.purpose)
+      .eq("status", "active");
+
+    const token = randomBytes(32).toString("base64url");
+    const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+    const { data: session, error } = await db
+      .from("hr_teacher_qr_sessions")
+      .insert({
+        school_id: membership.schoolId,
+        occurrence_id: data.occurrenceId,
+        purpose: data.purpose,
+        token_hash: qrTokenHash(token),
+        expires_at: expiresAt,
+        created_by: context.userId,
+      })
+      .select("id, expires_at")
+      .single();
+
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível gerar o QR temporário da aula.");
+    }
+
+    return {
+      sessionId: String(session.id),
+      token,
+      purpose: data.purpose,
+      expiresAt: String(session.expires_at),
+    };
+  });
+
+export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => {
+    const token = String((input as { token?: unknown } | null)?.token ?? "").trim();
+    if (token.length < 32 || token.length > 256) throw new Error("QR inválido.");
+    return { token };
+  })
+  .handler(async ({ data, context }) => {
+    const { data: result, error } = await context.supabase.rpc("hr_redeem_teacher_qr", {
+      p_token_hash: qrTokenHash(data.token),
+    });
+
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível validar a presença por QR.");
+    }
+
+    const row = Array.isArray(result) ? result[0] : result;
+    if (!row) throw new Error("O QR não produziu um registo de presença válido.");
+
+    return {
+      occurrenceId: String(row.occurrence_id),
+      purpose: String(row.purpose) as "check_in" | "check_out",
+      compensationEventId: row.compensation_event_id
+        ? String(row.compensation_event_id)
+        : null,
+      occurrenceStatus: String(row.occurrence_status),
+    };
   });
