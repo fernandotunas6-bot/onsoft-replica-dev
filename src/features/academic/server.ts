@@ -8,7 +8,7 @@ import {
 } from "./schemas";
 
 // Preserva integralmente a fachada académica já validada e substitui apenas
-// as mutações que precisam de transportar o actor humano para guards adicionais.
+// as mutações/leitura que precisam de transportar o actor humano para guards adicionais.
 export * from "./server-secure-legacy";
 export * from "./academic-calendar";
 
@@ -19,6 +19,7 @@ export {
   updateAssessmentItem,
   upsertAssessmentScores,
 } from "./assessment-write-secure";
+export { listPedagogicalWorkspace } from "./workspace-read-secure";
 
 function scheduleTime(value: unknown) {
   return String(value ?? "").slice(0, 5);
