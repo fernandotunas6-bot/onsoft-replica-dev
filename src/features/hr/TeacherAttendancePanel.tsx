@@ -44,11 +44,7 @@ function getLocationProof(): Promise<LocationProof> {
           accuracy: position.coords.accuracy,
         }),
       () => resolve(null),
-      {
-        enableHighAccuracy: true,
-        timeout: 8000,
-        maximumAge: 15_000,
-      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 15_000 },
     );
   });
 }
@@ -269,6 +265,7 @@ export function TeacherAttendancePanel() {
 
             <div className="mt-4 flex gap-2">
               <Input
+                aria-label="Código QR da aula"
                 value={token}
                 onChange={(event) => setToken(event.target.value)}
                 placeholder="Cole ou introduza o código QR"
