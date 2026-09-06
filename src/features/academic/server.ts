@@ -8,10 +8,13 @@ import {
 } from "./schemas";
 
 // Preserva integralmente a fachada académica já validada e substitui apenas
-// as mutações de horário que precisam de transportar o actor humano para os
-// guards de service_role no PostgreSQL.
+// as mutações que precisam de transportar o actor humano para guards adicionais.
 export * from "./server-secure-legacy";
 export * from "./academic-calendar";
+
+// Export explícito: substitui as mutações legadas reexportadas pelo `export *`
+// por uma fachada que prova professor -> turma -> disciplina antes de gravar.
+export { upsertTermGrade, upsertTermGradesBatch } from "./grade-write-secure";
 
 function scheduleTime(value: unknown) {
   return String(value ?? "").slice(0, 5);
