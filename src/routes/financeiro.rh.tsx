@@ -101,7 +101,10 @@ function HrPayrollPage() {
           actions={
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline">
-                <Link to="/financeiro/rh/presenca">Configurar presença</Link>
+                <Link to="/financeiro/rh/presenca">Validação de presença</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/financeiro/rh/faltas">Faltas e assiduidade</Link>
               </Button>
               <Button asChild variant="outline">
                 <Link to="/financeiro">Voltar às Finanças</Link>
@@ -164,7 +167,7 @@ function HrPayrollPage() {
 
             <Panel
               title="Presença docente por QR"
-              description="Cada QR é temporário, pertence a uma aula concreta e só pode ser usado pelo professor atribuído. Check-in inicia a presença; check-out encerra e valida a hora/aula para remuneração."
+              description="Cada QR é temporário, pertence a uma aula concreta e só pode ser usado pelo professor atribuído. Check-in inicia a presença; check-out encerra e valida a ocorrência conforme o modelo remuneratório do contrato."
             >
               {lessons.isLoading ? (
                 <p className="text-sm text-muted-foreground">A carregar ocorrências de aulas…</p>
@@ -253,7 +256,7 @@ function HrPayrollPage() {
                   <div
                     role="img"
                     aria-label={`QR temporário de ${visibleQr.purpose === "check_in" ? "check-in" : "check-out"} do professor`}
-                    className="mx-auto size-[220px] rounded-lg border bg-background bg-contain bg-center bg-no-repeat"
+                    className="mx-auto size-[220px] rounded-lg bg-background bg-contain bg-center bg-no-repeat p-2"
                     style={{ backgroundImage: `url(${visibleQr.imageUrl})` }}
                   />
                   <div className="space-y-2">
