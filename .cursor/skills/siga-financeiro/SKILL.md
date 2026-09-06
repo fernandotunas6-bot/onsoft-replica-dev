@@ -12,6 +12,7 @@ Billing da **plataforma** (assinatura SIGA, upgrade, planos comerciais) não
 pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
 
 - Rotas: `financeiro.tsx`, `faturas.tsx`, `relatorios.financeiros.tsx`
+- RH / Folha (submódulo): skill `siga-rh` — `/financeiro/rh*` e `/professor/presenca`
 - Domínio: `src/features/finance/{schemas,server,payflow-sso,payflow-education-sync,payflow-sync-execute}.ts`
 - PayFlow UI: `PayflowAdminLaunchButton`, `PayflowStudentSyncButton`, `PayflowBankSyncButton`, `PayflowPayerLink` (portais aluno/encarregado)
 - Acesso: Admin/Tesouraria

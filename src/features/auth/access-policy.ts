@@ -52,6 +52,15 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     prefixes: ["/faturas", "/relatorios/financeiros"],
     roles: ["Administrador", "Tesouraria"],
   },
+  // Mais específico do que /financeiro — bloquear RH a alunos/encarregados.
+  {
+    prefixes: ["/financeiro/rh"],
+    roles: ["Administrador", "Tesouraria"],
+  },
+  {
+    prefixes: ["/professor/presenca"],
+    roles: ["Administrador", "Tesouraria", "Professor"],
+  },
   {
     prefixes: ["/financeiro"],
     roles: ["Administrador", "Tesouraria", "Encarregado", "Aluno"],

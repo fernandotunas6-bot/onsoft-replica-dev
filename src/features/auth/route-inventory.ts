@@ -21,6 +21,7 @@ export const SIGA_AUTHENTICATED_ROUTE_PREFIXES = [
   "/planos-aula",
   "/importar",
   "/catracas",
+  "/professor/presenca",
   "/perfil",
 ] as const;
 

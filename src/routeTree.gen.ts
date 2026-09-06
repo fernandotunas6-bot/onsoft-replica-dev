@@ -31,8 +31,10 @@ import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
+import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
+import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
 import { Route as RelatoriosAcademicosRouteImport } from './routes/relatorios.academicos'
 import { Route as RelatoriosFinanceirosRouteImport } from './routes/relatorios.financeiros'
@@ -49,6 +51,10 @@ import { Route as ApiSaasSignupRouteImport } from './routes/api/saas/signup'
 import { Route as ApiSaasStatsRouteImport } from './routes/api/saas/stats'
 import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subscriptions'
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
+import { Route as FinanceiroRhFaltasRouteImport } from './routes/financeiro.rh.faltas'
+import { Route as FinanceiroRhFolhaRouteImport } from './routes/financeiro.rh.folha'
+import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro.rh.pagamentos'
+import { Route as FinanceiroRhPresencaRouteImport } from './routes/financeiro.rh.presenca'
 import { Route as ApiFinanceGatewayConfirmRouteImport } from './routes/api/finance/gateway.confirm'
 import { Route as ApiFinancePayflowSettlementRouteImport } from './routes/api/finance/payflow.settlement'
 import { Route as ApiIntegrationsZoomCallbackRouteImport } from './routes/api/integrations/zoom/callback'
@@ -175,6 +181,11 @@ const ConviteTokenRoute = ConviteTokenRouteImport.update({
   path: '/convite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceiroRhRoute = FinanceiroRhRouteImport.update({
+  id: '/rh',
+  path: '/rh',
+  getParentRoute: () => FinanceiroRoute,
+} as any)
 const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   id: '/matricula/$slug',
   path: '/matricula/$slug',
@@ -183,6 +194,11 @@ const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
 const PessoasIndexRoute = PessoasIndexRouteImport.update({
   id: '/pessoas/',
   path: '/pessoas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfessorPresencaRoute = ProfessorPresencaRouteImport.update({
+  id: '/professor/presenca',
+  path: '/professor/presenca',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfessoresTeacherIdRoute = ProfessoresTeacherIdRouteImport.update({
@@ -264,6 +280,26 @@ const ApiSaasTenantsRoute = ApiSaasTenantsRouteImport.update({
   id: '/api/saas/tenants',
   path: '/api/saas/tenants',
   getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroRhFaltasRoute = FinanceiroRhFaltasRouteImport.update({
+  id: '/faltas',
+  path: '/faltas',
+  getParentRoute: () => FinanceiroRhRoute,
+} as any)
+const FinanceiroRhFolhaRoute = FinanceiroRhFolhaRouteImport.update({
+  id: '/folha',
+  path: '/folha',
+  getParentRoute: () => FinanceiroRhRoute,
+} as any)
+const FinanceiroRhPagamentosRoute = FinanceiroRhPagamentosRouteImport.update({
+  id: '/pagamentos',
+  path: '/pagamentos',
+  getParentRoute: () => FinanceiroRhRoute,
+} as any)
+const FinanceiroRhPresencaRoute = FinanceiroRhPresencaRouteImport.update({
+  id: '/presenca',
+  path: '/presenca',
+  getParentRoute: () => FinanceiroRhRoute,
 } as any)
 const ApiFinanceGatewayConfirmRoute =
   ApiFinanceGatewayConfirmRouteImport.update({
@@ -360,7 +396,7 @@ export interface FileRoutesByFullPath {
   '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
-  '/financeiro': typeof FinanceiroRoute
+  '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
@@ -370,7 +406,9 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
@@ -389,6 +427,10 @@ export interface FileRoutesByFullPath {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
+  '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
+  '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
+  '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
@@ -417,7 +459,7 @@ export interface FileRoutesByTo {
   '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
-  '/financeiro': typeof FinanceiroRoute
+  '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
@@ -427,7 +469,9 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
@@ -446,6 +490,10 @@ export interface FileRoutesByTo {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
+  '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
+  '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
+  '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
@@ -475,7 +523,7 @@ export interface FileRoutesById {
   '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
-  '/financeiro': typeof FinanceiroRoute
+  '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
@@ -485,7 +533,9 @@ export interface FileRoutesById {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
@@ -504,6 +554,10 @@ export interface FileRoutesById {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
+  '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
+  '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
+  '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
@@ -544,7 +598,9 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/convite/$token'
+    | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
@@ -563,6 +619,10 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/financeiro/rh/faltas'
+    | '/financeiro/rh/folha'
+    | '/financeiro/rh/pagamentos'
+    | '/financeiro/rh/presenca'
     | '/api/finance/gateway/confirm'
     | '/api/finance/payflow/settlement'
     | '/api/integrations/zoom/callback'
@@ -601,7 +661,9 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/convite/$token'
+    | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
@@ -620,6 +682,10 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/financeiro/rh/faltas'
+    | '/financeiro/rh/folha'
+    | '/financeiro/rh/pagamentos'
+    | '/financeiro/rh/presenca'
     | '/api/finance/gateway/confirm'
     | '/api/finance/payflow/settlement'
     | '/api/integrations/zoom/callback'
@@ -658,7 +724,9 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/convite/$token'
+    | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
@@ -677,6 +745,10 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/financeiro/rh/faltas'
+    | '/financeiro/rh/folha'
+    | '/financeiro/rh/pagamentos'
+    | '/financeiro/rh/presenca'
     | '/api/finance/gateway/confirm'
     | '/api/finance/payflow/settlement'
     | '/api/integrations/zoom/callback'
@@ -706,7 +778,7 @@ export interface RootRouteChildren {
   CriarEscolaRoute: typeof CriarEscolaRoute
   DocumentosRoute: typeof DocumentosRoute
   FaturasRoute: typeof FaturasRoute
-  FinanceiroRoute: typeof FinanceiroRoute
+  FinanceiroRoute: typeof FinanceiroRouteWithChildren
   ImportarRoute: typeof ImportarRoute
   PedagogicaRoute: typeof PedagogicaRoute
   PerfilRoute: typeof PerfilRoute
@@ -716,6 +788,7 @@ export interface RootRouteChildren {
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
+  ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
   RelatoriosFinanceirosRoute: typeof RelatoriosFinanceirosRoute
@@ -898,6 +971,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financeiro/rh': {
+      id: '/financeiro/rh'
+      path: '/rh'
+      fullPath: '/financeiro/rh'
+      preLoaderRoute: typeof FinanceiroRhRouteImport
+      parentRoute: typeof FinanceiroRoute
+    }
     '/matricula/$slug': {
       id: '/matricula/$slug'
       path: '/matricula/$slug'
@@ -910,6 +990,13 @@ declare module '@tanstack/react-router' {
       path: '/pessoas'
       fullPath: '/pessoas/'
       preLoaderRoute: typeof PessoasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/professor/presenca': {
+      id: '/professor/presenca'
+      path: '/professor/presenca'
+      fullPath: '/professor/presenca'
+      preLoaderRoute: typeof ProfessorPresencaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/professores/$teacherId': {
@@ -1023,6 +1110,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/saas/tenants'
       preLoaderRoute: typeof ApiSaasTenantsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/financeiro/rh/faltas': {
+      id: '/financeiro/rh/faltas'
+      path: '/faltas'
+      fullPath: '/financeiro/rh/faltas'
+      preLoaderRoute: typeof FinanceiroRhFaltasRouteImport
+      parentRoute: typeof FinanceiroRhRoute
+    }
+    '/financeiro/rh/folha': {
+      id: '/financeiro/rh/folha'
+      path: '/folha'
+      fullPath: '/financeiro/rh/folha'
+      preLoaderRoute: typeof FinanceiroRhFolhaRouteImport
+      parentRoute: typeof FinanceiroRhRoute
+    }
+    '/financeiro/rh/pagamentos': {
+      id: '/financeiro/rh/pagamentos'
+      path: '/pagamentos'
+      fullPath: '/financeiro/rh/pagamentos'
+      preLoaderRoute: typeof FinanceiroRhPagamentosRouteImport
+      parentRoute: typeof FinanceiroRhRoute
+    }
+    '/financeiro/rh/presenca': {
+      id: '/financeiro/rh/presenca'
+      path: '/presenca'
+      fullPath: '/financeiro/rh/presenca'
+      preLoaderRoute: typeof FinanceiroRhPresencaRouteImport
+      parentRoute: typeof FinanceiroRhRoute
     }
     '/api/finance/gateway/confirm': {
       id: '/api/finance/gateway/confirm'
@@ -1144,6 +1259,36 @@ const CalendarioRouteWithChildren = CalendarioRoute._addFileChildren(
   CalendarioRouteChildren,
 )
 
+interface FinanceiroRhRouteChildren {
+  FinanceiroRhFaltasRoute: typeof FinanceiroRhFaltasRoute
+  FinanceiroRhFolhaRoute: typeof FinanceiroRhFolhaRoute
+  FinanceiroRhPagamentosRoute: typeof FinanceiroRhPagamentosRoute
+  FinanceiroRhPresencaRoute: typeof FinanceiroRhPresencaRoute
+}
+
+const FinanceiroRhRouteChildren: FinanceiroRhRouteChildren = {
+  FinanceiroRhFaltasRoute: FinanceiroRhFaltasRoute,
+  FinanceiroRhFolhaRoute: FinanceiroRhFolhaRoute,
+  FinanceiroRhPagamentosRoute: FinanceiroRhPagamentosRoute,
+  FinanceiroRhPresencaRoute: FinanceiroRhPresencaRoute,
+}
+
+const FinanceiroRhRouteWithChildren = FinanceiroRhRoute._addFileChildren(
+  FinanceiroRhRouteChildren,
+)
+
+interface FinanceiroRouteChildren {
+  FinanceiroRhRoute: typeof FinanceiroRhRouteWithChildren
+}
+
+const FinanceiroRouteChildren: FinanceiroRouteChildren = {
+  FinanceiroRhRoute: FinanceiroRhRouteWithChildren,
+}
+
+const FinanceiroRouteWithChildren = FinanceiroRoute._addFileChildren(
+  FinanceiroRouteChildren,
+)
+
 interface ApiSaasDomainsRouteChildren {
   ApiSaasDomainsCheckRoute: typeof ApiSaasDomainsCheckRoute
   ApiSaasDomainsPollRoute: typeof ApiSaasDomainsPollRoute
@@ -1214,7 +1359,7 @@ const rootRouteChildren: RootRouteChildren = {
   CriarEscolaRoute: CriarEscolaRoute,
   DocumentosRoute: DocumentosRoute,
   FaturasRoute: FaturasRoute,
-  FinanceiroRoute: FinanceiroRoute,
+  FinanceiroRoute: FinanceiroRouteWithChildren,
   ImportarRoute: ImportarRoute,
   PedagogicaRoute: PedagogicaRoute,
   PerfilRoute: PerfilRoute,
@@ -1224,6 +1369,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
+  ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,
   RelatoriosFinanceirosRoute: RelatoriosFinanceirosRoute,

@@ -28,7 +28,11 @@
         "src/features/spotlight/schemas.ts",
         "src/features/spotlight/server.ts"
       ],
-      "tests": ["tests/dashboard/alerts.test.ts", "tests/spotlight/catalog.test.ts"],
+      "tests": [
+        "tests/dashboard/alerts.test.ts",
+        "tests/dashboard/realtime-contract.test.ts",
+        "tests/spotlight/catalog.test.ts"
+      ],
       "accessKey": "dashboard",
       "navPath": "/"
     },
@@ -52,7 +56,10 @@
       "label": "Pessoas e professores",
       "routes": ["src/routes/pessoas/index.tsx", "src/routes/professores/$teacherId.tsx"],
       "feature": ["src/features/people/schemas.ts", "src/features/people/server.ts"],
-      "tests": ["tests/people/schemas.test.ts"],
+      "tests": [
+        "tests/people/schemas.test.ts",
+        "tests/people/angola-identity-edit-contract.test.ts"
+      ],
       "accessKey": "pessoas",
       "navPath": "/pessoas"
     },
@@ -84,7 +91,37 @@
       "feature": ["src/features/finance/schemas.ts", "src/features/finance/server.ts"],
       "accessKey": "financeiro",
       "navPath": "/financeiro",
-      "secondaryNavPaths": ["/faturas", "/relatorios/financeiros"]
+      "secondaryNavPaths": ["/faturas", "/relatorios/financeiros", "/financeiro/rh"]
+    },
+    {
+      "id": "rh",
+      "skill": "siga-rh",
+      "label": "RH, assiduidade e folha salarial",
+      "routes": [
+        "src/routes/financeiro.rh.tsx",
+        "src/routes/financeiro.rh.folha.tsx",
+        "src/routes/financeiro.rh.faltas.tsx",
+        "src/routes/financeiro.rh.presenca.tsx",
+        "src/routes/financeiro.rh.pagamentos.tsx",
+        "src/routes/professor.presenca.tsx"
+      ],
+      "feature": [
+        "src/features/hr/server.ts",
+        "src/features/hr/payroll.ts",
+        "src/features/hr/payments.ts",
+        "src/features/hr/absences.ts",
+        "src/features/hr/teacher-lessons.ts",
+        "src/features/hr/TeacherAttendancePanel.tsx"
+      ],
+      "accessKey": "financeiro",
+      "navPath": "/financeiro/rh",
+      "secondaryNavPaths": [
+        "/financeiro/rh/folha",
+        "/financeiro/rh/faltas",
+        "/financeiro/rh/presenca",
+        "/financeiro/rh/pagamentos"
+      ],
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
     },
     {
       "id": "documentos",
@@ -150,7 +187,10 @@
         "src/features/enrollment/server.ts",
         "src/features/enrollment/EnrollmentCampaignPanel.tsx"
       ],
-      "tests": ["tests/enrollment/schemas.test.ts"],
+      "tests": [
+        "tests/enrollment/schemas.test.ts",
+        "tests/enrollment/process-number-contract.test.ts"
+      ],
       "publicPath": "/matricula",
       "navPath": "/configuracoes",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"

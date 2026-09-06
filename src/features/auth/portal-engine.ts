@@ -1,4 +1,6 @@
 import {
+  Banknote,
+  BriefcaseBusiness,
   BookOpen,
   Building2,
   CalendarDays,
@@ -223,6 +225,11 @@ export function getPortalNavigation(
                 to: "/pedagogica",
                 search: { tab: "presencas" },
               },
+              {
+                label: "Minha presença (QR)",
+                icon: QrCode,
+                to: "/professor/presenca",
+              },
             ],
           },
           {
@@ -385,6 +392,11 @@ export function getPortalNavigation(
           children: [
             { label: "Movimentos de Caixa", icon: CreditCard, to: "/financeiro" },
             { label: "Faturas e Recibos", icon: Receipt, to: "/faturas" },
+            { label: "RH e Folha Salarial", icon: BriefcaseBusiness, to: "/financeiro/rh" },
+            { label: "Processar Folha", icon: BriefcaseBusiness, to: "/financeiro/rh/folha" },
+            { label: "Ordens de Pagamento RH", icon: Banknote, to: "/financeiro/rh/pagamentos" },
+            { label: "Faltas e Assiduidade", icon: History, to: "/financeiro/rh/faltas" },
+            { label: "Validação de Presença", icon: QrCode, to: "/financeiro/rh/presenca" },
           ],
         },
       ],

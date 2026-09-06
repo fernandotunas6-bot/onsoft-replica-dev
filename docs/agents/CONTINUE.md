@@ -4,9 +4,20 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-09-05)
+## Estado (2026-09-06)
 
-Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise completo (Fases 1–15) + Ciclos 50–55.
+### Ciclo 56 — Fundação RH, Assiduidade Docente e Folha Salarial (2026-09-06)
+
+- **Origem:** PR remoto [#10](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/10) (`feature/hr-payroll-foundation-20260906`) integrado no workspace + inventário SIGA.
+- **Rotas:** `/financeiro/rh` (+ folha, faltas, presença, pagamentos) e `/professor/presenca`.
+- **Domínio:** `src/features/hr/*` — vínculos, contratos, QR de aula, assurance/geofence, faltas, ciclo operacional da folha, ordens salariais com controlo duplo e lançamento em `siga_cash_expenses` (categoria Salários) só após `paid`.
+- **SQL SGA:** 14 migrations `20260906*_hr_*` + hardening `20260906190000_hr_security_hardening.sql` espelhadas em `APPLY_ENROLLMENT_AND_PREMIUM.sql`. Aplicar com `npm run siga:sql` (não usar `all_migrations_combined.sql`).
+- **Hardening pós-revisão:** gate de assurance força `pending` sem evidência `check_out`/`auto_approve` (fecha bypass PostgREST em `hr_redeem_teacher_qr`); INSERT/UPDATE de folha/vínculos só Admin/Tesouraria; confirmação de pagamento com guard de estado optimista.
+- **Inventário:** módulo `rh` em `modules.json`, skill `siga-rh`, launcher `siga-rh`, sidebar Admin/Tesouraria + atalho professor; access-policy restringe `/financeiro/rh` a Admin/Tesouraria.
+- **Ainda fora:** API bancária real, WebAuthn/App Attest, IRT/INSS versionado, holerite oficial, atomicidade total RH+caixa numa única RPC.
+- **Validação:** `npm run siga:check` ✓ (módulo `rh` + 12/12 navigation-catalog). Prettier nos ficheiros RH corrigido (3 warnings hooks restantes). **SQL SGA live 2026-09-06:** 15/15 migrations `hr_*` aplicadas no projecto `xodgfmxiaunpamctfeea` (20 tabelas `hr_*`); policies alinhadas a `is_school_member() → boolean` (padrão SGA, não Lovable uuid).
+
+Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise completo (Fases 1–15) + Ciclos 50–56.
 ### Ciclo 55 — Estados Académicos Unificados, 22 Importadores e PayFlow Admin (2026-09-05)
 
 - **Motor de domínio `academic-status.ts`:** deriva estado académico (matrícula + vínculo) e snapshot financeiro (faturas/recibos) de forma independente — um aluno pode ser «Activo» e «Com dívida» ao mesmo tempo.
@@ -964,7 +975,7 @@ Implementado sem unificar frontends:
    unificar frontends. Não apagar `/saas-admin` sem destino no ADMIN.
 0c. **Integrações:** credenciais reais de portal bancário e sincronização automática EMIS.
 0d. **PayFlow:** SSO + sync + IBAN + extrato + ingest/pull + estorno + alertas + settlement + EMIS ingress fail-closed + feed sandbox local; falta contrato/homologação EMIS (adaptador real) e o URL real do banco.
-0e. **Domínios / Cloudflare:** PayFlow OK (`payflow.portal-siga.com`). WEB/ADMIN/DOC/app preparados no código (`www`/`admin`/`docs`/`app.{{PLATFORM_DOMAIN}}`) + script `npm run siga:configure-domains`. **Bloqueio:** token actual sem Zone DNS / Workers Routes / Pages Edit — precisa de token alargado (ou login no dash) para aplicar.
+0e. **Domínios / Cloudflare:** Conta correcta `Valentinocanguele` (`701800…`). CNAMEs: `www`→`siga-web.pages.dev`, `admin`→`siga-admin.pages.dev`, `docs`→`siga-docs.pages.dev` (Pages **active**). Workers: `app`/`payflow`/apex OK. Rotas bypass www/admin/docs + payflow/app específicas.
 0f. **GitHub Actions:** se jobs falharem em ~3s com «payments failed / spending limit», corrigir Billing & plans da conta dona do repo (privado = 2 000 min free). Validar localmente: `bun run test` e `cd painel/payflow && npm test`.
 2. Manter commits pequenos por alteração e nunca incluir `.env` nem `.claude/worktrees/`.
 3. Aceitar candidatura cria aluno, encarregado (se veio no formulário) e opcionalmente turma (`classGroupId`). Sem turma fica `applicant`. Em `/alunos`: **Turma** (candidato), **Mudar** (activo), **Estado** e PDF **Oficial**. Campanha de matrícula (Definições) liga a `/documentos#modelos` para talões.

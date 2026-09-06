@@ -95,7 +95,9 @@ describe("navigation catalog", () => {
     expect(paths.has("/planos-aula")).toBe(true);
     expect(paths.has("/calendario")).toBe(true);
     expect(paths.has("/arquivos")).toBe(true);
+    expect(paths.has("/professor/presenca")).toBe(true);
     expect(paths.has("/financeiro")).toBe(false);
+    expect(paths.has("/financeiro/rh")).toBe(false);
     expect(paths.has("/configuracoes")).toBe(false);
   });
 
@@ -110,6 +112,7 @@ describe("navigation catalog", () => {
   it("shows finance modules for Tesouraria without secretaria-only routes", () => {
     const paths = collectNavPaths(getPortalNavigation("Tesouraria", {}, fullPlan));
     expect(paths.has("/financeiro")).toBe(true);
+    expect(paths.has("/financeiro/rh")).toBe(true);
     expect(paths.has("/faturas")).toBe(true);
     expect(paths.has("/relatorios/financeiros")).toBe(true);
     expect(paths.has("/importar")).toBe(true);

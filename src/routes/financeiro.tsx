@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   Award,
   Banknote,
+  BriefcaseBusiness,
   CreditCard,
   Download,
   FileDown,
@@ -456,6 +457,11 @@ function FinanceiroPage() {
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/relatorios/financeiros">
                   <Banknote className="size-4" /> Resumo do caixa
+                </Link>
+              </Button>
+              <Button variant="outline" className="gap-2" asChild>
+                <Link to="/financeiro/rh">
+                  <BriefcaseBusiness className="size-4" /> RH e Folha
                 </Link>
               </Button>
               {financeInvoiceBlocked ? (

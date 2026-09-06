@@ -72,6 +72,15 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     target: { type: "route", to: "/financeiro" },
   },
   {
+    id: "siga-rh",
+    name: "RH e Folha",
+    shortName: "RH",
+    description: "Contratos, assiduidade e folha salarial.",
+    mark: "siga-rh",
+    navPath: "/financeiro/rh",
+    target: { type: "route", to: "/financeiro/rh" },
+  },
+  {
     id: "siga-faturas",
     name: "Faturas",
     shortName: "Faturas",

@@ -17,6 +17,7 @@ import {
   UserCog,
   UserPlus,
   Wallet,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MediaFrame } from "@/components/ui/media-frame";
@@ -54,6 +55,7 @@ export const sigaModuleMarks: Record<string, SigaMark> = {
   "siga-pedagogica": { icon: BookOpen, tone: "info", label: "Pedagógica" },
   "siga-calendario": { icon: CalendarDays, tone: "info", label: "Calendário" },
   "siga-financeiro": { icon: Wallet, tone: "warning", label: "Tesouraria" },
+  "siga-rh": { icon: BriefcaseBusiness, tone: "info", label: "RH e Folha" },
   "siga-faturas": { icon: Receipt, tone: "warning", label: "Faturas" },
   "siga-documentos": { icon: FileText, tone: "primary", label: "Documentos" },
   "siga-arquivos": { icon: FolderOpen, tone: "muted", label: "Arquivos" },
