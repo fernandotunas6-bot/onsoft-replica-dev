@@ -220,13 +220,68 @@ export const createTeacherLessonQr = createServerFn({ method: "POST" })
 export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => {
-    const token = String((input as { token?: unknown } | null)?.token ?? "").trim();
+    const value = (input ?? {}) as Record<string, unknown>;
+    const token = String(value.token ?? "").trim();
     if (token.length < 32 || token.length > 256) throw new Error("QR inválido.");
-    return { token };
+    const latitude = value.latitude == null ? null : Number(value.latitude);
+    const longitude = value.longitude == null ? null : Number(value.longitude);
+    const accuracy = value.accuracy == null ? null : Number(value.accuracy);
+    if ((latitude == null) !== (longitude == null)) throw new Error("Localização incompleta.");
+    if (latitude != null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) {
+      throw new Error("Latitude inválida.");
+    }
+    if (longitude != null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
+      throw new Error("Longitude inválida.");
+    }
+    if (accuracy != null && (!Number.isFinite(accuracy) || accuracy < 0 || accuracy > 10000)) {
+      throw new Error("Precisão de localização inválida.");
+    }
+    return { token, latitude, longitude, accuracy };
   })
   .handler(async ({ data, context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem vínculo activo com uma escola.");
+    const tokenHash = qrTokenHash(data.token);
+    const admin = await loadSgaAdminClient();
+
+    const { data: session, error: sessionError } = await admin
+      .from("hr_teacher_qr_sessions")
+      .select("occurrence_id, purpose, school_id, status, expires_at")
+      .eq("token_hash", tokenHash)
+      .limit(1)
+      .maybeSingle();
+    if (sessionError) {
+      throw publicDatabaseError(sessionError, "Não foi possível validar o desafio QR.");
+    }
+    if (!session || session.school_id !== membership.schoolId) throw new Error("QR não pertence a esta escola.");
+    if (session.status !== "active" || new Date(String(session.expires_at)).getTime() <= Date.now()) {
+      throw new Error("QR expirado ou indisponível.");
+    }
+
+    const { data: assuranceResult, error: assuranceError } = await context.supabase.rpc(
+      "hr_evaluate_teacher_attendance_assurance",
+      {
+        p_occurrence_id: session.occurrence_id,
+        p_purpose: session.purpose,
+        p_latitude: data.latitude,
+        p_longitude: data.longitude,
+        p_accuracy_m: data.accuracy,
+      },
+    );
+    if (assuranceError) {
+      throw publicDatabaseError(
+        assuranceError,
+        "Não foi possível avaliar a confiança da presença. Aplique a migration de assurance do RH.",
+      );
+    }
+    const assurance = Array.isArray(assuranceResult) ? assuranceResult[0] : assuranceResult;
+    if (!assurance) throw new Error("A presença não produziu uma avaliação de confiança.");
+    if (String(assurance.decision) === "reject") {
+      throw new Error("A presença não atingiu o nível mínimo de confiança e precisa ser repetida.");
+    }
+
     const { data: result, error } = await context.supabase.rpc("hr_redeem_teacher_qr", {
-      p_token_hash: qrTokenHash(data.token),
+      p_token_hash: tokenHash,
     });
 
     if (error) {
@@ -241,5 +296,12 @@ export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
       purpose: String(row.purpose) as "check_in" | "check_out",
       compensationEventId: row.compensation_event_id ? String(row.compensation_event_id) : null,
       occurrenceStatus: String(row.occurrence_status),
+      assurance: {
+        score: Number(assurance.assurance_score ?? 0),
+        decision: String(assurance.decision) as "auto_approve" | "review" | "reject",
+        insideGeofence: assurance.inside_geofence == null ? null : Boolean(assurance.inside_geofence),
+        distanceFromSchoolM:
+          assurance.distance_from_school_m == null ? null : Number(assurance.distance_from_school_m),
+      },
     };
   });
