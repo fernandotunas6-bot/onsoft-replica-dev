@@ -26,6 +26,7 @@
     "paths": {
       "@/features/students/server": ["./src/features/students/server-secure.ts"],
       "@/features/people/server": ["./src/features/people/server-secure.ts"],
+      "@/features/access/server": ["./src/features/access/server-secure.ts"],
       "@/*": ["./src/*"]
     }
   }
