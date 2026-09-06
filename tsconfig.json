@@ -24,6 +24,7 @@
     "exactOptionalPropertyTypes": false,
     "noUncheckedSideEffectImports": true,
     "paths": {
+      "@/features/students/server": ["./src/features/students/server-secure.ts"],
       "@/*": ["./src/*"]
     }
   }
