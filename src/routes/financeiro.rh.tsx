@@ -99,9 +99,14 @@ function HrPayrollPage() {
           title="RH e Folha Salarial"
           description="Vínculos funcionais, contratos, salários mensais, pagamento por hora/aula e processamento da folha salarial — integrado à identidade única de Pessoas."
           actions={
-            <Button asChild variant="outline">
-              <Link to="/financeiro">Voltar às Finanças</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline">
+                <Link to="/financeiro/rh/presenca">Configurar presença</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/financeiro">Voltar às Finanças</Link>
+              </Button>
+            </div>
           }
         />
 
@@ -245,10 +250,11 @@ function HrPayrollPage() {
 
               {visibleQr ? (
                 <div className="mt-6 grid gap-5 rounded-xl border bg-muted/20 p-5 md:grid-cols-[220px_1fr] md:items-center">
-                  <img
-                    src={visibleQr.imageUrl}
-                    alt={`QR temporário de ${visibleQr.purpose === "check_in" ? "check-in" : "check-out"} do professor`}
-                    className="mx-auto size-[220px] rounded-lg bg-white p-2"
+                  <div
+                    role="img"
+                    aria-label={`QR temporário de ${visibleQr.purpose === "check_in" ? "check-in" : "check-out"} do professor`}
+                    className="mx-auto size-[220px] rounded-lg border bg-background bg-contain bg-center bg-no-repeat"
+                    style={{ backgroundImage: `url(${visibleQr.imageUrl})` }}
                   />
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 font-semibold">
