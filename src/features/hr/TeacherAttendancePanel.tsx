@@ -44,12 +44,20 @@ export function TeacherAttendancePanel() {
   const redeem = useMutation({
     mutationFn: (qrToken: string) => redeemTeacherLessonQr({ data: { token: qrToken } }),
     onSuccess: async (result) => {
-      toast.success(result.purpose === "check_in" ? "Entrada confirmada" : "Saída confirmada", {
-        description:
-          result.purpose === "check_out"
-            ? "A aula foi validada e ficou elegível para remuneração conforme o contrato."
-            : "A presença foi aberta. Faça o check-out no fim da aula.",
-      });
+      if (result.purpose === "check_in") {
+        toast.success("Entrada confirmada", {
+          description: "A presença foi aberta. Faça o check-out no fim da aula.",
+        });
+      } else if (result.occurrenceStatus === "pending_review") {
+        toast.info("Saída confirmada — presença em revisão", {
+          description:
+            "O check-out foi registado, mas a aula ficou pendente de revisão de tolerância antes de gerar remuneração.",
+        });
+      } else {
+        toast.success("Saída confirmada", {
+          description: "A aula foi validada e ficou elegível para remuneração conforme o contrato.",
+        });
+      }
       setToken("");
       await queryClient.invalidateQueries({ queryKey: ["hr", "teacher", "my-lessons"] });
     },
