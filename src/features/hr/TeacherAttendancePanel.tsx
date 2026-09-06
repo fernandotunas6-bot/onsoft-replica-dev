@@ -92,8 +92,7 @@ export function TeacherAttendancePanel() {
         });
       } else if (result.occurrenceStatus === "pending_review" || assurance.decision === "review") {
         toast.info("Saída confirmada — presença em revisão", {
-          description:
-            `Confiança ${assurance.score}/100. O check-out foi registado, mas a remuneração permanece bloqueada até revisão.`,
+          description: `Confiança ${assurance.score}/100. O check-out foi registado, mas a remuneração permanece bloqueada até revisão.`,
         });
       } else {
         toast.success("Saída confirmada", {
@@ -243,7 +242,7 @@ export function TeacherAttendancePanel() {
               <QrCode className="size-5 text-muted-foreground" />
             </div>
 
-            <div className="overflow-hidden rounded-lg border bg-black/90">
+            <div className="overflow-hidden rounded-lg border bg-muted">
               <video
                 ref={videoRef}
                 muted
@@ -251,7 +250,7 @@ export function TeacherAttendancePanel() {
                 className={`aspect-video w-full object-cover ${cameraActive ? "block" : "hidden"}`}
               />
               {!cameraActive ? (
-                <div className="flex aspect-video items-center justify-center text-sm text-white/70">
+                <div className="flex aspect-video items-center justify-center text-sm text-muted-foreground">
                   Câmara desligada
                 </div>
               ) : null}
@@ -317,9 +316,9 @@ export function TeacherAttendancePanel() {
                       </p>
                     </div>
                     {lesson.status === "confirmed" ? (
-                      <CheckCircle2 className="size-4 text-emerald-600" />
+                      <CheckCircle2 className="size-4 text-primary" />
                     ) : lesson.actual_started_at ? (
-                      <Clock3 className="size-4 text-amber-600" />
+                      <Clock3 className="size-4 text-muted-foreground" />
                     ) : (
                       <QrCode className="size-4 text-muted-foreground" />
                     )}
