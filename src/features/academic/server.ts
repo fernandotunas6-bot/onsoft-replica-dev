@@ -12,9 +12,13 @@ import {
 export * from "./server-secure-legacy";
 export * from "./academic-calendar";
 
-// Export explícito: substitui as mutações legadas reexportadas pelo `export *`
-// por uma fachada que prova professor -> turma -> disciplina antes de gravar.
+// Exports explícitos substituem os nomes reexportados pelo `export *` legado.
 export { upsertTermGrade, upsertTermGradesBatch } from "./grade-write-secure";
+export {
+  createAssessment,
+  updateAssessmentItem,
+  upsertAssessmentScores,
+} from "./assessment-write-secure";
 
 function scheduleTime(value: unknown) {
   return String(value ?? "").slice(0, 5);
