@@ -25,7 +25,7 @@
     "paths": {
       "@/features/students/server": ["./src/features/students/server-hardened.ts"],
       "@/features/people/server": ["./src/features/people/server-hardened.ts"],
-      "@/features/access/server": ["./src/features/access/server-secure.ts"],
+      "@/features/access/server": ["./src/features/access/server-hardened.ts"],
       "@/*": ["./src/*"]
     }
   }
