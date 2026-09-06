@@ -8,6 +8,7 @@ import {
 import {
   findPersonDuplicatesInputSchema,
   getPersonInputSchema,
+  listTeachersInputSchema,
   searchPeopleInputSchema,
 } from "./schemas";
 import * as legacy from "./server";
@@ -33,9 +34,7 @@ async function resolveContextualPersonIds(params: {
 
   const allowed = new Set((ownPeople ?? []).map((row) => String(row.id)));
 
-  if (params.appRole === "Aluno" || params.appRole === "Professor") {
-    return allowed;
-  }
+  if (params.appRole === "Aluno" || params.appRole === "Professor") return allowed;
 
   if (params.appRole === "Encarregado") {
     const guardianIds = [...allowed];
@@ -148,4 +147,67 @@ export const findPersonDuplicates = createServerFn({ method: "POST" })
       throw new Error("Apenas Administração e Secretaria podem verificar duplicados de Pessoas.");
     }
     return legacy.findPersonDuplicates({ data });
+  });
+
+export const listTeachers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => listTeachersInputSchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa nesta escola.");
+
+    if (membership.appRole === "Administrador" || membership.appRole === "Secretaria") {
+      return legacy.listTeachers({ data });
+    }
+    if (membership.appRole !== "Professor") {
+      throw new Error("Este perfil não tem acesso ao directório de professores.");
+    }
+
+    const ownIds = await resolveContextualPersonIds({
+      schoolId: membership.schoolId,
+      userId: context.userId,
+      appRole: membership.appRole,
+    });
+    const ownPersonIds = ownIds ?? new Set<string>();
+    const rows = await legacy.listTeachers({ data });
+    return rows.map((row) =>
+      ownPersonIds.has(String(row.person_id))
+        ? row
+        : {
+            ...row,
+            email: null,
+            phone: null,
+          },
+    );
+  });
+
+export const listStaffDirectory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa nesta escola.");
+
+    if (membership.appRole === "Administrador" || membership.appRole === "Secretaria") {
+      return legacy.listStaffDirectory();
+    }
+    if (membership.appRole !== "Professor") {
+      throw new Error("Este perfil não tem acesso ao directório interno da equipa.");
+    }
+
+    const ownIds = await resolveContextualPersonIds({
+      schoolId: membership.schoolId,
+      userId: context.userId,
+      appRole: membership.appRole,
+    });
+    const ownPersonIds = ownIds ?? new Set<string>();
+    const rows = await legacy.listStaffDirectory();
+    return rows.map((row) =>
+      row && ownPersonIds.has(String(row.id))
+        ? row
+        : row
+          ? { ...row, email: null, phone_primary: null }
+          : row,
+    );
   });
