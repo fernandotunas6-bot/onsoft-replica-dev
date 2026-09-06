@@ -66,43 +66,67 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
 
     const employmentIds = [...new Set(absences.map((row) => String(row.employment_id)))];
     const contractIds = [
-      ...new Set(absences.map((row) => row.contract_id && String(row.contract_id)).filter(Boolean) as string[]),
+      ...new Set(
+        absences
+          .map((row) => (row.contract_id ? String(row.contract_id) : null))
+          .filter((value): value is string => Boolean(value)),
+      ),
     ];
 
-    const [{ data: employments }, { data: contracts }, { data: policies }] = await Promise.all([
-      db
-        .from("hr_employments")
-        .select("id, person_id, employee_number")
+    const { data: employments, error: employmentError } = await db
+      .from("hr_employments")
+      .select("id, person_id, employee_number")
+      .eq("school_id", membership.schoolId)
+      .in("id", employmentIds);
+    if (employmentError) {
+      throw publicDatabaseError(employmentError, "Não foi possível carregar os vínculos das faltas.");
+    }
+
+    let contracts: Array<Record<string, unknown>> = [];
+    let policies: Array<Record<string, unknown>> = [];
+    if (contractIds.length) {
+      const { data: contractRows, error: contractError } = await db
+        .from("hr_contracts")
+        .select("id, base_salary_kz")
         .eq("school_id", membership.schoolId)
-        .in("id", employmentIds),
-      contractIds.length
-        ? db
-            .from("hr_contracts")
-            .select("id, base_salary_kz")
-            .eq("school_id", membership.schoolId)
-            .in("id", contractIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; base_salary_kz: number }> }),
-      contractIds.length
-        ? db
-            .from("hr_contract_remuneration_policies")
-            .select(
-              "contract_id, remuneration_model, monthly_divisor_days, standard_workday_minutes, deduct_unjustified_absence, deduct_justified_unpaid_absence, deduct_justified_paid_absence",
-            )
-            .eq("school_id", membership.schoolId)
-            .in("contract_id", contractIds)
-            .eq("active", true)
-        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
-    ]);
+        .in("id", contractIds);
+      if (contractError) {
+        throw publicDatabaseError(contractError, "Não foi possível carregar os contratos das faltas.");
+      }
+      contracts = (contractRows ?? []) as Array<Record<string, unknown>>;
+
+      const { data: policyRows, error: policyError } = await db
+        .from("hr_contract_remuneration_policies")
+        .select(
+          "contract_id, remuneration_model, monthly_divisor_days, standard_workday_minutes, deduct_unjustified_absence, deduct_justified_unpaid_absence, deduct_justified_paid_absence",
+        )
+        .eq("school_id", membership.schoolId)
+        .in("contract_id", contractIds)
+        .eq("active", true);
+      if (policyError && !missingAbsenceSchema(policyError)) {
+        throw publicDatabaseError(policyError, "Não foi possível carregar as políticas remuneratórias.");
+      }
+      policies = (policyRows ?? []) as Array<Record<string, unknown>>;
+    }
 
     const personIds = [...new Set((employments ?? []).map((row) => String(row.person_id)))];
-    const { data: people } = personIds.length
-      ? await db.from("people").select("id, full_name").eq("school_id", membership.schoolId).in("id", personIds)
-      : { data: [] as Array<{ id: string; full_name: string }> };
+    let people: Array<Record<string, unknown>> = [];
+    if (personIds.length) {
+      const { data: personRows, error: peopleError } = await db
+        .from("people")
+        .select("id, full_name")
+        .eq("school_id", membership.schoolId)
+        .in("id", personIds);
+      if (peopleError) {
+        throw publicDatabaseError(peopleError, "Não foi possível carregar as pessoas associadas às faltas.");
+      }
+      people = (personRows ?? []) as Array<Record<string, unknown>>;
+    }
 
     const employmentMap = new Map((employments ?? []).map((row) => [String(row.id), row]));
-    const peopleMap = new Map((people ?? []).map((row) => [String(row.id), String(row.full_name ?? "") ]));
-    const contractMap = new Map((contracts ?? []).map((row) => [String(row.id), row]));
-    const policyMap = new Map((policies ?? []).map((row) => [String(row.contract_id), row]));
+    const peopleMap = new Map(people.map((row) => [String(row.id), String(row.full_name ?? "")]));
+    const contractMap = new Map(contracts.map((row) => [String(row.id), row]));
+    const policyMap = new Map(policies.map((row) => [String(row.contract_id), row]));
 
     return absences.map((row) => {
       const employment = employmentMap.get(String(row.employment_id));
@@ -120,13 +144,14 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
         const divisor = Number(policy.monthly_divisor_days ?? 0);
         const workday = Number(policy.standard_workday_minutes ?? 0);
         if (shouldDeduct && divisor > 0 && workday > 0) {
-          estimatedDeductionKz = Math.round(
-            ((Number(contract.base_salary_kz ?? 0) / divisor) *
-              (Number(row.duration_minutes) / workday) *
-              Number(row.deduction_multiplier ?? 1) +
-              Number.EPSILON) *
-              100,
-          ) / 100;
+          estimatedDeductionKz =
+            Math.round(
+              ((Number(contract.base_salary_kz ?? 0) / divisor) *
+                (Number(row.duration_minutes) / workday) *
+                Number(row.deduction_multiplier ?? 1) +
+                Number.EPSILON) *
+                100,
+            ) / 100;
         } else if (!shouldDeduct) {
           estimatedDeductionKz = 0;
         }
@@ -136,7 +161,9 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
         id: String(row.id),
         employmentId: String(row.employment_id),
         contractId,
-        personName: employment ? peopleMap.get(String(employment.person_id)) || "Pessoa sem nome" : "Pessoa não encontrada",
+        personName: employment
+          ? peopleMap.get(String(employment.person_id)) || "Pessoa sem nome"
+          : "Pessoa não encontrada",
         employeeNumber: employment?.employee_number ? String(employment.employee_number) : null,
         absenceDate: String(row.absence_date),
         absenceType: String(row.absence_type) as HrAbsenceReviewRow["absenceType"],
