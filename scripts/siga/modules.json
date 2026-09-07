@@ -44,7 +44,8 @@
         "src/routes/alumni.$alumniId.tsx",
         "src/routes/alumni.portal.tsx",
         "src/routes/alumni.insights.tsx",
-        "src/routes/alumni.operations.tsx"
+        "src/routes/alumni.operations.tsx",
+        "src/routes/alumni.communications.tsx"
       ],
       "feature": [
         "src/features/alumni/schemas.ts",
@@ -61,7 +62,8 @@
         "tests/alumni/schemas.test.ts",
         "tests/alumni/survey-schema.test.ts",
         "tests/auth/access-policy.test.ts",
-        "tests/auth/navigation-catalog.test.ts"
+        "tests/auth/navigation-catalog.test.ts",
+        "tests/communications/schemas.test.ts"
       ],
       "accessKey": "pessoas",
       "navPath": "/alumni",
@@ -70,7 +72,8 @@
         "supabase/migrations/20260907010000_alumni_master_module.sql",
         "supabase/migrations/20260907020000_alumni_self_service_portal.sql",
         "supabase/migrations/20260907030000_alumni_privacy_communications.sql",
-        "supabase/migrations/20260907040000_alumni_self_service_audit.sql"
+        "supabase/migrations/20260907040000_alumni_self_service_audit.sql",
+        "supabase/migrations/20260907050000_alumni_communications_audiences.sql"
       ]
     },
     {
