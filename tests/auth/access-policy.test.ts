@@ -3,7 +3,7 @@ import { canAccessPath, canReadModule, canWriteModule } from "@/features/auth/ac
 
 describe("access policy", () => {
   it("allows administrators into every protected area", () => {
-    for (const path of ["/", "/configuracoes", "/acessos", "/financeiro", "/alunos", "/alumni"]) {
+    for (const path of ["/", "/configuracoes", "/acessos", "/financeiro", "/alunos", "/alumni", "/alumni/portal"]) {
       expect(canAccessPath(path, "Administrador")).toBe(true);
     }
   });
@@ -16,6 +16,15 @@ describe("access policy", () => {
     expect(canAccessPath("/alumni", "Encarregado")).toBe(false);
     expect(canAccessPath("/alumni", "Professor")).toBe(false);
     expect(canAccessPath("/alumni", "Tesouraria")).toBe(false);
+  });
+
+  it("allows students only into the protected alumni self-service surface", () => {
+    expect(canAccessPath("/alumni/portal", "Aluno")).toBe(true);
+    expect(canAccessPath("/alumni/portal/preferences", "Aluno")).toBe(true);
+    expect(canAccessPath("/alumni/portal", "Encarregado")).toBe(false);
+    expect(canAccessPath("/alumni/portal", "Professor")).toBe(false);
+    expect(canAccessPath("/alumni/portal", "Tesouraria")).toBe(false);
+    expect(canAccessPath("/alumni/portal", "Aluno", { pessoas: "Nenhum" })).toBe(false);
   });
 
   it("keeps finance routes limited to finance roles", () => {
