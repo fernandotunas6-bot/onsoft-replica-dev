@@ -56,6 +56,7 @@ describe("navigation catalog", () => {
     const missing = missingAdminNavPaths(paths);
     expect(missing, `paths missing from sidebar: ${missing.join(", ")}`).toEqual([]);
     expect(ADMIN_NAV_PATH_COVERAGE.every((path) => paths.has(path))).toBe(true);
+    expect(paths.has("/alumni")).toBe(true);
   });
 
   it("maps inventory modules with navPath to workspace catalog", () => {
@@ -104,7 +105,14 @@ describe("navigation catalog", () => {
     expect(paths.has("/importar")).toBe(true);
     expect(paths.has("/pessoas")).toBe(true);
     expect(paths.has("/alunos")).toBe(true);
+    expect(paths.has("/alumni")).toBe(true);
     expect(paths.has("/configuracoes")).toBe(false);
+  });
+
+  it("shows the protected Alumni self-service entry for students", () => {
+    const paths = collectNavPaths(getPortalNavigation("Aluno", {}, fullPlan));
+    expect(paths.has("/alumni/portal")).toBe(true);
+    expect(paths.has("/alumni")).toBe(false);
   });
 
   it("shows finance modules for Tesouraria without secretaria-only routes", () => {
@@ -114,6 +122,7 @@ describe("navigation catalog", () => {
     expect(paths.has("/relatorios/financeiros")).toBe(true);
     expect(paths.has("/importar")).toBe(true);
     expect(paths.has("/pessoas")).toBe(false);
+    expect(paths.has("/alumni")).toBe(false);
     expect(paths.has("/configuracoes")).toBe(false);
   });
 
