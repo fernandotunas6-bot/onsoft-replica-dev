@@ -20,7 +20,7 @@ export const getAlumniMentorRecommendations = createServerFn({ method: "GET" })
 
     const { data: target, error: targetError } = await db
       .from("alumni_profiles")
-      .select("id, person_id, graduation_year, industry, province, city, skills, interests, available_for_mentoring, seeking_mentor")
+      .select("id, graduation_year, industry, province, city, skills, interests, available_for_mentoring, seeking_mentor")
       .eq("school_id", membership.schoolId)
       .eq("id", data.alumniId)
       .maybeSingle();
@@ -62,9 +62,10 @@ export const getAlumniMentorRecommendations = createServerFn({ method: "GET" })
       data.limit,
     );
 
-    const mentorIds = ranked.map((row) => row.mentor.id);
     const mentorRows = new Map((mentors ?? []).map((row) => [row.id, row]));
-    const personIds = ranked.map((row) => mentorRows.get(row.mentor.id)?.person_id).filter((value): value is string => Boolean(value));
+    const personIds = ranked
+      .map((row) => mentorRows.get(row.mentor.id)?.person_id)
+      .filter((value): value is string => Boolean(value));
     const { data: people } = personIds.length
       ? await db.from("people").select("id, full_name, photo_url").eq("school_id", membership.schoolId).in("id", personIds)
       : { data: [] };
