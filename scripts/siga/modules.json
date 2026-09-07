@@ -45,7 +45,8 @@
         "src/routes/alumni.portal.tsx",
         "src/routes/alumni.insights.tsx",
         "src/routes/alumni.operations.tsx",
-        "src/routes/alumni.communications.tsx"
+        "src/routes/alumni.communications.tsx",
+        "src/routes/alumni.matching.tsx"
       ],
       "feature": [
         "src/features/alumni/schemas.ts",
@@ -55,12 +56,15 @@
         "src/features/alumni/admin-tools.ts",
         "src/features/alumni/privacy.ts",
         "src/features/alumni/survey-schema.ts",
+        "src/features/alumni/matching.ts",
+        "src/features/alumni/recommendations.ts",
         "src/features/alumni/AlumniSurveyForm.tsx",
         "src/features/alumni/AlumniPrivacyPanel.tsx"
       ],
       "tests": [
         "tests/alumni/schemas.test.ts",
         "tests/alumni/survey-schema.test.ts",
+        "tests/alumni/matching.test.ts",
         "tests/auth/access-policy.test.ts",
         "tests/auth/navigation-catalog.test.ts",
         "tests/communications/schemas.test.ts"
