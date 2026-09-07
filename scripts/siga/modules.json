@@ -48,7 +48,8 @@
         "src/routes/alumni.communications.tsx",
         "src/routes/alumni.matching.tsx",
         "src/routes/alumni.documents.tsx",
-        "src/routes/alumni.calendar.tsx"
+        "src/routes/alumni.calendar.tsx",
+        "src/routes/alumni.pipeline.tsx"
       ],
       "feature": [
         "src/features/alumni/schemas.ts",
@@ -61,6 +62,7 @@
         "src/features/alumni/matching.ts",
         "src/features/alumni/recommendations.ts",
         "src/features/alumni/documents.ts",
+        "src/features/alumni/pipeline.ts",
         "src/features/alumni/AlumniSurveyForm.tsx",
         "src/features/alumni/AlumniPrivacyPanel.tsx",
         "src/features/calendar/ics.ts"
