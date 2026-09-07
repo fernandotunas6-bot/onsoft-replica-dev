@@ -39,12 +39,28 @@
       "id": "alumni",
       "skill": "siga-alumni",
       "label": "Alumni / antigos alunos",
-      "routes": ["src/routes/alumni.tsx", "src/routes/alumni.$alumniId.tsx"],
-      "feature": ["src/features/alumni/schemas.ts", "src/features/alumni/server.ts"],
-      "tests": ["tests/alumni/schemas.test.ts"],
+      "routes": [
+        "src/routes/alumni.tsx",
+        "src/routes/alumni.$alumniId.tsx",
+        "src/routes/alumni.portal.tsx",
+        "src/routes/alumni.insights.tsx"
+      ],
+      "feature": [
+        "src/features/alumni/schemas.ts",
+        "src/features/alumni/server.ts",
+        "src/features/alumni/operations.ts",
+        "src/features/alumni/self-service.ts",
+        "src/features/alumni/admin-tools.ts"
+      ],
+      "tests": ["tests/alumni/schemas.test.ts", "tests/auth/access-policy.test.ts", "tests/auth/navigation-catalog.test.ts"],
       "accessKey": "pessoas",
       "navPath": "/alumni",
-      "sql": "supabase/migrations/20260907010000_alumni_master_module.sql"
+      "sql": "supabase/migrations/20260907010000_alumni_master_module.sql",
+      "sqlMigrations": [
+        "supabase/migrations/20260907010000_alumni_master_module.sql",
+        "supabase/migrations/20260907020000_alumni_self_service_portal.sql",
+        "supabase/migrations/20260907030000_alumni_privacy_communications.sql"
+      ]
     },
     {
       "id": "pessoas",
