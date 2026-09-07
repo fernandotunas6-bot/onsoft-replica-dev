@@ -46,7 +46,9 @@
         "src/routes/alumni.insights.tsx",
         "src/routes/alumni.operations.tsx",
         "src/routes/alumni.communications.tsx",
-        "src/routes/alumni.matching.tsx"
+        "src/routes/alumni.matching.tsx",
+        "src/routes/alumni.documents.tsx",
+        "src/routes/alumni.calendar.tsx"
       ],
       "feature": [
         "src/features/alumni/schemas.ts",
@@ -58,13 +60,16 @@
         "src/features/alumni/survey-schema.ts",
         "src/features/alumni/matching.ts",
         "src/features/alumni/recommendations.ts",
+        "src/features/alumni/documents.ts",
         "src/features/alumni/AlumniSurveyForm.tsx",
-        "src/features/alumni/AlumniPrivacyPanel.tsx"
+        "src/features/alumni/AlumniPrivacyPanel.tsx",
+        "src/features/calendar/ics.ts"
       ],
       "tests": [
         "tests/alumni/schemas.test.ts",
         "tests/alumni/survey-schema.test.ts",
         "tests/alumni/matching.test.ts",
+        "tests/calendar/ics-timed.test.ts",
         "tests/auth/access-policy.test.ts",
         "tests/auth/navigation-catalog.test.ts",
         "tests/communications/schemas.test.ts"
@@ -125,8 +130,8 @@
       "skill": "siga-calendario",
       "label": "Calendário e ICS",
       "routes": ["src/routes/calendario.tsx", "src/routes/calendario.ics.tsx"],
-      "feature": ["src/features/calendar/schemas.ts", "src/features/calendar/server.ts", "src/features/calendar/feed.ts"],
-      "tests": ["tests/calendar/schemas.test.ts"],
+      "feature": ["src/features/calendar/schemas.ts", "src/features/calendar/server.ts", "src/features/calendar/feed.ts", "src/features/calendar/ics.ts"],
+      "tests": ["tests/calendar/schemas.test.ts", "tests/calendar/ics-timed.test.ts"],
       "accessKey": "pedagogica",
       "navPath": "/calendario"
     },
