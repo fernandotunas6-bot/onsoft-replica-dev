@@ -41,14 +41,14 @@ async function resolveOwnProfile(userId: string) {
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   const db = await loadSgaAdminClient();
   const { data: profile, error } = await db.from("alumni_profiles")
-    .select("id")
+    .select("id, student_id")
     .eq("school_id", membership.schoolId)
     .eq("auth_user_id", userId)
     .eq("self_service_enabled", true)
     .maybeSingle();
   if (error) throw publicDatabaseError(error, "Não foi possível validar o seu perfil Alumni.");
   if (!profile) throw new Error("O seu Portal Alumni ainda não está activado.");
-  return { membership, db, alumniId: profile.id };
+  return { membership, db, alumniId: profile.id, studentId: profile.student_id };
 }
 
 async function validateOfficialDocument(db: Awaited<ReturnType<typeof loadSgaAdminClient>>, schoolId: string, alumniId: string, requestId: string | null | undefined) {
@@ -101,6 +101,21 @@ export const getMyAlumniPortfolio = createServerFn({ method: "GET" })
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
     if (error) throw publicDatabaseError(error, "Não foi possível carregar o seu portfólio.");
+    return data ?? [];
+  });
+
+export const getMyPortfolioDocumentOptions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Sessão inválida.");
+    const { membership, db, studentId } = await resolveOwnProfile(context.userId);
+    const { data, error } = await db.from("document_requests")
+      .select("id, request_type, status, created_at")
+      .eq("school_id", membership.schoolId)
+      .eq("student_id", studentId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar os seus documentos oficiais.");
     return data ?? [];
   });
 
