@@ -6,6 +6,7 @@ import { loadSgaAdminClient, requireSgaWriter, resolveSgaMembershipAdmin } from 
 
 export const alumniPortfolioItemTypes = ["project", "publication", "award", "certificate", "media", "link", "case_study", "other"] as const;
 export const alumniPortfolioVisibility = ["private", "school", "alumni"] as const;
+export const alumniPortfolioEducationLevels = ["primary", "middle", "higher"] as const;
 
 const nullableText = (max: number) => z.union([z.string().trim().max(max), z.null()]).optional();
 const nullableUrl = z.union([z.string().trim().url(), z.literal(""), z.null()]).optional().transform((value) => value === "" ? null : value);
@@ -13,6 +14,7 @@ const nullableUrl = z.union([z.string().trim().url(), z.literal(""), z.null()]).
 export const portfolioItemSchema = z.object({
   itemId: z.string().uuid().optional(),
   itemType: z.enum(alumniPortfolioItemTypes),
+  educationLevel: z.enum(alumniPortfolioEducationLevels).nullable().optional(),
   title: z.string().trim().min(2).max(180),
   summary: nullableText(3000),
   organization: nullableText(180),
@@ -70,6 +72,7 @@ function payload(data: z.infer<typeof portfolioItemSchema>, schoolId: string, al
     school_id: schoolId,
     alumni_id: alumniId,
     item_type: data.itemType,
+    education_level: data.educationLevel,
     title: data.title,
     summary: data.summary,
     organization: data.organization,
