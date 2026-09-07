@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  alumniPortfolioEducationLevels,
   alumniPortfolioItemTypes,
   deleteMyAlumniPortfolioItem,
   getMyAlumniPortfolio,
@@ -31,6 +32,12 @@ const typeLabels: Record<string, string> = {
   other: "Outro",
 };
 
+const levelLabels: Record<string, string> = {
+  primary: "Primária",
+  middle: "Ensino Médio",
+  higher: "Ensino Superior",
+};
+
 function splitTags(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
@@ -38,6 +45,7 @@ function splitTags(value: string) {
 function AlumniPortfolioPage() {
   const queryClient = useQueryClient();
   const [itemType, setItemType] = useState<(typeof alumniPortfolioItemTypes)[number]>("project");
+  const [educationLevel, setEducationLevel] = useState<(typeof alumniPortfolioEducationLevels)[number]>("primary");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [organization, setOrganization] = useState("");
@@ -56,6 +64,7 @@ function AlumniPortfolioPage() {
   const saveMutation = useMutation({
     mutationFn: () => saveMyAlumniPortfolioItem({ data: {
       itemType,
+      educationLevel,
       title,
       summary: summary || undefined,
       organization: organization || undefined,
@@ -95,7 +104,7 @@ function AlumniPortfolioPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary"><Sparkles className="size-3.5" /> Identidade profissional</div>
               <h1 className="mt-3 text-3xl font-black tracking-tight">Meu Portfólio Alumni</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Apresente projectos, publicações, prémios, certificados, links e evidências profissionais. Documentos oficiais da escola são apenas referenciados ao registo original do SIGA.</p>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Organize projectos, publicações, prémios, certificados e outras evidências por Primária, Ensino Médio ou Ensino Superior. O histórico permanece no mesmo portfólio.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Link to="/alumni/portal/portfolio/showcase" className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium">Ver apresentação</Link>
@@ -108,6 +117,7 @@ function AlumniPortfolioPage() {
           <Card className="h-fit border-border/70 shadow-sm">
             <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="size-5 text-primary" />Adicionar ao portfólio</CardTitle></CardHeader>
             <CardContent className="space-y-3">
+              <select value={educationLevel} onChange={(e) => setEducationLevel(e.target.value as typeof educationLevel)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm">{alumniPortfolioEducationLevels.map((level) => <option key={level} value={level}>{levelLabels[level]}</option>)}</select>
               <select value={itemType} onChange={(e) => setItemType(e.target.value as typeof itemType)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm">{alumniPortfolioItemTypes.map((type) => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título do projecto / evidência" />
               <textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Descrição breve, impacto ou resultado" className="min-h-28 w-full rounded-xl border border-input bg-background p-3 text-sm" />
@@ -124,7 +134,7 @@ function AlumniPortfolioPage() {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between"><div><h2 className="text-xl font-black">Portfólio</h2><p className="text-sm text-muted-foreground">{items.length} item(ns)</p></div><FolderKanban className="size-5 text-primary" /></div>
-            {portfolioQuery.isLoading ? <Card><CardContent className="p-8 text-sm text-muted-foreground">A carregar portfólio…</CardContent></Card> : items.length ? <div className="grid gap-4 md:grid-cols-2">{items.map((item: any) => <Card key={item.id} className="overflow-hidden border-border/70 shadow-sm">{item.image_url ? <img src={item.image_url} alt="" className="h-40 w-full object-cover" /> : null}<CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap gap-2"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase text-primary">{typeLabels[item.item_type] || item.item_type}</span>{item.featured ? <span className="inline-flex items-center rounded-full bg-warning/15 px-2.5 py-1 text-[10px] font-bold"><Star className="mr-1 size-3" />Destaque</span> : null}</div><h3 className="mt-3 font-bold">{item.title}</h3><p className="mt-1 text-xs text-muted-foreground">{[item.role, item.organization].filter(Boolean).join(" · ") || "Portfólio Alumni"}</p></div><Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(item.id)}><Trash2 className="size-4" /></Button></div>{item.summary ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.summary}</p> : null}{item.skills?.length ? <div className="mt-4 flex flex-wrap gap-1.5">{item.skills.map((skill: string) => <span key={skill} className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{skill}</span>)}</div> : null}<div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">{item.external_url ? <a href={item.external_url} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-semibold text-primary">Abrir evidência <ExternalLink className="ml-1 size-3" /></a> : null}{item.document_requests ? <span className="text-xs text-muted-foreground">Documento SIGA: {item.document_requests.request_type || "Documento"}</span> : null}<span className="ml-auto text-[10px] font-bold uppercase text-muted-foreground">{item.visibility}</span></div></CardContent></Card>)}</div> : <Card className="border-dashed"><CardContent className="p-10 text-center"><FolderKanban className="mx-auto size-9 text-muted-foreground" /><h3 className="mt-3 font-bold">O seu portfólio ainda está vazio</h3><p className="mt-2 text-sm text-muted-foreground">Adicione o primeiro projecto, prémio, publicação ou certificado.</p></CardContent></Card>}
+            {portfolioQuery.isLoading ? <Card><CardContent className="p-8 text-sm text-muted-foreground">A carregar portfólio…</CardContent></Card> : items.length ? <div className="grid gap-4 md:grid-cols-2">{items.map((item: any) => <Card key={item.id} className="overflow-hidden border-border/70 shadow-sm">{item.image_url ? <img src={item.image_url} alt="" className="h-40 w-full object-cover" /> : null}<CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap gap-2"><span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase text-muted-foreground">{item.education_level ? levelLabels[item.education_level] : "Sem nível"}</span><span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase text-primary">{typeLabels[item.item_type] || item.item_type}</span>{item.featured ? <span className="inline-flex items-center rounded-full bg-warning/15 px-2.5 py-1 text-[10px] font-bold"><Star className="mr-1 size-3" />Destaque</span> : null}</div><h3 className="mt-3 font-bold">{item.title}</h3><p className="mt-1 text-xs text-muted-foreground">{[item.role, item.organization].filter(Boolean).join(" · ") || "Portfólio Alumni"}</p></div><Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(item.id)}><Trash2 className="size-4" /></Button></div>{item.summary ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.summary}</p> : null}{item.skills?.length ? <div className="mt-4 flex flex-wrap gap-1.5">{item.skills.map((skill: string) => <span key={skill} className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{skill}</span>)}</div> : null}<div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">{item.external_url ? <a href={item.external_url} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-semibold text-primary">Abrir evidência <ExternalLink className="ml-1 size-3" /></a> : null}{item.document_requests ? <span className="text-xs text-muted-foreground">Documento SIGA: {item.document_requests.request_type || "Documento"}</span> : null}<span className="ml-auto text-[10px] font-bold uppercase text-muted-foreground">{item.visibility}</span></div></CardContent></Card>)}</div> : <Card className="border-dashed"><CardContent className="p-10 text-center"><FolderKanban className="mx-auto size-9 text-muted-foreground" /><h3 className="mt-3 font-bold">O seu portfólio ainda está vazio</h3><p className="mt-2 text-sm text-muted-foreground">Adicione o primeiro projecto, prémio, publicação ou certificado.</p></CardContent></Card>}
           </div>
         </section>
       </div>
