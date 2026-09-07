@@ -1,40 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-type SurveyQuestion = {
-  id: string;
-  label: string;
-  type: "text" | "textarea" | "select" | "multiselect" | "number" | "date" | "boolean";
-  required?: boolean;
-  options?: string[];
-  helpText?: string;
-};
-
-function normaliseQuestions(schema: unknown): SurveyQuestion[] {
-  const source = Array.isArray(schema)
-    ? schema
-    : schema && typeof schema === "object" && Array.isArray((schema as { questions?: unknown[] }).questions)
-      ? (schema as { questions: unknown[] }).questions
-      : [];
-
-  return source.flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const row = item as Record<string, unknown>;
-    const rawType = String(row.type ?? "text");
-    const type = (rawType === "multi_select" ? "multiselect" : rawType) as SurveyQuestion["type"];
-    if (!String(row.id ?? "").trim() || !String(row.label ?? "").trim()) return [];
-    if (!["text", "textarea", "select", "multiselect", "number", "date", "boolean"].includes(type)) return [];
-    return [{
-      id: String(row.id),
-      label: String(row.label),
-      type,
-      required: Boolean(row.required),
-      options: Array.isArray(row.options) ? row.options.map(String) : undefined,
-      helpText: row.helpText ? String(row.helpText) : undefined,
-    }];
-  });
-}
+import { normaliseAlumniSurveyQuestions } from "./survey-schema";
 
 export function AlumniSurveyForm({
   schema,
@@ -45,7 +12,7 @@ export function AlumniSurveyForm({
   onSubmit: (response: Record<string, unknown>) => Promise<unknown>;
   submitting?: boolean;
 }) {
-  const questions = useMemo(() => normaliseQuestions(schema), [schema]);
+  const questions = useMemo(() => normaliseAlumniSurveyQuestions(schema), [schema]);
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -81,61 +48,26 @@ export function AlumniSurveyForm({
             {question.label}{question.required ? <span className="ml-1 text-destructive">*</span> : null}
           </label>
           {question.helpText ? <p className="text-xs text-muted-foreground">{question.helpText}</p> : null}
-
           {question.type === "textarea" ? (
-            <textarea
-              id={`alumni-survey-${question.id}`}
-              className="min-h-28 w-full rounded-xl border border-input bg-background p-3 text-sm"
-              required={question.required}
-              value={String(values[question.id] ?? "")}
-              onChange={(event) => setValues((current) => ({ ...current, [question.id]: event.target.value }))}
-            />
+            <textarea id={`alumni-survey-${question.id}`} className="min-h-28 w-full rounded-xl border border-input bg-background p-3 text-sm" required={question.required} value={String(values[question.id] ?? "")} onChange={(event) => setValues((current) => ({ ...current, [question.id]: event.target.value }))} />
           ) : question.type === "select" ? (
-            <select
-              id={`alumni-survey-${question.id}`}
-              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
-              required={question.required}
-              value={String(values[question.id] ?? "")}
-              onChange={(event) => setValues((current) => ({ ...current, [question.id]: event.target.value }))}
-            >
-              <option value="">Seleccionar…</option>
-              {(question.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
+            <select id={`alumni-survey-${question.id}`} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm" required={question.required} value={String(values[question.id] ?? "")} onChange={(event) => setValues((current) => ({ ...current, [question.id]: event.target.value }))}>
+              <option value="">Seleccionar…</option>{(question.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
             </select>
           ) : question.type === "multiselect" ? (
             <div className="flex flex-wrap gap-2" id={`alumni-survey-${question.id}`}>
               {(question.options ?? []).map((option) => {
                 const selected = Array.isArray(values[question.id]) && (values[question.id] as unknown[]).includes(option);
-                return <button
-                  key={option}
-                  type="button"
-                  aria-pressed={selected}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}
-                  onClick={() => setValues((current) => {
-                    const existing = Array.isArray(current[question.id]) ? current[question.id] as string[] : [];
-                    return { ...current, [question.id]: selected ? existing.filter((value) => value !== option) : [...existing, option] };
-                  })}
-                >{option}</button>;
+                return <button key={option} type="button" aria-pressed={selected} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`} onClick={() => setValues((current) => {
+                  const existing = Array.isArray(current[question.id]) ? current[question.id] as string[] : [];
+                  return { ...current, [question.id]: selected ? existing.filter((value) => value !== option) : [...existing, option] };
+                })}>{option}</button>;
               })}
             </div>
           ) : question.type === "boolean" ? (
-            <label className="flex items-center gap-3 rounded-xl border border-border/70 p-3 text-sm">
-              <input
-                id={`alumni-survey-${question.id}`}
-                type="checkbox"
-                checked={Boolean(values[question.id])}
-                onChange={(event) => setValues((current) => ({ ...current, [question.id]: event.target.checked }))}
-              />
-              <span>Sim</span>
-            </label>
+            <label className="flex items-center gap-3 rounded-xl border border-border/70 p-3 text-sm"><input id={`alumni-survey-${question.id}`} type="checkbox" checked={Boolean(values[question.id])} onChange={(event) => setValues((current) => ({ ...current, [question.id]: event.target.checked }))} /><span>Sim</span></label>
           ) : (
-            <Input
-              id={`alumni-survey-${question.id}`}
-              type={question.type === "number" ? "number" : question.type === "date" ? "date" : "text"}
-              className="rounded-xl"
-              required={question.required}
-              value={String(values[question.id] ?? "")}
-              onChange={(event) => setValues((current) => ({ ...current, [question.id]: question.type === "number" ? (event.target.value === "" ? "" : Number(event.target.value)) : event.target.value }))}
-            />
+            <Input id={`alumni-survey-${question.id}`} type={question.type === "number" ? "number" : question.type === "date" ? "date" : "text"} className="rounded-xl" required={question.required} value={String(values[question.id] ?? "")} onChange={(event) => setValues((current) => ({ ...current, [question.id]: question.type === "number" ? (event.target.value === "" ? "" : Number(event.target.value)) : event.target.value }))} />
           )}
         </div>
       ))}
