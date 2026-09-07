@@ -1,44 +1,11 @@
 import { z } from "zod";
 
-export const alumniEmploymentStatuses = [
-  "employed",
-  "self_employed",
-  "student",
-  "seeking",
-  "unavailable",
-  "unknown",
-] as const;
-
+export const alumniEmploymentStatuses = ["employed", "self_employed", "student", "seeking", "unavailable", "unknown"] as const;
 export const alumniVisibilityLevels = ["private", "school", "alumni"] as const;
-export const alumniExperienceKinds = [
-  "education",
-  "employment",
-  "business",
-  "volunteering",
-  "award",
-  "certification",
-] as const;
-export const alumniOpportunityTypes = [
-  "job",
-  "internship",
-  "scholarship",
-  "mentoring",
-  "business",
-  "volunteer",
-  "event",
-  "other",
-] as const;
+export const alumniExperienceKinds = ["education", "employment", "business", "volunteering", "award", "certification"] as const;
+export const alumniOpportunityTypes = ["job", "internship", "scholarship", "mentoring", "business", "volunteer", "event", "other"] as const;
 export const alumniOpportunityStatuses = ["draft", "published", "closed", "archived"] as const;
-export const alumniEngagementKinds = [
-  "event",
-  "mentoring",
-  "career",
-  "volunteer",
-  "donation",
-  "survey",
-  "communication",
-  "other",
-] as const;
+export const alumniEngagementKinds = ["event", "mentoring", "career", "volunteer", "donation", "survey", "communication", "other"] as const;
 
 const nullableUrl = z.union([z.string().trim().url(), z.literal(""), z.null()]).optional().transform((value) => value === "" ? null : value);
 const nullableText = (max: number) => z.union([z.string().trim().max(max), z.null()]).optional();
@@ -97,10 +64,7 @@ export const alumniExperienceInputSchema = z.object({
   description: nullableText(2000),
 });
 
-export const deleteAlumniExperienceInputSchema = z.object({
-  alumniId: z.string().uuid(),
-  experienceId: z.string().uuid(),
-});
+export const deleteAlumniExperienceInputSchema = z.object({ alumniId: z.string().uuid(), experienceId: z.string().uuid() });
 
 export const listAlumniOpportunitiesInputSchema = z.object({
   status: z.enum(alumniOpportunityStatuses).optional(),
@@ -124,17 +88,21 @@ export const upsertAlumniOpportunityInputSchema = z.object({
   status: z.enum(alumniOpportunityStatuses).default("draft"),
 });
 
+export const alumniOpportunityApplicationInputSchema = z.object({
+  opportunityId: z.string().uuid(),
+  alumniId: z.string().uuid(),
+  status: z.enum(["interested", "applied", "shortlisted", "accepted", "rejected", "withdrawn"]).default("interested"),
+  notes: nullableText(2000),
+});
+
 export const mentoringMatchInputSchema = z.object({
   mentorAlumniId: z.string().uuid(),
   menteeAlumniId: z.string().uuid(),
   focusArea: z.string().trim().min(2).max(180),
   notes: nullableText(2000),
-});
+}).refine((value) => value.mentorAlumniId !== value.menteeAlumniId, { message: "Mentor e mentorado devem ser pessoas diferentes.", path: ["menteeAlumniId"] });
 
-export const mentoringStatusInputSchema = z.object({
-  mentorshipId: z.string().uuid(),
-  status: z.enum(["requested", "active", "completed", "cancelled"]),
-});
+export const mentoringStatusInputSchema = z.object({ mentorshipId: z.string().uuid(), status: z.enum(["requested", "active", "completed", "cancelled"]) });
 
 export const alumniEngagementInputSchema = z.object({
   alumniId: z.string().uuid(),
@@ -163,3 +131,32 @@ export const alumniEventRegistrationInputSchema = z.object({
   alumniId: z.string().uuid(),
   status: z.enum(["registered", "attended", "cancelled", "waitlist"]).default("registered"),
 });
+
+export const alumniSurveyInputSchema = z.object({
+  surveyId: z.string().uuid().optional(),
+  title: z.string().trim().min(2).max(180),
+  description: nullableText(3000),
+  purpose: z.enum(["tracer_study", "employment", "satisfaction", "skills", "impact", "other"]).default("tracer_study"),
+  schemaJson: z.array(z.object({ id: z.string().min(1).max(80), label: z.string().min(1).max(240), type: z.enum(["text", "textarea", "number", "select", "multiselect", "boolean", "date"]), required: z.boolean().optional(), options: z.array(z.string().max(180)).optional() })).max(100).default([]),
+  status: z.enum(["draft", "published", "closed", "archived"]).default("draft"),
+  opensAt: z.string().datetime().nullable().optional(),
+  closesAt: z.string().datetime().nullable().optional(),
+});
+
+export const alumniSurveyResponseInputSchema = z.object({
+  surveyId: z.string().uuid(),
+  alumniId: z.string().uuid(),
+  responseJson: z.record(z.string(), z.unknown()),
+});
+
+export const alumniContributionInputSchema = z.object({
+  alumniId: z.string().uuid(),
+  contributionType: z.enum(["donation", "sponsorship", "scholarship", "in_kind", "volunteer_hours", "other"]),
+  amount: z.number().nonnegative().nullable().optional(),
+  currency: z.string().trim().min(3).max(8).default("AOA"),
+  hours: z.number().nonnegative().nullable().optional(),
+  designation: nullableText(180),
+  occurredAt: z.string().datetime().optional(),
+  reference: nullableText(180),
+  notes: nullableText(2000),
+}).refine((value) => value.amount != null || value.hours != null || value.contributionType === "other", { message: "Informe um valor ou horas de contribuição." });
