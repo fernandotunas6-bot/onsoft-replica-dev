@@ -43,6 +43,7 @@
         "src/routes/alumni.tsx",
         "src/routes/alumni.$alumniId.tsx",
         "src/routes/alumni.portal.tsx",
+        "src/routes/alumni.portal.portfolio.tsx",
         "src/routes/alumni.insights.tsx",
         "src/routes/alumni.operations.tsx",
         "src/routes/alumni.communications.tsx",
@@ -63,6 +64,7 @@
         "src/features/alumni/recommendations.ts",
         "src/features/alumni/documents.ts",
         "src/features/alumni/pipeline.ts",
+        "src/features/alumni/portfolio.ts",
         "src/features/alumni/AlumniSurveyForm.tsx",
         "src/features/alumni/AlumniPrivacyPanel.tsx",
         "src/features/calendar/ics.ts"
@@ -71,6 +73,7 @@
         "tests/alumni/schemas.test.ts",
         "tests/alumni/survey-schema.test.ts",
         "tests/alumni/matching.test.ts",
+        "tests/alumni/portfolio.test.ts",
         "tests/calendar/ics-timed.test.ts",
         "tests/auth/access-policy.test.ts",
         "tests/auth/navigation-catalog.test.ts",
@@ -84,7 +87,8 @@
         "supabase/migrations/20260907020000_alumni_self_service_portal.sql",
         "supabase/migrations/20260907030000_alumni_privacy_communications.sql",
         "supabase/migrations/20260907040000_alumni_self_service_audit.sql",
-        "supabase/migrations/20260907050000_alumni_communications_audiences.sql"
+        "supabase/migrations/20260907050000_alumni_communications_audiences.sql",
+        "supabase/migrations/20260907060000_alumni_portfolio.sql"
       ]
     },
     {
