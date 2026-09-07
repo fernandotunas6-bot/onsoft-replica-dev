@@ -3,9 +3,19 @@ import { canAccessPath, canReadModule, canWriteModule } from "@/features/auth/ac
 
 describe("access policy", () => {
   it("allows administrators into every protected area", () => {
-    for (const path of ["/", "/configuracoes", "/acessos", "/financeiro", "/alunos"]) {
+    for (const path of ["/", "/configuracoes", "/acessos", "/financeiro", "/alunos", "/alumni"]) {
       expect(canAccessPath(path, "Administrador")).toBe(true);
     }
+  });
+
+  it("keeps alumni master workspace limited to administration and secretariat", () => {
+    expect(canAccessPath("/alumni", "Administrador")).toBe(true);
+    expect(canAccessPath("/alumni", "Secretaria")).toBe(true);
+    expect(canAccessPath("/alumni/11111111-1111-4111-8111-111111111111", "Secretaria")).toBe(true);
+    expect(canAccessPath("/alumni", "Aluno")).toBe(false);
+    expect(canAccessPath("/alumni", "Encarregado")).toBe(false);
+    expect(canAccessPath("/alumni", "Professor")).toBe(false);
+    expect(canAccessPath("/alumni", "Tesouraria")).toBe(false);
   });
 
   it("keeps finance routes limited to finance roles", () => {
