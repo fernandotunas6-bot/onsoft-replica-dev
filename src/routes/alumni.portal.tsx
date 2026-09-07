@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BriefcaseBusiness, CalendarDays, CheckCircle2, GraduationCap, Handshake, Sparkles, UserRoundCheck } from "lucide-react";
+import { BriefcaseBusiness, CalendarDays, CheckCircle2, GraduationCap, Handshake, ShieldCheck, Sparkles, UserRoundCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlumniPrivacyPanel } from "@/features/alumni/AlumniPrivacyPanel";
+import { AlumniSurveyForm } from "@/features/alumni/AlumniSurveyForm";
 import {
   claimMyAlumniProfile,
   getMyAlumniPortal,
@@ -22,7 +24,7 @@ export const Route = createFileRoute("/alumni/portal")({
   head: () => ({
     meta: [
       { title: "Meu Portal Alumni · SIGA" },
-      { name: "description", content: "Portal pessoal do antigo aluno: carreira, oportunidades, eventos, mentoria e tracer studies." },
+      { name: "description", content: "Portal pessoal do antigo aluno: carreira, oportunidades, eventos, mentoria, tracer studies e privacidade." },
     ],
   }),
   component: AlumniPortalPage,
@@ -65,6 +67,7 @@ function AlumniPortalPage() {
       toast.success("Oportunidade actualizada.");
       await queryClient.invalidateQueries({ queryKey: ["alumni", "self-service"] });
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Não foi possível actualizar a oportunidade."),
   });
 
   const eventMutation = useMutation({
@@ -73,6 +76,7 @@ function AlumniPortalPage() {
       toast.success(result.status === "waitlist" ? "Adicionado à lista de espera." : "Inscrição confirmada.");
       await queryClient.invalidateQueries({ queryKey: ["alumni", "self-service"] });
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Não foi possível efectuar a inscrição."),
   });
 
   if (portalQuery.isLoading) {
@@ -133,6 +137,7 @@ function AlumniPortalPage() {
             <TabsTrigger value="opportunities" className="rounded-xl">Oportunidades</TabsTrigger>
             <TabsTrigger value="events" className="rounded-xl">Eventos</TabsTrigger>
             <TabsTrigger value="surveys" className="rounded-xl">Tracer Studies</TabsTrigger>
+            <TabsTrigger value="privacy" className="rounded-xl"><ShieldCheck className="mr-1.5 size-3.5" />Privacidade</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
@@ -143,7 +148,7 @@ function AlumniPortalPage() {
                 <Input defaultValue={portal.profile.current_company ?? ""} onChange={(event) => setCompany(event.target.value)} placeholder="Empresa / organização" className="rounded-xl" />
                 <Input defaultValue={portal.profile.current_role ?? ""} onChange={(event) => setRole(event.target.value)} placeholder="Função actual" className="rounded-xl" />
                 <Input defaultValue={portal.profile.province ?? ""} onChange={(event) => setProvince(event.target.value)} placeholder="Província" className="rounded-xl" />
-                <div className="md:col-span-2"><Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending} className="rounded-xl">Guardar trajectória</Button></div>
+                <div className="md:col-span-2"><Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending} className="rounded-xl">{updateMutation.isPending ? "A guardar…" : "Guardar trajectória"}</Button></div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -151,7 +156,7 @@ function AlumniPortalPage() {
           <TabsContent value="opportunities" className="grid gap-4 md:grid-cols-2">
             {portal.opportunities.map((item) => {
               const current = applicationByOpportunity.get(item.id);
-              return <Card key={item.id} className="border-border/70 shadow-sm"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">{item.opportunity_type}</p><h3 className="mt-1 font-bold">{item.title}</h3><p className="mt-1 text-sm text-muted-foreground">{item.organization || "Rede Alumni"}</p></div>{item.remote_allowed ? <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">Remoto</span> : null}</div><p className="mt-3 line-clamp-3 text-xs leading-5 text-muted-foreground">{item.description || "Oportunidade publicada para a comunidade Alumni."}</p><div className="mt-4 flex gap-2"><Button size="sm" variant={current?.status === "interested" ? "default" : "outline"} onClick={() => opportunityMutation.mutate({ opportunityId: item.id, status: "interested" })}>Tenho interesse</Button><Button size="sm" onClick={() => opportunityMutation.mutate({ opportunityId: item.id, status: "applied" })}>Candidatei-me</Button></div></CardContent></Card>;
+              return <Card key={item.id} className="border-border/70 shadow-sm"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">{item.opportunity_type}</p><h3 className="mt-1 font-bold">{item.title}</h3><p className="mt-1 text-sm text-muted-foreground">{item.organization || "Rede Alumni"}</p></div>{item.remote_allowed ? <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">Remoto</span> : null}</div><p className="mt-3 line-clamp-3 text-xs leading-5 text-muted-foreground">{item.description || "Oportunidade publicada para a comunidade Alumni."}</p><div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant={current?.status === "interested" ? "default" : "outline"} onClick={() => opportunityMutation.mutate({ opportunityId: item.id, status: "interested" })}>Tenho interesse</Button><Button size="sm" variant={current?.status === "applied" ? "default" : "outline"} onClick={() => opportunityMutation.mutate({ opportunityId: item.id, status: "applied" })}>Candidatei-me</Button>{current && current.status !== "withdrawn" ? <Button size="sm" variant="ghost" onClick={() => opportunityMutation.mutate({ opportunityId: item.id, status: "withdrawn" })}>Retirar</Button> : null}</div></CardContent></Card>;
             })}
           </TabsContent>
 
@@ -160,15 +165,26 @@ function AlumniPortalPage() {
           </TabsContent>
 
           <TabsContent value="surveys" className="space-y-4">
-            {portal.surveys.map((survey) => <SurveyCard key={survey.id} survey={survey} onSubmit={(response) => submitMyAlumniSurvey({ data: { surveyId: survey.id, response } }).then(async () => { toast.success("Resposta enviada."); await queryClient.invalidateQueries({ queryKey: ["alumni", "self-service"] }); })} />)}
+            {portal.surveys.length ? portal.surveys.map((survey) => (
+              <Card key={survey.id} className="border-border/70 shadow-sm">
+                <CardHeader><CardTitle>{survey.title}</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm leading-6 text-muted-foreground">{survey.description || "Ajude a escola a acompanhar o impacto da formação."}</p>
+                  <AlumniSurveyForm
+                    schema={survey.schema_json}
+                    onSubmit={(response) => submitMyAlumniSurvey({ data: { surveyId: survey.id, response } }).then(async () => {
+                      toast.success("Respostas enviadas.");
+                      await queryClient.invalidateQueries({ queryKey: ["alumni", "self-service"] });
+                    })}
+                  />
+                </CardContent>
+              </Card>
+            )) : <Card><CardContent className="p-8 text-sm text-muted-foreground">Não há tracer studies activos neste momento.</CardContent></Card>}
           </TabsContent>
+
+          <TabsContent value="privacy"><AlumniPrivacyPanel /></TabsContent>
         </Tabs>
       </div>
     </AppShell>
   );
-}
-
-function SurveyCard({ survey, onSubmit }: { survey: { id: string; title: string; description?: string | null; schema_json?: unknown }; onSubmit: (response: Record<string, unknown>) => Promise<unknown> }) {
-  const [response, setResponse] = useState("");
-  return <Card><CardHeader><CardTitle>{survey.title}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{survey.description || "Ajude a escola a acompanhar o impacto da formação."}</p><textarea className="mt-4 min-h-28 w-full rounded-xl border border-input bg-background p-3 text-sm" value={response} onChange={(event) => setResponse(event.target.value)} placeholder="Escreva a sua resposta…" /><Button className="mt-3" size="sm" onClick={() => onSubmit({ answer: response })} disabled={!response.trim()}>Enviar resposta</Button></CardContent></Card>;
 }
