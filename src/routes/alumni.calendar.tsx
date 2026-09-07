@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAlumniEvents } from "@/features/alumni/server";
-import { toIcsCalendar } from "@/features/calendar/ics";
+import { toIcsTimedCalendar } from "@/features/calendar/ics";
 
 export const Route = createFileRoute("/alumni/calendar")({
   head: () => ({ meta: [{ title: "Calendário Alumni · SIGA" }] }),
@@ -17,12 +17,13 @@ function AlumniCalendarPage() {
   const events = (eventsQuery.data ?? []).filter((event) => event.status === "published");
 
   function downloadIcs() {
-    const body = toIcsCalendar(events.map((event) => ({
+    const body = toIcsTimedCalendar(events.map((event) => ({
       uid: `alumni-${event.id}@siga.plus`,
       title: event.title,
-      description: [event.description, event.location ? `Local: ${event.location}` : null, event.online_url ? `Online: ${event.online_url}` : null].filter(Boolean).join("\n"),
-      event_date: event.starts_at,
-      ends_on: event.ends_at || event.starts_at,
+      description: [event.description, event.online_url ? `Online: ${event.online_url}` : null].filter(Boolean).join("\n"),
+      starts_at: event.starts_at,
+      ends_at: event.ends_at,
+      location: event.location,
     })), { calendarName: "SIGA · Alumni", calendarDescription: "Eventos publicados da rede Alumni" });
     const blob = new Blob([body], { type: "text/calendar;charset=utf-8" });
     const href = URL.createObjectURL(blob);
@@ -38,7 +39,7 @@ function AlumniCalendarPage() {
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
         <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div><div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary"><CalendarDays className="size-3.5" /> Calendário SIGA</div><h1 className="mt-3 text-3xl font-black tracking-tight">Agenda Alumni</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Eventos publicados da rede Alumni com exportação ICS compatível com o motor central de calendário do SIGA.</p></div>
+            <div><div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary"><CalendarDays className="size-3.5" /> Calendário SIGA</div><h1 className="mt-3 text-3xl font-black tracking-tight">Agenda Alumni</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Eventos publicados da rede Alumni com data, hora e local preservados na exportação ICS do motor central do SIGA.</p></div>
             <div className="flex flex-wrap gap-2"><Link to="/alumni" className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"><Network className="mr-2 size-4" />Rede Alumni</Link><Button onClick={downloadIcs} disabled={!events.length}><Download className="mr-2 size-4" />Exportar ICS</Button></div>
           </div>
         </section>
