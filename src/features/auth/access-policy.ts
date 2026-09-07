@@ -121,6 +121,12 @@ export function canAccessPath(
     return true;
   }
 
+  if (pathname === "/alumni/portal" || pathname.startsWith("/alumni/portal/")) {
+    if (plan && !planIncludesModule(plan, "pessoas")) return false;
+    if (grants.pessoas === "Nenhum") return false;
+    return ["Administrador", "Secretaria", "Aluno"].includes(role);
+  }
+
   const module = moduleForPath(pathname);
   if (module) {
     if (plan && !planIncludesModule(plan, module.key)) return false;
