@@ -72,7 +72,7 @@ export const updateOpportunityApplicationStatus = createServerFn({ method: "POST
     const { membership, db } = await adminContext(context.userId);
     const { data: existing, error: existingError } = await db
       .from("alumni_opportunity_applications")
-      .select("id")
+      .select("id, applied_at")
       .eq("school_id", membership.schoolId)
       .eq("opportunity_id", data.opportunityId)
       .eq("alumni_id", data.alumniId)
@@ -85,7 +85,7 @@ export const updateOpportunityApplicationStatus = createServerFn({ method: "POST
       notes: data.notes,
       updated_at: new Date().toISOString(),
     };
-    if (data.status === "applied" && !existing["applied_at"]) patch.applied_at = new Date().toISOString();
+    if (data.status === "applied" && !existing.applied_at) patch.applied_at = new Date().toISOString();
     const { error } = await db
       .from("alumni_opportunity_applications")
       .update(patch)
