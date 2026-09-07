@@ -97,7 +97,10 @@ function AlumniPortfolioPage() {
               <h1 className="mt-3 text-3xl font-black tracking-tight">Meu Portfólio Alumni</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Apresente projectos, publicações, prémios, certificados, links e evidências profissionais. Documentos oficiais da escola são apenas referenciados ao registo original do SIGA.</p>
             </div>
-            <Link to="/alumni/portal" className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium">Voltar ao Portal Alumni</Link>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/alumni/portal/portfolio/showcase" className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium">Ver apresentação</Link>
+              <Link to="/alumni/portal" className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium">Voltar ao Portal Alumni</Link>
+            </div>
           </div>
         </section>
 
