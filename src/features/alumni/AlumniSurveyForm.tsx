@@ -5,20 +5,26 @@ import { Input } from "@/components/ui/input";
 type SurveyQuestion = {
   id: string;
   label: string;
-  type: "text" | "textarea" | "select" | "multi_select" | "number" | "date" | "boolean";
+  type: "text" | "textarea" | "select" | "multiselect" | "number" | "date" | "boolean";
   required?: boolean;
   options?: string[];
   helpText?: string;
 };
 
 function normaliseQuestions(schema: unknown): SurveyQuestion[] {
-  if (!Array.isArray(schema)) return [];
-  return schema.flatMap((item) => {
+  const source = Array.isArray(schema)
+    ? schema
+    : schema && typeof schema === "object" && Array.isArray((schema as { questions?: unknown[] }).questions)
+      ? (schema as { questions: unknown[] }).questions
+      : [];
+
+  return source.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
     const row = item as Record<string, unknown>;
-    const type = String(row.type ?? "text") as SurveyQuestion["type"];
+    const rawType = String(row.type ?? "text");
+    const type = (rawType === "multi_select" ? "multiselect" : rawType) as SurveyQuestion["type"];
     if (!String(row.id ?? "").trim() || !String(row.label ?? "").trim()) return [];
-    if (!["text", "textarea", "select", "multi_select", "number", "date", "boolean"].includes(type)) return [];
+    if (!["text", "textarea", "select", "multiselect", "number", "date", "boolean"].includes(type)) return [];
     return [{
       id: String(row.id),
       label: String(row.label),
@@ -95,7 +101,7 @@ export function AlumniSurveyForm({
               <option value="">Seleccionar…</option>
               {(question.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
             </select>
-          ) : question.type === "multi_select" ? (
+          ) : question.type === "multiselect" ? (
             <div className="flex flex-wrap gap-2" id={`alumni-survey-${question.id}`}>
               {(question.options ?? []).map((option) => {
                 const selected = Array.isArray(values[question.id]) && (values[question.id] as unknown[]).includes(option);
