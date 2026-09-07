@@ -6,10 +6,24 @@ export const announcementAudienceOptions = [
   "students_secondary",
   "students_finalists",
   "teaching_staff",
+  "alumni_all",
+  "alumni_opportunities",
+  "alumni_events",
+  "alumni_mentoring",
+  "alumni_surveys",
+  "alumni_fundraising",
+] as const;
+
+export const alumniAnnouncementAudienceOptions = [
+  "alumni_all",
+  "alumni_opportunities",
+  "alumni_events",
+  "alumni_mentoring",
+  "alumni_surveys",
+  "alumni_fundraising",
 ] as const;
 
 export const announcementChannelOptions = ["sms", "email", "portal"] as const;
-
 export const announcementStatusOptions = ["draft", "scheduled", "sent"] as const;
 
 const optionalDate = z
@@ -68,7 +82,5 @@ export const updateAnnouncementInputSchema = z.object({
 });
 export type UpdateAnnouncementInput = z.infer<typeof updateAnnouncementInputSchema>;
 
-export const archiveAnnouncementInputSchema = z.object({
-  id: z.string().uuid(),
-});
+export const archiveAnnouncementInputSchema = z.object({ id: z.string().uuid() });
 export type ArchiveAnnouncementInput = z.infer<typeof archiveAnnouncementInputSchema>;
