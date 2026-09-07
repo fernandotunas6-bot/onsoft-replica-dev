@@ -109,6 +109,7 @@ export function getPortalNavigation(
             { label: "Financeiro", icon: CreditCard, to: "/financeiro" },
             { label: "Documentos", icon: FileText, to: "/documentos" },
             { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
+            { label: "Meu Portal Alumni", icon: Network, to: "/alumni/portal" },
             { label: "Meu Perfil", icon: User, to: "/perfil" },
           ],
         },
@@ -307,6 +308,7 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   if (mode === "student") {
     return [
+      { label: "Meu Portal Alumni", to: "/alumni/portal" },
       { label: "Notas e Boletim", to: "/pedagogica", search: { tab: "notas" } },
       { label: "Frequência", to: "/pedagogica", search: { tab: "presencas" } },
       { label: "Horário", to: "/pedagogica", search: { tab: "horarios" } },
