@@ -39,8 +39,8 @@ BEGIN
       'alumni_surveys',
       'alumni_fundraising'
     ));
+
+  COMMENT ON CONSTRAINT school_announcements_audience_check ON public.school_announcements IS
+    'Públicos SIGA, incluindo segmentos Alumni que são resolvidos com consentimento e preferências.';
 END;
 $$;
-
-comment on constraint school_announcements_audience_check on public.school_announcements is
-  'Públicos SIGA, incluindo segmentos Alumni que são resolvidos com consentimento e preferências.';
