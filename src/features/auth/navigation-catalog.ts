@@ -1,209 +1,50 @@
 import type { LauncherApp, LauncherTarget } from "@/features/integrations/launcher-types";
 
-/** Especificação de um módulo SIGA no launcher (waffle) e na auditoria de navegação. */
 export type WorkspaceModuleSpec = {
   id: string;
   name: string;
   shortName: string;
   description: string;
   mark: string;
-  /** Rota principal para verificar presença na sidebar admin. */
   navPath: string;
   target: LauncherTarget;
 };
 
-/**
- * Módulos internos do SIGA — fonte única para o launcher e para auditoria de cobertura.
- * Integrações externas continuam em `launcherIntegrationApps`.
- */
 export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
-  {
-    id: "siga-dashboard",
-    name: "Início",
-    shortName: "Início",
-    description: "Painel e atalhos do dia.",
-    mark: "siga-dashboard",
-    navPath: "/",
-    target: { type: "route", to: "/" },
-  },
-  {
-    id: "siga-alunos",
-    name: "Alunos",
-    shortName: "Alunos",
-    description: "Fichas, matrícula e estado.",
-    mark: "siga-alunos",
-    navPath: "/alunos",
-    target: { type: "route", to: "/alunos" },
-  },
-  {
-    id: "siga-pedagogica",
-    name: "Pedagógica",
-    shortName: "Pedagógica",
-    description: "Turmas, notas e horários.",
-    mark: "siga-pedagogica",
-    navPath: "/pedagogica",
-    target: { type: "route", to: "/pedagogica" },
-  },
-  {
-    id: "siga-calendario",
-    name: "Calendário",
-    shortName: "Calendário",
-    description: "Períodos lectivos e ICS.",
-    mark: "siga-calendario",
-    navPath: "/calendario",
-    target: { type: "route", to: "/calendario" },
-  },
-  {
-    id: "siga-planos-aula",
-    name: "Planos de Aula",
-    shortName: "Planos de Aula",
-    description: "Estruturas de aula e avaliação.",
-    mark: "siga-planos-aula",
-    navPath: "/planos-aula",
-    target: { type: "route", to: "/planos-aula" },
-  },
-  {
-    id: "siga-financeiro",
-    name: "Tesouraria",
-    shortName: "Tesouraria",
-    description: "Caixa, planos e pagamentos.",
-    mark: "siga-financeiro",
-    navPath: "/financeiro",
-    target: { type: "route", to: "/financeiro" },
-  },
-  {
-    id: "siga-faturas",
-    name: "Faturas",
-    shortName: "Faturas",
-    description: "Emissão e consulta de faturas.",
-    mark: "siga-faturas",
-    navPath: "/faturas",
-    target: { type: "route", to: "/faturas" },
-  },
-  {
-    id: "siga-documentos",
-    name: "Documentos",
-    shortName: "Documentos",
-    description: "Declarações e emissão.",
-    mark: "siga-documentos",
-    navPath: "/documentos",
-    target: { type: "route", to: "/documentos" },
-  },
-  {
-    id: "siga-arquivos",
-    name: "Arquivos",
-    shortName: "Arquivos",
-    description: "PDF, Word, Excel e fotos da escola.",
-    mark: "siga-arquivos",
-    navPath: "/arquivos",
-    target: { type: "route", to: "/arquivos" },
-  },
-  {
-    id: "siga-comunicacoes",
-    name: "Comunicados",
-    shortName: "Comunicados",
-    description: "Avisos à comunidade escolar.",
-    mark: "siga-comunicacoes",
-    navPath: "/comunicacoes",
-    target: { type: "route", to: "/comunicacoes" },
-  },
-  {
-    id: "siga-pessoas",
-    name: "Pessoas",
-    shortName: "Pessoas",
-    description: "Colaboradores e docentes.",
-    mark: "siga-pessoas",
-    navPath: "/pessoas",
-    target: { type: "route", to: "/pessoas" },
-  },
-  {
-    id: "siga-importar",
-    name: "Importação de Dados",
-    shortName: "Importar",
-    description: "Excel/CSV para alunos, pessoas e pagamentos.",
-    mark: "siga-importar",
-    navPath: "/importar",
-    target: { type: "route", to: "/importar" },
-  },
-  {
-    id: "siga-relatorios-academicos",
-    name: "Relatórios académicos",
-    shortName: "Rel. académicos",
-    description: "Pautas e indicadores de turma.",
-    mark: "siga-relatorios-academicos",
-    navPath: "/relatorios/academicos",
-    target: { type: "route", to: "/relatorios/academicos" },
-  },
-  {
-    id: "siga-relatorios-financeiros",
-    name: "Relatórios financeiros",
-    shortName: "Rel. financeiros",
-    description: "Cobrança, dívida e caixa.",
-    mark: "siga-relatorios-financeiros",
-    navPath: "/relatorios/financeiros",
-    target: { type: "route", to: "/relatorios/financeiros" },
-  },
-  {
-    id: "siga-catracas",
-    name: "Catracas & Cartão Virtual",
-    shortName: "Catracas",
-    description: "Controlo de acesso físico e cartões digitais.",
-    mark: "siga-catracas",
-    navPath: "/catracas",
-    target: { type: "route", to: "/catracas" },
-  },
-  {
-    id: "siga-acessos",
-    name: "Acessos",
-    shortName: "Acessos",
-    description: "Contas, convites e permissões.",
-    mark: "siga-acessos",
-    navPath: "/acessos",
-    target: { type: "route", to: "/acessos" },
-  },
-  {
-    id: "siga-matricula",
-    name: "Matrícula pública",
-    shortName: "Matrícula",
-    description: "Link e página de candidaturas.",
-    mark: "siga-matricula",
-    navPath: "/configuracoes",
-    target: { type: "settings", panelId: "matricula" },
-  },
+  { id: "siga-dashboard", name: "Início", shortName: "Início", description: "Painel e atalhos do dia.", mark: "siga-dashboard", navPath: "/", target: { type: "route", to: "/" } },
+  { id: "siga-alunos", name: "Alunos", shortName: "Alunos", description: "Fichas, matrícula e estado.", mark: "siga-alunos", navPath: "/alunos", target: { type: "route", to: "/alunos" } },
+  { id: "siga-alumni", name: "Alumni", shortName: "Alumni", description: "Antigos alunos, carreira, mentoria e impacto.", mark: "siga-alumni", navPath: "/alumni", target: { type: "route", to: "/alumni" } },
+  { id: "siga-pedagogica", name: "Pedagógica", shortName: "Pedagógica", description: "Turmas, notas e horários.", mark: "siga-pedagogica", navPath: "/pedagogica", target: { type: "route", to: "/pedagogica" } },
+  { id: "siga-calendario", name: "Calendário", shortName: "Calendário", description: "Períodos lectivos e ICS.", mark: "siga-calendario", navPath: "/calendario", target: { type: "route", to: "/calendario" } },
+  { id: "siga-planos-aula", name: "Planos de Aula", shortName: "Planos de Aula", description: "Estruturas de aula e avaliação.", mark: "siga-planos-aula", navPath: "/planos-aula", target: { type: "route", to: "/planos-aula" } },
+  { id: "siga-financeiro", name: "Tesouraria", shortName: "Tesouraria", description: "Caixa, planos e pagamentos.", mark: "siga-financeiro", navPath: "/financeiro", target: { type: "route", to: "/financeiro" } },
+  { id: "siga-faturas", name: "Faturas", shortName: "Faturas", description: "Emissão e consulta de faturas.", mark: "siga-faturas", navPath: "/faturas", target: { type: "route", to: "/faturas" } },
+  { id: "siga-documentos", name: "Documentos", shortName: "Documentos", description: "Declarações e emissão.", mark: "siga-documentos", navPath: "/documentos", target: { type: "route", to: "/documentos" } },
+  { id: "siga-arquivos", name: "Arquivos", shortName: "Arquivos", description: "PDF, Word, Excel e fotos da escola.", mark: "siga-arquivos", navPath: "/arquivos", target: { type: "route", to: "/arquivos" } },
+  { id: "siga-comunicacoes", name: "Comunicados", shortName: "Comunicados", description: "Avisos à comunidade escolar.", mark: "siga-comunicacoes", navPath: "/comunicacoes", target: { type: "route", to: "/comunicacoes" } },
+  { id: "siga-pessoas", name: "Pessoas", shortName: "Pessoas", description: "Colaboradores e docentes.", mark: "siga-pessoas", navPath: "/pessoas", target: { type: "route", to: "/pessoas" } },
+  { id: "siga-importar", name: "Importação de Dados", shortName: "Importar", description: "Excel/CSV para alunos, pessoas e pagamentos.", mark: "siga-importar", navPath: "/importar", target: { type: "route", to: "/importar" } },
+  { id: "siga-relatorios-academicos", name: "Relatórios académicos", shortName: "Rel. académicos", description: "Pautas e indicadores de turma.", mark: "siga-relatorios-academicos", navPath: "/relatorios/academicos", target: { type: "route", to: "/relatorios/academicos" } },
+  { id: "siga-relatorios-financeiros", name: "Relatórios financeiros", shortName: "Rel. financeiros", description: "Cobrança, dívida e caixa.", mark: "siga-relatorios-financeiros", navPath: "/relatorios/financeiros", target: { type: "route", to: "/relatorios/financeiros" } },
+  { id: "siga-catracas", name: "Catracas & Cartão Virtual", shortName: "Catracas", description: "Controlo de acesso físico e cartões digitais.", mark: "siga-catracas", navPath: "/catracas", target: { type: "route", to: "/catracas" } },
+  { id: "siga-acessos", name: "Acessos", shortName: "Acessos", description: "Contas, convites e permissões.", mark: "siga-acessos", navPath: "/acessos", target: { type: "route", to: "/acessos" } },
+  { id: "siga-matricula", name: "Matrícula pública", shortName: "Matrícula", description: "Link e página de candidaturas.", mark: "siga-matricula", navPath: "/configuracoes", target: { type: "settings", panelId: "matricula" } },
 ];
 
-/** Rotas que um administrador com plano completo deve conseguir alcançar pela sidebar. */
-export const ADMIN_NAV_PATH_COVERAGE = [
-  ...WORKSPACE_MODULE_SPECS.map((spec) => spec.navPath),
-  "/perfil",
-] as const;
+export const ADMIN_NAV_PATH_COVERAGE = [...WORKSPACE_MODULE_SPECS.map((spec) => spec.navPath), "/perfil"] as const;
 
 export function buildWorkspaceLauncherApps(): LauncherApp[] {
-  return WORKSPACE_MODULE_SPECS.map((spec) => ({
-    id: spec.id,
-    name: spec.name,
-    shortName: spec.shortName,
-    description: spec.description,
-    section: "workspace",
-    mark: spec.mark,
-    target: spec.target,
-  }));
+  return WORKSPACE_MODULE_SPECS.map((spec) => ({ id: spec.id, name: spec.name, shortName: spec.shortName, description: spec.description, section: "workspace", mark: spec.mark, target: spec.target }));
 }
 
-type NavItemLike = {
-  to?: string;
-  children?: Array<{ to: string }>;
-};
+type NavItemLike = { to?: string; children?: Array<{ to: string }> };
 
-/** Extrai rotas de primeiro nível presentes na árvore de navegação. */
 export function collectNavPaths(groups: Array<{ items: NavItemLike[] }>): Set<string> {
   const paths = new Set<string>();
   for (const group of groups) {
     for (const item of group.items) {
       if (item.to) paths.add(item.to);
-      for (const child of item.children ?? []) {
-        if (child.to) paths.add(child.to);
-      }
+      for (const child of item.children ?? []) if (child.to) paths.add(child.to);
     }
   }
   return paths;
@@ -213,18 +54,11 @@ export function missingAdminNavPaths(paths: Set<string>): string[] {
   return ADMIN_NAV_PATH_COVERAGE.filter((path) => !paths.has(path));
 }
 
-/** Valida que cada módulo do inventário (`modules.json`) tem rota na sidebar admin. */
-export function missingModuleNavPaths(
-  moduleRoutes: string[],
-  adminPaths: Set<string>,
-): string[] {
+export function missingModuleNavPaths(moduleRoutes: string[], adminPaths: Set<string>): string[] {
   return moduleRoutes.filter((path) => !adminPaths.has(path));
 }
 
-/** Todas as rotas de sidebar declaradas no inventário (`modules.json`). */
-export function inventoryNavPaths(
-  modules: Array<{ navPath?: string; secondaryNavPaths?: string[] }>,
-): string[] {
+export function inventoryNavPaths(modules: Array<{ navPath?: string; secondaryNavPaths?: string[] }>): string[] {
   const paths = new Set<string>();
   for (const mod of modules) {
     if (mod.navPath) paths.add(mod.navPath);
