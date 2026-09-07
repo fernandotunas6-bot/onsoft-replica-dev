@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Download, MapPinned, Megaphone, ShieldCheck, UsersRound } from "lucide-react";
+import { Download, MapPinned, Megaphone, Network, Settings2, ShieldCheck, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,10 +23,7 @@ function AlumniInsightsPage() {
   const [purpose, setPurpose] = useState<"general" | "opportunities" | "events" | "mentoring" | "surveys" | "fundraising">("general");
   const geoQuery = useQuery({ queryKey: ["alumni", "geo"], queryFn: () => getAlumniGeoAnalytics() });
   const exportQuery = useQuery({ queryKey: ["alumni", "export"], queryFn: () => getAlumniExportDataset(), enabled: false });
-  const audienceQuery = useQuery({
-    queryKey: ["alumni", "audience", purpose],
-    queryFn: () => buildAlumniCommunicationAudience({ data: { purpose } }),
-  });
+  const audienceQuery = useQuery({ queryKey: ["alumni", "audience", purpose], queryFn: () => buildAlumniCommunicationAudience({ data: { purpose } }) });
 
   const totalGeo = useMemo(() => (geoQuery.data ?? []).reduce((sum, row) => sum + row.total, 0), [geoQuery.data]);
   const totalEmployed = useMemo(() => (geoQuery.data ?? []).reduce((sum, row) => sum + row.employed, 0), [geoQuery.data]);
@@ -50,13 +47,18 @@ function AlumniInsightsPage() {
     <AppShell>
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
         <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary"><ShieldCheck className="size-3.5" /> Dados com consentimento</div>
               <h1 className="mt-3 text-3xl font-black tracking-tight">Insights & Operações Alumni</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Distribuição geográfica, empregabilidade, públicos segmentados e exportação institucional com regras de privacidade.</p>
             </div>
-            <Button variant="outline" onClick={downloadCsv} disabled={exportQuery.isFetching} className="rounded-xl"><Download className="mr-2 size-4" />{exportQuery.isFetching ? "A preparar…" : "Exportar CSV"}</Button>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/alumni" className="inline-flex h-10 items-center rounded-xl border border-input bg-background px-4 text-sm font-medium"><Network className="mr-2 size-4" />Rede</Link>
+              <Link to="/alumni/operations" className="inline-flex h-10 items-center rounded-xl border border-input bg-background px-4 text-sm font-medium"><Settings2 className="mr-2 size-4" />Operações</Link>
+              <Link to="/alumni/communications" className="inline-flex h-10 items-center rounded-xl border border-input bg-background px-4 text-sm font-medium"><Megaphone className="mr-2 size-4" />Comunicação</Link>
+              <Button variant="outline" onClick={downloadCsv} disabled={exportQuery.isFetching} className="rounded-xl"><Download className="mr-2 size-4" />{exportQuery.isFetching ? "A preparar…" : "Exportar CSV"}</Button>
+            </div>
           </div>
         </section>
 
@@ -93,12 +95,9 @@ function AlumniInsightsPage() {
             <Card className="border-border/70 shadow-sm">
               <CardHeader><CardTitle className="flex items-center gap-2"><Megaphone className="size-5 text-primary" /> Público consentido</CardTitle></CardHeader>
               <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {(["general", "opportunities", "events", "mentoring", "surveys", "fundraising"] as const).map((item) => <Button key={item} size="sm" variant={purpose === item ? "default" : "outline"} onClick={() => setPurpose(item)}>{item}</Button>)}
-                </div>
-                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {(audienceQuery.data ?? []).map((person) => <div key={person.alumniId} className="rounded-2xl border border-border/60 p-4"><p className="font-semibold">{person.fullName}</p><p className="mt-1 text-xs text-muted-foreground">{person.email || "E-mail desactivado"}</p><p className="text-xs text-muted-foreground">{person.phone || "Telefone não autorizado"}</p><p className="mt-2 text-[10px] font-bold uppercase text-primary">{[person.graduationYear, person.province].filter(Boolean).join(" · ") || "Perfil Alumni"}</p></div>)}
-                </div>
+                <div className="flex flex-wrap gap-2">{(["general", "opportunities", "events", "mentoring", "surveys", "fundraising"] as const).map((item) => <Button key={item} size="sm" variant={purpose === item ? "default" : "outline"} onClick={() => setPurpose(item)}>{item}</Button>)}</div>
+                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{(audienceQuery.data ?? []).map((person) => <div key={person.alumniId} className="rounded-2xl border border-border/60 p-4"><p className="font-semibold">{person.fullName}</p><p className="mt-1 text-xs text-muted-foreground">{person.email || "E-mail desactivado"}</p><p className="text-xs text-muted-foreground">{person.phone || "Telefone não autorizado"}</p><p className="mt-2 text-[10px] font-bold uppercase text-primary">{[person.graduationYear, person.province].filter(Boolean).join(" · ") || "Perfil Alumni"}</p></div>)}</div>
+                <Link to="/alumni/communications" className="mt-5 inline-flex h-9 items-center rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground"><Megaphone className="mr-2 size-3.5" />Criar comunicado para este público</Link>
               </CardContent>
             </Card>
           </TabsContent>
