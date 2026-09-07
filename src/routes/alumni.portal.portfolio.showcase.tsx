@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, MapPin } from "lucide-react";
+import { ArrowLeft, ExternalLink, GraduationCap, MapPin } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { getMyAlumniPortal } from "@/features/alumni/self-service";
@@ -41,23 +41,48 @@ function AlumniPortfolioShowcasePage() {
         <div className="mx-auto max-w-[1180px] px-5 pb-24 pt-6 sm:px-8 lg:px-10">
           <div className="mb-16 flex items-center justify-between gap-4">
             <Link to="/alumni/portal/portfolio" className="inline-flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="mr-2 size-4" />Editar portfólio</Link>
-            <span className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">SIGA ALUMNI</span>
+            <span className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">SIGA · PORTFÓLIO</span>
           </div>
 
-          <section className="grid gap-10 border-b border-border/60 pb-16 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-end">
+          <section className="grid gap-10 border-b border-border/60 pb-16 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">
             <div className="max-w-4xl">
-              <p className="mb-5 text-sm font-medium text-muted-foreground">{profile.current_role || profile.industry || "Perfil profissional"}</p>
-              <h1 className="text-5xl font-black leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-7xl">{person.full_name ?? "Alumni"}</h1>
+              <p className="mb-5 text-sm font-medium text-muted-foreground">{profile.current_role || profile.industry || "Perfil académico e profissional"}</p>
+              <h1 className="text-5xl font-black leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-7xl">{person.full_name ?? "Estudante"}</h1>
               <p className="mt-7 max-w-3xl text-lg leading-8 text-muted-foreground sm:text-xl">
-                {profile.headline || profile.biography || "Percurso, trabalho e projectos desenvolvidos após a formação."}
+                {profile.headline || profile.biography || "Percurso, competências, projectos e conquistas académicas."}
               </p>
+
+              <dl className="mt-9 grid max-w-3xl gap-5 border-t border-border/60 pt-6 sm:grid-cols-3">
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Nome completo</dt>
+                  <dd className="mt-2 text-sm font-semibold text-foreground">{person.full_name ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Curso</dt>
+                  <dd className="mt-2 text-sm font-semibold text-foreground">{profile.graduation_course || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Grau alcançado</dt>
+                  <dd className="mt-2 text-sm font-semibold text-foreground">{profile.graduation_grade || "—"}</dd>
+                </div>
+              </dl>
+
               <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
                 {profile.current_company ? <span>{profile.current_company}</span> : null}
-                {profile.graduation_course ? <span>{profile.graduation_course}</span> : null}
+                {profile.graduation_year ? <span className="inline-flex items-center"><GraduationCap className="mr-1.5 size-4" />Conclusão {profile.graduation_year}</span> : null}
                 {(profile.city || profile.province) ? <span className="inline-flex items-center"><MapPin className="mr-1.5 size-4" />{[profile.city, profile.province].filter(Boolean).join(", ")}</span> : null}
               </div>
             </div>
-            <MediaAvatar src={person.photo_url ?? null} alt={person.full_name ?? "Alumni"} className="size-36 rounded-full object-cover lg:ml-auto lg:size-44" />
+
+            <div className="relative mx-auto w-full max-w-[250px] lg:ml-auto">
+              <div className="absolute -inset-3 rounded-[34px] border border-border/50 bg-muted/30" />
+              <div className="relative overflow-hidden rounded-[30px] border border-border/70 bg-background p-2 shadow-sm">
+                <MediaAvatar src={person.photo_url ?? null} alt={person.full_name ?? "Estudante"} className="aspect-[4/5] h-auto w-full rounded-[24px] object-cover" />
+              </div>
+              <div className="relative mx-auto -mt-4 w-[78%] rounded-full border border-border/60 bg-background px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm">
+                Perfil do estudante
+              </div>
+            </div>
           </section>
 
           {profile.biography ? <section className="grid gap-6 border-b border-border/60 py-14 md:grid-cols-[180px_minmax(0,1fr)]"><h2 className="text-sm font-semibold text-muted-foreground">Sobre</h2><p className="max-w-3xl text-lg leading-8 text-foreground/90">{profile.biography}</p></section> : null}
@@ -81,7 +106,7 @@ function AlumniPortfolioShowcasePage() {
 
           {portal.experiences?.length ? <section className="border-t border-border/60 py-14"><div className="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)]"><h2 className="text-sm font-semibold text-muted-foreground">Experiência</h2><div className="space-y-8">{portal.experiences.slice(0, 6).map((item: any) => <div key={item.id} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]"><div><p className="font-semibold">{item.title || item.kind}</p><p className="mt-1 text-sm text-muted-foreground">{[item.organization, item.location].filter(Boolean).join(" · ")}</p></div><p className="text-sm text-muted-foreground sm:text-right">{item.is_current ? "Actual" : [item.started_on, item.ended_on].filter(Boolean).join(" — ")}</p></div>)}</div></div></section> : null}
 
-          <footer className="border-t border-border/60 pt-8 text-xs text-muted-foreground">Portfólio Alumni · SIGA</footer>
+          <footer className="border-t border-border/60 pt-8 text-xs text-muted-foreground">Portfólio do Estudante · SIGA</footer>
         </div>
       </main>
     </AppShell>
