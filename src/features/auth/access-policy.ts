@@ -46,6 +46,7 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     prefixes: ["/"],
     roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Encarregado", "Aluno"],
   },
+  { prefixes: ["/alumni"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/acessos", "/catracas"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/configuracoes"], roles: ["Administrador"] },
   {
@@ -57,7 +58,7 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     roles: ["Administrador", "Tesouraria", "Encarregado", "Aluno"],
   },
   {
-    prefixes: ["/pessoas", "/alunos", "/alumni", "/documentos"],
+    prefixes: ["/pessoas", "/alunos", "/documentos"],
     roles: ["Administrador", "Secretaria", "Encarregado", "Aluno"],
   },
   {
@@ -79,15 +80,12 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Aluno"],
   },
   {
-    // Gate de página — o módulo pedido (pessoas, alunos, pagamentos...) é
-    // validado à parte no servidor por rolesForModule() em import/server.ts.
     prefixes: ["/importar"],
     roles: ["Administrador", "Secretaria", "Tesouraria"],
   },
 ];
 
 export type AccessLevel = "Nenhum" | "Leitura" | "Escrita" | "Total";
-
 export type ModuleGrantMap = Partial<Record<(typeof accessModules)[number]["key"], AccessLevel>>;
 
 function moduleForPath(pathname: string) {
@@ -122,6 +120,7 @@ export function canAccessPath(
   ) {
     return true;
   }
+
   const module = moduleForPath(pathname);
   if (module) {
     if (plan && !planIncludesModule(plan, module.key)) return false;
@@ -129,6 +128,7 @@ export function canAccessPath(
     if (grant === "Nenhum") return false;
     if (grant) return true;
   }
+
   const rule = accessRules.find(({ prefixes }) =>
     prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)),
   );
