@@ -11,6 +11,7 @@ import {
   Handshake,
   HeartHandshake,
   MapPin,
+  MapPinned,
   Network,
   Search,
   ShieldCheck,
@@ -129,6 +130,7 @@ function AlumniPage() {
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">Acompanhe antigos alunos depois da conclusão: carreira, empregabilidade, mentoria, oportunidades, eventos, contribuição social e impacto da instituição.</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Link to="/alumni/insights" className="inline-flex h-10 items-center justify-center rounded-xl border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"><MapPinned className="mr-2 size-4" />Insights & Operações</Link>
               <Button variant="outline" onClick={() => bootstrapMutation.mutate()} disabled={bootstrapMutation.isPending} className="rounded-xl"><GraduationCap className="mr-2 size-4" />{bootstrapMutation.isPending ? "A sincronizar…" : "Sincronizar concluídos"}</Button>
               <Button className="rounded-xl" onClick={() => setMentoringOnly((value) => !value)}><Handshake className="mr-2 size-4" />{mentoringOnly ? "Ver toda a rede" : "Encontrar mentores"}</Button>
             </div>
