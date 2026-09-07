@@ -42,8 +42,11 @@
       "routes": [
         "src/routes/alumni.tsx",
         "src/routes/alumni.$alumniId.tsx",
+        "src/routes/alumni.$alumniId.portfolio.tsx",
         "src/routes/alumni.portal.tsx",
         "src/routes/alumni.portal.portfolio.tsx",
+        "src/routes/alumni.portal.portfolio.showcase.tsx",
+        "src/routes/alumni.portal.portfolio.print.tsx",
         "src/routes/alumni.insights.tsx",
         "src/routes/alumni.operations.tsx",
         "src/routes/alumni.communications.tsx",
@@ -88,7 +91,8 @@
         "supabase/migrations/20260907030000_alumni_privacy_communications.sql",
         "supabase/migrations/20260907040000_alumni_self_service_audit.sql",
         "supabase/migrations/20260907050000_alumni_communications_audiences.sql",
-        "supabase/migrations/20260907060000_alumni_portfolio.sql"
+        "supabase/migrations/20260907060000_alumni_portfolio.sql",
+        "supabase/migrations/20260907070000_alumni_portfolio_education_levels.sql"
       ]
     },
     {
