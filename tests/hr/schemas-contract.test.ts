@@ -167,4 +167,50 @@ describe("HR schemas — wiring nos server fns", () => {
     const rh = catalog.modules.find((m: { id: string }) => m.id === "rh");
     expect(rh.feature).toContain("src/features/hr/schemas.ts");
   });
+
+  it("QR check-in faz handoff para chamada de alunos", () => {
+    const lessons = source("src/features/hr/teacher-lessons.ts");
+    expect(lessons).toContain("resolveAuthenticatedTeacherId");
+    expect(lessons).toContain("ensureAttendanceSessionForOccurrence");
+    expect(lessons).toContain("siga_attendance_sessions");
+    expect(lessons).toContain("classroom");
+    expect(lessons).toContain("openMyLessonClassroom");
+    expect(lessons).toContain("enrichOccurrencesWithClassroom");
+    expect(lessons).toContain("class_group_name");
+
+    const panel = source("src/features/hr/TeacherAttendancePanel.tsx");
+    expect(panel).toContain("AttendanceCallDialog");
+    expect(panel).toContain("openClassroomCall");
+    expect(panel).toContain("result.classroom");
+    expect(panel).toContain("check_out");
+    expect(panel).toContain("Abrir chamada");
+    expect(panel).toContain("Lançar notas");
+    expect(panel).toContain("teacherGradesSearch");
+    expect(panel).toContain("teacherLessonPlansSearch");
+    expect(panel).toContain("teacherClassFilesSearch");
+
+    const route = source("src/routes/professor.presenca.tsx");
+    expect(route).toContain("chamada");
+    expect(route).toContain("TeacherAttendancePanel");
+
+    const portal = source("src/features/dashboard/portals/TeacherPortalDashboard.tsx");
+    expect(portal).toContain("/professor/presenca");
+    expect(portal).toContain("Assinar presença");
+    expect(portal).toContain("Lançar notas desta aula");
+    expect(portal).toContain("teacherLessonPlansSearch");
+
+    const callDialog = source("src/features/pedagogica/components/AttendanceCallDialog.tsx");
+    expect(callDialog).toContain("Lançar notas");
+    expect(callDialog).toContain("teacherLessonPlansSearch");
+    expect(callDialog).toContain("Materiais");
+
+    const links = source("src/features/hr/teacher-classroom-links.ts");
+    expect(links).toContain("teacherGradesSearch");
+    expect(links).toContain("teacherLessonPlansSearch");
+    expect(links).toContain("teacherClassFilesSearch");
+
+    const planos = source("src/routes/planos-aula.tsx");
+    expect(planos).toContain("planosSearchSchema");
+    expect(planos).toContain("search.turma");
+  });
 });

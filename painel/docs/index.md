@@ -84,7 +84,7 @@ features:
     <div class="demo-icon"><img src="/icons/globe.svg" alt="Portal WEB" width="48" height="48" style="margin: 0 auto;" /></div>
     <h3>Portal WEB (Comercial)</h3>
     <p>Marketing, planos SaaS e wizard de criação de escola</p>
-    <a href="https://siga-web.pages.dev/start" class="demo-button" target="_blank" rel="noreferrer">Abrir wizard /start</a>
+    <a href="https://www.portal-siga.com/start" class="demo-button" target="_blank" rel="noreferrer">Abrir wizard /start</a>
     <a href="/web/criar-escola" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Manual do wizard</a>
   </div>
 
@@ -92,7 +92,7 @@ features:
     <div class="demo-icon"><img src="/icons/dashboard.svg" alt="SaaS Admin" width="48" height="48" style="margin: 0 auto;" /></div>
     <h3>ADMIN — SaaS Control Center</h3>
     <p>Tenants, métricas e gestão de assinaturas da plataforma</p>
-    <a href="https://siga-admin.pages.dev/tenants" class="demo-button" target="_blank" rel="noreferrer">Abrir ADMIN</a>
+    <a href="https://admin.portal-siga.com/tenants" class="demo-button" target="_blank" rel="noreferrer">Abrir ADMIN</a>
     <a href="/admin/control-center" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Manual do Control Center</a>
   </div>
 

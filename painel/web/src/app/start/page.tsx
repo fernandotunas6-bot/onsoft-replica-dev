@@ -83,7 +83,12 @@ export function StartSchoolWizard() {
   const [step, setStep] = useState(1)
   const [plans, setPlans] = useState<SaasPlan[]>(FALLBACK_PLANS)
   const [serverError, setServerError] = useState<string | null>(null)
-  const [done, setDone] = useState<{ hostname: string; sigaUrl: string; adminTenantsUrl?: string } | null>(null)
+  const [done, setDone] = useState<{
+    hostname: string
+    sigaUrl: string
+    adminTenantsUrl?: string
+    adminInviteDelivered: boolean
+  } | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -148,6 +153,12 @@ export function StartSchoolWizard() {
     setStep((s) => Math.min(6, s + 1))
   }
 
+  // Sem isto o passo seguinte abre a meio do cartão: o conteúdo do formulário
+  // troca mas o scroll da página fica onde o botão «Continuar» estava.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [step, done])
+
   async function onCreate() {
     setServerError(null)
     const ok = await form.trigger()
@@ -165,6 +176,7 @@ export function StartSchoolWizard() {
       hostname: result.hostname || `${payload.slug}.portal-siga.com`,
       sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
       adminTenantsUrl: result.adminTenantsUrl,
+      adminInviteDelivered: result.adminInviteDelivered ?? false,
     })
   }
 
@@ -212,6 +224,19 @@ export function StartSchoolWizard() {
             Ao enviar o comprovativo, identifique a instituição como <strong>{values.name}</strong> e informe o endereço <strong>{done.hostname}</strong>.
           </p>
 
+          <div className="rounded-lg border p-4 space-y-2 text-left">
+            <h3 className="font-semibold text-sm">Acesso do administrador</h3>
+            {done.adminInviteDelivered ? (
+              <p className="text-sm text-muted-foreground">
+                Enviámos para <strong>{values.admin_email}</strong> o link para definir a senha de acesso. Se não chegar em poucos minutos, verifique a pasta de spam.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                A conta de <strong>{values.admin_email}</strong> já está criada, mas o convite ainda não foi enviado. Use «Recuperar senha» no SIGA Plus com este e-mail, ou peça o link à equipa de suporte.
+              </p>
+            )}
+          </div>
+
           {whatsappUrl || emailUrl ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
               {whatsappUrl ? (
@@ -229,10 +254,15 @@ export function StartSchoolWizard() {
             </div>
           ) : null}
 
-          <div className="mt-4 border-t pt-4 text-sm">
+          <div className="mt-4 flex flex-col items-center gap-1 border-t pt-4 text-sm">
             <Button variant="link" asChild className="text-muted-foreground">
               <a href={done.sigaUrl}>Entrar no SIGA Plus durante o período experimental &rarr;</a>
             </Button>
+            {done.adminTenantsUrl ? (
+              <Button variant="link" asChild className="text-muted-foreground">
+                <a href={done.adminTenantsUrl}>Ver no Control Center (ADMIN) &rarr;</a>
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -326,13 +356,13 @@ export function StartSchoolWizard() {
                 name="slug"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Subdomínio SIGA</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Input {...field} />
-                        <span className="shrink-0 text-xs text-muted-foreground">.portal-siga.com</span>
-                      </div>
-                    </FormControl>
+                    <FormLabel htmlFor="subdomain-slug">Subdomínio SIGA</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormControl>
+                        <Input id="subdomain-slug" {...field} />
+                      </FormControl>
+                      <span className="shrink-0 text-xs text-muted-foreground">.portal-siga.com</span>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

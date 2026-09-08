@@ -94,6 +94,10 @@ const pedagogicaSearchSchema = z
     turma: z.string().uuid().optional(),
     disciplina: z.string().uuid().optional(),
     pauta: z.enum(["1"]).optional(),
+    dia: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
   })
   .passthrough();
 
@@ -166,6 +170,7 @@ function PedagogicaPage() {
     turma: turmaFromSearch,
     disciplina: disciplinaFromSearch,
     pauta,
+    dia: diaFromSearch,
   } = Route.useSearch();
   const [tab, setTab] = useState<PedagogicaTab>(tabFromSearch ?? "turmas");
   const [bootstrapping, setBootstrapping] = useState(false);
@@ -912,6 +917,7 @@ function PedagogicaPage() {
                   canLaunch={canLaunchGrades}
                   canLockTerm={account.role === "Administrador"}
                   closedTerms={school?.pedagogy?.closedTerms ?? []}
+                  evaluationPeriods={school?.evaluation_periods}
                 />
               )}
             </Panel>
@@ -1026,11 +1032,19 @@ function PedagogicaPage() {
           </TabsContent>
 
           <TabsContent value="presencas" className="mt-5 space-y-6">
-            <AttendanceWorkspaceModule />
+            <AttendanceWorkspaceModule
+              initialClassGroupId={turmaFromSearch}
+              initialSubjectId={disciplinaFromSearch}
+              initialDate={diaFromSearch}
+            />
           </TabsContent>
 
           <TabsContent value="chamada" className="mt-5 space-y-6">
-            <AttendanceWorkspaceModule />
+            <AttendanceWorkspaceModule
+              initialClassGroupId={turmaFromSearch}
+              initialSubjectId={disciplinaFromSearch}
+              initialDate={diaFromSearch}
+            />
           </TabsContent>
 
           <TabsContent value="pautas" className="mt-5 space-y-6">
@@ -1056,6 +1070,7 @@ function PedagogicaPage() {
           canLaunch={canLaunchGrades}
           canLockTerm={account.role === "Administrador"}
           closedTerms={school?.pedagogy?.closedTerms ?? []}
+          evaluationPeriods={school?.evaluation_periods}
           initialTerm={filters.trimestre}
           initialClassGroupId={turmaFromSearch}
           initialSubjectId={disciplinaFromSearch}

@@ -10,7 +10,7 @@ import { DocumentHeader } from "./DocumentHeader";
 import { GradeAuditModal } from "./GradeAuditModal";
 
 export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
-  const periodCount = getPeriodCountForCycle(data.context.cycle);
+  const periodCount = getPeriodCountForCycle(data.context.cycle, data.context.periodCount);
   const periods = periodCount === 2 ? ([1, 2] as const) : ([1, 2, 3] as const);
   const [auditOpen, setAuditOpen] = useState(false);
   const [auditState, setAuditState] = useState<{

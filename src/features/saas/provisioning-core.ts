@@ -4,6 +4,7 @@ import type { CreateSchoolWizardInput } from "@/features/saas/schemas";
 import { syncTenantUsageForSchool } from "@/features/saas/usage-sync";
 import { bootstrapSchoolDefaults } from "@/features/saas/school-bootstrap";
 import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
+import { createSchoolAdminAccount, type SchoolAdminAccount } from "@/features/saas/admin-account";
 
 /**
  * Cria uma escola nova de ponta a ponta: tenant comercial, escola, o
@@ -34,6 +35,8 @@ export async function provisionTenantCore(
   slug: string;
   hostname: string;
   bootstrapSeeded: string[];
+  adminInviteDelivered: boolean;
+  adminSetupUrl: string | null;
 }> {
   const db = await loadSgaAdminClient();
 
@@ -79,10 +82,35 @@ export async function provisionTenantCore(
       await db.from("tenants").delete().eq("id", tenantId);
       throw publicDatabaseError(subErr, "Não foi possível criar a subscrição.");
     }
+    // (nesta altura ainda não há domínio nem escola — o delete directo basta)
   }
 
+  /**
+   * Rollback do tenant. O Postgres recusa apagar `tenants` enquanto
+   * subscrições/domínios/escolas ainda o referenciarem, e o erro era
+   * descartado — cada provisionamento falhado deixava um tenant órfão a
+   * ocupar o slug para sempre. Apagar por ordem inversa das dependências.
+   */
   const cleanupTenant = async () => {
-    await db.from("tenants").delete().eq("id", tenantId);
+    for (const table of ["saas_audit_logs", "tenant_usage", "tenant_domains", "subscriptions"]) {
+      await db.from(table).delete().eq("tenant_id", tenantId);
+    }
+    const { error } = await db.from("tenants").delete().eq("id", tenantId);
+    if (error) {
+      console.error("[provisioning] rollback do tenant %s falhou: %s", tenantId, error.message);
+    }
+  };
+
+  /** Idem para a escola: papéis, memberships e perfil antes da própria escola. */
+  const cleanupSchool = async (schoolId: string, adminUserId: string | null) => {
+    await db.from("member_roles").delete().eq("school_id", schoolId);
+    await db.from("roles").delete().eq("school_id", schoolId);
+    await db.from("school_memberships").delete().eq("school_id", schoolId);
+    if (adminUserId) await db.from("profiles").delete().eq("id", adminUserId);
+    const { error } = await db.from("schools").delete().eq("id", schoolId);
+    if (error) {
+      console.error("[provisioning] rollback da escola %s falhou: %s", schoolId, error.message);
+    }
   };
 
   const hostname = getPlatformSubdomain(data.slug);
@@ -123,18 +151,18 @@ export async function provisionTenantCore(
   const schoolId = school.id as string;
 
   let adminUserId: string | null = null;
+  let adminAccount: SchoolAdminAccount | null = null;
   try {
-    // inviteUserByEmail em vez de createUser: cria a conta E envia o
-    // e-mail de convite da Supabase com o link para definir password —
-    // sem isto, o administrador criado não tinha nenhuma forma de entrar.
-    const { data: created, error: createUserErr } = await db.auth.admin.inviteUserByEmail(
-      data.admin_email,
-      { data: { full_name: data.admin_name } },
-    );
-    if (createUserErr || !created.user) {
-      throw new Error(createUserErr?.message || "Não foi possível criar a conta do administrador.");
-    }
-    adminUserId = created.user.id;
+    // A conta é criada sem depender do mailer e o link de acesso é entregue
+    // como efeito secundário best-effort — ver admin-account.ts. Antes disto,
+    // `inviteUserByEmail` fazia o provisionamento inteiro falhar sempre que a
+    // Supabase recusava entregar o e-mail.
+    adminAccount = await createSchoolAdminAccount(db, {
+      email: data.admin_email,
+      fullName: data.admin_name,
+      schoolName: data.name,
+    });
+    adminUserId = adminAccount.userId;
 
     const { error: profileErr } = await db.from("profiles").upsert(
       {
@@ -186,9 +214,11 @@ export async function provisionTenantCore(
       roleId = createdRole.id as string;
     }
 
+    // member_roles.school_id é NOT NULL — sem ele o provisionamento falhava
+    // sempre com 23502 no último passo do administrador.
     const { error: memberRoleErr } = await db
       .from("member_roles")
-      .insert({ membership_id: membership.id, role_id: roleId });
+      .insert({ school_id: schoolId, membership_id: membership.id, role_id: roleId });
     if (memberRoleErr) {
       throw publicDatabaseError(
         memberRoleErr,
@@ -196,8 +226,8 @@ export async function provisionTenantCore(
       );
     }
   } catch (err) {
+    await cleanupSchool(schoolId, adminUserId);
     if (adminUserId) await db.auth.admin.deleteUser(adminUserId).catch(() => undefined);
-    await db.from("schools").delete().eq("id", schoolId);
     await cleanupTenant();
     throw err instanceof Error ? err : new Error("Falha ao provisionar o administrador da escola.");
   }
@@ -223,6 +253,9 @@ export async function provisionTenantCore(
       school_id: schoolId,
       source: opts.source,
       bootstrap_seeded: bootstrapSeeded,
+      admin_invite_delivered: adminAccount?.inviteDelivered ?? false,
+      admin_invite_channel: adminAccount?.inviteChannel ?? null,
+      admin_invite_error: adminAccount?.deliveryError ?? null,
     },
   });
 
@@ -232,5 +265,9 @@ export async function provisionTenantCore(
     slug: data.slug,
     hostname: getPlatformSubdomain(data.slug),
     bootstrapSeeded,
+    adminInviteDelivered: adminAccount?.inviteDelivered ?? false,
+    // O link de definição de senha nunca sai no signup público: só quem já é
+    // admin de plataforma o recebe, para o entregar ao director.
+    adminSetupUrl: opts.source === "platform_admin" ? (adminAccount?.setupUrl ?? null) : null,
   };
 }

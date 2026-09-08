@@ -75,7 +75,7 @@ Adicionadas em `APPLY_ENROLLMENT_AND_PREMIUM.sql` como parte da arquitectura glo
 | `school_memberships_user_status_idx` | `school_memberships` | `(user_id, status)` |
 | `member_roles_membership_role_idx` | `member_roles` | `(membership_id, role_id)` |
 | `school_invitations_school_created_desc_idx` | `school_invitations` | `(school_id, created_at DESC)` WHERE `status = 'pending'` |
-| `announcements_school_created_desc_idx` | `announcements` | `(school_id, created_at DESC)` |
+| `school_announcements_school_recent_idx` | `school_announcements` | `(school_id, created_at DESC)` WHERE `deleted_at IS NULL` |
 | `siga_files_school_created_desc_idx` | `siga_files` | `(school_id, created_at DESC)` WHERE `deleted_at IS NULL` |
 | `roles_school_code_idx` | `roles` | `(school_id, code)` |
 

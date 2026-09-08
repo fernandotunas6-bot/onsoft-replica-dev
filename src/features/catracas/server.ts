@@ -128,8 +128,10 @@ export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
         .from("students")
         .select("person_id")
         .eq("id", studentId)
-        .single();
-      if (st) personId = st.person_id;
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (!st) throw new Error("Aluno não encontrado nesta escola.");
+      personId = st.person_id;
     }
 
     if (!personId) throw new Error("Pessoa não identificada para emissão de cartão.");

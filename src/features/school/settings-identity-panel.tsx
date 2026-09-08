@@ -16,11 +16,18 @@ import {
   Lock,
 Upload, Loader2} from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTenant } from "@/features/saas/tenant-context";
+import { useAppearance } from "@/lib/appearance";
+import {
+  isReadableBrandColor,
+  isValidBrandHex,
+  normalizeBrandHex,
+} from "@/lib/brand-tokens";
 import { getPlatformDomain, getPlatformSubdomain } from "@/lib/saas/platform-domain";
 import {
   planIncludesCustomDomain,
@@ -38,6 +45,8 @@ import {
 
 export function DigitalIdentityPanel() {
   const { activeTenant, activeSlug, activePlan } = useTenant();
+  const queryClient = useQueryClient();
+  const { set: setAppearance } = useAppearance();
   const [activeTab, setActiveTab] = useState<string>("portal");
 
   const platformDomain = getPlatformDomain();
@@ -158,19 +167,44 @@ export function DigitalIdentityPanel() {
 
   const handleSaveBranding = async () => {
     if (!activeTenant || !activeSlug) return;
+    const primary = normalizeBrandHex(primaryColor);
+    const secondary = normalizeBrandHex(secondaryColor);
+    if (!primary || !isValidBrandHex(primary)) {
+      toast.error("A cor primária deve ser um hex válido (#RRGGBB).");
+      return;
+    }
+    if (!isReadableBrandColor(primary)) {
+      toast.error(
+        "A cor primária tem contraste insuficiente para texto. Escolha um tom mais escuro ou mais claro.",
+      );
+      return;
+    }
+    if (secondaryColor.trim() && !secondary) {
+      toast.error("A cor secundária deve ser um hex válido (#RRGGBB).");
+      return;
+    }
     setIsSavingBranding(true);
     try {
       const res = await saveBrandingFn({
         data: {
           tenantId: activeTenant.id,
-          primaryColor,
-          secondaryColor,
+          primaryColor: primary,
+          secondaryColor: secondary ?? undefined,
           portalTitle,
           logoUrl
         }
       });
       if (res.ok) {
-        toast.success("Identidade visual guardada com sucesso!");
+        setAppearance({
+          schoolBrand: { primary, secondary },
+          preferPersonalAccent: false,
+          shadcnTheme: "",
+          tweakcnTheme: "",
+          importedTheme: null,
+          customVars: {},
+        });
+        await queryClient.invalidateQueries({ queryKey: ["school", "settings"] });
+        toast.success("Identidade visual guardada e aplicada.");
       } else {
         toast.error(res.reason || "Não foi possível guardar as cores.");
       }
@@ -650,11 +684,16 @@ export function DigitalIdentityPanel() {
                     className="font-mono text-xs"
                   />
                 </div>
+                {isValidBrandHex(primaryColor) && !isReadableBrandColor(primaryColor) ? (
+                  <p className="text-[10px] text-amber-700 dark:text-amber-300">
+                    Contraste baixo para botões — o SIGA bloqueará o guardar.
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="secondary-color" className="text-xs">
-                  Cor Secundária
+                  Cor Secundária (sidebar)
                 </Label>
                 <div className="flex items-center gap-2">
                   <input
@@ -670,6 +709,40 @@ export function DigitalIdentityPanel() {
                     className="font-mono text-xs"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-secondary/40 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Pré-visualização
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span
+                  className="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold"
+                  style={{
+                    backgroundColor: isValidBrandHex(primaryColor) ? primaryColor : "#2563EB",
+                    color: "#fff",
+                  }}
+                >
+                  Botão primário
+                </span>
+                <span
+                  className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium"
+                  style={{
+                    borderColor: isValidBrandHex(primaryColor) ? primaryColor : "#2563EB",
+                    color: isValidBrandHex(primaryColor) ? primaryColor : "#2563EB",
+                  }}
+                >
+                  Link
+                </span>
+                <span
+                  className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium text-white"
+                  style={{
+                    backgroundColor: isValidBrandHex(secondaryColor) ? secondaryColor : "#1E293B",
+                  }}
+                >
+                  Sidebar
+                </span>
               </div>
             </div>
 

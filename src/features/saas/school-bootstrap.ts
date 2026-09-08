@@ -4,6 +4,7 @@ import {
   bootstrapAcademicStructure,
   bootstrapAcademicYearIfMissing,
 } from "@/features/academic/academic-bootstrap";
+import { schoolSettingDefaults } from "@/lib/school-config";
 
 function isMissingTable(error: { code?: string; message?: string } | null) {
   return Boolean(
@@ -15,8 +16,15 @@ function isMissingTable(error: { code?: string; message?: string } | null) {
 }
 
 /**
- * Dados mínimos para uma escola recém-provisionada operar: ano lectivo, plano
- * financeiro com propina/matrícula, formulário público e definições.
+ * Dados mínimos para uma escola recém-provisionada operar: formulário público,
+ * definições e papéis RBAC — e, quando já existe ano lectivo activo, o plano
+ * financeiro com propina/matrícula.
+ *
+ * O ano lectivo **não** é inventado aqui: `bootstrapAcademicYearIfMissing` só
+ * cria um quando o chamador dá nome e datas explícitas, e o provisionamento
+ * não os tem. Como `fee_plans.academic_year_id` é NOT NULL, o plano financeiro
+ * depende desse ano — o onboarding do dashboard pede-o como primeiro passo.
+ *
  * Falhas parciais (tabela em falta no SGA) são ignoradas — o provisionamento
  * principal não deve falhar por causa disto.
  */
@@ -34,6 +42,16 @@ export async function bootstrapSchoolDefaults(
   const year = await bootstrapAcademicYearIfMissing(db, { schoolId: input.schoolId });
   seeded.push(...year.seeded);
 
+  // fee_plans.academic_year_id é NOT NULL: sem ano lectivo activo o insert
+  // falhava sempre (23502) e só deixava um aviso na consola do servidor.
+  const { data: activeYear } = await db
+    .from("academic_years")
+    .select("id")
+    .eq("school_id", input.schoolId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
   const { data: existingPlan } = await db
     .from("fee_plans")
     .select("id")
@@ -41,11 +59,12 @@ export async function bootstrapSchoolDefaults(
     .eq("status", "active")
     .limit(1)
     .maybeSingle();
-  if (!existingPlan?.id) {
+  if (activeYear?.id && !existingPlan?.id) {
     const { data: plan, error: planErr } = await db
       .from("fee_plans")
       .insert({
         school_id: input.schoolId,
+        academic_year_id: activeYear.id,
         name: DEFAULT_FEE_PLAN_NAME,
         status: "active",
       })
@@ -97,16 +116,28 @@ export async function bootstrapSchoolDefaults(
     }
   }
 
-  const { data: existingSettings } = await db
+  // `school_settings` é uma tabela domínio/valor: todo o código de leitura filtra
+  // por `domain` e lê o JSON de `value`. O seed anterior escrevia colunas planas
+  // (`academic_year`, `currency`), que a aplicação nunca leria — e o erro era
+  // engolido pelo `console.warn` abaixo, pelo que escolas novas ficavam sem
+  // definições nenhumas sem que o provisionamento desse sinal.
+  const { data: existingAcademic } = await db
     .from("school_settings")
     .select("school_id")
     .eq("school_id", input.schoolId)
+    .eq("domain", "academic")
     .maybeSingle();
-  if (!existingSettings?.school_id) {
+  if (!existingAcademic?.school_id) {
     const { error } = await db.from("school_settings").insert({
       school_id: input.schoolId,
-      academic_year: `Ano Lectivo ${new Date().getFullYear()}`,
-      currency: "AOA",
+      domain: "academic",
+      version: 1,
+      value: {
+        academic_year: `Ano Lectivo ${new Date().getFullYear()}`,
+        evaluation_periods: schoolSettingDefaults.evaluationPeriods,
+        passing_grade: schoolSettingDefaults.passingGrade,
+      },
+      ...(input.adminUserId ? { changed_by: input.adminUserId } : {}),
     });
     if (!error) seeded.push("definições da escola");
     else if (!isMissingTable(error)) {
@@ -117,14 +148,14 @@ export async function bootstrapSchoolDefaults(
   // ── Papéis canónicos da escola ───────────────────────────────────────────
   // Seed apenas se a tabela existir; falha silenciosa caso contrário.
   const DEFAULT_ROLES = [
-    { code: "owner",    name: "Proprietário",  is_system: false },
-    { code: "admin",    name: "Administrador", is_system: false },
-    { code: "secretary",name: "Secretaria",    is_system: false },
-    { code: "treasury", name: "Tesouraria",    is_system: false },
-    { code: "teacher",  name: "Professor",     is_system: false },
-    { code: "student",  name: "Aluno",         is_system: false },
-    { code: "guardian", name: "Encarregado",   is_system: false },
-    { code: "user",     name: "Utilizador",    is_system: false },
+    { code: "owner", name: "Proprietário", is_system: false },
+    { code: "admin", name: "Administrador", is_system: false },
+    { code: "secretary", name: "Secretaria", is_system: false },
+    { code: "treasury", name: "Tesouraria", is_system: false },
+    { code: "teacher", name: "Professor", is_system: false },
+    { code: "student", name: "Aluno", is_system: false },
+    { code: "guardian", name: "Encarregado", is_system: false },
+    { code: "user", name: "Utilizador", is_system: false },
   ] as const;
 
   try {

@@ -21,5 +21,5 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: isCi ? "retain-on-failure" : "off",
   },
-  projects: [{ name: "chromium", use: { browserName: "chromium" } }],
+  projects: [{ name: "chromium", use: { channel: "chrome" } }],
 });

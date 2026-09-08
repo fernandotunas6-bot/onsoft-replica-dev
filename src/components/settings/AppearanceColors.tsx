@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Building2,
   Check,
   Dices,
   ExternalLink,
@@ -8,6 +9,7 @@ import {
   Moon,
   Palette,
   RotateCcw,
+  Rows3,
   Sliders,
   Sun,
   Upload,
@@ -15,10 +17,14 @@ import {
 } from "lucide-react";
 import {
   accentPresets,
+  densityPresets,
   sidebarPresets,
   useAppearance,
   type ThemeMode,
+  type UiDensity,
 } from "@/lib/appearance";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { isReadableBrandColor, normalizeBrandHex } from "@/lib/brand-tokens";
 import { colorThemes, tweakcnThemes } from "@/config/theme-data";
 import { radiusOptions, baseColors } from "@/config/theme-customizer-constants";
 import { ColorPicker } from "@/components/theme-customizer/ColorPicker";
@@ -81,9 +87,16 @@ export function AppearanceColors() {
     applyImportedTheme,
     setCustomVar,
   } = useAppearance();
+  const { school } = useSchoolSettings();
 
   const [activeTab, setActiveTab] = useState<"siga" | "presets" | "custom">("siga");
   const [importModalOpen, setImportModalOpen] = useState(false);
+
+  const schoolPrimary = normalizeBrandHex(school?.branding?.primary_color);
+  const schoolSecondary = normalizeBrandHex(school?.branding?.secondary_color);
+  const schoolBrandActive = Boolean(
+    schoolPrimary && !state.preferPersonalAccent && !state.shadcnTheme && !state.tweakcnTheme && !state.importedTheme,
+  );
 
   const handleRandomShadcn = () => {
     const randomTheme = colorThemes[Math.floor(Math.random() * colorThemes.length)];
@@ -93,6 +106,18 @@ export function AppearanceColors() {
   const handleRandomTweakcn = () => {
     const randomTheme = tweakcnThemes[Math.floor(Math.random() * tweakcnThemes.length)];
     if (randomTheme) applyTweakcnTheme(randomTheme.value);
+  };
+
+  const useSchoolBrand = () => {
+    if (!schoolPrimary) return;
+    set({
+      preferPersonalAccent: false,
+      schoolBrand: { primary: schoolPrimary, secondary: schoolSecondary },
+      shadcnTheme: "",
+      tweakcnTheme: "",
+      importedTheme: null,
+      customVars: {},
+    });
   };
 
   return (
@@ -128,6 +153,37 @@ export function AppearanceColors() {
         </div>
       </Section>
 
+      <Section
+        title="Densidade da interface"
+        hint="Afecta tabelas, cartões e espaçamento geral. Ideal para ecrãs pequenos ou listas longas."
+      >
+        <div className="grid grid-cols-3 gap-2">
+          {densityPresets.map((preset) => {
+            const active = (state.density ?? "comfortable") === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => set({ density: preset.id as UiDensity })}
+                className={cn(
+                  "flex flex-col items-start gap-1 rounded-xl border px-3 py-3 text-left transition-colors cursor-pointer",
+                  active
+                    ? "border-primary bg-primary/10 text-primary-strong shadow-xs"
+                    : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground",
+                )}
+              >
+                <span className="flex items-center gap-1.5 text-xs font-semibold">
+                  <Rows3 className="size-3.5" />
+                  {preset.label}
+                </span>
+                <span className="text-[10px] leading-snug opacity-80">{preset.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Section>
+
       {/* Tabs organizadas para estilo e temas */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "siga" | "presets" | "custom")} className="w-full">
         <TabsList className="grid w-full grid-cols-3 rounded-xl p-1 bg-muted/70">
@@ -147,10 +203,52 @@ export function AppearanceColors() {
 
         {/* Tab 1: Paleta SIGA Nativa */}
         <TabsContent value="siga" className="space-y-4 pt-2">
+          {schoolPrimary ? (
+            <Section
+              title="Identidade da Escola"
+              hint="Cores guardadas em Identidade Digital. Prevalecem sobre o accent SIGA neste dispositivo, salvo se escolher um preset pessoal."
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  className="size-9 rounded-lg border border-border shadow-xs"
+                  style={{ backgroundColor: schoolPrimary }}
+                  title={schoolPrimary}
+                />
+                {schoolSecondary ? (
+                  <span
+                    className="size-9 rounded-lg border border-border shadow-xs"
+                    style={{ backgroundColor: schoolSecondary }}
+                    title={schoolSecondary}
+                  />
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={schoolBrandActive ? "default" : "outline"}
+                  className="gap-1.5"
+                  onClick={useSchoolBrand}
+                >
+                  <Building2 className="size-3.5" />
+                  {schoolBrandActive ? "A usar cores da escola" : "Usar cores da escola"}
+                </Button>
+                {!isReadableBrandColor(schoolPrimary) ? (
+                  <p className="w-full text-xs text-amber-700 dark:text-amber-300">
+                    A cor primária da escola tem contraste baixo — ajuste em Identidade Digital.
+                  </p>
+                ) : null}
+              </div>
+            </Section>
+          ) : null}
+
           <Section title="Cor de Destaque SIGA" hint="Botões, gráficos, ícones e estados activos em OKLCH com contraste AA.">
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
               {accentPresets.map((p) => {
-                const isSelected = !state.shadcnTheme && !state.tweakcnTheme && !state.importedTheme && state.accent === p.id;
+                const isSelected =
+                  state.preferPersonalAccent &&
+                  !state.shadcnTheme &&
+                  !state.tweakcnTheme &&
+                  !state.importedTheme &&
+                  state.accent === p.id;
                 return (
                   <button
                     key={p.id}
@@ -161,6 +259,7 @@ export function AppearanceColors() {
                     onClick={() => {
                       set({
                         accent: p.id,
+                        preferPersonalAccent: true,
                         shadcnTheme: "",
                         tweakcnTheme: "",
                         importedTheme: null,

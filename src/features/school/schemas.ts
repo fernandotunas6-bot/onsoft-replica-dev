@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { isCourseId, isTeachingLevelId } from "@/lib/angola-academic";
+import { isSchoolTypeId } from "@/lib/school-config";
 import { validateAngolaIban } from "@/lib/angola-banking";
 import { validateSchoolNif } from "@/lib/angola-identity";
 import { validateAngolaPhone } from "@/lib/angola-phone";
@@ -30,10 +32,21 @@ export const updateSchoolSettingsInputSchema = z.object({
   address: z.string().trim().min(5).max(200),
   academicYear: z.string().trim().min(4).max(40),
   currency: z.string().trim().min(3).max(8),
-  evaluationPeriods: z.number().int().min(1).max(6),
+  // Alinhado com angola-academic (MIN/MAX_EVALUATION_PERIODS) e com o CHECK da
+  // tabela `schools`. Antes aceitava 1–6, valores que o resto do sistema não sabe representar.
+  evaluationPeriods: z.number().int().min(2).max(3),
   passingGrade: z.number().min(0).max(20),
   preferences: z.record(z.string(), z.boolean()).default({}),
   logoUrl: z.union([z.string().trim().url().max(2048), z.literal("")]).optional(),
+  motto: z.string().trim().max(160).optional(),
+  // Identidade institucional. `schoolType` é validado contra a taxonomia única em
+  // school-config; um valor desconhecido vira `undefined` em vez de rejeitar o
+  // formulário inteiro, para o mesmo motivo dos níveis de ensino.
+  schoolType: z
+    .unknown()
+    .optional()
+    .transform((value) => (isSchoolTypeId(value) ? value : undefined)),
+  philosophy: z.string().trim().max(600).optional(),
 });
 export type UpdateSchoolSettingsInput = z.infer<typeof updateSchoolSettingsInputSchema>;
 
@@ -74,14 +87,31 @@ export const gradingProfileSchema = z.object({
 });
 export type GradingProfileInput = z.infer<typeof gradingProfileSchema>;
 
+/**
+ * Níveis e cursos são lidos com tolerância a valores desconhecidos: descartam-se
+ * os que já não existem em vez de rejeitar o objecto inteiro. Sem isto, um único
+ * valor legado fazia o `safeParse` falhar e o fallback em `school/server.ts`
+ * apagava toda a configuração pedagógica da escola — trimestres fechados incluídos.
+ *
+ * A lista válida vem de `angola-academic`, que é a mesma que o painel apresenta:
+ * antes o schema aceitava sete níveis, mas só cinco eram seleccionáveis e
+ * reconhecidos por `gradeMatchesTeachingLevels`.
+ */
 export const pedagogySettingsSchema = z.object({
   teachingLevels: z
-    .array(
-      z.enum(["pre_escolar", "primario", "i_ciclo", "ii_ciclo", "tecnico", "adultos", "superior"]),
-    )
-    .default([]),
-  courses: z.array(z.enum(["cfb", "cej", "letras", "tecnico"])).default([]),
-  closedTerms: z.array(z.union([z.literal(1), z.literal(2), z.literal(3)])).default([]),
+    .array(z.unknown())
+    .default([])
+    .transform((values) => values.filter(isTeachingLevelId)),
+  courses: z
+    .array(z.unknown())
+    .default([])
+    .transform((values) => values.filter(isCourseId)),
+  closedTerms: z
+    .array(z.unknown())
+    .default([])
+    .transform((values) =>
+      values.filter((value): value is 1 | 2 | 3 => value === 1 || value === 2 || value === 3),
+    ),
   gradingProfile: gradingProfileSchema.nullable().default(null),
 });
 export type PedagogySettings = z.infer<typeof pedagogySettingsSchema>;

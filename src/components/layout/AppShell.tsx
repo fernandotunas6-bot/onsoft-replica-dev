@@ -11,6 +11,7 @@ import {
   Moon,
   Palette,
   Search,
+  Star,
   Sun,
   Users,
   Wallet,
@@ -18,7 +19,9 @@ import {
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
+import { CommandPalette, requestOpenCommandPalette } from "./CommandPalette";
 import { DesktopTitleBar } from "./DesktopTitleBar";
+import { TopbarCalendar } from "./TopbarCalendar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -40,6 +43,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { IconChip } from "@/components/ui/icon-chip";
 import type { ChipTone } from "@/components/ui/icon-chip";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useNavigationMemory } from "@/features/auth/use-navigation-memory";
 import { useAppearance } from "@/lib/appearance";
 import { cn } from "@/lib/utils";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -86,8 +90,18 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const { unread, unreadCount } = useInboxUnread();
   const { alerts, alertCount } = useSchoolAlerts();
   const noticeCount = unreadCount + alertCount;
-  const { selectedYearLabel, selectedYearId, activeYear, yearOptions, setSelectedYearId } =
-    useSchoolSettings();
+  const {
+    selectedYearLabel,
+    selectedYearId,
+    activeYear,
+    yearOptions,
+    setSelectedYearId,
+    school,
+    terms,
+    selectedTermId,
+    selectedTermLabel,
+    setSelectedTermId,
+  } = useSchoolSettings();
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
 
   const [open, setOpen] = useState(false);
@@ -95,6 +109,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const [hoverOpen, setHoverOpen] = useState(false);
   const hoverLeaveTimer = useRef<number>(0);
   const { isDark, toggleDark } = useAppearance();
+  const { favorited, toggleFavorite, current: navCurrent } = useNavigationMemory();
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsPanelId, setSettingsPanelId] = useState<string | undefined>(undefined);
@@ -230,13 +245,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent side="left" className="w-[260px] border-none p-0">
+          <SheetContent side="left" className="w-[240px] border-none bg-sidebar p-0">
             <AppSidebar onOpenSettings={(panelId) => openSettings(panelId)} />
           </SheetContent>
         </Sheet>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/50 bg-background/80 px-3.5 backdrop-blur-md md:px-5">
+          <header className="glass-panel sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/50 px-3.5 md:px-5">
             <Button
               variant="ghost"
               size="icon"
@@ -261,8 +276,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-w-0 items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
+                  className="flex min-w-0 max-w-[min(100%,18rem)] items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
                 >
+                  <span className="hidden truncate text-muted-foreground sm:inline">
+                    {school?.name ? `${school.name} · ` : ""}
+                  </span>
                   <span className="truncate whitespace-nowrap">
                     {selectedYearLabel}
                     {selectedYearId && selectedYearId === activeYear?.id ? " (Atual)" : ""}
@@ -271,7 +289,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>Ano lectivo</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  {school?.name ? `${school.name} · Ano lectivo` : "Ano lectivo"}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {yearOptions.map((y) => (
                   <DropdownMenuItem key={y.id} onClick={() => selectYear(y.id)}>
@@ -282,17 +302,33 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {terms.length > 0 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="hidden min-w-0 items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex"
+                  >
+                    <span className="truncate whitespace-nowrap">{selectedTermLabel}</span>
+                    <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuLabel>Período lectivo</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {terms.map((term) => (
+                    <DropdownMenuItem key={term.id} onClick={() => setSelectedTermId(term.id)}>
+                      {term.label}
+                      {term.id === selectedTermId ? " (Actual)" : ""}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+
             <button
               type="button"
-              onClick={() => {
-                window.dispatchEvent(
-                  new KeyboardEvent("keydown", {
-                    key: "k",
-                    metaKey: true,
-                    bubbles: true,
-                  }),
-                );
-              }}
+              onClick={() => requestOpenCommandPalette()}
               className="hidden md:flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
               title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
             >
@@ -304,7 +340,31 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             </button>
 
             <div className="ml-auto flex items-center gap-1">
+              <TopbarCalendar />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="header-icon-btn"
+                aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                title={favorited ? "Remover dos favoritos" : "Favoritar página"}
+                onClick={() => {
+                  toggleFavorite();
+                  toast.success(
+                    favorited
+                      ? `«${navCurrent.label}» removido dos favoritos`
+                      : `«${navCurrent.label}» nos favoritos`,
+                  );
+                }}
+              >
+                <Star
+                  className={cn(
+                    "size-5",
+                    favorited ? "fill-amber-400 text-amber-500" : "text-muted-foreground",
+                  )}
+                />
+              </Button>
               <AppLauncher onOpenSettings={openSettings} />
+              <CommandPalette />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button

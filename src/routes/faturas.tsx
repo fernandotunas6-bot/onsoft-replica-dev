@@ -29,6 +29,7 @@ import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1155,11 +1156,13 @@ function FaturasPage() {
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhuma factura encontrada para os filtros aplicados.
+                    <TableCell colSpan={9} className="p-4">
+                      <EmptyState
+                        icon={FileText}
+                        title="Nenhuma factura neste filtro"
+                        description="Altere o estado, o período ou a pesquisa — ou emita uma nova factura na tesouraria."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}

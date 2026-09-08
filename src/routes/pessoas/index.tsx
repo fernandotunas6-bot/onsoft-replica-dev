@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -580,11 +581,13 @@ function PeoplePage() {
                   </TableRow>
                 ) : teachers.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhum professor neste filtro.
+                    <TableCell colSpan={5} className="p-4">
+                      <EmptyState
+                        icon={GraduationCap}
+                        title="Nenhum professor neste filtro"
+                        description="Ajuste a pesquisa ou o estado para encontrar docentes, ou registe um novo professor."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -793,11 +796,13 @@ function PeoplePage() {
                   </TableRow>
                 ) : (peopleQuery.data ?? []).length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="py-10 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhuma pessoa encontrada.
+                    <TableCell colSpan={4} className="p-4">
+                      <EmptyState
+                        icon={User}
+                        title="Nenhuma pessoa encontrada"
+                        description="Ajuste a pesquisa ou o tipo de pessoa, ou registe alguém novo no botão «Nova pessoa»."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -976,6 +981,7 @@ function PeoplePage() {
                         {
                           name: "nif",
                           label: "BI/NIF",
+                          type: "angola-identity",
                           defaultValue: person.nif ?? "",
                           required: false,
                         },

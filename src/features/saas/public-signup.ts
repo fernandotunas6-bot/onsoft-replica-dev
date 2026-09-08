@@ -31,6 +31,7 @@ export async function runPublicSchoolSignup(
   slug: string;
   hostname: string;
   bootstrapSeeded: string[];
+  adminInviteDelivered: boolean;
 }> {
   const { website: _honeypot, ...wizardData } = data;
   const emailKey = wizardData.contact_email.trim().toLowerCase();
@@ -46,10 +47,8 @@ export async function runPublicSchoolSignup(
     { ...wizardData, trial_days: 14 },
     { auditUserId: null, source: "public_signup" },
   );
-  return {
-    ...result,
-    slug: wizardData.slug,
-    hostname: `${wizardData.slug}.portal-siga.com`,
-    bootstrapSeeded: result.bootstrapSeeded,
-  };
+  // `hostname` vem já resolvido por getPlatformSubdomain() — não repetir aqui
+  // o domínio da plataforma (regra do app-config: um único ponto de verdade).
+  const { adminSetupUrl: _setupUrl, ...publicResult } = result;
+  return publicResult;
 }

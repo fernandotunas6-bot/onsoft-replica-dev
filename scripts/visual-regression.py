@@ -26,11 +26,20 @@ import numpy as np
 from PIL import Image, ImageChops
 from playwright.async_api import async_playwright
 
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:3006")
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = ROOT / "tests" / "visual" / "baseline"
 CURRENT = ROOT / "tests" / "visual" / "current"
 DIFF = ROOT / "tests" / "visual" / "diff"
+
+CHROME_APP = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+
+
+def get_browser_kwargs():
+    kwargs = {"headless": True}
+    if CHROME_APP.exists():
+        kwargs["executable_path"] = str(CHROME_APP)
+    return kwargs
 
 ROUTES = [
     ("dashboard", "/"),
@@ -81,7 +90,7 @@ async def main(update: bool) -> int:
 
     failures: list[str] = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(**get_browser_kwargs())
         ctx = await browser.new_context(
             viewport={"width": 1280, "height": 1000}, device_scale_factor=1
         )

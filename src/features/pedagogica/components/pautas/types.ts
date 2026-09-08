@@ -43,6 +43,8 @@ export interface ClassContext {
   courseName?: string;
   pautaNumber?: string;
   cycle?: AngolaTeachingCycle;
+  /** Períodos configurados pela escola; sem valor, vale a omissão do ciclo. */
+  periodCount?: number;
   term?: number;
 }
 

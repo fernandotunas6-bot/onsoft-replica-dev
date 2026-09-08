@@ -40,7 +40,10 @@ import { StudentDigitalCardModal } from "@/features/students/components/StudentD
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
-import { applyLibraryPhotoToPerson } from "@/features/arquivos/apply-person-photo";
+import {
+  applyLibraryPhotoToPerson,
+  uploadPersonPhotoToLibrary,
+} from "@/features/arquivos/apply-person-photo";
 import { StudentRelatedFilesPanel } from "@/features/arquivos/StudentRelatedFilesPanel";
 import { paymentReference, whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -57,8 +60,7 @@ import {
   updateEnrollmentAttendance,
   updateStudentProfile,
 } from "@/features/students/server";
-import { searchPeople, setPersonPhotoUrl } from "@/features/people/server";
-import { supabase } from "@/integrations/supabase/client";
+import { searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
 import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
 import {
@@ -326,42 +328,11 @@ function StudentDetail() {
 
     setIsUploadingPhoto(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `avatars/${student.person_id}-${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("school-logos")
-        .upload(filePath, file, { upsert: true });
-
-      let newPhotoUrl: string | null = null;
-      if (!uploadError) {
-        const { data: publicUrlData } = supabase.storage
-          .from("school-logos")
-          .getPublicUrl(filePath);
-        newPhotoUrl = publicUrlData.publicUrl;
-      }
-
-      if (!newPhotoUrl) {
-        const { error: avatarError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, file, { upsert: true });
-        if (!avatarError) {
-          const { data: publicUrlData } = supabase.storage
-            .from("avatars")
-            .getPublicUrl(filePath);
-          newPhotoUrl = publicUrlData.publicUrl;
-        }
-      }
-
-      if (!newPhotoUrl) {
-        throw new Error("Não foi possível carregar a imagem para o servidor de ficheiros.");
-      }
-
-      await setPersonPhotoUrl({
-        data: {
-          personId: student.person_id,
-          photoUrl: newPhotoUrl,
-        },
+      await uploadPersonPhotoToLibrary({
+        file,
+        personId: student.person_id,
+        schoolId: String(student.school_id),
+        ownerUserId: account.id,
       });
 
       await Promise.all([

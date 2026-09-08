@@ -40,6 +40,7 @@ import { DOC_PATHS } from "@/lib/ecosystem-urls";
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import {
@@ -851,8 +852,8 @@ function FinanceiroPage() {
             <AlertDescription className="space-y-2">
               <p>
                 Configure o plano financeiro (propina mensal e taxa de matrícula) antes de emitir
-                faturas. Escolas novas recebem valores por omissão no provisionamento — active ou
-                ajuste aqui.
+                faturas. O plano depende de um ano lectivo activo, por isso não é criado no
+                provisionamento — defina o ano lectivo e depois os valores aqui.
               </p>
               <Button
                 type="button"
@@ -1048,11 +1049,13 @@ function FinanceiroPage() {
                   </TableRow>
                 ) : lista.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhum movimento encontrado para o filtro aplicado.
+                    <TableCell colSpan={7} className="p-4">
+                      <EmptyState
+                        icon={Wallet}
+                        title="Nenhum movimento neste filtro"
+                        description="Ajuste o período ou o tipo de movimento, ou registe uma entrada/saída de caixa."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}

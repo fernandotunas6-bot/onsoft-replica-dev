@@ -5,6 +5,7 @@ import { AlertTriangle, CalendarX2, CheckCircle2, CircleDollarSign, RotateCcw } 
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import {
   listHrAbsencesForReview,
@@ -31,6 +32,14 @@ export const Route = createFileRoute("/financeiro/rh/faltas")({
 type DraftDecision = {
   absenceType: HrAbsenceReviewRow["absenceType"];
   reason: string;
+};
+
+const emptyTitles: Record<"all" | HrAbsenceReviewRow["validationStatus"], string> = {
+  pending: "Nenhuma falta por rever",
+  validated: "Nenhuma falta validada",
+  rejected: "Nenhuma falta rejeitada",
+  cancelled: "Nenhuma falta cancelada",
+  all: "Ainda não há registos de falta",
 };
 
 const absenceLabels: Record<HrAbsenceReviewRow["absenceType"], string> = {
@@ -169,17 +178,18 @@ function HrAbsencesPage() {
                 : "Não foi possível carregar as faltas."}
             </p>
           ) : filtered.length === 0 ? (
-            <div className="rounded-lg border border-dashed p-8 text-center">
-              <CalendarX2
-                className="mx-auto mb-3 size-8 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <p className="font-medium">Nenhuma falta neste estado.</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                As faltas automáticas surgem quando uma ocorrência elegível termina sem presença
-                confirmada.
-              </p>
-            </div>
+            <EmptyState
+              icon={CalendarX2}
+              title={emptyTitles[filter]}
+              description="As faltas são geradas automaticamente quando uma ocorrência elegível termina sem presença confirmada e só entram na folha depois de revistas."
+              action={
+                filter === "pending" ? undefined : (
+                  <Button variant="outline" size="sm" onClick={() => setFilter("pending")}>
+                    Ver faltas pendentes
+                  </Button>
+                )
+              }
+            />
           ) : (
             <div className="space-y-3">
               {filtered.map((row) => {

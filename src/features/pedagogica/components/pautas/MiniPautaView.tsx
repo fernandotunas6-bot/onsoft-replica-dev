@@ -28,8 +28,8 @@ function resolved(student: MiniPautaStudent, periodCount: 2 | 3) {
 }
 
 export function MiniPautaView({ data }: { data: MiniPautaDocument }) {
-  const periods = getPeriodsForCycle(data.context.cycle);
-  const periodCount = getPeriodCountForCycle(data.context.cycle);
+  const periods = getPeriodsForCycle(data.context.cycle, data.context.periodCount);
+  const periodCount = getPeriodCountForCycle(data.context.cycle, data.context.periodCount);
   const periodNoun = getPeriodNoun(data.context.cycle);
   const colCount = periods.length * 4;
   const [auditOpen, setAuditOpen] = useState(false);

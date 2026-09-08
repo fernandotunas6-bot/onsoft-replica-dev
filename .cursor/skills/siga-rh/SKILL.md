@@ -28,7 +28,32 @@ nos server fns.
 | `/financeiro/rh/faltas` | Admin / Tesouraria | Revisão/justificação de faltas |
 | `/financeiro/rh/presenca` | Admin / Tesouraria | Políticas e validação de presença |
 | `/financeiro/rh/pagamentos` | Admin / Tesouraria | Ordens salariais (controlo duplo) |
-| `/professor/presenca` | Professor | Check-in/out QR do docente |
+| `/professor/presenca` | Professor | Check-in/out QR + chamada de alunos |
+
+## Fluxo professor (telemóvel / tablet)
+
+1. Secretaria gera QR de check-in em `/financeiro/rh`.
+2. Professor autentica-se e lê o QR em `/professor/presenca` (câmara ou colar código).
+3. `resolveAuthenticatedTeacherId` liga o login à ficha `teachers`
+   (`user_id` → `people.user_id` → email) e faz backfill de `teachers.user_id`.
+4. Após check-in válido, `ensureAttendanceSessionForOccurrence` cria/reutiliza
+   `siga_attendance_sessions` e devolve `classroom` (turma, disciplina, sessão).
+5. A UI abre `AttendanceCallDialog` em ecrã cheio (mobile) com a lista de alunos
+   para marcar presença/falta/atraso/justificada no aparelho.
+6. Deep-link: `?chamada=1&turma=&disciplina=&sessao=&data=` reabre a chamada.
+7. **56.3** Lista «Minhas aulas» mostra turma/disciplina; «Abrir chamada» sem
+   novo QR via `openMyLessonClassroom` (exige check-in prévio).
+8. **56.4** Portal do professor (`TeacherPortalDashboard`) tem CTA «Assinar
+   presença (QR)» no cabeçalho, nas aulas de hoje e no menu de ferramentas.
+9. **56.5** Check-out explícito: banner «aula em curso», modo Entrada/Saída e
+   botão «Ler QR de saída» quando falta `actual_ended_at`.
+10. **56.6** Após chamada: «Lançar notas» / «Pauta» → `/pedagogica?tab=notas&turma=&disciplina=&pauta=1`
+    (diálogo de chamada, portal e painel QR).
+11. **56.7** Plano + Materiais da turma no mesmo fluxo (`teacher-classroom-links.ts`):
+    `/planos-aula?turma=&disciplina=` e `/arquivos?turma=`.
+12. **57.10–57.11** Agenda → Chamada/QR: `agendaLessonActions` + `teacherQrPresenceSearch`
+    (`/professor/presenca?turma=&disciplina=&data=`); painel destaca `focusLesson`.
+    Chamada aceita `dia` em `/pedagogica`.
 
 ## Domínio
 
@@ -37,11 +62,12 @@ nos server fns.
 - `payroll.ts` — competência, cálculo, aprovação
 - `payments.ts` — lotes, autorização, confirmação → caixa
 - `absences.ts` — faltas funcionais
-- `teacher-lessons.ts` — ocorrências + QR
+- `teacher-lessons.ts` — ocorrências + QR + handoff + `openMyLessonClassroom`
 - `attendance-assurance.ts` — geofence / score
 - `teacher-lesson-exceptions.ts` — substituição / aula extra / política de tolerância
 - `materialize-lessons.ts` — sincronizar aulas do horário
-- `TeacherAttendancePanel.tsx` — UI professor
+- `TeacherAttendancePanel.tsx` — UI professor (QR → chamada → check-out; `focusLesson` da agenda)
+- `teacher-classroom-links.ts` — deep-links notas / plano / materiais / chamada / QR agenda
 
 ## Máquinas de estado
 

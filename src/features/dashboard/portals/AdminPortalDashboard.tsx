@@ -32,6 +32,7 @@ import { schoolYear as fallbackSchoolYear } from "@/lib/school-config";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
+import { TodayAtSchoolCard } from "@/features/dashboard/components/TodayAtSchoolCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 
 const DashboardCharts = lazy(() =>
@@ -155,13 +156,21 @@ export function AdminPortalDashboard({
   ];
 
   const miniStats = [
-    { label: "Cursos", icon: BookOpen, value: capabilities.students ? String(data?.totals.courses ?? 0) : "—" },
+    {
+      label: "Cursos",
+      icon: BookOpen,
+      value: capabilities.students ? String(data?.totals.courses ?? 0) : "—",
+    },
     {
       label: "Turmas activas",
       icon: Users,
       value: capabilities.students ? String(data?.totals.classGroups ?? 0) : "—",
     },
-    { label: "Salas", icon: DoorOpen, value: capabilities.students ? String(data?.totals.rooms ?? 0) : "—" },
+    {
+      label: "Salas",
+      icon: DoorOpen,
+      value: capabilities.students ? String(data?.totals.rooms ?? 0) : "—",
+    },
     {
       label: "Taxa de presença",
       icon: UserCheck,
@@ -251,13 +260,28 @@ export function AdminPortalDashboard({
         <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <h2 className="text-sm font-bold">Primeiros passos da escola</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            A estrutura base (ano lectivo, turma, propinas) foi preparada no provisionamento.
-            Complete estes passos para começar a operar.
+            {data?.academicYear
+              ? "O provisionamento deixou a escola pronta para configurar. Complete estes passos para começar a operar."
+              : "A escola ainda não tem ano lectivo activo — sem ele não é possível criar turmas nem planos de propina. Comece por defini-lo."}
           </p>
           <ol className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            {data?.academicYear ? null : (
+              <li className="sm:col-span-2">
+                <button
+                  type="button"
+                  className="font-medium text-primary underline-offset-2 hover:underline"
+                  onClick={() => openSettingsPanel("escola")}
+                >
+                  1. Definir o ano lectivo (nome, início e fim)
+                </button>
+              </li>
+            )}
             <li>
-              <Link to="/alunos" className="font-medium text-primary underline-offset-2 hover:underline">
-                1. Matricular o primeiro aluno
+              <Link
+                to="/alunos"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                {data?.academicYear ? "1." : "2."} Matricular o primeiro aluno
               </Link>
             </li>
             <li>
@@ -265,7 +289,7 @@ export function AdminPortalDashboard({
                 to="/pedagogica"
                 className="font-medium text-primary underline-offset-2 hover:underline"
               >
-                2. Rever turmas e disciplinas
+                {data?.academicYear ? "2." : "3."} Rever turmas e disciplinas
               </Link>
             </li>
             <li>
@@ -274,7 +298,7 @@ export function AdminPortalDashboard({
                 className="font-medium text-primary underline-offset-2 hover:underline"
                 onClick={() => openSettingsPanel("financeiro")}
               >
-                3. Confirmar valores de propina
+                {data?.academicYear ? "3." : "4."} Definir valores de propina
               </button>
             </li>
             <li>
@@ -285,7 +309,7 @@ export function AdminPortalDashboard({
                   rel="noreferrer"
                   className="font-medium text-primary underline-offset-2 hover:underline"
                 >
-                  4. Partilhar link público de matrícula
+                  {data?.academicYear ? "4." : "5."} Partilhar link público de matrícula
                 </a>
               ) : (
                 <button
@@ -293,7 +317,7 @@ export function AdminPortalDashboard({
                   className="font-medium text-primary underline-offset-2 hover:underline"
                   onClick={() => openSettingsPanel("matricula")}
                 >
-                  4. Activar link público de matrícula
+                  {data?.academicYear ? "4." : "5."} Activar link público de matrícula
                 </button>
               )}
             </li>
@@ -309,6 +333,8 @@ export function AdminPortalDashboard({
       ) : null}
 
       <InstalledModuleTools module="comunicacoes" />
+
+      {activeTab === "geral" ? <TodayAtSchoolCard /> : null}
 
       <section className="surface-card p-5">
         <div className="flex items-center justify-between gap-3">
@@ -401,33 +427,33 @@ export function AdminPortalDashboard({
       <div className="grid gap-4 lg:grid-cols-2">
         <DashboardCalendarCard />
         {(data?.announcements?.length ?? 0) > 0 ? (
-        <section className="surface-card p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={Megaphone} size="sm" label="Comunicados" />
-              <h2 className="text-base font-semibold">Comunicados</h2>
+          <section className="surface-card p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <IconChip icon={Megaphone} size="sm" label="Comunicados" />
+                <h2 className="text-base font-semibold">Comunicados</h2>
+              </div>
+              {canAccessPath("/comunicacoes", currentUser.role) ? (
+                <Button asChild size="sm" variant="ghost">
+                  <Link to="/comunicacoes">Ver todos</Link>
+                </Button>
+              ) : null}
             </div>
-            {canAccessPath("/comunicacoes", currentUser.role) ? (
-              <Button asChild size="sm" variant="ghost">
-                <Link to="/comunicacoes">Ver todos</Link>
-              </Button>
-            ) : null}
-          </div>
-          <ul className="space-y-3">
-            {data?.announcements.map((item: any) => (
-              <li key={item.id} className="rounded-xl bg-secondary p-3">
-                <p className="text-sm font-semibold">{item.title}</p>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
-                {item.published_at ? (
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    {new Date(item.published_at).toLocaleDateString("pt-PT")}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+            <ul className="space-y-3">
+              {data?.announcements.map((item: any) => (
+                <li key={item.id} className="rounded-xl bg-secondary p-3">
+                  <p className="text-sm font-semibold">{item.title}</p>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
+                  {item.published_at ? (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {new Date(item.published_at).toLocaleDateString("pt-PT")}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </div>
 
       <div className="space-y-4">

@@ -3,12 +3,19 @@ import { runPublicSchoolSignup } from "@/features/saas/public-signup";
 import { provisionTenantCore } from "@/features/saas/provisioning-core";
 import { validatePublicSchoolSignup } from "@/features/saas/schemas";
 
-// Mock provisionTenantCore to avoid actually touching DB during these logic tests
+// Mock provisionTenantCore to avoid actually touching DB during these logic tests.
+// O mock devolve `slug`/`hostname` porque é o núcleo que os resolve (via
+// getPlatformSubdomain) — o signup público repassa-os em vez de repetir aqui o
+// domínio da plataforma.
 vi.mock("@/features/saas/provisioning-core", () => ({
   provisionTenantCore: vi.fn().mockResolvedValue({
     success: true,
     tenantId: "11111111-1111-1111-1111-111111111111",
+    slug: "escola-nova",
+    hostname: "escola-nova.portal-siga.com",
     bootstrapSeeded: ["academic_years", "roles"],
+    adminInviteDelivered: false,
+    adminSetupUrl: "https://exemplo.invalid/definir-senha",
   }),
 }));
 
@@ -36,6 +43,9 @@ describe("runPublicSchoolSignup logic", () => {
     expect(res.success).toBe(true);
     expect(res.slug).toBe("escola-nova");
     expect(res.hostname).toBe("escola-nova.portal-siga.com");
+    expect(res.adminInviteDelivered).toBe(false);
+    // O link de definição de senha nunca sai pela API pública.
+    expect(res).not.toHaveProperty("adminSetupUrl");
     expect(provisionTenantCore).toHaveBeenCalledWith(
       {
         school_name: "Escola Nova",

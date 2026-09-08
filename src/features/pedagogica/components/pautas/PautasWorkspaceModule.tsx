@@ -107,6 +107,7 @@ function buildClassContext(params: {
   pautaNumber: string;
   teacherName?: string | undefined;
   term?: number | undefined;
+  periodCount?: number | undefined;
 }): ClassContext {
   return {
     academicYear: params.academicYear,
@@ -115,6 +116,7 @@ function buildClassContext(params: {
     period: (params.currentClass?.shift && shiftLabels[params.currentClass.shift]) || "Manhã",
     pautaNumber: params.pautaNumber,
     cycle: params.cycle,
+    ...(params.periodCount !== undefined ? { periodCount: params.periodCount } : {}),
     ...(params.currentClass?.course_name ? { courseName: params.currentClass.course_name } : {}),
     ...(params.teacherName ? { teacher: params.teacherName } : {}),
     ...(params.term !== undefined ? { term: params.term } : {}),
@@ -125,14 +127,40 @@ export function PautasWorkspaceModule({
   workspace,
   onSelectClassGroup,
 }: PautasWorkspaceModuleProps) {
-  const { school: schoolSettings, activeYearLabel } = useSchoolSettings();
+  const {
+    school: schoolSettings,
+    activeYearLabel,
+    selectedTerm: globalTerm,
+    terms: academicTerms,
+    setSelectedTermId,
+  } = useSchoolSettings();
+  const configuredPeriodCount = schoolSettings?.evaluation_periods;
   const [modelType, setModelType] = useState<PautaMode>("mini");
   const [selectedCycle, setSelectedCycle] = useState<AngolaTeachingCycle>("i_ciclo");
-  const [selectedTerm, setSelectedTerm] = useState<number>(1);
+  const initialTerm =
+    globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3
+      ? globalTerm.sequence
+      : 1;
+  const [selectedTerm, setSelectedTerm] = useState<number>(initialTerm);
   const [selectedClassId, setSelectedClassId] = useState<string>("demo");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("demo");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
+
+  // Sincroniza o trimestre da pauta com o período global da topbar.
+  useEffect(() => {
+    const sequence = globalTerm?.sequence;
+    if (sequence && sequence >= 1 && sequence <= 3 && sequence !== selectedTerm) {
+      setSelectedTerm(sequence);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage à mudança do período global
+  }, [globalTerm?.id, globalTerm?.sequence]);
+
+  const applyTermSelection = (next: number) => {
+    setSelectedTerm(next);
+    const match = academicTerms.find((term) => term.sequence === next);
+    if (match) setSelectedTermId(match.id);
+  };
 
   const isRealClass = selectedClassId !== "demo" && Boolean(workspace);
   const classGroups = workspace?.classGroups ?? [];
@@ -308,6 +336,7 @@ export function PautasWorkspaceModule({
         currentClass,
         academicYear: activeYearLabel.replace(/^Ano Lectivo\s+/i, ""),
         cycle: selectedCycle,
+        periodCount: configuredPeriodCount,
         teacherName,
         pautaNumber: `P-${currentClass?.name ?? "01"}`,
       }),
@@ -326,6 +355,7 @@ export function PautasWorkspaceModule({
     schoolSettings,
     currentClass,
     activeYearLabel,
+    configuredPeriodCount,
   ]);
 
   // Trimester Pauta Document
@@ -379,6 +409,7 @@ export function PautasWorkspaceModule({
         currentClass,
         academicYear: activeYearLabel.replace(/^Ano Lectivo\s+/i, ""),
         cycle: selectedCycle,
+        periodCount: configuredPeriodCount,
         pautaNumber: `PT-${currentClass?.name ?? "01"}`,
         term: selectedTerm,
       }),
@@ -399,6 +430,7 @@ export function PautasWorkspaceModule({
     schoolSettings,
     currentClass,
     activeYearLabel,
+    configuredPeriodCount,
   ]);
 
   // Final Pauta Document
@@ -430,6 +462,7 @@ export function PautasWorkspaceModule({
         currentClass,
         academicYear: activeYearLabel.replace(/^Ano Lectivo\s+/i, ""),
         cycle: selectedCycle,
+        periodCount: configuredPeriodCount,
         pautaNumber: `PF-${currentClass?.name ?? "01"}`,
       }),
       subjects: realSubjectsForClass.map((s) => ({
@@ -448,6 +481,7 @@ export function PautasWorkspaceModule({
     schoolSettings,
     currentClass,
     activeYearLabel,
+    configuredPeriodCount,
   ]);
 
   // Exam Pauta Document — o SIGA ainda não regista notas de PAP/Estágio/Exame Nacional; para
@@ -462,6 +496,7 @@ export function PautasWorkspaceModule({
         currentClass,
         academicYear: activeYearLabel.replace(/^Ano Lectivo\s+/i, ""),
         cycle: selectedCycle,
+        periodCount: configuredPeriodCount,
         pautaNumber: `PE-${currentClass?.name ?? "01"}`,
       }),
       isTechnical: selectedCycle === "tecnico",
@@ -472,7 +507,14 @@ export function PautasWorkspaceModule({
       students: [],
       signatures: { jury: ["", "", ""], pedagogicalDeputy: "", director: "" },
     };
-  }, [isRealClass, selectedCycle, schoolSettings, currentClass, activeYearLabel]);
+  }, [
+    isRealClass,
+    selectedCycle,
+    schoolSettings,
+    currentClass,
+    activeYearLabel,
+    configuredPeriodCount,
+  ]);
 
   // Filtered Documents based on search query and status filter
   const filterStudentList = <T extends { name: string; code?: string; status?: string }>(
@@ -617,7 +659,7 @@ export function PautasWorkspaceModule({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 no-print">
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
             <Button variant="default" size="sm" className="gap-1.5" onClick={handlePrint}>
               <Printer className="size-4" /> Imprimir / PDF
             </Button>
@@ -661,7 +703,7 @@ export function PautasWorkspaceModule({
         </div>
 
         {/* Search & Status Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 border-t border-border no-print">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 border-t border-border print:hidden">
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
@@ -715,7 +757,7 @@ export function PautasWorkspaceModule({
         </div>
 
         {/* Selectors Toolbar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 no-print pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 print:hidden pt-2">
           {/* Tipo / Âmbito de Pauta */}
           <div className="space-y-1 sm:col-span-2">
             <label className="text-xs font-semibold text-muted-foreground block">
@@ -839,9 +881,9 @@ export function PautasWorkspaceModule({
               <select
                 className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary font-medium"
                 value={selectedTerm}
-                onChange={(e) => setSelectedTerm(Number(e.target.value))}
+                onChange={(e) => applyTermSelection(Number(e.target.value))}
               >
-                {getPeriodsForCycle(selectedCycle).map((p) => (
+                {getPeriodsForCycle(selectedCycle, configuredPeriodCount).map((p) => (
                   <option key={p} value={p}>
                     {p}.º {getPeriodNoun(selectedCycle)}
                   </option>
@@ -854,7 +896,7 @@ export function PautasWorkspaceModule({
 
       {/* Consistency Check Panel — só para turmas reais */}
       {isRealClass && consistencyReport && consistencyReport.issues.length > 0 && (
-        <div className="rounded-xl border border-border bg-card shadow-xs p-4 space-y-2 border-l-4 border-l-amber-500 no-print">
+        <div className="rounded-xl border border-border bg-card shadow-xs p-4 space-y-2 border-l-4 border-l-amber-500 print:hidden">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <AlertTriangle className="size-4 text-amber-500" />

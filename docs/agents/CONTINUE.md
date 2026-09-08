@@ -4,7 +4,183 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-09-06)
+## Estado (2026-09-08)
+
+### Ciclo 58 — E2E real do ecossistema: criar escola, entrar, gerir (2026-09-08)
+
+Teste ponta-a-ponta com as 5 apps a correr e Supabase SGA real. Estado antes:
+**nem o SIGA arrancava no browser, nem era possível criar uma escola.**
+
+**Bloqueadores (produto parado):**
+
+1. **SIGA nunca hidratava.** Sem `src/client.tsx`, o plugin do Start caía na
+   entrada por omissão do pacote (`dist/plugin/default-entry/client.tsx`), um
+   subcaminho fora do `exports` de `@tanstack/react-start@1.168.32` que o Vite 8
+   recusa resolver → 500 e ecrã preso em «A verificar sessão…». Adicionado
+   `src/client.tsx` + `tanstackStart.client.entry` no `vite.config.ts`.
+2. **Import-protection: código de servidor no grafo do cliente.** Com a entrada
+   resolvida apareceu o erro real — `sga-admin.ts` (cliente service-role) era
+   alcançável do browser por duas cadeias. Corrigido na origem: (a) removido o
+   re-export morto `export { requirePlatformAdmin } from …` em
+   `features/saas/server.ts` (um `export … from` não é eliminável pelo plugin e
+   arrastava platform-guard → sga-admin); (b) `readActiveSchoolCookie` movido
+   para `features/auth/active-school-cookie.server.ts`, isolando o especificador
+   proibido `@tanstack/react-start/server`.
+3. **Criar escola falhava sempre.** `inviteUserByEmail` prendia o
+   provisionamento ao mailer: sem SMTP próprio, a Supabase recusa domínios não
+   entregáveis (`Email address "…" is invalid`) e limita a 2 envios/hora. Novo
+   `features/saas/admin-account.ts`: `createUser` (determinístico, sem mailer) +
+   entrega do link de definição de senha como efeito best-effort via Resend.
+   A API passa a devolver `adminInviteDelivered`; `adminSetupUrl` só sai para
+   `source: "platform_admin"`, nunca no signup público.
+4. **`member_roles.school_id` é NOT NULL** e o insert do provisionamento omitia-o
+   → 23502 no último passo do administrador.
+
+**Correcções adicionais encontradas no percurso:**
+
+- **Hidratação partida em todas as páginas:** `PageHeader` punha
+  `BreadcrumbSeparator` (um `<li>`) dentro de `BreadcrumbItem` (outro `<li>`).
+  Separador passou a irmão dentro de um `Fragment`.
+- **Rollback incompleto:** um provisionamento falhado deixava tenant órfão a
+  ocupar o slug — `DELETE tenants` batia em FK de schools/subscriptions/domains
+  e o erro era descartado. `cleanupTenant`/`cleanupSchool` passam a apagar por
+  ordem inversa e a registar falhas.
+- **`scripts/siga/e2e-cleanup-lib.mjs`** tinha o mesmo defeito (nunca conseguia
+  apagar uma escola com papéis/auditoria). Passa a descobrir as ~108 FKs de
+  `schools` em `pg_constraint` via Management API e a purgar sob
+  `session_replication_role = replica` (necessário: `audit_logs` é append-only).
+- **Bootstrap mentia:** `fee_plans.academic_year_id` é NOT NULL e o ano lectivo
+  **não** é criado no provisionamento (por desenho — não se inventam datas), por
+  isso o plano financeiro nunca podia ser criado. Insert passa a ser
+  condicional; o onboarding do dashboard e o aviso do `/financeiro` deixam de
+  afirmar que «a estrutura base foi preparada» e pedem o ano lectivo como 1.º
+  passo (`openSettingsPanel("escola")`).
+- **`publicDatabaseError`** passa a registar o código/mensagem crus no servidor
+  — era isso que tornava o 23502 invisível.
+- **WEB `/start`:** scroll volta ao topo a cada passo; ecrã final diz a verdade
+  sobre o convite do administrador e voltou a mostrar o link do ADMIN
+  (`adminTenantsUrl` estava em estado mas nunca era usado).
+- **`tests/e2e/commercial-live.spec.ts`** estava desactualizado (esperava
+  «Escola criada» / «Abrir o SIGA Plus»); alinhado com o ecrã actual + asserções
+  para `adminInviteDelivered` e ausência de `adminSetupUrl`.
+
+**Validado ao vivo:** wizard WEB → `POST /api/saas/signup` 200 → login no SIGA
+como administrador da escola nova → dashboard, sidebar e `/financeiro` sem um
+único erro de consola → limpeza do tenant de teste.
+
+**Suite:** `vitest run` 1018/1020 (2 skipped) ✓, `npm run siga:check` ✓, eslint
+sem erros novos (4 pré-existentes em PageHeader/AdminPortalDashboard), `tsc`
+sem erros novos.
+
+**Ainda por fazer:** ADMIN precisa de conta em `platform_admins` para teste
+funcional; PayFlow está fail-closed em produção (`integrationConfigured` e
+`ssoConfigured` a `false`) — falta configurar segredo partilhado e conector
+bancário para testar um pagamento real ponta-a-ponta; `/financeiro` mostra dois
+botões «Ajuda» seguidos; tipagem RPC `hr_*` continua fora do `database.types`.
+
+### Ciclo 57.12 — EmptyState no RH operacional (2026-09-08)
+
+- **Folha (`/financeiro/rh/folha`):** três estados vazios educativos — sem competências (CTA «Preparar folha» ligado a `createRun`), nenhuma competência seleccionada, e folha por calcular (CTA «Calcular folha» só nos estados `draft`/`calculating`/`review`).
+- **Faltas (`/financeiro/rh/faltas`):** bloco ad-hoc substituído por `EmptyState`; título por filtro (`emptyTitles`: pendentes/validadas/rejeitadas/canceladas/todas) e CTA «Ver faltas pendentes» quando o filtro não é `pending`.
+- **Pagamentos (`/financeiro/rh/pagamentos`):** sem folhas aprovadas (CTA → `/financeiro/rh/folha`), sem ordens salariais, e nenhuma ordem seleccionada.
+- **Presença (`/financeiro/rh/presenca`):** evidências vazias explicam a validação multifator, com CTA → `/professor/presenca`.
+- **Testes:** `tests/ui/density-empty-state-contract.test.ts` — rotas RH na lista do rollout + guarda contra o regresso das frases genéricas.
+- **Nota:** o atalho **Pauta** a partir da aula na agenda já existia (`gradesSearch` em `agendaLessonActions`, ligado em `TopbarCalendar` e `/calendario`).
+- **Validação:** `vitest tests/ui tests/hr` 52/52 ✓, `npm run siga:check` ✓, eslint sem erros novos (3 warnings `exhaustive-deps` pré-existentes).
+- **Próxima fatia:** EmptyState nas restantes rotas pedagógicas (turmas/disciplinas/horários); ou Fase 3 calendário↔horário (aulas no hub); ou tipagem RPC `hr_*` no `database.types` (tsc acusa `hr_*` fora do union e `detail.data` como `{}` na folha).
+
+### Ciclo 57.11 — QR contextual por aula + dia na chamada (2026-09-07)
+
+- **Deep-links:** `teacherQrPresenceSearch` + `qrSearch` em `agendaLessonActions`; chamada passa a aceitar `dia`.
+- **Topbar / Calendário:** CTA **QR** leva `/professor/presenca?turma=&disciplina=&data=` (não só a rota nua).
+- **Presença professor:** `focusLesson` destaca a ocorrência da agenda e prioriza-a em «Próxima / em curso».
+- **Chamada:** `AttendanceWorkspaceModule` + `/pedagogica?dia=` sincronizam a data da sessão.
+- **Testes:** `tests/hr/agenda-lesson-actions-contract.test.ts`.
+- **Próxima fatia:** EmptyState no restante RH (folha/faltas/pagamentos); ou atalho Pauta a partir da aula na agenda.
+
+### Ciclo 57.10 — Chamada/QR a partir da agenda (2026-09-07)
+
+- **Deep-links:** `teacherAttendanceCallSearch` + `agendaLessonActions` em `teacher-classroom-links.ts`.
+- **Topbar / Calendário:** cada aula mostra CTAs **Chamada** (`/pedagogica?tab=chamada&turma&disciplina`) e **QR** (`/professor/presenca`).
+- **Presenças:** `AttendanceWorkspaceModule` recebe `initialClassGroupId`/`initialSubjectId` e abre o diálogo de chamada (sessão existente ou draft turma+disciplina).
+- **EmptyState:** acessos + RH (ocorrências QR) + estados vazios do workspace de presenças.
+- **Testes:** `tests/hr/agenda-lesson-actions-contract.test.ts`.
+- **Próxima fatia:** QR contextual por aula; ou EmptyState no restante RH; ou sync `dia` na chamada.
+
+### Ciclo 57.9 — EmptyState em mais listas (2026-09-07)
+
+- **Rollout:** alunos, financeiro (caixa), faturas e planos de aula passam a usar `EmptyState`.
+- **Teste:** contrato `density-empty-state` alargado às novas rotas.
+- **Próxima fatia:** CTA presença/QR a partir da aula na agenda; ou EmptyState em RH/acessos.
+
+### Ciclo 57.8 — Aulas do horário na agenda (2026-09-07)
+
+- **API:** `listDayAgendaLessons` (slots activos do `weekday` → turma/disciplina/docente/sala).
+- **Helpers:** `day-lessons.ts` (ordenar + fatia «próximas» para a topbar).
+- **Topbar:** `TopbarCalendar` mostra **Aulas de hoje** + períodos/feriados; link para `/pedagogica?tab=horarios`.
+- **Calendário:** painel do dia seleccionado lista as aulas daquele dia da semana.
+- **Testes:** `tests/calendar/day-lessons-contract.test.ts`, `tests/ui/topbar-calendar-contract.test.ts`.
+- **Próxima fatia:** EmptyState noutras listas; ou presença/QR a partir da aula na agenda.
+
+### Ciclo 57.7 — Período global nas notas (2026-09-07)
+
+- **Centro de Avaliação:** `AssessmentCenter` sincroniza o filtro `trimestre` com `selectedTerm` da topbar (abre no período global; mudanças locais actualizam `setSelectedTermId`).
+- **Pauta simples:** `GradePautaSheet` inicia e sincroniza o selector de período com o mesmo contexto.
+- **Já existia:** `PautasWorkspaceModule` (57.5).
+- **Testes:** `tests/academic/global-term-sync-contract.test.ts`.
+- **Próxima fatia:** EmptyState noutras listas; ou Fase 3 calendário↔horário (aulas no hub).
+
+### Ciclo 57.6 — Densidade UI + EmptyState (2026-09-07)
+
+- **Densidade:** `UiDensity` (`compact` / `comfortable` / `spacious`) em `appearance.tsx`; `data-density` no `<html>`; variáveis CSS em `styles.css`; selector em Aparência → «Densidade da interface».
+- **EmptyState:** `components/ui/empty-state.tsx` — título + descrição + CTA opcional (sem «Nenhum dado encontrado» genérico).
+- **Rollout:** calendário, comunicações, documentos e pessoas (listas vazias / filtros sem resultados).
+- **Testes:** `tests/ui/density-empty-state-contract.test.ts`.
+- **Próxima fatia:** EmptyState noutras listas; ou Fase 3 calendário↔horário; ou `selectedTermId` mais fundo nas notas.
+
+### Ciclo 57.5 — Recentes, favoritos e período nas pautas (2026-09-07)
+
+- **Memória de navegação:** `navigation-memory.ts` + `useNavigationMemory` (recentes/favoritos por utilizador).
+- **⌘K / topbar:** grupos Favoritos e Recentes na Command Palette; estrela na topbar para favoritar a página actual.
+- **Pautas:** trimestre sincronizado com `selectedTerm` global (topbar ↔ selector da pauta trimestral).
+- **Testes:** `tests/ui/navigation-memory-contract.test.ts`.
+
+### Ciclo 57.4 — Período global + Command Palette (2026-09-07)
+
+- **Contexto:** `listAcademicTerms` + `selectedTermId` em `SchoolYearProvider` (persistido); selector de período na topbar junto ao ano/escola.
+- **⌘K:** `CommandPalette` (cmdk) com páginas do catálogo + acções rápidas (novo aluno, chamada, QR, recibo, aparência…). Waffle deixa de capturar ⌘K.
+- **Testes:** `tests/ui/command-palette-contract.test.ts`.
+
+### Ciclo 57.3 — Breadcrumbs + contexto escola/ano (2026-09-07)
+
+- **PageHeader:** breadcrumbs nativos (`Início → grupo → título`) reutilizando `components/ui/breadcrumb`; prop opcional `crumbs` / `hideBreadcrumb`.
+- **Topbar:** contexto mostra nome da escola + ano lectivo no selector existente.
+- **Teste:** `tests/ui/page-header-breadcrumb-contract.test.ts`.
+
+### Ciclo 57.2 — Hoje na Escola + Próxima aula (2026-09-07)
+
+- **Admin:** `TodayAtSchoolCard` no início da visão geral — aulas do horário (`timetable_slots`), professores, salas, a iniciar em 30 min, chamadas abertas, check-ins RH, aniversários, faturas em atraso, períodos em curso. Server: `getSchoolTodayOps`.
+- **Professor:** bloco **Próxima aula** com QR / chamada / plano; KPI «3º Trimestre» fictício substituído pelo ano lectivo real.
+- **Helpers:** `school-today.ts` (Luanda, weekday, pickNextLesson). Testes `tests/dashboard/school-today-contract.test.ts`.
+- **Próxima fatia:** breadcrumbs app-wide ou barra de contexto Ano|Período; ou alargar command palette.
+
+### Ciclo 57.1 — Branding escolar → tokens de aparência (2026-09-07)
+
+- **Problema:** `school_branding` (Identidade Digital) guardava cores sem aplicar aos CSS tokens; aparência era só `siga:appearance` no dispositivo.
+- **Solução:** `brand-tokens.ts` (hex → `--primary`/`--sidebar` + contraste WCAG AA); `AppearanceState.schoolBrand` + `preferPersonalAccent`; `SchoolBrandAppearanceSync` no `__root`; `loadSchoolSettingsBundle` lê `school_branding`.
+- **UI:** Aparência → «Usar cores da escola»; Identidade Digital valida contraste, pré-visualiza botão/link/sidebar e aplica ao guardar.
+- **Testes:** `tests/ui/brand-tokens-contract.test.ts`.
+- **Próxima fatia:** widget «Hoje na Escola» no dashboard admin (dados reais).
+
+### Ciclo 57 — Premium UX Fase 1: Topbar Agenda + Navegação Principal (2026-09-07)
+
+- **Missão:** Prompt Master Premium — auditar → reutilizar → refinar (sem reconstruir). Fase 1 base: layout/navegação/calendário na topbar.
+- **Auditoria:** shell (`AppShell`/`AppSidebar`), tokens OKLCH + `appearance.tsx` (presets Oceano/Esmeralda/Grafite já existem), branding escolar desligado dos tokens CSS, calendário = períodos/`terms` (não hub operacional ainda), ⌘K = `AppLauncher`, breadcrumbs UI sem uso app-wide.
+- **Topbar:** `TopbarCalendar` — data do dia (Luanda) + mini-agenda com períodos/feriados reais (`listCalendarEvents` + `buildUpcomingCalendarItems`) + CTA «Abrir calendário completo». Respeita `canAccessPath("/calendario")`.
+- **Sidebar admin:** novo grupo **Principal** (Início + Calendário Lectivo); calendário removido do submenu Área Pedagógica (sem duplicar). Portais aluno/encarregado/professor elevam Calendário a item de topo.
+- **Não feito nesta fatia:** tema tenant→CSS, barra período global, aulas no calendário, command palette completa, breadcrumbs app-wide.
+- **Testes:** `tests/auth/portal-engine.test.ts` (+ Principal), `tests/ui/topbar-calendar-contract.test.ts`, `tests/auth/navigation-catalog.test.ts`.
+- **Próxima fatia sugerida:** ligar `school_branding.primary_color` → `applyAppearance`; ou widget «Hoje na Escola» no dashboard com dados reais.
 
 ### Ciclo 56 — Fundação RH, Assiduidade Docente e Folha Salarial (2026-09-06)
 
@@ -17,6 +193,12 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 - **Ainda fora:** API bancária real, WebAuthn/App Attest, IRT/INSS versionado, holerite oficial, atomicidade total RH+caixa numa única RPC.
 - **Validação:** `npm run siga:check` ✓ (módulo `rh` + 12/12 navigation-catalog). Prettier nos ficheiros RH corrigido (3 warnings hooks restantes). **SQL SGA live 2026-09-06:** 15/15 migrations `hr_*` aplicadas no projecto `xodgfmxiaunpamctfeea` (20 tabelas `hr_*`); policies alinhadas a `is_school_member() → boolean` (padrão SGA, não Lovable uuid).
 - **Spec Ciclo 56.1:** `src/features/hr/schemas.ts` (enums + máquinas de estado + inputs Zod); skill `siga-rh` expandida; testes `tests/hr/schemas-contract.test.ts`.
+- **Ciclo 56.2 — QR → chamada:** após check-in em `/professor/presenca`, o SIGA resolve a ficha do professor (fallback `people`/email + backfill `teachers.user_id`), abre sessão `siga_attendance_sessions` da turma/disciplina e lança `AttendanceCallDialog` no telemóvel/tablet para marcar alunos. Deep-link `?chamada=1&turma=&disciplina=&sessao=&data=`.
+- **Ciclo 56.3 — Minhas aulas + reabrir chamada:** `listMyTeacherLessonOccurrences` enriquece turma/disciplina/sessão; `openMyLessonClassroom` reabre a chamada sem novo QR (após check-in).
+- **Ciclo 56.4 — Portal ↔ QR:** `TeacherPortalDashboard` com CTA «Assinar presença (QR)» no cabeçalho, bloco de aulas e menu de ferramentas.
+- **Ciclo 56.5 — Check-out explícito:** banner «aula em curso», modo Entrada/Saída e acções de saída na lista do professor.
+- **Ciclo 56.6 — Chamada → pauta:** CTA «Lançar notas» no `AttendanceCallDialog`, no portal do professor e em `/professor/presenca` (deep-link `/pedagogica?tab=notas&turma=&disciplina=&pauta=1`).
+- **Ciclo 56.7 — Plano + materiais:** deep-links `teacher-classroom-links.ts` para `/planos-aula?turma=&disciplina=` e `/arquivos?turma=` no diálogo de chamada, portal e presença; `/planos-aula` faz seed dos filtros a partir da URL.
 
 Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise completo (Fases 1–15) + Ciclos 50–56.
 ### Ciclo 55 — Estados Académicos Unificados, 22 Importadores e PayFlow Admin (2026-09-05)

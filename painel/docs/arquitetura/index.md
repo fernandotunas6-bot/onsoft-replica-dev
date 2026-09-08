@@ -58,11 +58,11 @@ A harmonização é de **arquitectura, dados, autenticação e URLs** — não d
  
 | App | URL Produção | URL Local | Função |
 | --- | --- | --- | --- |
-| **WEB** | [siga-web.pages.dev](https://siga-web.pages.dev) | `http://localhost:5174` | Marketing, `/pricing`, wizard `/start` |
-| **ADMIN** | [siga-admin.pages.dev](https://siga-admin.pages.dev/tenants) | `http://localhost:3005/tenants` | Control Center SaaS |
-| **SIGA** | [portal-siga.com](https://portal-siga.com) | `http://localhost:3006` | Operação escolar |
+| **WEB** | [www.portal-siga.com](https://www.portal-siga.com) | `http://localhost:5174` | Marketing, `/pricing`, wizard `/start` |
+| **ADMIN** | [admin.portal-siga.com](https://admin.portal-siga.com/tenants) | `http://localhost:3005/tenants` | Control Center SaaS |
+| **SIGA** | [portal-siga.com](https://portal-siga.com) / [app.portal-siga.com](https://app.portal-siga.com) | `http://localhost:3006` | Operação escolar |
 | **PAYFLOW** | [payflow.portal-siga.com](https://payflow.portal-siga.com) | `http://localhost:3007` | Cobrança e recibos |
-| **DOC** | [siga-docs.pages.dev](https://siga-docs.pages.dev) | `http://localhost:5173` | Este site |
+| **DOC** | [docs.portal-siga.com](https://docs.portal-siga.com) | `http://localhost:5173` | Este site |
 
 Configure URLs de produção com `VITE_*` (SIGA/WEB) ou `NEXT_PUBLIC_*` (ADMIN). Ver `npm run siga:sync-env` na raiz do repositório.
 

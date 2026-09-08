@@ -37,17 +37,17 @@ import { ModalShell, ModalSidebar, type ModalSidebarItem } from "@/components/ui
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
-import { applyLibraryPhotoToPerson } from "@/features/arquivos/apply-person-photo";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadPersonPhotoToLibrary } from "@/features/arquivos/apply-person-photo";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import {
   getPerson,
   setPersonInstitutionRoles,
-  setPersonPhotoUrl,
   updatePersonStatus,
   updatePerson,
 } from "@/features/people/server";
@@ -155,6 +155,7 @@ export function PersonProfile360Modal({
   onAction?: (action: "enroll", person: PersonRecord) => void;
 }) {
   const queryClient = useQueryClient();
+  const account = useCurrentAccount();
   const [activeTab, setActiveTab] = useState("visao_geral");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -178,6 +179,9 @@ export function PersonProfile360Modal({
     queryFn: () => (personId ? getPerson({ data: { id: personId } }) : null),
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
   const person = personQuery.data as PersonRecord | undefined;
 
   if (!open || !personId) return null;
@@ -188,9 +192,6 @@ export function PersonProfile360Modal({
   const email = person?.email || "";
   const nifOrBi = person?.nif || person?.national_id || "";
   const photoUrl = person?.photo_url || null;
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -206,44 +207,18 @@ export function PersonProfile360Modal({
       return;
     }
 
+    if (!account.schoolId) {
+      toast.error("Sem escola activa para associar a fotografia.");
+      return;
+    }
+
     setIsUploadingPhoto(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `avatars/${personId}-${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("school-logos")
-        .upload(filePath, file, { upsert: true });
-
-      let newPhotoUrl: string | null = null;
-      if (!uploadError) {
-        const { data: publicUrlData } = supabase.storage
-          .from("school-logos")
-          .getPublicUrl(filePath);
-        newPhotoUrl = publicUrlData.publicUrl;
-      }
-
-      if (!newPhotoUrl) {
-        const { error: avatarError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, file, { upsert: true });
-        if (!avatarError) {
-          const { data: publicUrlData } = supabase.storage
-            .from("avatars")
-            .getPublicUrl(filePath);
-          newPhotoUrl = publicUrlData.publicUrl;
-        }
-      }
-
-      if (!newPhotoUrl) {
-        throw new Error("Não foi possível carregar a imagem para o servidor de ficheiros.");
-      }
-
-      await setPersonPhotoUrl({
-        data: {
-          personId,
-          photoUrl: newPhotoUrl,
-        },
+      await uploadPersonPhotoToLibrary({
+        file,
+        personId,
+        schoolId: account.schoolId,
+        ownerUserId: account.id,
       });
 
       await Promise.all([
@@ -682,12 +657,10 @@ export function PersonProfile360Modal({
                       <Label htmlFor="edit-nif" className="text-xs">
                         BI / NIF
                       </Label>
-                      <Input
+                      <AngolaIdentityField
                         id="edit-nif"
                         value={editValues.nif}
-                        onChange={(e) =>
-                          setEditValues((prev) => ({ ...prev, nif: e.target.value }))
-                        }
+                        onChange={(value) => setEditValues((prev) => ({ ...prev, nif: value }))}
                       />
                     </div>
                     <div className="space-y-1.5">

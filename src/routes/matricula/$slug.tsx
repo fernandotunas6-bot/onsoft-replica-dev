@@ -42,6 +42,7 @@ function PublicEnrollmentPage() {
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState<{
     fullName: string;
+    processNumber: string;
     guardianName?: string;
     guardianPhone?: string;
   } | null>(null);
@@ -71,7 +72,7 @@ function PublicEnrollmentPage() {
       const fullName = String(data.get("full_name") ?? "");
       const guardianName = String(data.get("guardian_name") || "") || undefined;
       const guardianPhone = String(data.get("guardian_phone") || "") || undefined;
-      await submitPublicEnrollment({
+      const submitted = await submitPublicEnrollment({
         data: {
           slug,
           person: {
@@ -94,6 +95,7 @@ function PublicEnrollmentPage() {
       });
       setReceipt({
         fullName,
+        processNumber: submitted.processNumber,
         ...(guardianName ? { guardianName } : {}),
         ...(guardianPhone ? { guardianPhone } : {}),
       });
@@ -158,6 +160,11 @@ function PublicEnrollmentPage() {
                 A secretaria vai rever os dados e contactá-lo para confirmar a matrícula.
               </p>
               {receipt ? (
+                <p className="mt-3 text-sm font-semibold text-foreground">
+                  Nº de processo: {receipt.processNumber}
+                </p>
+              ) : null}
+              {receipt ? (
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
                   <Button
                     variant="outline"
@@ -167,11 +174,12 @@ function PublicEnrollmentPage() {
                         school: { name: form?.school_name ?? "Escola" },
                         student: {
                           fullName: receipt.fullName,
-                          academicNumber: "CAND",
+                          academicNumber: receipt.processNumber,
                         },
                         overlay: overlayTalao({
                           kind: "candidatura",
                           fullName: receipt.fullName,
+                          process: receipt.processNumber,
                           ...(receipt.guardianName ? { guardianName: receipt.guardianName } : {}),
                           ...(receipt.guardianPhone
                             ? { guardianPhone: receipt.guardianPhone }

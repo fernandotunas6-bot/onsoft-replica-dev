@@ -118,9 +118,9 @@ export function getPortalNavigation(
                 to: "/pedagogica",
                 search: { tab: "notas" },
               },
-              { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
             ],
           },
+          { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
           {
             label: "Frequência",
             icon: CheckSquare,
@@ -173,9 +173,9 @@ export function getPortalNavigation(
                 to: "/pedagogica",
                 search: { tab: "horarios" },
               },
-              { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
             ],
           },
+          { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
           {
             label: "Frequência",
             icon: CheckSquare,
@@ -255,9 +255,9 @@ export function getPortalNavigation(
                 search: { tab: "horarios" },
               },
               { label: "Planos de Aula", icon: NotebookPen, to: "/planos-aula" },
-              { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
             ],
           },
+          { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
           { label: "Biblioteca & Materiais", icon: FolderOpen, to: "/arquivos" },
           { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
           { label: "Meu Perfil", icon: User, to: "/perfil" },
@@ -273,9 +273,15 @@ export function getPortalNavigation(
   // Portal Administrativo (Direção, Secretaria, Tesouraria)
   const groups: NavGroup[] = [
     {
+      title: "Principal",
+      items: [
+        { label: "Início", icon: LayoutGrid, to: "/" },
+        { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
+      ],
+    },
+    {
       title: "Académico",
       items: [
-        { label: "Dashboard", icon: LayoutGrid, to: "/" },
         {
           label: "Área Pedagógica",
           icon: BookOpen,
@@ -303,11 +309,6 @@ export function getPortalNavigation(
               icon: CheckSquare,
               to: "/pedagogica",
               search: { tab: "chamada" },
-            },
-            {
-              label: "Calendário Lectivo",
-              icon: CalendarDays,
-              to: "/calendario",
             },
             {
               label: "Planos de Aula",

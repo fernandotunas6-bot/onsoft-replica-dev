@@ -16,6 +16,11 @@ const publicMessages: Record<string, string> = {
 
 /** Prevent database structure and raw SQL details from reaching browser clients. */
 export function publicDatabaseError(error: DatabaseError, fallback: string): Error {
+  // A mensagem devolvida ao browser é deliberadamente vaga; sem este registo
+  // no servidor um 23502/23503 fica invisível para quem depura.
+  if (typeof window === "undefined") {
+    console.error("[db] %s %s", error.code ?? "(sem código)", error.message ?? fallback);
+  }
   const missingTable =
     error.code === "42P01" ||
     /schema cache|does not exist|relation .* does not exist/i.test(String(error.message ?? ""));

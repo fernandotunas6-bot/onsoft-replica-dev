@@ -203,20 +203,27 @@ export const submitPublicEnrollment = createServerFn({ method: "POST" })
     if (formError) throw publicDatabaseError(formError, "Não foi possível validar o formulário.");
     if (!form) throw new Error("Este link de matrícula está fechado.");
 
-    const { error } = await db.from("enrollment_applications").insert({
-      school_id: form.school_id,
-      form_id: form.id,
-      full_name: data.person.full_name,
-      status: "pending",
-      payload: {
-        person: data.person,
-        guardianName: data.guardianName,
-        guardianPhone: data.guardianPhone,
-        guardianRelationship: data.guardianRelationship,
-      },
-    });
+    const { data: inserted, error } = await db
+      .from("enrollment_applications")
+      .insert({
+        school_id: form.school_id,
+        form_id: form.id,
+        full_name: data.person.full_name,
+        status: "pending",
+        payload: {
+          person: data.person,
+          guardianName: data.guardianName,
+          guardianPhone: data.guardianPhone,
+          guardianRelationship: data.guardianRelationship,
+        },
+      })
+      .select("id, created_at")
+      .single();
     if (error) throw publicDatabaseError(error, "Não foi possível enviar a candidatura.");
-    return { ok: true };
+    return {
+      ok: true,
+      processNumber: candidacyProcessNumber(inserted.id, inserted.created_at),
+    };
   });
 
 export const listEnrollmentApplications = createServerFn({ method: "GET" })
@@ -253,7 +260,10 @@ export const listEnrollmentApplications = createServerFn({ method: "GET" })
       error = retry.error;
     }
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as candidaturas.");
-    return rows ?? [];
+    return (rows ?? []).map((row) => ({
+      ...row,
+      processNumber: candidacyProcessNumber(row.id, row.created_at),
+    }));
   });
 
 export const decideEnrollmentApplication = createServerFn({ method: "POST" })

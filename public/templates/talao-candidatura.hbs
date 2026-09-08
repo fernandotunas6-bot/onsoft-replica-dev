@@ -17,6 +17,7 @@
           <p class="republic">{{school.ministry}}</p>
           <p class="republic">{{school.ministryLine}}</p>
           <h1>{{school.name}}</h1>
+          {{#if school.typeLabel}}<p class="school-type">{{school.typeLabel}}</p>{{/if}}
           <p>{{school.address}} | NIF {{school.nif}} | {{school.phone}}</p>
         </div>
         <div class="document-box">Nº {{document.number}}<br />v{{document.version}}</div>

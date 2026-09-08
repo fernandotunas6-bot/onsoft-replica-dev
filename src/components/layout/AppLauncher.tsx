@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ChevronRight, Search, Settings, SlidersHorizontal } from "lucide-react";
@@ -261,19 +261,6 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
     );
   }, [searching, hubSection, currentUser.role, currentUser.grants, activePlan]);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
-      const target = event.target as HTMLElement | null;
-      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-      event.preventDefault();
-      setHubOpen(false);
-      setPopoverOpen((open) => !open);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
   const activeHub = launcherHubSections.find((section) => section.id === hubSection);
 
   const closeAll = () => {
@@ -353,7 +340,7 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
             size="icon"
             className="header-icon-btn"
             aria-label="Abrir aplicativos e integrações"
-            title="Aplicativos (Ctrl/⌘ K)"
+            title="Aplicativos e integrações"
             aria-haspopup="dialog"
             aria-expanded={popoverOpen || hubOpen}
           >

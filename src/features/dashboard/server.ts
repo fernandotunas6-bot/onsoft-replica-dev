@@ -5,8 +5,19 @@ import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/su
 import { buildSchoolAlert, type SchoolAlert } from "./alerts";
 import { averagePercent } from "@/features/students/schemas";
 import { getPublicEnrollmentUrl } from "@/lib/ecosystem-urls";
-import { academicYearProgress, todayInLuanda, type AcademicYearPhase } from "@/features/calendar/dates";
+import {
+  academicYearProgress,
+  todayInLuanda,
+  type AcademicYearPhase,
+} from "@/features/calendar/dates";
 import { buildUpcomingCalendarItems } from "@/features/calendar/upcoming";
+import {
+  emptySchoolTodayOps,
+  isStartingWithinMinutes,
+  nowTimeInLuanda,
+  weekdayJsFromIso,
+  type SchoolTodayOps,
+} from "./school-today";
 
 function countMap(entries: Array<string | null | undefined>) {
   const map = new Map<string, number>();
@@ -162,11 +173,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         status: yearRow.status,
       };
       overview.academicYear = academicYear;
-      const progress = academicYearProgress(
-        yearRow.starts_on,
-        yearRow.ends_on,
-        todayInLuanda(),
-      );
+      const progress = academicYearProgress(yearRow.starts_on, yearRow.ends_on, todayInLuanda());
       overview.yearProgress = progress.percent;
       overview.yearPhase = progress.phase;
     }
@@ -473,18 +480,23 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     );
 
     const { data: announcementRows, error: announcementError } = await db
-      .from("announcements")
-      .select("id, title, body, published_at, status")
+      .from("school_announcements")
+      .select("id, title, body, published_at, scheduled_for, created_at, status")
       .eq("school_id", schoolId)
-      .or(`status.eq.published,and(status.eq.scheduled,scheduled_for.lte.${fromDate})`)
-      .order("published_at", { ascending: false })
+      .is("deleted_at", null)
+      .or(`status.eq.sent,and(status.eq.scheduled,scheduled_for.lte.${fromDate})`)
+      .order("created_at", { ascending: false })
       .limit(5);
     if (!announcementError) {
       overview.announcements = (announcementRows ?? []).map((row) => ({
         id: String(row.id),
         title: String(row.title ?? "Comunicado"),
         body: String(row.body ?? ""),
-        published_at: row.published_at ? String(row.published_at) : null,
+        published_at: row.published_at
+          ? String(row.published_at)
+          : row.scheduled_for
+            ? String(row.scheduled_for)
+            : null,
       }));
     }
 
@@ -532,6 +544,170 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     }
 
     return overview;
+  });
+
+export const getSchoolTodayOps = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<SchoolTodayOps> => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    const today = todayInLuanda();
+    if (!membership) return emptySchoolTodayOps(today);
+
+    const role = membership.appRole;
+    if (!["Administrador", "Secretaria", "Tesouraria", "Professor"].includes(role)) {
+      return emptySchoolTodayOps(today);
+    }
+
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const ops = emptySchoolTodayOps(today);
+    const weekday = weekdayJsFromIso(today);
+    ops.weekday = weekday;
+    const nowHhMm = nowTimeInLuanda();
+
+    try {
+      const { data: slots } = await db
+        .from("timetable_slots")
+        .select("id, class_subject_id, starts_at, ends_at, room")
+        .eq("school_id", schoolId)
+        .eq("weekday", weekday)
+        .eq("status", "active");
+
+      const slotRows = slots ?? [];
+      ops.lessonsScheduled = slotRows.length;
+      ops.lessonsStartingSoon = slotRows.filter((slot) =>
+        isStartingWithinMinutes(String(slot.starts_at ?? ""), nowHhMm, 30),
+      ).length;
+      ops.roomsInUse = new Set(
+        slotRows
+          .map((slot) => String(slot.room ?? "").trim().toLocaleLowerCase())
+          .filter(Boolean),
+      ).size;
+
+      const classSubjectIds = [
+        ...new Set(slotRows.map((slot) => String(slot.class_subject_id)).filter(Boolean)),
+      ];
+      if (classSubjectIds.length) {
+        const { data: classSubjects } = await db
+          .from("class_subjects")
+          .select("id, class_group_id, teacher_id")
+          .eq("school_id", schoolId)
+          .in("id", classSubjectIds);
+        const teachers = new Set(
+          (classSubjects ?? [])
+            .map((row) => (row.teacher_id ? String(row.teacher_id) : ""))
+            .filter(Boolean),
+        );
+        const classes = new Set(
+          (classSubjects ?? []).map((row) => String(row.class_group_id)).filter(Boolean),
+        );
+        ops.teachersScheduled = teachers.size;
+        ops.classesWithLessons = classes.size;
+      }
+    } catch {
+      /* horário indisponível */
+    }
+
+    try {
+      const { data: sessions } = await db
+        .from("siga_attendance_sessions")
+        .select("id, status")
+        .eq("school_id", schoolId)
+        .eq("lesson_date", today);
+      for (const session of sessions ?? []) {
+        const status = String(session.status ?? "");
+        if (status === "completed") ops.attendanceSessionsDone += 1;
+        else if (status !== "cancelled") ops.attendanceSessionsOpen += 1;
+      }
+    } catch {
+      /* chamadas indisponíveis */
+    }
+
+    try {
+      const { data: occurrences } = await db
+        .from("hr_teacher_lesson_occurrences")
+        .select("id, teacher_id, actual_started_at, status")
+        .eq("school_id", schoolId)
+        .eq("lesson_date", today);
+      const checked = new Set<string>();
+      const pending = new Set<string>();
+      for (const row of occurrences ?? []) {
+        const teacherId = row.teacher_id ? String(row.teacher_id) : "";
+        if (!teacherId) continue;
+        if (row.actual_started_at) checked.add(teacherId);
+        else if (String(row.status ?? "") !== "cancelled") pending.add(teacherId);
+      }
+      for (const id of checked) pending.delete(id);
+      ops.teachersCheckedIn = checked.size;
+      ops.teachersPendingCheckIn = pending.size;
+    } catch {
+      /* RH opcional */
+    }
+
+    try {
+      const mmDd = today.slice(5);
+      const { data: people } = await db
+        .from("people")
+        .select("id, birth_date")
+        .eq("school_id", schoolId)
+        .not("birth_date", "is", null)
+        .limit(2000);
+      ops.birthdaysToday = (people ?? []).filter((person) =>
+        String(person.birth_date ?? "").slice(5, 10) === mmDd,
+      ).length;
+    } catch {
+      /* aniversários opcionais */
+    }
+
+    if (["Administrador", "Tesouraria"].includes(role)) {
+      try {
+        const [{ data: invoices }, { data: receipts }] = await Promise.all([
+          db
+            .from("finance_invoices")
+            .select("id, amount, discount_amount, status, due_date")
+            .eq("school_id", schoolId)
+            .limit(250),
+          db
+            .from("finance_receipts")
+            .select("invoice_id, amount, status")
+            .eq("school_id", schoolId)
+            .limit(250),
+        ]);
+        const paidByInvoice = new Map<string, number>();
+        for (const receipt of receipts ?? []) {
+          if (receipt.status === "reversed") continue;
+          paidByInvoice.set(
+            String(receipt.invoice_id),
+            (paidByInvoice.get(String(receipt.invoice_id)) ?? 0) + Number(receipt.amount ?? 0),
+          );
+        }
+        let overdueCount = 0;
+        for (const invoice of invoices ?? []) {
+          if (invoice.status === "cancelled") continue;
+          const total = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+          const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
+          const openAmount = Math.max(total - paid, 0);
+          if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
+        }
+        ops.overdueInvoices = overdueCount;
+      } catch {
+        /* financeiro opcional */
+      }
+    }
+
+    try {
+      const { data: terms } = await db
+        .from("terms")
+        .select("id, name, starts_on, ends_on")
+        .eq("school_id", schoolId)
+        .lte("starts_on", today)
+        .gte("ends_on", today);
+      ops.calendarItemsToday = (terms ?? []).length;
+    } catch {
+      /* calendário opcional */
+    }
+
+    return ops;
   });
 
 export const listSchoolAlerts = createServerFn({ method: "GET" })

@@ -14,12 +14,15 @@ import {
   CheckCheck,
   Building2,
   FileText,
+  FolderOpen,
+  QrCode,
 } from "lucide-react";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { todayInLuanda } from "@/features/calendar/dates";
 import { listTeacherAttendanceSessions } from "@/features/pedagogica/attendance-server";
 import { listPedagogicalWorkspace } from "@/features/academic/server";
+import { nowTimeInLuanda, pickNextLesson } from "@/features/dashboard/school-today";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +30,11 @@ import { AttendanceCallDialog } from "@/features/pedagogica/components/Attendanc
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
+import {
+  teacherClassFilesSearch,
+  teacherGradesSearch,
+  teacherLessonPlansSearch,
+} from "@/features/hr/teacher-classroom-links";
 
 export function TeacherPortalDashboard() {
   const currentUser = useCurrentAccount();
@@ -54,8 +62,20 @@ export function TeacherPortalDashboard() {
   const sessions = sessionsQuery.data?.sessions ?? [];
   const pendingCount = sessionsQuery.data?.pendingCount ?? 0;
   const teacherClasses = workspaceQuery.data?.classGroups ?? [];
+  const nextLesson = pickNextLesson(sessions, nowTimeInLuanda());
 
-  const teacherMenu = [
+  const openCall = (sessionId: string) => {
+    setSelectedCallSessionId(sessionId);
+    setCallDialogOpen(true);
+  };
+
+  const teacherMenu: Array<{
+    label: string;
+    icon: typeof QrCode;
+    to: "/professor/presenca" | "/pedagogica" | "/planos-aula" | "/arquivos";
+    search?: { tab: string };
+  }> = [
+    { label: "Assinar presença (QR)", icon: QrCode, to: "/professor/presenca" },
     { label: "Fazer Chamada", icon: CheckSquare, to: "/pedagogica", search: { tab: "chamada" } },
     {
       label: "Lançar Notas e Avaliações",
@@ -91,7 +111,7 @@ export function TeacherPortalDashboard() {
             {greeting}, Professor {firstName}!
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Gestão pedagógica produtiva: chamadas, notas, pautas e planos de aula.
+            Assine a presença por QR, faça a chamada da turma, lance notas e prepare planos de aula.
           </p>
 
           <SpotlightRail
@@ -105,16 +125,66 @@ export function TeacherPortalDashboard() {
         </div>
 
         {pendingCount > 0 ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge
               variant="outline"
               className="bg-warning/10 text-warning-foreground border-warning/30 px-3 py-1.5 text-xs font-extrabold animate-pulse"
             >
               <AlertCircle className="size-3.5 mr-1" /> {pendingCount} Chamada(s) Pendente(s) Hoje
             </Badge>
+            <Button asChild size="sm" className="gap-1.5 font-bold">
+              <Link to="/professor/presenca">
+                <QrCode className="size-3.5" /> Assinar presença (QR)
+              </Link>
+            </Button>
           </div>
-        ) : null}
+        ) : (
+          <Button asChild size="sm" variant="outline" className="gap-1.5 font-bold">
+            <Link to="/professor/presenca">
+              <QrCode className="size-3.5" /> Assinar presença (QR)
+            </Link>
+          </Button>
+        )}
       </div>
+
+      {nextLesson ? (
+        <section className="surface-card border-2 border-primary/25 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Próxima aula</p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-extrabold tracking-tight">{nextLesson.subject_name}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {nextLesson.class_group_name}
+                {nextLesson.room ? ` · Sala ${nextLesson.room}` : ""}
+              </p>
+              <p className="mt-1 font-mono text-sm font-semibold">
+                {String(nextLesson.starts_at).slice(0, 5)}–{String(nextLesson.ends_at).slice(0, 5)}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="outline" className="gap-1.5 font-bold">
+                <Link to="/professor/presenca">
+                  <QrCode className="size-3.5" /> QR presença
+                </Link>
+              </Button>
+              <Button size="sm" className="gap-1.5 font-bold" onClick={() => openCall(nextLesson.id)}>
+                <CheckSquare className="size-3.5" /> Marcar presença
+              </Button>
+              <Button asChild size="sm" variant="ghost" className="gap-1.5 font-bold">
+                <Link
+                  to="/planos-aula"
+                  search={teacherLessonPlansSearch(
+                    nextLesson.class_group_id,
+                    nextLesson.subject_id,
+                  )}
+                >
+                  <NotebookPen className="size-3.5" /> Ver plano
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {/* QUADRO DE INDICADORES PRODUTIVOS */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -151,11 +221,11 @@ export function TeacherPortalDashboard() {
 
         <div className="surface-card p-5 space-y-2 border-l-4 border-l-success">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
-            <span>Planos de Aula</span>
+            <span>Ano lectivo</span>
             <NotebookPen className="size-4 text-success" />
           </div>
-          <p className="text-3xl font-extrabold text-foreground">3º Trimestre</p>
-          <p className="text-xs text-success font-semibold">Planeamento pedagógico preparado</p>
+          <p className="text-lg font-extrabold leading-tight text-foreground">{selectedYearLabel}</p>
+          <p className="text-xs text-muted-foreground">Contexto pedagógico activo</p>
         </div>
       </div>
 
@@ -167,16 +237,24 @@ export function TeacherPortalDashboard() {
               <CheckCheck className="size-5 text-primary" /> Aulas de Hoje e Chamada Rápida
             </h2>
             <p className="text-xs text-muted-foreground">
-              Aceda diretamente à lista de alunos da aula e registe a frequência com velocidade.
+              Para hora/aula remunerada, assine primeiro o QR em Presença. Depois marque os alunos
+              aqui ou no telemóvel.
             </p>
           </div>
-          <span className="text-xs font-bold text-muted-foreground font-mono">
-            {new Date().toLocaleDateString("pt-PT", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs font-bold">
+              <Link to="/professor/presenca">
+                <QrCode className="size-3.5" /> QR de presença
+              </Link>
+            </Button>
+            <span className="text-xs font-bold text-muted-foreground font-mono">
+              {new Date().toLocaleDateString("pt-PT", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+            </span>
+          </div>
         </div>
 
         {sessionsQuery.isLoading ? (
@@ -231,12 +309,36 @@ export function TeacherPortalDashboard() {
                   className={`w-full gap-2 font-bold text-xs h-9 ${
                     sess.status === "pending"
                       ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                      : "variant-outline"
+                      : ""
                   }`}
+                  variant={sess.status === "pending" ? "default" : "outline"}
                 >
                   <CheckSquare className="size-4" />
                   {sess.status === "pending" ? "Fazer chamada agora" : "Ver / Editar chamada"}
                 </Button>
+                <Button asChild type="button" size="sm" variant="ghost" className="w-full gap-1 text-xs h-8">
+                  <Link
+                    to="/pedagogica"
+                    search={teacherGradesSearch(sess.class_group_id, sess.subject_id)}
+                  >
+                    <PieChart className="size-3.5" /> Lançar notas desta aula
+                  </Link>
+                </Button>
+                <div className="grid grid-cols-2 gap-1">
+                  <Button asChild type="button" size="sm" variant="ghost" className="gap-1 text-xs h-8">
+                    <Link
+                      to="/planos-aula"
+                      search={teacherLessonPlansSearch(sess.class_group_id, sess.subject_id)}
+                    >
+                      <NotebookPen className="size-3.5" /> Plano
+                    </Link>
+                  </Button>
+                  <Button asChild type="button" size="sm" variant="ghost" className="gap-1 text-xs h-8">
+                    <Link to="/arquivos" search={teacherClassFilesSearch(sess.class_group_id)}>
+                      <FolderOpen className="size-3.5" /> Materiais
+                    </Link>
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

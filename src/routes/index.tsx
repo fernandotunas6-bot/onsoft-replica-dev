@@ -144,25 +144,17 @@ function Dashboard() {
   useEffect(() => {
     const channel = supabase
       .channel("dashboard_realtime_overview")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "students" },
-        () => queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () =>
+        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "enrollments" },
-        () => queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      .on("postgres_changes", { event: "*", schema: "public", table: "enrollments" }, () =>
+        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
       )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "invoices" },
-        () => queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "invoices" }, () =>
+        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
       )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "school_announcements" },
-        () => queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+      .on("postgres_changes", { event: "*", schema: "public", table: "school_announcements" }, () =>
+        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
       )
       .subscribe();
 
@@ -206,7 +198,6 @@ function Dashboard() {
   }, [data, school]);
 
   useDeclareEntityFocus(focusedDashboardEntity);
-
 
   const stats = [
     {

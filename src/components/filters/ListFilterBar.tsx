@@ -41,7 +41,7 @@ export function ListFilterBar({
 }) {
   return (
     <div
-      className={cn("rounded-lg border border-border bg-card p-3 sm:p-3.5 shadow-xs", className)}
+      className={cn("rounded-lg border border-border bg-card p-3 sm:p-3.5 shadow-soft", className)}
     >
       <div className="flex flex-wrap items-end gap-2">
         {fields.map((field) => {

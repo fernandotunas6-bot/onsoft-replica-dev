@@ -6,7 +6,7 @@ Fluxo comercial para uma nova instituição aderir ao SIGA Plus. A UI é
 
 ## URL
 
-- Produção: [https://siga-web.pages.dev/start](https://siga-web.pages.dev/start) (ou `http://localhost:5174/start` em desenvolvimento)
+- Produção: [https://www.portal-siga.com/start](https://www.portal-siga.com/start) (ou `http://localhost:5174/start` em desenvolvimento)
 - A partir da landing: botão «Começar» / «Criar escola»
 
 Pontes equivalentes (não duplicam o wizard):

@@ -30,7 +30,7 @@ import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosy
 import { useTenant } from "@/features/saas/tenant-context";
 import { UserProfileModal } from "@/components/auth/UserProfileModal";
 import { AcademicNavTree } from "./AcademicNavTree";
-import { NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
+import { NAV_SUB_LIST, NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
 
 const MENU_KEY = "siga:sidebar-open-menus";
 
@@ -53,6 +53,7 @@ export function AppSidebar({
 
   const hasSchool = Boolean(school?.name);
   const schoolLogoUrl = school?.branding?.logo_url?.trim() || null;
+  const schoolMotto = school?.branding?.motto?.trim() || null;
   const schoolInitials = (school?.name ?? "Escola")
     .split(/\s+/)
     .slice(0, 2)
@@ -121,17 +122,19 @@ export function AppSidebar({
                   title={school?.name ? `${school.name} • ${currentUser.name}` : currentUser.name}
                 >
                   {schoolLogoUrl ? (
-                    <img
-                      src={schoolLogoUrl}
-                      alt={school?.name ?? "Logótipo da escola"}
-                      className="size-8 shrink-0 rounded-[10px] bg-sidebar-accent/40 object-contain p-0.5"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <span className="inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 ring-primary/20">
+                      <img
+                        src={schoolLogoUrl}
+                        alt={school?.name ?? "Logótipo da escola"}
+                        className="size-full object-contain p-1 mix-blend-multiply"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </span>
                   ) : (
                     <span
                       aria-hidden
-                      className="inline-flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary/15 text-xs font-bold text-primary"
+                      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-2 ring-primary/20"
                     >
                       {schoolInitials || "E"}
                     </span>
@@ -139,12 +142,14 @@ export function AppSidebar({
                   {!collapsed ? (
                     <>
                       <span className="min-w-0 flex-1 leading-tight">
-                        <span className="block truncate text-xs font-bold text-sidebar-foreground">
-                          {currentUser.name}
-                        </span>
-                        <span className="block truncate text-[10px] font-medium text-sidebar-muted">
+                        <span className="block truncate text-sm font-bold text-sidebar-foreground">
                           {school?.name}
                         </span>
+                        {schoolMotto ? (
+                          <span className="block truncate text-[10px] font-medium text-sidebar-muted">
+                            {schoolMotto}
+                          </span>
+                        ) : null}
                       </span>
                       <ChevronDown aria-hidden className="size-3.5 shrink-0 opacity-50" />
                     </>
@@ -266,7 +271,7 @@ export function AppSidebar({
                 // com o rótulo e os sub-itens do menu.
                 const flyout = collapsed ? (
                   <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
-                    <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-2xl">
+                    <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-float">
                       <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-[0.5px] text-sidebar-muted">
                         {item.label}
                       </p>
@@ -315,7 +320,7 @@ export function AppSidebar({
                       />
 
                       {isOpen && !collapsed ? (
-                        <ul className="mt-0.5 space-y-0.5 pl-4">
+                        <ul className={NAV_SUB_LIST}>
                           {item.children.map((child) => (
                             <li key={child.label}>
                               {child.to ? (

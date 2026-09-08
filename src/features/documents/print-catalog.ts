@@ -1,3 +1,5 @@
+import { angolaSchoolTypes } from "@/lib/school-config";
+
 export const PRINT_TEMPLATE_KEYS = [
   "talao-candidatura",
   "talao-matricula",
@@ -228,6 +230,7 @@ export type PrintSchoolContext = {
   directorName?: string | null | undefined;
   academicYear?: string | null | undefined;
   logoUrl?: string | null | undefined;
+  schoolType?: string | null | undefined;
 };
 
 export type PrintStudentContext = {
@@ -238,6 +241,11 @@ export type PrintStudentContext = {
   documentTitle?: string | undefined;
   validationCode?: string | undefined;
 };
+
+/** Rótulo legível da natureza da instituição para os cabeçalhos oficiais. */
+function schoolTypeLabel(id: string | null | undefined): string {
+  return angolaSchoolTypes.find((type) => type.id === id)?.label ?? "";
+}
 
 export function buildPrintSamplePayload(
   school: PrintSchoolContext,
@@ -307,7 +315,8 @@ export function buildPrintSamplePayload(
       phone: school.phone || "+244 000 000 000",
       email: school.email || "secretaria@escola.ao",
       logoUrl: school.logoUrl || "",
-      emblemUrl: "",
+      typeLabel: schoolTypeLabel(school.schoolType),
+      emblemUrl: "/brands/emblem-angola.svg",
       flagUrl: "",
     },
     student: {

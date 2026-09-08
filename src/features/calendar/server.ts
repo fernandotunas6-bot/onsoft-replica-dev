@@ -7,12 +7,15 @@ import {
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
+  createAcademicYearInputSchema,
   createCalendarEventInputSchema,
   deleteCalendarEventInputSchema,
   listCalendarEventsInputSchema,
+  listDayAgendaLessonsInputSchema,
   updateCalendarEventInputSchema,
 } from "./schemas";
 import { todayInLuanda, inclusiveRangesOverlap } from "./dates";
+import { sortDayAgendaLessons, dayAgendaWeekday, type DayAgendaLesson } from "./day-lessons";
 
 export type CalendarEventSummary = {
   id: string;
@@ -64,6 +67,191 @@ export const listCalendarEvents = createServerFn({ method: "GET" })
     if (error) throw publicDatabaseError(error, "Não foi possível carregar o calendário lectivo.");
 
     return (terms ?? []).map((term: Record<string, unknown>) => mapTerm(term));
+  });
+
+export const listDayAgendaLessons = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => listDayAgendaLessonsInputSchema.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<DayAgendaLesson[]> => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return [];
+    if (!["Administrador", "Secretaria", "Tesouraria", "Professor"].includes(membership.appRole)) {
+      return [];
+    }
+
+    const date = data.date ?? todayInLuanda();
+    const weekday = dayAgendaWeekday(date);
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+
+    const { data: slots, error: slotsError } = await db
+      .from("timetable_slots")
+      .select("id, class_subject_id, starts_at, ends_at, room")
+      .eq("school_id", schoolId)
+      .eq("weekday", weekday)
+      .eq("status", "active")
+      .order("starts_at", { ascending: true })
+      .limit(data.limit);
+    if (slotsError) {
+      throw publicDatabaseError(slotsError, "Não foi possível carregar as aulas do dia.");
+    }
+    const slotRows = slots ?? [];
+    if (slotRows.length === 0) return [];
+
+    const classSubjectIds = [
+      ...new Set(slotRows.map((slot) => String(slot.class_subject_id)).filter(Boolean)),
+    ];
+    const { data: classSubjects, error: csError } = await db
+      .from("class_subjects")
+      .select("id, class_group_id, subject_id, teacher_id")
+      .eq("school_id", schoolId)
+      .in("id", classSubjectIds);
+    if (csError) {
+      throw publicDatabaseError(csError, "Não foi possível carregar as aulas do dia.");
+    }
+
+    const classGroupIds = [
+      ...new Set(
+        (classSubjects ?? []).map((row) => String(row.class_group_id ?? "")).filter(Boolean),
+      ),
+    ];
+    const subjectIds = [
+      ...new Set((classSubjects ?? []).map((row) => String(row.subject_id ?? "")).filter(Boolean)),
+    ];
+    const teacherIds = [
+      ...new Set((classSubjects ?? []).map((row) => String(row.teacher_id ?? "")).filter(Boolean)),
+    ];
+
+    const [groupsRes, subjectsRes, teachersRes] = await Promise.all([
+      classGroupIds.length
+        ? db
+            .from("class_groups")
+            .select("id, name")
+            .eq("school_id", schoolId)
+            .in("id", classGroupIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
+      subjectIds.length
+        ? db.from("subjects").select("id, name").eq("school_id", schoolId).in("id", subjectIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
+      teacherIds.length
+        ? db.from("people").select("id, full_name").eq("school_id", schoolId).in("id", teacherIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; full_name: string }>, error: null }),
+    ]);
+
+    if (groupsRes.error || subjectsRes.error || teachersRes.error) {
+      throw publicDatabaseError(
+        groupsRes.error ?? subjectsRes.error ?? teachersRes.error,
+        "Não foi possível carregar as aulas do dia.",
+      );
+    }
+
+    const classSubjectById = new Map((classSubjects ?? []).map((row) => [String(row.id), row]));
+    const groupName = new Map(
+      (groupsRes.data ?? []).map((row) => [String(row.id), String(row.name ?? "")]),
+    );
+    const subjectName = new Map(
+      (subjectsRes.data ?? []).map((row) => [String(row.id), String(row.name ?? "")]),
+    );
+    const teacherName = new Map(
+      (teachersRes.data ?? []).map((row) => [String(row.id), String(row.full_name ?? "")]),
+    );
+
+    const lessons: DayAgendaLesson[] = slotRows.map((slot) => {
+      const cs = classSubjectById.get(String(slot.class_subject_id));
+      const classGroupId = cs?.class_group_id ? String(cs.class_group_id) : null;
+      const subjectId = cs?.subject_id ? String(cs.subject_id) : null;
+      const teacherId = cs?.teacher_id ? String(cs.teacher_id) : null;
+      return {
+        id: String(slot.id),
+        startsAt: String(slot.starts_at ?? "").slice(0, 5),
+        endsAt: String(slot.ends_at ?? "").slice(0, 5),
+        room: slot.room ? String(slot.room) : null,
+        classGroupId,
+        classGroupName: (classGroupId && groupName.get(classGroupId)) || "Turma",
+        subjectId,
+        subjectName: (subjectId && subjectName.get(subjectId)) || "Disciplina",
+        teacherId,
+        teacherName: teacherId ? (teacherName.get(teacherId) ?? null) : null,
+      };
+    });
+
+    return sortDayAgendaLessons(lessons).slice(0, data.limit);
+  });
+
+/** Ano lectivo activo da escola, ou `null` — é o que destranca períodos e propinas. */
+export const getActiveAcademicYear = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return null;
+    const db = await loadSgaAdminClient();
+    const { data, error } = await db
+      .from("academic_years")
+      .select("id, name, starts_on, ends_on, status")
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .order("starts_on", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar o ano lectivo.");
+    return data ?? null;
+  });
+
+/**
+ * Cria o primeiro ano lectivo da escola.
+ *
+ * Sem isto uma escola nova ficava num impasse: «Novo período» exige ano
+ * lectivo activo, «Preparar estrutura» exige períodos configurados, e o
+ * selector das Definições só *activa* um ano que já exista. O provisionamento
+ * não inventa datas de propósito — por isso a escola tem de as indicar aqui.
+ */
+export const createAcademicYear = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => createAcademicYearInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const db = await loadSgaAdminClient();
+
+    const { data: existing, error: existingError } = await db
+      .from("academic_years")
+      .select("id, name")
+      .eq("school_id", membership.schoolId)
+      .eq("name", data.name)
+      .maybeSingle();
+    if (existingError) {
+      throw publicDatabaseError(existingError, "Não foi possível validar o ano lectivo.");
+    }
+
+    // Um ano activo de cada vez: o resto do SIGA resolve o ano por status.
+    await db
+      .from("academic_years")
+      .update({ status: "closed" })
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active");
+
+    if (existing?.id) {
+      const { error } = await db
+        .from("academic_years")
+        .update({ starts_on: data.startsOn, ends_on: data.endsOn, status: "active" })
+        .eq("id", existing.id)
+        .eq("school_id", membership.schoolId);
+      if (error) throw publicDatabaseError(error, "Não foi possível activar o ano lectivo.");
+      return { id: existing.id as string, name: data.name, created: false };
+    }
+
+    const { data: created, error } = await db
+      .from("academic_years")
+      .insert({
+        school_id: membership.schoolId,
+        name: data.name,
+        starts_on: data.startsOn,
+        ends_on: data.endsOn,
+        status: "active",
+      })
+      .select("id")
+      .single();
+    if (error) throw publicDatabaseError(error, "Não foi possível criar o ano lectivo.");
+    return { id: created.id as string, name: data.name, created: true };
   });
 
 export const createCalendarEvent = createServerFn({ method: "POST" })

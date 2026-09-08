@@ -1,11 +1,20 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calculator, CheckCheck, FileSpreadsheet, RefreshCw, WalletCards } from "lucide-react";
+import {
+  CalendarRange,
+  Calculator,
+  CheckCheck,
+  FileSpreadsheet,
+  MousePointerClick,
+  RefreshCw,
+  WalletCards,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { listHrPayrollRuns } from "@/features/hr/server";
 import {
@@ -193,7 +202,21 @@ function PayrollOperationsPage() {
             ) : runs.isError ? (
               <p className="text-sm text-destructive">Não foi possível carregar as folhas.</p>
             ) : (runs.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Ainda não existem folhas salariais.</p>
+              <EmptyState
+                icon={CalendarRange}
+                title="Ainda não existem folhas salariais"
+                description={`Prepare a competência de ${monthNames[month - 1]} ${year} para calcular mensalistas, horistas e hora/aula desta escola.`}
+                action={
+                  <Button
+                    size="sm"
+                    onClick={() => createRun.mutate()}
+                    disabled={createRun.isPending}
+                  >
+                    {createRun.isPending ? "A preparar…" : "Preparar folha"}
+                  </Button>
+                }
+                compact
+              />
             ) : (
               <div className="space-y-2">
                 {(runs.data ?? []).map((run) => {
@@ -224,9 +247,12 @@ function PayrollOperationsPage() {
           <div className="space-y-4">
             {!selectedRunId ? (
               <Panel title="Selecione uma competência">
-                <p className="text-sm text-muted-foreground">
-                  Escolha uma folha à esquerda para iniciar o processamento.
-                </p>
+                <EmptyState
+                  icon={MousePointerClick}
+                  title="Nenhuma competência seleccionada"
+                  description="Escolha uma folha na lista à esquerda para calcular, rever e aprovar o processamento salarial."
+                  compact
+                />
               </Panel>
             ) : detail.isLoading ? (
               <Panel title="A carregar">
@@ -322,9 +348,24 @@ function PayrollOperationsPage() {
                   description="Detalhe por funcionário/professor antes da aprovação final."
                 >
                   {items.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      A folha ainda não foi calculada.
-                    </p>
+                    <EmptyState
+                      icon={Calculator}
+                      title="A folha ainda não foi calculada"
+                      description="Execute o cálculo da competência para gerar os itens por funcionário e professor a partir dos vínculos activos."
+                      action={
+                        ["draft", "calculating", "review"].includes(selected.status) ? (
+                          <Button
+                            size="sm"
+                            onClick={() => calculate.mutate(selected.id)}
+                            disabled={calculate.isPending}
+                          >
+                            <Calculator className="mr-2 size-4" aria-hidden="true" />
+                            {calculate.isPending ? "A calcular…" : "Calcular folha"}
+                          </Button>
+                        ) : undefined
+                      }
+                      compact
+                    />
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">

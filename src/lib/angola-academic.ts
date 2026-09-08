@@ -43,6 +43,10 @@ export const angolaTeachingLevels = [
 
 export type AngolaTeachingLevelId = (typeof angolaTeachingLevels)[number]["id"];
 
+export function isTeachingLevelId(value: unknown): value is AngolaTeachingLevelId {
+  return angolaTeachingLevels.some((level) => level.id === value);
+}
+
 /** Mesmos ciclos usados pelo motor de avaliação e pelas pautas (assessment-engine.ts, pautas/types.ts). */
 export type AngolaTeachingCycle =
   "primario" | "i_ciclo" | "ii_ciclo" | "tecnico" | "adultos" | "superior";
@@ -71,6 +75,10 @@ export const angolaSecondaryCourses = [
 ] as const;
 
 export type AngolaCourseId = (typeof angolaSecondaryCourses)[number]["id"];
+
+export function isCourseId(value: unknown): value is AngolaCourseId {
+  return angolaSecondaryCourses.some((course) => course.id === value);
+}
 
 export const angolaCoreSubjects: ReadonlyArray<{
   code: string;
@@ -190,18 +198,51 @@ export const CYCLE_PERIOD_COUNT: Record<AngolaTeachingCycle, 2 | 3> = {
   superior: 2,
 };
 
-export function getPeriodCountForCycle(cycle?: AngolaTeachingCycle | null): 2 | 3 {
-  return cycle ? CYCLE_PERIOD_COUNT[cycle] : 3;
+/** Ciclos em regime semestral — o nome do período vem daqui, nunca da contagem. */
+const SEMESTER_CYCLES: ReadonlySet<AngolaTeachingCycle> = new Set<AngolaTeachingCycle>(["superior"]);
+
+export const MIN_EVALUATION_PERIODS = 2;
+export const MAX_EVALUATION_PERIODS = 3;
+
+/** Devolve a contagem configurada pela escola, ou null se estiver fora do suportado. */
+export function normalizeEvaluationPeriods(value: unknown): 2 | 3 | null {
+  const parsed = Math.trunc(Number(value));
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed < MIN_EVALUATION_PERIODS || parsed > MAX_EVALUATION_PERIODS) return null;
+  return parsed as 2 | 3;
 }
 
-/** [1,2,3] para os ciclos trimestrais, [1,2] para o Ensino Superior. */
-export function getPeriodsForCycle(cycle?: AngolaTeachingCycle | null): Array<1 | 2 | 3> {
-  return getPeriodCountForCycle(cycle) === 2 ? [1, 2] : [1, 2, 3];
+/**
+ * Contagem de períodos: manda o que a escola configurou; o ciclo é só a omissão.
+ *
+ * O Ensino Superior é a excepção — tem regime semestral próprio, por isso a
+ * contagem trimestral da escola não se lhe aplica. Numa escola que tenha os dois
+ * regimes, um único número não poderia servir ambos.
+ */
+export function getPeriodCountForCycle(
+  cycle?: AngolaTeachingCycle | null,
+  configuredCount?: unknown,
+): 2 | 3 {
+  const cycleDefault = cycle ? CYCLE_PERIOD_COUNT[cycle] : 3;
+  if (cycle && SEMESTER_CYCLES.has(cycle)) return cycleDefault;
+  return normalizeEvaluationPeriods(configuredCount) ?? cycleDefault;
 }
 
-/** "Trimestre" ou "Semestre", consoante o ciclo. */
+/** [1,2,3] ou [1,2], consoante a configuração da escola e o ciclo. */
+export function getPeriodsForCycle(
+  cycle?: AngolaTeachingCycle | null,
+  configuredCount?: unknown,
+): Array<1 | 2 | 3> {
+  return getPeriodCountForCycle(cycle, configuredCount) === 2 ? [1, 2] : [1, 2, 3];
+}
+
+/**
+ * "Trimestre" ou "Semestre" — decidido pelo ciclo, e não pela contagem. Derivar
+ * do número faria uma escola que escolhesse 2 trimestres passar a dizer
+ * "Semestre" em todo o lado.
+ */
 export function getPeriodNoun(cycle?: AngolaTeachingCycle | null): "Trimestre" | "Semestre" {
-  return getPeriodCountForCycle(cycle) === 2 ? "Semestre" : "Trimestre";
+  return cycle && SEMESTER_CYCLES.has(cycle) ? "Semestre" : "Trimestre";
 }
 
 /** Ex.: "1º Trimestre" / "1º Semestre". */

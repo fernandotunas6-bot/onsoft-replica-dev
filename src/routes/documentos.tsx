@@ -12,6 +12,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import {
@@ -165,14 +166,10 @@ function DocumentosPage() {
   useEffect(() => {
     const channel = supabase
       .channel("documentos_realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "siga_document_requests" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "document_requests" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+      })
       .subscribe();
 
     return () => {
@@ -791,11 +788,21 @@ function DocumentosPage() {
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhum pedido encontrado para os filtros aplicados.
+                    <TableCell colSpan={7} className="p-4">
+                      <EmptyState
+                        icon={FileStack}
+                        title={
+                          (workspaceQuery.data?.requests ?? []).length === 0
+                            ? "Ainda não há pedidos de documentos"
+                            : "Nenhum pedido corresponde aos filtros"
+                        }
+                        description={
+                          (workspaceQuery.data?.requests ?? []).length === 0
+                            ? "Registe o primeiro pedido na secretaria para acompanhar declarações, certificados e transferências."
+                            : "Limpe a pesquisa ou altere o estado para ver outros pedidos."
+                        }
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}

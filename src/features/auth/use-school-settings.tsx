@@ -8,8 +8,14 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getSchoolSettings, listAcademicYears } from "@/features/school/server";
-import { schoolSettingDefaults, schoolYear as fallbackSchoolYear } from "@/lib/school-config";
+import { getSchoolSettings, listAcademicTerms, listAcademicYears } from "@/features/school/server";
+import type { PedagogySettings } from "@/features/school/schemas";
+import {
+  schoolSettingDefaults,
+  schoolYear as fallbackSchoolYear,
+  type AngolaSchoolTypeId,
+} from "@/lib/school-config";
+import { todayInLuanda } from "@/features/calendar/dates";
 
 export type SchoolSettingsRow = {
   id: string;
@@ -24,19 +30,21 @@ export type SchoolSettingsRow = {
   evaluation_periods: number;
   passing_grade: number;
   preferences: unknown;
-  pedagogy?: {
-    teachingLevels: Array<
-      "pre_escolar" | "primario" | "i_ciclo" | "ii_ciclo" | "tecnico" | "adultos" | "superior"
-    >;
-    courses: Array<"cfb" | "cej" | "letras" | "tecnico">;
-    closedTerms?: Array<1 | 2 | 3>;
-    gradingProfile?: {
-      scale: "20_ects" | "gpa4";
-      components: "frequencia_exame" | "so_exame";
-    } | null;
-  };
+  // Espelha o schema em vez de repetir as uniões à mão, que já divergiam do que
+  // o painel de definições consegue produzir.
+  pedagogy?: PedagogySettings;
   version: number;
-  branding?: { logo_url: string | null };
+  institution?: {
+    school_type: AngolaSchoolTypeId | null;
+    philosophy: string | null;
+  };
+  branding?: {
+    logo_url: string | null;
+    motto: string | null;
+    primary_color?: string | null;
+    secondary_color?: string | null;
+    portal_title?: string | null;
+  };
   banking?: {
     bank_name: string;
     account_holder: string;
@@ -59,11 +67,29 @@ export type AcademicYearOption = {
   label: string;
 };
 
+export type AcademicTermOption = {
+  id: string;
+  name: string;
+  sequence: number;
+  starts_on: string;
+  ends_on: string;
+  academic_year_id: string;
+  label: string;
+};
+
 const YEAR_ID_KEY = "siga:selected-year-id";
+const TERM_ID_KEY = "siga:selected-term-id";
 
 function formatSchoolYearLabel(academicYear: string | null | undefined) {
   const raw = academicYear?.trim() || schoolSettingDefaults.academicYear;
   return raw.toLowerCase().startsWith("ano") ? raw : `Ano Lectivo ${raw}`;
+}
+
+function formatTermLabel(term: { name: string; sequence: number }) {
+  const name = term.name?.trim();
+  if (name) return name;
+  if (term.sequence > 0) return `${term.sequence}.º Período`;
+  return "Período";
 }
 
 type SchoolYearContextValue = {
@@ -76,6 +102,11 @@ type SchoolYearContextValue = {
   selectedYearLabel: string;
   yearOptions: AcademicYearOption[];
   setSelectedYearId: (yearId: string) => void;
+  terms: AcademicTermOption[];
+  selectedTerm: AcademicTermOption | null;
+  selectedTermId: string | null;
+  selectedTermLabel: string;
+  setSelectedTermId: (termId: string) => void;
 };
 
 const SchoolYearContext = createContext<SchoolYearContextValue | null>(null);
@@ -84,6 +115,10 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
   const [selectedYearId, setSelectedYearIdState] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem(YEAR_ID_KEY);
+  });
+  const [selectedTermId, setSelectedTermIdState] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TERM_ID_KEY);
   });
 
   const schoolQuery = useQuery({
@@ -105,6 +140,7 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
         preferences: data.preferences,
         pedagogy: data.pedagogy,
         version: data.version,
+        institution: data.institution,
         branding: data.branding,
         banking: data.banking,
         agt: data.agt,
@@ -117,6 +153,13 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
   const academicYearsQuery = useQuery({
     queryKey: ["school", "academic-years"],
     queryFn: () => listAcademicYears(),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
+  const termsQuery = useQuery({
+    queryKey: ["school", "academic-terms"],
+    queryFn: () => listAcademicTerms(),
     staleTime: 5 * 60_000,
     retry: false,
   });
@@ -168,6 +211,47 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
     formatSchoolYearLabel(schoolQuery.data?.academic_year) ??
     fallbackSchoolYear;
 
+  const terms = useMemo<AcademicTermOption[]>(() => {
+    const yearId = selectedYear?.id;
+    const rows = (termsQuery.data ?? []).filter((term) =>
+      yearId ? term.academic_year_id === yearId : true,
+    );
+    return rows.map((term) => ({
+      ...term,
+      label: formatTermLabel(term),
+    }));
+  }, [termsQuery.data, selectedYear?.id]);
+
+  const currentTerm = useMemo(() => {
+    const today = todayInLuanda();
+    return (
+      terms.find((term) => term.starts_on <= today && term.ends_on >= today) ?? terms[0] ?? null
+    );
+  }, [terms]);
+
+  useEffect(() => {
+    if (!terms.length) {
+      if (selectedTermId) {
+        setSelectedTermIdState(null);
+        localStorage.removeItem(TERM_ID_KEY);
+      }
+      return;
+    }
+    if (selectedTermId && terms.some((term) => term.id === selectedTermId)) return;
+    if (currentTerm?.id) {
+      setSelectedTermIdState(currentTerm.id);
+      localStorage.setItem(TERM_ID_KEY, currentTerm.id);
+    }
+  }, [terms, selectedTermId, currentTerm?.id]);
+
+  const setSelectedTermId = useCallback((termId: string) => {
+    setSelectedTermIdState(termId);
+    localStorage.setItem(TERM_ID_KEY, termId);
+  }, []);
+
+  const selectedTerm = terms.find((term) => term.id === selectedTermId) ?? currentTerm ?? null;
+  const selectedTermLabel = selectedTerm?.label ?? "Período";
+
   const value = useMemo<SchoolYearContextValue>(
     () => ({
       school: schoolQuery.data ?? null,
@@ -189,6 +273,11 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
             },
           ],
       setSelectedYearId,
+      terms,
+      selectedTerm,
+      selectedTermId: selectedTerm?.id ?? null,
+      selectedTermLabel,
+      setSelectedTermId,
     }),
     [
       schoolQuery.data,
@@ -199,6 +288,10 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
       selectedYear,
       selectedYearLabel,
       setSelectedYearId,
+      terms,
+      selectedTerm,
+      selectedTermLabel,
+      setSelectedTermId,
     ],
   );
 
@@ -219,6 +312,13 @@ export function useSchoolSettings() {
       yearOptions: [] as AcademicYearOption[],
       setSelectedYearId: (_yearId: string) => {
         /* sem provider: a selecção só existe na área autenticada */
+      },
+      terms: [] as AcademicTermOption[],
+      selectedTerm: null,
+      selectedTermId: null,
+      selectedTermLabel: "Período",
+      setSelectedTermId: (_termId: string) => {
+        /* sem provider */
       },
       activeYearLabel: fallbackSchoolYear,
       data: null,

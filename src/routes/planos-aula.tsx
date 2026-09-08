@@ -1,12 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { z } from "zod";
 import { BookOpenCheck, ClipboardCheck, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DocHelpButton, SqlDocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
@@ -23,8 +25,13 @@ import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 
 const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 
+const planosSearchSchema = z.object({
+  turma: z.string().uuid().optional().catch(undefined),
+  disciplina: z.string().uuid().optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/planos-aula")({
-  validateSearch: (search: Record<string, unknown>) => search,
+  validateSearch: (search) => planosSearchSchema.parse(search),
   head: () => ({ meta: [{ title: "Planos de Aula · SIGA" }] }),
   component: LessonPlansPage,
 });
@@ -51,6 +58,7 @@ const termLabels: Record<number, string> = {
 };
 
 function LessonPlansPage() {
+  const search = Route.useSearch();
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "planos-aula",
     filterDefaults,
@@ -58,6 +66,13 @@ function LessonPlansPage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<LessonPlanFormInitial | null>(null);
+
+  useEffect(() => {
+    if (search.turma) setFilter("turma", search.turma);
+    if (search.disciplina) setFilter("disciplina", search.disciplina);
+    // Seed once from deep-link (portal / presença / chamada).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount seed
+  }, []);
 
   const workspaceQuery = useQuery({
     queryKey: ["pedagogica", "workspace", "planos-aula"],
@@ -202,9 +217,12 @@ function LessonPlansPage() {
         ) : null}
 
         {grouped.length === 0 && plansQuery.data?.available !== false ? (
-          <div className="rounded-xl border border-dashed border-border bg-secondary/30 p-10 text-center text-sm text-muted-foreground">
-            Ainda não há planos de aula com estes filtros.
-          </div>
+          <EmptyState
+            icon={BookOpenCheck}
+            title="Ainda não há planos de aula"
+            description="Crie um plano com a estrutura de avaliações e provas para alimentar o Centro de Avaliação."
+            compact
+          />
         ) : null}
 
         {grouped.map(([term, termPlans]) => (

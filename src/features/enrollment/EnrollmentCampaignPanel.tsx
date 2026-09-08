@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  candidacyProcessNumber,
   enrollmentVisibleFieldOptions,
   type EnrollmentVisibleField,
 } from "@/features/enrollment/schemas";
@@ -274,6 +275,7 @@ export function EnrollmentCampaignPanel() {
 type ApplicationListRow = {
   id: string;
   full_name: string;
+  processNumber?: string;
   status: string;
   student_id?: string | null;
   payload?: {
@@ -326,13 +328,13 @@ function ApplicationRow({
       },
       student: {
         fullName: row.full_name,
-        academicNumber: row.id.slice(0, 8).toUpperCase(),
+        academicNumber: row.processNumber ?? candidacyProcessNumber(row.id, row.created_at),
         className: selected?.name ?? null,
       },
       overlay: overlayTalao({
         kind,
         fullName: payload.person?.full_name || row.full_name,
-        process: row.id.slice(0, 8).toUpperCase(),
+        process: row.processNumber ?? candidacyProcessNumber(row.id, row.created_at),
         ...(selected?.name ? { className: selected.name } : {}),
         ...(payload.guardianName ? { guardianName: payload.guardianName } : {}),
         ...(payload.guardianPhone ? { guardianPhone: payload.guardianPhone } : {}),

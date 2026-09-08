@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import {
   getAttendanceAssurancePolicy,
@@ -256,9 +257,17 @@ function AttendanceAssurancePage() {
           ) : evidence.isError ? (
             <p className="text-sm text-destructive">Não foi possível carregar as evidências.</p>
           ) : (evidence.data ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Ainda não existem evidências registadas.
-            </p>
+            <EmptyState
+              icon={ShieldCheck}
+              title="Ainda não existem evidências registadas"
+              description="Cada check-in ou check-out por QR grava aqui o resultado da validação multifator (geofence, dispositivo e score de confiança)."
+              action={
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/professor/presenca">Abrir presença do professor</Link>
+                </Button>
+              }
+              compact
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

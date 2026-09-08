@@ -22,9 +22,19 @@ import asyncio
 import os
 import sys
 
+from pathlib import Path
 from playwright.async_api import async_playwright
 
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:3006")
+
+CHROME_APP = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+
+
+def get_browser_kwargs():
+    kwargs = {"headless": True}
+    if CHROME_APP.exists():
+        kwargs["executable_path"] = str(CHROME_APP)
+    return kwargs
 VIEWPORTS = [("desktop-1440", 1440, 900), ("laptop-1024", 1024, 768), ("mobile-412", 412, 915)]
 AA_NORMAL = 4.5
 AA_LARGE = 3.0
@@ -254,7 +264,7 @@ async def audit(page, tag: str, failures: list[str]) -> None:
 async def main() -> int:
     failures: list[str] = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(**get_browser_kwargs())
         for tag, w, h in VIEWPORTS:
             ctx = await browser.new_context(viewport={"width": w, "height": h})
             page = await ctx.new_page()

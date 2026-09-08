@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -13,6 +14,9 @@ import {
   User,
   ArrowUpDown,
   Lock,
+  PieChart,
+  NotebookPen,
+  FolderOpen,
 } from "lucide-react";
 import {
   Dialog,
@@ -33,6 +37,11 @@ import {
   editFinalizedAttendanceCall,
   type AttendanceStatus,
 } from "@/features/pedagogica/attendance-server";
+import {
+  teacherClassFilesSearch,
+  teacherGradesSearch,
+  teacherLessonPlansSearch,
+} from "@/features/hr/teacher-classroom-links";
 
 export function AttendanceCallDialog({
   open,
@@ -87,10 +96,11 @@ export function AttendanceCallDialog({
     mutationFn: submitAttendanceCallBatch,
     onSuccess: () => {
       toast.success("Chamada realizada com sucesso!", {
-        description: "Presenças e faltas registadas no sistema.",
+        description: "Presenças registadas. Pode lançar notas desta turma a seguir.",
       });
       queryClient.invalidateQueries({ queryKey: ["attendance-sheet"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-attendance-sessions"] });
       onOpenChange(false);
     },
     onError: (err) => {
@@ -208,6 +218,17 @@ export function AttendanceCallDialog({
 
   const isCompleted = data?.session.status === "completed";
   const disabledInputs = isCompleted && !isEditingMode;
+  const gradesSearch =
+    data?.session.class_group_id && data?.session.subject_id
+      ? teacherGradesSearch(data.session.class_group_id, data.session.subject_id)
+      : null;
+  const plansSearch =
+    data?.session.class_group_id && data?.session.subject_id
+      ? teacherLessonPlansSearch(data.session.class_group_id, data.session.subject_id)
+      : null;
+  const filesSearch = data?.session.class_group_id
+    ? teacherClassFilesSearch(data.session.class_group_id)
+    : null;
 
   const presentCount = Object.values(studentStatuses).filter((s) => s.status === "present").length;
   const absentCount = Object.values(studentStatuses).filter((s) => s.status === "absent").length;
@@ -217,8 +238,8 @@ export function AttendanceCallDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-          <DialogHeader className="p-5 border-b border-border bg-muted/20">
+        <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-lg">
+          <DialogHeader className="border-b border-border bg-muted/20 p-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))] sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <DialogTitle className="text-xl font-extrabold flex items-center gap-2">
@@ -364,7 +385,7 @@ export function AttendanceCallDialog({
                         disabled={disabledInputs}
                         variant={currentStatus === "present" ? "default" : "outline"}
                         onClick={() => setSingleStatus(st.student_id, "present")}
-                        className={`h-9 px-3 text-xs gap-1 font-bold ${
+                        className={`h-11 min-w-[5.5rem] px-3 text-xs gap-1 font-bold touch-manipulation ${
                           currentStatus === "present"
                             ? "bg-success text-success-foreground hover:bg-success/90"
                             : ""
@@ -379,7 +400,7 @@ export function AttendanceCallDialog({
                         disabled={disabledInputs}
                         variant={currentStatus === "absent" ? "default" : "outline"}
                         onClick={() => setSingleStatus(st.student_id, "absent")}
-                        className={`h-9 px-3 text-xs gap-1 font-bold ${
+                        className={`h-11 min-w-[5.5rem] px-3 text-xs gap-1 font-bold touch-manipulation ${
                           currentStatus === "absent"
                             ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             : ""
@@ -394,7 +415,7 @@ export function AttendanceCallDialog({
                         disabled={disabledInputs}
                         variant={currentStatus === "late" ? "default" : "outline"}
                         onClick={() => setSingleStatus(st.student_id, "late")}
-                        className={`h-9 px-2.5 text-xs gap-1 font-semibold ${
+                        className={`h-11 min-w-[5.5rem] px-2.5 text-xs gap-1 font-semibold touch-manipulation ${
                           currentStatus === "late"
                             ? "bg-warning text-warning-foreground hover:bg-warning/90"
                             : ""
@@ -409,7 +430,7 @@ export function AttendanceCallDialog({
                         disabled={disabledInputs}
                         variant={currentStatus === "excused" ? "default" : "outline"}
                         onClick={() => setSingleStatus(st.student_id, "excused")}
-                        className={`h-9 px-2.5 text-xs gap-1 font-semibold ${
+                        className={`h-11 min-w-[5.5rem] px-2.5 text-xs gap-1 font-semibold touch-manipulation ${
                           currentStatus === "excused"
                             ? "bg-info text-info-foreground hover:bg-info/90"
                             : ""
@@ -424,7 +445,7 @@ export function AttendanceCallDialog({
             )}
           </div>
 
-          <DialogFooter className="p-4 border-t border-border bg-muted/20 flex flex-wrap items-center justify-between gap-3">
+          <DialogFooter className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/20 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {isCompleted && !isEditingMode ? (
               <Button
                 type="button"
@@ -440,7 +461,28 @@ export function AttendanceCallDialog({
               </span>
             )}
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {gradesSearch ? (
+                <Button asChild type="button" variant="secondary" className="gap-2 text-xs font-bold">
+                  <Link to="/pedagogica" search={gradesSearch}>
+                    <PieChart className="size-4" /> Lançar notas
+                  </Link>
+                </Button>
+              ) : null}
+              {plansSearch ? (
+                <Button asChild type="button" variant="outline" className="gap-2 text-xs font-bold">
+                  <Link to="/planos-aula" search={plansSearch}>
+                    <NotebookPen className="size-4" /> Plano
+                  </Link>
+                </Button>
+              ) : null}
+              {filesSearch ? (
+                <Button asChild type="button" variant="outline" className="gap-2 text-xs font-bold">
+                  <Link to="/arquivos" search={filesSearch}>
+                    <FolderOpen className="size-4" /> Materiais
+                  </Link>
+                </Button>
+              ) : null}
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>

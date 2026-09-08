@@ -47,6 +47,7 @@ export async function signupSchool(payload: SchoolSignupPayload): Promise<{
   hostname?: string
   sigaUrl?: string
   adminTenantsUrl?: string
+  adminInviteDelivered?: boolean
 }> {
   const res = await fetch(getSaasApiUrl("/api/saas/signup"), {
     method: "POST",
@@ -60,6 +61,7 @@ export async function signupSchool(payload: SchoolSignupPayload): Promise<{
     hostname?: string
     sigaUrl?: string
     adminTenantsUrl?: string
+    adminInviteDelivered?: boolean
   }
   if (!res.ok) return { ok: false, error: data.error || "Não foi possível criar a escola." }
   return {
@@ -69,5 +71,6 @@ export async function signupSchool(payload: SchoolSignupPayload): Promise<{
     hostname: data.hostname,
     sigaUrl: data.sigaUrl || ECOSYSTEM_URLS.siga,
     adminTenantsUrl: data.adminTenantsUrl,
+    adminInviteDelivered: data.adminInviteDelivered ?? false,
   }
 }

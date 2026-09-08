@@ -74,6 +74,7 @@ import {
 } from "@/lib/angola-academic";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { whatsappHref } from "@/features/integrations/actions";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 
 type EnrollmentRow = {
@@ -186,6 +187,7 @@ export function AssessmentCenter({
   canLaunch,
   canLockTerm,
   closedTerms,
+  evaluationPeriods,
   initialTerm,
   initialClassGroupId,
   initialSubjectId,
@@ -204,11 +206,17 @@ export function AssessmentCenter({
   canLaunch: boolean;
   canLockTerm: boolean;
   closedTerms: Array<1 | 2 | 3>;
+  evaluationPeriods?: number | undefined;
   initialTerm?: string | undefined;
   initialClassGroupId?: string | undefined;
   initialSubjectId?: string | undefined;
 }) {
   const queryClient = useQueryClient();
+  const {
+    selectedTerm: globalTerm,
+    terms: academicTerms,
+    setSelectedTermId,
+  } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const turnitinOn = installed.hasCapability("turnitin.originality");
   const moodleGrades = installed.hasCapability("moodle.grades");
@@ -242,6 +250,13 @@ export function AssessmentCenter({
   useEffect(() => {
     if (!open) return;
     if (initialTerm && initialTerm !== "todos") setFilter("trimestre", initialTerm);
+    else if (
+      globalTerm?.sequence &&
+      globalTerm.sequence >= 1 &&
+      globalTerm.sequence <= 3
+    ) {
+      setFilter("trimestre", String(globalTerm.sequence));
+    }
     if (initialClassGroupId) setFilter("turma", initialClassGroupId);
     if (initialSubjectId) {
       setFilter("disciplina", initialSubjectId);
@@ -251,7 +266,14 @@ export function AssessmentCenter({
       setScope("alunos");
       setMode("lancamento");
     }
-  }, [initialClassGroupId, initialSubjectId, initialTerm, open, setFilter]);
+  }, [
+    globalTerm?.sequence,
+    initialClassGroupId,
+    initialSubjectId,
+    initialTerm,
+    open,
+    setFilter,
+  ]);
 
   const term = (Number(filters.trimestre) || 1) as 1 | 2 | 3;
   const termClosed = closedTerms.includes(term);
@@ -262,8 +284,30 @@ export function AssessmentCenter({
       ? (classGroups.find((group) => group.id === filters.turma) ?? null)
       : (classGroups[0] ?? null);
   const selectedCycle = inferTeachingCycle(selectedGroup?.grade_name, selectedGroup?.course_name);
-  const periodOptions = getPeriodsForCycle(selectedCycle);
+  const periodOptions = getPeriodsForCycle(selectedCycle, evaluationPeriods);
   const periodNoun = getPeriodNoun(selectedCycle);
+
+  // Topbar → Centro: quando o período global muda com o centro aberto.
+  useEffect(() => {
+    if (!open) return;
+    const sequence = globalTerm?.sequence;
+    if (!sequence || !periodOptions.includes(sequence as 1 | 2 | 3)) return;
+    if (String(sequence) === filters.trimestre) return;
+    setFilter("trimestre", String(sequence));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage ao período global
+  }, [globalTerm?.id, globalTerm?.sequence, open, periodOptions]);
+
+  // Centro → Topbar: o filtro de trimestre actualiza o período global.
+  useEffect(() => {
+    if (!open) return;
+    const next = Number(filters.trimestre);
+    if (!Number.isFinite(next) || next < 1 || next > 3) return;
+    if (globalTerm?.sequence === next) return;
+    const match = academicTerms.find((item) => item.sequence === next);
+    if (match) setSelectedTermId(match.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- evita loop com selectedTerm
+  }, [filters.trimestre, open, academicTerms, setSelectedTermId]);
+
   const selectedSubject =
     filters.disciplina !== "todas"
       ? (subjects.find((subject) => subject.id === filters.disciplina) ?? null)

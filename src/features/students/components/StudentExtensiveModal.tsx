@@ -19,12 +19,14 @@ import { MediaAvatar } from "@/components/ui/media-frame";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
-import { applyLibraryPhotoToPerson } from "@/features/arquivos/apply-person-photo";
+import {
+  applyLibraryPhotoToPerson,
+  uploadPersonPhotoToLibrary,
+} from "@/features/arquivos/apply-person-photo";
 import { resolvePersonPhotoUrl } from "@/features/arquivos/person-photo-url";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { getStudentProfile, getStudentStatusHistory } from "@/features/students/server";
-import { setPersonPhotoUrl } from "@/features/people/server";
 import { whatsappHref } from "@/features/integrations/actions";
-import { supabase } from "@/integrations/supabase/client";
 import { StudentDigitalCardModal } from "./StudentDigitalCardModal";
 import { StudentStatusBadge } from "./StudentStatusBadge";
 import { StudentFinanceBadge } from "./StudentFinanceBadge";
@@ -64,6 +66,7 @@ export function StudentExtensiveModal({
   initialData,
 }: StudentExtensiveModalProps) {
   const queryClient = useQueryClient();
+  const account = useCurrentAccount();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(initialData?.photo_url ?? null);
@@ -135,54 +138,25 @@ export function StudentExtensiveModal({
       return;
     }
 
+    if (!schoolId) {
+      toast.error("Sem escola activa para associar a fotografia.");
+      return;
+    }
+
     setIsUploadingPhoto(true);
     try {
-      // 1. Tentar upload para o bucket público do Supabase
-      const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `avatars/${personId}-${Date.now()}.${ext}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from("school-logos")
-        .upload(filePath, file, { upsert: true });
-
-      let newPhotoUrl: string | null = null;
-
-      if (!uploadError) {
-        const { data: publicUrlData } = supabase.storage
-          .from("school-logos")
-          .getPublicUrl(filePath);
-        newPhotoUrl = publicUrlData.publicUrl;
-      }
-
-      // Se falhar upload no bucket school-logos, tenta bucket avatars
-      if (!newPhotoUrl) {
-        const { error: avatarError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, file, { upsert: true });
-        if (!avatarError) {
-          const { data: publicUrlData } = supabase.storage
-            .from("avatars")
-            .getPublicUrl(filePath);
-          newPhotoUrl = publicUrlData.publicUrl;
-        }
-      }
-
-      if (!newPhotoUrl) {
-        throw new Error("Não foi possível carregar a imagem para o servidor de ficheiros.");
-      }
-
-      // 2. Atualizar URL da foto da pessoa
-      await setPersonPhotoUrl({
-        data: {
-          personId,
-          photoUrl: newPhotoUrl,
-        },
+      // A fotografia vai para a biblioteca privada da escola; o efeito que observa
+      // `currentPhotoUrl` trata de assinar a URL para exibição.
+      const newPhotoUrl = await uploadPersonPhotoToLibrary({
+        file,
+        personId,
+        schoolId: String(schoolId),
+        ownerUserId: account.id,
       });
 
       setCurrentPhotoUrl(newPhotoUrl);
-      setResolvedPhotoSrc(newPhotoUrl);
 
-      // 3. Atualizar caches do TanStack Query
+      // Atualizar caches do TanStack Query
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["students", "profile", studentId] }),
         queryClient.invalidateQueries({ queryKey: ["students", "search"] }),

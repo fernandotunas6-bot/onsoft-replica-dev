@@ -16,7 +16,7 @@ import {
   type AcademicNavBranch,
 } from "@/lib/academic-nav";
 import { cn } from "@/lib/utils";
-import { NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
+import { NAV_SUB_LIST, NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
 
 export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) {
   const account = useCurrentAccount();
@@ -100,7 +100,7 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
 
   const flyout = collapsed ? (
     <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
-      <div className="pointer-events-auto max-h-[70vh] min-w-56 overflow-y-auto rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-2xl">
+      <div className="pointer-events-auto max-h-[70vh] min-w-56 overflow-y-auto rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-float">
         <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-[0.5px] text-sidebar-muted">
           Curso / Nível
         </p>
@@ -176,7 +176,7 @@ function BranchList({
               }
             />
             {expanded ? (
-              <ul className="mt-0.5 space-y-0.5 pl-4">
+              <ul className={NAV_SUB_LIST}>
                 {branch.classes.map((turma) => {
                   const classOpen = openClass === turma.id;
                   if (turma.classTeacher) {
@@ -209,9 +209,9 @@ function BranchList({
                         }
                       />
                       {classOpen ? (
-                        <ul className="mt-0.5 space-y-0.5 pl-4">
+                        <ul className={NAV_SUB_LIST}>
                           {turma.subjects.length === 0 ? (
-                            <li className="px-3 py-1 text-[12px] text-sidebar-muted">
+                            <li className="px-3 py-1 text-[0.6875rem] text-sidebar-muted">
                               Sem disciplina atribuída
                             </li>
                           ) : (

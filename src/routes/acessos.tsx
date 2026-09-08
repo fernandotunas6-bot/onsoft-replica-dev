@@ -18,6 +18,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -648,20 +649,24 @@ function AcessosPage() {
                 <TableBody>
                   {accounts.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="py-8 text-center text-sm text-muted-foreground"
-                      >
-                        Ainda não há contas nesta escola. Envie o primeiro convite.
+                      <TableCell colSpan={5} className="p-4">
+                        <EmptyState
+                          icon={UserPlus}
+                          title="Ainda não há contas nesta escola"
+                          description="Envie o primeiro convite para secretaria, professores ou tesouraria acederem ao SIGA."
+                          compact
+                        />
                       </TableCell>
                     </TableRow>
                   ) : filteredAccounts.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="py-8 text-center text-sm text-muted-foreground"
-                      >
-                        Nenhuma conta corresponde aos filtros.
+                      <TableCell colSpan={5} className="p-4">
+                        <EmptyState
+                          icon={ShieldCheck}
+                          title="Nenhuma conta corresponde aos filtros"
+                          description="Limpe a pesquisa ou altere o cargo para ver outras contas."
+                          compact
+                        />
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -1128,23 +1133,29 @@ function AcessosPage() {
                   </TableRow>
                 ) : staff.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Ainda não há membros de equipa.{" "}
-                      <Link to="/pessoas" className="font-semibold text-primary underline">
-                        Abrir Pessoas
-                      </Link>
+                    <TableCell colSpan={5} className="p-4">
+                      <EmptyState
+                        icon={UserPlus}
+                        title="Ainda não há membros de equipa"
+                        description="Registe pessoas em Pessoas e associe-lhes contas de acesso."
+                        action={
+                          <Button asChild size="sm" variant="outline">
+                            <Link to="/pessoas">Abrir Pessoas</Link>
+                          </Button>
+                        }
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : filteredStaff.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhum membro corresponde à pesquisa.
+                    <TableCell colSpan={5} className="p-4">
+                      <EmptyState
+                        icon={ShieldCheck}
+                        title="Nenhum membro corresponde à pesquisa"
+                        description="Ajuste o nome ou o cargo para encontrar a pessoa na equipa."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

@@ -24,6 +24,7 @@ describe("Smart Portal Engine", () => {
     const labels = items.map((i) => i.label);
     expect(labels).toContain("Início");
     expect(labels).toContain("Académico");
+    expect(labels).toContain("Calendário Lectivo");
     expect(labels).toContain("Frequência");
     expect(labels).toContain("Financeiro");
     expect(labels).toContain("Documentos");
@@ -43,6 +44,7 @@ describe("Smart Portal Engine", () => {
     const labels = items.map((i) => i.label);
     expect(labels).toContain("Meu Educando");
     expect(labels).toContain("Desempenho");
+    expect(labels).toContain("Calendário Lectivo");
     expect(labels).toContain("Frequência");
     expect(labels).toContain("Financeiro");
   });
@@ -57,6 +59,15 @@ describe("Smart Portal Engine", () => {
     expect(labels).toContain("Início");
     expect(labels).toContain("Frequência");
     expect(labels).toContain("Ensino e Avaliações");
+    expect(labels).toContain("Calendário Lectivo");
+  });
+
+  it("elevates Início and Calendário into Principal for admin staff", () => {
+    const nav = getPortalNavigation("Administrador");
+    expect(nav[0]?.title).toBe("Principal");
+    const principalLabels = (nav[0]?.items ?? []).map((i) => i.label);
+    expect(principalLabels).toEqual(["Início", "Calendário Lectivo"]);
+    expect(nav.some((g) => g.title === "Académico")).toBe(true);
   });
 
   it("returns contextual suggestions for each portal mode", () => {

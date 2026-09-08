@@ -10,14 +10,22 @@ import {
   updateTenantStatusInputSchema,
 } from "@/features/saas/schemas";
 import { provisionTenantCore } from "@/features/saas/provisioning-core";
-import { fetchTenantByHostname, fetchTenantBySlug, checkSlugAvailability } from "@/features/saas/tenant-lookup";
-import { requirePlatformAdmin } from "@/features/saas/platform-guard";
+import {
+  fetchTenantByHostname,
+  fetchTenantBySlug,
+  checkSlugAvailability,
+} from "@/features/saas/tenant-lookup";
+import { requirePlatformAdmin, requireTenantAccess } from "@/features/saas/platform-guard";
 import { fetchActivePlans } from "@/features/saas/catalog";
 import { fetchAllTenants, fetchSaaSStats, updateTenantStatus } from "@/features/saas/platform-ops";
 import { runPublicSchoolSignup } from "@/features/saas/public-signup";
 import type { Plan, SaaSStats, Tenant } from "@/features/saas/types";
 
-export { requirePlatformAdmin } from "@/features/saas/platform-guard";
+// Sem re-export de `requirePlatformAdmin`: um `export … from` é uma ligação de
+// topo que o plugin do Start não consegue eliminar do bundle do cliente, e
+// arrastava platform-guard → sga-admin (cliente service-role) para o grafo do
+// browser — o que fazia a app inteira falhar a hidratar por import-protection.
+// Quem precisa do guard importa-o directamente de "@/features/saas/platform-guard".
 
 /**
  * Verifica se um slug pretendido para subdomínio está disponível para registo.
@@ -110,7 +118,11 @@ export const signupSchoolPublic = createServerFn({ method: "POST" })
 
 // ─── Identidade Digital — Fase 3 & 4 ────────────────────────────────────────
 
-import { getSchoolDomainStatus, requestCustomDomainVerification, saveEmailForwardingRoute } from "@/features/saas/school-domain-ops";
+import {
+  getSchoolDomainStatus,
+  requestCustomDomainVerification,
+  saveEmailForwardingRoute,
+} from "@/features/saas/school-domain-ops";
 import { z } from "zod";
 
 /**
@@ -119,10 +131,16 @@ import { z } from "zod";
  */
 export const getSchoolDomain = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ tenantId: z.string(), tenantSlug: z.string() }).parse(input))
+  .validator((input: unknown) =>
+    z.object({ tenantId: z.string(), tenantSlug: z.string() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    return getSchoolDomainStatus(data.tenantId, data.tenantSlug);
+    const tenant = await requireTenantAccess(context.userId, data.tenantId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    return getSchoolDomainStatus(tenant.tenantId, tenant.tenantSlug);
   });
 
 /**
@@ -132,18 +150,28 @@ export const getSchoolDomain = createServerFn({ method: "GET" })
 export const requestDomainVerification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({
-      tenantId: z.string().uuid(),
-      tenantSlug: z.string().min(2),
-      hostname: z
-        .string()
-        .min(4)
-        .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/, "Hostname inválido."),
-    }).parse(input),
+    z
+      .object({
+        tenantId: z.string().uuid(),
+        tenantSlug: z.string().min(2),
+        hostname: z
+          .string()
+          .min(4)
+          .regex(
+            /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/,
+            "Hostname inválido.",
+          ),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    return requestCustomDomainVerification(data);
+    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    return requestCustomDomainVerification({
+      ...data,
+      tenantId: tenant.tenantId,
+      tenantSlug: tenant.tenantSlug,
+    });
   });
 
 /**
@@ -152,18 +180,26 @@ export const requestDomainVerification = createServerFn({ method: "POST" })
 export const updateEmailForwarding = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({
-      tenantId: z.string().uuid(),
-      tenantSlug: z.string().min(2),
-      forwardTo: z.string().email("E-mail de encaminhamento inválido."),
-    }).parse(input),
+    z
+      .object({
+        tenantId: z.string().uuid(),
+        tenantSlug: z.string().min(2),
+        forwardTo: z.string().email("E-mail de encaminhamento inválido."),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    return saveEmailForwardingRoute(data);
+    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    return saveEmailForwardingRoute({
+      ...data,
+      tenantId: tenant.tenantId,
+      tenantSlug: tenant.tenantSlug,
+    });
   });
 
 import { createMailbox } from "@/features/saas/mailbox-providers";
+import { buildInstitutionalAddress } from "@/features/saas/email-routing";
 import { saveSchoolBranding } from "@/features/saas/school-domain-ops";
 
 /**
@@ -172,20 +208,22 @@ import { saveSchoolBranding } from "@/features/saas/school-domain-ops";
 export const updateSchoolBranding = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({
-      tenantId: z.string().uuid(),
-      primaryColor: z.string().optional(),
-      secondaryColor: z.string().optional(),
-      portalTitle: z.string().optional(),
-      logoUrl: z.string().optional(),
-      faviconUrl: z.string().optional(),
-    }).parse(input),
+    z
+      .object({
+        tenantId: z.string().uuid(),
+        primaryColor: z.string().optional(),
+        secondaryColor: z.string().optional(),
+        portalTitle: z.string().optional(),
+        logoUrl: z.string().optional(),
+        faviconUrl: z.string().optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    return saveSchoolBranding(data);
+    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    return saveSchoolBranding({ ...data, tenantId: tenant.tenantId });
   });
-
 
 /**
  * Provisiona uma nova caixa de e-mail profissional via Zoho/Google Workspace
@@ -194,35 +232,39 @@ export const updateSchoolBranding = createServerFn({ method: "POST" })
 export const provisionMailbox = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({
-      tenantId: z.string().uuid(),
-      tenantSlug: z.string().min(2),
-      email: z.string().email(),
-      displayName: z.string().min(1),
-    }).parse(input),
+    z
+      .object({
+        tenantId: z.string().uuid(),
+        tenantSlug: z.string().min(2),
+        email: z.string().email(),
+        displayName: z.string().min(1),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    
-    const db = await loadSgaAdminClient();
-    
-    // Verificar se a escola tem plano que permite mailbox
-    const { data: tenantRow } = await db.from("tenants").select("plan_id").eq("id", data.tenantId).maybeSingle();
-    const { data: planRow } = await db.from("plans").select("code, features").eq("id", tenantRow?.plan_id || "").maybeSingle();
-    
-    // Se o user está autenticado no contexto do admin/owner da escola, e tem plano premium:
-    // Fazemos provisoning:
-    const result = await createMailbox(data);
+    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+
+    // O endereço é derivado do slug do tenant, nunca aceite do cliente: caso
+    // contrário provisionava-se uma caixa no domínio de outra escola.
+    const email = buildInstitutionalAddress(tenant.tenantSlug);
+    const result = await createMailbox({
+      tenantId: tenant.tenantId,
+      tenantSlug: tenant.tenantSlug,
+      email,
+      displayName: data.displayName,
+    });
     if (!result.ok) throw new Error(result.reason);
-    
+
+    const db = await loadSgaAdminClient();
     await db.from("tenant_mailboxes").insert({
-      tenant_id: data.tenantId,
-      email: data.email,
+      tenant_id: tenant.tenantId,
+      email,
       display_name: data.displayName,
       provider: result.provider,
       provider_account_id: result.providerAccountId,
       status: "active",
     });
-    
+
     return { ok: true, provider: result.provider };
   });

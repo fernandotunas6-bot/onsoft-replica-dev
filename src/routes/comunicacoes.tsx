@@ -18,6 +18,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { Input } from "@/components/ui/input";
@@ -581,13 +582,23 @@ function ComunicacoesPage() {
                   : "Não foi possível carregar os comunicados."}
               </p>
             ) : items.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Ainda não há comunicados.{canManage ? " Redija o primeiro à direita." : null}
-              </p>
+              <EmptyState
+                icon={MessageSquare}
+                title="Ainda não há comunicados"
+                description={
+                  canManage
+                    ? "Redija o primeiro comunicado no painel à direita para informar a comunidade escolar."
+                    : "Quando a escola publicar avisos, aparecerão aqui no portal."
+                }
+                compact
+              />
             ) : filtered.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nenhum comunicado corresponde aos filtros aplicados.
-              </p>
+              <EmptyState
+                icon={MessageSquare}
+                title="Nenhum comunicado corresponde aos filtros"
+                description="Ajuste o canal, o estado ou a pesquisa para ver outros comunicados."
+                compact
+              />
             ) : (
               <ul className="space-y-4">
                 {filtered.map((c) => {

@@ -59,6 +59,7 @@ import {
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   isPrivateSigaFile,
   prefetchPersonPhotoUrls,
@@ -1498,40 +1499,30 @@ function StudentsPage() {
                 )}
                 {!studentsQuery.isLoading && !studentsQuery.isError && filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-12 text-center text-sm text-muted-foreground"
-                    >
+                    <TableCell colSpan={9} className="p-4">
                       {categoria === "divida" ? (
-                        <div className="max-w-md mx-auto space-y-2">
-                          <div className="inline-flex size-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="size-5" />
-                          </div>
-                          <p className="font-semibold text-foreground">Nenhum aluno com dívida</p>
-                          <p className="text-xs text-muted-foreground">
-                            Todas as propinas e faturas emitidas para este conjunto de estudantes encontram-se regularizadas.
-                          </p>
-                        </div>
+                        <EmptyState
+                          icon={CheckCircle2}
+                          title="Nenhum aluno com dívida"
+                          description="Todas as propinas e faturas emitidas para este conjunto de estudantes encontram-se regularizadas."
+                          compact
+                        />
                       ) : categoria === "candidatos" ? (
-                        <div className="max-w-md mx-auto space-y-2">
-                          <div className="inline-flex size-10 items-center justify-center rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                            <UserPlus className="size-5" />
-                          </div>
-                          <p className="font-semibold text-foreground">Nenhum candidato pendente</p>
-                          <p className="text-xs text-muted-foreground">
-                            Não existem candidatos ou alunos aguardando colocação em turma para os filtros actuais.
-                          </p>
-                        </div>
+                        <EmptyState
+                          icon={UserPlus}
+                          title="Nenhum candidato pendente"
+                          description="Não existem candidatos ou alunos aguardando colocação em turma para os filtros actuais."
+                          compact
+                        />
                       ) : (
-                        <div className="max-w-md mx-auto space-y-2">
-                          <p className="font-semibold text-foreground">Nenhum aluno encontrado</p>
-                          <p className="text-xs text-muted-foreground">
-                            Ajuste os filtros de pesquisa ou limpe os critérios para ver todos os alunos.
-                          </p>
-                          <Button variant="outline" size="sm" onClick={resetFilters} className="mt-1">
-                            Limpar filtros
-                          </Button>
-                        </div>
+                        <EmptyState
+                          icon={GraduationCap}
+                          title="Nenhum aluno encontrado"
+                          description="Ajuste os filtros de pesquisa ou limpe os critérios para ver todos os alunos."
+                          actionLabel="Limpar filtros"
+                          onAction={resetFilters}
+                          compact
+                        />
                       )}
                     </TableCell>
                   </TableRow>

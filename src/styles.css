@@ -237,6 +237,53 @@
   box-shadow: var(--shadow-card);
 }
 
+/* Densidade da interface (data-density no <html>) */
+:root,
+html[data-density="comfortable"] {
+  --siga-row-py: 0.625rem;
+  --siga-cell-px: 0.75rem;
+  --siga-card-pad: 1.25rem;
+  --siga-stack-gap: 1.5rem;
+  --siga-text-sm: 0.8125rem;
+}
+
+html[data-density="compact"] {
+  --siga-row-py: 0.375rem;
+  --siga-cell-px: 0.5rem;
+  --siga-card-pad: 0.875rem;
+  --siga-stack-gap: 1rem;
+  --siga-text-sm: 0.75rem;
+}
+
+html[data-density="spacious"] {
+  --siga-row-py: 0.875rem;
+  --siga-cell-px: 1rem;
+  --siga-card-pad: 1.5rem;
+  --siga-stack-gap: 2rem;
+  --siga-text-sm: 0.875rem;
+}
+
+html[data-density="compact"] .surface-card,
+html[data-density="spacious"] .surface-card {
+  padding: var(--siga-card-pad);
+}
+
+html[data-density="compact"] table :where(th, td),
+html[data-density="spacious"] table :where(th, td) {
+  padding-block: var(--siga-row-py);
+  padding-inline: var(--siga-cell-px);
+}
+
+html[data-density="compact"] #conteudo-principal,
+html[data-density="spacious"] #conteudo-principal {
+  --tw-space-y-reverse: 0;
+}
+
+html[data-density="compact"] #conteudo-principal > .space-y-6 > :not([hidden]) ~ :not([hidden]),
+html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--siga-stack-gap);
+}
+
 /* Documentos oficiais e iframes de impressão têm papel branco invariável, inclusive no tema escuro. */
 .siga-official-paper {
   background-color: #fff;
@@ -273,11 +320,24 @@
   font-weight: 500;
   transition:
     background-color 120ms ease,
-    color 120ms ease;
+    color 120ms ease,
+    box-shadow 120ms ease;
 
   &:active {
     transform: scale(0.99);
   }
+
+  &[data-active="true"] {
+    box-shadow: var(--shadow-nav-active);
+  }
+}
+
+/* Nested sidebar children: rail + compact height (spec SidebarMenuSub). */
+@utility nav-sub-list {
+  margin-top: 0.125rem;
+  margin-left: 0.75rem;
+  border-left: 1px solid color-mix(in oklch, var(--color-sidebar-border) 70%, transparent);
+  padding-left: 0.625rem;
 }
 
 /* Header icon button, circular like Minimals topbar. */
@@ -288,10 +348,22 @@
   border-radius: 9999px;
   transition:
     background-color 120ms ease,
-    color 120ms ease;
+    color 120ms ease,
+    transform 75ms ease-out;
 
   &:hover {
     background-color: var(--color-secondary);
+  }
+
+  &:active {
+    transform: scale(0.97);
+    opacity: 0.92;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
   }
 }
 
@@ -390,6 +462,11 @@
   &:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-float);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:hover {
+      transform: none;
+    }
   }
 }
 

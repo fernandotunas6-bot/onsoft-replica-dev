@@ -5,6 +5,8 @@ import {
   AlertTriangle,
   CheckCheck,
   CreditCard,
+  FileCheck2,
+  MousePointerClick,
   RefreshCw,
   ShieldCheck,
   WalletCards,
@@ -13,6 +15,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { listHrPayrollRuns } from "@/features/hr/server";
 import {
@@ -200,9 +203,17 @@ function PayrollPaymentsPage() {
           description="Aprovar a folha congela o cálculo; esta etapa apenas prepara uma ordem de pagamento."
         >
           {approvedRuns.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhuma folha aprovada disponível para ordem salarial.
-            </p>
+            <EmptyState
+              icon={FileCheck2}
+              title="Nenhuma folha aprovada disponível"
+              description="Só folhas já calculadas e aprovadas podem gerar uma ordem salarial. Aprove a competência no processamento da folha."
+              action={
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/financeiro/rh/folha">Ir para o processamento da folha</Link>
+                </Button>
+              }
+              compact
+            />
           ) : (
             <div className="flex flex-wrap gap-2">
               {approvedRuns.map((run) => (
@@ -225,7 +236,12 @@ function PayrollPaymentsPage() {
             {batches.isLoading ? (
               <p className="text-sm text-muted-foreground">A carregar ordens…</p>
             ) : (batches.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Ainda não existem ordens salariais.</p>
+              <EmptyState
+                icon={CreditCard}
+                title="Ainda não existem ordens salariais"
+                description="Prepare uma ordem a partir de uma folha aprovada para reunir os beneficiários e o controlo duplo de autorização."
+                compact
+              />
             ) : (
               <div className="space-y-2">
                 {(batches.data ?? []).map((batch) => (
@@ -251,9 +267,12 @@ function PayrollPaymentsPage() {
 
           {!selectedBatchId ? (
             <Panel title="Selecione uma ordem">
-              <p className="text-sm text-muted-foreground">
-                Escolha um lote salarial para rever os beneficiários.
-              </p>
+              <EmptyState
+                icon={MousePointerClick}
+                title="Nenhuma ordem seleccionada"
+                description="Escolha um lote salarial na lista à esquerda para rever beneficiários, destinos de pagamento e autorizações."
+                compact
+              />
             </Panel>
           ) : detail.isLoading ? (
             <Panel title="A carregar">

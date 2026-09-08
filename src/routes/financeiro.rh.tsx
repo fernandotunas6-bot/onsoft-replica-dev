@@ -6,6 +6,7 @@ import { Banknote, BriefcaseBusiness, FileCheck2, QrCode, Users } from "lucide-r
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getHrDashboard, listHrPayrollRuns } from "@/features/hr/server";
 import {
   createTeacherLessonQr,
@@ -180,17 +181,12 @@ function HrPayrollPage() {
                     : "Não foi possível carregar as ocorrências de aulas."}
                 </p>
               ) : (lessons.data ?? []).length === 0 ? (
-                <div className="rounded-lg border border-dashed p-8 text-center">
-                  <QrCode
-                    className="mx-auto mb-3 size-8 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <p className="font-medium">Ainda não existem ocorrências de aula.</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    As ocorrências serão materializadas a partir do calendário/horário antes da
-                    emissão do QR.
-                  </p>
-                </div>
+                <EmptyState
+                  icon={QrCode}
+                  title="Ainda não existem ocorrências de aula"
+                  description="As ocorrências são materializadas a partir do horário antes da emissão do QR de presença docente."
+                  compact
+                />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">

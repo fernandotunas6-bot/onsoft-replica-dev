@@ -576,6 +576,7 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     const { data: role } = await admin
       .from("roles")
       .select("id")
+      .eq("school_id", schoolId)
       .eq("code", roleCode)
       .maybeSingle();
 
@@ -584,7 +585,7 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
       await admin
         .from("member_roles")
         .upsert(
-          { membership_id: membershipId, role_id: role.id },
+          { school_id: schoolId, membership_id: membershipId, role_id: role.id },
           { onConflict: "membership_id,role_id", ignoreDuplicates: true },
         );
     }
