@@ -6,7 +6,6 @@ import {
   ExternalLink,
   GraduationCap,
   KeyRound,
-  Shield,
   User,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
@@ -16,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileSettingsPanel } from "@/features/auth/ProfileSettingsPanel";
 import { PasswordChangeForm } from "@/features/auth/PasswordChangeForm";
+import { TwoFactorSection } from "@/features/auth/TwoFactorSection";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 
@@ -164,15 +164,7 @@ function PerfilPage() {
             </Panel>
 
             <Panel title="Autenticação Multifator (2FA)" description="Proteção adicional para cargos de gestão e administração">
-              <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
-                <Shield className="size-5 text-primary mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-sm">Segurança de Dois Fatores</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    O segundo fator de autenticação (MFA / TOTP) é suportado através do Supabase Auth e pode ser ativado nas políticas institucionais da escola.
-                  </p>
-                </div>
-              </div>
+              <TwoFactorSection />
             </Panel>
           </TabsContent>
         </Tabs>

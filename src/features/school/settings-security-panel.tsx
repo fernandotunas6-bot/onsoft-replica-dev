@@ -1,14 +1,9 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { MediaFrame } from "@/components/ui/media-frame";
 import { Separator } from "@/components/ui/separator";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { supabase } from "@/integrations/supabase/client";
+import { TwoFactorSection } from "@/features/auth/TwoFactorSection";
 import { listRecentAuditLogs, type RecentAuditLog } from "@/features/school/server";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 
@@ -98,99 +93,6 @@ function AuditLogList() {
   );
 }
 
-function TwoFactorEnroll() {
-  const [qr, setQr] = useState<string | null>(null);
-  const [factorId, setFactorId] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  return (
-    <div className="space-y-3">
-      <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-        Autenticação em dois passos
-      </h5>
-      <p className="text-sm text-muted-foreground">
-        Associe uma aplicação autenticadora (Google Authenticator, Authy ou 1Password). No próximo
-        login o SIGA pede o código TOTP.
-      </p>
-      {qr ? (
-        <div className="space-y-3 rounded-xl border border-border bg-secondary/40 p-3">
-          <MediaFrame
-            src={qr}
-            alt="QR do autenticador"
-            ratio="1/1"
-            rounded="rounded-lg"
-            className="mx-auto size-40 bg-background p-2"
-            imgClassName="object-contain"
-          />
-          <div className="flex gap-2">
-            <Input
-              aria-label="Código de autenticação em dois passos"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              inputMode="numeric"
-              placeholder="Código de 6 dígitos"
-            />
-            <Button
-              disabled={busy || code.length < 6 || !factorId}
-              onClick={async () => {
-                if (!factorId) return;
-                setBusy(true);
-                try {
-                  const challenge = await supabase.auth.mfa.challenge({ factorId });
-                  if (challenge.error) throw challenge.error;
-                  const verified = await supabase.auth.mfa.verify({
-                    factorId,
-                    challengeId: challenge.data.id,
-                    code: code.trim(),
-                  });
-                  if (verified.error) throw verified.error;
-                  toast.success("2FA activado nesta conta.");
-                  setQr(null);
-                  setFactorId(null);
-                  setCode("");
-                } catch (error) {
-                  toast.error(error instanceof Error ? error.message : "Código inválido.");
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Confirmar
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              const enrolled = await supabase.auth.mfa.enroll({
-                factorType: "totp",
-                friendlyName: "SIGA",
-              });
-              if (enrolled.error) throw enrolled.error;
-              setFactorId(enrolled.data.id);
-              setQr(enrolled.data.totp.qr_code);
-              toast.success("Leia o QR na aplicação autenticadora.");
-            } catch (error) {
-              toast.error(
-                error instanceof Error ? error.message : "Não foi possível iniciar o 2FA.",
-              );
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          Activar 2FA nesta conta
-        </Button>
-      )}
-    </div>
-  );
-}
-
 export function SecurityPanel() {
   const resendOn = useInstalledIntegrations().hasCapability("resend.send");
   return (
@@ -207,7 +109,12 @@ export function SecurityPanel() {
           </p>
         </div>
       ) : null}
-      <TwoFactorEnroll />
+      <div className="space-y-3">
+        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+          Autenticação em dois passos
+        </h5>
+        <TwoFactorSection />
+      </div>
       <Separator />
       <div className="space-y-3">
         <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
