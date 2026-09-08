@@ -6,6 +6,36 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-08)
 
+### Ciclo 64 — Backfill RBAC Huambo, Credenciais PostgreSQL Directas e Captura Completa de Funções BD (2026-09-08)
+
+Continuação directa do Ciclo 63. Foco na integridade da base de dados e versionamento completo de toda a lógica de negócio.
+
+**O que foi entregue e integrado:**
+- **Credenciais de Acesso Completas Configuradas:**
+  - Management API PAT: `sbp_c045658b2ddd159f56e222ebaa5306eb420649f7`
+  - PostgreSQL directo: `postgresql://postgres.xodgfmxiaunpamctfeea@aws-0-eu-west-3.pooler.supabase.com:5432/postgres`
+  - Supabase Service Role, Anon Key, URL — todos confirmados no `.env`.
+- **Backfill RBAC "Colegio Adventista - Huambo" (migração 20260908200000):**
+  - Escola legada tinha apenas `owner` e `secretary` em `roles`.
+  - Inseridos 6 papéis em falta: `admin`, `treasury`, `teacher`, `guardian`, `student`, `user`.
+  - Semeadas 140 `role_permissions` idênticas às da escola de referência (e2e).
+  - **Estado final verificado:** ambas as escolas têm 8 papéis × permissões correctas = 510 `role_permissions` total.
+  - `owner: 74, admin: 74, secretary: 41, treasury: 20, teacher: 19, guardian: 14, student: 11, user: 2`.
+- **Captura Completa de Funções BD (migração 20260908210000):**
+  - Auditoria via Management API (`pg_get_functiondef`) revelou 209 funções nos schemas `private` e `public`.
+  - Das 209, apenas ~60 estavam capturadas nas migrações existentes.
+  - Gerada e versionada `supabase/migrations/20260908210000_capture_all_db_functions.sql`:
+    - 149 funções capturadas (95 `private.*` + 54 `public.*`), 4774 linhas, 200KB.
+    - Inclui todo o núcleo de negócio: `has_permission`, `is_aal2`, `register_payment`, `register_student`, `enroll_student`, `create_financial_contract`, `next_document_number`, `open_attendance_session`, `submit_attendance`, `open_gradebook`, `submit_gradebook`, `build_grade_sheet`, `finalize_installation`, `publish_assessment_rule_version`, etc.
+    - Triggers de notificação: `trg_notify_*` (6 triggers), guards de RLS, normalização e auditoria.
+  - **Esta migração é idempotente (CREATE OR REPLACE)** — pode ser re-aplicada sem risco.
+- **Commit `507abb3` (Ciclos 62+63):** 22 ficheiros, 4671 inserções — commitado ao branch `feat/payflow-integration-production`.
+
+**Validação:**
+- `npm run siga:check` — 100% verde.
+- `npm run build` — bundle limpo.
+- RBAC: 510 role_permissions em 2 escolas (verificado ao vivo via Supabase REST API).
+
 ### Ciclo 63 — RBAC-v2 Matriz Total de Permissões, Atribuição Docente e Contrato PayFlow (2026-09-08)
 
 Continuação directa dos Ciclos 61 e 62. Finalizada a expansão do sistema RBAC-v2, atribuição docente às turmas e verificação de contratos com o PayFlow.

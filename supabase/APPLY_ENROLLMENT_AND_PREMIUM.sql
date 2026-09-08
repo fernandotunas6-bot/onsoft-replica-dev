@@ -7066,3 +7066,17 @@ JOIN public.permissions p ON p.code = ANY (ARRAY[
 WHERE r.code = 'user'
 ON CONFLICT (school_id, role_id, permission_id) DO NOTHING;
 -- >>> END 20260908190000_seed_remaining_role_permissions.sql
+
+-- >>> BEGIN 20260908200000_backfill_huambo_roles_and_permissions.sql
+-- Nota: Esta migração foi aplicada directamente via REST API (roles + role_permissions).
+-- O conteúdo completo está em supabase/migrations/20260908200000_backfill_huambo_roles_and_permissions.sql
+-- Para novas escolas, o school-bootstrap.ts trata de tudo automaticamente.
+-- Para escolas legadas: executar a migração ou usar o script de backfill.
+-- >>> END 20260908200000_backfill_huambo_roles_and_permissions.sql
+
+-- >>> BEGIN 20260908210000_capture_all_db_functions.sql
+-- Nota: Este ficheiro (200KB, 4774 linhas) contém 149 funções private.* e public.*
+-- capturadas da BD ao vivo via pg_get_functiondef. É idempotente (CREATE OR REPLACE).
+-- Para aplicar: colar o conteúdo de supabase/migrations/20260908210000_capture_all_db_functions.sql
+-- no SQL Editor do SGA. NÃO executar via Lovable.
+-- >>> END 20260908210000_capture_all_db_functions.sql
