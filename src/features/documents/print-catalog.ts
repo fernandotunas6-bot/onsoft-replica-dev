@@ -1,4 +1,5 @@
 import { angolaSchoolTypes } from "@/lib/school-config";
+import { documentValidationCode } from "@/features/academic/assessment-views";
 
 export const PRINT_TEMPLATE_KEYS = [
   "talao-candidatura",
@@ -256,7 +257,9 @@ export function buildPrintSamplePayload(
   const process = extras?.student?.academicNumber || "EST-2026-0142";
   const className = extras?.student?.className || "7ª A";
   const programName = extras?.student?.programName || "7.ª Classe · I Ciclo";
-  const hash = extras?.student?.validationCode || "SIGA-DEMO-0001";
+  const hash =
+    extras?.student?.validationCode ||
+    documentValidationCode([school.schoolName, studentName, year]);
 
   const subjects = [
     {

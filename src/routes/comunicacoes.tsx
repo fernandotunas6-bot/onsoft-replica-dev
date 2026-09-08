@@ -125,6 +125,12 @@ const audienceLabel: Record<Audience, string> = {
   students_secondary: "Alunos do ensino secundário",
   students_finalists: "Alunos finalistas",
   teaching_staff: "Corpo docente",
+  alumni_all: "Alumni (todos com consentimento)",
+  alumni_opportunities: "Alumni (oportunidades & carreiras)",
+  alumni_events: "Alumni (eventos & encontros)",
+  alumni_mentoring: "Alumni (mentoria)",
+  alumni_surveys: "Alumni (pesquisas e tracer studies)",
+  alumni_fundraising: "Alumni (campanhas & bolsas)",
 };
 
 const audienceOptions: Array<{ value: Audience; label: string }> = (

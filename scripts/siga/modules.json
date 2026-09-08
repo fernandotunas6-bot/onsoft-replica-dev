@@ -6,7 +6,8 @@
     "supabase/APPLY_IN_SQL_EDITOR.sql",
     "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
     "supabase/APPLY_SAAS_PLATFORM.sql",
-    "supabase/APPLY_DIGITAL_IDENTITY.sql"
+    "supabase/APPLY_DIGITAL_IDENTITY.sql",
+    "supabase/APPLY_ALUMNI_MODULE.sql"
   ],
   "sqlPatchAfterVerify": "supabase/APPLY_MISSING_FROM_VERIFY.sql",
   "sqlNeverApplyToSga": [

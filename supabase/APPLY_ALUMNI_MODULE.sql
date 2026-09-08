@@ -264,3 +264,265 @@ comment on table public.alumni_event_registrations is 'Inscrições e presença 
 comment on table public.alumni_surveys is 'Pesquisas e tracer studies de empregabilidade e impacto.';
 comment on table public.alumni_survey_responses is 'Respostas individuais dos Alumni às pesquisas institucionais.';
 comment on table public.alumni_contributions is 'Doações, bolsas, patrocínios, bens e horas de voluntariado dos Alumni.';
+-- SIGA / Onsoft — Alumni Self-Service Portal
+-- Liga uma conta autenticada ao perfil Alumni sem duplicar a identidade académica.
+
+alter table public.alumni_profiles
+  add column if not exists auth_user_id uuid references auth.users(id) on delete set null;
+
+alter table public.alumni_profiles
+  add column if not exists self_service_enabled boolean not null default false;
+
+alter table public.alumni_profiles
+  add column if not exists self_service_claimed_at timestamptz;
+
+create unique index if not exists uq_alumni_profiles_auth_user
+  on public.alumni_profiles(auth_user_id)
+  where auth_user_id is not null;
+
+create index if not exists idx_alumni_profiles_self_service
+  on public.alumni_profiles(school_id, self_service_enabled)
+  where self_service_enabled = true;
+
+comment on column public.alumni_profiles.auth_user_id is 'Conta Supabase Auth vinculada ao antigo aluno para o portal self-service.';
+comment on column public.alumni_profiles.self_service_enabled is 'Permite acesso do próprio Alumni ao portal, após vínculo validado.';
+comment on column public.alumni_profiles.self_service_claimed_at is 'Data em que a conta autenticada foi vinculada ao perfil Alumni.';
+-- SIGA / Onsoft — Alumni Privacy & Communications
+
+create table if not exists public.alumni_communication_preferences (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  alumni_id uuid not null references public.alumni_profiles(id) on delete cascade,
+  email_enabled boolean not null default true,
+  sms_enabled boolean not null default false,
+  whatsapp_enabled boolean not null default false,
+  opportunities_enabled boolean not null default true,
+  events_enabled boolean not null default true,
+  mentoring_enabled boolean not null default true,
+  surveys_enabled boolean not null default true,
+  fundraising_enabled boolean not null default false,
+  updated_at timestamptz not null default now(),
+  unique (school_id, alumni_id)
+);
+
+create table if not exists public.alumni_privacy_audit (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  alumni_id uuid not null references public.alumni_profiles(id) on delete cascade,
+  auth_user_id uuid references auth.users(id) on delete set null,
+  action text not null check (action in ('claim','profile_update','consent_update','visibility_update','export_included','communication_targeted')),
+  previous_value jsonb,
+  new_value jsonb,
+  occurred_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create index if not exists idx_alumni_comm_preferences_school on public.alumni_communication_preferences(school_id, alumni_id);
+create index if not exists idx_alumni_privacy_audit_recent on public.alumni_privacy_audit(school_id, occurred_at desc);
+
+alter table public.alumni_communication_preferences enable row level security;
+alter table public.alumni_privacy_audit enable row level security;
+
+comment on table public.alumni_communication_preferences is 'Preferências granulares de comunicação do antigo aluno por canal e finalidade.';
+comment on table public.alumni_privacy_audit is 'Auditoria de consentimento, visibilidade, exportação e segmentação de Alumni.';
+-- SIGA / Onsoft — Alumni self-service audit hardening
+-- Garante trilho de auditoria do vínculo de conta mesmo quando a activação
+-- ocorre por server function/service role.
+
+create or replace function public.audit_alumni_self_service_claim()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+begin
+  if new.auth_user_id is distinct from old.auth_user_id
+     and new.auth_user_id is not null then
+    insert into public.alumni_privacy_audit (
+      school_id,
+      alumni_id,
+      auth_user_id,
+      action,
+      previous_value,
+      new_value,
+      occurred_at,
+      metadata
+    ) values (
+      new.school_id,
+      new.id,
+      new.auth_user_id,
+      'claim',
+      jsonb_build_object(
+        'auth_user_id', old.auth_user_id,
+        'self_service_enabled', old.self_service_enabled
+      ),
+      jsonb_build_object(
+        'auth_user_id', new.auth_user_id,
+        'self_service_enabled', new.self_service_enabled,
+        'self_service_claimed_at', new.self_service_claimed_at
+      ),
+      now(),
+      jsonb_build_object('source', 'alumni_profiles_trigger')
+    );
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.audit_alumni_self_service_claim() from public, anon, authenticated;
+grant execute on function public.audit_alumni_self_service_claim() to service_role;
+
+drop trigger if exists alumni_profiles_audit_self_service_claim on public.alumni_profiles;
+create trigger alumni_profiles_audit_self_service_claim
+after update of auth_user_id, self_service_enabled, self_service_claimed_at
+on public.alumni_profiles
+for each row
+execute function public.audit_alumni_self_service_claim();
+
+comment on function public.audit_alumni_self_service_claim() is
+  'Regista automaticamente a activação/vínculo da conta autenticada ao perfil Alumni.';
+-- SIGA / Onsoft — integração Alumni no motor central de comunicados
+-- Preserva os públicos existentes e acrescenta finalidades Alumni.
+
+DO $$
+DECLARE
+  constraint_record record;
+BEGIN
+  IF to_regclass('public.school_announcements') IS NULL THEN
+    RAISE NOTICE 'school_announcements não existe neste ambiente; extensão Alumni ignorada.';
+    RETURN;
+  END IF;
+
+  -- Remove apenas CHECK constraints que governam a coluna audience.
+  FOR constraint_record IN
+    SELECT c.conname
+    FROM pg_constraint c
+    JOIN pg_class t ON t.oid = c.conrelid
+    JOIN pg_namespace n ON n.oid = t.relnamespace
+    WHERE n.nspname = 'public'
+      AND t.relname = 'school_announcements'
+      AND c.contype = 'c'
+      AND pg_get_constraintdef(c.oid) ILIKE '%audience%'
+  LOOP
+    EXECUTE format('ALTER TABLE public.school_announcements DROP CONSTRAINT %I', constraint_record.conname);
+  END LOOP;
+
+  ALTER TABLE public.school_announcements
+    ADD CONSTRAINT school_announcements_audience_check
+    CHECK (audience IN (
+      'all_guardians',
+      'guardians_with_debt',
+      'students_secondary',
+      'students_finalists',
+      'teaching_staff',
+      'alumni_all',
+      'alumni_opportunities',
+      'alumni_events',
+      'alumni_mentoring',
+      'alumni_surveys',
+      'alumni_fundraising'
+    ));
+
+  COMMENT ON CONSTRAINT school_announcements_audience_check ON public.school_announcements IS
+    'Públicos SIGA, incluindo segmentos Alumni que são resolvidos com consentimento e preferências.';
+END;
+$$;
+-- Alumni Portfolio
+-- Professional evidence linked to the canonical alumni/student/person identity.
+-- Official school documents remain in document_requests/document_templates and are only referenced here.
+
+create table if not exists public.alumni_portfolio_items (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  alumni_id uuid not null references public.alumni_profiles(id) on delete cascade,
+  item_type text not null check (item_type in ('project','publication','award','certificate','media','link','case_study','other')),
+  title text not null,
+  summary text,
+  organization text,
+  role text,
+  started_on date,
+  ended_on date,
+  external_url text,
+  image_url text,
+  official_document_request_id uuid references public.document_requests(id) on delete set null,
+  skills text[] not null default '{}',
+  tags text[] not null default '{}',
+  featured boolean not null default false,
+  visibility text not null default 'alumni' check (visibility in ('private','school','alumni')),
+  sort_order integer not null default 0,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (ended_on is null or started_on is null or ended_on >= started_on)
+);
+
+create index if not exists idx_alumni_portfolio_school_alumni on public.alumni_portfolio_items(school_id, alumni_id, sort_order, created_at desc);
+create index if not exists idx_alumni_portfolio_featured on public.alumni_portfolio_items(school_id, alumni_id, featured) where featured = true;
+create index if not exists idx_alumni_portfolio_type on public.alumni_portfolio_items(school_id, item_type);
+
+alter table public.alumni_portfolio_items enable row level security;
+
+comment on table public.alumni_portfolio_items is 'Portfólio profissional do Alumni: projectos, publicações, prémios, certificados externos, media e links. Documentos oficiais do SIGA são referenciados, não duplicados.';
+comment on column public.alumni_portfolio_items.official_document_request_id is 'Referência opcional a document_requests quando o item corresponde a um documento oficial da escola.';
+-- Portfolio por nível de ensino: Primária, Médio e Superior.
+-- Mantém os itens existentes válidos (education_level nullable) e permite
+-- classificar cada evidência sem duplicar o perfil académico oficial.
+
+alter table public.alumni_portfolio_items
+  add column if not exists education_level text;
+
+alter table public.alumni_portfolio_items
+  drop constraint if exists alumni_portfolio_items_education_level_check;
+
+alter table public.alumni_portfolio_items
+  add constraint alumni_portfolio_items_education_level_check
+  check (education_level is null or education_level in ('primary','middle','higher'));
+
+create index if not exists idx_alumni_portfolio_level
+  on public.alumni_portfolio_items(school_id, alumni_id, education_level, featured desc, sort_order asc);
+
+comment on column public.alumni_portfolio_items.education_level is
+  'Nível do percurso a que a evidência pertence: primary, middle ou higher. Null preserva itens legados ainda não classificados.';
+-- Percurso educacional exibido no Portfólio Alumni.
+-- Não substitui matrículas/histórico académico oficial do SIGA.
+-- Permite representar escolas externas ou anteriores que não pertencem ao tenant actual.
+
+create table if not exists public.alumni_education_stages (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  alumni_id uuid not null references public.alumni_profiles(id) on delete cascade,
+  education_level text not null check (education_level in ('primary','middle','higher')),
+  institution_name text not null,
+  course_name text,
+  degree_name text,
+  started_year integer check (started_year is null or started_year between 1900 and 2200),
+  ended_year integer check (ended_year is null or ended_year between 1900 and 2200),
+  city text,
+  province text,
+  country text default 'Angola',
+  is_current boolean not null default false,
+  is_verified boolean not null default false,
+  sort_order integer not null default 0,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (ended_year is null or started_year is null or ended_year >= started_year)
+);
+
+create index if not exists idx_alumni_education_stages_lookup
+  on public.alumni_education_stages(school_id, alumni_id, education_level, sort_order, started_year);
+
+alter table public.alumni_education_stages enable row level security;
+
+alter table public.alumni_portfolio_items
+  add column if not exists education_stage_id uuid references public.alumni_education_stages(id) on delete set null;
+
+create index if not exists idx_alumni_portfolio_education_stage
+  on public.alumni_portfolio_items(school_id, alumni_id, education_stage_id, featured desc, sort_order asc);
+
+comment on table public.alumni_education_stages is
+  'Percurso educacional de apresentação do Alumni. Complementa, sem substituir, o histórico académico oficial do SIGA.';
+comment on column public.alumni_education_stages.institution_name is
+  'Nome da instituição frequentada naquela etapa, incluindo instituições externas ao tenant SIGA.';
+comment on column public.alumni_portfolio_items.education_stage_id is
+  'Etapa/instituição específica à qual o item do portfólio pertence.';

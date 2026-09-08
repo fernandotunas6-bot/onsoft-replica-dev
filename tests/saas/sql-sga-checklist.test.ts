@@ -12,6 +12,7 @@ describe("SQL SGA checklist", () => {
       "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
       "supabase/APPLY_SAAS_PLATFORM.sql",
       "supabase/APPLY_DIGITAL_IDENTITY.sql",
+      "supabase/APPLY_ALUMNI_MODULE.sql",
     ]);
     for (const file of catalog.sqlApply) {
       expect(existsSync(resolve(file)), file).toBe(true);

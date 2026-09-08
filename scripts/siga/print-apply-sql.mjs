@@ -115,6 +115,30 @@ export const SQL_CHECKLIST = {
       "Wildcard *.PLATFORM_DOMAIN resolve para a aplicação sem DNS manual",
     ],
   },
+  "supabase/APPLY_ALUMNI_MODULE.sql": {
+    title: "Módulo Alumni & Antigos Alunos",
+    tables: [
+      "alumni_profiles",
+      "alumni_experiences",
+      "alumni_engagements",
+      "alumni_opportunities",
+      "alumni_opportunity_applications",
+      "alumni_mentorships",
+      "alumni_events",
+      "alumni_event_registrations",
+      "alumni_surveys",
+      "alumni_survey_responses",
+      "alumni_contributions",
+      "alumni_communication_preferences",
+      "alumni_privacy_audit",
+      "alumni_portfolio_items",
+      "alumni_education_stages",
+    ],
+    notes: [
+      "Ciclo pós-formação do SIGA sem duplicar pessoas ou matrículas",
+      "Perfis 360º, portfólio por nível de ensino, mentoria, tracer studies, eventos e privacidade",
+    ],
+  },
 };
 
 function printChecklist() {

@@ -45,7 +45,6 @@ import { MiniPautaView } from "./MiniPautaView";
 import { FinalPautaView } from "./FinalPautaView";
 import { TrimesterPautaView } from "./TrimesterPautaView";
 import { ExamPautaView } from "./ExamPautaView";
-import { finalPautaDemo, miniPautaDemo, trimesterPautaDemo, examPautaDemo } from "./pautas-demo";
 import type {
   FinalPautaDocument,
   MiniPautaDocument,
@@ -142,10 +141,24 @@ export function PautasWorkspaceModule({
       ? globalTerm.sequence
       : 1;
   const [selectedTerm, setSelectedTerm] = useState<number>(initialTerm);
-  const [selectedClassId, setSelectedClassId] = useState<string>("demo");
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("demo");
+  const classGroups = workspace?.classGroups ?? [];
+  const enrollmentOptions = workspace?.enrollmentOptions ?? [];
+  const classSubjectNav = workspace?.classSubjects ?? [];
+  const allTermGrades = workspace?.termGrades ?? [];
+
+  const [selectedClassId, setSelectedClassId] = useState<string>(
+    () => classGroups[0]?.id ?? "",
+  );
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
+
+  // Mantém selectedClassId atualizado quando as turmas do workspace forem carregadas
+  useEffect(() => {
+    if ((!selectedClassId || !classGroups.some((cg) => cg.id === selectedClassId)) && classGroups.length > 0) {
+      setSelectedClassId(classGroups[0].id);
+    }
+  }, [classGroups, selectedClassId]);
 
   // Sincroniza o trimestre da pauta com o período global da topbar.
   useEffect(() => {
@@ -162,11 +175,7 @@ export function PautasWorkspaceModule({
     if (match) setSelectedTermId(match.id);
   };
 
-  const isRealClass = selectedClassId !== "demo" && Boolean(workspace);
-  const classGroups = workspace?.classGroups ?? [];
-  const enrollmentOptions = workspace?.enrollmentOptions ?? [];
-  const classSubjectNav = workspace?.classSubjects ?? [];
-  const allTermGrades = workspace?.termGrades ?? [];
+  const isRealClass = Boolean(selectedClassId && workspace);
 
   const currentClass = useMemo(
     () => classGroups.find((cg) => cg.id === selectedClassId),
@@ -279,56 +288,54 @@ export function PautasWorkspaceModule({
 
   // Mini Pauta Document
   const rawMiniDocument: MiniPautaDocument = useMemo(() => {
-    if (!isRealClass) {
-      return { ...miniPautaDemo, context: { ...miniPautaDemo.context, cycle: selectedCycle } };
-    }
-
     const subject = realSubjectsForClass.find((s) => s.id === effectiveSubjectId);
     const teacherName =
       classSubjectsForSelected.find((cs) => cs.subject_id === effectiveSubjectId)?.teacher_name ??
       "";
 
-    const students: MiniPautaStudent[] = classSummaries.map((summary, index) => {
-      const subjSummary = summary.subjects.find((s) => s.subjectId === effectiveSubjectId);
-      const rawFor = (term: number) =>
-        termGradesForClass.find(
-          (g) =>
-            g.enrollment_id === summary.enrollmentId &&
-            g.subject_id === effectiveSubjectId &&
-            g.term === term,
-        );
-      const g1 = rawFor(1);
-      const g2 = rawFor(2);
-      const g3 = rawFor(3);
-      return {
-        id: summary.enrollmentId,
-        code: summary.registrationNumber ?? `EST-${index + 1}`,
-        number: index + 1,
-        name: summary.studentName,
-        gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
-        t1: {
-          mact: g1?.mac ?? null,
-          npp: g1?.npp ?? null,
-          npt: g1?.npt ?? null,
-          mt: subjSummary?.mt1 ?? null,
-        },
-        t2: {
-          mact: g2?.mac ?? null,
-          npp: g2?.npp ?? null,
-          npt: g2?.npt ?? null,
-          mt: subjSummary?.mt2 ?? null,
-        },
-        t3: {
-          mact: g3?.mac ?? null,
-          npp: g3?.npp ?? null,
-          npt: g3?.npt ?? null,
-          mt: subjSummary?.mt3 ?? null,
-        },
-        mfd: subjSummary?.mfd ?? null,
-        status: toStudentStatus(summary.status),
-        observation: "",
-      };
-    });
+    const students: MiniPautaStudent[] = isRealClass
+      ? classSummaries.map((summary, index) => {
+          const subjSummary = summary.subjects.find((s) => s.subjectId === effectiveSubjectId);
+          const rawFor = (term: number) =>
+            termGradesForClass.find(
+              (g) =>
+                g.enrollment_id === summary.enrollmentId &&
+                g.subject_id === effectiveSubjectId &&
+                g.term === term,
+            );
+          const g1 = rawFor(1);
+          const g2 = rawFor(2);
+          const g3 = rawFor(3);
+          return {
+            id: summary.enrollmentId,
+            code: summary.registrationNumber ?? `EST-${index + 1}`,
+            number: index + 1,
+            name: summary.studentName,
+            gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
+            t1: {
+              mact: g1?.mac ?? null,
+              npp: g1?.npp ?? null,
+              npt: g1?.npt ?? null,
+              mt: subjSummary?.mt1 ?? null,
+            },
+            t2: {
+              mact: g2?.mac ?? null,
+              npp: g2?.npp ?? null,
+              npt: g2?.npt ?? null,
+              mt: subjSummary?.mt2 ?? null,
+            },
+            t3: {
+              mact: g3?.mac ?? null,
+              npp: g3?.npp ?? null,
+              npt: g3?.npt ?? null,
+              mt: subjSummary?.mt3 ?? null,
+            },
+            mfd: subjSummary?.mfd ?? null,
+            status: toStudentStatus(summary.status),
+            observation: "",
+          };
+        })
+      : [];
 
     return {
       school: buildSchoolIdentity(schoolSettings),
@@ -352,6 +359,7 @@ export function PautasWorkspaceModule({
     classSubjectsForSelected,
     classSummaries,
     termGradesForClass,
+    genderByEnrollmentId,
     schoolSettings,
     currentClass,
     activeYearLabel,
@@ -360,48 +368,43 @@ export function PautasWorkspaceModule({
 
   // Trimester Pauta Document
   const rawTrimesterDocument: TrimesterPautaDocument = useMemo(() => {
-    if (!isRealClass) {
-      return {
-        ...trimesterPautaDemo,
-        context: { ...trimesterPautaDemo.context, term: selectedTerm, cycle: selectedCycle },
-      };
-    }
+    const students: TrimesterPautaStudent[] = isRealClass
+      ? classSummaries.map((summary, index) => {
+          const gradesMap: Record<string, number | null> = {};
+          let total = 0;
+          let count = 0;
+          let failing = 0;
+          realSubjectsForClass.forEach((sub) => {
+            const subjSummary = summary.subjects.find((s) => s.subjectId === sub.id);
+            const mt =
+              selectedTerm === 1
+                ? subjSummary?.mt1
+                : selectedTerm === 2
+                  ? subjSummary?.mt2
+                  : subjSummary?.mt3;
+            gradesMap[sub.id] = mt ?? null;
+            if (mt !== null && mt !== undefined) {
+              total += mt;
+              count += 1;
+              if (mt < 10) failing += 1;
+            }
+          });
+          const avg = count > 0 ? Math.round((total / count) * 10) / 10 : null;
+          const status: StudentStatus =
+            avg === null ? "" : toStudentStatus(decidePromotionStatus(avg, failing, selectedCycle));
 
-    const students: TrimesterPautaStudent[] = classSummaries.map((summary, index) => {
-      const gradesMap: Record<string, number | null> = {};
-      let total = 0;
-      let count = 0;
-      let failing = 0;
-      realSubjectsForClass.forEach((sub) => {
-        const subjSummary = summary.subjects.find((s) => s.subjectId === sub.id);
-        const mt =
-          selectedTerm === 1
-            ? subjSummary?.mt1
-            : selectedTerm === 2
-              ? subjSummary?.mt2
-              : subjSummary?.mt3;
-        gradesMap[sub.id] = mt ?? null;
-        if (mt !== null && mt !== undefined) {
-          total += mt;
-          count += 1;
-          if (mt < 10) failing += 1;
-        }
-      });
-      const avg = count > 0 ? Math.round((total / count) * 10) / 10 : null;
-      const status: StudentStatus =
-        avg === null ? "" : toStudentStatus(decidePromotionStatus(avg, failing, selectedCycle));
-
-      return {
-        id: summary.enrollmentId,
-        code: summary.registrationNumber ?? `EST-${index + 1}`,
-        number: index + 1,
-        name: summary.studentName,
-        gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
-        subjectGrades: gradesMap,
-        average: avg,
-        status,
-      };
-    });
+          return {
+            id: summary.enrollmentId,
+            code: summary.registrationNumber ?? `EST-${index + 1}`,
+            number: index + 1,
+            name: summary.studentName,
+            gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
+            subjectGrades: gradesMap,
+            average: avg,
+            status,
+          };
+        })
+      : [];
 
     return {
       school: buildSchoolIdentity(schoolSettings),
@@ -427,6 +430,7 @@ export function PautasWorkspaceModule({
     selectedCycle,
     classSummaries,
     realSubjectsForClass,
+    genderByEnrollmentId,
     schoolSettings,
     currentClass,
     activeYearLabel,
@@ -435,26 +439,24 @@ export function PautasWorkspaceModule({
 
   // Final Pauta Document
   const rawFinalDocument: FinalPautaDocument = useMemo(() => {
-    if (!isRealClass) {
-      return { ...finalPautaDemo, context: { ...finalPautaDemo.context, cycle: selectedCycle } };
-    }
-
-    const students: FinalPautaStudent[] = classSummaries.map((summary, index) => ({
-      id: summary.enrollmentId,
-      code: summary.registrationNumber ?? `EST-${index + 1}`,
-      number: index + 1,
-      name: summary.studentName,
-      gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
-      subjects: summary.subjects.map((s) => ({
-        subjectId: s.subjectId,
-        subjectName: s.subjectName,
-        mt1: s.mt1,
-        mt2: s.mt2,
-        mt3: s.mt3,
-        mfd: s.mfd,
-      })),
-      status: toStudentStatus(summary.status),
-    }));
+    const students: FinalPautaStudent[] = isRealClass
+      ? classSummaries.map((summary, index) => ({
+          id: summary.enrollmentId,
+          code: summary.registrationNumber ?? `EST-${index + 1}`,
+          number: index + 1,
+          name: summary.studentName,
+          gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
+          subjects: summary.subjects.map((s) => ({
+            subjectId: s.subjectId,
+            subjectName: s.subjectName,
+            mt1: s.mt1,
+            mt2: s.mt2,
+            mt3: s.mt3,
+            mfd: s.mfd,
+          })),
+          status: toStudentStatus(summary.status),
+        }))
+      : [];
 
     return {
       school: buildSchoolIdentity(schoolSettings),
@@ -478,18 +480,15 @@ export function PautasWorkspaceModule({
     selectedCycle,
     classSummaries,
     realSubjectsForClass,
+    genderByEnrollmentId,
     schoolSettings,
     currentClass,
     activeYearLabel,
     configuredPeriodCount,
   ]);
 
-  // Exam Pauta Document — o SIGA ainda não regista notas de PAP/Estágio/Exame Nacional; para
-  // turmas reais mostramos o cabeçalho real mas sem misturar alunos de demonstração na lista.
+  // Exam Pauta Document
   const rawExamDocument: ExamPautaDocument = useMemo(() => {
-    if (!isRealClass) {
-      return { ...examPautaDemo, isTechnical: selectedCycle === "tecnico" };
-    }
     return {
       school: buildSchoolIdentity(schoolSettings),
       context: buildClassContext({
@@ -508,7 +507,6 @@ export function PautasWorkspaceModule({
       signatures: { jury: ["", "", ""], pedagogicalDeputy: "", director: "" },
     };
   }, [
-    isRealClass,
     selectedCycle,
     schoolSettings,
     currentClass,
@@ -838,12 +836,12 @@ export function PautasWorkspaceModule({
               value={selectedClassId}
               onChange={(e) => {
                 setSelectedClassId(e.target.value);
-                if (e.target.value !== "demo" && onSelectClassGroup) {
+                if (onSelectClassGroup) {
                   onSelectClassGroup(e.target.value);
                 }
               }}
             >
-              <option value="demo">Demonstrativo (Modelo Angola)</option>
+              {classGroups.length === 0 && <option value="">Nenhuma turma disponível</option>}
               {classGroups.map((cg) => (
                 <option key={cg.id} value={cg.id}>
                   {cg.name} ({cg.grade_name || "Sem classe"})
@@ -863,7 +861,9 @@ export function PautasWorkspaceModule({
                 value={effectiveSubjectId}
                 onChange={(e) => setSelectedSubjectId(e.target.value)}
               >
-                {!isRealClass && <option value="demo">Língua Portuguesa (Demonstrativa)</option>}
+                {realSubjectsForClass.length === 0 && (
+                  <option value="">Sem disciplinas atribuídas</option>
+                )}
                 {realSubjectsForClass.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -929,16 +929,26 @@ export function PautasWorkspaceModule({
         </div>
       )}
 
-      {/* Empty state — turma real sem alunos matriculados */}
-      {isRealClassEmpty ? (
-        <div className="rounded-xl border border-border bg-card shadow-xs p-10 flex flex-col items-center justify-center text-center gap-2">
+      {/* Empty state — nenhuma turma ou turma sem alunos matriculados */}
+      {!currentClass || classGroups.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card shadow-xs p-10 flex flex-col items-center justify-center text-center gap-3">
+          <Users className="size-8 text-muted-foreground" />
+          <p className="text-sm font-semibold text-foreground">
+            Nenhuma turma selecionada ou configurada
+          </p>
+          <p className="text-xs text-muted-foreground max-w-md">
+            Crie turmas e matricule alunos no ano lectivo activo para visualizar e exportar as pautas
+            oficiais segundo o Decreto Executivo n.º 424/25.
+          </p>
+        </div>
+      ) : isRealClassEmpty ? (
+        <div className="rounded-xl border border-border bg-card shadow-xs p-10 flex flex-col items-center justify-center text-center gap-3">
           <Users className="size-8 text-muted-foreground" />
           <p className="text-sm font-semibold text-foreground">
             Esta turma ainda não tem alunos matriculados
           </p>
           <p className="text-xs text-muted-foreground max-w-md">
-            Matricule alunos nesta turma para gerar a pauta com dados reais. Escolha "Demonstrativo"
-            no selector de turma para ver um modelo de referência.
+            Matricule alunos nesta turma para gerar a pauta oficial com os dados da instituição.
           </p>
         </div>
       ) : (
@@ -947,16 +957,15 @@ export function PautasWorkspaceModule({
           {modelType === "trimestre" && <TrimesterPautaView data={filteredTrimesterDocument} />}
           {modelType === "final" && <FinalPautaView data={filteredFinalDocument} />}
           {modelType === "exames" &&
-            (isRealClass && filteredExamDocument.students.length === 0 ? (
+            (filteredExamDocument.students.length === 0 ? (
               <div className="rounded-xl border border-border bg-card shadow-xs p-10 flex flex-col items-center justify-center text-center gap-2">
                 <GraduationCap className="size-8 text-muted-foreground" />
                 <p className="text-sm font-semibold text-foreground">
-                  Sem dados de exame/PAP para esta turma
+                  Sem dados de exame/PAP registados para esta turma
                 </p>
                 <p className="text-xs text-muted-foreground max-w-md">
-                  O SIGA ainda não regista notas de Exame Nacional, PAP ou Estágio para turmas
-                  reais. Use a grelha MAC/NPP/NPT, Planos de Aula, ou o demonstrativo de
-                  referência.
+                  O SIGA calcula e apresenta as pautas oficiais a partir das avaliações contínuas
+                  (MAC/NPP/NPT). Para registar avaliações adicionais, consulte o Manual ou os Planos de Aula.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                   <Button type="button" size="sm" variant="outline" asChild>

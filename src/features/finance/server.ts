@@ -23,7 +23,11 @@ import {
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
-import { DEFAULT_FEE_ITEMS, DEFAULT_FEE_PLAN_NAME } from "./fee-plan-defaults";
+import {
+  DEFAULT_FEE_ITEMS,
+  DEFAULT_FEE_PLAN_CODE,
+  DEFAULT_FEE_PLAN_NAME,
+} from "./fee-plan-defaults";
 import {
   generateMulticaixaReference,
   generateMobileWalletOptions,
@@ -250,19 +254,23 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
       };
     }
     const db = await loadSgaAdminClient();
-    const [{ error: penaltyError }, { error: prefsError }, { error: cashExpensesError }, feePlanResult] =
-      await Promise.all([
-        db.from("finance_invoices").select("id, penalty_amount").limit(1),
-        db.from("notification_preferences").select("id").limit(1),
-        db.from("siga_cash_expenses").select("id").limit(1),
-        db
-          .from("fee_plans")
-          .select("id")
-          .eq("school_id", membership.schoolId)
-          .eq("status", "active")
-          .limit(1)
-          .maybeSingle(),
-      ]);
+    const [
+      { error: penaltyError },
+      { error: prefsError },
+      { error: cashExpensesError },
+      feePlanResult,
+    ] = await Promise.all([
+      db.from("finance_invoices").select("id, penalty_amount").limit(1),
+      db.from("notification_preferences").select("id").limit(1),
+      db.from("siga_cash_expenses").select("id").limit(1),
+      db
+        .from("fee_plans")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle(),
+    ]);
     const missingPenaltyAmount = Boolean(
       penaltyError && /penalty_amount/i.test(penaltyError.message),
     );
@@ -297,15 +305,13 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
     }
     const feePlanError = feePlanResult.error;
     const missingActiveFeePlan = Boolean(
-      !feePlanResult.data?.id &&
-      (!feePlanError || !isMissingSgaTable(feePlanError)),
+      !feePlanResult.data?.id && (!feePlanError || !isMissingSgaTable(feePlanError)),
     );
     if (feePlanError && !isMissingSgaTable(feePlanError)) {
       throw publicDatabaseError(feePlanError, "Não foi possível validar o plano financeiro.");
     }
     return {
-      ready:
-        !missingPenaltyAmount && !missingNotificationPreferences && !missingActiveFeePlan,
+      ready: !missingPenaltyAmount && !missingNotificationPreferences && !missingActiveFeePlan,
       missingPenaltyAmount,
       missingNotificationPreferences,
       missingCashExpenses: isMissingSgaTable(cashExpensesError),
@@ -1336,9 +1342,7 @@ export const listGatewayWebhookEvents = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
     let query = db
       .from("finance_gateway_webhook_events")
-      .select(
-        "id, created_at, ok, http_status, channel, message, reference, invoice_id, amount",
-      )
+      .select("id, created_at, ok, http_status, channel, message, reference, invoice_id, amount")
       .eq("school_id", membership.schoolId)
       .order("created_at", { ascending: false })
       .limit(data.limit ?? 5);
@@ -1478,10 +1482,30 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
         .eq("school_id", membership.schoolId);
       if (updateErr) throw publicDatabaseError(updateErr, "Não foi possível actualizar o plano.");
     } else {
+      // fee_plans.academic_year_id é NOT NULL: sem o resolver aqui o insert
+      // rebentava com 23502 e o painel voltava ao estado inicial sem dizer
+      // porquê — o plano de propinas nunca chegava a ser criado.
+      const { data: activeYear, error: yearErr } = await db
+        .from("academic_years")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .order("starts_on", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (yearErr) throw publicDatabaseError(yearErr, "Não foi possível resolver o ano lectivo.");
+      if (!activeYear?.id) {
+        throw new Error(
+          "Defina primeiro o ano lectivo da escola (Calendário Lectivo → «Definir ano lectivo»). O plano de propinas pertence a um ano lectivo.",
+        );
+      }
+
       const { data: created, error: createErr } = await db
         .from("fee_plans")
         .insert({
           school_id: membership.schoolId,
+          academic_year_id: activeYear.id,
+          code: DEFAULT_FEE_PLAN_CODE,
           name: data.planName || DEFAULT_FEE_PLAN_NAME,
           status: "active",
         })
@@ -1493,9 +1517,23 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
       planId = created.id as string;
     }
 
+    // `code` e `frequency` são NOT NULL sem default em fee_items — sem eles o
+    // insert falhava com 23502 e o painel não criava nenhuma propina.
     const desired = [
-      { kind: "tuition", name: "Propina mensal", amount: data.tuitionAmount },
-      { kind: "enrollment", name: "Taxa de matrícula", amount: data.enrollmentAmount },
+      {
+        kind: "tuition",
+        code: "TUITION",
+        frequency: "monthly",
+        name: "Propina mensal",
+        amount: data.tuitionAmount,
+      },
+      {
+        kind: "enrollment",
+        code: "ENROLLMENT",
+        frequency: "once",
+        name: "Taxa de matrícula",
+        amount: data.enrollmentAmount,
+      },
     ] as const;
 
     for (const item of desired) {
@@ -1519,8 +1557,10 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
         const { error } = await db.from("fee_items").insert({
           school_id: membership.schoolId,
           fee_plan_id: planId,
+          code: item.code,
           name: item.name,
           kind: item.kind,
+          frequency: item.frequency,
           amount: item.amount,
           is_active: true,
         });
@@ -1572,7 +1612,9 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
 
     const readiness = validateSaftSchoolReadiness(schoolInfo);
     if (saftExportBlocked(readiness)) {
-      throw new Error(readiness.find((issue) => issue.level === "error")?.message ?? "Exportação bloqueada.");
+      throw new Error(
+        readiness.find((issue) => issue.level === "error")?.message ?? "Exportação bloqueada.",
+      );
     }
 
     const period = saftPeriodBounds(data);
@@ -1804,9 +1846,8 @@ export const syncSchoolBankToPayflow = createServerFn({ method: "POST" })
     const syncUrl = getPayflowUrl("/api/v1/bank-accounts/sync");
     if (!syncUrl) throw new Error("VITE_PAYFLOW_URL não está configurada.");
 
-    const { toPayflowSchoolCode, buildPayflowBankAccount } = await import(
-      "./payflow-education-sync"
-    );
+    const { toPayflowSchoolCode, buildPayflowBankAccount } =
+      await import("./payflow-education-sync");
     const { loadSchoolSettingsBundle } = await import("@/features/school/server");
     const { validateAngolaIban } = await import("@/lib/angola-banking");
 

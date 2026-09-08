@@ -298,8 +298,9 @@ export function FeePlanSettingsForm() {
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm">
           <p className="font-semibold text-amber-900 dark:text-amber-100">Plano financeiro em falta</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Sem plano activo não é possível emitir faturas de propina ou matrícula. Configure abaixo
-            ou aguarde o bootstrap automático ao criar a escola.
+            Sem plano activo não é possível emitir faturas de propina ou matrícula. Configure os
+            valores abaixo — o plano pertence ao ano lectivo activo, por isso defina-o primeiro em
+            Calendário Lectivo se ainda não existir.
           </p>
         </div>
       ) : null}

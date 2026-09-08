@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DEFAULT_FEE_ITEMS, DEFAULT_FEE_PLAN_NAME } from "@/features/finance/fee-plan-defaults";
+import {
+  DEFAULT_FEE_ITEMS,
+  DEFAULT_FEE_PLAN_CODE,
+  DEFAULT_FEE_PLAN_NAME,
+} from "@/features/finance/fee-plan-defaults";
 import {
   bootstrapAcademicStructure,
   bootstrapAcademicYearIfMissing,
@@ -65,6 +69,7 @@ export async function bootstrapSchoolDefaults(
       .insert({
         school_id: input.schoolId,
         academic_year_id: activeYear.id,
+        code: DEFAULT_FEE_PLAN_CODE,
         name: DEFAULT_FEE_PLAN_NAME,
         status: "active",
       })
@@ -76,8 +81,10 @@ export async function bootstrapSchoolDefaults(
         DEFAULT_FEE_ITEMS.map((item) => ({
           school_id: input.schoolId,
           fee_plan_id: plan.id,
+          code: item.code,
           name: item.name,
           kind: item.kind,
+          frequency: item.frequency,
           amount: item.amount,
           is_active: true,
         })),
