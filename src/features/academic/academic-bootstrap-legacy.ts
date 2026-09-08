@@ -120,6 +120,9 @@ export async function bootstrapAcademicStructure(
         school_id: schoolId,
         code: "GERAL",
         name: "Ensino Geral",
+        // `sequence` é NOT NULL sem default: sem ele o insert falhava com
+        // 23502 e «Preparar estrutura académica» não criava nada.
+        sequence: 1,
         is_active: true,
       })
       .select("id")

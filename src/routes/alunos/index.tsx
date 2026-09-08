@@ -663,6 +663,9 @@ function StudentsPage() {
                 grade_name: group.grade_name,
                 course_name: group.course_name,
                 academic_year_id: String(group.academic_year_id ?? ""),
+                // Sem o nome, o selector «Ano lectivo» caía no fallback e
+                // mostrava o UUID cru ao utilizador.
+                academic_year_name: String(group.academic_year_name ?? ""),
               }))}
               people={peopleQuery.data ?? []}
               onCreated={async () => {

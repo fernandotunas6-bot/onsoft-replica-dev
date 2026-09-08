@@ -58,6 +58,7 @@ import {
   resendSystemInvite,
   resetStaffPasswordDirect,
   revokeSchoolInvitation,
+  sendSystemInviteEmail,
   setSystemAccountDisabled,
   updateSystemAccountCargo,
 } from "@/features/access/server";
@@ -864,6 +865,29 @@ function AcessosPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  onClick={async () => {
+                                    try {
+                                      const result = await sendSystemInviteEmail({
+                                        data: { userId: account.id },
+                                      });
+                                      toast.success("E-mail de acesso enviado", {
+                                        description: result.email,
+                                      });
+                                    } catch (error) {
+                                      toast.error("Não foi possível enviar o e-mail", {
+                                        description:
+                                          error instanceof Error
+                                            ? error.message
+                                            : "Tente novamente ou use Copiar/WhatsApp.",
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <MailPlus className="size-3 text-primary" /> Enviar E-mail
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
                                   onClick={() =>
                                     void printStaffCredentials({
                                       full_name: account.full_name,
@@ -1011,12 +1035,15 @@ function AcessosPage() {
                   },
                 });
                 const link = `${window.location.origin}/convite/${result.rawToken}`;
+                const emailNote = result.emailDelivered
+                  ? "E-mail de convite enviado."
+                  : `E-mail não enviado (${result.emailDeliveryError ?? "motivo desconhecido"}) — use o link copiado.`;
                 try {
                   await navigator.clipboard.writeText(link);
-                  toast.message("Link do convite copiado", { description: link });
+                  toast.message("Link do convite copiado", { description: `${emailNote} ${link}` });
                 } catch {
                   // Falha de clipboard (foco/permissões) não deve mascarar o convite criado.
-                  toast.message("Link do convite", { description: link });
+                  toast.message("Link do convite", { description: `${emailNote} ${link}` });
                 }
                 await queryClient.invalidateQueries({ queryKey: ["access", "invitations"] });
               }}

@@ -5,6 +5,10 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { mapAppRoleToSgaCodes, mapSgaRoleCode, sgaClient } from "@/integrations/supabase/sga";
 import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { ensureTeacherHrRecord } from "@/features/people/server";
+import { getAppName, getAppUrl, getAuthResetPasswordUrl } from "@/lib/app-config";
+import { fetchSchoolBranding } from "@/features/auth/reset-password-server";
+import { renderSchoolInvitationEmail } from "@/features/auth/email-templates";
+import { resolveResendFromAddress, sendResendEmail } from "@/features/integrations/resend-client";
 import { resolveBiToEmailInputSchema } from "./bi-login";
 import {
   inviteUserInputSchema,
@@ -127,59 +131,85 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
     const { schoolId } = await requireAdminContext(context);
     const admin = await loadAdminClient();
 
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-      data.email,
-      {
-        data: { full_name: data.fullName },
-      },
-    );
-    if (inviteError) {
-      throw new Error(inviteError.message || "Não foi possível enviar o convite.");
-    }
-    const userId = invited.user?.id;
-    if (!userId) throw new Error("Convite criado sem identificador de utilizador.");
-
-    const { error: profileError } = await admin.from("profiles").upsert(
-      {
-        id: userId,
-        full_name: data.fullName,
-        cargo: data.cargo,
-      },
-      { onConflict: "id" },
-    );
-    if (profileError) {
-      throw publicDatabaseError(profileError, "Convite criado, mas falhou o perfil.");
-    }
-
-    const { data: membership, error: membershipError } = await admin
-      .from("school_memberships")
-      .insert({
-        school_id: schoolId,
-        user_id: userId,
-        status: "active",
-      })
-      .select("id")
-      .single();
-    if (membershipError) {
-      throw publicDatabaseError(membershipError, "Conta criada, mas falhou a membership.");
-    }
-
-    const codes = mapAppRoleToSgaCodes(data.cargo);
-    const { data: role } = await admin
-      .from("roles")
-      .select("id, code")
-      .eq("school_id", schoolId)
-      .in("code", codes.length ? codes : ["secretary"])
-      .limit(1)
-      .maybeSingle();
-    if (!role?.id) {
-      throw new Error(`Papel SGA em falta para ${data.cargo}.`);
-    }
-    await admin.from("member_roles").insert({
-      school_id: schoolId,
-      membership_id: membership.id,
-      role_id: role.id,
+    // Não usar inviteUserByEmail: o mailer nativo da Supabase (sem SMTP próprio)
+    // envia um e-mail genérico "Supabase Auth" — proibido pela identidade
+    // institucional do SIGA. A conta é criada directamente (determinístico) e o
+    // link de acesso é entregue por um e-mail com a marca da escola via Resend,
+    // no mesmo padrão de src/features/saas/admin-account.ts.
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email: data.email,
+      email_confirm: true,
+      user_metadata: { full_name: data.fullName },
     });
+    if (createError) {
+      throw new Error(createError.message || "Não foi possível criar a conta de acesso.");
+    }
+    const userId = created.user?.id;
+    if (!userId) throw new Error("Conta criada sem identificador de utilizador.");
+
+    // Perfil, membership e papel são todos obrigatórios para a conta ser
+    // funcional — se qualquer um falhar, a conta auth.users(userId) fica
+    // órfã (criada, sem escola, sem perfil) se não for revertida. Igual ao
+    // princípio aplicado em verify-oauth-account-server.ts: nunca deixar uma
+    // conta "fantasma" para trás, mesmo numa falha admin-iniciada.
+    let membership: { id: string } | null = null;
+    try {
+      const { error: profileError } = await admin.from("profiles").upsert(
+        {
+          id: userId,
+          full_name: data.fullName,
+          cargo: data.cargo,
+        },
+        { onConflict: "id" },
+      );
+      if (profileError) throw publicDatabaseError(profileError, "Não foi possível criar o perfil.");
+
+      const { data: membershipRow, error: membershipError } = await admin
+        .from("school_memberships")
+        .insert({
+          school_id: schoolId,
+          user_id: userId,
+          status: "active",
+        })
+        .select("id")
+        .single();
+      if (membershipError) {
+        throw publicDatabaseError(membershipError, "Não foi possível criar a membership.");
+      }
+      membership = membershipRow;
+
+      const codes = mapAppRoleToSgaCodes(data.cargo);
+      const { data: role } = await admin
+        .from("roles")
+        .select("id, code")
+        .eq("school_id", schoolId)
+        .in("code", codes.length ? codes : ["secretary"])
+        .limit(1)
+        .maybeSingle();
+      if (!role?.id) {
+        throw new Error(`Papel SGA em falta para ${data.cargo}.`);
+      }
+      const { error: memberRoleError } = await admin.from("member_roles").insert({
+        school_id: schoolId,
+        membership_id: membership.id,
+        role_id: role.id,
+      });
+      if (memberRoleError) {
+        throw publicDatabaseError(memberRoleError, "Não foi possível atribuir o papel.");
+      }
+    } catch (provisioningError) {
+      try {
+        await admin.auth.admin.deleteUser(userId);
+      } catch (cleanupError) {
+        console.error(
+          `[inviteSystemUser] Failed to clean up orphaned account ${userId}:`,
+          cleanupError,
+        );
+      }
+      throw provisioningError instanceof Error
+        ? provisioningError
+        : new Error("Não foi possível provisionar a conta.");
+    }
 
     if (data.cargo === "Professor") {
       await ensureTeacherHrRecord({
@@ -201,16 +231,70 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
         .maybeSingle();
 
       if (existingPerson?.id) {
-        await admin
-          .from("people")
-          .update({ user_id: userId })
-          .eq("id", existingPerson.id);
+        await admin.from("people").update({ user_id: userId }).eq("id", existingPerson.id);
       }
     } catch {
       // Falha não impeditiva na vinculação biográfica
     }
 
-    return { id: userId, email: data.email, cargo: data.cargo };
+    // Entrega do link de acesso por e-mail institucional (best-effort: a conta
+    // já está criada e funcional mesmo que a entrega falhe).
+    let inviteDelivered = false;
+    let inviteDeliveryError: string | null = null;
+    try {
+      const { data: school } = await admin
+        .from("schools")
+        .select("id, name")
+        .eq("id", schoolId)
+        .maybeSingle();
+      const branding = await fetchSchoolBranding(admin, schoolId);
+
+      const { data: link, error: linkError } = await admin.auth.admin.generateLink({
+        type: "recovery",
+        email: data.email,
+        options: { redirectTo: getAuthResetPasswordUrl() },
+      });
+      const accessUrl = link?.properties?.action_link;
+      if (linkError || !accessUrl) {
+        inviteDeliveryError = linkError?.message ?? "Não foi possível gerar o link de acesso.";
+      } else {
+        const apiKey = process.env["RESEND_API_KEY"]?.trim();
+        if (!apiKey) {
+          inviteDeliveryError = "RESEND_API_KEY não configurada — link de acesso não foi enviado.";
+        } else {
+          const message = renderSchoolInvitationEmail({
+            schoolName: school?.name || getAppName(),
+            roleName: data.cargo,
+            invitationUrl: accessUrl,
+            logoUrl: branding.logoUrl,
+            primaryColor: branding.primaryColor,
+            platformName: getAppName(),
+            platformUrl: getAppUrl(),
+            recipientEmail: data.email,
+          });
+          await sendResendEmail({
+            apiKey,
+            from: process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl()),
+            to: [data.email],
+            subject: message.subject,
+            html: message.html,
+            text: message.text,
+          });
+          inviteDelivered = true;
+        }
+      }
+    } catch (deliveryErr) {
+      inviteDeliveryError =
+        deliveryErr instanceof Error ? deliveryErr.message : "Falha ao enviar o convite.";
+    }
+
+    return {
+      id: userId,
+      email: data.email,
+      cargo: data.cargo,
+      inviteDelivered,
+      inviteDeliveryError,
+    };
   });
 
 export const updateSystemAccountCargo = createServerFn({ method: "POST" })
@@ -347,6 +431,82 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
     return { email, kind, actionLink };
   });
 
+/**
+ * Envia o link de acesso por e-mail institucional (Resend + branding da escola),
+ * como alternativa explícita a copiar/WhatsApp/mailto. Não substitui esses canais
+ * — é mais uma opção, pedida pelo utilizador para quem prefere não copiar/colar.
+ */
+export const sendSystemInviteEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => resendSystemInviteInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const { schoolId } = await requireAdminContext(context);
+    if (data.userId === context.userId) {
+      throw new Error("Use Alterar senha para a sua própria conta.");
+    }
+    const admin = await loadAdminClient();
+    const { data: membership, error: membershipError } = await admin
+      .from("school_memberships")
+      .select("id")
+      .eq("user_id", data.userId)
+      .eq("school_id", schoolId)
+      .maybeSingle();
+    if (membershipError) {
+      throw publicDatabaseError(membershipError, "Não foi possível validar a conta.");
+    }
+    if (!membership) throw new Error("Conta não encontrada nesta escola.");
+
+    const { data: authData, error: userError } = await admin.auth.admin.getUserById(data.userId);
+    if (userError) throw new Error(userError.message || "Não foi possível ler o utilizador.");
+    const email = authData.user?.email;
+    if (!email) throw new Error("Esta conta não tem email para enviar o acesso.");
+
+    const kind = authData.user?.email_confirmed_at ? "recovery" : "invite";
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: kind,
+      email,
+      options: { redirectTo: getAuthResetPasswordUrl() },
+    });
+    if (linkError) {
+      throw new Error(linkError.message || "Não foi possível gerar o link de acesso.");
+    }
+    const actionLink = linkData.properties?.action_link;
+    if (!actionLink) throw new Error("O servidor não devolveu um link de acesso.");
+
+    const apiKey = process.env["RESEND_API_KEY"]?.trim();
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY não configurada no servidor — não é possível enviar e-mail.");
+    }
+
+    const [{ data: school }, { data: profile }] = await Promise.all([
+      admin.from("schools").select("name").eq("id", schoolId).maybeSingle(),
+      admin.from("profiles").select("cargo").eq("id", data.userId).maybeSingle(),
+    ]);
+    const branding = await fetchSchoolBranding(admin, schoolId);
+
+    const message = renderSchoolInvitationEmail({
+      schoolName: school?.name || getAppName(),
+      roleName: profile?.cargo || "Membro da Equipa",
+      invitationUrl: actionLink,
+      logoUrl: branding.logoUrl,
+      primaryColor: branding.primaryColor,
+      platformName: getAppName(),
+      platformUrl: getAppUrl(),
+      recipientEmail: email,
+    });
+    await sendResendEmail({
+      apiKey,
+      from: process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl()),
+      to: [email],
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
+    });
+
+    return { email, kind };
+  });
+
 export const resolveBiToEmailFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => resolveBiToEmailInputSchema.parse(input))
   .handler(async ({ data }) => {
@@ -459,9 +619,58 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
       throw publicDatabaseError(error, "Não foi possível criar o convite institucional.");
     }
 
+    // Entrega automática por e-mail institucional, além do link copiável que a UI
+    // já oferece — best-effort: o convite fica válido de qualquer forma.
+    let emailDelivered = false;
+    let emailDeliveryError: string | null = null;
+    try {
+      const [{ data: school }, { data: role }] = await Promise.all([
+        admin.from("schools").select("name").eq("id", schoolId).maybeSingle(),
+        admin
+          .from("roles")
+          .select("name")
+          .eq("school_id", schoolId)
+          .eq("code", data.roleCode)
+          .maybeSingle(),
+      ]);
+      const branding = await fetchSchoolBranding(admin, schoolId);
+      const apiKey = process.env["RESEND_API_KEY"]?.trim();
+      if (!apiKey) {
+        emailDeliveryError = "RESEND_API_KEY não configurada — link de convite não foi enviado.";
+      } else {
+        const invitationUrl = `${getAppUrl()}/convite/${rawToken}`;
+        const message = renderSchoolInvitationEmail({
+          schoolName: school?.name || getAppName(),
+          roleName: role?.name || data.roleCode,
+          invitationUrl,
+          logoUrl: branding.logoUrl,
+          primaryColor: branding.primaryColor,
+          platformName: getAppName(),
+          platformUrl: getAppUrl(),
+          recipientEmail: data.email,
+        });
+        await sendResendEmail({
+          apiKey,
+          from: process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl()),
+          to: [data.email],
+          subject: message.subject,
+          html: message.html,
+          text: message.text,
+        });
+        emailDelivered = true;
+      }
+    } catch (deliveryErr) {
+      emailDeliveryError =
+        deliveryErr instanceof Error
+          ? deliveryErr.message
+          : "Falha ao enviar o convite por e-mail.";
+    }
+
     return {
       invitation,
       rawToken,
+      emailDelivered,
+      emailDeliveryError,
     };
   });
 
@@ -526,10 +735,7 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
 
     // 3. Verificar expiração
     if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
-      await admin
-        .from("school_invitations")
-        .update({ status: "expired" })
-        .eq("id", invitation.id);
+      await admin.from("school_invitations").update({ status: "expired" }).eq("id", invitation.id);
       throw new Error("O convite expirou. Solicite um novo convite ao administrador da escola.");
     }
 

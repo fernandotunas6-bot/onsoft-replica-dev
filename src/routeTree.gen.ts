@@ -38,6 +38,8 @@ import { Route as AlumniPipelineRouteImport } from './routes/alumni.pipeline'
 import { Route as AlumniPortalRouteImport } from './routes/alumni.portal'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
 import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
+import { Route as AuthEmailChangeRouteImport } from './routes/auth.email-change'
+import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
@@ -229,6 +231,16 @@ const AlunosIndexRoute = AlunosIndexRouteImport.update({
 const AlunosStudentIdRoute = AlunosStudentIdRouteImport.update({
   id: '/alunos/$studentId',
   path: '/alunos/$studentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthEmailChangeRoute = AuthEmailChangeRouteImport.update({
+  id: '/auth/email-change',
+  path: '/auth/email-change',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthMagicLinkRoute = AuthMagicLinkRouteImport.update({
+  id: '/auth/magic-link',
+  path: '/auth/magic-link',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
@@ -506,6 +518,8 @@ export interface FileRoutesByFullPath {
   '/alumni/pipeline': typeof AlumniPipelineRoute
   '/alumni/portal': typeof AlumniPortalRouteWithChildren
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/auth/email-change': typeof AuthEmailChangeRoute
+  '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -584,6 +598,8 @@ export interface FileRoutesByTo {
   '/alumni/pipeline': typeof AlumniPipelineRoute
   '/alumni/portal': typeof AlumniPortalRouteWithChildren
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/auth/email-change': typeof AuthEmailChangeRoute
+  '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -663,6 +679,8 @@ export interface FileRoutesById {
   '/alumni/pipeline': typeof AlumniPipelineRoute
   '/alumni/portal': typeof AlumniPortalRouteWithChildren
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/auth/email-change': typeof AuthEmailChangeRoute
+  '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -743,6 +761,8 @@ export interface FileRouteTypes {
     | '/alumni/pipeline'
     | '/alumni/portal'
     | '/alunos/$studentId'
+    | '/auth/email-change'
+    | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/convite/$token'
@@ -821,6 +841,8 @@ export interface FileRouteTypes {
     | '/alumni/pipeline'
     | '/alumni/portal'
     | '/alunos/$studentId'
+    | '/auth/email-change'
+    | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/convite/$token'
@@ -899,6 +921,8 @@ export interface FileRouteTypes {
     | '/alumni/pipeline'
     | '/alumni/portal'
     | '/alunos/$studentId'
+    | '/auth/email-change'
+    | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/convite/$token'
@@ -969,6 +993,8 @@ export interface RootRouteChildren {
   PlanosAulaRoute: typeof PlanosAulaRoute
   SaasAdminRoute: typeof SaasAdminRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
+  AuthEmailChangeRoute: typeof AuthEmailChangeRoute
+  AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
@@ -1202,6 +1228,20 @@ declare module '@tanstack/react-router' {
       path: '/alunos/$studentId'
       fullPath: '/alunos/$studentId'
       preLoaderRoute: typeof AlunosStudentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/email-change': {
+      id: '/auth/email-change'
+      path: '/auth/email-change'
+      fullPath: '/auth/email-change'
+      preLoaderRoute: typeof AuthEmailChangeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/magic-link': {
+      id: '/auth/magic-link'
+      path: '/auth/magic-link'
+      fullPath: '/auth/magic-link'
+      preLoaderRoute: typeof AuthMagicLinkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/reset-password': {
@@ -1724,6 +1764,8 @@ const rootRouteChildren: RootRouteChildren = {
   PlanosAulaRoute: PlanosAulaRoute,
   SaasAdminRoute: SaasAdminRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
+  AuthEmailChangeRoute: AuthEmailChangeRoute,
+  AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,

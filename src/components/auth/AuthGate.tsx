@@ -66,6 +66,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [sendingMagicLink, setSendingMagicLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -176,6 +177,63 @@ export function AuthGate({ children }: { children: ReactNode }) {
       if (!active) return;
       if (event === "SIGNED_IN" && nextSession) {
         localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
+
+        // Login OAuth (Google) cria a conta auth.users automaticamente para
+        // e-mails nunca vistos — ao contrário do login por senha, que só
+        // existe para contas já provisionadas por um administrador. Sem esta
+        // verificação, qualquer conta Google entraria numa sessão "limbo",
+        // sem escola associada. Só corre para sessões vindas do fluxo OAuth
+        // (marcador definido em signInWithGoogle), nunca no bootstrap normal.
+        let oauthPending = false;
+        try {
+          oauthPending = sessionStorage.getItem("siga:oauth-pending") === "1";
+        } catch {
+          oauthPending = false;
+        }
+        if (oauthPending) {
+          try {
+            sessionStorage.removeItem("siga:oauth-pending");
+          } catch {
+            /* ignore */
+          }
+          void (async () => {
+            try {
+              const { verifyOAuthAccountFn } =
+                await import("@/features/auth/verify-oauth-account-server");
+              const verification = await verifyOAuthAccountFn();
+              if (!active) return;
+              if (!verification.authorized) {
+                // O servidor já apagou a conta auth.users criada pelo OAuth —
+                // aqui só limpamos a sessão local, que ficou órfã.
+                await supabase.auth.signOut({ scope: "local" });
+                if (!active) return;
+                setSession(null);
+                setChecking(false);
+                setSubmitting(false);
+                setError(
+                  "Esta conta Google não está associada a nenhuma escola no SIGA. Peça ao administrador da sua instituição para a convidar.",
+                );
+                return;
+              }
+            } catch {
+              // Falha ao verificar associação: não deixar a sessão passar sem
+              // confirmação — mais seguro exigir novo login do que assumir.
+              if (!active) return;
+              await supabase.auth.signOut({ scope: "local" });
+              if (!active) return;
+              setSession(null);
+              setChecking(false);
+              setSubmitting(false);
+              setError("Não foi possível confirmar a conta. Tente novamente.");
+              return;
+            }
+            if (!active) return;
+            setSession(nextSession);
+            setChecking(false);
+            setSubmitting(false);
+          })();
+          return;
+        }
       }
       setSession(nextSession);
       setChecking(false);
@@ -313,10 +371,57 @@ export function AuthGate({ children }: { children: ReactNode }) {
       const result = await requestPasswordResetFn({ data: { email, hostname } });
       setInfo(result.message);
     } catch {
-      setInfo("Se existir uma conta associada a este endereço, enviámos as instruções de recuperação.");
+      setInfo(
+        "Se existir uma conta associada a este endereço, enviámos as instruções de recuperação.",
+      );
     } finally {
       setResetting(false);
     }
+  };
+
+  const sendMagicLink = async () => {
+    const emailInput = document.getElementById("login-email") as HTMLInputElement | null;
+    const email = (emailInput?.value ?? rememberedEmail).trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      setError("Indique um endereço de email válido para entrar sem senha.");
+      return;
+    }
+    setSendingMagicLink(true);
+    setError(null);
+    setInfo(null);
+    try {
+      const hostname = typeof window !== "undefined" ? window.location.hostname : undefined;
+      const { requestMagicLinkFn } = await import("@/features/auth/magic-link-server");
+      const result = await requestMagicLinkFn({ data: { email, hostname } });
+      setInfo(result.message);
+    } catch {
+      setInfo("Se existir uma conta associada a este endereço, enviámos um link de acesso.");
+    } finally {
+      setSendingMagicLink(false);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    setError(null);
+    setInfo(null);
+    try {
+      sessionStorage.setItem("siga:oauth-pending", "1");
+    } catch {
+      /* ignore — a verificação pós-login ainda corre no bootstrap se falhar */
+    }
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
+    });
+    if (oauthError) {
+      try {
+        sessionStorage.removeItem("siga:oauth-pending");
+      } catch {
+        /* ignore */
+      }
+      setError("Não foi possível iniciar sessão com o Google. Tente novamente.");
+    }
+    // Em sucesso, o browser navega para o Google — nada mais a fazer aqui.
   };
 
   if (checking) {
@@ -397,12 +502,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
             </p>
 
             {error ? (
-              <p role="alert" className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <p
+                role="alert"
+                className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
+              >
                 {error}
               </p>
             ) : null}
             {info ? (
-              <p role="status" className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
+              <p
+                role="status"
+                className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success"
+              >
                 {info}
               </p>
             ) : null}
@@ -416,7 +527,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
                     setSubmitting(true);
                     setError(null);
                     try {
-                      const challenge = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+                      const challenge = await supabase.auth.mfa.challenge({
+                        factorId: mfaFactorId,
+                      });
                       if (challenge.error) throw challenge.error;
                       const verified = await supabase.auth.mfa.verify({
                         factorId: mfaFactorId,
@@ -428,16 +541,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
                       if (assurance.error) throw assurance.error;
                       if (assurance.data?.currentLevel !== "aal2") {
-                        throw new Error("A verificação 2FA não elevou a sessão para AAL2. Tente novamente.");
+                        throw new Error(
+                          "A verificação 2FA não elevou a sessão para AAL2. Tente novamente.",
+                        );
                       }
 
-                      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                      const { data: sessionData, error: sessionError } =
+                        await supabase.auth.getSession();
                       if (sessionError) throw sessionError;
                       if (!sessionData.session) {
                         throw new Error("A sessão não ficou disponível após a verificação 2FA.");
                       }
 
-                      localStorage.setItem(activityKey(sessionData.session.user.id), String(Date.now()));
+                      localStorage.setItem(
+                        activityKey(sessionData.session.user.id),
+                        String(Date.now()),
+                      );
                       setSession(sessionData.session);
                       setMfaFactorId(null);
                       setMfaCode("");
@@ -463,7 +582,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   placeholder="000000"
                   required
                 />
-                <Button type="submit" className="w-full" disabled={submitting || mfaCode.length < 6}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={submitting || mfaCode.length < 6}
+                >
                   {submitting ? "A verificar…" : "Confirmar 2FA"}
                 </Button>
               </form>
@@ -502,7 +625,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                     type="button"
                     className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
                     onClick={() => void resetPassword()}
-                    disabled={resetting || submitting}
+                    disabled={resetting || submitting || sendingMagicLink}
                   >
                     {resetting ? "A enviar…" : "Esqueceu a senha?"}
                   </button>
@@ -539,11 +662,60 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 />
                 Lembrar email neste dispositivo
               </label>
-              <Button type="submit" className="w-full gap-2 h-10 text-sm font-semibold" disabled={submitting}>
-                {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <LockKeyhole className="size-4" />}
+              <Button
+                type="submit"
+                className="w-full gap-2 h-10 text-sm font-semibold"
+                disabled={submitting || resetting || sendingMagicLink}
+              >
+                {submitting ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <LockKeyhole className="size-4" />
+                )}
                 {submitting ? "A entrar…" : "Entrar no Portal"}
               </Button>
+              <button
+                type="button"
+                className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
+                onClick={() => void sendMagicLink()}
+                disabled={sendingMagicLink || submitting || resetting}
+              >
+                {sendingMagicLink ? "A enviar link…" : "Ou entrar sem senha por link de e-mail"}
+              </button>
             </form>
+
+            <div className="mt-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              ou
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 w-full gap-2 h-10 text-sm font-medium"
+              onClick={() => void signInWithGoogle()}
+              disabled={submitting || resetting || sendingMagicLink}
+            >
+              <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3a7.4 7.4 0 0 1-4.07 1.16c-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
+                />
+              </svg>
+              Entrar com Google
+            </Button>
 
             {installPrompt && (
               <div className="mt-4 pt-3 border-t border-border/60">

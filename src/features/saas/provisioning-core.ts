@@ -101,12 +101,32 @@ export async function provisionTenantCore(
     }
   };
 
-  /** Idem para a escola: papéis, memberships e perfil antes da própria escola. */
+  /**
+   * Idem para a escola: papéis, memberships e perfil antes da própria escola.
+   * Também apaga a conta auth.users do administrador — sem isto, uma falha a
+   * meio do provisionamento (comum no signup público, sem operador a
+   * acompanhar) deixava uma conta órfã para sempre: tudo o resto revertido,
+   * mas a identidade em auth.users continuava a existir, sem escola, sem
+   * perfil, sem propósito. Mesmo princípio de verify-oauth-account-server.ts
+   * e inviteSystemUser: nunca deixar conta "fantasma" para trás.
+   */
   const cleanupSchool = async (schoolId: string, adminUserId: string | null) => {
     await db.from("member_roles").delete().eq("school_id", schoolId);
     await db.from("roles").delete().eq("school_id", schoolId);
     await db.from("school_memberships").delete().eq("school_id", schoolId);
-    if (adminUserId) await db.from("profiles").delete().eq("id", adminUserId);
+    if (adminUserId) {
+      await db.from("profiles").delete().eq("id", adminUserId);
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.auth.admin.deleteUser(adminUserId);
+      } catch (deleteErr) {
+        console.error(
+          "[provisioning] rollback da conta auth %s falhou: %s",
+          adminUserId,
+          deleteErr instanceof Error ? deleteErr.message : deleteErr,
+        );
+      }
+    }
     const { error } = await db.from("schools").delete().eq("id", schoolId);
     if (error) {
       console.error("[provisioning] rollback da escola %s falhou: %s", schoolId, error.message);
@@ -233,6 +253,13 @@ export async function provisionTenantCore(
   }
 
   await syncTenantUsageForSchool(tenantId, schoolId);
+
+  // Invariante: se chegámos aqui, o bloco try/catch acima já criou o
+  // administrador com sucesso (qualquer falha antes disto relança e sai
+  // mais cedo) — adminUserId nunca é null neste ponto.
+  if (!adminUserId) {
+    throw new Error("Administrador da escola não foi provisionado antes do bootstrap.");
+  }
 
   const { seeded: bootstrapSeeded } = await bootstrapSchoolDefaults(db, {
     schoolId,

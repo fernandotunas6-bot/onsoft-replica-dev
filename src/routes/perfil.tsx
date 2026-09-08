@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileSettingsPanel } from "@/features/auth/ProfileSettingsPanel";
 import { PasswordChangeForm } from "@/features/auth/PasswordChangeForm";
+import { EmailChangeForm } from "@/features/auth/EmailChangeForm";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 
@@ -67,7 +68,10 @@ function PerfilPage() {
           </TabsList>
 
           <TabsContent value="perfil" className="space-y-6">
-            <Panel title="Identidade & Contactos" description="Nome completo, fotografia, e-mail e telemóvel angolano">
+            <Panel
+              title="Identidade & Contactos"
+              description="Nome completo, fotografia, e-mail e telemóvel angolano"
+            >
               <ProfileSettingsPanel />
             </Panel>
           </TabsContent>
@@ -116,7 +120,11 @@ function PerfilPage() {
                               ) : null}
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              Cargo: <strong className="text-foreground">{item.roleName || item.appRole}</strong> • Estado: {item.status}
+                              Cargo:{" "}
+                              <strong className="text-foreground">
+                                {item.roleName || item.appRole}
+                              </strong>{" "}
+                              • Estado: {item.status}
                             </p>
                           </div>
                         </div>
@@ -143,10 +151,17 @@ function PerfilPage() {
 
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="text-xs text-muted-foreground">
-                    <strong className="text-foreground">Quer cadastrar uma nova escola no SIGA?</strong>
+                    <strong className="text-foreground">
+                      Quer cadastrar uma nova escola no SIGA?
+                    </strong>
                     <p>Crie uma nova instituição e associe a sua conta no portal WEB.</p>
                   </div>
-                  <Button variant="outline" size="sm" asChild className="shrink-0 gap-1.5 border-primary/30 text-primary hover:bg-primary/10">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="shrink-0 gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                  >
                     <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
                       <ExternalLink className="size-3.5" /> Criar Escola (WEB)
                     </a>
@@ -157,19 +172,35 @@ function PerfilPage() {
           </TabsContent>
 
           <TabsContent value="seguranca" className="space-y-6">
-            <Panel title="Palavra-passe & Acesso" description="Altere a sua senha de acesso à plataforma com segurança">
+            <Panel
+              title="Palavra-passe & Acesso"
+              description="Altere a sua senha de acesso à plataforma com segurança"
+            >
               <div className="max-w-md">
                 <PasswordChangeForm compact={false} />
               </div>
             </Panel>
 
-            <Panel title="Autenticação Multifator (2FA)" description="Proteção adicional para cargos de gestão e administração">
+            <Panel
+              title="Endereço de E-mail"
+              description="Alterar o e-mail associado à sua conta institucional"
+            >
+              <div className="max-w-md">
+                <EmailChangeForm compact={false} />
+              </div>
+            </Panel>
+
+            <Panel
+              title="Autenticação Multifator (2FA)"
+              description="Proteção adicional para cargos de gestão e administração"
+            >
               <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
                 <Shield className="size-5 text-primary mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-sm">Segurança de Dois Fatores</h4>
                   <p className="text-xs text-muted-foreground mt-1">
-                    O segundo fator de autenticação (MFA / TOTP) é suportado através do Supabase Auth e pode ser ativado nas políticas institucionais da escola.
+                    O segundo fator de autenticação (MFA / TOTP) é suportado através do Supabase
+                    Auth e pode ser ativado nas políticas institucionais da escola.
                   </p>
                 </div>
               </div>
@@ -180,4 +211,3 @@ function PerfilPage() {
     </AppShell>
   );
 }
-

@@ -1606,9 +1606,13 @@ DROP POLICY IF EXISTS "Read permissions authenticated" ON public.permissions;
 CREATE POLICY "Read permissions authenticated" ON public.permissions
   FOR SELECT TO authenticated USING (true);
 
+-- «Read role_permissions authenticated» (USING true) permitia a qualquer utilizador
+-- autenticado ler os role_permissions de QUALQUER escola — leak entre tenants.
+-- Substituída pela política scoped já usada em produção.
 DROP POLICY IF EXISTS "Read role_permissions authenticated" ON public.role_permissions;
-CREATE POLICY "Read role_permissions authenticated" ON public.role_permissions
-  FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "role_permissions_select_member" ON public.role_permissions;
+CREATE POLICY "role_permissions_select_member" ON public.role_permissions
+  FOR SELECT TO authenticated USING (private.is_active_member(school_id));
 
 DROP POLICY IF EXISTS "Read member_roles in own school" ON public.member_roles;
 CREATE POLICY "Read member_roles in own school" ON public.member_roles
@@ -5982,3 +5986,509 @@ END $$;
 
 NOTIFY pgrst, 'reload schema';
 -- >>> END 20260906190000_hr_security_hardening.sql
+
+-- >>> BEGIN 20260810130207_school_settings_admin_update.sql
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'schools' AND column_name = 'evaluation_periods'
+  ) THEN
+    ALTER TABLE public.schools
+      ADD COLUMN director_name text,
+      ADD COLUMN evaluation_periods smallint NOT NULL DEFAULT 3,
+      ADD COLUMN passing_grade numeric(4,2) NOT NULL DEFAULT 10,
+      ADD COLUMN preferences jsonb NOT NULL DEFAULT '{}'::jsonb,
+      ADD CONSTRAINT schools_director_name_valid CHECK (
+        director_name IS NULL
+        OR (director_name = btrim(director_name) AND char_length(director_name) BETWEEN 3 AND 120)
+      ),
+      ADD CONSTRAINT schools_evaluation_periods_valid CHECK (evaluation_periods BETWEEN 2 AND 4),
+      ADD CONSTRAINT schools_passing_grade_valid CHECK (passing_grade BETWEEN 0 AND 20),
+      ADD CONSTRAINT schools_preferences_object CHECK (jsonb_typeof(preferences) = 'object');
+  END IF;
+END $$;
+
+REVOKE INSERT, UPDATE, DELETE ON public.schools FROM authenticated;
+GRANT UPDATE (
+  name,
+  commercial_name,
+  nif,
+  email,
+  phone,
+  address,
+  province,
+  municipality,
+  city,
+  currency_code,
+  logo_url,
+  director_name,
+  evaluation_periods,
+  passing_grade,
+  preferences
+) ON public.schools TO authenticated;
+
+DROP POLICY IF EXISTS "Administrators can update their own school" ON public.schools;
+CREATE POLICY "Administrators can update their own school"
+  ON public.schools
+  FOR UPDATE
+  TO authenticated
+  USING (
+    public.is_school_member(id)
+    AND (SELECT public.current_profile_role()) = 'Administrador'
+  )
+  WITH CHECK (
+    public.is_school_member(id)
+    AND (SELECT public.current_profile_role()) = 'Administrador'
+  );
+
+COMMENT ON COLUMN public.schools.preferences IS
+  'Non-secret, school-wide UI/workflow preferences. Authorization roles and credentials never belong here.';
+
+CREATE OR REPLACE FUNCTION private.audit_school_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  actor uuid := (SELECT auth.uid());
+  changed_fields text[];
+BEGIN
+  IF actor IS NULL THEN
+    RETURN NEW;
+  END IF;
+  IF NOT public.is_school_member(NEW.id) THEN
+    RAISE EXCEPTION 'cannot audit a school outside the current profile'
+      USING ERRCODE = '42501';
+  END IF;
+
+  SELECT COALESCE(array_agg(entry.key ORDER BY entry.key), ARRAY[]::text[])
+  INTO changed_fields
+  FROM jsonb_each(to_jsonb(NEW)) AS entry
+  WHERE to_jsonb(OLD) -> entry.key IS DISTINCT FROM entry.value;
+
+  INSERT INTO public.audit_logs (
+    school_id, actor_id, action, entity_type, entity_id, after_data
+  )
+  VALUES (
+    NEW.id,
+    actor,
+    'schools.update',
+    'schools',
+    NEW.id,
+    jsonb_build_object(
+      'changed_fields', to_jsonb(changed_fields)
+    )
+  );
+  RETURN NEW;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.audit_school_change() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS schools_audit_change ON public.schools;
+CREATE TRIGGER schools_audit_change
+  AFTER UPDATE ON public.schools
+  FOR EACH ROW EXECUTE FUNCTION private.audit_school_change();
+-- >>> END 20260810130207_school_settings_admin_update.sql
+
+-- >>> BEGIN 20260903113000_people_geography_fields.sql
+ALTER TABLE public.people
+  ADD COLUMN IF NOT EXISTS province text,
+  ADD COLUMN IF NOT EXISTS municipality text,
+  ADD COLUMN IF NOT EXISTS commune text,
+  ADD COLUMN IF NOT EXISTS address text;
+
+CREATE INDEX IF NOT EXISTS people_school_province_idx
+  ON public.people (school_id, province)
+  WHERE deleted_at IS NULL AND province IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS people_school_province_municipality_idx
+  ON public.people (school_id, province, municipality)
+  WHERE deleted_at IS NULL AND province IS NOT NULL;
+
+COMMENT ON COLUMN public.people.province IS
+  'Província de residência segundo a divisão político-administrativa vigente de Angola.';
+COMMENT ON COLUMN public.people.municipality IS
+  'Município de residência informado pela escola/candidato.';
+COMMENT ON COLUMN public.people.commune IS
+  'Comuna/localidade de residência quando aplicável.';
+COMMENT ON COLUMN public.people.address IS
+  'Morada detalhada da pessoa, separada da província/município/comuna.';
+
+NOTIFY pgrst, 'reload schema';
+-- >>> END 20260903113000_people_geography_fields.sql
+
+-- >>> BEGIN 20260810131922_harden_domain_immutable_columns.sql (função apenas — DO block omitido)
+-- NOTA: o DO $$ original desta migração cria o trigger genérico em tabelas que
+-- nunca existiram na base viva (attachments, courses, rooms, person_relationships,
+-- person_school_links) e duplicaria protecção já existente sob outro mecanismo em
+-- people/students/enrollments/class_groups/academic_years (protect_person_identity,
+-- protect_student_identity, protect_teacher_identity, protect_enrollment_identity —
+-- já aplicadas). Aplica-se apenas a função reutilizável, que program_subjects_curriculum
+-- e outras migrações posteriores referenciam directamente.
+CREATE OR REPLACE FUNCTION private.reject_immutable_column_changes()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+DECLARE
+  column_name text;
+BEGIN
+  FOREACH column_name IN ARRAY TG_ARGV LOOP
+    IF (to_jsonb(NEW) -> column_name) IS DISTINCT FROM (to_jsonb(OLD) -> column_name) THEN
+      RAISE EXCEPTION 'column %.% is immutable', TG_TABLE_NAME, column_name
+        USING ERRCODE = '22000';
+    END IF;
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.reject_immutable_column_changes()
+  FROM PUBLIC, anon, authenticated;
+
+COMMENT ON FUNCTION private.reject_immutable_column_changes() IS
+  'Reusable trigger that prevents mutation of identity, tenant and creation metadata.';
+-- >>> END 20260810131922_harden_domain_immutable_columns.sql
+
+-- >>> BEGIN 20260811150000_program_grading_profile.sql
+ALTER TABLE public.programs
+  ADD COLUMN IF NOT EXISTS grading_profile jsonb;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'programs_grading_profile_shape_valid'
+  ) THEN
+    ALTER TABLE public.programs
+      ADD CONSTRAINT programs_grading_profile_shape_valid CHECK (
+        grading_profile IS NULL
+        OR (
+          grading_profile ? 'scale'
+          AND grading_profile ? 'components'
+          AND grading_profile->>'scale' IN ('20_ects', 'gpa4')
+          AND grading_profile->>'components' IN ('frequencia_exame', 'so_exame')
+        )
+      );
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.programs.grading_profile IS
+  'Override por curso do motor de notas (Ensino Superior). NULL = usa o valor por omissão da escola em school_settings.pedagogy.gradingProfile.';
+-- >>> END 20260811150000_program_grading_profile.sql
+
+-- >>> BEGIN 20260810130726_school_billing_settings.sql
+CREATE TABLE IF NOT EXISTS public.school_billing_settings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL UNIQUE REFERENCES public.schools(id) ON DELETE CASCADE,
+  due_day smallint NOT NULL DEFAULT 10 CHECK (due_day BETWEEN 1 AND 28),
+  late_fee_percent numeric(5,2) NOT NULL DEFAULT 2 CHECK (late_fee_percent BETWEEN 0 AND 100),
+  grace_days smallint NOT NULL DEFAULT 5 CHECK (grace_days BETWEEN 0 AND 60),
+  sibling_discount_percent numeric(5,2) NOT NULL DEFAULT 10
+    CHECK (sibling_discount_percent BETWEEN 0 AND 100),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id),
+  updated_by uuid REFERENCES auth.users(id),
+  version integer NOT NULL DEFAULT 1
+);
+
+INSERT INTO public.school_billing_settings (school_id)
+SELECT id FROM public.schools
+ON CONFLICT (school_id) DO NOTHING;
+
+DROP TRIGGER IF EXISTS school_billing_settings_set_updated_at ON public.school_billing_settings;
+CREATE TRIGGER school_billing_settings_set_updated_at
+  BEFORE UPDATE ON public.school_billing_settings
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_and_version();
+
+DROP TRIGGER IF EXISTS school_billing_settings_audit ON public.school_billing_settings;
+CREATE TRIGGER school_billing_settings_audit
+  AFTER UPDATE ON public.school_billing_settings
+  FOR EACH ROW EXECUTE FUNCTION private.audit_domain_change();
+
+GRANT SELECT ON public.school_billing_settings TO authenticated;
+GRANT UPDATE (due_day, late_fee_percent, grace_days, sibling_discount_percent)
+  ON public.school_billing_settings TO authenticated;
+GRANT ALL ON public.school_billing_settings TO service_role;
+ALTER TABLE public.school_billing_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.school_billing_settings FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Finance roles can read billing settings" ON public.school_billing_settings;
+CREATE POLICY "Finance roles can read billing settings"
+  ON public.school_billing_settings FOR SELECT TO authenticated
+  USING (
+    school_id = (SELECT public.current_school_id())
+    AND (SELECT public.current_profile_role()) IN ('Administrador', 'Tesouraria')
+  );
+
+DROP POLICY IF EXISTS "Finance roles can update billing settings" ON public.school_billing_settings;
+CREATE POLICY "Finance roles can update billing settings"
+  ON public.school_billing_settings FOR UPDATE TO authenticated
+  USING (
+    school_id = (SELECT public.current_school_id())
+    AND (SELECT public.current_profile_role()) IN ('Administrador', 'Tesouraria')
+  )
+  WITH CHECK (
+    school_id = (SELECT public.current_school_id())
+    AND (SELECT public.current_profile_role()) IN ('Administrador', 'Tesouraria')
+  );
+
+COMMENT ON TABLE public.school_billing_settings IS
+  'Reusable, versioned billing rules. Exactly one server-created row per school.';
+-- >>> END 20260810130726_school_billing_settings.sql
+
+-- >>> BEGIN 20260811151500_program_subjects_curriculum.sql
+CREATE TABLE IF NOT EXISTS public.program_subjects (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  program_id uuid NOT NULL REFERENCES public.programs(id) ON DELETE CASCADE,
+  subject_id uuid NOT NULL,
+  semester smallint NOT NULL CHECK (semester BETWEEN 1 AND 12),
+  credits numeric(4,1) NOT NULL DEFAULT 6 CHECK (credits > 0 AND credits <= 60),
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid DEFAULT auth.uid() REFERENCES auth.users(id),
+  updated_by uuid REFERENCES auth.users(id),
+  deleted_at timestamptz,
+  version integer NOT NULL DEFAULT 1,
+  CONSTRAINT program_subjects_school_id_id_key UNIQUE (school_id, id),
+  CONSTRAINT program_subjects_subject_fkey
+    FOREIGN KEY (school_id, subject_id)
+    REFERENCES public.subjects (school_id, id),
+  CONSTRAINT program_subjects_program_semester_subject_key
+    UNIQUE (program_id, semester, subject_id)
+);
+
+CREATE INDEX IF NOT EXISTS program_subjects_program_idx
+  ON public.program_subjects (school_id, program_id, semester)
+  WHERE deleted_at IS NULL AND status = 'active';
+CREATE INDEX IF NOT EXISTS program_subjects_subject_idx
+  ON public.program_subjects (school_id, subject_id)
+  WHERE deleted_at IS NULL;
+
+DROP TRIGGER IF EXISTS program_subjects_set_updated_at ON public.program_subjects;
+CREATE TRIGGER program_subjects_set_updated_at
+  BEFORE UPDATE ON public.program_subjects
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_and_version();
+
+DROP TRIGGER IF EXISTS program_subjects_protect_identity ON public.program_subjects;
+CREATE TRIGGER program_subjects_protect_identity
+  BEFORE UPDATE ON public.program_subjects
+  FOR EACH ROW EXECUTE FUNCTION private.reject_immutable_column_changes(
+    'id', 'school_id', 'program_id', 'subject_id', 'created_by', 'created_at'
+  );
+
+GRANT SELECT, INSERT, UPDATE ON public.program_subjects TO authenticated;
+GRANT ALL ON public.program_subjects TO service_role;
+
+ALTER TABLE public.program_subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.program_subjects FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Read program subjects in own school" ON public.program_subjects;
+CREATE POLICY "Read program subjects in own school"
+  ON public.program_subjects
+  FOR SELECT TO authenticated
+  USING (
+    school_id = (SELECT public.current_school_id())
+    AND deleted_at IS NULL
+    AND (SELECT public.can_read_students())
+  );
+
+DROP POLICY IF EXISTS "Create program subjects in own school" ON public.program_subjects;
+CREATE POLICY "Create program subjects in own school"
+  ON public.program_subjects
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    school_id = (SELECT public.current_school_id())
+    AND created_by = (SELECT auth.uid())
+    AND (SELECT public.can_manage_students())
+  );
+
+DROP POLICY IF EXISTS "Update program subjects in own school" ON public.program_subjects;
+CREATE POLICY "Update program subjects in own school"
+  ON public.program_subjects
+  FOR UPDATE TO authenticated
+  USING (
+    school_id = (SELECT public.current_school_id())
+    AND (SELECT public.can_manage_students())
+  )
+  WITH CHECK (
+    school_id = (SELECT public.current_school_id())
+    AND (SELECT public.can_manage_students())
+  );
+
+COMMENT ON TABLE public.program_subjects IS
+  'Currículo do curso (Ensino Superior): disciplinas por curso+semestre com créditos ECTS.';
+-- >>> END 20260811151500_program_subjects_curriculum.sql
+
+-- >>> BEGIN 20260908_fix_class_subjects_teacher_id_nullable.sql
+-- `class_subjects` nunca foi criada por migração versionada (schema drift
+-- documentado noutras migrações desta ronda). Ao vivo, teacher_id era NOT NULL,
+-- o que contradizia o desenho do código: assignClassSubjectTeacher permite criar
+-- a ligação turma+disciplina sem professor (atribuído depois pelo fluxo normal),
+-- consistency-check.ts existe especificamente para assinalar disciplinas sem
+-- docente, e todos os tipos/leituras já tratam teacher_id como string | null.
+-- applyCurriculumToClassGroup (currículo do curso) inseria teacher_id: null e
+-- falhava sempre com 23502 antes desta correção.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'class_subjects'
+      AND column_name = 'teacher_id' AND is_nullable = 'NO'
+  ) THEN
+    ALTER TABLE public.class_subjects ALTER COLUMN teacher_id DROP NOT NULL;
+  END IF;
+END $$;
+-- >>> END 20260908_fix_class_subjects_teacher_id_nullable.sql
+
+-- >>> BEGIN 20260908140000_seed_default_role_permissions.sql
+-- NOTA: `role_permissions` na base viva já usa (school_id, role_id, permission_id)
+-- como PK — divergente da definição `CREATE TABLE IF NOT EXISTS` mais acima
+-- neste ficheiro (schema RBAC-v2 aplicado directamente ao SGA por sessão
+-- anterior, nunca capturado em migração). Este bloco é aditivo/idempotente e
+-- assume o schema vivo; ver nota completa na migração correspondente.
+INSERT INTO public.role_permissions (school_id, role_id, permission_id)
+SELECT r.school_id, r.id, p.id
+FROM public.roles r
+CROSS JOIN public.permissions p
+WHERE r.code IN ('owner', 'admin')
+ON CONFLICT (school_id, role_id, permission_id) DO NOTHING;
+
+INSERT INTO public.role_permissions (school_id, role_id, permission_id)
+SELECT r.school_id, r.id, p.id
+FROM public.roles r
+JOIN public.permissions p ON p.code = ANY (ARRAY[
+  'academic.classes.read',
+  'academic.structure.read',
+  'communication.announcements.read',
+  'communication.inbox.read',
+  'communication.preferences.manage',
+  'documents.archive.manage',
+  'documents.archive.read',
+  'documents.batch.issue',
+  'documents.cases.manage',
+  'documents.cases.read',
+  'documents.issued.issue',
+  'documents.issued.read',
+  'documents.issued.revoke',
+  'documents.requests.manage',
+  'documents.requests.read',
+  'documents.signatures.read',
+  'documents.signatures.sign',
+  'documents.templates.manage',
+  'documents.templates.read',
+  'people.records.read',
+  'portal.access.manage',
+  'portal.access.read',
+  'students.records.read'
+])
+WHERE r.code = 'secretary'
+ON CONFLICT (school_id, role_id, permission_id) DO NOTHING;
+-- >>> END 20260908140000_seed_default_role_permissions.sql
+
+-- >>> BEGIN 20260908150000_fix_register_student_number_format.sql
+CREATE OR REPLACE FUNCTION private.register_student(
+  target_school_id uuid,
+  target_person_id uuid,
+  target_admission_date date,
+  target_guardian_person_id uuid DEFAULT NULL::uuid,
+  target_relationship text DEFAULT NULL::text,
+  target_primary_guardian boolean DEFAULT false,
+  target_financial_responsibility boolean DEFAULT false,
+  target_pickup_authorization boolean DEFAULT false
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+declare
+  generated_number bigint;
+  generated_student_number text;
+  generated_student_id uuid;
+  v_period text := 'legacy';
+begin
+  if (select auth.uid()) is null
+     or not private.is_aal2()
+     or not private.has_permission(target_school_id, 'students.records.create') then
+    raise exception using errcode = '42501', message = 'Sem autorização para cadastrar estudantes.';
+  end if;
+
+  if target_admission_date is null or target_admission_date > current_date
+     or not exists (
+       select 1 from public.people
+       where school_id = target_school_id and id = target_person_id and status = 'active'
+     ) then
+    raise exception using errcode = '22023', message = 'Pessoa ou data de admissão inválida.';
+  end if;
+
+  if target_guardian_person_id is not null and (
+    target_relationship not in ('mother', 'father', 'guardian', 'sibling', 'grandparent', 'other')
+    or target_guardian_person_id = target_person_id
+    or not exists (
+      select 1 from public.people
+      where school_id = target_school_id and id = target_guardian_person_id and status = 'active'
+    )
+  ) then
+    raise exception using errcode = '22023', message = 'Encarregado inválido para esta escola.';
+  end if;
+
+  insert into private.student_number_sequences (school_id, period)
+  values (target_school_id, v_period)
+  on conflict (school_id, period) do nothing;
+
+  select next_number into generated_number
+  from private.student_number_sequences
+  where school_id = target_school_id and period = v_period
+  for update;
+
+  generated_student_number := 'EST-' || lpad(generated_number::text, 6, '0');
+  update private.student_number_sequences
+  set next_number = generated_number + 1, updated_at = now()
+  where school_id = target_school_id and period = v_period;
+
+  insert into public.students (
+    school_id, person_id, student_number, admission_date, created_by, updated_by
+  ) values (
+    target_school_id, target_person_id, generated_student_number,
+    target_admission_date, (select auth.uid()), (select auth.uid())
+  ) returning id into generated_student_id;
+
+  if target_guardian_person_id is not null then
+    insert into public.student_guardians (
+      school_id, student_id, guardian_person_id, relationship, is_primary,
+      is_financially_responsible, is_pickup_authorized, created_by
+    ) values (
+      target_school_id, generated_student_id, target_guardian_person_id,
+      target_relationship, target_primary_guardian,
+      target_financial_responsibility, target_pickup_authorization, (select auth.uid())
+    );
+  end if;
+
+  return jsonb_build_object(
+    'studentId', generated_student_id,
+    'studentNumber', generated_student_number,
+    'status', 'applicant'
+  );
+end;
+$function$;
+-- >>> END 20260908150000_fix_register_student_number_format.sql
+
+-- >>> BEGIN 20260908160000_seed_default_document_sequences.sql
+INSERT INTO public.document_sequences (school_id, document_type, prefix, next_number, padding)
+SELECT s.id, seq.document_type, seq.prefix, 1, 6
+FROM public.schools s
+CROSS JOIN (VALUES ('invoice', 'FT'), ('receipt', 'RC')) AS seq(document_type, prefix)
+ON CONFLICT (school_id, document_type) DO NOTHING;
+-- >>> END 20260908160000_seed_default_document_sequences.sql
+
+-- >>> BEGIN 20260908170000_drop_ambiguous_next_document_number_overload.sql
+DROP FUNCTION IF EXISTS private.next_document_number(uuid, text);
+-- >>> END 20260908170000_drop_ambiguous_next_document_number_overload.sql

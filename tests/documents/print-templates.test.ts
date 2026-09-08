@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  buildIssuePayload,
   buildPrintSamplePayload,
   matchPrintTemplateKey,
   PRINT_TEMPLATE_KEYS,
@@ -236,5 +237,35 @@ describe("modelos em public/templates", () => {
       expect(html, key).toContain("Escola SIGA");
       expect(html, key).not.toContain("{{#");
     }
+  });
+
+  it("na pré-visualização (Template Studio), usa NIF/morada/contacto de amostra quando a escola não os tem", () => {
+    const payload = buildPrintSamplePayload({ name: "Escola SIGA" }) as {
+      school: { nif: string; address: string; phone: string; email: string };
+    };
+    expect(payload.school.nif).toBe("5000000000");
+    expect(payload.school.address).toBe("Luanda, Angola");
+  });
+
+  it("num documento real (buildIssuePayload), nunca imprime NIF/morada/contacto fictícios quando a escola não os configurou", () => {
+    const payload = buildIssuePayload(
+      { name: "Escola Sem NIF Configurado" },
+      { fullName: "Aluno Real", academicNumber: "EST-9" },
+      "",
+    ) as { school: { nif: string; address: string; phone: string; email: string } };
+    expect(payload.school.nif).toBe("");
+    expect(payload.school.address).toBe("");
+    expect(payload.school.phone).toBe("");
+    expect(payload.school.email).toBe("");
+  });
+
+  it("num documento real, usa o NIF/morada verdadeiros da escola quando configurados", () => {
+    const payload = buildIssuePayload(
+      { name: "Escola Configurada", nif: "5417834521", address: "Talatona, Luanda" },
+      { fullName: "Aluno Real", academicNumber: "EST-9" },
+      "",
+    ) as { school: { nif: string; address: string } };
+    expect(payload.school.nif).toBe("5417834521");
+    expect(payload.school.address).toBe("Talatona, Luanda");
   });
 });

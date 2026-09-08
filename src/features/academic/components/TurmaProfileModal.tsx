@@ -62,21 +62,37 @@ export function TurmaProfileModal({
   const [applyingCurriculum, setApplyingCurriculum] = useState(false);
   const { school } = useSchoolSettings();
 
-  const turma = workspace?.classGroups.find((group) => group.id === classGroupId);
-
-  const alunos = (workspace?.enrollmentOptions ?? []).filter(
-    (row) => row.class_group_id === classGroupId,
+  // Memoizados: cada um alimenta, directa ou indirectamente, focusedClassEntity
+  // (via classRelationsSnapshot) abaixo. useDeclareEntityFocus exige que a
+  // entidade só mude de referência quando o conteúdo muda de facto — recriar
+  // estes arrays a cada render (com .filter() sem useMemo) fazia
+  // focusedClassEntity mudar sempre, disparando o efeito de
+  // useDeclareEntityFocus em loop ("Maximum update depth exceeded").
+  const turma = useMemo(
+    () => workspace?.classGroups.find((group) => group.id === classGroupId),
+    [workspace?.classGroups, classGroupId],
   );
-  const disciplinas = (workspace?.classSubjects ?? []).filter(
-    (row) => row.class_group_id === classGroupId,
+  const alunos = useMemo(
+    () => (workspace?.enrollmentOptions ?? []).filter((row) => row.class_group_id === classGroupId),
+    [workspace?.enrollmentOptions, classGroupId],
   );
-  const horario = (workspace?.scheduleSlots ?? [])
-    .filter((row) => row.class_group_id === classGroupId)
-    .sort((a, b) => a.weekday - b.weekday || a.starts_at.localeCompare(b.starts_at));
-  const alunoIds = new Set(alunos.map((a) => a.student_id).filter(Boolean));
-  const avaliacoes = (workspace?.termGrades ?? []).filter(
-    (row) => row.student_id && alunoIds.has(row.student_id),
+  const disciplinas = useMemo(
+    () => (workspace?.classSubjects ?? []).filter((row) => row.class_group_id === classGroupId),
+    [workspace?.classSubjects, classGroupId],
   );
+  const horario = useMemo(
+    () =>
+      (workspace?.scheduleSlots ?? [])
+        .filter((row) => row.class_group_id === classGroupId)
+        .sort((a, b) => a.weekday - b.weekday || a.starts_at.localeCompare(b.starts_at)),
+    [workspace?.scheduleSlots, classGroupId],
+  );
+  const avaliacoes = useMemo(() => {
+    const alunoIds = new Set(alunos.map((a) => a.student_id).filter(Boolean));
+    return (workspace?.termGrades ?? []).filter(
+      (row) => row.student_id && alunoIds.has(row.student_id),
+    );
+  }, [workspace?.termGrades, alunos]);
 
   const classRelationsSnapshot = useMemo(
     () =>

@@ -19,6 +19,123 @@ function isMissingTable(error: { code?: string; message?: string } | null) {
   );
 }
 
+// Conjunto validado em produção (escola "Colegio Adventista - Huambo", semeada
+// manualmente antes deste bootstrap existir). `private.has_permission()` faz
+// JOIN a `role_permissions`: sem estas linhas, TODAS as RPCs finas (registar
+// aluno, lançar pagamento, emitir documento…) rejeitam qualquer utilizador da
+// escola, incluindo o dono — bloqueador descoberto no Ciclo 60. owner/admin
+// recebem sempre a totalidade das permissões (acesso total do dono/admin);
+// as restantes correspondem ao que a Secretaria já usa em produção. Papéis
+// treasury/teacher/student/guardian/user ainda não têm um conjunto de
+// referência — ficam sem permissões finas nesta fatia.
+const SECRETARY_PERMISSION_CODES = [
+  "academic.classes.read",
+  "academic.structure.read",
+  "communication.announcements.read",
+  "communication.inbox.read",
+  "communication.preferences.manage",
+  "documents.archive.manage",
+  "documents.archive.read",
+  "documents.batch.issue",
+  "documents.cases.manage",
+  "documents.cases.read",
+  "documents.issued.issue",
+  "documents.issued.read",
+  "documents.issued.revoke",
+  "documents.requests.manage",
+  "documents.requests.read",
+  "documents.signatures.read",
+  "documents.signatures.sign",
+  "documents.templates.manage",
+  "documents.templates.read",
+  "people.records.read",
+  "portal.access.manage",
+  "portal.access.read",
+  "students.records.read",
+] as const;
+
+async function seedDefaultRolePermissions(db: SupabaseClient, schoolId: string) {
+  try {
+    const [{ data: roles, error: rolesError }, { data: permissions, error: permsError }] =
+      await Promise.all([
+        db.from("roles").select("id, code").eq("school_id", schoolId),
+        db.from("permissions").select("id, code"),
+      ]);
+    if (rolesError) {
+      if (!isMissingTable(rolesError)) {
+        console.warn("[seedDefaultRolePermissions] roles:", rolesError.message);
+      }
+      return;
+    }
+    if (permsError) {
+      if (!isMissingTable(permsError)) {
+        console.warn("[seedDefaultRolePermissions] permissions:", permsError.message);
+      }
+      return;
+    }
+
+    const allPermissionIds = (permissions ?? []).map((p: { id: string }) => p.id);
+    const secretaryPermissionIds = (permissions ?? [])
+      .filter((p: { code: string }) =>
+        (SECRETARY_PERMISSION_CODES as readonly string[]).includes(p.code),
+      )
+      .map((p: { id: string }) => p.id);
+
+    const rows: { school_id: string; role_id: string; permission_id: string }[] = [];
+    for (const role of roles ?? []) {
+      const roleTyped = role as { id: string; code: string };
+      const permissionIds =
+        roleTyped.code === "owner" || roleTyped.code === "admin"
+          ? allPermissionIds
+          : roleTyped.code === "secretary"
+            ? secretaryPermissionIds
+            : [];
+      for (const permissionId of permissionIds) {
+        rows.push({ school_id: schoolId, role_id: roleTyped.id, permission_id: permissionId });
+      }
+    }
+    if (rows.length === 0) return;
+
+    const { error: insertError } = await db
+      .from("role_permissions")
+      .upsert(rows, { onConflict: "school_id,role_id,permission_id", ignoreDuplicates: true });
+    if (insertError && !isMissingTable(insertError)) {
+      console.warn("[seedDefaultRolePermissions] role_permissions:", insertError.message);
+    }
+  } catch (error) {
+    console.warn(
+      "[seedDefaultRolePermissions] falhou:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
+// `private.next_document_number()` (usada por register_payment e outras RPCs
+// RBAC-v2 para gerar nº de fatura/recibo) exige uma linha em
+// `document_sequences` por (escola, tipo) — sem isto falha com 55000
+// "Sequência de documentos não configurada para esta escola". Mesma classe de
+// bug que role_permissions: nunca foi semeada no provisionamento. Prefixos e
+// padding replicam o padrão já em produção na "Colegio Adventista - Huambo".
+async function seedDefaultDocumentSequences(db: SupabaseClient, schoolId: string) {
+  try {
+    const rows = [
+      { school_id: schoolId, document_type: "invoice", prefix: "FT", next_number: 1, padding: 6 },
+      { school_id: schoolId, document_type: "receipt", prefix: "RC", next_number: 1, padding: 6 },
+    ];
+    const { error } = await db
+      .from("document_sequences")
+      .upsert(rows, { onConflict: "school_id,document_type", ignoreDuplicates: true });
+    if (error && !isMissingTable(error)) {
+      console.warn("[seedDefaultDocumentSequences] document_sequences:", error.message);
+    }
+  } catch (error) {
+    console.warn(
+      "[seedDefaultDocumentSequences] falhou:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
 /**
  * Dados mínimos para uma escola recém-provisionada operar: formulário público,
  * definições e papéis RBAC — e, quando já existe ano lectivo activo, o plano
@@ -38,7 +155,11 @@ export async function bootstrapSchoolDefaults(
     schoolId: string;
     schoolName: string;
     slug: string;
-    adminUserId: string | null;
+    // Obrigatório: school_settings.changed_by é NOT NULL sem default. O único
+    // chamador (provisioning-core.ts) só invoca esta função depois de garantir
+    // um administrador criado com sucesso — tornar isto opcional permitiu, no
+    // passado, um insert silencioso a falhar com 23502 sob console.warn.
+    adminUserId: string;
   },
 ): Promise<{ seeded: string[] }> {
   const seeded: string[] = [];
@@ -144,7 +265,7 @@ export async function bootstrapSchoolDefaults(
         evaluation_periods: schoolSettingDefaults.evaluationPeriods,
         passing_grade: schoolSettingDefaults.passingGrade,
       },
-      ...(input.adminUserId ? { changed_by: input.adminUserId } : {}),
+      changed_by: input.adminUserId,
     });
     if (!error) seeded.push("definições da escola");
     else if (!isMissingTable(error)) {
@@ -185,6 +306,9 @@ export async function bootstrapSchoolDefaults(
   } catch {
     // Tabela roles ainda não existe — ignorar
   }
+
+  await seedDefaultRolePermissions(db, input.schoolId);
+  await seedDefaultDocumentSequences(db, input.schoolId);
 
   const academic = await bootstrapAcademicStructure(db, {
     schoolId: input.schoolId,

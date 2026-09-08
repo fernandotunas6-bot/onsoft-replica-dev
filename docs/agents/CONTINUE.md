@@ -6,6 +6,122 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-08)
 
+### Ciclo 61 — RBAC-v2 nunca semeado: matrícula/pagamento impossíveis em qualquer escola nova (2026-09-08)
+
+Continuação directa do Ciclo 60. As duas migrações pendentes
+(`20260903113000_people_geography_fields`, `20260810130207_school_settings_admin_update`)
+já estavam espelhadas em `APPLY_ENROLLMENT_AND_PREMIUM.sql` por uma sessão
+anterior (não commitada) — só faltava aplicar. Corrigido primeiro um bug no
+diff: o trigger `audit_school_change` usava colunas `actor_user_id`/`metadata`
+que não existem em `audit_logs` (é `actor_id`/`after_data`). Aplicado ao SGA
+com sucesso (colunas confirmadas ao vivo).
+
+**Depois disso, a matrícula continuou a falhar — mas não por 2FA.** A
+mensagem «precisa de 2FA» é genérica: `rpcAuthError()` também dispara para
+qualquer erro `42501`/"autorização", incluindo falha de permissão. Investigação
+revelou uma segunda camada de RBAC completamente à parte da documentada nos
+ciclos 46–56: tabelas `role_permissions`/`document_sequences` com `school_id`,
+e dezenas de funções `private.*` (`register_student`, `register_payment`,
+`enroll_student`, `issue_school_document`, `create_financial_contract`, etc.)
+gated por `private.is_aal2()` + `private.has_permission(school_id, code)`, com
+códigos de permissão tipo `students.records.create`/`finance.payments.create`
+— vocabulário **totalmente diferente** do `roleDefaultPermissions` em
+`src/features/auth/permissions.ts` (esse é só para gating de UI/rotas, nunca
+chega à base de dados). **Este sistema inteiro nunca foi capturado em nenhuma
+migração do repositório** — foi aplicado directamente ao SGA por uma sessão
+anterior sem deixar rasto em `supabase/migrations/` nem `APPLY_*.sql`.
+
+**Bugs confirmados e corrigidos (todos ao vivo no projecto `xodgfmxiaunpamctfeea`,
+espelhados em `APPLY_ENROLLMENT_AND_PREMIUM.sql` + migrações novas):**
+
+| # | Bug | Sintoma | Ficheiro |
+| - | --- | --- | --- |
+| 1 | `role_permissions` nunca semeada no provisionamento — só a escola manual "Colegio Adventista - Huambo" tinha linhas (owner=74/74, secretary=23) | Qualquer RPC gated por `has_permission()` nega sempre, mesmo ao dono da escola | `20260908140000_seed_default_role_permissions.sql` + `school-bootstrap.ts` (`seedDefaultRolePermissions`) |
+| 2 | `private.register_student` gerava `student_number` em `YYMMnnn` (ex. `2609001`); a tabela exige `^EST-[0-9]{6,}$` | 23514 em toda e qualquer matrícula, desde sempre | `20260908150000_fix_register_student_number_format.sql` (restaura o padrão `EST-NNNNNN` com `period='legacy'`, confirmado pelos 2 alunos reais existentes) |
+| 3 | `document_sequences` nunca semeada no provisionamento (mesma classe de bug que #1) | `register_payment` falha com 55000 "sequência não configurada" | `20260908160000_seed_default_document_sequences.sql` + `school-bootstrap.ts` (`seedDefaultDocumentSequences`) |
+| 4 | `private.next_document_number` tinha **dois overloads ambíguos** — `(uuid, text)` estrito e `(uuid, text, text DEFAULT NULL)` auto-criador — qualquer chamada de 2 argumentos (`register_payment`, `create_financial_contract`) ficou ambígua | 42725 "function … is not unique" em todo pagamento/contrato | `20260908170000_drop_ambiguous_next_document_number_overload.sql` (remove o overload estrito; o de 3 args cobre os dois casos) |
+
+**Validado ao vivo, ponta-a-ponta, na escola de teste `e2e-web-mts7ka0q`:**
+matrícula (EST-000001, turma 10ª A) → factura (FT-2026/0001, 45.000 Kz) →
+recibo (RC-000001, pago). `vitest run` 1053/1053 (2 skipped) ✓, `npm run
+siga:check` ✓, `tsc`/eslint sem erros novos.
+
+**Achado à parte (menor, não bloqueante):** `/alunos/$studentId`
+(`StudentDetail`) lançou "Rendered more hooks than during the previous
+render" de forma intermitente (recupera com "Tentar outra vez"; ~1 em 3
+navegações). Não investigado a fundo — hook condicional algures no componente
+ou nos seus filhos. A UI também mostra por vezes um toast de erro
+desactualizado depois de uma mutação que na realidade teve sucesso (matrícula
+e pagamento pareceram falhar no toast mas gravaram correctamente) — sintoma
+provavelmente ligado ao mesmo problema de re-render.
+
+**Por fazer (não coberto nesta fatia):**
+- `role_permissions` dos papéis `treasury`/`teacher`/`guardian`/`student`/`user`
+  continuam vazios — só `owner`/`admin` (acesso total) e `secretary` (cópia do
+  conjunto da Huambo) foram semeados. Sem precedente de produção para os
+  restantes; definir e semear.
+- O sistema RBAC-v2 completo (funções `private.*`, `installer_*`,
+  `assessment_*`, `documents_*`, `rbac_*`, `portal_*`) continua **por
+  documentar/capturar** em migrações — só as 4 peças acima ficaram
+  versionadas. Uma auditoria completa (`pg_get_functiondef` de tudo em
+  `private`/`public` que ainda não está em `supabase/migrations/`) evitaria
+  mais surpresas deste tipo.
+- Investigar a fundo o "Rendered more hooks" em `StudentDetail`.
+- Continuar o teste: atribuir professor à turma (desbloqueia `class_subjects`),
+  depois PayFlow.
+
+### Ciclo 60 — Teste funcional ponta-a-ponta numa escola nova (2026-09-08)
+
+Percorrida a operação real de uma escola acabada de provisionar
+(`e2e-web-mts7ka0q`), do ano lectivo até ao plano de propinas.
+
+**Impasse encontrado (escola nova ficava inutilizável):** não existia nenhuma
+forma de criar o **primeiro ano lectivo**. «Novo período» exigia ano activo;
+«Preparar estrutura académica» exigia períodos configurados; o selector
+«Ano lectivo activo» das Definições só *activa* um ano que já exista
+(`updateSchoolSettings` faz UPDATE, nunca INSERT); e o provisionamento não
+inventa datas de propósito. Resolvido com `createAcademicYear` +
+`getActiveAcademicYear` (`features/calendar/server.ts`) e o CTA **«Definir ano
+lectivo»** em `/calendario`, que substitui «Novo período» enquanto não houver ano.
+
+**INSERTs fora de sincronia com o schema SGA** (todos NOT NULL sem default,
+todos falhavam em silêncio com 23502):
+
+| Tabela | Coluna em falta | Onde |
+| --- | --- | --- |
+| `fee_plans` | `academic_year_id`, `code` | `finance/server.ts`, `school-bootstrap.ts` |
+| `fee_items` | `code`, `frequency` | idem (`fee-plan-defaults.ts` passa a ser a fonte única) |
+| `academic_levels` | `sequence` | `academic-bootstrap-legacy.ts` |
+
+**Guardar definições da escola estava partido para todas as escolas:**
+`updateSchoolSettings` escrevia `schools.evaluation_periods`, coluna que só
+existe na migração `20260810130207` — nunca espelhada nos `APPLY_*.sql` nem
+aplicada ao SGA. PGRST204 abortava o UPDATE inteiro. O valor já era persistido
+(e lido) em `school_settings/academic`, por isso a escrita duplicada saiu.
+
+**Outros:** o selector «Ano lectivo» da Nova Matrícula mostrava o **UUID** cru
+(`alunos/index.tsx` não passava `academic_year_name`); o aviso de plano em falta
+no painel de facturação repetia a promessa falsa do bootstrap.
+
+**Validado ao vivo:** ano lectivo 2026/2027 → 3 trimestres → estrutura académica
+(nível, programa, campus, 5 disciplinas, classe, turma) → plano de propinas
+activo com propina 45.000 Kz e matrícula 25.000 Kz. Tudo pela UI.
+
+**Bloqueado por SQL não aplicado — decisão pendente:** a matrícula de aluno pára
+em «A localização do aluno não pôde ser guardada porque a migration de Pessoas
+ainda não foi aplicada». `people` não tem `province/municipality/commune/address`;
+a migração `20260903113000_people_geography_fields.sql` é aditiva e idempotente
+mas **não está em nenhum `APPLY_*.sql`**, tal como a `20260810130207` das colunas
+de `schools`. Ambas precisam de ser espelhadas no checklist canónico e aplicadas.
+
+**Suite:** `vitest run` 1050/1052 (2 skipped) ✓, `npm run siga:check` ✓, eslint
+sem erros novos, `tsc` sem erros novos.
+
+**Próxima fatia:** aplicar as duas migrações em falta e retomar o teste
+(matrícula → factura → recibo → PayFlow); atribuir professor à turma para
+desbloquear `class_subjects`; auditar os restantes INSERT contra as colunas
+NOT NULL do SGA (o padrão repetiu-se 5 vezes).
+
 ### Ciclo 59 — Módulo Alumni: integração completa e produção local (2026-09-08)
 
 Módulo Alumni integrado a partir de `feat/alumni-master-premium` para o ambiente local:

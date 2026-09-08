@@ -1,71 +1,36 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
-import { getAppUrl, getAppName, getAuthResetPasswordUrl } from "@/lib/app-config";
-import { getPlatformDomain } from "@/lib/saas/platform-domain";
+import { getAppUrl, getAppName, getAuthMagicLinkUrl } from "@/lib/app-config";
 import { resolveTenantLookup } from "@/lib/saas/tenant-resolver";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { renderResetPasswordEmail } from "./email-templates/reset-password.html";
+import { fetchSchoolBranding } from "./reset-password-server";
+import { renderMagicLinkEmail } from "./email-templates/magic-link.html";
 import { sendResendEmail, resolveResendFromAddress } from "@/features/integrations/resend-client";
 
-export const requestPasswordResetInputSchema = z.object({
+export const requestMagicLinkInputSchema = z.object({
   email: z.string().trim().email("Indique um endereço de e-mail válido."),
   hostname: z.string().trim().optional(),
 });
 
-export type RequestPasswordResetInput = z.infer<typeof requestPasswordResetInputSchema>;
+export type RequestMagicLinkInput = z.infer<typeof requestMagicLinkInputSchema>;
 
-export interface PasswordResetResponse {
+export interface MagicLinkResponse {
   success: boolean;
   message: string;
 }
 
-/**
- * Branding tem duas fontes reais (ver src/features/school/server.ts, a mesma
- * lógica usada pelo painel de Definições → Escola): `school_settings` (domain
- * "branding", JSON, só logo_url) e a tabela dedicada `school_branding`
- * (logo_url + primary_color + secondary_color). `school_settings.logo_url`
- * tem prioridade sobre `school_branding.logo_url`; primary_color só existe em
- * `school_branding`.
- */
-export async function fetchSchoolBranding(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  schoolId: string,
-): Promise<{ logoUrl: string | null; primaryColor: string | null }> {
-  const [{ data: settings }, { data: brandingRow }] = await Promise.all([
-    db
-      .from("school_settings")
-      .select("value")
-      .eq("school_id", schoolId)
-      .eq("domain", "branding")
-      .maybeSingle(),
-    db
-      .from("school_branding")
-      .select("logo_url, primary_color")
-      .eq("school_id", schoolId)
-      .maybeSingle(),
-  ]);
-
-  let logoUrlFromSettings: string | null = null;
-  if (settings?.value && typeof settings.value === "object") {
-    const val = settings.value as Record<string, unknown>;
-    if (typeof val["logo_url"] === "string") logoUrlFromSettings = val["logo_url"];
-  }
-
-  const logoUrl =
-    logoUrlFromSettings ||
-    (typeof brandingRow?.logo_url === "string" ? brandingRow.logo_url : null);
-  const primaryColor =
-    typeof brandingRow?.primary_color === "string" ? brandingRow.primary_color : null;
-
-  return { logoUrl, primaryColor };
-}
-
 const NEUTRAL_SUCCESS_MESSAGE =
-  "Se existir uma conta associada a este endereço, enviámos as instruções de recuperação.";
+  "Se existir uma conta associada a este endereço, enviámos um link de acesso.";
 
-export const requestPasswordResetFn = createServerFn({ method: "POST" })
-  .validator((input: unknown) => requestPasswordResetInputSchema.parse(input))
-  .handler(async ({ data }): Promise<PasswordResetResponse> => {
+/**
+ * Mesma arquitectura de src/features/auth/reset-password-server.ts: resolve a
+ * escola/tenant pelo hostname, gera o link via Supabase Auth Admin, renderiza
+ * o e-mail com o branding da escola e envia por Resend. Nunca cai para o
+ * mailer nativo do Supabase — falha fechada e neutra (anti-enumeração).
+ */
+export const requestMagicLinkFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => requestMagicLinkInputSchema.parse(input))
+  .handler(async ({ data }): Promise<MagicLinkResponse> => {
     const email = data.email.toLowerCase().trim();
     const hostname = data.hostname?.toLowerCase().trim() || "";
 
@@ -73,7 +38,6 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
       const db = await loadSgaAdminClient();
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-      // 1. Identificar Escola / Tenant a partir do contexto seguro do hostname
       let schoolName = getAppName();
       let schoolLogoUrl: string | null = null;
       let schoolPrimaryColor: string | null = null;
@@ -85,19 +49,16 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
         try {
           const { data: tenant } = await db
             .from("tenants")
-            .select("id, name, slug")
+            .select("id, name")
             .eq("slug", lookup.slug)
             .maybeSingle();
-
           if (tenant?.id) {
             schoolName = tenant.name || schoolName;
-            // Buscar escola correspondente
             const { data: school } = await db
               .from("schools")
               .select("id, name")
               .eq("tenant_id", tenant.id)
               .maybeSingle();
-
             if (school?.id) {
               schoolName = school.name || schoolName;
               const branding = await fetchSchoolBranding(db, school.id);
@@ -116,14 +77,12 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
             .eq("domain", lookup.hostname)
             .eq("status", "verified")
             .maybeSingle();
-
           if (domainRow?.tenant_id) {
             const { data: tenant } = await db
               .from("tenants")
               .select("id, name")
               .eq("id", domainRow.tenant_id)
               .maybeSingle();
-
             if (tenant?.id) {
               schoolName = tenant.name || schoolName;
               targetOrigin = `https://${lookup.hostname}`;
@@ -132,7 +91,6 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
                 .select("id, name")
                 .eq("tenant_id", tenant.id)
                 .maybeSingle();
-
               if (school?.id) {
                 schoolName = school.name || schoolName;
                 const branding = await fetchSchoolBranding(db, school.id);
@@ -146,53 +104,42 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
         }
       }
 
-      // 2. Gerar link seguro de redefinição via Supabase Auth Admin
-      const redirectTo = getAuthResetPasswordUrl(targetOrigin);
+      const redirectTo = getAuthMagicLinkUrl(targetOrigin);
 
+      // IMPORTANTE: usar type "recovery", não "magiclink". A documentação do
+      // Supabase é explícita — generateLink() cria automaticamente a conta
+      // para os tipos "signup", "invite" e "magiclink" se o e-mail não existir.
+      // Isso permitiria criar contas arbitrárias só por digitar um e-mail no
+      // formulário de login, quebrando o isolamento multi-tenant. "recovery"
+      // não cria conta e produz um link com o mesmo mecanismo de sessão — o
+      // conteúdo do e-mail (assunto, texto, CTA) continua a ser o nosso, não
+      // o template nativo do Supabase.
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
         email,
-        options: {
-          redirectTo,
-        },
+        options: { redirectTo },
       });
 
       if (linkError || !linkData?.properties?.action_link) {
-        // Não revelar se o e-mail não existe na base (privacidade e proteção contra enumeração)
-        console.warn(
-          "[PasswordReset] Recovery link generation skipped or failed:",
-          linkError?.message,
-        );
-        return {
-          success: true,
-          message: NEUTRAL_SUCCESS_MESSAGE,
-        };
+        console.warn("[MagicLink] Link generation skipped or failed:", linkError?.message);
+        return { success: true, message: NEUTRAL_SUCCESS_MESSAGE };
       }
 
-      const resetUrl = linkData.properties.action_link;
+      const magicLinkUrl = linkData.properties.action_link;
 
-      // 3. Renderizar e-mail com branding da escola
-      const emailContent = renderResetPasswordEmail({
+      const emailContent = renderMagicLinkEmail({
         schoolName,
         logoUrl: schoolLogoUrl,
         primaryColor: schoolPrimaryColor,
-        resetUrl,
+        magicLinkUrl,
         platformName: getAppName(),
         platformUrl: getAppUrl(),
-        recipientEmail: email,
       });
 
-      // 4. Enviar e-mail via Resend — ver nota abaixo sobre não haver fallback nativo
       const resendApiKey = process.env["RESEND_API_KEY"]?.trim();
       const resendFrom =
-        process.env["RESEND_FROM_EMAIL"]?.trim() ||
-        process.env["E2E_ALERT_EMAIL_FROM"]?.trim() ||
-        resolveResendFromAddress(`seguranca@${getPlatformDomain()}`);
+        process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl());
 
-      // Envio exclusivo via Resend: o template nativo do Supabase não tem branding
-      // institucional e exporia "Supabase Auth" ao utilizador, o que é proibido.
-      // Se o Resend falhar ou não estiver configurado, o pedido falha de forma
-      // fechada (nenhum e-mail genérico é enviado) e o incidente é auditado.
       let sentViaResend = false;
       let deliveryError: string | null = null;
       if (resendApiKey) {
@@ -208,19 +155,16 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
           sentViaResend = true;
         } catch (resendError) {
           deliveryError = resendError instanceof Error ? resendError.message : "unknown_error";
-          console.error("[PasswordReset] Resend delivery failed:", resendError);
+          console.error("[MagicLink] Resend delivery failed:", resendError);
         }
       } else {
         deliveryError = "resend_not_configured";
-        console.error(
-          "[PasswordReset] RESEND_API_KEY not configured; institutional email not sent.",
-        );
+        console.error("[MagicLink] RESEND_API_KEY not configured; magic link email not sent.");
       }
 
-      // 5. Auditoria de segurança (SEM guardar tokens, senhas ou dados sensíveis)
       try {
         await db.from("saas_audit_logs").insert({
-          action: sentViaResend ? "password_reset_requested" : "password_reset_failed",
+          action: sentViaResend ? "magic_link_requested" : "magic_link_failed",
           entity_type: "auth",
           entity_id: linkData.user?.id || null,
           metadata: {
@@ -234,16 +178,9 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
         /* Silencioso para não interromper */
       }
 
-      return {
-        success: true,
-        message: NEUTRAL_SUCCESS_MESSAGE,
-      };
+      return { success: true, message: NEUTRAL_SUCCESS_MESSAGE };
     } catch (err) {
-      console.error("[PasswordReset] Error processing request:", err);
-      // Sempre responder de forma segura e neutra
-      return {
-        success: true,
-        message: NEUTRAL_SUCCESS_MESSAGE,
-      };
+      console.error("[MagicLink] Error processing request:", err);
+      return { success: true, message: NEUTRAL_SUCCESS_MESSAGE };
     }
   });

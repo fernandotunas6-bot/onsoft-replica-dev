@@ -37,6 +37,18 @@
         "--strictPort"
       ],
       "port": 3016
+    },
+    {
+      "name": "siga-audit",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "dev",
+        "--port",
+        "3026",
+        "--strictPort"
+      ],
+      "port": 3026
     }
   ]
 }

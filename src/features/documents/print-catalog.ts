@@ -250,7 +250,16 @@ function schoolTypeLabel(id: string | null | undefined): string {
 
 export function buildPrintSamplePayload(
   school: PrintSchoolContext,
-  extras?: { css?: string; student?: Partial<PrintStudentContext> },
+  extras?: {
+    css?: string;
+    student?: Partial<PrintStudentContext>;
+    // Documento real (via buildIssuePayload), não pré-visualização no Template
+    // Studio. Os campos de contacto da escola deixam de cair em valores de
+    // amostra plausíveis (NIF "5000000000", "Luanda, Angola", etc.) — um
+    // documento oficial nunca deve imprimir um NIF fictício sem aviso quando a
+    // escola simplesmente não o configurou em Definições.
+    realIssuance?: boolean;
+  },
 ): Record<string, unknown> {
   const year = school.academicYear || "2026/2027";
   const studentName = extras?.student?.fullName || "Ana Domingos Ferreira";
@@ -313,10 +322,10 @@ export function buildPrintSamplePayload(
       shortName: school.name || "Escola SIGA",
       ministry: "REPÚBLICA DE ANGOLA",
       ministryLine: "MINISTÉRIO DA EDUCAÇÃO",
-      address: school.address || "Luanda, Angola",
-      nif: school.nif || "5000000000",
-      phone: school.phone || "+244 000 000 000",
-      email: school.email || "secretaria@escola.ao",
+      address: school.address || (extras?.realIssuance ? "" : "Luanda, Angola"),
+      nif: school.nif || (extras?.realIssuance ? "" : "5000000000"),
+      phone: school.phone || (extras?.realIssuance ? "" : "+244 000 000 000"),
+      email: school.email || (extras?.realIssuance ? "" : "secretaria@escola.ao"),
       logoUrl: school.logoUrl || "",
       typeLabel: schoolTypeLabel(school.schoolType),
       emblemUrl: "/brands/emblem-angola.svg",
@@ -594,5 +603,5 @@ export function buildIssuePayload(
   student: PrintStudentContext,
   css: string,
 ): Record<string, unknown> {
-  return buildPrintSamplePayload(school, { css, student });
+  return buildPrintSamplePayload(school, { css, student, realIssuance: true });
 }
