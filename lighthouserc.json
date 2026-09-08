@@ -2,10 +2,10 @@
   "ci": {
     "collect": {
       "url": [
-        "http://localhost:8080/",
-        "http://localhost:8080/alunos",
-        "http://localhost:8080/documentos",
-        "http://localhost:8080/faturas"
+        "http://localhost:3006/",
+        "http://localhost:3006/alunos",
+        "http://localhost:3006/documentos",
+        "http://localhost:3006/faturas"
       ],
       "numberOfRuns": 3,
       "settings": {
