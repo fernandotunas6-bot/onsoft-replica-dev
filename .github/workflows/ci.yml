@@ -103,7 +103,18 @@ jobs:
       - name: Arrancar servidor de desenvolvimento
         run: |
           bun run dev &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+          ready=0
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:3006/; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "SIGA dev server did not become ready on port 3006"
+            exit 1
+          fi
 
       - name: Resumo de cobertura de estilo por rota
         run: python scripts/style-coverage.py
@@ -131,7 +142,18 @@ jobs:
       - name: Arrancar servidor de desenvolvimento
         run: |
           bun run dev &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+          ready=0
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:3006/; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "SIGA dev server did not become ready on port 3006"
+            exit 1
+          fi
 
       - name: Correr Lighthouse CI
         run: bunx --bun @lhci/cli@0.14.x autorun --config=lighthouserc.json
@@ -168,7 +190,18 @@ jobs:
       - name: Arrancar servidor de desenvolvimento
         run: |
           bun run dev &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+          ready=0
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:3006/; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "SIGA dev server did not become ready on port 3006"
+            exit 1
+          fi
 
       - name: Comparar screenshots com as baselines
         run: python scripts/visual-regression.py
