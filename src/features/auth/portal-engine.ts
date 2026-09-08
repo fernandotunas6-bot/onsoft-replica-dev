@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   Link2,
   Megaphone,
+  Network,
   NotebookPen,
   PieChart,
   Plug,
@@ -134,6 +135,7 @@ export function getPortalNavigation(
           },
           { label: "Documentos", icon: FileText, to: "/documentos" },
           { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
+          { label: "Meu Portal Alumni", icon: Network, to: "/alumni/portal" },
           { label: "Meu Perfil", icon: User, to: "/perfil" },
         ],
       },
@@ -270,7 +272,6 @@ export function getPortalNavigation(
     );
   }
 
-  // Portal Administrativo (Direção, Secretaria, Tesouraria)
   const groups: NavGroup[] = [
     {
       title: "Principal",
@@ -327,60 +328,23 @@ export function getPortalNavigation(
           label: "Importação de Dados",
           icon: FileUp,
           children: [
-            {
-              label: "Nova Importação",
-              icon: FileUp,
-              to: "/importar",
-              search: { tab: "novo" },
-            },
-            {
-              label: "Histórico & Auditoria",
-              icon: History,
-              to: "/importar",
-              search: { tab: "historico" },
-            },
-            {
-              label: "Modelos Oficiais Excel",
-              icon: Download,
-              to: "/importar",
-              search: { tab: "modelos" },
-            },
+            { label: "Nova Importação", icon: FileUp, to: "/importar", search: { tab: "novo" } },
+            { label: "Histórico & Auditoria", icon: History, to: "/importar", search: { tab: "historico" } },
+            { label: "Modelos Oficiais Excel", icon: Download, to: "/importar", search: { tab: "modelos" } },
           ],
         },
         {
           label: "Gestão de Alunos",
           icon: Users,
           children: [
-            {
-              label: "Lista de Alunos",
-              icon: GraduationCap,
-              to: "/alunos",
-            },
-            {
-              label: "Matricular Aluno",
-              icon: UserPlus,
-              to: "/alunos",
-              search: { action: "matricular" },
-            },
-            {
-              label: "Confirmar Matrícula",
-              icon: UserCheck,
-              to: "/alunos",
-              search: { action: "confirmar" },
-            },
-            {
-              label: "Estado do Aluno",
-              icon: Users,
-              to: "/alunos",
-              search: { action: "estado" },
-            },
+            { label: "Lista de Alunos", icon: GraduationCap, to: "/alunos" },
+            { label: "Matricular Aluno", icon: UserPlus, to: "/alunos", search: { action: "matricular" } },
+            { label: "Confirmar Matrícula", icon: UserCheck, to: "/alunos", search: { action: "confirmar" } },
+            { label: "Estado do Aluno", icon: Users, to: "/alunos", search: { action: "estado" } },
+            { label: "Alumni · Antigos Alunos", icon: Network, to: "/alumni" },
           ],
         },
-        {
-          label: "Documentos",
-          icon: FileText,
-          children: [{ label: "Emissão de Documentos", icon: FileText, to: "/documentos" }],
-        },
+        { label: "Documentos", icon: FileText, children: [{ label: "Emissão de Documentos", icon: FileText, to: "/documentos" }] },
         { label: "Biblioteca de Arquivos", icon: FolderOpen, to: "/arquivos" },
       ],
     },
@@ -424,36 +388,11 @@ export function getPortalNavigation(
           label: "Definições",
           icon: Settings,
           children: [
-            {
-              label: "Escola e branding",
-              icon: Building2,
-              to: "/configuracoes",
-              search: { painel: "escola" },
-            },
-            {
-              label: "Matrícula online",
-              icon: Link2,
-              to: "/configuracoes",
-              search: { painel: "matricula" },
-            },
-            {
-              label: "Integrações",
-              icon: Plug,
-              to: "/configuracoes",
-              search: { painel: "integracoes" },
-            },
-            {
-              label: "Financeiro",
-              icon: CreditCard,
-              to: "/configuracoes",
-              search: { painel: "financeiro" },
-            },
-            {
-              label: "Segurança",
-              icon: ShieldCheck,
-              to: "/configuracoes",
-              search: { painel: "seguranca" },
-            },
+            { label: "Escola e branding", icon: Building2, to: "/configuracoes", search: { painel: "escola" } },
+            { label: "Matrícula online", icon: Link2, to: "/configuracoes", search: { painel: "matricula" } },
+            { label: "Integrações", icon: Plug, to: "/configuracoes", search: { painel: "integracoes" } },
+            { label: "Financeiro", icon: CreditCard, to: "/configuracoes", search: { painel: "financeiro" } },
+            { label: "Segurança", icon: ShieldCheck, to: "/configuracoes", search: { painel: "seguranca" } },
           ],
         },
         { label: "Meu Perfil", icon: User, to: "/perfil" },
@@ -479,6 +418,7 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   if (mode === "student") {
     return [
+      { label: "Meu Portal Alumni", to: "/alumni/portal" },
       { label: "Notas e Boletim", to: "/pedagogica", search: { tab: "notas" } },
       { label: "Frequência", to: "/pedagogica", search: { tab: "presencas" } },
       { label: "Horário", to: "/pedagogica", search: { tab: "horarios" } },
@@ -499,6 +439,7 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   return [
     { label: "Gestão de Alunos", to: "/alunos" },
+    { label: "Rede Alumni", to: "/alumni" },
     { label: "Importar Dados", to: "/importar" },
     { label: "Biblioteca de Arquivos", to: "/arquivos" },
     { label: "Caixa e Pagamentos", to: "/financeiro" },

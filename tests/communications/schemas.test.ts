@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  alumniAnnouncementAudienceOptions,
   announcementAudienceOptions,
   announcementChannelOptions,
   archiveAnnouncementInputSchema,
@@ -9,15 +10,33 @@ import {
 } from "@/features/communications/schemas";
 
 describe("communications schemas", () => {
-  it("audience options match the DB constraint exactly", () => {
-    // These must match public.school_announcements CHECK constraint
+  it("audience options match the DB constraint including Alumni", () => {
     expect(announcementAudienceOptions).toContain("all_guardians");
     expect(announcementAudienceOptions).toContain("guardians_with_debt");
     expect(announcementAudienceOptions).toContain("students_secondary");
     expect(announcementAudienceOptions).toContain("students_finalists");
     expect(announcementAudienceOptions).toContain("teaching_staff");
-    // 'school' must NOT be present — it is not in the DB CHECK constraint
+    expect(announcementAudienceOptions).toContain("alumni_all");
+    expect(announcementAudienceOptions).toContain("alumni_opportunities");
+    expect(announcementAudienceOptions).toContain("alumni_events");
+    expect(announcementAudienceOptions).toContain("alumni_mentoring");
+    expect(announcementAudienceOptions).toContain("alumni_surveys");
+    expect(announcementAudienceOptions).toContain("alumni_fundraising");
     expect(announcementAudienceOptions).not.toContain("school");
+  });
+
+  it("keeps Alumni segments as a strict subset of announcement audiences", () => {
+    expect(alumniAnnouncementAudienceOptions).toEqual([
+      "alumni_all",
+      "alumni_opportunities",
+      "alumni_events",
+      "alumni_mentoring",
+      "alumni_surveys",
+      "alumni_fundraising",
+    ]);
+    for (const audience of alumniAnnouncementAudienceOptions) {
+      expect(announcementAudienceOptions).toContain(audience);
+    }
   });
 
   it("channel options match the DB constraint exactly", () => {
@@ -34,6 +53,17 @@ describe("communications schemas", () => {
     });
     expect(parsed.status).toBe("sent");
     expect(parsed.audience).toBe("all_guardians");
+  });
+
+  it("accepts Alumni purpose-specific announcements", () => {
+    const parsed = createAnnouncementInputSchema.parse({
+      title: "Novas bolsas para Alumni",
+      body: "Consulte as oportunidades disponíveis no Portal Alumni.",
+      audience: "alumni_opportunities",
+      channel: "email",
+      status: "draft",
+    });
+    expect(parsed.audience).toBe("alumni_opportunities");
   });
 
   it("rejects legacy 'school' audience value that is not in DB", () => {

@@ -40,17 +40,39 @@ async function resolveMembershipForRequest(
   return membership;
 }
 
-export async function requireSgaWriter(
+export function requireSgaWriter(
+  userId: string,
+  roles?: ApplicationRole[],
+  preferredSchoolId?: string | null,
+): Promise<SgaMembershipContext>;
+export function requireSgaWriter(
   client: SupabaseClient,
   userId: string,
-  roles: ApplicationRole[] = ["Administrador", "Secretaria", "Tesouraria"],
+  roles?: ApplicationRole[],
   preferredSchoolId?: string | null,
+): Promise<SgaMembershipContext>;
+export async function requireSgaWriter(
+  clientOrUserId: SupabaseClient | string,
+  userIdOrRoles?: string | ApplicationRole[],
+  rolesOrPreferred?: ApplicationRole[] | string | null,
+  preferredSchoolIdArg?: string | null,
 ): Promise<SgaMembershipContext> {
-  // Prefer service-role resolution after auth — same school/role truth for all writers.
-  void client;
+  // Compatibilidade: módulos legados chamam (client, userId, roles, school),
+  // enquanto server functions recentes já autenticadas podem chamar (userId, roles, school).
+  const directUserId = typeof clientOrUserId === "string";
+  const userId = directUserId ? clientOrUserId : String(userIdOrRoles ?? "");
+  const roles = directUserId
+    ? (Array.isArray(userIdOrRoles) ? userIdOrRoles : undefined)
+    : (Array.isArray(rolesOrPreferred) ? rolesOrPreferred : undefined);
+  const preferredSchoolId = directUserId
+    ? (typeof rolesOrPreferred === "string" || rolesOrPreferred === null ? rolesOrPreferred : undefined)
+    : preferredSchoolIdArg;
+
+  if (!userId) throw new Error("Sessão inválida. Termine e volte a entrar.");
+  const allowedRoles: ApplicationRole[] = roles ?? ["Administrador", "Secretaria", "Tesouraria"];
   const membership = await resolveMembershipForRequest(userId, preferredSchoolId);
   if (!membership) throw new Error("Sem membership activa nesta escola.");
-  if (!roles.includes(membership.appRole)) {
+  if (!allowedRoles.includes(membership.appRole)) {
     throw new Error("Sem permissão para esta operação na escola.");
   }
   return membership;
