@@ -6,6 +6,15 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-08)
 
+### Ciclo 59 — Módulo Alumni: integração completa e produção local (2026-09-08)
+
+Módulo Alumni integrado a partir de `feat/alumni-master-premium` para o ambiente local:
+- **Domínio e Rotas:** `/alumni` (workspace master), `/alumni/$alumniId` (360º), `/alumni/operations`, `/alumni/insights`, `/alumni/communications`, `/alumni/matching`, `/alumni/documents`, `/alumni/calendar`, `/alumni/pipeline`, e `/alumni/portal` (self-service do antigo aluno com portfólio por nível de ensino e privacidade).
+- **Base de Dados & SQL:** consolidado `supabase/APPLY_ALUMNI_MODULE.sql` (8 migrações). Corrigido identificador reservado `"current_role"`. Aplicado via query API com sucesso: 15 tabelas criadas (`alumni_profiles`, `alumni_experiences`, `alumni_engagements`, `alumni_opportunities`, `alumni_opportunity_applications`, `alumni_mentorships`, `alumni_events`, `alumni_event_registrations`, `alumni_surveys`, `alumni_survey_responses`, `alumni_contributions`, `alumni_communication_preferences`, `alumni_privacy_audit`, `alumni_portfolio_items`, `alumni_education_stages`).
+- **Checklist SQL SGA:** actualizado `scripts/siga/modules.json`, `scripts/siga/print-apply-sql.mjs` e `scripts/siga/apply-all-sql.mjs`. `siga:sql:verify` validou 65/65 tabelas presentes (100%).
+- **Navegação e Permissões:** `access-policy.ts`, `navigation-catalog.ts`, `portal-engine.ts`, `route-inventory.ts` e `app-marks.tsx` harmonizados.
+- **Validação:** `npm run siga:check` ✓, 25/25 testes em `tests/alumni/` ✓, `tests/saas/sql-sga-checklist.test.ts` ✓, `npm run build` (Vite + Nitro) compilado em 11.7s com zero erros ✓.
+
 ### Ciclo 58 — E2E real do ecossistema: criar escola, entrar, gerir (2026-09-08)
 
 Teste ponta-a-ponta com as 5 apps a correr e Supabase SGA real. Estado antes:
