@@ -117,13 +117,13 @@ jobs:
           fi
 
       - name: Resumo de cobertura de estilo por rota
-        run: python scripts/style-coverage.py
+        run: BASE_URL=http://localhost:3006 python scripts/style-coverage.py
 
       - name: Navegação apenas por teclado (skip link, foco, aria-current)
-        run: python scripts/keyboard-nav.py
+        run: BASE_URL=http://localhost:3006 python scripts/keyboard-nav.py
 
       - name: Acessibilidade da sidebar e IconChip (contraste, foco, tabulação, ARIA)
-        run: python scripts/a11y-sidebar.py
+        run: BASE_URL=http://localhost:3006 python scripts/a11y-sidebar.py
 
   lighthouse:
     name: Lighthouse CI (FCP / LCP / INP)
@@ -204,10 +204,10 @@ jobs:
           fi
 
       - name: Comparar screenshots com as baselines
-        run: python scripts/visual-regression.py
+        run: BASE_URL=http://localhost:3006 python scripts/visual-regression.py
 
       - name: Comparar sidebar e drawer (multi-viewport)
-        run: python scripts/visual-sidebar.py
+        run: BASE_URL=http://localhost:3006 python scripts/visual-sidebar.py
 
       - name: Publicar diferenças
         if: failure()
