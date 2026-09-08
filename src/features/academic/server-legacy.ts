@@ -190,6 +190,12 @@ type SubjectSummary = {
   classes_label: string;
   weekly_hours_label: string;
   approval_rate: number | null;
+  subject_type_id?: string | null;
+  curriculum_area_id?: string | null;
+  is_mandatory?: boolean;
+  is_practical?: boolean;
+  annual_hours?: number | null;
+  color?: string | null;
 };
 
 type TermGradeSummary = {
@@ -522,12 +528,18 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           name: String(subject["name"] ?? ""),
           code: String(subject["code"] ?? ""),
           teacher_name: null,
-          weekly_hours: 0,
+          weekly_hours: Number(subject["weekly_hours"] ?? 0),
           grade_from: null,
           grade_to: null,
           classes_label: "—",
-          weekly_hours_label: "—",
+          weekly_hours_label: subject["weekly_hours"] ? `${subject["weekly_hours"]}h/sem` : "—",
           approval_rate: null,
+          subject_type_id: (subject["subject_type_id"] as string) ?? null,
+          curriculum_area_id: (subject["curriculum_area_id"] as string) ?? null,
+          is_mandatory: Boolean(subject["is_mandatory"] ?? true),
+          is_practical: Boolean(subject["is_practical"] ?? false),
+          annual_hours: subject["annual_hours"] ? Number(subject["annual_hours"]) : null,
+          color: (subject["color"] as string) ?? null,
         }));
 
     const enrollmentOptions = (enrollments.data ?? []).map((enrollment) => {
@@ -830,17 +842,28 @@ export const createSubject = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
+    const insertPayload: Record<string, unknown> = {
+      school_id: membership.schoolId,
+      code: data.code,
+      name: data.name,
+      short_name: data.shortName || data.name.slice(0, 20),
+      status: "active",
+      created_by: context.userId,
+      updated_by: context.userId,
+    };
+    if (data.subjectTypeId) insertPayload.subject_type_id = data.subjectTypeId;
+    if (data.curriculumAreaId) insertPayload.curriculum_area_id = data.curriculumAreaId;
+    if (data.annualHours !== undefined) insertPayload.annual_hours = data.annualHours;
+    if (data.weeklyHours !== undefined) insertPayload.weekly_hours = data.weeklyHours;
+    if (data.isMandatory !== undefined) insertPayload.is_mandatory = data.isMandatory;
+    if (data.isPractical !== undefined) insertPayload.is_practical = data.isPractical;
+    if (data.hasExam !== undefined) insertPayload.has_exam = data.hasExam;
+    if (data.hasPauta !== undefined) insertPayload.has_pauta = data.hasPauta;
+    if (data.color) insertPayload.color = data.color;
+
     const { data: subject, error } = await db
       .from("subjects")
-      .insert({
-        school_id: membership.schoolId,
-        code: data.code,
-        name: data.name,
-        short_name: data.name.slice(0, 20),
-        status: "active",
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
+      .insert(insertPayload)
       .select("*")
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar a disciplina.");
@@ -857,17 +880,29 @@ export const updateSubject = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
+
+    const updatePayload: Record<string, unknown> = {
+      code: data.code,
+      name: data.name,
+      short_name: data.shortName || data.name.slice(0, 20),
+      updated_by: context.userId,
+    };
+    if (data.subjectTypeId !== undefined) updatePayload.subject_type_id = data.subjectTypeId;
+    if (data.curriculumAreaId !== undefined) updatePayload.curriculum_area_id = data.curriculumAreaId;
+    if (data.annualHours !== undefined) updatePayload.annual_hours = data.annualHours;
+    if (data.weeklyHours !== undefined) updatePayload.weekly_hours = data.weeklyHours;
+    if (data.isMandatory !== undefined) updatePayload.is_mandatory = data.isMandatory;
+    if (data.isPractical !== undefined) updatePayload.is_practical = data.isPractical;
+    if (data.hasExam !== undefined) updatePayload.has_exam = data.hasExam;
+    if (data.hasPauta !== undefined) updatePayload.has_pauta = data.hasPauta;
+    if (data.color !== undefined) updatePayload.color = data.color;
+
     const { data: subject, error } = await db
       .from("subjects")
-      .update({
-        code: data.code,
-        name: data.name,
-        short_name: data.name.slice(0, 20),
-        updated_by: context.userId,
-      })
+      .update(updatePayload)
       .eq("id", data.subjectId)
       .eq("school_id", membership.schoolId)
-      .select("id, code, name")
+      .select("*")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a disciplina.");
     if (!subject) throw new Error("Disciplina não encontrada.");
@@ -1193,6 +1228,7 @@ export const assignClassSubjectTeacher = createServerFn({ method: "POST" })
     const { data: existing, error: existingError } = await db
       .from("class_subjects")
       .select("id")
+      .eq("school_id", membership.schoolId)
       .eq("class_group_id", data.classGroupId)
       .eq("subject_id", data.subjectId)
       .maybeSingle();

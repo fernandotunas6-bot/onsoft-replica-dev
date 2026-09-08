@@ -134,8 +134,12 @@ export const listDayAgendaLessons = createServerFn({ method: "GET" })
         ? db.from("subjects").select("id, name").eq("school_id", schoolId).in("id", subjectIds)
         : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
       teacherIds.length
-        ? db.from("people").select("id, full_name").eq("school_id", schoolId).in("id", teacherIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; full_name: string }>, error: null }),
+        ? db
+            .from("teachers")
+            .select("id, person_id")
+            .eq("school_id", schoolId)
+            .in("id", teacherIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; person_id: string | null }>, error: null }),
     ]);
 
     if (groupsRes.error || subjectsRes.error || teachersRes.error) {
@@ -145,6 +149,21 @@ export const listDayAgendaLessons = createServerFn({ method: "GET" })
       );
     }
 
+    const teacherPersonIds = [
+      ...new Set(
+        (teachersRes.data ?? [])
+          .map((row) => String(row.person_id ?? ""))
+          .filter(Boolean),
+      ),
+    ];
+    const peopleRes = teacherPersonIds.length
+      ? await db
+          .from("people")
+          .select("id, full_name")
+          .eq("school_id", schoolId)
+          .in("id", teacherPersonIds)
+      : { data: [] as Array<{ id: string; full_name: string }> };
+
     const classSubjectById = new Map((classSubjects ?? []).map((row) => [String(row.id), row]));
     const groupName = new Map(
       (groupsRes.data ?? []).map((row) => [String(row.id), String(row.name ?? "")]),
@@ -152,8 +171,14 @@ export const listDayAgendaLessons = createServerFn({ method: "GET" })
     const subjectName = new Map(
       (subjectsRes.data ?? []).map((row) => [String(row.id), String(row.name ?? "")]),
     );
+    const personNameById = new Map(
+      (peopleRes.data ?? []).map((row) => [String(row.id), String(row.full_name ?? "")]),
+    );
     const teacherName = new Map(
-      (teachersRes.data ?? []).map((row) => [String(row.id), String(row.full_name ?? "")]),
+      (teachersRes.data ?? []).map((row) => [
+        String(row.id),
+        row.person_id ? personNameById.get(String(row.person_id)) ?? "" : "",
+      ]),
     );
 
     const lessons: DayAgendaLesson[] = slotRows.map((slot) => {

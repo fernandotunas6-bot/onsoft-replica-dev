@@ -6,6 +6,63 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-08)
 
+### Ciclo 63 — RBAC-v2 Matriz Total de Permissões, Atribuição Docente e Contrato PayFlow (2026-09-08)
+
+Continuação directa dos Ciclos 61 e 62. Finalizada a expansão do sistema RBAC-v2, atribuição docente às turmas e verificação de contratos com o PayFlow.
+
+**O que foi entregue e integrado:**
+- **Matriz Canónica de Permissões RBAC-v2 (PostgreSQL / Supabase):**
+  - Identificado o catálogo de todas as 74 permissões granulares em `public.permissions` e mapeadas para todas as 8 funções canónicas do sistema.
+  - Criada e aplicada ao vivo (projecto `xodgfmxiaunpamctfeea`) a migração `supabase/migrations/20260908190000_seed_remaining_role_permissions.sql`:
+    - `treasury`: 20 permissões (faturas, contratos, pagamentos, recibos, estornos, configurações financeiras, registos de alunos/matrículas/pessoas e documentos).
+    - `teacher`: 19 permissões (turmas, estrutura, disciplinas, horários, lançamento e tomada de presenças, notas, diários, submissão de pautas, pautas e relatórios).
+    - `secretary`: enriquecida com mais 18 permissões operacionais (total 41 permissões: criação/atualização de alunos, matrículas, professores, pessoas, gestão de turmas e disciplinas).
+    - `guardian`: 14 permissões de consulta ao portal escolar (notas, presenças, horários, contratos, faturas, documentos).
+    - `student`: 11 permissões de consulta ao portal escolar (notas, presenças, horários, documentos).
+    - `user`: 2 permissões básicas (notificações pessoais e anúncios escolares).
+  - Atualizado `src/features/saas/school-bootstrap.ts` para que qualquer nova escola provisionada pelo wizard WEB `/start` ou `siga:seed-demo` receba automaticamente toda a matriz de permissões em `role_permissions`.
+  - Migração espelhada em `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql`.
+- **Atribuição Docente Concluída (`class_subjects`):**
+  - Na escola de teste `e2e-web-mts7ka0q`, concluída a atribuição dos 5 professores às 5 disciplinas da turma `10ª A — Manhã` (Matemática, Língua Portuguesa, Ciências Naturais, História e Inglês) respeitando `created_by`/`updated_by` e isolamento multi-tenant.
+  - Verificada a regra de unicidade `(school_id, class_group_id, subject_id)` e a validação Zod no backend.
+- **Verificação de Contrato PayFlow:**
+  - Auditados os contratos do endpoint `POST /api/v1/education/sync` (`toPayflowStudentCode`, `derivePayflowPaymentPin`, `kzToMinorUnits`, `buildPayflowBankAccount`, `mapEnrollmentStatusToPayflow`, `mapInvoiceStatusToPayflow`).
+  - Verificado o estudante `EST-000001` (`Aluno Teste Ciclo60`), contrato financeiro ativo e fatura `FT-2026/0001` (45.000 Kz) emitidos e sincronizáveis.
+- **Sincronização com Calendário e Presenças:**
+  - Corrigido bug em `src/features/calendar/server.ts` (`listDayAgendaLessons`): `teacher_id` em `class_subjects` referencia `teachers(id)` e não `people(id)`. Adicionada a resolução de `teachers.person_id` para `people.full_name`, permitindo que a agenda de aulas diárias apresente sempre o nome real do docente.
+  - Criadas 3 salas na escola de teste (`S101`, `S102`, `LAB01`), 15 slots em `timetable_slots` cobrindo a semana lectiva da 10ª A, e projectadas 27 sessões reais em `siga_attendance_sessions`.
+- **Validação & Testes:**
+  - Adicionados testes a `tests/academic/advanced-academic-core.test.ts` validando os schemas de atribuição docente e a integridade das listas canónicas de permissões.
+  - Vitest: 158 ficheiros de teste aprovados (2 skipped), 1.067 testes com 100% de sucesso.
+  - `npm run siga:check`: todos os 18 módulos inventariados com sucesso.
+  - `npm run build`: bundle de produção Vite e Nitro Cloudflare Worker compilados sem erros em 8.1s.
+
+### Ciclo 62 — Configuração Académica Avançada: Matriz, Disciplinas, Salas, Turnos, Horários e Presenças (2026-09-08)
+
+Continuação directa do Ciclo 61. Implementado o núcleo avançado de planeamento académico do SIGA / Onsoft, integrando a configuração de recursos físicos e curriculares com o motor determinístico de horários e sincronização com presenças e calendário.
+
+**O que foi entregue e integrado:**
+- **Camada de Dados Canónica (PostgreSQL / Supabase):**
+  - Migração `supabase/migrations/20260908180000_advanced_academic_core.sql` definindo: `subject_types`, `curriculum_areas`, `school_shifts`, `school_shift_slots`, `curricula`, `curriculum_subjects`, `teacher_availability` e `academic_schedules`.
+  - Extensão não-destrutiva de `subjects` (`subject_type_id`, `curriculum_area_id`, `short_name`, `annual_hours`, `is_mandatory`, `is_practical`, `color`), `rooms` (`room_type`, `building`, `block`, `floor`, `resources`, `accessibility`) e `timetable_slots` (`room_id`, `schedule_id`, `shift_id`, `day_period_number`).
+  - RLS multi-tenant estrito com `public.is_school_member(school_id)` e triggers de auditoria `set_updated_at_and_version()`.
+  - Espelhado em `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql` e checklist `scripts/siga/print-apply-sql.mjs` (`npm run siga:sql`).
+- **Backend & Schemas Zod:**
+  - `src/features/academic/schemas.ts`: Schemas Zod completos para criação e actualização de todas as entidades académicas.
+  - `src/features/academic/advanced-academic-server.ts`: CRUD completo e motor determinístico de conflitos (`assertScheduleSlotConflictsDetailed`) validando sobreposições de docentes, salas, turmas, capacidade de sala vs alunos matriculados e limites de disponibilidade do professor.
+  - Projeção estrutural para o diário e calendário (`syncScheduleSlotsToSessions` gerando `siga_attendance_sessions` e `hr_teacher_lesson_occurrences`) e monitoramento em tempo real (`getSchoolNowOverview`).
+- **Workspaces e UI Pedagógica:**
+  - `src/features/academic/components/SchoolNowWidget.tsx`: Monitor instantâneo de salas ocupadas/livres e turmas em aula.
+  - `src/features/pedagogica/components/SalasWorkspaceTab.tsx`: Catálogo físico com cartões de capacidade global, tipologias e modais.
+  - `src/features/pedagogica/components/CurriculoWorkspaceTab.tsx`: Sub-abas para Matriz Curricular, Tipos de Disciplinas, Áreas Curriculares e Turnos com matriz horária.
+  - `src/features/pedagogica/components/DisciplinasWorkspaceTab.tsx`: Enriquecida com cards estatísticos de catálogo (Total, Obrigatórias, Práticas, Carga Média) e selecção de tipo e área curricular nos modais de criação/edição.
+  - `src/features/academic/schedule/ScheduleWorkspace.tsx`: Visões combinadas (Por Turma, Por Professor, Por Sala), banner de alertas e publicação com sincronização em 1 clique.
+  - `src/routes/pedagogica.tsx`: Abas `salas` e `curriculo` integradas harmoniosamente.
+- **Validação:**
+  - Nova suite `tests/academic/advanced-academic-core.test.ts` (11 testes 100% aprovados).
+  - 158 ficheiros de teste executados, 1064 testes com sucesso no repositório.
+  - `npm run siga:check` e `npm run build` (Nitro Cloudflare worker + Vite) 100% verdes.
+
 ### Ciclo 61 — RBAC-v2 nunca semeado: matrícula/pagamento impossíveis em qualquer escola nova (2026-09-08)
 
 Continuação directa do Ciclo 60. As duas migrações pendentes
@@ -46,14 +103,11 @@ matrícula (EST-000001, turma 10ª A) → factura (FT-2026/0001, 45.000 Kz) →
 recibo (RC-000001, pago). `vitest run` 1053/1053 (2 skipped) ✓, `npm run
 siga:check` ✓, `tsc`/eslint sem erros novos.
 
-**Achado à parte (menor, não bloqueante):** `/alunos/$studentId`
-(`StudentDetail`) lançou "Rendered more hooks than during the previous
-render" de forma intermitente (recupera com "Tentar outra vez"; ~1 em 3
-navegações). Não investigado a fundo — hook condicional algures no componente
-ou nos seus filhos. A UI também mostra por vezes um toast de erro
-desactualizado depois de uma mutação que na realidade teve sucesso (matrícula
-e pagamento pareceram falhar no toast mas gravaram correctamente) — sintoma
-provavelmente ligado ao mesmo problema de re-render.
+**Achado à parte (resolvido no Ciclo 62):** `/alunos/$studentId`
+(`StudentDetail`) lançava "Rendered more hooks than during the previous render"
+de forma intermitente porque `useRef` e `useState` (`fileInputRef`, `isUploadingPhoto`)
+estavam posicionados após as cláusulas de retorno condicional (`profileQuery.isLoading` e `profileQuery.isError`).
+Foram movidos para o topo do componente, respeitando a ordem estrita das regras dos Hooks do React.
 
 **Por fazer (não coberto nesta fatia):**
 - `role_permissions` dos papéis `treasury`/`teacher`/`guardian`/`student`/`user`
@@ -66,7 +120,6 @@ provavelmente ligado ao mesmo problema de re-render.
   versionadas. Uma auditoria completa (`pg_get_functiondef` de tudo em
   `private`/`public` que ainda não está em `supabase/migrations/`) evitaria
   mais surpresas deste tipo.
-- Investigar a fundo o "Rendered more hooks" em `StudentDetail`.
 - Continuar o teste: atribuir professor à turma (desbloqueia `class_subjects`),
   depois PayFlow.
 

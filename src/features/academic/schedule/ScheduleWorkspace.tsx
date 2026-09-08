@@ -1,5 +1,20 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CalendarDays, Copy, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  Copy,
+  DoorOpen,
+  Eye,
+  Pencil,
+  Plus,
+  Send,
+  Search,
+  Trash2,
+  User,
+  Users,
+  Sparkles,
+} from "lucide-react";
 import { Panel } from "@/components/layout/PageHeader";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -14,12 +29,15 @@ import {
 } from "@/components/ui/table";
 import type {
   ScheduleClassGroup,
+  ScheduleRoom,
   ScheduleSlot,
   ScheduleSlotInput,
   ScheduleSlotUpdate,
   ScheduleSubject,
+  ScheduleTeacher,
 } from "./types";
 import { detectScheduleConflicts } from "./utils/conflicts";
+import { toast } from "sonner";
 
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"] as const;
 const weekdayByLabel = new Map<string, number>(weekdays.map((label, index) => [label, index + 1]));
@@ -54,52 +72,107 @@ function gridRows(slots: ScheduleSlot[]) {
 
 export function ScheduleWorkspace({
   activeYearLabel,
+  activeYearId,
   canManage,
   scheduleAvailable,
   classGroups,
   subjects,
+  rooms = [],
+  teachers = [],
   slots,
   virtualRooms,
   onCreateSlot,
   onUpdateSlot,
   onDeleteSlot,
+  onPublishSchedule,
 }: {
   activeYearLabel: string;
+  activeYearId?: string;
   canManage: boolean;
   scheduleAvailable: boolean;
   classGroups: ScheduleClassGroup[];
   subjects: ScheduleSubject[];
+  rooms?: ScheduleRoom[];
+  teachers?: ScheduleTeacher[];
   slots: ScheduleSlot[];
   virtualRooms: Array<{ label: string; url: string }>;
   onCreateSlot: (input: ScheduleSlotInput) => Promise<void>;
   onUpdateSlot: (input: ScheduleSlotUpdate) => Promise<void>;
   onDeleteSlot: (slotId: string) => Promise<void>;
+  onPublishSchedule?: (classGroupId: string) => Promise<void>;
 }) {
+  const [viewMode, setViewMode] = useState<"turma" | "professor" | "sala">("turma");
   const [classGroupId, setClassGroupId] = useState("");
+  const [teacherId, setTeacherId] = useState("");
+  const [roomId, setRoomId] = useState("");
   const [query, setQuery] = useState("");
+  const [editingSlot, setEditingSlot] = useState<ScheduleSlot | null>(null);
+  const [publishing, setPublishing] = useState(false);
+
+  // Seleções ativas por modo
   const selectedClassGroupId =
     classGroupId ||
     slots.find((slot) => slot.class_group_id)?.class_group_id ||
     classGroups[0]?.id ||
     "";
   const selectedClassGroup = classGroups.find((group) => group.id === selectedClassGroupId);
-  const selectedSlots = slots.filter((slot) => slot.class_group_id === selectedClassGroupId);
+
+  const selectedTeacherId = teacherId || teachers[0]?.id || "";
+  const selectedTeacher = teachers.find((t) => t.id === selectedTeacherId);
+
+  const selectedRoomId = roomId || rooms[0]?.id || "";
+  const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
+
+  // Filtrar slots conforme modo de visualização
+  const currentSlots = useMemo(() => {
+    if (viewMode === "professor") {
+      return slots.filter((slot) => slot.teacher_id === selectedTeacherId);
+    }
+    if (viewMode === "sala") {
+      return slots.filter(
+        (slot) =>
+          slot.room_id === selectedRoomId ||
+          (selectedRoom &&
+            slot.label?.trim().toLowerCase() === selectedRoom.name.trim().toLowerCase()),
+      );
+    }
+    return slots.filter((slot) => slot.class_group_id === selectedClassGroupId);
+  }, [viewMode, slots, selectedTeacherId, selectedRoomId, selectedRoom, selectedClassGroupId]);
+
   const normalizedQuery = query.trim().toLocaleLowerCase();
-  const visibleSlots = selectedSlots.filter((slot) => {
+  const visibleSlots = currentSlots.filter((slot) => {
     if (!normalizedQuery) return true;
-    return [slot.display_label, slot.label, slot.subject_name, slot.class_group_name]
+    return [
+      slot.display_label,
+      slot.label,
+      slot.room_name,
+      slot.subject_name,
+      slot.teacher_name,
+      slot.class_group_name,
+    ]
       .filter(Boolean)
       .some((value) => String(value).toLocaleLowerCase().includes(normalizedQuery));
   });
+
   const conflicts = useMemo(() => detectScheduleConflicts(slots), [slots]);
   const selectedConflicts = conflicts.filter((conflict) =>
-    conflict.slotIds.some((slotId) => selectedSlots.some((slot) => slot.id === slotId)),
+    conflict.slotIds.some((slotId) => currentSlots.some((slot) => slot.id === slotId)),
   );
+
   const rows = gridRows(visibleSlots);
+
   const classGroupOptions = classGroups.map((group) => optionLabel(group.id, group.name));
   const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
+  const teacherOptions = [
+    "Sem professor atribuído",
+    ...teachers.map((t) => optionLabel(t.id, t.name)),
+  ];
+  const roomOptions = [
+    "Sem sala fixa",
+    ...rooms.map((r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`)),
+  ];
 
-  const createSlot = async (values: Record<string, string | undefined>) => {
+  const handleCreateSlot = async (values: Record<string, string | undefined>) => {
     const groupOption = values["turma"] ?? "";
     const subjectOption = values["disciplina"] ?? "";
     const classGroup = classGroups.find(
@@ -107,324 +180,370 @@ export function ScheduleWorkspace({
     );
     const subject = subjects.find((item) => optionLabel(item.id, item.name) === subjectOption);
     const weekday = weekdayByLabel.get(values["dia"] ?? "");
-    if (!classGroup || !subject || !weekday) throw new Error("Seleccione turma, disciplina e dia.");
 
-    const room = values["rotulo"]?.trim() || "Sala";
+    if (!classGroup || !subject || !weekday) {
+      throw new Error("Seleccione turma, disciplina e dia da semana.");
+    }
+
+    const teacherOpt = values["professor"];
+    const resolvedTeacher = teachers.find((t) => optionLabel(t.id, t.name) === teacherOpt);
+
+    const roomOpt = values["sala"];
+    const resolvedRoom = rooms.find(
+      (r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`) === roomOpt,
+    );
+
+    const roomLabel = resolvedRoom?.name || values["rotulo"]?.trim() || "Sala";
     const virtualRoom = virtualRooms.find((item) => item.label === values["salaVirtual"]);
+
     await onCreateSlot({
       classGroupId: classGroup.id,
       subjectId: subject.id,
       weekday,
       startsAt: values["inicio"] ?? "",
       endsAt: values["fim"] ?? "",
-      label: virtualRoom ? `${room} · ${virtualRoom.url}` : room,
+      teacherId: resolvedTeacher?.id ?? null,
+      roomId: resolvedRoom?.id ?? null,
+      label: virtualRoom ? `${roomLabel} · ${virtualRoom.url}` : roomLabel,
+      notes: values["observacoes"]?.trim() || undefined,
     });
+
     setClassGroupId(classGroup.id);
+  };
+
+  const handlePublish = async () => {
+    if (!selectedClassGroupId || !onPublishSchedule) return;
+    setPublishing(true);
+    try {
+      await onPublishSchedule(selectedClassGroupId);
+      toast.success("Horário publicado e sincronizado com o Calendário Escolar!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao publicar horário.");
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
     <Panel
       title={
-        selectedClassGroup ? `Horário semanal — ${selectedClassGroup.name}` : "Horário semanal"
+        viewMode === "turma"
+          ? selectedClassGroup
+            ? `Horário semanal — Turma ${selectedClassGroup.name}`
+            : "Horário semanal por Turma"
+          : viewMode === "professor"
+            ? selectedTeacher
+              ? `Horário pessoal — Prof. ${selectedTeacher.name}`
+              : "Horário do Professor"
+            : selectedRoom
+              ? `Ocupação semanal — Sala ${selectedRoom.name}`
+              : "Horário da Sala"
       }
       description={
         scheduleAvailable
-          ? "Slots reais da escola, organizados por turma, disciplina e sala."
+          ? "Planeamento de aulas sem conflitos, com motor de choques e sincronização com o calendário."
           : "Não foi possível carregar os horários neste momento."
       }
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-2 text-xs text-muted-foreground">
-            <CalendarDays className="size-4" /> {activeYearLabel}
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 px-3 py-1.5 rounded-full font-medium">
+            <CalendarDays className="size-3.5 text-primary" /> {activeYearLabel}
           </span>
-          {canManage && scheduleAvailable && classGroups.length > 0 ? (
-            <QuickFormModal
-              title="Novo slot"
-              eyebrow="Horário"
-              description="Adicione uma aula ao horário real da turma."
-              icon={<Plus className="size-5" />}
-              submitLabel="Criar slot"
-              onSubmit={createSlot}
-              fields={[
-                {
-                  name: "turma",
-                  label: "Turma",
-                  type: "select",
-                  options: classGroupOptions,
-                  full: true,
-                },
-                { name: "dia", label: "Dia", type: "select", options: [...weekdays] },
-                { name: "inicio", label: "Início", type: "time", defaultValue: "07:30" },
-                { name: "fim", label: "Fim", type: "time", defaultValue: "08:20" },
-                {
-                  name: "disciplina",
-                  label: "Disciplina",
-                  type: "select",
-                  options: subjectOptions,
-                  full: true,
-                },
-                {
-                  name: "rotulo",
-                  label: "Sala / rótulo",
-                  placeholder: "Ex.: Sala 1",
-                  defaultValue: "Sala 1",
-                  full: true,
-                },
-                ...(virtualRooms.length > 0
-                  ? [
-                      {
-                        name: "salaVirtual",
-                        label: "Sala virtual",
-                        type: "select" as const,
-                        options: ["Sem sala virtual", ...virtualRooms.map((item) => item.label)],
-                        required: false,
-                        full: true,
-                      },
-                    ]
-                  : []),
-              ]}
-              trigger={(open) => (
-                <Button size="sm" className="gap-1.5" onClick={open}>
-                  <Plus className="size-3.5" /> Slot
+
+          {canManage && scheduleAvailable && classGroups.length > 0 && (
+            <>
+              {onPublishSchedule && selectedClassGroupId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl text-xs border-primary/30 text-primary hover:bg-primary/10 gap-1.5"
+                  onClick={handlePublish}
+                  disabled={publishing || selectedConflicts.length > 0}
+                >
+                  <Send className="size-3.5" />
+                  {publishing ? "A publicar…" : "Publicar Horário"}
                 </Button>
               )}
-            />
-          ) : null}
+
+              <QuickFormModal
+                title="Nova Aula no Horário"
+                eyebrow="Horário Escolar"
+                description="Adicione um slot semanal de aula com validação imediata de choque e capacidade."
+                icon={<Plus className="size-5" />}
+                submitLabel="Adicionar ao Horário"
+                onSubmit={handleCreateSlot}
+                fields={[
+                  {
+                    name: "turma",
+                    label: "Turma",
+                    type: "select",
+                    options: classGroupOptions,
+                    defaultValue: selectedClassGroup
+                      ? optionLabel(selectedClassGroup.id, selectedClassGroup.name)
+                      : undefined,
+                    required: true,
+                    full: true,
+                  },
+                  {
+                    name: "disciplina",
+                    label: "Disciplina",
+                    type: "select",
+                    options: subjectOptions,
+                    required: true,
+                  },
+                  {
+                    name: "professor",
+                    label: "Professor Responsável",
+                    type: "select",
+                    options: teacherOptions,
+                  },
+                  {
+                    name: "dia",
+                    label: "Dia da Semana",
+                    type: "select",
+                    options: [...weekdays],
+                    required: true,
+                  },
+                  {
+                    name: "inicio",
+                    label: "Hora Início",
+                    type: "time",
+                    defaultValue: "07:00",
+                    required: true,
+                  },
+                  {
+                    name: "fim",
+                    label: "Hora Fim",
+                    type: "time",
+                    defaultValue: "07:45",
+                    required: true,
+                  },
+                  { name: "sala", label: "Sala de Aula", type: "select", options: roomOptions },
+                  ...(virtualRooms.length > 0
+                    ? [
+                        {
+                          name: "salaVirtual",
+                          label: "Sala Virtual (Opcional)",
+                          type: "select" as const,
+                          options: virtualRooms.map((r) => r.label),
+                        },
+                      ]
+                    : []),
+                  {
+                    name: "observacoes",
+                    label: "Observações",
+                    placeholder: "Ex: Aula em laboratório prático",
+                  },
+                ]}
+                trigger={(open) => (
+                  <Button size="sm" className="rounded-xl text-xs gap-1.5" onClick={open}>
+                    <Plus className="size-3.5" /> Nova Aula
+                  </Button>
+                )}
+              />
+            </>
+          )}
         </div>
       }
     >
-      {!canManage ? (
-        <p className="text-sm text-muted-foreground">
-          A consulta de horários reais está reservada a Secretaria/Admin.
-        </p>
-      ) : !scheduleAvailable ? (
-        <p className="text-sm text-muted-foreground">
-          Tente novamente ou contacte o suporte técnico se o problema persistir.
-        </p>
-      ) : classGroups.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Crie primeiro uma turma para definir o horário semanal.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <label className="flex items-center gap-2 text-sm font-medium" htmlFor="horario-turma">
-              Turma
-              <select
-                id="horario-turma"
-                className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
-                value={selectedClassGroupId}
-                onChange={(event) => setClassGroupId(event.target.value)}
-              >
-                {classGroups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm">
-              <Search className="size-4 text-muted-foreground" />
-              <input
-                aria-label="Pesquisar horário"
-                className="min-w-0 bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Pesquisar horário"
-              />
-            </label>
-          </div>
+      {/* Barra de Modos de Visualização & Seletores */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4 mb-4">
+        {/* Seletor de Modo */}
+        <div className="flex items-center gap-1.5 rounded-xl bg-muted/40 p-1 border border-border/60">
+          <Button
+            variant={viewMode === "turma" ? "default" : "ghost"}
+            size="sm"
+            className="rounded-lg text-xs h-7 px-3"
+            onClick={() => setViewMode("turma")}
+          >
+            <Users className="mr-1.5 size-3.5" /> Por Turma
+          </Button>
 
-          {selectedConflicts.length > 0 ? (
-            <div className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-foreground">
-              {selectedConflicts.map((conflict) => (
-                <p key={conflict.id} className="flex gap-2">
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {conflict.message}
-                </p>
+          <Button
+            variant={viewMode === "professor" ? "default" : "ghost"}
+            size="sm"
+            className="rounded-lg text-xs h-7 px-3"
+            onClick={() => setViewMode("professor")}
+          >
+            <User className="mr-1.5 size-3.5" /> Por Professor
+          </Button>
+
+          <Button
+            variant={viewMode === "sala" ? "default" : "ghost"}
+            size="sm"
+            className="rounded-lg text-xs h-7 px-3"
+            onClick={() => setViewMode("sala")}
+          >
+            <DoorOpen className="mr-1.5 size-3.5" /> Por Sala
+          </Button>
+        </div>
+
+        {/* Filtros Contextuais */}
+        <div className="flex flex-wrap items-center gap-3">
+          {viewMode === "turma" && (
+            <select
+              value={selectedClassGroupId}
+              onChange={(e) => setClassGroupId(e.target.value)}
+              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {classGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  Turma: {group.name} ({group.enrolled_count} alunos)
+                </option>
               ))}
-            </div>
-          ) : null}
-
-          {rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Sem slots para esta turma. Adicione o primeiro com o botão Slot.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hora</TableHead>
-                    {weekdays.map((day) => (
-                      <TableHead key={day}>{day}</TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.range}>
-                      <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
-                        {row.range}
-                      </TableCell>
-                      {row.cells.map((slot, index) => (
-                        <TableCell key={`${row.range}-${weekdays[index]}`}>
-                          {slot ? (
-                            <div className="min-w-32 space-y-1">
-                              <p className="font-medium">{slot.display_label}</p>
-                              {slot.label && slot.label !== slot.display_label ? (
-                                <p className="text-xs text-muted-foreground">{slot.label}</p>
-                              ) : null}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            </select>
           )}
 
-          {visibleSlots.length > 0 ? (
-            <ul className="divide-y divide-border rounded-lg border">
-              {visibleSlots.map((slot) => (
-                <li
-                  key={slot.id}
-                  className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5"
-                >
-                  <p className="text-sm">
-                    <span className="font-medium">{weekdayLabel(slot.weekday)}</span>
-                    <span className="mx-2 font-mono text-xs text-muted-foreground">
-                      {timeValue(slot.starts_at)}–{timeValue(slot.ends_at)}
-                    </span>
-                    {slot.display_label}
-                  </p>
-                  <div className="flex items-center gap-1">
-                    {canManage ? (
-                      <QuickFormModal
-                        title="Editar slot"
-                        description={`Actualize o horário de ${slot.display_label}.`}
-                        submitLabel="Guardar"
-                        successDescription="Slot actualizado."
-                        onSubmit={async (values) => {
-                          const weekday = weekdayByLabel.get(values["dia"] ?? "");
-                          if (!weekday) throw new Error("Seleccione o dia.");
-                          await onUpdateSlot({
-                            slotId: slot.id,
-                            weekday,
-                            startsAt: values["inicio"] ?? "",
-                            endsAt: values["fim"] ?? "",
-                            label: values["rotulo"]?.trim() || "Sala",
-                          });
-                        }}
-                        fields={[
-                          {
-                            name: "dia",
-                            label: "Dia",
-                            type: "select",
-                            options: [...weekdays],
-                            defaultValue: weekdayLabel(slot.weekday),
-                          },
-                          {
-                            name: "inicio",
-                            label: "Início",
-                            type: "time",
-                            defaultValue: timeValue(slot.starts_at),
-                          },
-                          {
-                            name: "fim",
-                            label: "Fim",
-                            type: "time",
-                            defaultValue: timeValue(slot.ends_at),
-                          },
-                          {
-                            name: "rotulo",
-                            label: "Sala / rótulo",
-                            defaultValue: slot.label ?? "Sala",
-                            full: true,
-                          },
-                        ]}
-                        trigger={(open) => (
-                          <Button size="sm" variant="ghost" className="gap-1.5" onClick={open}>
-                            <Pencil className="size-3.5" /> Editar
-                          </Button>
-                        )}
-                      />
-                    ) : null}
-                    {canManage ? (
-                      <QuickFormModal
-                        title="Copiar slot"
-                        description={`Copia ${slot.display_label} para outro dia da semana.`}
-                        submitLabel="Copiar"
-                        successDescription="Slot copiado para o dia escolhido."
-                        onSubmit={async (values) => {
-                          if (!slot.class_group_id || !slot.subject_id) {
-                            throw new Error("Este slot não tem turma ou disciplina associada.");
-                          }
-                          const weekday = weekdayByLabel.get(values["dia"] ?? "");
-                          if (!weekday) throw new Error("Seleccione o dia.");
-                          await onCreateSlot({
-                            classGroupId: slot.class_group_id,
-                            subjectId: slot.subject_id,
-                            weekday,
-                            startsAt: timeValue(slot.starts_at),
-                            endsAt: timeValue(slot.ends_at),
-                            label: slot.label ?? "Sala",
-                          });
-                        }}
-                        fields={[
-                          {
-                            name: "dia",
-                            label: "Dia",
-                            type: "select",
-                            options: weekdays.filter((day) => day !== weekdayLabel(slot.weekday)),
-                          },
-                        ]}
-                        trigger={(open) => (
-                          <Button size="sm" variant="ghost" className="gap-1.5" onClick={open}>
-                            <Copy className="size-3.5" /> Copiar
-                          </Button>
-                        )}
-                      />
-                    ) : null}
-                    {virtualRooms.length > 0 && /https?:\/\//i.test(slot.label ?? "") ? (
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href={(slot.label ?? "").match(/https?:\/\/\S+/)?.[0]}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Sala
-                        </a>
-                      </Button>
-                    ) : null}
-                    {canManage ? (
-                      <ConfirmActionModal
-                        title="Remover slot"
-                        description={`Retira ${slot.display_label} de ${weekdayLabel(slot.weekday)} (${timeValue(slot.starts_at)}–${timeValue(slot.ends_at)}) do horário desta turma.`}
-                        confirmLabel="Remover"
-                        onConfirm={() => onDeleteSlot(slot.id)}
-                        trigger={(open) => (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="gap-1.5 text-destructive"
-                            onClick={open}
-                          >
-                            <Trash2 className="size-3.5" /> Remover
-                          </Button>
-                        )}
-                      />
-                    ) : null}
-                  </div>
-                </li>
+          {viewMode === "professor" && (
+            <select
+              value={selectedTeacherId}
+              onChange={(e) => setTeacherId(e.target.value)}
+              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  Docente: {t.name}
+                </option>
               ))}
-            </ul>
-          ) : null}
+            </select>
+          )}
+
+          {viewMode === "sala" && (
+            <select
+              value={selectedRoomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>
+                  Sala: {r.name} ({r.capacity || "?"} lugares)
+                </option>
+              ))}
+            </select>
+          )}
+
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Filtrar grade..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="rounded-xl border border-border bg-background py-1.5 pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Alertas de Conflito em Tempo Real */}
+      {selectedConflicts.length > 0 && (
+        <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-950 dark:text-rose-200">
+          <div className="flex items-center gap-2 font-bold text-rose-700 dark:text-rose-400">
+            <AlertTriangle className="size-4 shrink-0" />
+            <span>
+              Motor de Conflitos: Foram detectadas {selectedConflicts.length} colisões de horário
+            </span>
+          </div>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-muted-foreground dark:text-rose-200/90 pl-1">
+            {selectedConflicts.map((c) => (
+              <li key={c.id}>{c.message}</li>
+            ))}
+          </ul>
         </div>
       )}
+
+      {/* Grade Semanal de Horário */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40">
+              <TableHead className="w-[120px] text-xs font-bold text-foreground">Horário</TableHead>
+              {weekdays.map((day) => (
+                <TableHead key={day} className="text-center text-xs font-bold text-foreground">
+                  {day}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center text-xs text-muted-foreground">
+                  Nenhuma aula agendada para esta selecção.
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row) => (
+                <TableRow key={row.range} className="hover:bg-muted/10 transition-colors">
+                  <TableCell className="font-mono text-xs font-semibold text-muted-foreground whitespace-nowrap bg-muted/20">
+                    {row.range}
+                  </TableCell>
+                  {row.cells.map((slot, cellIdx) => (
+                    <TableCell
+                      key={cellIdx}
+                      className="p-1.5 align-top min-w-[140px] max-w-[180px]"
+                    >
+                      {slot ? (
+                        <div
+                          className={`group relative rounded-xl border p-2.5 shadow-sm transition-all hover:shadow-md ${
+                            selectedConflicts.some((c) => c.slotIds.includes(slot.id))
+                              ? "border-rose-500/60 bg-rose-500/10 dark:bg-rose-950/30"
+                              : "border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:border-primary/40"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-1">
+                            <span className="font-bold text-xs text-foreground tracking-tight line-clamp-1">
+                              {slot.subject_name || slot.display_label}
+                            </span>
+                            {canManage && (
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="size-6 p-0 text-muted-foreground hover:text-destructive"
+                                  onClick={() => onDeleteSlot(slot.id)}
+                                >
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                            {viewMode !== "turma" && (
+                              <p className="font-medium text-foreground line-clamp-1">
+                                Turma: {slot.class_group_name}
+                              </p>
+                            )}
+                            {viewMode !== "professor" && (
+                              <p className="line-clamp-1 text-[10px]">
+                                Prof:{" "}
+                                <span className="font-medium text-foreground">
+                                  {slot.teacher_name || "A definir"}
+                                </span>
+                              </p>
+                            )}
+                            {viewMode !== "sala" && (
+                              <p className="line-clamp-1 text-[10px]">
+                                Sala:{" "}
+                                <span className="font-medium text-foreground">
+                                  {slot.room_name || slot.label || "A definir"}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-full min-h-[50px] rounded-lg border border-dashed border-border/40 hover:border-primary/40 transition-colors" />
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </Panel>
   );
 }

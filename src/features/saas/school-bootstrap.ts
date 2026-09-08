@@ -30,8 +30,17 @@ function isMissingTable(error: { code?: string; message?: string } | null) {
 // referência — ficam sem permissões finas nesta fatia.
 const SECRETARY_PERMISSION_CODES = [
   "academic.classes.read",
+  "academic.classes.manage",
   "academic.structure.read",
+  "academic.subjects.read",
+  "academic.subjects.manage",
+  "academic.timetable.read",
+  "academic.timetable.manage",
+  "attendance.records.read",
+  "assessment.grades.read",
+  "assessment.reports.read",
   "communication.announcements.read",
+  "communication.announcements.manage",
   "communication.inbox.read",
   "communication.preferences.manage",
   "documents.archive.manage",
@@ -49,9 +58,100 @@ const SECRETARY_PERMISSION_CODES = [
   "documents.templates.manage",
   "documents.templates.read",
   "people.records.read",
+  "people.records.create",
+  "people.records.update",
   "portal.access.manage",
   "portal.access.read",
   "students.records.read",
+  "students.records.create",
+  "students.records.update",
+  "students.enrollments.read",
+  "students.enrollments.create",
+  "students.enrollments.update",
+  "teachers.records.read",
+  "teachers.records.create",
+  "teachers.records.update",
+] as const;
+
+const TREASURY_PERMISSION_CODES = [
+  "finance.contracts.create",
+  "finance.contracts.read",
+  "finance.invoices.cancel",
+  "finance.invoices.read",
+  "finance.payments.create",
+  "finance.payments.reverse",
+  "finance.settings.manage",
+  "finance.settings.read",
+  "students.records.read",
+  "students.enrollments.read",
+  "people.records.read",
+  "documents.issued.read",
+  "documents.issued.issue",
+  "documents.templates.read",
+  "documents.requests.read",
+  "documents.requests.manage",
+  "files.objects.read",
+  "files.objects.create",
+  "communication.inbox.read",
+  "communication.announcements.read",
+] as const;
+
+const TEACHER_PERMISSION_CODES = [
+  "academic.classes.read",
+  "academic.structure.read",
+  "academic.subjects.read",
+  "academic.timetable.read",
+  "attendance.records.read",
+  "attendance.records.take",
+  "assessment.grades.read",
+  "assessment.grades.manage",
+  "assessment.grades.submit",
+  "assessment.complaints.read",
+  "assessment.reports.read",
+  "assessment.rules.read",
+  "students.records.read",
+  "students.enrollments.read",
+  "people.records.read",
+  "communication.inbox.read",
+  "communication.announcements.read",
+  "files.objects.read",
+  "files.objects.create",
+] as const;
+
+const GUARDIAN_PERMISSION_CODES = [
+  "academic.structure.read",
+  "academic.classes.read",
+  "academic.timetable.read",
+  "assessment.grades.read",
+  "assessment.reports.read",
+  "attendance.records.read",
+  "finance.contracts.read",
+  "finance.invoices.read",
+  "communication.announcements.read",
+  "communication.inbox.read",
+  "documents.issued.read",
+  "documents.requests.read",
+  "documents.requests.manage",
+  "students.records.read",
+] as const;
+
+const STUDENT_PERMISSION_CODES = [
+  "academic.structure.read",
+  "academic.classes.read",
+  "academic.timetable.read",
+  "assessment.grades.read",
+  "assessment.reports.read",
+  "attendance.records.read",
+  "communication.announcements.read",
+  "communication.inbox.read",
+  "documents.issued.read",
+  "documents.requests.read",
+  "documents.requests.manage",
+] as const;
+
+const USER_PERMISSION_CODES = [
+  "communication.announcements.read",
+  "communication.inbox.read",
 ] as const;
 
 async function seedDefaultRolePermissions(db: SupabaseClient, schoolId: string) {
@@ -74,22 +174,50 @@ async function seedDefaultRolePermissions(db: SupabaseClient, schoolId: string) 
       return;
     }
 
-    const allPermissionIds = (permissions ?? []).map((p: { id: string }) => p.id);
-    const secretaryPermissionIds = (permissions ?? [])
-      .filter((p: { code: string }) =>
-        (SECRETARY_PERMISSION_CODES as readonly string[]).includes(p.code),
-      )
-      .map((p: { id: string }) => p.id);
+    const permMap = new Map<string, string>();
+    for (const p of permissions ?? []) {
+      const pTyped = p as { id: string; code: string };
+      permMap.set(pTyped.code, pTyped.id);
+    }
+    const allPermissionIds = Array.from(permMap.values());
+    const filterIds = (codes: readonly string[]) =>
+      codes.map((c) => permMap.get(c)).filter((id): id is string => Boolean(id));
+
+    const secretaryPermissionIds = filterIds(SECRETARY_PERMISSION_CODES);
+    const treasuryPermissionIds = filterIds(TREASURY_PERMISSION_CODES);
+    const teacherPermissionIds = filterIds(TEACHER_PERMISSION_CODES);
+    const guardianPermissionIds = filterIds(GUARDIAN_PERMISSION_CODES);
+    const studentPermissionIds = filterIds(STUDENT_PERMISSION_CODES);
+    const userPermissionIds = filterIds(USER_PERMISSION_CODES);
 
     const rows: { school_id: string; role_id: string; permission_id: string }[] = [];
     for (const role of roles ?? []) {
       const roleTyped = role as { id: string; code: string };
-      const permissionIds =
-        roleTyped.code === "owner" || roleTyped.code === "admin"
-          ? allPermissionIds
-          : roleTyped.code === "secretary"
-            ? secretaryPermissionIds
-            : [];
+      let permissionIds: string[] = [];
+      switch (roleTyped.code) {
+        case "owner":
+        case "admin":
+          permissionIds = allPermissionIds;
+          break;
+        case "secretary":
+          permissionIds = secretaryPermissionIds;
+          break;
+        case "treasury":
+          permissionIds = treasuryPermissionIds;
+          break;
+        case "teacher":
+          permissionIds = teacherPermissionIds;
+          break;
+        case "guardian":
+          permissionIds = guardianPermissionIds;
+          break;
+        case "student":
+          permissionIds = studentPermissionIds;
+          break;
+        case "user":
+          permissionIds = userPermissionIds;
+          break;
+      }
       for (const permissionId of permissionIds) {
         rows.push({ school_id: schoolId, role_id: roleTyped.id, permission_id: permissionId });
       }

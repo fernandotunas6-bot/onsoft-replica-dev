@@ -1,0 +1,1055 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import {
+  loadSgaAdminClient,
+  requireSgaWriter,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
+import {
+  createSubjectTypeInputSchema,
+  updateSubjectTypeInputSchema,
+  createCurriculumAreaInputSchema,
+  updateCurriculumAreaInputSchema,
+  createRoomInputSchema,
+  updateRoomInputSchema,
+  createSchoolShiftInputSchema,
+  saveCurriculumMatrixInputSchema,
+  saveTeacherAvailabilityInputSchema,
+  publishAcademicScheduleInputSchema,
+  createScheduleSlotInputSchema,
+  updateScheduleSlotInputSchema,
+} from "./schemas";
+import { z } from "zod";
+
+function timeSlice(value: unknown): string {
+  return String(value ?? "").slice(0, 5);
+}
+
+function timesOverlap(startA: string, endA: string, startB: string, endB: string): boolean {
+  return timeSlice(startA) < timeSlice(endB) && timeSlice(endA) > timeSlice(startB);
+}
+
+// ---------------------------------------------------------------------------
+// 1. TIPOS DE DISCIPLINAS
+// ---------------------------------------------------------------------------
+export const listSubjectTypes = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return [];
+    const db = await loadSgaAdminClient();
+
+    const { data, error } = await db
+      .from("subject_types")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
+      .order("name", { ascending: true });
+
+    if (error) {
+      // Se tabela ainda não aplicada, retornar fallback seguro
+      return [];
+    }
+    return data ?? [];
+  });
+
+export const createSubjectType = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => createSubjectTypeInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: created, error } = await db
+      .from("subject_types")
+      .insert({
+        school_id: membership.schoolId,
+        code: data.code,
+        name: data.name,
+        description: data.description,
+        counts_for_gpa: data.countsForGpa,
+        appears_in_pauta: data.appearsInPauta,
+        has_exam: data.hasExam,
+        can_fail: data.canFail,
+        is_mandatory: data.isMandatory,
+        default_weight: data.defaultWeight,
+        requires_special_room: data.requiresSpecialRoom,
+        allows_simultaneous_classes: data.allowsSimultaneousClasses,
+        requires_specialized_teacher: data.requiresSpecializedTeacher,
+        color: data.color,
+        created_by: context.userId,
+        updated_by: context.userId,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível criar o tipo de disciplina.");
+    return created;
+  });
+
+export const updateSubjectType = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => updateSubjectTypeInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const updatePayload: Record<string, unknown> = {
+      updated_by: context.userId,
+    };
+    if (data.code !== undefined) updatePayload.code = data.code;
+    if (data.name !== undefined) updatePayload.name = data.name;
+    if (data.description !== undefined) updatePayload.description = data.description;
+    if (data.countsForGpa !== undefined) updatePayload.counts_for_gpa = data.countsForGpa;
+    if (data.appearsInPauta !== undefined) updatePayload.appears_in_pauta = data.appearsInPauta;
+    if (data.hasExam !== undefined) updatePayload.has_exam = data.hasExam;
+    if (data.canFail !== undefined) updatePayload.can_fail = data.canFail;
+    if (data.isMandatory !== undefined) updatePayload.is_mandatory = data.isMandatory;
+    if (data.defaultWeight !== undefined) updatePayload.default_weight = data.defaultWeight;
+    if (data.requiresSpecialRoom !== undefined)
+      updatePayload.requires_special_room = data.requiresSpecialRoom;
+    if (data.color !== undefined) updatePayload.color = data.color;
+    if (data.status !== undefined) updatePayload.status = data.status;
+
+    const { data: updated, error } = await db
+      .from("subject_types")
+      .update(updatePayload)
+      .eq("id", data.id)
+      .eq("school_id", membership.schoolId)
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível atualizar o tipo de disciplina.");
+    return updated;
+  });
+
+// ---------------------------------------------------------------------------
+// 2. ÁREAS CURRICULARES
+// ---------------------------------------------------------------------------
+export const listCurriculumAreas = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return [];
+    const db = await loadSgaAdminClient();
+
+    const { data, error } = await db
+      .from("curriculum_areas")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
+      .order("display_order", { ascending: true });
+
+    if (error) return [];
+    return data ?? [];
+  });
+
+export const createCurriculumArea = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => createCurriculumAreaInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: created, error } = await db
+      .from("curriculum_areas")
+      .insert({
+        school_id: membership.schoolId,
+        code: data.code,
+        name: data.name,
+        description: data.description,
+        color: data.color,
+        display_order: data.displayOrder,
+        created_by: context.userId,
+        updated_by: context.userId,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível criar a área curricular.");
+    return created;
+  });
+
+// ---------------------------------------------------------------------------
+// 3. SALAS DE AULA (rooms)
+// ---------------------------------------------------------------------------
+export const listRooms = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return [];
+    const db = await loadSgaAdminClient();
+
+    const { data, error } = await db
+      .from("rooms")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
+      .order("name", { ascending: true });
+
+    if (error) throw publicDatabaseError(error, "Não foi possível listar as salas.");
+    return data ?? [];
+  });
+
+export const createRoom = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => createRoomInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: created, error } = await db
+      .from("rooms")
+      .insert({
+        school_id: membership.schoolId,
+        code: data.code,
+        name: data.name,
+        capacity: data.capacity,
+        room_type: data.roomType,
+        building: data.building,
+        block: data.block,
+        floor: data.floor,
+        resources: data.resources,
+        accessibility: data.accessibility,
+        notes: data.notes,
+        created_by: context.userId,
+        updated_by: context.userId,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível criar a sala.");
+    return created;
+  });
+
+export const updateRoom = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => updateRoomInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const updatePayload: Record<string, unknown> = {
+      updated_by: context.userId,
+    };
+    if (data.code !== undefined) updatePayload.code = data.code;
+    if (data.name !== undefined) updatePayload.name = data.name;
+    if (data.capacity !== undefined) updatePayload.capacity = data.capacity;
+    if (data.roomType !== undefined) updatePayload.room_type = data.roomType;
+    if (data.building !== undefined) updatePayload.building = data.building;
+    if (data.block !== undefined) updatePayload.block = data.block;
+    if (data.floor !== undefined) updatePayload.floor = data.floor;
+    if (data.resources !== undefined) updatePayload.resources = data.resources;
+    if (data.accessibility !== undefined) updatePayload.accessibility = data.accessibility;
+    if (data.notes !== undefined) updatePayload.notes = data.notes;
+    if (data.status !== undefined) updatePayload.status = data.status;
+
+    const { data: updated, error } = await db
+      .from("rooms")
+      .update(updatePayload)
+      .eq("id", data.id)
+      .eq("school_id", membership.schoolId)
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível atualizar a sala.");
+    return updated;
+  });
+
+// ---------------------------------------------------------------------------
+// 4. TURNOS ESCOLARES (school_shifts)
+// ---------------------------------------------------------------------------
+export const listSchoolShifts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return [];
+    const db = await loadSgaAdminClient();
+
+    const { data, error } = await db
+      .from("school_shifts")
+      .select("*, slots:school_shift_slots(*)")
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
+      .order("starts_at", { ascending: true });
+
+    if (error) return [];
+    return data ?? [];
+  });
+
+export const saveSchoolShift = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => createSchoolShiftInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const startsAt = data.startsAt.length === 5 ? `${data.startsAt}:00` : data.startsAt;
+    const endsAt = data.endsAt.length === 5 ? `${data.endsAt}:00` : data.endsAt;
+
+    const { data: shift, error } = await db
+      .from("school_shifts")
+      .upsert(
+        {
+          school_id: membership.schoolId,
+          code: data.code,
+          name: data.name,
+          starts_at: startsAt,
+          ends_at: endsAt,
+          default_lesson_duration: data.defaultLessonDuration,
+          default_break_duration: data.defaultBreakDuration,
+          active_days: data.activeDays,
+          color: data.color,
+          updated_by: context.userId,
+        },
+        { onConflict: "school_id,code" },
+      )
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível salvar o turno.");
+    return shift;
+  });
+
+// ---------------------------------------------------------------------------
+// 5. MATRIZ CURRICULAR (curricula & curriculum_subjects)
+// ---------------------------------------------------------------------------
+export const listCurricula = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        academicYearId: z.string().uuid().optional(),
+        courseId: z.string().uuid().optional(),
+        gradeLevelId: z.string().uuid().optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return [];
+    const db = await loadSgaAdminClient();
+
+    let query = db
+      .from("curricula")
+      .select(
+        `
+        *,
+        curriculum_subjects (
+          *,
+          subject:subjects(id, code, name),
+          subject_type:subject_types(id, code, name, color)
+        )
+      `,
+      )
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null);
+
+    if (data.academicYearId) query = query.eq("academic_year_id", data.academicYearId);
+    if (data.courseId) query = query.eq("course_id", data.courseId);
+    if (data.gradeLevelId) query = query.eq("grade_level_id", data.gradeLevelId);
+
+    const { data: curricula, error } = await query.order("created_at", { ascending: false });
+    if (error) return [];
+    return curricula ?? [];
+  });
+
+export const saveCurriculumMatrix = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => saveCurriculumMatrixInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    // 1. Inserir ou recuperar matriz principal
+    const { data: curriculum, error: curError } = await db
+      .from("curricula")
+      .upsert(
+        {
+          school_id: membership.schoolId,
+          academic_year_id: data.academicYearId,
+          course_id: data.courseId,
+          grade_level_id: data.gradeLevelId,
+          name: data.name,
+          description: data.description,
+          updated_by: context.userId,
+        },
+        { onConflict: "school_id,academic_year_id,course_id,grade_level_id" },
+      )
+      .select("id")
+      .single();
+
+    if (curError || !curriculum) {
+      throw publicDatabaseError(
+        curError,
+        "Não foi possível guardar o cabeçalho da matriz curricular.",
+      );
+    }
+
+    // 2. Substituir disciplinas da matriz
+    await db.from("curriculum_subjects").delete().eq("curriculum_id", curriculum.id);
+
+    const rowsToInsert = data.subjects.map((sub) => ({
+      school_id: membership.schoolId,
+      curriculum_id: curriculum.id,
+      subject_id: sub.subjectId,
+      subject_type_id: sub.subjectTypeId ?? null,
+      weekly_periods: sub.weeklyPeriods,
+      period_duration_minutes: sub.periodDurationMinutes,
+      is_mandatory: sub.isMandatory,
+      display_order: sub.displayOrder,
+      created_by: context.userId,
+      updated_by: context.userId,
+    }));
+
+    const { error: subError } = await db.from("curriculum_subjects").insert(rowsToInsert);
+    if (subError) {
+      throw publicDatabaseError(
+        subError,
+        "Não foi possível salvar as disciplinas da matriz curricular.",
+      );
+    }
+
+    return { id: curriculum.id, success: true };
+  });
+
+// ---------------------------------------------------------------------------
+// 6. DISPONIBILIDADE DOCENTE (teacher_availability)
+// ---------------------------------------------------------------------------
+export const listTeacherAvailability = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        teacherId: z.string().uuid(),
+        academicYearId: z.string().uuid().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return [];
+    const db = await loadSgaAdminClient();
+
+    let query = db
+      .from("teacher_availability")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .eq("teacher_id", data.teacherId)
+      .is("deleted_at", null);
+
+    if (data.academicYearId) {
+      query = query.eq("academic_year_id", data.academicYearId);
+    }
+
+    const { data: availability, error } = await query.order("weekday", { ascending: true });
+    if (error) return [];
+    return availability ?? [];
+  });
+
+export const saveTeacherAvailability = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => saveTeacherAvailabilityInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    // Limpar anteriores e inserir novos
+    let delQuery = db
+      .from("teacher_availability")
+      .delete()
+      .eq("school_id", membership.schoolId)
+      .eq("teacher_id", data.teacherId);
+    if (data.academicYearId) {
+      delQuery = delQuery.eq("academic_year_id", data.academicYearId);
+    }
+    await delQuery;
+
+    const rows = data.slots.map((s) => ({
+      school_id: membership.schoolId,
+      teacher_id: data.teacherId,
+      academic_year_id: data.academicYearId ?? null,
+      weekday: s.weekday,
+      starts_at: s.startsAt.length === 5 ? `${s.startsAt}:00` : s.startsAt,
+      ends_at: s.endsAt.length === 5 ? `${s.endsAt}:00` : s.endsAt,
+      is_available: s.isAvailable,
+      max_weekly_hours: data.maxWeeklyHours,
+      notes: s.notes,
+      created_by: context.userId,
+      updated_by: context.userId,
+    }));
+
+    if (rows.length > 0) {
+      const { error } = await db.from("teacher_availability").insert(rows);
+      if (error)
+        throw publicDatabaseError(error, "Não foi possível guardar a disponibilidade docente.");
+    }
+
+    return { success: true };
+  });
+
+// ---------------------------------------------------------------------------
+// 7. MOTOR AVANÇADO DE CONFLITOS DE HORÁRIO
+// ---------------------------------------------------------------------------
+export type ScheduleConflictDetail = {
+  kind: "teacher" | "room" | "class_group" | "capacity" | "availability" | "shift";
+  message: string;
+  severity: "blocker" | "warning";
+  slotId?: string;
+};
+
+export async function assertScheduleSlotConflictsDetailed({
+  db,
+  schoolId,
+  classGroupId,
+  teacherId,
+  roomId,
+  weekday,
+  startsAt,
+  endsAt,
+  roomLabel,
+  excludeSlotId,
+}: {
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>;
+  schoolId: string;
+  classGroupId: string;
+  teacherId: string | null;
+  roomId?: string | null;
+  weekday: number;
+  startsAt: string;
+  endsAt: string;
+  roomLabel?: string | null;
+  excludeSlotId?: string;
+}): Promise<ScheduleConflictDetail[]> {
+  const conflicts: ScheduleConflictDetail[] = [];
+
+  // 1. Validar capacidade da sala (se houver sala e turma)
+  if (roomId) {
+    const [{ data: roomData }, { data: groupData }] = await Promise.all([
+      db.from("rooms").select("id, name, capacity").eq("id", roomId).maybeSingle(),
+      db.from("class_groups").select("id, name, capacity").eq("id", classGroupId).maybeSingle(),
+    ]);
+
+    const { count: enrolledCount } = await db
+      .from("enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("class_group_id", classGroupId)
+      .eq("school_id", schoolId)
+      .is("deleted_at", null);
+
+    const actualStudents = enrolledCount ?? groupData?.capacity ?? 0;
+    if (roomData?.capacity && actualStudents > roomData.capacity) {
+      conflicts.push({
+        kind: "capacity",
+        message: `Conflito de capacidade: A turma ${groupData?.name ?? ""} tem ${actualStudents} alunos, mas a sala ${roomData.name} suporta apenas ${roomData.capacity}.`,
+        severity: "warning",
+      });
+    }
+  }
+
+  // 2. Validar disponibilidade docente
+  if (teacherId) {
+    const { data: availabilities } = await db
+      .from("teacher_availability")
+      .select("weekday, starts_at, ends_at, is_available")
+      .eq("school_id", schoolId)
+      .eq("teacher_id", teacherId)
+      .eq("weekday", weekday);
+
+    if (availabilities && availabilities.length > 0) {
+      const match = availabilities.find(
+        (a) =>
+          a.is_available &&
+          timeSlice(a.starts_at) <= timeSlice(startsAt) &&
+          timeSlice(a.ends_at) >= timeSlice(endsAt),
+      );
+      if (!match) {
+        conflicts.push({
+          kind: "availability",
+          message:
+            "O professor selecionado não tem disponibilidade cadastrada neste dia e horário.",
+          severity: "warning",
+        });
+      }
+    }
+  }
+
+  // 3. Buscar slots concorrentes
+  let query = db
+    .from("timetable_slots")
+    .select("id, class_subject_id, starts_at, ends_at, room, room_id")
+    .eq("school_id", schoolId)
+    .eq("weekday", weekday)
+    .eq("status", "active");
+
+  if (excludeSlotId) query = query.neq("id", excludeSlotId);
+
+  const { data: slots } = await query;
+  const overlappingSlots = (slots ?? []).filter((s) =>
+    timesOverlap(startsAt, endsAt, s.starts_at, s.ends_at),
+  );
+
+  if (overlappingSlots.length > 0) {
+    const classSubjectIds = [...new Set(overlappingSlots.map((s) => String(s.class_subject_id)))];
+    const { data: classSubjects } = await db
+      .from("class_subjects")
+      .select("id, class_group_id, teacher_id")
+      .eq("school_id", schoolId)
+      .in("id", classSubjectIds);
+
+    const subjectMap = new Map((classSubjects ?? []).map((cs) => [String(cs.id), cs]));
+
+    for (const slot of overlappingSlots) {
+      const cs = subjectMap.get(String(slot.class_subject_id));
+
+      // Conflito de Turma
+      if (cs && String(cs.class_group_id) === classGroupId) {
+        conflicts.push({
+          kind: "class_group",
+          message: "Esta turma já possui uma aula atribuída neste mesmo horário.",
+          severity: "blocker",
+          slotId: slot.id,
+        });
+      }
+
+      // Conflito de Professor
+      if (teacherId && cs && String(cs.teacher_id) === teacherId) {
+        conflicts.push({
+          kind: "teacher",
+          message: "O professor atribuído já está a lecionar noutra turma neste horário.",
+          severity: "blocker",
+          slotId: slot.id,
+        });
+      }
+
+      // Conflito de Sala
+      const sameRoomId = roomId && slot.room_id && slot.room_id === roomId;
+      const sameRoomLabel =
+        roomLabel?.trim() &&
+        slot.room?.trim() &&
+        roomLabel.trim().toLowerCase() === slot.room.trim().toLowerCase();
+
+      if (sameRoomId || sameRoomLabel) {
+        conflicts.push({
+          kind: "room",
+          message: "A sala selecionada já está ocupada por outra turma neste horário.",
+          severity: "blocker",
+          slotId: slot.id,
+        });
+      }
+    }
+  }
+
+  return conflicts;
+}
+
+// ---------------------------------------------------------------------------
+// 8. CRIAÇÃO & EDIÇÃO AVANÇADA DE SLOTS
+// ---------------------------------------------------------------------------
+export const createAdvancedScheduleSlot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => createScheduleSlotInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    let teacherId = data.teacherId ?? null;
+    let classSubjectId: string | null = null;
+
+    // Verificar se já existe vínculo turma-disciplina
+    const { data: existingCs } = await db
+      .from("class_subjects")
+      .select("id, teacher_id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", data.classGroupId)
+      .eq("subject_id", data.subjectId)
+      .maybeSingle();
+
+    if (existingCs) {
+      classSubjectId = existingCs.id;
+      if (!teacherId) teacherId = existingCs.teacher_id;
+      if (data.teacherId && data.teacherId !== existingCs.teacher_id) {
+        await db
+          .from("class_subjects")
+          .update({ teacher_id: data.teacherId, updated_by: context.userId })
+          .eq("id", existingCs.id);
+        teacherId = data.teacherId;
+      }
+    } else {
+      const { data: newCs, error: csErr } = await db
+        .from("class_subjects")
+        .insert({
+          school_id: membership.schoolId,
+          class_group_id: data.classGroupId,
+          subject_id: data.subjectId,
+          teacher_id: teacherId,
+          weekly_periods: 1,
+          status: "active",
+          created_by: context.userId,
+          updated_by: context.userId,
+        })
+        .select("id")
+        .single();
+      if (csErr || !newCs)
+        throw publicDatabaseError(csErr, "Não foi possível vincular disciplina à turma.");
+      classSubjectId = newCs.id;
+    }
+
+    const startsAt = data.startsAt.length === 5 ? `${data.startsAt}:00` : data.startsAt;
+    const endsAt = data.endsAt.length === 5 ? `${data.endsAt}:00` : data.endsAt;
+    const room = data.label?.trim() || "Sala";
+
+    // Validação rígida de conflitos
+    const conflicts = await assertScheduleSlotConflictsDetailed({
+      db,
+      schoolId: membership.schoolId,
+      classGroupId: data.classGroupId,
+      teacherId,
+      roomId: data.roomId,
+      weekday: data.weekday,
+      startsAt,
+      endsAt,
+      roomLabel: room,
+    });
+
+    const blockers = conflicts.filter((c) => c.severity === "blocker");
+    if (blockers.length > 0) {
+      throw new Error(blockers.map((b) => b.message).join(" "));
+    }
+
+    const { data: slot, error } = await db
+      .from("timetable_slots")
+      .insert({
+        school_id: membership.schoolId,
+        class_subject_id: classSubjectId,
+        weekday: data.weekday,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        room,
+        room_id: data.roomId ?? null,
+        shift_id: data.shiftId ?? null,
+        schedule_id: data.scheduleId ?? null,
+        day_period_number: data.dayPeriodNumber ?? null,
+        notes: data.notes ?? null,
+        status: "active",
+        created_by: context.userId,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw publicDatabaseError(error, "Não foi possível criar o slot de horário.");
+    return { slot, warnings: conflicts.filter((c) => c.severity === "warning") };
+  });
+
+// ---------------------------------------------------------------------------
+// 9. PUBLICAÇÃO E VERSIONAMENTO DO HORÁRIO
+// ---------------------------------------------------------------------------
+export const publishAcademicSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => publishAcademicScheduleInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    // 1. Obter ou criar versão de horário
+    const { count } = await db
+      .from("academic_schedules")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", data.classGroupId);
+
+    const nextVersion = (count ?? 0) + 1;
+    const { data: schedule, error: schedError } = await db
+      .from("academic_schedules")
+      .insert({
+        school_id: membership.schoolId,
+        academic_year_id: data.academicYearId,
+        class_group_id: data.classGroupId,
+        version_number: nextVersion,
+        name: data.name ?? `Horário V${nextVersion}`,
+        status: "published",
+        valid_from: data.validFrom ?? new Date().toISOString().slice(0, 10),
+        valid_to: data.validTo ?? null,
+        published_at: new Date().toISOString(),
+        published_by: context.userId,
+        created_by: context.userId,
+        updated_by: context.userId,
+      })
+      .select("*")
+      .single();
+
+    if (schedError) {
+      throw publicDatabaseError(schedError, "Não foi possível publicar o horário.");
+    }
+    if (!schedule) {
+      throw new Error("Não foi possível publicar o horário.");
+    }
+
+    // 2. Associar slots ativos da turma a esta versão de horário
+    const { data: classSubjects } = await db
+      .from("class_subjects")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", data.classGroupId);
+
+    if (classSubjects && classSubjects.length > 0) {
+      const csIds = classSubjects.map((c) => c.id);
+      await db
+        .from("timetable_slots")
+        .update({ schedule_id: schedule.id, updated_by: context.userId })
+        .eq("school_id", membership.schoolId)
+        .in("class_subject_id", csIds)
+        .eq("status", "active");
+    }
+
+    // 3. Sincronizar com Calendário / Presenças se solicitado
+    let generatedSessions = 0;
+    if (data.syncToCalendar) {
+      generatedSessions = await syncScheduleSlotsToSessions({
+        db,
+        schoolId: membership.schoolId,
+        classGroupId: data.classGroupId,
+        academicYearId: data.academicYearId,
+        userId: context.userId,
+      });
+    }
+
+    return { schedule, generatedSessions, success: true };
+  });
+
+// ---------------------------------------------------------------------------
+// 10. SINCRONIZAÇÃO HORÁRIO -> SESSÕES / CALENDÁRIO
+// ---------------------------------------------------------------------------
+async function syncScheduleSlotsToSessions({
+  db,
+  schoolId,
+  classGroupId,
+  academicYearId,
+  userId,
+}: {
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>;
+  schoolId: string;
+  classGroupId: string;
+  academicYearId: string;
+  userId: string;
+}): Promise<number> {
+  // Obter período lectivo ativo (term)
+  const { data: currentTerm } = await db
+    .from("terms")
+    .select("starts_on, ends_on")
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
+    .lte("starts_on", new Date().toISOString().slice(0, 10))
+    .gte("ends_on", new Date().toISOString().slice(0, 10))
+    .maybeSingle();
+
+  const startDate = currentTerm?.starts_on ?? new Date().toISOString().slice(0, 10);
+  const endDate =
+    currentTerm?.ends_on ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+
+  // Buscar slots da turma
+  const { data: classSubjects } = await db
+    .from("class_subjects")
+    .select("id, subject_id, teacher_id")
+    .eq("school_id", schoolId)
+    .eq("class_group_id", classGroupId)
+    .eq("status", "active");
+
+  if (!classSubjects || classSubjects.length === 0) return 0;
+
+  const csMap = new Map(classSubjects.map((c) => [c.id, c]));
+  const csIds = classSubjects.map((c) => c.id);
+
+  const { data: slots } = await db
+    .from("timetable_slots")
+    .select("id, class_subject_id, weekday, starts_at, ends_at, room")
+    .eq("school_id", schoolId)
+    .in("class_subject_id", csIds)
+    .eq("status", "active");
+
+  if (!slots || slots.length === 0) return 0;
+
+  // Materializar próximas 4 semanas (exemplo de janela lectiva controlada para não sobrecarregar)
+  let count = 0;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const maxEnd = new Date(Math.min(end.getTime(), start.getTime() + 28 * 86400000));
+
+  for (let d = new Date(start); d <= maxEnd; d.setDate(d.getDate() + 1)) {
+    const jsDay = d.getDay(); // 0=Dom, 1=Seg, ... 5=Sex
+    if (jsDay === 0 || jsDay === 6) continue;
+
+    const dateStr = d.toISOString().slice(0, 10);
+    const daySlots = slots.filter((s) => s.weekday === jsDay);
+
+    for (const slot of daySlots) {
+      const cs = csMap.get(slot.class_subject_id);
+      if (!cs) continue;
+
+      // Inserir sessão de presença se não existir
+      const { data: existing } = await db
+        .from("siga_attendance_sessions")
+        .select("id")
+        .eq("school_id", schoolId)
+        .eq("timetable_slot_id", slot.id)
+        .eq("lesson_date", dateStr)
+        .maybeSingle();
+
+      if (!existing) {
+        await db.from("siga_attendance_sessions").insert({
+          school_id: schoolId,
+          academic_year_id: academicYearId,
+          class_group_id: classGroupId,
+          subject_id: cs.subject_id,
+          teacher_id: cs.teacher_id,
+          timetable_slot_id: slot.id,
+          lesson_date: dateStr,
+          starts_at: timeSlice(slot.starts_at),
+          ends_at: timeSlice(slot.ends_at),
+          status: "pending",
+          created_by: userId,
+        });
+        count += 1;
+      }
+    }
+  }
+
+  return count;
+}
+
+// ---------------------------------------------------------------------------
+// 11. PAINEL "AGORA NA ESCOLA" & RECOMENDAÇÕES INTELIGENTES
+// ---------------------------------------------------------------------------
+export const getSchoolNowOverview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) {
+      return {
+        nowTime: "00:00",
+        classesActiveNow: 0,
+        teachersActiveNow: 0,
+        roomsOccupiedNow: 0,
+        roomsFreeNow: 0,
+        totalRooms: 0,
+        recommendations: [],
+      };
+    }
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+
+    const now = new Date();
+    const nowTime = now.toTimeString().slice(0, 5);
+    const weekday = now.getDay() === 0 ? 7 : now.getDay();
+
+    // 1. Total de salas cadastradas
+    const { data: rooms } = await db
+      .from("rooms")
+      .select("id, name, capacity, room_type")
+      .eq("school_id", schoolId)
+      .is("deleted_at", null)
+      .eq("status", "active");
+
+    const totalRooms = rooms?.length ?? 0;
+
+    // 2. Slots do dia corrente
+    const { data: todaySlots } = await db
+      .from("timetable_slots")
+      .select("id, class_subject_id, starts_at, ends_at, room, room_id")
+      .eq("school_id", schoolId)
+      .eq("weekday", weekday)
+      .eq("status", "active");
+
+    // Filtrar slots ativos neste exacto minuto
+    const activeSlots = (todaySlots ?? []).filter(
+      (s) => timeSlice(s.starts_at) <= nowTime && timeSlice(s.ends_at) > nowTime,
+    );
+
+    const occupiedRoomIds = new Set(activeSlots.map((s) => s.room_id).filter(Boolean));
+    const occupiedRoomNames = new Set(
+      activeSlots.map((s) => s.room?.trim().toLowerCase()).filter(Boolean),
+    );
+
+    const occupiedCount = (rooms ?? []).filter(
+      (r) => occupiedRoomIds.has(r.id) || occupiedRoomNames.has(r.name.trim().toLowerCase()),
+    ).length;
+
+    // Turmas e professores em aula
+    const csIds = [...new Set(activeSlots.map((s) => s.class_subject_id))];
+    let classesActiveNow = 0;
+    let teachersActiveNow = 0;
+
+    if (csIds.length > 0) {
+      const { data: csRows } = await db
+        .from("class_subjects")
+        .select("class_group_id, teacher_id")
+        .eq("school_id", schoolId)
+        .in("id", csIds);
+
+      classesActiveNow = new Set((csRows ?? []).map((c) => c.class_group_id)).size;
+      teachersActiveNow = new Set((csRows ?? []).map((c) => c.teacher_id).filter(Boolean)).size;
+    }
+
+    // Recomendações determinísticas inteligentes
+    const recommendations: string[] = [];
+    if (
+      totalRooms > 0 &&
+      occupiedCount / totalRooms < 0.3 &&
+      now.getHours() >= 8 &&
+      now.getHours() <= 16
+    ) {
+      recommendations.push("Taxa de ocupação de salas abaixo de 30%. Avalie otimização de turmas.");
+    }
+    if (
+      activeSlots.length === 0 &&
+      weekday >= 1 &&
+      weekday <= 5 &&
+      now.getHours() >= 9 &&
+      now.getHours() <= 15
+    ) {
+      recommendations.push(
+        "Nenhuma aula em curso neste momento letivo. Verifique se os horários foram publicados.",
+      );
+    }
+
+    return {
+      nowTime,
+      classesActiveNow,
+      teachersActiveNow,
+      roomsOccupiedNow: occupiedCount,
+      roomsFreeNow: Math.max(0, totalRooms - occupiedCount),
+      totalRooms,
+      recommendations,
+    };
+  });

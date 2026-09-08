@@ -36,6 +36,8 @@ export function DisciplinasWorkspaceTab({
   classroomOn,
   moodleOn,
   canvasOn,
+  subjectTypes = [],
+  curriculumAreas = [],
   onRefresh,
 }: {
   canManageAcademic: boolean;
@@ -48,6 +50,12 @@ export function DisciplinasWorkspaceTab({
     classes_label?: string | null;
     weekly_hours_label?: string | null;
     approval_rate?: number | null;
+    subject_type_id?: string | null;
+    curriculum_area_id?: string | null;
+    is_mandatory?: boolean;
+    is_practical?: boolean;
+    annual_hours?: number | null;
+    color?: string | null;
   }>;
   workspace?: PedagogicalWorkspace;
   teacherOptions: string[];
@@ -59,7 +67,9 @@ export function DisciplinasWorkspaceTab({
   teachingLevels: string[];
   classroomOn: boolean;
   moodleOn: boolean;
-  canvasOn: boolean;
+  canvasOn?: boolean;
+  subjectTypes?: Array<{ id: string; name: string; code: string; color?: string | null }>;
+  curriculumAreas?: Array<{ id: string; name: string; code: string; color?: string | null }>;
   onRefresh: () => Promise<void>;
 }) {
   return (
@@ -92,7 +102,7 @@ export function DisciplinasWorkspaceTab({
             <QuickFormModal
               title="Nova disciplina"
               eyebrow="Pedagógica"
-              description="Adicione uma disciplina ao catálogo da escola."
+              description="Adicione uma disciplina ao catálogo da escola com tipo e área curricular."
               icon={<Plus className="size-5" />}
               submitLabel="Criar disciplina"
               onSubmit={async (values) => {
@@ -107,6 +117,8 @@ export function DisciplinasWorkspaceTab({
                     weeklyHours: Number.isFinite(weeklyHours) ? weeklyHours : 4,
                     gradeFrom: Number.isFinite(gradeFrom) ? gradeFrom : undefined,
                     gradeTo: Number.isFinite(gradeTo) ? gradeTo : undefined,
+                    subjectTypeId: values["tipo"] && values["tipo"] !== "none" ? values["tipo"] : undefined,
+                    curriculumAreaId: values["area"] && values["area"] !== "none" ? values["area"] : undefined,
                   },
                 });
                 await onRefresh();
@@ -115,13 +127,31 @@ export function DisciplinasWorkspaceTab({
                 {
                   name: "nome",
                   label: "Disciplina",
-                  placeholder: "Ex.: Química",
+                  placeholder: "Ex.: Química Geral",
                   full: true,
                 },
                 { name: "codigo", label: "Código", placeholder: "Ex.: QUI" },
                 {
+                  name: "tipo",
+                  label: "Tipo de disciplina",
+                  type: "select",
+                  options: [
+                    { value: "none", label: "Padrão / Geral" },
+                    ...subjectTypes.map((t) => ({ value: t.id, label: `${t.name} (${t.code})` })),
+                  ],
+                },
+                {
+                  name: "area",
+                  label: "Área de conhecimento",
+                  type: "select",
+                  options: [
+                    { value: "none", label: "Sem área específica" },
+                    ...curriculumAreas.map((a) => ({ value: a.id, label: a.name })),
+                  ],
+                },
+                {
                   name: "professor",
-                  label: "Docente",
+                  label: "Docente padrão",
                   placeholder: "Ex.: Prof.ª Ana Silva",
                   required: false,
                 },
@@ -156,6 +186,40 @@ export function DisciplinasWorkspaceTab({
         ) : null
       }
     >
+      {subjectsAvailable && subjects.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 pb-4 sm:grid-cols-4">
+          <div className="rounded-xl border bg-card p-3 shadow-2xs">
+            <span className="text-xs text-muted-foreground">Total Catálogo</span>
+            <p className="text-xl font-black text-foreground">{subjects.length}</p>
+          </div>
+          <div className="rounded-xl border bg-card p-3 shadow-2xs">
+            <span className="text-xs text-muted-foreground">Obrigatórias</span>
+            <p className="text-xl font-black text-primary">
+              {subjects.filter((s) => s.is_mandatory !== false).length}
+            </p>
+          </div>
+          <div className="rounded-xl border bg-card p-3 shadow-2xs">
+            <span className="text-xs text-muted-foreground">Práticas / Lab</span>
+            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+              {subjects.filter((s) => s.is_practical).length}
+            </p>
+          </div>
+          <div className="rounded-xl border bg-card p-3 shadow-2xs">
+            <span className="text-xs text-muted-foreground">Carga Média</span>
+            <p className="text-xl font-black text-foreground">
+              {subjects.length > 0
+                ? Math.round(
+                    subjects.reduce((acc, s) => {
+                      const num = Number(s.weekly_hours_label?.replace(/[^\d]/g, "") || 4);
+                      return acc + (Number.isFinite(num) ? num : 4);
+                    }, 0) / subjects.length,
+                  )
+                : 0}
+              h/sem
+            </p>
+          </div>
+        </div>
+      )}
       {!canManageAcademic ? (
         <p className="text-sm text-muted-foreground">
           A consulta de disciplinas reais está reservada a Secretaria/Admin.
@@ -210,10 +274,37 @@ export function DisciplinasWorkspaceTab({
                         {rows.map((d) => (
                           <TableRow key={d.id}>
                             <TableCell className="font-semibold">
-                              <span className="flex items-center gap-2">
-                                <GraduationCap className="size-4 text-primary" />
-                                {d.name}
-                              </span>
+                              <div className="flex flex-col gap-1">
+                                <span className="flex items-center gap-2">
+                                  <GraduationCap className="size-4 text-primary" />
+                                  {d.name}
+                                </span>
+                                <div className="flex flex-wrap items-center gap-1.5 pl-6 text-[11px]">
+                                  {(() => {
+                                    const typeObj = subjectTypes.find((t) => t.id === d.subject_type_id);
+                                    const areaObj = curriculumAreas.find((a) => a.id === d.curriculum_area_id);
+                                    return (
+                                      <>
+                                        {typeObj ? (
+                                          <span className="rounded bg-muted px-1.5 py-0.5 font-medium text-muted-foreground">
+                                            {typeObj.name}
+                                          </span>
+                                        ) : null}
+                                        {areaObj ? (
+                                          <span className="rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
+                                            {areaObj.name}
+                                          </span>
+                                        ) : null}
+                                        {d.is_practical ? (
+                                          <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-medium text-emerald-600 dark:text-emerald-400">
+                                            Prática
+                                          </span>
+                                        ) : null}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {(() => {
@@ -261,6 +352,14 @@ export function DisciplinasWorkspaceTab({
                                         subjectId: d.id,
                                         name: values["nome"] ?? "",
                                         code: values["codigo"] ?? "",
+                                        subjectTypeId:
+                                          values["tipo"] && values["tipo"] !== "none"
+                                            ? values["tipo"]
+                                            : null,
+                                        curriculumAreaId:
+                                          values["area"] && values["area"] !== "none"
+                                            ? values["area"]
+                                            : null,
                                       },
                                     });
                                     await onRefresh();
@@ -276,6 +375,32 @@ export function DisciplinasWorkspaceTab({
                                       name: "codigo",
                                       label: "Código",
                                       defaultValue: String(d.code ?? ""),
+                                    },
+                                    {
+                                      name: "tipo",
+                                      label: "Tipo de disciplina",
+                                      type: "select",
+                                      defaultValue: d.subject_type_id || "none",
+                                      options: [
+                                        { value: "none", label: "Padrão / Geral" },
+                                        ...subjectTypes.map((t) => ({
+                                          value: t.id,
+                                          label: `${t.name} (${t.code})`,
+                                        })),
+                                      ],
+                                    },
+                                    {
+                                      name: "area",
+                                      label: "Área de conhecimento",
+                                      type: "select",
+                                      defaultValue: d.curriculum_area_id || "none",
+                                      options: [
+                                        { value: "none", label: "Sem área específica" },
+                                        ...curriculumAreas.map((a) => ({
+                                          value: a.id,
+                                          label: a.name,
+                                        })),
+                                      ],
                                     },
                                   ]}
                                   trigger={(open) => (

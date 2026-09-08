@@ -47,17 +47,18 @@ import {
   createScheduleSlot,
   deleteScheduleSlot,
   updateScheduleSlot,
+  publishAcademicSchedule,
   ensureAcademicDefaults,
   listPedagogicalWorkspace,
+  listRooms,
+  listSubjectTypes,
+  listCurriculumAreas,
   upsertTermGrade,
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
 import { listTeachers } from "@/features/people/server";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import {
-  gradeMatchesTeachingLevels,
-  initialsFromName,
-} from "@/lib/angola-academic";
+import { gradeMatchesTeachingLevels, initialsFromName } from "@/lib/angola-academic";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canWriteModule } from "@/features/auth/access-policy";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -70,6 +71,9 @@ import { PautasWorkspaceModule } from "@/features/pedagogica/components/pautas/P
 import { AttendanceWorkspaceModule } from "@/features/pedagogica/components/AttendanceWorkspaceModule";
 import { TurmasWorkspaceTab } from "@/features/pedagogica/components/TurmasWorkspaceTab";
 import { DisciplinasWorkspaceTab } from "@/features/pedagogica/components/DisciplinasWorkspaceTab";
+import { SalasWorkspaceTab } from "@/features/pedagogica/components/SalasWorkspaceTab";
+import { CurriculoWorkspaceTab } from "@/features/pedagogica/components/CurriculoWorkspaceTab";
+import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget";
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "sonner";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
@@ -89,7 +93,17 @@ const AssessmentCenter = lazy(() =>
 const pedagogicaSearchSchema = z
   .object({
     tab: z
-      .enum(["turmas", "disciplinas", "notas", "horarios", "presencas", "chamada", "pautas"])
+      .enum([
+        "turmas",
+        "disciplinas",
+        "salas",
+        "curriculo",
+        "notas",
+        "horarios",
+        "presencas",
+        "chamada",
+        "pautas",
+      ])
       .optional(),
     turma: z.string().uuid().optional(),
     disciplina: z.string().uuid().optional(),
@@ -203,6 +217,21 @@ function PedagogicaPage() {
     queryFn: () => listTeachers({ data: { status: "active", limit: 200 } }),
     enabled: canManageAcademic,
   });
+  const classroomsQuery = useQuery({
+    queryKey: ["academic", "rooms"],
+    queryFn: () => listRooms(),
+    enabled: canReadAcademic,
+  });
+  const subjectTypesQuery = useQuery({
+    queryKey: ["academic", "subject-types"],
+    queryFn: () => listSubjectTypes(),
+    enabled: canReadAcademic,
+  });
+  const curriculumAreasQuery = useQuery({
+    queryKey: ["academic", "curriculum-areas"],
+    queryFn: () => listCurriculumAreas(),
+    enabled: canReadAcademic,
+  });
 
   useEffect(() => {
     if (tabFromSearch) setTab(tabFromSearch);
@@ -219,7 +248,17 @@ function PedagogicaPage() {
   const onTabChange = (next: string) => {
     if (
       !(
-        ["turmas", "disciplinas", "notas", "horarios", "presencas", "chamada", "pautas"] as const
+        [
+          "turmas",
+          "disciplinas",
+          "salas",
+          "curriculo",
+          "notas",
+          "horarios",
+          "presencas",
+          "chamada",
+          "pautas",
+        ] as const
       ).includes(next as PedagogicaTab)
     ) {
       return;
@@ -241,6 +280,7 @@ function PedagogicaPage() {
   const courses = workspace?.courses ?? [];
   const gradeLevels = workspace?.gradeLevels ?? [];
   const rooms = workspace?.rooms ?? [];
+  const classrooms = classroomsQuery.data ?? [];
   const subjects = workspace?.subjects ?? [];
   const termGrades = workspace?.termGrades ?? [];
   const enrollmentOptions = workspace?.enrollmentOptions ?? [];
@@ -586,7 +626,8 @@ function PedagogicaPage() {
                       setTab("notas");
                       setAssessmentOpen(true);
                       toast.message("Centro de Avaliação", {
-                        description: "Lance MAC/NPP/NPT na grelha digital. OCR de papel ainda não está ligado.",
+                        description:
+                          "Lance MAC/NPP/NPT na grelha digital. OCR de papel ainda não está ligado.",
                       });
                     }}
                     className="gap-2 text-xs cursor-pointer"
@@ -732,11 +773,13 @@ function PedagogicaPage() {
         />
 
         <Tabs value={tab} onValueChange={onTabChange}>
-          <TabsList>
+          <TabsList className="flex flex-wrap gap-1">
             <TabsTrigger value="turmas">Turmas</TabsTrigger>
             <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
-            <TabsTrigger value="notas">Notas</TabsTrigger>
+            <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
+            <TabsTrigger value="curriculo">Currículo & Turnos</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
+            <TabsTrigger value="notas">Notas</TabsTrigger>
             <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
             <TabsTrigger value="pautas">Modelos de Pauta</TabsTrigger>
           </TabsList>
@@ -763,7 +806,9 @@ function PedagogicaPage() {
               canManageAcademic={canManageAcademic}
               isLoading={workspaceQuery.isLoading}
               isError={workspaceQuery.isError}
-              errorMessage={workspaceQuery.error instanceof Error ? workspaceQuery.error.message : undefined}
+              errorMessage={
+                workspaceQuery.error instanceof Error ? workspaceQuery.error.message : undefined
+              }
               structureReady={structureReady}
               bootstrapping={bootstrapping}
               bootstrapStructure={bootstrapStructure}
@@ -802,7 +847,8 @@ function PedagogicaPage() {
               teachingLevels={teachingLevels}
               classroomOn={classroomOn}
               moodleOn={moodleOn}
-              canvasOn={canvasOn}
+              subjectTypes={(subjectTypesQuery.data as any) ?? []}
+              curriculumAreas={(curriculumAreasQuery.data as any) ?? []}
               onRefresh={refreshAcademic}
             />
           </TabsContent>
@@ -1004,13 +1050,38 @@ function PedagogicaPage() {
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="horarios" className="mt-5 space-y-4">
+          <TabsContent value="salas" className="mt-5 space-y-6">
+            <SalasWorkspaceTab canManage={canManageAcademic} />
+          </TabsContent>
+
+          <TabsContent value="curriculo" className="mt-5 space-y-6">
+            <CurriculoWorkspaceTab
+              canManage={canManageAcademic}
+              courses={courses.map((c) => ({ id: c.id, name: c.name }))}
+              gradeLevels={visibleGradeLevels.map((g) => ({ id: g.id, name: g.name }))}
+            />
+          </TabsContent>
+
+          <TabsContent value="horarios" className="mt-5 space-y-6">
+            <SchoolNowWidget />
             <ScheduleWorkspace
               activeYearLabel={activeYearLabel}
+              activeYearId={selectedYearId ?? undefined}
               canManage={canManageAcademic}
               scheduleAvailable={scheduleAvailable}
               classGroups={classGroups}
               subjects={subjects}
+              rooms={classrooms.map((r: any) => ({
+                id: r.id,
+                name: r.name,
+                code: r.code || r.name,
+                capacity: r.capacity,
+                room_type: r.room_type || "standard",
+              }))}
+              teachers={teachers.map((t) => ({
+                id: t.id,
+                name: t.full_name || "Docente",
+              }))}
               slots={scheduleSlots}
               virtualRooms={[
                 ...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink("zoom") }] : []),
@@ -1027,6 +1098,18 @@ function PedagogicaPage() {
               onDeleteSlot={async (slotId) => {
                 await deleteScheduleSlot({ data: { slotId } });
                 await refreshAcademic();
+              }}
+              onPublishSchedule={async (classGroupId) => {
+                if (selectedYearId) {
+                  await publishAcademicSchedule({
+                    data: {
+                      classGroupId,
+                      academicYearId: selectedYearId,
+                      syncToCalendar: true,
+                    },
+                  });
+                  await refreshAcademic();
+                }
               }}
             />
           </TabsContent>

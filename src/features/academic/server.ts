@@ -12,6 +12,7 @@ import {
 // guards de service_role no PostgreSQL.
 export * from "./server-secure-legacy";
 export * from "./academic-calendar";
+export * from "./advanced-academic-server";
 
 function scheduleTime(value: unknown) {
   return String(value ?? "").slice(0, 5);

@@ -292,6 +292,9 @@ function StudentDetail() {
   }, [profileData, relationsSnapshot]);
   useDeclareEntityFocus(focusedStudentEntity);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
   if (profileQuery.isLoading) {
     return (
       <AppShell>
@@ -308,9 +311,6 @@ function StudentDetail() {
 
   const { student, guardians } = profileData!;
   if (!student) return <NotFoundOrError title="Aluno não encontrado" />;
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

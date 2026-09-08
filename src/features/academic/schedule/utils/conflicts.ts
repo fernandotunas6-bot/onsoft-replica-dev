@@ -25,20 +25,27 @@ export function detectScheduleConflicts(slots: ScheduleSlot[]): ScheduleConflict
       const checks = [
         {
           key: "turma",
+          kind: "turma" as const,
+          severity: "blocker" as const,
           matches: Boolean(left.class_group_id) && left.class_group_id === right.class_group_id,
           message: `A turma ${left.class_group_name} tem dois slots sobrepostos.`,
         },
         {
           key: "docente",
+          kind: "docente" as const,
+          severity: "blocker" as const,
           matches: Boolean(left.teacher_id) && left.teacher_id === right.teacher_id,
-          message: "O mesmo docente tem dois slots sobrepostos.",
+          message: `O professor ${left.teacher_name || "atribuído"} tem dois slots sobrepostos.`,
         },
         {
           key: "sala",
+          kind: "sala" as const,
+          severity: "blocker" as const,
           matches:
-            Boolean(left.label?.trim()) &&
-            left.label?.trim().toLocaleLowerCase() === right.label?.trim().toLocaleLowerCase(),
-          message: `A sala ${left.label} está ocupada em dois slots sobrepostos.`,
+            (Boolean(left.room_id) && left.room_id === right.room_id) ||
+            (Boolean(left.label?.trim()) &&
+              left.label?.trim().toLocaleLowerCase() === right.label?.trim().toLocaleLowerCase()),
+          message: `A sala ${left.room_name || left.label} está ocupada em dois slots sobrepostos.`,
         },
       ];
 
@@ -46,7 +53,13 @@ export function detectScheduleConflicts(slots: ScheduleSlot[]): ScheduleConflict
         const key = `${check.key}:${left.id}:${right.id}`;
         if (!check.matches || seen.has(key)) continue;
         seen.add(key);
-        conflicts.push({ id: key, message: check.message, slotIds: [left.id, right.id] });
+        conflicts.push({
+          id: key,
+          message: check.message,
+          slotIds: [left.id, right.id],
+          kind: check.kind,
+          severity: check.severity,
+        });
       }
     }
   }
