@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -149,6 +149,7 @@ function readAnnouncementForm(form: HTMLFormElement) {
 }
 
 function ComunicacoesPage() {
+  const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const { selectedYearLabel, school } = useSchoolSettings();
@@ -176,7 +177,7 @@ function ComunicacoesPage() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("school_announcements_realtime")
+      .channel(`school_announcements_realtime:${realtimeInstanceId}`)
       .on(
         "postgres_changes",
         {
@@ -195,7 +196,7 @@ function ComunicacoesPage() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, realtimeInstanceId]);
 
   const items = announcementsQuery.data ?? [];
   const migrationMissing =
@@ -425,7 +426,7 @@ function ComunicacoesPage() {
             : "Rascunho guardado",
         {
           description:
-            status === "sent" ? dispatchNote ?? "Registo interno guardado." : undefined,
+            status === "sent" ? (dispatchNote ?? "Registo interno guardado.") : undefined,
         },
       );
     } catch (error) {
@@ -656,7 +657,9 @@ function ComunicacoesPage() {
                                         "_blank",
                                         "noopener,noreferrer",
                                       );
-                                      toast.success(dispatch.reason || "Mensagem pronta no WhatsApp");
+                                      toast.success(
+                                        dispatch.reason || "Mensagem pronta no WhatsApp",
+                                      );
                                     }}
                                   >
                                     WhatsApp
@@ -885,109 +888,111 @@ function ComunicacoesPage() {
                     </a>
                   </p>
                 ) : null}
-              <form ref={formRef} className="space-y-4" onSubmit={onSubmitSent}>
-                <div className="space-y-2">
-                  <Label htmlFor="titulo">Assunto</Label>
-                  <Input
-                    id="titulo"
-                    name="titulo"
-                    placeholder="Ex.: Reunião de encarregados"
-                    required
-                    minLength={2}
-                    maxLength={160}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="destino">Destinatários</Label>
-                  <select
-                    id="destino"
-                    name="destino"
-                    required
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    defaultValue="school"
-                  >
-                    {audienceOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="canal">Canal</Label>
-                  <select
-                    id="canal"
-                    name="canal"
-                    required
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    defaultValue="portal"
-                  >
-                    <option value="sms">SMS</option>
-                    <option value="email">E-mail</option>
-                    <option value="portal">Portal</option>
-                  </select>
-                  {resendOn || whatsappNotices ? (
-                    <p className="text-xs text-muted-foreground">
-                      {resendOn ? "Canal E-mail: envio HTTP Resend (ou cópia se faltar API key). " : ""}
-                      {whatsappNotices ? "Use WhatsApp nos cartões depois de publicar." : ""}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="agendar">Agendar para (opcional)</Label>
-                  <Input id="agendar" name="agendar" type="date" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Label htmlFor="mensagem">Mensagem</Label>
-                    <PickFileButton
-                      label={draftAttachment ? "Trocar anexo" : "Anexar arquivo"}
-                      area="escola"
-                      variant="outline"
-                      size="sm"
-                      onPick={(file) => {
-                        const line = `\n\n[Arquivo SIGA] ${file.name}`;
-                        const textarea =
-                          formRef.current?.querySelector<HTMLTextAreaElement>("#mensagem");
-                        if (textarea) {
-                          const next = `${textarea.value.trimEnd()}${line}`.slice(0, 4000);
-                          textarea.value = next;
-                          textarea.dispatchEvent(new Event("input", { bubbles: true }));
-                        }
-                        setDraftAttachment(file.name);
-                        toast.success("Referência do ficheiro adicionada à mensagem", {
-                          description: file.name,
-                        });
-                      }}
+                <form ref={formRef} className="space-y-4" onSubmit={onSubmitSent}>
+                  <div className="space-y-2">
+                    <Label htmlFor="titulo">Assunto</Label>
+                    <Input
+                      id="titulo"
+                      name="titulo"
+                      placeholder="Ex.: Reunião de encarregados"
+                      required
+                      minLength={2}
+                      maxLength={160}
                     />
                   </div>
-                  {draftAttachment ? (
-                    <p className="text-xs text-muted-foreground">Anexo: {draftAttachment}</p>
-                  ) : null}
-                  <Textarea
-                    id="mensagem"
-                    name="mensagem"
-                    rows={5}
-                    placeholder="Escreva a mensagem…"
-                    required
-                    minLength={2}
-                    maxLength={4000}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Button type="submit" className="w-full gap-2">
-                    <Send className="size-4" /> Registar como enviado
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={onSaveDraftOrSchedule}
-                  >
-                    Guardar rascunho / agendar
-                  </Button>
-                </div>
-              </form>
+                  <div className="space-y-2">
+                    <Label htmlFor="destino">Destinatários</Label>
+                    <select
+                      id="destino"
+                      name="destino"
+                      required
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      defaultValue="school"
+                    >
+                      {audienceOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="canal">Canal</Label>
+                    <select
+                      id="canal"
+                      name="canal"
+                      required
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      defaultValue="portal"
+                    >
+                      <option value="sms">SMS</option>
+                      <option value="email">E-mail</option>
+                      <option value="portal">Portal</option>
+                    </select>
+                    {resendOn || whatsappNotices ? (
+                      <p className="text-xs text-muted-foreground">
+                        {resendOn
+                          ? "Canal E-mail: envio HTTP Resend (ou cópia se faltar API key). "
+                          : ""}
+                        {whatsappNotices ? "Use WhatsApp nos cartões depois de publicar." : ""}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="agendar">Agendar para (opcional)</Label>
+                    <Input id="agendar" name="agendar" type="date" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Label htmlFor="mensagem">Mensagem</Label>
+                      <PickFileButton
+                        label={draftAttachment ? "Trocar anexo" : "Anexar arquivo"}
+                        area="escola"
+                        variant="outline"
+                        size="sm"
+                        onPick={(file) => {
+                          const line = `\n\n[Arquivo SIGA] ${file.name}`;
+                          const textarea =
+                            formRef.current?.querySelector<HTMLTextAreaElement>("#mensagem");
+                          if (textarea) {
+                            const next = `${textarea.value.trimEnd()}${line}`.slice(0, 4000);
+                            textarea.value = next;
+                            textarea.dispatchEvent(new Event("input", { bubbles: true }));
+                          }
+                          setDraftAttachment(file.name);
+                          toast.success("Referência do ficheiro adicionada à mensagem", {
+                            description: file.name,
+                          });
+                        }}
+                      />
+                    </div>
+                    {draftAttachment ? (
+                      <p className="text-xs text-muted-foreground">Anexo: {draftAttachment}</p>
+                    ) : null}
+                    <Textarea
+                      id="mensagem"
+                      name="mensagem"
+                      rows={5}
+                      placeholder="Escreva a mensagem…"
+                      required
+                      minLength={2}
+                      maxLength={4000}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button type="submit" className="w-full gap-2">
+                      <Send className="size-4" /> Registar como enviado
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={onSaveDraftOrSchedule}
+                    >
+                      Guardar rascunho / agendar
+                    </Button>
+                  </div>
+                </form>
               </>
             )}
           </Panel>

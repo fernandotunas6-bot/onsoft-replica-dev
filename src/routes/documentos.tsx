@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,6 +123,7 @@ const advanceActionLabel: Record<string, string> = {
 };
 
 function DocumentosPage() {
+  const realtimeInstanceId = useId();
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.documents");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -165,7 +166,7 @@ function DocumentosPage() {
   // Realtime — atualiza a lista de pedidos quando há novidades
   useEffect(() => {
     const channel = supabase
-      .channel("documentos_realtime")
+      .channel(`documentos_realtime:${realtimeInstanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "document_requests" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
         void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
@@ -175,7 +176,7 @@ function DocumentosPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, realtimeInstanceId]);
 
   const students = workspaceQuery.data?.students ?? [];
   const templates = workspaceQuery.data?.templates ?? [];

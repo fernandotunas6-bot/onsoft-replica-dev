@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -228,6 +228,7 @@ type StudentRow = {
 type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
 
 function StudentsPage() {
+  const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const { activePlan, activeTenant, refreshTenant } = useTenant();
   const { activeYearLabel, selectedYearId, selectedYear, selectedYearLabel, school } =
@@ -284,7 +285,7 @@ function StudentsPage() {
   // Realtime — atualiza a lista de alunos quando há novidades
   useEffect(() => {
     const channel = supabase
-      .channel("alunos_realtime")
+      .channel(`alunos_realtime:${realtimeInstanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
         void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
@@ -313,7 +314,7 @@ function StudentsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, realtimeInstanceId]);
 
   const actionHint =
     action === "matricular"

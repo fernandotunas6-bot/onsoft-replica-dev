@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -135,6 +135,7 @@ const estadoTone = {
 } as const;
 
 function FaturasPage() {
+  const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const { school, selectedYearLabel } = useSchoolSettings();
   const installed = useInstalledIntegrations();
@@ -248,39 +249,27 @@ function FaturasPage() {
   // Realtime — actualiza faturas e relatório ao vivo quando há novos pagamentos ou faturas
   useEffect(() => {
     const channel = supabase
-      .channel("faturas_realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "invoices" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-          void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "payments" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-          void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "invoices" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-          void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-        },
-      )
+      .channel(`faturas_realtime:${realtimeInstanceId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "invoices" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "payments" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "invoices" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, realtimeInstanceId]);
 
   const pagedFaturas = useMemo(() => {
     const start = (page - 1) * pageSize;
