@@ -45,8 +45,6 @@ const brandLogos: Record<string, { src: string; label: string; bleed?: boolean }
   agt: { src: "/brands/agt.svg", label: "AGT", bleed: true },
 };
 
-export const brandedLauncherIds = Object.keys(brandLogos);
-
 type SigaMark = { icon: ElementType; tone: ChipTone; label: string };
 
 // Integrações sem ficheiro de logótipo próprio: ícone + chip de cor, no
@@ -57,6 +55,14 @@ const genericIntegrationMarks: Record<string, SigaMark> = {
   firebase_analytics: { icon: Activity, tone: "warning", label: "Firebase & Crashlytics" },
   sige: { icon: Landmark, tone: "muted", label: "SIGE" },
 };
+
+// Toda a integração com algum mark configurado — logótipo próprio ou o
+// ícone/chip genérico acima. Usado só para garantir (em teste) que nenhuma
+// integração do catálogo fica sem representação visual.
+export const brandedLauncherIds = [
+  ...Object.keys(brandLogos),
+  ...Object.keys(genericIntegrationMarks),
+];
 
 export const sigaModuleMarks: Record<string, SigaMark> = {
   "siga-dashboard": { icon: LayoutGrid, tone: "primary", label: "Início" },
