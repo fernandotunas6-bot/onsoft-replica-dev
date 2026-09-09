@@ -97,7 +97,7 @@ export const inscricoesImporter: RowImporter = {
 
     cache.existingApplicantNumbers.add(appNumber);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: personRes.audits,

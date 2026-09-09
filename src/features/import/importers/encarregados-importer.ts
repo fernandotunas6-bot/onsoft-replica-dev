@@ -175,7 +175,7 @@ export const encarregadosImporter: RowImporter = {
 
     cache.existingGuardians.add(relKey);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: person.audits,

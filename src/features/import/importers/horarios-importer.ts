@@ -162,7 +162,7 @@ export const horariosImporter: RowImporter = {
 
     cache.existingSlots.add(slotKey);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [],

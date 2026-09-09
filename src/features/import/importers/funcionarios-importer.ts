@@ -132,7 +132,7 @@ export const funcionariosImporter: RowImporter = {
 
     cache.existingRoleKeys.add(roleKey);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: person.audits,

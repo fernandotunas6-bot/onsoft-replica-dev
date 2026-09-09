@@ -127,7 +127,7 @@ export const pautasImporter: RowImporter = {
 
     enrollment.final_average = scoreNum;
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [],

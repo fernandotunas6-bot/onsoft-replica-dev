@@ -152,7 +152,7 @@ export const dividasImporter: RowImporter = {
 
     cache.existingInvoiceNumbers.add(invoiceNum);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [],

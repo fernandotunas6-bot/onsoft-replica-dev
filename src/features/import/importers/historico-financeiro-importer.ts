@@ -120,7 +120,7 @@ export const historicoFinanceiroImporter: RowImporter = {
 
     cache.existingInvoices.add(invoiceNumber);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [],

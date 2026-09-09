@@ -127,7 +127,7 @@ export const presencasImporter: RowImporter = {
 
     enrollment.attendance_rate = rateNum;
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [],

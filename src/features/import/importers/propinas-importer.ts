@@ -87,7 +87,7 @@ export const propinasImporter: RowImporter = {
       }
 
       return {
-        status: "created",
+        status: "imported",
         warnings: analysis.warnings,
         errors: [],
         audits: [],
@@ -118,7 +118,7 @@ export const propinasImporter: RowImporter = {
 
     cache.existingSettingsId = String(data.id);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [],
