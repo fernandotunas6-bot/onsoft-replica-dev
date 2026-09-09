@@ -73,7 +73,7 @@ export function TeacherPortalDashboard() {
     label: string;
     icon: typeof QrCode;
     to: "/professor/presenca" | "/pedagogica" | "/planos-aula" | "/arquivos";
-    search?: { tab: string };
+    search?: { tab: "chamada" | "notas" | "turmas" | "horarios" };
   }> = [
     { label: "Assinar presença (QR)", icon: QrCode, to: "/professor/presenca" },
     { label: "Fazer Chamada", icon: CheckSquare, to: "/pedagogica", search: { tab: "chamada" } },
