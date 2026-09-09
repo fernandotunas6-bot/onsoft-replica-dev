@@ -6,6 +6,72 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-09)
 
+### Ciclo 70 — Remoção do código órfão de horários + auditoria de funções RBAC-v2 (2026-09-09)
+
+Continuação directa dos dois "por fazer" registados nos Ciclos 61 e 67.
+
+**1. Código órfão de `createScheduleSlot`/`updateScheduleSlot` removido.**
+Confirmado por grep exaustivo (`src/`, `tests/`): zero invocações de
+`createScheduleSlot(` ou `updateScheduleSlot(` em todo o repositório desde
+o Ciclo 67 (a UI usa `createAdvancedScheduleSlot`/`updateAdvancedScheduleSlot`).
+Removidos de `server-legacy.ts`: `createScheduleSlot`, `updateScheduleSlot`,
+o `deleteScheduleSlot` legado (duplicado — o realmente usado é o de
+`server.ts`, que grava `updated_by`), e os helpers só usados por eles
+(`assertScheduleSlotAvailable`, `scheduleTime`, `scheduleTimesOverlap`,
+import órfão de `ensureDefaultTeacher`). `server.ts` tinha a sua própria
+cópia paralela de `assertScheduleSlotAvailable`/`updateScheduleSlot`
+(também órfã, também removida) — mantido apenas o `deleteScheduleSlot` que
+a UI chama de facto. Re-exports correspondentes removidos de
+`server-secure-legacy.ts`. `createScheduleSlotInputSchema`/
+`updateScheduleSlotInputSchema` (schemas.ts) mantidos — ainda usados por
+`createAdvancedScheduleSlot`/`updateAdvancedScheduleSlot`.
+**Validado:** `vitest run tests/academic` 87/87 ✓, `tsc --noEmit` 0 erros
+novos (27 pré-existentes noutros módulos, inalterados), eslint 0 erros
+novos nos 2 ficheiros com alterações substanciais (`server-legacy.ts`,
+`server.ts`; `server-secure-legacy.ts` mantém os 36 erros prettier
+pré-existentes, fora do escopo desta fatia).
+
+**2. Auditoria de funções RBAC-v2/privadas ainda por versionar.** Query
+directa ao catálogo do Postgres ao vivo (`pg_proc`/`pg_namespace` via
+Management API) devolveu 213 funções em `public`+`private`. Comparadas
+contra todo o texto de `supabase/migrations/*.sql` +
+`supabase/APPLY_*.sql`: **212 de 213 já estão capturadas em SQL versionado**
+(o grosso veio da migração `20260908210000_capture_all_db_functions.sql`
+do Ciclo 64). A única função em falta, `public.is_platform_admin()`, já
+estava sinalizada inline em `20260908130000_school_branding_versioned.sql`
+(comentário do autor original): existe apenas em
+`supabase/APPLY_SAAS_PLATFORM.sql` (script manual, 243 linhas, nunca
+migrado para `supabase/migrations/`), a mesma categoria de drift descrita
+nesse comentário. **Gap fechado nesta fatia:** nova migração
+`20260908125000_capture_saas_platform_layer.sql` — espelho fiel de
+`APPLY_SAAS_PLATFORM.sql` (tabelas `plans`/`tenants`/`tenant_domains`/
+`subscriptions`/`tenant_usage`/`saas_audit_logs`/`platform_admins`, função
+`is_platform_admin()`, colunas de perfil comercial em `schools`, RLS) —
+100% idempotente, aplicada ao vivo via Management API sem qualquer erro
+(confirma que é mesmo um mirror exacto do estado já em produção). Timestamp
+escolhido *antes* de `20260908130000_school_branding_versioned.sql`
+(20260908125000, não 20260909020000) porque essa migração já depende de
+`is_platform_admin()` — só a ordem cronológica correcta resolve o "function
+does not exist" num bootstrap do zero. Comentário de drift em
+`20260908130000` actualizado para apontar para a resolução. Ficheiro
+`APPLY_SAAS_PLATFORM.sql` mantido como está (continua a ser a referência do
+passo manual "criar o primeiro platform admin"; não é mesclado em
+`APPLY_ENROLLMENT_AND_PREMIUM.sql` — o seu próprio cabeçalho já o trata como
+passo manual separado, e `scripts/siga/modules.json` já o rastreava à parte).
+Deliberadamente **não** replicado o bloco `DO $$ ... END $$` de backfill do
+primeiro tenant (linhas 153-181 do script original): é uma reparação
+pontual de uma escola pré-existente ao introduzir o conceito, já aplicada
+ao vivo, sem sentido como passo repetível numa migração versionada.
+`npm run siga:sql:verify` 73/73 tabelas ✓, `vitest run tests/saas` 209/209 ✓
+(2 skipped). **Conclusão: a auditoria RBAC-v2 pedida no Ciclo 61 está agora
+100% completa** — as 213 funções vivas estão todas em SQL versionado.
+
+**Nota:** `src/features/integrations/app-marks.tsx` está modificado no
+disco sem qualquer acção desta sessão — mesmo padrão de trabalho
+concorrente já visto no Ciclo 67. Deixado intocado.
+
+---
+
 ### Ciclo 69 — Correções dos dois bugs pré-existentes sinalizados no Ciclo 67 (2026-09-09)
 
 Retomou os dois achados sinalizados como tarefas separadas no Ciclo 67

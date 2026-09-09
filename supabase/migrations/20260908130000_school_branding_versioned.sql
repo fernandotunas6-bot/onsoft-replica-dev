@@ -5,14 +5,12 @@
 -- (src/features/auth/reset-password-server.ts). Esta migration formaliza a
 -- tabela sob controlo de versão, sem alterar dados existentes.
 --
--- DEPENDÊNCIA: a policy abaixo chama public.is_platform_admin(), que também só
--- existe hoje em supabase/APPLY_SAAS_PLATFORM.sql (script manual, mesma
--- categoria de drift). Num ambiente aplicado só a partir de `supabase/migrations`
--- do zero, sem nunca ter corrido esse script, este CREATE POLICY falha com
--- "function is_platform_admin() does not exist". Em produção já corre porque o
--- script manual já foi aplicado. Corrigir isso globalmente (versionar toda a
--- camada SaaS de APPLY_SAAS_PLATFORM.sql) é um passo maior, fora do escopo
--- desta correcção pontual de branding.
+-- DEPENDÊNCIA (resolvida em 20260908125000_capture_saas_platform_layer.sql):
+-- a policy abaixo chama public.is_platform_admin(), que até essa migração só
+-- existia em supabase/APPLY_SAAS_PLATFORM.sql (script manual). A migração
+-- 20260908125000 versiona toda a camada SaaS (plans/tenants/subscriptions/
+-- is_platform_admin()) e aplica-se antes desta na ordem cronológica dos
+-- ficheiros — um ambiente novo aplicado do zero já a tem disponível aqui.
 
 CREATE TABLE IF NOT EXISTS public.school_branding (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
