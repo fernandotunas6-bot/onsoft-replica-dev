@@ -479,6 +479,7 @@ function FinanceiroPage() {
               <DocHelpButton title="Navegação e permissões — tesouraria" />
               <DocPathHelpButton
                 path={DOC_PATHS.financePayflow}
+                label="PayFlow"
                 title="PayFlow — cobrança e conciliação"
               />
               <DocPathHelpButton
