@@ -408,23 +408,22 @@ export const saveCurriculumMatrix = createServerFn({ method: "POST" })
       );
     }
 
-    // 2. Substituir disciplinas da matriz
-    await db.from("curriculum_subjects").delete().eq("curriculum_id", curriculum.id);
-
-    const rowsToInsert = data.subjects.map((sub) => ({
-      school_id: membership.schoolId,
-      curriculum_id: curriculum.id,
-      subject_id: sub.subjectId,
-      subject_type_id: sub.subjectTypeId ?? null,
-      weekly_periods: sub.weeklyPeriods,
-      period_duration_minutes: sub.periodDurationMinutes,
-      is_mandatory: sub.isMandatory,
-      display_order: sub.displayOrder,
-      created_by: context.userId,
-      updated_by: context.userId,
-    }));
-
-    const { error: subError } = await db.from("curriculum_subjects").insert(rowsToInsert);
+    // 2. Substituir disciplinas da matriz — apagar + reinserir numa única
+    // chamada RPC, para que fique atómico (uma falha na inserção não pode
+    // deixar a matriz sem nenhuma disciplina).
+    const { error: subError } = await db.rpc("replace_curriculum_subjects", {
+      p_school_id: membership.schoolId,
+      p_curriculum_id: curriculum.id,
+      p_rows: data.subjects.map((sub) => ({
+        subjectId: sub.subjectId,
+        subjectTypeId: sub.subjectTypeId ?? null,
+        weeklyPeriods: sub.weeklyPeriods,
+        periodDurationMinutes: sub.periodDurationMinutes,
+        isMandatory: sub.isMandatory,
+        displayOrder: sub.displayOrder,
+      })),
+      p_actor: context.userId,
+    });
     if (subError) {
       throw publicDatabaseError(
         subError,
@@ -479,36 +478,24 @@ export const saveTeacherAvailability = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    // Limpar anteriores e inserir novos
-    let delQuery = db
-      .from("teacher_availability")
-      .delete()
-      .eq("school_id", membership.schoolId)
-      .eq("teacher_id", data.teacherId);
-    if (data.academicYearId) {
-      delQuery = delQuery.eq("academic_year_id", data.academicYearId);
-    }
-    await delQuery;
-
-    const rows = data.slots.map((s) => ({
-      school_id: membership.schoolId,
-      teacher_id: data.teacherId,
-      academic_year_id: data.academicYearId ?? null,
-      weekday: s.weekday,
-      starts_at: s.startsAt.length === 5 ? `${s.startsAt}:00` : s.startsAt,
-      ends_at: s.endsAt.length === 5 ? `${s.endsAt}:00` : s.endsAt,
-      is_available: s.isAvailable,
-      max_weekly_hours: data.maxWeeklyHours,
-      notes: s.notes,
-      created_by: context.userId,
-      updated_by: context.userId,
-    }));
-
-    if (rows.length > 0) {
-      const { error } = await db.from("teacher_availability").insert(rows);
-      if (error)
-        throw publicDatabaseError(error, "Não foi possível guardar a disponibilidade docente.");
-    }
+    // Limpar anteriores e inserir novos — numa única chamada RPC, para que
+    // fique atómico (uma falha na inserção não pode deixar o professor sem
+    // nenhuma disponibilidade registada).
+    const { error } = await db.rpc("replace_teacher_availability", {
+      p_school_id: membership.schoolId,
+      p_teacher_id: data.teacherId,
+      p_academic_year_id: data.academicYearId ?? null,
+      p_max_weekly_hours: data.maxWeeklyHours,
+      p_rows: data.slots.map((s) => ({
+        weekday: s.weekday,
+        startsAt: s.startsAt.length === 5 ? `${s.startsAt}:00` : s.startsAt,
+        endsAt: s.endsAt.length === 5 ? `${s.endsAt}:00` : s.endsAt,
+        isAvailable: s.isAvailable,
+        notes: s.notes ?? null,
+      })),
+      p_actor: context.userId,
+    });
+    if (error) throw publicDatabaseError(error, "Não foi possível guardar a disponibilidade docente.");
 
     return { success: true };
   });
@@ -681,92 +668,53 @@ export const createAdvancedScheduleSlot = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    let teacherId = data.teacherId ?? null;
-    let classSubjectId: string | null = null;
-
-    // Verificar se já existe vínculo turma-disciplina
-    const { data: existingCs } = await db
-      .from("class_subjects")
-      .select("id, teacher_id")
-      .eq("school_id", membership.schoolId)
-      .eq("class_group_id", data.classGroupId)
-      .eq("subject_id", data.subjectId)
-      .maybeSingle();
-
-    if (existingCs) {
-      classSubjectId = existingCs.id;
-      if (!teacherId) teacherId = existingCs.teacher_id;
-      if (data.teacherId && data.teacherId !== existingCs.teacher_id) {
-        await db
-          .from("class_subjects")
-          .update({ teacher_id: data.teacherId, updated_by: context.userId })
-          .eq("id", existingCs.id);
-        teacherId = data.teacherId;
-      }
-    } else {
-      const { data: newCs, error: csErr } = await db
-        .from("class_subjects")
-        .insert({
-          school_id: membership.schoolId,
-          class_group_id: data.classGroupId,
-          subject_id: data.subjectId,
-          teacher_id: teacherId,
-          weekly_periods: 1,
-          status: "active",
-          created_by: context.userId,
-          updated_by: context.userId,
-        })
-        .select("id")
-        .single();
-      if (csErr || !newCs)
-        throw publicDatabaseError(csErr, "Não foi possível vincular disciplina à turma.");
-      classSubjectId = newCs.id;
-    }
-
     const startsAt = data.startsAt.length === 5 ? `${data.startsAt}:00` : data.startsAt;
     const endsAt = data.endsAt.length === 5 ? `${data.endsAt}:00` : data.endsAt;
     const room = data.label?.trim() || "Sala";
 
-    // Validação rígida de conflitos
-    const conflicts = await assertScheduleSlotConflictsDetailed({
-      db,
-      schoolId: membership.schoolId,
-      classGroupId: data.classGroupId,
-      teacherId,
-      roomId: data.roomId,
-      weekday: data.weekday,
-      startsAt,
-      endsAt,
-      roomLabel: room,
+    // Avisos não-bloqueantes (capacidade da sala, disponibilidade docente).
+    // Os conflitos bloqueantes (professor/sala/turma sobrepostos) NÃO são
+    // decididos aqui — são verificados de novo, atomicamente, dentro do RPC
+    // abaixo, para fechar a corrida entre "verificar" e "inserir": duas
+    // chamadas concorrentes a esta função podiam antes passar ambas nesta
+    // verificação (nenhum dos dois slots existia ainda) e ambas inserir,
+    // duplicando a reserva apesar da validação "rígida".
+    const warnings = (
+      await assertScheduleSlotConflictsDetailed({
+        db,
+        schoolId: membership.schoolId,
+        classGroupId: data.classGroupId,
+        teacherId: data.teacherId ?? null,
+        roomId: data.roomId,
+        weekday: data.weekday,
+        startsAt,
+        endsAt,
+        roomLabel: room,
+      })
+    ).filter((c) => c.severity === "warning");
+
+    const { data: slot, error } = await db.rpc("create_timetable_slot_guarded", {
+      p_school_id: membership.schoolId,
+      p_class_group_id: data.classGroupId,
+      p_subject_id: data.subjectId,
+      p_teacher_id: data.teacherId ?? null,
+      p_room_id: data.roomId ?? null,
+      p_weekday: data.weekday,
+      p_starts_at: startsAt,
+      p_ends_at: endsAt,
+      p_room_label: room,
+      p_shift_id: data.shiftId ?? null,
+      p_schedule_id: data.scheduleId ?? null,
+      p_day_period_number: data.dayPeriodNumber ?? null,
+      p_notes: data.notes ?? null,
+      p_actor: context.userId,
     });
 
-    const blockers = conflicts.filter((c) => c.severity === "blocker");
-    if (blockers.length > 0) {
-      throw new Error(blockers.map((b) => b.message).join(" "));
+    if (error) {
+      if (error.code === "23505") throw new Error(error.message);
+      throw publicDatabaseError(error, "Não foi possível criar o slot de horário.");
     }
-
-    const { data: slot, error } = await db
-      .from("timetable_slots")
-      .insert({
-        school_id: membership.schoolId,
-        class_subject_id: classSubjectId,
-        weekday: data.weekday,
-        starts_at: startsAt,
-        ends_at: endsAt,
-        room,
-        room_id: data.roomId ?? null,
-        shift_id: data.shiftId ?? null,
-        schedule_id: data.scheduleId ?? null,
-        day_period_number: data.dayPeriodNumber ?? null,
-        notes: data.notes ?? null,
-        status: "active",
-        created_by: context.userId,
-      })
-      .select("*")
-      .single();
-
-    if (error) throw publicDatabaseError(error, "Não foi possível criar o slot de horário.");
-    return { slot, warnings: conflicts.filter((c) => c.severity === "warning") };
+    return { slot, warnings };
   });
 
 // ---------------------------------------------------------------------------
@@ -900,52 +848,66 @@ async function syncScheduleSlotsToSessions({
 
   if (!slots || slots.length === 0) return 0;
 
-  // Materializar próximas 4 semanas (exemplo de janela lectiva controlada para não sobrecarregar)
-  let count = 0;
+  // Materializar próximas 4 semanas (exemplo de janela lectiva controlada para não sobrecarregar).
+  // Constrói primeiro a lista completa de candidatos (slot, data) e resolve tudo em
+  // apenas 2 pedidos à base de dados (1 SELECT + 1 INSERT em lote), em vez de um
+  // SELECT+INSERT sequencial por cada par (dia, slot) — o que antes chegava a
+  // centenas de idas e vindas para uma única publicação de horário.
   const start = new Date(startDate);
   const end = new Date(endDate);
   const maxEnd = new Date(Math.min(end.getTime(), start.getTime() + 28 * 86400000));
 
+  const candidates: Array<{ slot: (typeof slots)[number]; dateStr: string }> = [];
   for (let d = new Date(start); d <= maxEnd; d.setDate(d.getDate() + 1)) {
     const jsDay = d.getDay(); // 0=Dom, 1=Seg, ... 5=Sex
     if (jsDay === 0 || jsDay === 6) continue;
 
     const dateStr = d.toISOString().slice(0, 10);
-    const daySlots = slots.filter((s) => s.weekday === jsDay);
-
-    for (const slot of daySlots) {
-      const cs = csMap.get(slot.class_subject_id);
-      if (!cs) continue;
-
-      // Inserir sessão de presença se não existir
-      const { data: existing } = await db
-        .from("siga_attendance_sessions")
-        .select("id")
-        .eq("school_id", schoolId)
-        .eq("timetable_slot_id", slot.id)
-        .eq("lesson_date", dateStr)
-        .maybeSingle();
-
-      if (!existing) {
-        await db.from("siga_attendance_sessions").insert({
-          school_id: schoolId,
-          academic_year_id: academicYearId,
-          class_group_id: classGroupId,
-          subject_id: cs.subject_id,
-          teacher_id: cs.teacher_id,
-          timetable_slot_id: slot.id,
-          lesson_date: dateStr,
-          starts_at: timeSlice(slot.starts_at),
-          ends_at: timeSlice(slot.ends_at),
-          status: "pending",
-          created_by: userId,
-        });
-        count += 1;
-      }
+    for (const slot of slots.filter((s) => s.weekday === jsDay)) {
+      if (csMap.has(slot.class_subject_id)) candidates.push({ slot, dateStr });
     }
   }
 
-  return count;
+  if (candidates.length === 0) return 0;
+
+  const slotIds = [...new Set(candidates.map((c) => c.slot.id))];
+  const { data: existingSessions } = await db
+    .from("siga_attendance_sessions")
+    .select("timetable_slot_id, lesson_date")
+    .eq("school_id", schoolId)
+    .in("timetable_slot_id", slotIds)
+    .gte("lesson_date", startDate)
+    .lte("lesson_date", endDate);
+
+  const existingKeys = new Set(
+    (existingSessions ?? []).map((r) => `${r.timetable_slot_id}:${r.lesson_date}`),
+  );
+
+  const rowsToInsert = candidates
+    .filter((c) => !existingKeys.has(`${c.slot.id}:${c.dateStr}`))
+    .map(({ slot, dateStr }) => {
+      const cs = csMap.get(slot.class_subject_id)!;
+      return {
+        school_id: schoolId,
+        academic_year_id: academicYearId,
+        class_group_id: classGroupId,
+        subject_id: cs.subject_id,
+        teacher_id: cs.teacher_id,
+        timetable_slot_id: slot.id,
+        lesson_date: dateStr,
+        starts_at: timeSlice(slot.starts_at),
+        ends_at: timeSlice(slot.ends_at),
+        status: "pending",
+        created_by: userId,
+      };
+    });
+
+  if (rowsToInsert.length === 0) return 0;
+
+  const { error } = await db.from("siga_attendance_sessions").insert(rowsToInsert);
+  if (error) throw publicDatabaseError(error, "Não foi possível sincronizar as sessões de presença.");
+
+  return rowsToInsert.length;
 }
 
 // ---------------------------------------------------------------------------

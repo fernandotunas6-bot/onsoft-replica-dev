@@ -106,7 +106,6 @@ export function ScheduleWorkspace({
   const [teacherId, setTeacherId] = useState("");
   const [roomId, setRoomId] = useState("");
   const [query, setQuery] = useState("");
-  const [editingSlot, setEditingSlot] = useState<ScheduleSlot | null>(null);
   const [publishing, setPublishing] = useState(false);
 
   // Seleções ativas por modo
@@ -209,6 +208,56 @@ export function ScheduleWorkspace({
     });
 
     setClassGroupId(classGroup.id);
+  };
+
+  const handleEditSlot = async (
+    slot: ScheduleSlot,
+    values: Record<string, string | undefined>,
+  ) => {
+    const weekday = weekdayByLabel.get(values["dia"] ?? "");
+    if (!weekday) throw new Error("Seleccione o dia.");
+
+    const teacherOpt = values["professor"];
+    const resolvedTeacher = teachers.find((t) => optionLabel(t.id, t.name) === teacherOpt);
+
+    const roomOpt = values["sala"];
+    const resolvedRoom = rooms.find(
+      (r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`) === roomOpt,
+    );
+    const roomLabel = resolvedRoom?.name || values["rotulo"]?.trim() || slot.label || "Sala";
+
+    await onUpdateSlot({
+      slotId: slot.id,
+      weekday,
+      startsAt: values["inicio"] ?? "",
+      endsAt: values["fim"] ?? "",
+      teacherId: resolvedTeacher?.id ?? null,
+      roomId: resolvedRoom?.id ?? null,
+      label: roomLabel,
+      notes: values["observacoes"]?.trim() || undefined,
+    });
+  };
+
+  const handleCopySlot = async (
+    slot: ScheduleSlot,
+    values: Record<string, string | undefined>,
+  ) => {
+    if (!slot.class_group_id || !slot.subject_id) {
+      throw new Error("Este slot não tem turma ou disciplina associada.");
+    }
+    const weekday = weekdayByLabel.get(values["dia"] ?? "");
+    if (!weekday) throw new Error("Seleccione o dia.");
+
+    await onCreateSlot({
+      classGroupId: slot.class_group_id,
+      subjectId: slot.subject_id,
+      weekday,
+      startsAt: timeValue(slot.starts_at),
+      endsAt: timeValue(slot.ends_at),
+      teacherId: slot.teacher_id ?? null,
+      roomId: slot.room_id ?? null,
+      label: slot.label ?? "Sala",
+    });
   };
 
   const handlePublish = async () => {
@@ -497,14 +546,131 @@ export function ScheduleWorkspace({
                             </span>
                             {canManage && (
                               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="size-6 p-0 text-muted-foreground hover:text-destructive"
-                                  onClick={() => onDeleteSlot(slot.id)}
-                                >
-                                  <Trash2 className="size-3" />
-                                </Button>
+                                <QuickFormModal
+                                  title="Editar Aula"
+                                  description={`Actualize o horário de ${slot.display_label}.`}
+                                  submitLabel="Guardar"
+                                  successDescription="Slot actualizado."
+                                  onSubmit={(values) => handleEditSlot(slot, values)}
+                                  fields={[
+                                    {
+                                      name: "dia",
+                                      label: "Dia da Semana",
+                                      type: "select",
+                                      options: [...weekdays],
+                                      defaultValue: weekdayLabel(slot.weekday),
+                                      required: true,
+                                    },
+                                    {
+                                      name: "inicio",
+                                      label: "Hora Início",
+                                      type: "time",
+                                      defaultValue: timeValue(slot.starts_at),
+                                      required: true,
+                                    },
+                                    {
+                                      name: "fim",
+                                      label: "Hora Fim",
+                                      type: "time",
+                                      defaultValue: timeValue(slot.ends_at),
+                                      required: true,
+                                    },
+                                    {
+                                      name: "professor",
+                                      label: "Professor Responsável",
+                                      type: "select",
+                                      options: teacherOptions,
+                                      defaultValue: (() => {
+                                        const current = teachers.find(
+                                          (t) => t.id === slot.teacher_id,
+                                        );
+                                        return current
+                                          ? optionLabel(current.id, current.name)
+                                          : "Sem professor atribuído";
+                                      })(),
+                                    },
+                                    {
+                                      name: "sala",
+                                      label: "Sala de Aula",
+                                      type: "select",
+                                      options: roomOptions,
+                                      defaultValue: (() => {
+                                        const current = rooms.find((r) => r.id === slot.room_id);
+                                        return current
+                                          ? optionLabel(
+                                              current.id,
+                                              `${current.name} (${current.capacity || "?"} lugares)`,
+                                            )
+                                          : "Sem sala fixa";
+                                      })(),
+                                    },
+                                    {
+                                      name: "rotulo",
+                                      label: "Sala / rótulo",
+                                      defaultValue: slot.label ?? "Sala",
+                                      full: true,
+                                    },
+                                    {
+                                      name: "observacoes",
+                                      label: "Observações",
+                                      defaultValue: slot.notes ?? "",
+                                    },
+                                  ]}
+                                  trigger={(open) => (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="size-6 p-0 text-muted-foreground hover:text-primary"
+                                      onClick={open}
+                                    >
+                                      <Pencil className="size-3" />
+                                    </Button>
+                                  )}
+                                />
+                                <QuickFormModal
+                                  title="Copiar Aula"
+                                  description={`Copia ${slot.display_label} para outro dia da semana.`}
+                                  submitLabel="Copiar"
+                                  successDescription="Slot copiado para o dia escolhido."
+                                  onSubmit={(values) => handleCopySlot(slot, values)}
+                                  fields={[
+                                    {
+                                      name: "dia",
+                                      label: "Dia da Semana",
+                                      type: "select",
+                                      options: weekdays.filter(
+                                        (day) => day !== weekdayLabel(slot.weekday),
+                                      ),
+                                      required: true,
+                                    },
+                                  ]}
+                                  trigger={(open) => (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="size-6 p-0 text-muted-foreground hover:text-primary"
+                                      onClick={open}
+                                    >
+                                      <Copy className="size-3" />
+                                    </Button>
+                                  )}
+                                />
+                                <ConfirmActionModal
+                                  title="Remover Aula"
+                                  description={`Retira ${slot.display_label} de ${weekdayLabel(slot.weekday)} (${timeValue(slot.starts_at)}–${timeValue(slot.ends_at)}) do horário.`}
+                                  confirmLabel="Remover"
+                                  onConfirm={() => onDeleteSlot(slot.id)}
+                                  trigger={(open) => (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="size-6 p-0 text-muted-foreground hover:text-destructive"
+                                      onClick={open}
+                                    >
+                                      <Trash2 className="size-3" />
+                                    </Button>
+                                  )}
+                                />
                               </div>
                             )}
                           </div>
