@@ -109,7 +109,7 @@ export const classesImporter: RowImporter = {
 
     cache.existingGrades.push({ id: String(data.id), code, name });
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [],

@@ -80,7 +80,7 @@ export const avaliacoesImporter: RowImporter = {
     const gradebookId = cache.gradebooks[0]?.id;
     if (!gradebookId) {
       return {
-        status: "created",
+        status: "imported",
         warnings: ["Avaliação registada no catálogo institucional para uso pedagógico."],
         errors: [],
         audits: [],
@@ -111,7 +111,7 @@ export const avaliacoesImporter: RowImporter = {
 
     cache.existingItemCodes.add(code);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [],

@@ -109,7 +109,7 @@ export const salasImporter: RowImporter = {
 
     cache.existingRooms.push({ id: String(data.id), code, name });
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [],
