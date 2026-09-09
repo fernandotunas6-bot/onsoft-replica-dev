@@ -66,10 +66,17 @@ export const inscricoesImporter: RowImporter = {
       return { status: "error", warnings: analysis.warnings, errors: analysis.errors, audits: [] };
     }
 
-    const personRes = await resolveOrCreatePerson(normalized, ctx, cache);
-    if (personRes.status === "error") {
-      return { status: "error", warnings: analysis.warnings, errors: personRes.errors, audits: [] };
+    const candidate = personCandidateFromRow(normalized);
+    if (!candidate) {
+      return {
+        status: "error",
+        warnings: analysis.warnings,
+        errors: ["Nome completo do candidato é obrigatório."],
+        audits: [],
+      };
     }
+
+    const personResult = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
 
     const appNumber = normalizeText(
       valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
@@ -79,7 +86,7 @@ export const inscricoesImporter: RowImporter = {
       .from("students")
       .insert({
         school_id: ctx.schoolId,
-        person_id: personRes.person.id,
+        person_id: personResult.personId,
         student_number: appNumber,
         status: "applicant",
       })
@@ -91,16 +98,16 @@ export const inscricoesImporter: RowImporter = {
         status: "error",
         warnings: analysis.warnings,
         errors: [`Erro ao registar candidatura do aluno: ${studentError.message}`],
-        audits: personRes.audits,
+        audits: personResult.audits,
       };
     }
 
     cache.existingApplicantNumbers.add(appNumber);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: personRes.audits,
+      audits: personResult.audits,
       target_record_id: student.id,
     };
   },
