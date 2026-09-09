@@ -210,10 +210,7 @@ export function ScheduleWorkspace({
     setClassGroupId(classGroup.id);
   };
 
-  const handleEditSlot = async (
-    slot: ScheduleSlot,
-    values: Record<string, string | undefined>,
-  ) => {
+  const handleEditSlot = async (slot: ScheduleSlot, values: Record<string, string | undefined>) => {
     const weekday = weekdayByLabel.get(values["dia"] ?? "");
     if (!weekday) throw new Error("Seleccione o dia.");
 
@@ -238,10 +235,7 @@ export function ScheduleWorkspace({
     });
   };
 
-  const handleCopySlot = async (
-    slot: ScheduleSlot,
-    values: Record<string, string | undefined>,
-  ) => {
+  const handleCopySlot = async (slot: ScheduleSlot, values: Record<string, string | undefined>) => {
     if (!slot.class_group_id || !slot.subject_id) {
       throw new Error("Este slot não tem turma ou disciplina associada.");
     }
@@ -382,6 +376,7 @@ export function ScheduleWorkspace({
                     name: "observacoes",
                     label: "Observações",
                     placeholder: "Ex: Aula em laboratório prático",
+                    required: false,
                   },
                 ]}
                 trigger={(open) => (
@@ -609,11 +604,13 @@ export function ScheduleWorkspace({
                                       label: "Sala / rótulo",
                                       defaultValue: slot.label ?? "Sala",
                                       full: true,
+                                      required: false,
                                     },
                                     {
                                       name: "observacoes",
                                       label: "Observações",
                                       defaultValue: slot.notes ?? "",
+                                      required: false,
                                     },
                                   ]}
                                   trigger={(open) => (

@@ -52,10 +52,7 @@ import {
   type InactiveSubFilter,
   type CandidateSubFilter,
 } from "@/features/students/academic-status";
-import {
-  batchAssignClass,
-  batchUpdateStudentStatus,
-} from "@/features/students/server";
+import { batchAssignClass, batchUpdateStudentStatus } from "@/features/students/server";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -259,12 +256,7 @@ function StudentsPage() {
   const sigeOn = installed.hasCapability("sige.export_students");
 
   const studentCapacity = useMemo(
-    () =>
-      buildStudentCapacity(
-        activeTenant?.active_students_count ?? 0,
-        activeTenant,
-        activePlan,
-      ),
+    () => buildStudentCapacity(activeTenant?.active_students_count ?? 0, activeTenant, activePlan),
     [activeTenant, activePlan],
   );
   const capacityBlocked = studentCapacity.atLimit
@@ -293,40 +285,26 @@ function StudentsPage() {
   useEffect(() => {
     const channel = supabase
       .channel("alunos_realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "students" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "enrollments" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "finance_invoices" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "finance_receipts" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "enrollments" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "finance_invoices" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "finance_receipts" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+      })
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "enrollment_applications" },
         () => {
-          void queryClient.invalidateQueries({ queryKey: ["enrollment", "applications", "pending-count"] });
+          void queryClient.invalidateQueries({
+            queryKey: ["enrollment", "applications", "pending-count"],
+          });
           void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
         },
       )
@@ -383,12 +361,7 @@ function StudentsPage() {
           .map((value) => value.toLowerCase())
       : [];
     const rows = allStudents.filter((s) => {
-      const matchCategory = matchesQuickCategory(
-        s,
-        categoria,
-        subInactivos,
-        subCandidatos,
-      );
+      const matchCategory = matchesQuickCategory(s, categoria, subInactivos, subCandidatos);
       const matchQuery =
         !q ||
         s.full_name.toLowerCase().includes(q) ||
@@ -410,7 +383,9 @@ function StudentsPage() {
           (hint) =>
             studentYear === hint || studentYear.includes(hint) || hint.includes(studentYear),
         );
-      return matchCategory && matchQuery && matchStatus && matchTurma && matchPagamento && matchYear;
+      return (
+        matchCategory && matchQuery && matchStatus && matchTurma && matchPagamento && matchYear
+      );
     });
 
     const valueFor = (row: StudentRow, key: SortKey) => {
@@ -491,7 +466,11 @@ function StudentsPage() {
   const exportarAlunosCsv = () => exportCsv("alunos-filtrados", alunoExportColumns, filtered);
   const exportarAlunosSige = () => {
     const sigeData = buildEmisExportPayload(activeTenant?.id ?? "school", filtered);
-    exportCsv("alunos-sige-emis", Object.keys(sigeData[0] ?? {}).map((k) => ({ label: k, value: (r: any) => r[k] })), sigeData);
+    exportCsv(
+      "alunos-sige-emis",
+      Object.keys(sigeData[0] ?? {}).map((k) => ({ label: k, value: (r: any) => r[k] })),
+      sigeData,
+    );
   };
   const exportarAlunosPdf = () =>
     exportPdfTable(
@@ -1098,9 +1077,7 @@ function StudentsPage() {
             {/* Subfiltros contextuais para Candidatos */}
             {categoria === "candidatos" ? (
               <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60">
-                <span className="text-[11px] font-semibold text-muted-foreground mr-1">
-                  Fase:
-                </span>
+                <span className="text-[11px] font-semibold text-muted-foreground mr-1">Fase:</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -1568,7 +1545,8 @@ function StudentsPage() {
                           values["turma"],
                       );
                       const yearId = String(group?.academic_year_id ?? "");
-                      if (!group || !yearId) throw new Error("Seleccione uma turma com ano lectivo.");
+                      if (!group || !yearId)
+                        throw new Error("Seleccione uma turma com ano lectivo.");
                       await batchAssignClass({
                         data: {
                           studentIds: selectedIds,
@@ -1576,12 +1554,19 @@ function StudentsPage() {
                           academicYearId: yearId,
                         },
                       });
-                      toast.success(`${selectedIds.length} alunos matriculados na turma ${group.name}.`);
+                      toast.success(
+                        `${selectedIds.length} alunos matriculados na turma ${group.name}.`,
+                      );
                       setSelectedIds([]);
                       await queryClient.invalidateQueries({ queryKey: ["students", "search"] });
                     }}
                     trigger={(open) => (
-                      <Button size="sm" variant="default" className="h-8 gap-1.5 text-xs font-semibold" onClick={open}>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-8 gap-1.5 text-xs font-semibold"
+                        onClick={open}
+                      >
                         <Users className="size-3.5" /> Atribuir Turma
                       </Button>
                     )}
@@ -1612,6 +1597,7 @@ function StudentsPage() {
                       label: "Motivo / Justificação",
                       type: "text",
                       placeholder: "Ex: Transferência de ciclo, despacho institucional, etc.",
+                      required: false,
                     },
                   ]}
                   onSubmit={async (values) => {
@@ -1627,7 +1613,12 @@ function StudentsPage() {
                     await queryClient.invalidateQueries({ queryKey: ["students", "search"] });
                   }}
                   trigger={(open) => (
-                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs font-semibold" onClick={open}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5 text-xs font-semibold"
+                      onClick={open}
+                    >
                       <ArrowRightLeft className="size-3.5" /> Mudar Estado
                     </Button>
                   )}
