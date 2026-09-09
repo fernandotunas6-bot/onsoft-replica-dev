@@ -180,3 +180,32 @@ BEGIN
   RAISE NOTICE 'role_permissions total após backfill: %', v_total;
 END;
 $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PASSO 3: Semear document_sequences para todas as escolas sem sequências
+-- Tipos válidos (check constraint): invoice, receipt, credit_note, expense,
+-- declaration, certificate, transfer, term, other
+-- ─────────────────────────────────────────────────────────────────────────────
+INSERT INTO public.document_sequences (school_id, document_type, prefix, next_number, padding)
+SELECT s.id, t.document_type, t.prefix, 1, t.padding
+FROM public.schools s
+CROSS JOIN (VALUES
+  ('invoice',     'FT', 4),
+  ('receipt',     'RC', 6),
+  ('credit_note', 'NC', 6),
+  ('expense',     'EX', 6),
+  ('declaration', 'DC', 6),
+  ('certificate', 'CE', 6),
+  ('transfer',    'TF', 6),
+  ('term',        'TM', 6),
+  ('other',       'OT', 6)
+) AS t(document_type, prefix, padding)
+ON CONFLICT (school_id, document_type) DO NOTHING;
+
+DO $$
+DECLARE v_total INT;
+BEGIN
+  SELECT COUNT(*) INTO v_total FROM public.document_sequences;
+  RAISE NOTICE 'document_sequences total após backfill: %', v_total;
+END;
+$$;
