@@ -6,7 +6,49 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-09)
 
-### Ciclo 70 — Remoção do código órfão de horários + auditoria de funções RBAC-v2 (2026-09-09)
+### Ciclo 71 — Validação completa dos specs do ecossistema pós-Ciclo 70 (2026-09-09)
+
+Repetição da metodologia do Ciclo 68 para confirmar que as alterações dos
+Ciclos 69-70 (canais Realtime, remoção de código órfão, migração SaaS) não
+introduziram regressões em nenhum dos 5 apps.
+
+**Encontrado e corrigido en passant:** `npm test -- --run` completo (antes
+de qualquer alteração desta fatia) tinha 1 falha nova em
+`tests/integrations/launcher.test.ts` — causada por um commit de outra
+sessão concorrente (`d5e0d6d`, já em `origin`) que moveu `gmail_workspace`/
+`firebase_analytics`/`sige` de `brandLogos` para um novo
+`genericIntegrationMarks` em `app-marks.tsx` (correcto: evita 404 de PNGs
+inexistentes) mas esqueceu de actualizar `brandedLauncherIds` — continuava a
+derivar só de `Object.keys(brandLogos)`, quebrando o teste que garante que
+todo item do catálogo tem alguma marca visual. `AppMark` já tinha o fallback
+certo (`sigaModuleMarks[id] ?? genericIntegrationMarks[id]`); só o export
+ficou desalinhado. Corrigido: `brandedLauncherIds` passa a ser a união das
+chaves dos dois objectos. Commit `106f11b`, enviado.
+
+**Resultados oficiais (depois da correcção acima):**
+- **`npm test -- --run`**: **1067/1069 ✓** (2 skipped), 158/160 ficheiros.
+- **`npm run siga:check`**: 14 módulos + `siga:check-nav` (13 testes) ✓.
+- **`npm run siga:e2e-smoke`**: **33/33 endpoints** OK.
+- **`npm run siga:e2e-playwright-ts`**: **10/10 ✓** (rotas públicas + wizard).
+- **`npm run siga:e2e-playwright-live`**: **6/7 ✓** — `commercial-live` (2/2),
+  `gateway-live` EMIS+Unitel (4/4) sempre verdes em 3 corridas seguidas.
+  `enrollment-live.spec.ts` falhou de forma inconsistente (3 pontos de falha
+  diferentes em 3 tentativas: painel de definições, campo de login, nome do
+  candidato) — **diagnosticado como flakiness de carga do sistema, não
+  regressão**: `uptime` chegou a load average **157** (5 dev servers +
+  `vitest run` completo + Playwright a correr em simultâneo nesta sessão); no
+  `error-context.md` da 2ª tentativa o nome do candidato
+  (`Candidato E2E mat-mtujjpnr`) **estava mesmo presente no DOM**
+  (`strong [ref=e137]`) no momento da falha — só chegou depois do timeout de
+  30s da asserção `toBeVisible`. Não foi feita nenhuma alteração de código
+  para este caso; se reproduzir de forma consistente com a máquina em
+  repouso (`uptime` < ~10), investigar a fundo — caso contrário, considerar
+  subir o timeout de `enrollment-live.spec.ts` para acomodar corridas com o
+  ecossistema completo em paralelo.
+
+**Servidores parados e artefactos de teste (`test-results/`,
+`playwright-report/`) removidos no fim** — não deixar 5 dev servers vivos
+sem necessidade. — Remoção do código órfão de horários + auditoria de funções RBAC-v2 (2026-09-09)
 
 Continuação directa dos dois "por fazer" registados nos Ciclos 61 e 67.
 
