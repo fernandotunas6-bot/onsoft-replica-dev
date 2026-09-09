@@ -6,6 +6,56 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-09)
 
+### Ciclo 67 — Ligar a criação de aulas ao motor avançado de conflitos (2026-09-09)
+
+Continuação directa do "Por fazer" do Ciclo 66. Investigação revelou algo mais
+sério do que "falta um aviso": a UI de Horários (`/pedagogica?tab=horarios`)
+**nunca chamava** `createAdvancedScheduleSlot` (motor com advisory lock e
+verificação de disponibilidade docente/capacidade, do Ciclo 62-63 + hardening
+`77dc771`) — usava sempre `createScheduleSlot` (legado, `server-legacy.ts`),
+que verifica conflitos em dois passos separados (SELECT depois INSERT, com
+corrida real) e não valida disponibilidade docente nem capacidade de sala.
+`createAdvancedScheduleSlot` estava implementada, testada, aplicada ao vivo —
+e completamente órfã (nenhum componente a chamava).
+
+**O que foi entregue:**
+- **`pedagogica.tsx`:** `onCreateSlot` (usado por "Nova Aula" e "Copiar Aula" em
+  `ScheduleWorkspace`) passa a chamar `createAdvancedScheduleSlot` em vez de
+  `createScheduleSlot`. Os `warnings` não-bloqueantes devolvidos (disponibilidade
+  docente fora do cadastrado, sala sobrelotada) são mostrados como `toast.warning`.
+  `onUpdateSlot`/`onDeleteSlot` mantidos como estavam (não existe ainda uma versão
+  avançada equivalente para update — ficou por fazer, ver abaixo).
+
+**Validado ao vivo pela UI real:** criada aula de Matemática (Terça 10:00-10:45,
+Turma 10a A) → `POST createAdvancedScheduleSlot` 200 → confirmado o slot em
+`timetable_slots` via query directa; removido depois (dado de teste).
+
+**Dois bugs pré-existentes encontrados durante o teste manual (não corrigidos
+nesta fatia — sinalizados como tarefas separadas):**
+1. **Loop "Maximum update depth exceeded" em toda a app** (não só `/pedagogica` —
+   reproduz também em `/`), 275+ mensagens de erro no console, gerando tráfego de
+   rede descontrolado (milhares de pedidos de assets). Confirmado pré-existente
+   (reproduz com e sem as mudanças deste ciclo). Candidatos prováveis pelos
+   warnings `exhaustive-deps` já existentes em `pedagogica.tsx`: `teachingLevels`/
+   `classGroups`/`termGrades` recriados como array novo a cada render
+   (`workspace?.x ?? []`) e usados como dependência de `useMemo`/efeitos noutros
+   componentes. Precisa de profiling (React DevTools Profiler) para localizar o
+   componente exacto — não tentado às cegas para não mascarar o sintoma real.
+2. **`QuickFormModal`: campos sem `type` explícito são `required` por omissão**
+   (`field.required ?? true`), mesmo quando semanticamente opcionais — ex.
+   "Observações" em "Nova Aula no Horário" (`ScheduleWorkspace.tsx`) bloqueava a
+   submissão em silêncio (sem toast, sem indicação visual até reparar no popup
+   de validação nativo do browser). Vale auditar todos os `QuickFormModal` do
+   projecto por campos de texto livre sem `required: false` explícito.
+
+**Suite:** `vitest run tests/academic tests/ui` 118/118 ✓, eslint sem erros
+novos, `tsc --noEmit` sem erros novos nos ficheiros tocados.
+
+**Por fazer:** criar `updateAdvancedScheduleSlot` (equivalente a
+`createAdvancedScheduleSlot` mas para UPDATE) para que "Editar Aula" também
+beneficie do advisory lock e da verificação de disponibilidade — hoje só
+"Nova Aula"/"Copiar Aula" usam o motor avançado.
+
 ### Ciclo 66 — UI da Matriz Curricular e Disponibilidade Docente (2026-09-09)
 
 Continuação directa do commit `77dc771` (revisão de código aos Ciclos 62-63): o

@@ -44,7 +44,7 @@ import { documentValidationCode } from "@/features/academic/assessment-views";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import {
-  createScheduleSlot,
+  createAdvancedScheduleSlot,
   deleteScheduleSlot,
   updateScheduleSlot,
   publishAcademicSchedule,
@@ -1100,7 +1100,10 @@ function PedagogicaPage() {
                 ...(teamsOn ? [{ label: "Teams", url: meetingRoomLink("teams") }] : []),
               ]}
               onCreateSlot={async (data) => {
-                await createScheduleSlot({ data });
+                const { warnings } = await createAdvancedScheduleSlot({ data });
+                for (const warning of warnings) {
+                  toast.warning(warning.message);
+                }
                 await refreshAcademic();
               }}
               onUpdateSlot={async (data) => {
