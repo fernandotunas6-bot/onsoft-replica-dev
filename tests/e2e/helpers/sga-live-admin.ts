@@ -162,32 +162,192 @@ export async function seedE2EGatewayFixture(
   const channel = opts.channel ?? "multicaixa_express";
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: year } = await admin
+  const { data: staff } = await admin
+    .from("school_memberships")
+    .select("user_id")
+    .eq("school_id", schoolId)
+    .limit(1)
+    .maybeSingle();
+  let userId = staff?.user_id ?? null;
+  if (!userId) {
+    const { data: anyMember } = await admin
+      .from("school_memberships")
+      .select("user_id")
+      .limit(1)
+      .maybeSingle();
+    userId = anyMember?.user_id ?? null;
+  }
+
+  let { data: year } = await admin
     .from("academic_years")
     .select("id")
     .eq("school_id", schoolId)
     .limit(1)
     .maybeSingle();
+
+  if (!year?.id) {
+    const curYear = new Date().getFullYear();
+    const { data: createdYear, error: yearErr } = await admin
+      .from("academic_years")
+      .insert({
+        school_id: schoolId,
+        name: `${curYear}/${curYear + 1}`,
+        starts_on: `${curYear}-09-01`,
+        ends_on: `${curYear + 1}-07-31`,
+        status: "active",
+        ...(userId ? { created_by: userId, updated_by: userId } : {}),
+      })
+      .select("id")
+      .single();
+    if (yearErr) throw new Error(`Falha ao criar ano lectivo: ${yearErr.message} (${yearErr.details || ""})`);
+    year = createdYear;
+  }
   if (!year?.id) throw new Error("Ano lectivo em falta — bootstrap incompleto.");
 
-  const { data: classGroup } = await admin
+  let { data: classGroup } = await admin
     .from("class_groups")
     .select("id")
     .eq("school_id", schoolId)
     .limit(1)
     .maybeSingle();
+
+  if (!classGroup?.id) {
+    let { data: campus } = await admin
+      .from("campuses")
+      .select("id")
+      .eq("school_id", schoolId)
+      .limit(1)
+      .maybeSingle();
+    if (!campus?.id) {
+      const { data: createdCampus, error: campusErr } = await admin
+        .from("campuses")
+        .insert({
+          school_id: schoolId,
+          code: "SEDE",
+          name: "Campus Principal",
+          is_active: true,
+        })
+        .select("id")
+        .single();
+      if (campusErr) throw new Error(`Falha ao criar campus: ${campusErr.message}`);
+      campus = createdCampus;
+    }
+
+    let { data: level } = await admin
+      .from("academic_levels")
+      .select("id")
+      .eq("school_id", schoolId)
+      .limit(1)
+      .maybeSingle();
+    if (!level?.id) {
+      const { data: createdLevel, error: levelErr } = await admin
+        .from("academic_levels")
+        .insert({
+          school_id: schoolId,
+          code: "GERAL",
+          name: "Ensino Geral",
+          sequence: 1,
+          is_active: true,
+        })
+        .select("id")
+        .single();
+      if (levelErr) throw new Error(`Falha ao criar nível académico: ${levelErr.message}`);
+      level = createdLevel;
+    }
+
+    let { data: program } = await admin
+      .from("programs")
+      .select("id")
+      .eq("school_id", schoolId)
+      .limit(1)
+      .maybeSingle();
+    if (!program?.id && level?.id) {
+      const { data: createdProgram, error: programErr } = await admin
+        .from("programs")
+        .insert({
+          school_id: schoolId,
+          academic_level_id: level.id,
+          code: "GERAL",
+          name: "Ensino Geral",
+          kind: "general",
+          is_active: true,
+        })
+        .select("id")
+        .single();
+      if (programErr) throw new Error(`Falha ao criar curso/programa: ${programErr.message}`);
+      program = createdProgram;
+    }
+
+    let { data: grade } = await admin
+      .from("grade_levels")
+      .select("id")
+      .eq("school_id", schoolId)
+      .limit(1)
+      .maybeSingle();
+    if (!grade?.id && program?.id) {
+      const { data: createdGrade, error: gradeErr } = await admin
+        .from("grade_levels")
+        .insert({
+          school_id: schoolId,
+          program_id: program.id,
+          code: "10A",
+          name: "10ª Classe",
+          sequence: 10,
+          is_active: true,
+        })
+        .select("id")
+        .single();
+      if (gradeErr) throw new Error(`Falha ao criar ano escolar/classe: ${gradeErr.message}`);
+      grade = createdGrade;
+    }
+
+    const { data: createdGroup, error: groupErr } = await admin
+      .from("class_groups")
+      .insert({
+        school_id: schoolId,
+        academic_year_id: year.id,
+        campus_id: campus?.id,
+        grade_level_id: grade?.id,
+        code: "10A-M",
+        name: "10ª A — Manhã",
+        shift: "morning",
+        capacity: 35,
+        status: "active",
+        ...(userId ? { created_by: userId, updated_by: userId } : {}),
+      })
+      .select("id")
+      .single();
+    if (groupErr) throw new Error(`Falha ao criar turma: ${groupErr.message} (${groupErr.details || ""})`);
+    classGroup = createdGroup;
+  }
   if (!classGroup?.id) throw new Error("Turma em falta — bootstrap incompleto.");
 
-  const { data: feePlan } = await admin
+  let { data: feePlan } = await admin
     .from("fee_plans")
     .select("id")
     .eq("school_id", schoolId)
     .eq("status", "active")
     .limit(1)
     .maybeSingle();
+
+  if (!feePlan?.id) {
+    const { data: createdPlan, error: planErr } = await admin
+      .from("fee_plans")
+      .insert({
+        school_id: schoolId,
+        academic_year_id: year.id,
+        code: "PLANO-PADRAO",
+        name: "Plano Padrão",
+        status: "active",
+      })
+      .select("id")
+      .single();
+    if (planErr) throw new Error(`Falha ao criar plano financeiro: ${planErr.message}`);
+    feePlan = createdPlan;
+  }
   if (!feePlan?.id) throw new Error("Plano financeiro em falta — bootstrap incompleto.");
 
-  const { data: feeItem } = await admin
+  let { data: feeItem } = await admin
     .from("fee_items")
     .select("id")
     .eq("school_id", schoolId)
@@ -195,15 +355,26 @@ export async function seedE2EGatewayFixture(
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();
-  if (!feeItem?.id) throw new Error("Item de taxa em falta — bootstrap incompleto.");
 
-  const { data: staff } = await admin
-    .from("school_memberships")
-    .select("user_id")
-    .eq("school_id", schoolId)
-    .limit(1)
-    .maybeSingle();
-  const userId = staff?.user_id ?? null;
+  if (!feeItem?.id) {
+    const { data: createdItem, error: itemErr } = await admin
+      .from("fee_items")
+      .insert({
+        school_id: schoolId,
+        fee_plan_id: feePlan.id,
+        code: "PROPINA-MENSAL",
+        name: "Propina Mensal",
+        kind: "tuition",
+        frequency: "monthly",
+        amount,
+        is_active: true,
+      })
+      .select("id")
+      .single();
+    if (itemErr) throw new Error(`Falha ao criar item de propina: ${itemErr.message}`);
+    feeItem = createdItem;
+  }
+  if (!feeItem?.id) throw new Error("Item de taxa em falta — bootstrap incompleto.");
 
   const { data: person, error: personError } = await admin
     .from("people")
@@ -218,36 +389,38 @@ export async function seedE2EGatewayFixture(
     .single();
   if (personError) throw new Error(personError.message);
 
-  const { data: registered, error: registerError } = await admin.rpc("register_student", {
-    school_id: schoolId,
-    person_id: person.id,
-    admission_date: today,
-    guardian_person_id: null,
-    relationship: null,
-    primary_guardian: false,
-    financial_responsibility: false,
-    pickup_authorization: false,
-  });
-  if (registerError) throw new Error(registerError.message);
-  const studentId = String((registered as { studentId: string }).studentId);
-
-  const { error: enrollError } = await admin.rpc("enroll_student", {
-    school_id: schoolId,
-    student_id: studentId,
-    class_group_id: classGroup.id,
-    enrolled_on: today,
-  });
-  if (enrollError) throw new Error(enrollError.message);
-
-  const { data: enrollment } = await admin
-    .from("enrollments")
+  const studentNumber = `EST-${String(Math.floor(100000 + Math.random() * 900000))}`;
+  const { data: student, error: studentErr } = await admin
+    .from("students")
+    .insert({
+      school_id: schoolId,
+      person_id: person.id,
+      student_number: studentNumber,
+      admission_date: today,
+      status: "active",
+      ...(userId ? { created_by: userId, updated_by: userId } : {}),
+    })
     .select("id")
-    .eq("school_id", schoolId)
-    .eq("student_id", studentId)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-  if (!enrollment?.id) throw new Error("Matrícula activa não encontrada após enroll_student.");
+    .single();
+  if (studentErr) throw new Error(`Falha ao criar estudante: ${studentErr.message}`);
+  const studentId = student.id;
+
+  const enrollmentNumber = `MAT-${String(Math.floor(100000 + Math.random() * 900000))}`;
+  const { data: enrollment, error: enrollmentErr } = await admin
+    .from("enrollments")
+    .insert({
+      school_id: schoolId,
+      academic_year_id: year.id,
+      class_group_id: classGroup.id,
+      student_id: studentId,
+      enrollment_number: enrollmentNumber,
+      enrolled_on: today,
+      status: "active",
+      ...(userId ? { created_by: userId, updated_by: userId } : {}),
+    })
+    .select("id")
+    .single();
+  if (enrollmentErr) throw new Error(`Falha ao criar matrícula: ${enrollmentErr.message}`);
 
   const { data: contract, error: contractError } = await admin
     .from("finance_contracts")

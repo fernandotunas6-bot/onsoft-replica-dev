@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, useMemo } from "react";
+import { lazy, Suspense, useEffect, useId, useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -102,6 +102,7 @@ function DashboardGreeting({ greeting }: { greeting: string }) {
 }
 
 function Dashboard() {
+  const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const currentUser = useCurrentAccount();
   const { school, selectedYearLabel } = useSchoolSettings();
@@ -143,7 +144,7 @@ function Dashboard() {
   // Realtime — invalida o overview sempre que dados críticos mudam na BD
   useEffect(() => {
     const channel = supabase
-      .channel("dashboard_realtime_overview")
+      .channel(`dashboard_realtime_overview:${realtimeInstanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () =>
         queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
       )
@@ -161,7 +162,7 @@ function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, realtimeInstanceId]);
 
   const greeting = (() => {
     const h = now?.getHours() ?? 20;

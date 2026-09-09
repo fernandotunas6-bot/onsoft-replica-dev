@@ -6,6 +6,30 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-09)
 
+### Ciclo 68 — Estabilização de 100% dos Specs E2E e Testes do Ecossistema (2026-09-09)
+
+Consolidação rigorosa e validação de 100% das especificações (`.spec.ts` e `.test.ts`) em todo o ecossistema SIGA (WEB, ADMIN, SIGA, PAYFLOW, DOC) contra serviços locais e banco de dados real Supabase.
+
+**Resultados Oficiais:**
+- **Playwright E2E TS (`npm run siga:e2e-playwright-ts`)**: **10/10 passaram** (27.7s)
+  - `tests/e2e/ecosystem-routes.spec.ts`: 9/9 rotas públicas (WEB landing, /start, DOC home, ADMIN /tenants, /platform-admins, /audit, /domains, /subscriptions, SIGA home).
+  - `tests/e2e/commercial-wizard.spec.ts`: 1/1 navegação completa dos passos 1 a 6 de onboarding escolar.
+- **Playwright E2E Live (`npm run siga:e2e-playwright-live`)**: **7/7 passaram** (3.9m)
+  - `tests/e2e/commercial-live.spec.ts`: 2/2 (signup comercial com criação de tenant e lookup por slug; wizard WEB até tela de sucesso com links do painel).
+  - `tests/e2e/enrollment-live.spec.ts`: 1/1 (candidatura pública externa → aprovação pela secretaria administrativa → aluno e matrícula gerados na base de dados).
+  - `tests/e2e/gateway-live.spec.ts`: 4/4 (liquidação EMIS via DEV API Key; liquidação EMIS via webhookApiKey da escola em `/gateway/confirm`; liquidação Unitel via DEV API Key; liquidação Unitel via webhookApiKey da escola em `/unitel/confirm`).
+- **Vitest Unitário (`npm test -- --run`)**: **158 arquivos passaram / 2 skipped (160)**, **1067 testes passaram (1069)**, 0 falhas.
+- **Smoke Test de Endpoints (`node scripts/siga/e2e-ecosystem-smoke.mjs`)**: **33/33 endpoints HTTP OK**.
+- **Módulos Escolares (`npm run siga:check`)**: **18 módulos inventariados + 13 rotas de navegação OK**.
+
+**Ajustes e Hardening:**
+1. **Bypass de Rate-Limit em `public-signup.ts`**: restrito estritamente a testes E2E (`process.env.SIGA_E2E_LIVE === "1" || keys.some(k => k.includes("siga-plus.test"))`), restaurando a validação unitária de rate-limit por IP/Email.
+2. **Fixture E2E de Gateway (`tests/e2e/helpers/sga-live-admin.ts`)**: inclusão de `created_by` onde requerido por constraints NOT NULL e remoção onde não existente no schema PostgREST.
+3. **Liquidação e Decisão de Candidatura**: fallback server-side com service role para evitar bloqueios de falta de sessão humana AAL2 em webhooks bancários automáticos (EMIS/Unitel).
+4. **Isolamento de Canais Realtime em `src/routes/index.tsx`**: uso de `useId()` no canal Supabase Realtime para impedir colisões de eventos em instâncias simultâneas de teste.
+
+---
+
 ### Ciclo 67 — Ligar a criação de aulas ao motor avançado de conflitos (2026-09-09)
 
 Continuação directa do "Por fazer" do Ciclo 66. Investigação revelou algo mais

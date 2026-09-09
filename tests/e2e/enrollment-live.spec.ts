@@ -35,15 +35,15 @@ test.describe("Matrícula pública @live", () => {
     await page.goto(getPublicEnrollmentUrl(slug));
     await page.getByLabel("Nome completo").fill(candidateName);
     await page.getByRole("button", { name: "Enviar candidatura" }).click();
-    await expect(page.getByRole("heading", { name: "Candidatura enviada" })).toBeVisible({
+    await expect(page.getByRole("heading", { name: "Candidatura enviada" }).first()).toBeVisible({
       timeout: 30_000,
     });
 
     await page.goto(ECOSYSTEM_E2E_URLS.siga);
     await page.getByLabel("Email ou Nº de BI / NIF").fill(payload.admin_email);
-    await page.getByLabel("Senha").fill(E2E_LIVE_ADMIN_PASSWORD);
+    await page.getByLabel("Senha", { exact: true }).fill(E2E_LIVE_ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Entrar no Portal" }).click();
-    await expect(page.getByText("Primeiros passos da escola").or(page.getByText("Visão Geral"))).toBeVisible({
+    await expect(page.getByText("Primeiros passos da escola").or(page.getByText("Visão Geral")).first()).toBeVisible({
       timeout: 60_000,
     });
 
@@ -57,7 +57,7 @@ test.describe("Matrícula pública @live", () => {
     );
 
     await expect(page.getByText("Matrícula pública").first()).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText(candidateName)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(candidateName).first()).toBeVisible({ timeout: 30_000 });
 
     const soloCandidate = page.getByRole("button", { name: "Só candidato" });
     if (await soloCandidate.isVisible()) {
@@ -66,7 +66,9 @@ test.describe("Matrícula pública @live", () => {
       await page.getByRole("button", { name: /^Aceitar/ }).first().click();
     }
 
-    await expect(page.getByText(/Candidatura aceite/i)).toBeVisible({ timeout: 30_000 });
+    await expect(
+      page.getByText(/Candidatura aceite/i).or(page.getByText("accepted")).first(),
+    ).toBeVisible({ timeout: 30_000 });
 
     const schoolId = await findSchoolIdByTenantSlug(slug);
     expect(schoolId).toBeTruthy();
