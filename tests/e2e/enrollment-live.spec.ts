@@ -20,6 +20,12 @@ test.describe("Matrícula pública @live", () => {
   test.skip(!isLiveE2EEnabled(), "Defina SIGA_E2E_LIVE=1 com apps locais e Supabase configurado.");
 
   test("candidatura pública → aceitar → aluno criado", async ({ page, request }) => {
+    // Percorre signup + login + 3 passos assíncronos no painel de definições;
+    // o orçamento global de 90s (playwright.config.ts) chega para o caminho
+    // isolado mas fica apertado quando o ecossistema completo (5 apps) corre
+    // em paralelo com outras suites — visto reproduzir sob carga alta da
+    // máquina, sem indício de bug (dados já presentes no DOM ao expirar).
+    test.setTimeout(150_000);
     const slug = uniqueE2ESlug("mat");
     const payload = buildSignupPayload(slug);
     const candidateName = `Candidato E2E ${slug}`;
