@@ -8,6 +8,8 @@
 -- =============================================================================
 
 BEGIN;
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '30s';
 
 -- Fail closed when the enterprise authorization substrate is not present.
 DO $preflight$
@@ -186,10 +188,10 @@ BEGIN
       USING ERRCODE = '23503';
   END IF;
 
-  SELECT role.school_id
+  SELECT r.school_id
     INTO role_school_id
-  FROM public.roles role
-  WHERE role.id = NEW.role_id;
+  FROM public.roles r
+  WHERE r.id = NEW.role_id;
 
   IF role_school_id IS NULL THEN
     RAISE EXCEPTION 'member_roles: role % is missing or has no tenant', NEW.role_id
@@ -236,9 +238,9 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1
-    FROM public.roles role
-    WHERE role.school_id = NEW.school_id
-      AND lower(role.code) = NEW.role_code
+    FROM public.roles r
+    WHERE r.school_id = NEW.school_id
+      AND lower(r.code) = NEW.role_code
   ) THEN
     RAISE EXCEPTION
       'school_invitations: role % does not exist in invitation tenant',
