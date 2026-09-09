@@ -6,6 +6,71 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-09)
 
+### Ciclo 69 — Correções dos dois bugs pré-existentes sinalizados no Ciclo 67 (2026-09-09)
+
+Retomou os dois achados sinalizados como tarefas separadas no Ciclo 67
+("Investigar loop de re-render em toda a app SIGA" e "Auditar campos
+QuickFormModal sem required:false").
+
+**1. QuickFormModal — campos opcionais bloqueados em silêncio.** Confirmado:
+o contorno manual feito ao vivo durante o teste do Ciclo 67 nunca tinha sido
+traduzido em correcção de código. Script Python de auditoria (associa cada
+`fields={[...]}` ao `QuickFormModal` mais próximo que o precede, sinaliza
+campos sem `type: "select"`/`"angola-identity"` e sem `required` explícito)
+correu contra os 14 ficheiros do projecto que usam `QuickFormModal`.
+Encontrados e corrigidos 3 campos reais: "Observações"/"Sala,rótulo" em
+`ScheduleWorkspace.tsx` (Nova Aula + Editar Aula) e "Motivo/Justificação" na
+alteração de estado em lote de alunos (`alunos/index.tsx`) — este último
+bloqueava uma operação em massa sobre múltiplos alunos seleccionados. Os
+outros 11 ficheiros já seguiam o padrão correcto (`required: false`
+explícito onde cabia). Commit `ca7b27f`.
+
+**2. Loop "Maximum update depth exceeded"** — investigação extensa com
+profiling ao vivo (hook `__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot`
+instrumentado via `javascript_tool`, já que a extensão real do React
+DevTools não está disponível nestas ferramentas). Descobertas, em ordem:
+- Todos os componentes desde a raiz (`RouterProvider`, `RootShell`, etc.)
+  apareciam como "actualizados" em cada commit — sugeria algo muito alto na
+  árvore, não um componente de rota isolado.
+- `src/client.tsx` envolve `<StartClient />` em `<StrictMode>`, que monta,
+  desmonta e remonta cada componente 2× em dev (comportamento normal e
+  documentado do React) — removendo-o temporariamente, o erro parou de
+  reproduzir. Confirma que StrictMode é o *gatilho* que expõe um efeito não
+  perfeitamente idempotente nalgum componente; não é, por si só, a causa.
+- 5 componentes de rota (`routes/index.tsx`, `documentos.tsx`, `faturas.tsx`,
+  `comunicacoes.tsx`, `alunos/index.tsx`) abrem um canal Supabase Realtime
+  dentro de `useEffect` com um **nome de canal fixo e hardcoded** (mesma
+  string em toda montagem). Sintoma directo no console: "WebSocket is closed
+  before the connection is established" repetido — assinatura clássica de
+  dois `.channel(mesmoNome).subscribe()` colidindo quando StrictMode
+  remonta rapidamente. Corrigido dando a cada canal um sufixo único via
+  `useId()` (estável por instância, seguro para SSR).
+- Também corrigido, no mesmo esforço de limpar o console: `UserAvatar` e
+  `MediaAvatar` inicializavam `useState` com a URL **não resolvida**
+  (`siga-avatar://…`, `siga-file://…`) em vez de `null`, causando o browser
+  tentar carregar esse scheme inválido como `<img src>` na primeira
+  renderização (`ERR_UNKNOWN_URL_SCHEME` no console).
+
+**Ressalva importante de metodologia:** parte da "confirmação" inicial de
+que o erro persistia foi, na verdade, **resíduo acumulado no buffer de
+console de uma aba do browser reutilizada em muitas navegações** — não
+erros novos. Só ficou claro ao testar numa aba (`tabs_create`) nova e limpa:
+zero erros de qualquer tipo, em `/`, `/alunos`, `/pedagogica`, `/documentos`,
+`/faturas`, `/comunicacoes`. Isto significa que **não há certeza absoluta**
+de que os canais Realtime eram o único ou verdadeiro gatilho do "Maximum
+update depth" original — mas o padrão de nome de canal fixo era, de
+qualquer forma, um bug real e documentado (a corrida do WebSocket), e as
+correcções aplicadas (canais únicos + avatar) são de baixo risco. Se o erro
+voltar a reproduzir, confirmar primeiro numa aba nova antes de investigar
+mais, e usar o React DevTools Profiler real (extensão do browser) gravando
+desde o carregamento — não disponível nas ferramentas desta sessão.
+Commits `ce83c0d`, `598288b`.
+
+**Suite:** `vitest run` 1067/1069 ✓ (2 skipped), eslint/tsc sem erros novos
+nos ficheiros tocados.
+
+---
+
 ### Ciclo 68 — Estabilização de 100% dos Specs E2E e Testes do Ecossistema (2026-09-09)
 
 Consolidação rigorosa e validação de 100% das especificações (`.spec.ts` e `.test.ts`) em todo o ecossistema SIGA (WEB, ADMIN, SIGA, PAYFLOW, DOC) contra serviços locais e banco de dados real Supabase.
