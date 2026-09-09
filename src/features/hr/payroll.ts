@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import type { Json } from "@/integrations/supabase/types";
 import {
   createPayrollRunInputSchema,
   payrollRunIdInputSchema,
@@ -84,7 +85,7 @@ export type PayrollItemReviewRow = {
   grossAmountKz: number;
   netAmountKz: number;
   status: string;
-  calculationDetails: Record<string, unknown>;
+  calculationDetails: Record<string, Json>;
 };
 
 export const getPayrollRunDetail = createServerFn({ method: "GET" })
@@ -212,7 +213,7 @@ export const getPayrollRunDetail = createServerFn({ method: "GET" })
         grossAmountKz: Number(row.gross_amount_kz ?? 0),
         netAmountKz: Number(row.net_amount_kz ?? 0),
         status: String(row.status),
-        calculationDetails: (row.calculation_details ?? {}) as Record<string, unknown>,
+        calculationDetails: (row.calculation_details ?? {}) as Record<string, Json>,
       };
     });
 
