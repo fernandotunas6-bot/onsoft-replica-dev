@@ -69,6 +69,30 @@ Commits `ce83c0d`, `598288b`.
 **Suite:** `vitest run` 1067/1069 ✓ (2 skipped), eslint/tsc sem erros novos
 nos ficheiros tocados.
 
+**Ressalva do Ciclo 69 resolvida (2026-09-09):** verificação dedicada da
+correcção dos canais Realtime, pedida explicitamente para fechar a incerteza
+deixada em aberto. Servidor Vite isolado (`siga-fresh`, porta 3016, config
+`.claude/launch.json`) arrancado do zero para não herdar estado de nenhuma
+outra instância. Numa aba nova (`tabs_create`), sessão real já autenticada
+("Colegio Adventista - Huambo") — testadas as 5 rotas antes sinalizadas
+(`/`, `/alunos`, `/pedagogica`, `/documentos`, `/faturas`, `/comunicacoes`)
+com *hard reload* completo em cada uma, mais navegação client-side (SPA, sem
+reload) entre `/pedagogica` e `/comunicacoes`: **zero ocorrências de
+"Maximum update depth exceeded" em qualquer rota**, zero crescimento de
+mensagens de consola ou de tráfego de rede em 20s+ de inactividade em
+`/` e em `/comunicacoes`. Único erro de consola encontrado é pré-existente e
+não relacionado: `GET /brands/sige.png` 404 (ícone de marca em falta).
+Instrumentação do hook do React DevTools (`onCommitFiberRoot`) tentada mas
+descartada — injectado tarde de mais (depois do primeiro commit do React),
+não substitui a extensão real recomendada na ressalva original para uma
+futura investigação, caso o erro reapareça. Escola de teste descartável
+(`e2e-loop-*`, criada via `POST /api/saas/signup` + senha fixa de teste) usada
+só para confirmar que o fluxo de login funciona nesta config isolada, depois
+removida com `scripts/siga/e2e-cleanup-lib.mjs` (a única não usada no teste
+final, que correu na sessão real já autenticada). **Conclusão: as correcções
+de `ce83c0d`/`598288b` seguram — não há sinal do loop original em nenhuma das
+rotas suspeitas.**
+
 ---
 
 ### Ciclo 68 — Estabilização de 100% dos Specs E2E e Testes do Ecossistema (2026-09-09)
