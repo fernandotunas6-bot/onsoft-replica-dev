@@ -131,9 +131,7 @@ export const encarregadosImporter: RowImporter = {
     const student = studentMatch.row!;
 
     // Criar ou reaproveitar a pessoa encarregada
-    const person = await resolveOrCreatePerson(
-      ctx.db,
-      ctx.schoolId,
+    const personResult = await resolveOrCreatePerson(
       {
         full_name: guardianName,
         national_id: nationalId,
@@ -141,16 +139,16 @@ export const encarregadosImporter: RowImporter = {
         email,
       },
       cache.existingPeople,
-      normalized,
+      ctx,
     );
 
-    const relKey = `${student.id}:${person.id}`;
+    const relKey = `${student.id}:${personResult.personId}`;
     if (cache.existingGuardians.has(relKey)) {
       return {
         status: "duplicate",
         warnings: ["Encarregado já associado a este educando."],
         errors: [],
-        audits: person.audits,
+        audits: personResult.audits,
         target_record_id: relKey,
       };
     }
@@ -158,7 +156,7 @@ export const encarregadosImporter: RowImporter = {
     const { error: relError } = await ctx.db.from("student_guardians").upsert({
       school_id: ctx.schoolId,
       student_id: student.id,
-      guardian_person_id: person.id,
+      guardian_person_id: personResult.personId,
       relationship,
       is_primary: isFinancial,
       authorized_pickup: true,
@@ -169,7 +167,7 @@ export const encarregadosImporter: RowImporter = {
         status: "error",
         warnings: analysis.warnings,
         errors: [`Erro ao associar encarregado: ${relError.message}`],
-        audits: person.audits,
+        audits: personResult.audits,
       };
     }
 
@@ -178,7 +176,7 @@ export const encarregadosImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: person.audits,
+      audits: personResult.audits,
       target_record_id: relKey,
     };
   },
