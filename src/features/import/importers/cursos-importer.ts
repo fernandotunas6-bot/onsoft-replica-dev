@@ -81,7 +81,7 @@ export const cursosImporter: RowImporter = {
         warnings: analysis.warnings,
         errors: [],
         audits: [],
-        entity_id: analysis.duplicate_of,
+        target_record_id: analysis.duplicate_of,
       };
     }
 
@@ -111,7 +111,7 @@ export const cursosImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: [],
-      entity_id: String(data.id),
+      target_record_id: String(data.id),
     };
   },
 };

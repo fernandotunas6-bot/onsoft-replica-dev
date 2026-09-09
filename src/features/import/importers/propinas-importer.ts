@@ -91,7 +91,7 @@ export const propinasImporter: RowImporter = {
         warnings: analysis.warnings,
         errors: [],
         audits: [],
-        entity_id: cache.existingSettingsId,
+        target_record_id: cache.existingSettingsId,
       };
     }
 
@@ -122,7 +122,7 @@ export const propinasImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: [],
-      entity_id: String(data.id),
+      target_record_id: String(data.id),
     };
   },
 };

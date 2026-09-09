@@ -131,7 +131,7 @@ export const pautasImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: [],
-      entity_id: enrollment.id,
+      target_record_id: enrollment.id,
     };
   },
 };

@@ -151,7 +151,7 @@ export const encarregadosImporter: RowImporter = {
         warnings: ["Encarregado já associado a este educando."],
         errors: [],
         audits: person.audits,
-        entity_id: relKey,
+        target_record_id: relKey,
       };
     }
 
@@ -179,7 +179,7 @@ export const encarregadosImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: person.audits,
-      entity_id: relKey,
+      target_record_id: relKey,
     };
   },
 };

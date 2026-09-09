@@ -124,7 +124,7 @@ export const historicoFinanceiroImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: [],
-      entity_id: invoice.id,
+      target_record_id: invoice.id,
     };
   },
 };

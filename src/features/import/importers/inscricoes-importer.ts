@@ -101,7 +101,7 @@ export const inscricoesImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: personRes.audits,
-      entity_id: student.id,
+      target_record_id: student.id,
     };
   },
 };

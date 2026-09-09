@@ -115,7 +115,7 @@ export const avaliacoesImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: [],
-      entity_id: data.id,
+      target_record_id: data.id,
     };
   },
 };

@@ -110,7 +110,7 @@ export const funcionariosImporter: RowImporter = {
         warnings: analysis.warnings,
         errors: [],
         audits: person.audits,
-        entity_id: roleKey,
+        target_record_id: roleKey,
       };
     }
 
@@ -136,7 +136,7 @@ export const funcionariosImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: person.audits,
-      entity_id: roleKey,
+      target_record_id: roleKey,
     };
   },
 };

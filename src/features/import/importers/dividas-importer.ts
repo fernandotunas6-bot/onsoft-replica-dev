@@ -120,7 +120,7 @@ export const dividasImporter: RowImporter = {
         warnings: analysis.warnings,
         errors: [],
         audits: [],
-        entity_id: invoiceNum,
+        target_record_id: invoiceNum,
       };
     }
 
@@ -156,7 +156,7 @@ export const dividasImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: [],
-      entity_id: String(data.id),
+      target_record_id: String(data.id),
     };
   },
 };

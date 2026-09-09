@@ -133,7 +133,7 @@ export const horariosImporter: RowImporter = {
         warnings: analysis.warnings,
         errors: [],
         audits: [],
-        entity_id: slotKey,
+        target_record_id: slotKey,
       };
     }
 
@@ -166,7 +166,7 @@ export const horariosImporter: RowImporter = {
       warnings: analysis.warnings,
       errors: [],
       audits: [],
-      entity_id: String(data.id),
+      target_record_id: String(data.id),
     };
   },
 };
