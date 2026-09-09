@@ -495,7 +495,8 @@ export const saveTeacherAvailability = createServerFn({ method: "POST" })
       })),
       p_actor: context.userId,
     });
-    if (error) throw publicDatabaseError(error, "Não foi possível guardar a disponibilidade docente.");
+    if (error)
+      throw publicDatabaseError(error, "Não foi possível guardar a disponibilidade docente.");
 
     return { success: true };
   });
@@ -717,6 +718,85 @@ export const createAdvancedScheduleSlot = createServerFn({ method: "POST" })
     return { slot, warnings };
   });
 
+export const updateAdvancedScheduleSlot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => updateScheduleSlotInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: currentSlot, error: slotError } = await db
+      .from("timetable_slots")
+      .select("id, class_subject_id")
+      .eq("id", data.slotId)
+      .eq("school_id", membership.schoolId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (slotError) {
+      throw publicDatabaseError(slotError, "Não foi possível carregar o slot de horário.");
+    }
+    if (!currentSlot) throw new Error("Slot não encontrado ou já inactivo.");
+
+    const { data: classSubject, error: subjectError } = await db
+      .from("class_subjects")
+      .select("class_group_id")
+      .eq("id", currentSlot.class_subject_id)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (subjectError) {
+      throw publicDatabaseError(subjectError, "Não foi possível validar o slot de horário.");
+    }
+    if (!classSubject) throw new Error("A disciplina deste slot já não está disponível.");
+
+    const startsAt = data.startsAt.length === 5 ? `${data.startsAt}:00` : data.startsAt;
+    const endsAt = data.endsAt.length === 5 ? `${data.endsAt}:00` : data.endsAt;
+    const room = data.label?.trim() || "Sala";
+
+    // Mesma lógica de create_timetable_slot_guarded: avisos não-bloqueantes
+    // calculados aqui, conflitos bloqueantes decididos atomicamente dentro
+    // do RPC (protegido por advisory lock), excluindo o próprio slot.
+    const warnings = (
+      await assertScheduleSlotConflictsDetailed({
+        db,
+        schoolId: membership.schoolId,
+        classGroupId: String(classSubject.class_group_id),
+        teacherId: data.teacherId ?? null,
+        roomId: data.roomId,
+        weekday: data.weekday,
+        startsAt,
+        endsAt,
+        roomLabel: room,
+        excludeSlotId: data.slotId,
+      })
+    ).filter((c) => c.severity === "warning");
+
+    const { data: slot, error } = await db.rpc("update_timetable_slot_guarded", {
+      p_school_id: membership.schoolId,
+      p_slot_id: data.slotId,
+      p_subject_id: data.subjectId ?? null,
+      p_teacher_id: data.teacherId ?? null,
+      p_room_id: data.roomId ?? null,
+      p_weekday: data.weekday,
+      p_starts_at: startsAt,
+      p_ends_at: endsAt,
+      p_room_label: room,
+      p_shift_id: data.shiftId ?? null,
+      p_schedule_id: data.scheduleId ?? null,
+      p_day_period_number: data.dayPeriodNumber ?? null,
+      p_notes: data.notes ?? null,
+      p_actor: context.userId,
+    });
+
+    if (error) {
+      if (error.code === "23505") throw new Error(error.message);
+      throw publicDatabaseError(error, "Não foi possível actualizar o slot de horário.");
+    }
+    return { slot, warnings };
+  });
+
 // ---------------------------------------------------------------------------
 // 9. PUBLICAÇÃO E VERSIONAMENTO DO HORÁRIO
 // ---------------------------------------------------------------------------
@@ -905,7 +985,8 @@ async function syncScheduleSlotsToSessions({
   if (rowsToInsert.length === 0) return 0;
 
   const { error } = await db.from("siga_attendance_sessions").insert(rowsToInsert);
-  if (error) throw publicDatabaseError(error, "Não foi possível sincronizar as sessões de presença.");
+  if (error)
+    throw publicDatabaseError(error, "Não foi possível sincronizar as sessões de presença.");
 
   return rowsToInsert.length;
 }

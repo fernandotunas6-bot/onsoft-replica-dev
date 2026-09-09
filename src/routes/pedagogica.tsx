@@ -46,7 +46,7 @@ import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import {
   createAdvancedScheduleSlot,
   deleteScheduleSlot,
-  updateScheduleSlot,
+  updateAdvancedScheduleSlot,
   publishAcademicSchedule,
   ensureAcademicDefaults,
   listPedagogicalWorkspace,
@@ -1107,7 +1107,10 @@ function PedagogicaPage() {
                 await refreshAcademic();
               }}
               onUpdateSlot={async (data) => {
-                await updateScheduleSlot({ data });
+                const { warnings } = await updateAdvancedScheduleSlot({ data });
+                for (const warning of warnings) {
+                  toast.warning(warning.message);
+                }
                 await refreshAcademic();
               }}
               onDeleteSlot={async (slotId) => {

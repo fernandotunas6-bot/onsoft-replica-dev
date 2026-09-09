@@ -23,12 +23,37 @@ e completamente órfã (nenhum componente a chamava).
   `ScheduleWorkspace`) passa a chamar `createAdvancedScheduleSlot` em vez de
   `createScheduleSlot`. Os `warnings` não-bloqueantes devolvidos (disponibilidade
   docente fora do cadastrado, sala sobrelotada) são mostrados como `toast.warning`.
-  `onUpdateSlot`/`onDeleteSlot` mantidos como estavam (não existe ainda uma versão
-  avançada equivalente para update — ficou por fazer, ver abaixo).
+- **Bug funcional adicional encontrado ao investigar o "Editar Aula":** o
+  backend legado `updateScheduleSlot` (`server-legacy.ts`) só actualizava
+  `weekday`/`starts_at`/`ends_at`/`room` (rótulo de texto) — `teacherId` e
+  `roomId` enviados pelo formulário de edição eram **completamente ignorados**.
+  Um utilizador que trocasse o professor de uma aula via "Editar Aula" via
+  "Slot actualizado" com sucesso, mas o professor não mudava de facto na BD.
+- **`20260909010000_update_timetable_slot_guarded.sql`:** nova RPC
+  `update_timetable_slot_guarded`, espelhando `create_timetable_slot_guarded`
+  para o caso UPDATE — resolve/actualiza o `class_subject_id` certo (turma
+  partilha um único registo `class_subjects` por disciplina, onde `teacher_id`
+  vive; trocar o professor num slot actualiza esse registo e por isso afecta
+  todos os slots dessa disciplina+turma, tal como já acontecia no create),
+  verifica conflitos excluindo o próprio slot, tudo dentro do mesmo advisory
+  lock por escola+dia-da-semana. Aplicada ao vivo e espelhada em
+  `APPLY_ENROLLMENT_AND_PREMIUM.sql`.
+- **`updateAdvancedScheduleSlot`** (`advanced-academic-server.ts`): nova
+  server function que chama a RPC acima, com os mesmos `warnings` não-
+  -bloqueantes que `createAdvancedScheduleSlot`. `onUpdateSlot` em
+  `pedagogica.tsx` passa a usá-la em vez de `updateScheduleSlot`.
+  `onDeleteSlot` mantido como estava (delete não tem a mesma classe de bugs).
 
-**Validado ao vivo pela UI real:** criada aula de Matemática (Terça 10:00-10:45,
-Turma 10a A) → `POST createAdvancedScheduleSlot` 200 → confirmado o slot em
-`timetable_slots` via query directa; removido depois (dado de teste).
+**Validado ao vivo pela UI real:**
+- Criação: aula de Matemática (Terça 10:00-10:45, Turma 10a A) →
+  `POST createAdvancedScheduleSlot` 200 → confirmado o slot em
+  `timetable_slots` via query directa; removido depois (dado de teste).
+- Edição: trocado o professor de uma aula existente (Matemática, Segunda
+  07:30-08:20) de Melita Canguele para Madalena Pedro Chissengo →
+  `POST updateAdvancedScheduleSlot` 200 → **aviso de disponibilidade docente
+  apareceu correctamente** (Madalena só tem disponibilidade cadastrada à
+  Quarta) → `teacher_id` confirmado alterado em `class_subjects` via query
+  directa → revertido ao estado original depois (dado pré-existente).
 
 **Dois bugs pré-existentes encontrados durante o teste manual (não corrigidos
 nesta fatia — sinalizados como tarefas separadas):**
@@ -48,13 +73,24 @@ nesta fatia — sinalizados como tarefas separadas):**
    de validação nativo do browser). Vale auditar todos os `QuickFormModal` do
    projecto por campos de texto livre sem `required: false` explícito.
 
-**Suite:** `vitest run tests/academic tests/ui` 118/118 ✓, eslint sem erros
-novos, `tsc --noEmit` sem erros novos nos ficheiros tocados.
+**Suite:** `vitest run tests/academic` 87/87 ✓, eslint sem erros novos,
+`tsc --noEmit` sem erros novos nos ficheiros tocados. (`vitest run` completo
+mostrou 2 falhas em `tests/saas/public-signup.test.ts` — não relacionadas a
+este ciclo, causadas por edições concorrentes de outra sessão em
+`src/features/saas/public-signup.ts`, não commitadas; ver nota no fim.)
 
-**Por fazer:** criar `updateAdvancedScheduleSlot` (equivalente a
-`createAdvancedScheduleSlot` mas para UPDATE) para que "Editar Aula" também
-beneficie do advisory lock e da verificação de disponibilidade — hoje só
-"Nova Aula"/"Copiar Aula" usam o motor avançado.
+**Por fazer:** `deleteScheduleSlot` continua legado (soft-delete simples, sem
+a mesma classe de bugs de create/update, por isso não priorizado); considerar
+se `assertScheduleSlotAvailable`/`createScheduleSlot`/`updateScheduleSlot`
+(agora órfãos, ninguém no frontend os chama) devem ser removidos do
+`server-legacy.ts` numa fatia futura, ou mantidos como fallback documentado.
+
+**Nota — trabalho concorrente detectado nesta sessão:** ao longo deste ciclo,
+três ficheiros fora do escopo mudaram no disco sem qualquer acção desta
+sessão: `src/features/saas/public-signup.ts`, `src/features/finance/
+gateway-webhook-handler.ts`, `tests/e2e/helpers/sga-live-admin.ts`. Sugere
+outra sessão/pessoa a trabalhar no mesmo repositório em paralelo. Deixados
+intocados e fora dos commits deste ciclo.
 
 ### Ciclo 66 — UI da Matriz Curricular e Disponibilidade Docente (2026-09-09)
 
