@@ -6,6 +6,46 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-09)
 
+### Ciclo 72 — Bug real de perda de dados em 14 importadores (`entity_id` vs `target_record_id`) (2026-09-09)
+
+Continuação da auditoria de débito de `tsc --noEmit` (52 erros pré-existentes
+espalhados por 26 ficheiros, a maioria em `src/features/import/`).
+
+**Bug confirmado e corrigido:** `server.ts` só lê `result.target_record_id`
+do retorno de `commitRow` (nome alinhado com `schemas.ts`/`engine/types.ts`
+e com a coluna `import_rows.target_record_id`). 14 dos ~24 importadores
+(`avaliacoes`, `classes`, `cursos`, `disciplinas`, `dividas`,
+`encarregados`, `funcionarios`, `historico-financeiro`, `horarios`,
+`inscricoes`, `pautas`, `presencas`, `propinas`, `salas`) devolviam
+`entity_id` — campo que nada no repositório lia — tanto no caminho de
+duplicado como no de inserção bem-sucedida. **Resultado real: o link para o
+registo alvo ficava sempre `null` para estes 14 módulos, silenciosamente,
+sem nenhum teste a cobrir o campo** — só a checagem estrita de tipos (que
+ninguém corria a sério, dado "27/52 erros pré-existentes" repetido em
+quase todos os ciclos anteriores) apanhava isto. Corrigido por rename
+mecânico `entity_id:` → `target_record_id:` nos 14 ficheiros + adicionado
+`"duplicate"` à união `RowCommitResult.status` (`engine/types.ts`), que já
+faltava lá apesar de `analyzeRow` e vários `commitRow` já a devolverem.
+Commit `0c28c76`. `tests/import` 84/84 ✓, eslint sem erros novos.
+
+**Não corrigido nesta fatia — sinalizado como tarefa separada:** cluster de
+erros mais sério em `encarregados-importer.ts`/`funcionarios-importer.ts`/
+`inscricoes-importer.ts` ("Expected 3 arguments, but got 5", acesso a
+`.id`/`.status`/`.errors`/`.person` que não existem no tipo devolvido) —
+cheira a uma função auxiliar partilhada (resolução de pessoa/duplicado) cuja
+assinatura mudou sem estes 3 ficheiros serem actualizados. Pode ser perda de
+dados real como o caso acima, não só ruído de tipos — precisa de
+investigação dedicada antes de corrigir às cegas.
+
+**Nota:** `tsc --noEmit` continua a mostrar 52 erros no total mesmo depois
+desta correcção — a maior parte é inferência de tipo (`status` a alargar
+para `string` em vez do literal, por falta de anotação explícita de retorno
+nas funções `commitRow`) e um cluster não relacionado em
+`src/features/import/components/SchoolDataExportPanel.tsx`/
+`export-engine.ts`/`excel-template-builder.ts` (biblioteca `exceljs`
+desactualizada) — cosmético, sem indício de perda de dados como o caso
+corrigido acima.
+
 ### Ciclo 71 — Validação completa dos specs do ecossistema pós-Ciclo 70 (2026-09-09)
 
 Repetição da metodologia do Ciclo 68 para confirmar que as alterações dos
