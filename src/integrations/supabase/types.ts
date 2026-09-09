@@ -20,6 +20,41 @@ type FinanceVersionedInsert = {
   version?: number;
 };
 
+// Domínio RH/Folha Salarial real (migrations 20260906*), nunca capturado
+// neste ficheiro — ver docs/agents/CONTINUE.md. Tabelas hr_* completas não
+// estão modeladas em Tables (fora do escopo desta correcção); só as formas
+// de retorno das funções abaixo, o suficiente para tipar as chamadas .rpc().
+type HrPayrollRunRow = FinanceVersionedRow & {
+  competence_year: number;
+  competence_month: number;
+  period_start: string;
+  period_end: string;
+  status: string;
+  total_gross_kz: number;
+  total_deductions_kz: number;
+  total_net_kz: number;
+  approved_at: string | null;
+  approved_by: string | null;
+  paid_at: string | null;
+  notes: string | null;
+};
+
+type HrPayrollPaymentBatchRow = FinanceVersionedRow & {
+  payroll_run_id: string;
+  batch_number: string;
+  method: string;
+  status: string;
+  total_amount_kz: number;
+  payable_count: number;
+  blocked_count: number;
+  prepared_at: string;
+  prepared_by: string;
+  authorized_at: string | null;
+  authorized_by: string | null;
+  execution_reference: string | null;
+  notes: string | null;
+};
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -1976,6 +2011,65 @@ export type Database = {
       merge_people: {
         Args: { p_survivor_id: string; p_duplicate_id: string; p_reason: string };
         Returns: Database["public"]["Tables"]["people"]["Row"];
+      };
+      // Domínio RH/Folha Salarial real (migrations 20260906*) — ver nota junto
+      // a HrPayrollRunRow/HrPayrollPaymentBatchRow, no topo do ficheiro.
+      hr_create_payroll_run: {
+        Args: { p_year: number; p_month: number; p_notes?: string | null };
+        Returns: HrPayrollRunRow;
+      };
+      hr_calculate_payroll_run: {
+        Args: { p_payroll_run_id: string };
+        Returns: {
+          payroll_run_id: string;
+          calculated_items: number;
+          skipped_items: number;
+          total_gross_kz: number;
+          total_deductions_kz: number;
+          total_net_kz: number;
+        }[];
+      };
+      hr_approve_payroll_run: {
+        Args: { p_payroll_run_id: string };
+        Returns: HrPayrollRunRow;
+      };
+      hr_materialize_teacher_lessons: {
+        Args: { p_from: string; p_to: string };
+        Returns: number;
+      };
+      hr_create_payroll_payment_batch: {
+        Args: { p_payroll_run_id: string };
+        Returns: HrPayrollPaymentBatchRow;
+      };
+      hr_refresh_payroll_payment_batch: {
+        Args: { p_batch_id: string };
+        Returns: HrPayrollPaymentBatchRow;
+      };
+      hr_authorize_payroll_payment_batch: {
+        Args: { p_batch_id: string };
+        Returns: HrPayrollPaymentBatchRow;
+      };
+      hr_assign_teacher_substitute: {
+        Args: { p_occurrence_id: string; p_substitute_teacher_id: string; p_reason: string };
+        Returns: string;
+      };
+      hr_create_extra_teacher_lesson: {
+        Args: {
+          p_class_subject_id: string;
+          p_lesson_date: string;
+          p_starts_at: string;
+          p_ends_at: string;
+          p_reason: string;
+        };
+        Returns: string;
+      };
+      hr_evaluate_teacher_lesson_attendance: {
+        Args: { p_occurrence_id: string };
+        Returns: {
+          attendance_percent: number;
+          payable_quantity: number | null;
+          exception_status: string;
+        }[];
       };
     };
     Enums: {
