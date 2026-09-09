@@ -387,3 +387,46 @@ CREATE POLICY "Manage invitations in own school" ON public.school_invitations
   FOR ALL TO authenticated
   USING (public.is_school_member(school_id))
   WITH CHECK (public.is_school_member(school_id));
+
+
+-- ---------------------------------------------------------------------------
+-- 6) Hardening de funções internas (achado da auditoria 2026-09-09)
+-- ---------------------------------------------------------------------------
+-- Funções de trigger/event trigger não são endpoints RPC. O motor PostgreSQL
+-- continua a executá-las pelos triggers mesmo sem EXECUTE para clientes.
+-- O bloco é condicional porque RH pode ainda não existir numa instalação base.
+DO $siga_hardening$
+BEGIN
+  IF to_regprocedure('public.handle_new_user()') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated';
+  END IF;
+
+  IF to_regprocedure('public.hr_gate_teacher_compensation_by_assurance()') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.hr_gate_teacher_compensation_by_assurance() FROM PUBLIC, anon, authenticated';
+  END IF;
+
+  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated';
+  END IF;
+END
+$siga_hardening$;
+
+-- validate_issued_document(text) permanece público de forma intencional: a
+-- validação por código é uma funcionalidade pública e retorna dados limitados.
+-- Rever separadamente entropia, rate limiting e minimização do payload.
+
+-- Smoke: as funções internas existentes devem devolver false nas três colunas.
+SELECT
+  p.proname AS function_name,
+  has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_execute,
+  has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authenticated_execute,
+  has_function_privilege('public', p.oid, 'EXECUTE') AS public_execute
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname IN (
+    'handle_new_user',
+    'hr_gate_teacher_compensation_by_assurance',
+    'rls_auto_enable'
+  )
+ORDER BY p.proname;
