@@ -83,7 +83,7 @@ export const buildAlumniCommunicationAudience = createServerFn({ method: "GET" }
       const person = peopleById.get(profile.person_id);
       const prefs = preferencesById.get(profile.id);
       if (!person) return [];
-      if (data.purpose !== "general" && prefs && prefs[purposeKey] === false) return [];
+      if (data.purpose !== "general" && prefs && (prefs as Record<string, any>)[purposeKey] === false) return [];
       return [{
         alumniId: profile.id,
         fullName: person.full_name,

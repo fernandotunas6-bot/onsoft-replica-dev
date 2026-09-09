@@ -34,7 +34,8 @@ export function ZoomMeetingButton({
     try {
       if (attendanceSessionId) {
         // Tentar obter reunião existente ou criar uma nova vinculada à sessão de aula
-        let meeting = await getZoomLessonMeeting({ data: { attendanceSessionId } });
+        let meeting: { join_url?: string | null; status?: string | null } | null =
+          await getZoomLessonMeeting({ data: { attendanceSessionId } });
         if (!meeting || meeting.status !== "active") {
           meeting = await createZoomLessonMeeting({
             data: {
@@ -44,14 +45,15 @@ export function ZoomMeetingButton({
           });
         }
 
-        if (meeting?.join_url) {
-          window.open(meeting.join_url, "_blank", "noopener,noreferrer");
+        const joinUrl = meeting?.join_url;
+        if (joinUrl) {
+          window.open(joinUrl, "_blank", "noopener,noreferrer");
           toast.success("A abrir reunião Zoom da aula", {
             description: `Tópico: ${cleanTopic}`,
             action: {
               label: "Copiar Link",
               onClick: () => {
-                void navigator.clipboard.writeText(meeting!.join_url);
+                void navigator.clipboard.writeText(joinUrl);
                 toast.success("Link copiado para a área de transferência!");
               },
             },

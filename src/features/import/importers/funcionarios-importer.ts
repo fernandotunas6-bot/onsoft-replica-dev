@@ -1,7 +1,7 @@
 import { findBestPersonMatch } from "../engine/dedupe";
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
-import { loadExistingPeople, resolveOrCreatePerson } from "./people-core";
+import { loadExistingPeople, resolveOrCreatePerson, type PersonCandidate } from "./people-core";
 
 type FuncionariosCache = ImportRefCache & {
   existingRoleKeys: Set<string>; // key: `${person_id}:${normalized_role}`
@@ -90,20 +90,17 @@ export const funcionariosImporter: RowImporter = {
     const email = normalizeText(valueOf(normalized, "email", "correio"));
     const roleTitle = normalizeText(valueOf(normalized, "role_title", "cargo", "funcao"))!;
 
-    const person = await resolveOrCreatePerson(
-      ctx.db,
-      ctx.schoolId,
-      {
-        full_name: fullName,
-        national_id: idNumber,
-        phone,
-        email,
-      },
-      cache.existingPeople,
-      normalized,
-    );
+    const candidate: PersonCandidate = {
+      full_name: fullName,
+      national_id: idNumber || null,
+      phone: phone || null,
+      email: email || null,
+      birth_date: null,
+      gender: null,
+    };
+    const person = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
 
-    const roleKey = `${person.id}:${roleTitle}`;
+    const roleKey = `${person.personId}:${roleTitle}`;
     if (cache.existingRoleKeys.has(roleKey)) {
       return {
         status: "duplicate",
@@ -114,9 +111,19 @@ export const funcionariosImporter: RowImporter = {
       };
     }
 
+    if (ctx.dryRun) {
+      return {
+        status: person.created ? "will_insert" : "will_update",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: person.audits,
+        target_record_id: roleKey,
+      };
+    }
+
     const { error: roleError } = await ctx.db.from("person_roles").insert({
       school_id: ctx.schoolId,
-      person_id: person.id,
+      person_id: person.personId,
       role: roleTitle,
       active: true,
     });

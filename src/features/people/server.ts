@@ -278,7 +278,7 @@ export const searchPeople = createServerFn({ method: "GET" })
         .eq("school_id", membership.schoolId)
         .order("full_name")
         .limit(Math.max(data.limit * 3, 50));
-      people = fallback.data;
+      people = (fallback.data as typeof people) ?? null;
       error = fallback.error;
     }
     if (error) throw publicDatabaseError(error, "Não foi possível pesquisar pessoas.");

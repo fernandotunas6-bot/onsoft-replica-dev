@@ -66,20 +66,37 @@ export const inscricoesImporter: RowImporter = {
       return { status: "error", warnings: analysis.warnings, errors: analysis.errors, audits: [] };
     }
 
-    const personRes = await resolveOrCreatePerson(normalized, ctx, cache);
-    if (personRes.status === "error") {
-      return { status: "error", warnings: analysis.warnings, errors: personRes.errors, audits: [] };
+    const candidate = personCandidateFromRow(normalized);
+    if (!candidate) {
+      return {
+        status: "error",
+        warnings: analysis.warnings,
+        errors: ["Dados da pessoa insuficientes para inscrição."],
+        audits: [],
+      };
     }
+
+    const personRes = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
 
     const appNumber = normalizeText(
       valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
     ) || `CAND-${Date.now().toString().slice(-6)}`;
 
+    if (ctx.dryRun) {
+      return {
+        status: personRes.created ? "will_insert" : "will_update",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: personRes.audits,
+        target_record_id: appNumber,
+      };
+    }
+
     const { data: student, error: studentError } = await ctx.db
       .from("students")
       .insert({
         school_id: ctx.schoolId,
-        person_id: personRes.person.id,
+        person_id: personRes.personId,
         student_number: appNumber,
         status: "applicant",
       })

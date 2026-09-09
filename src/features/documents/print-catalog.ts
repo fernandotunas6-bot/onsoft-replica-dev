@@ -268,7 +268,7 @@ export function buildPrintSamplePayload(
   const programName = extras?.student?.programName || "7.ª Classe · I Ciclo";
   const hash =
     extras?.student?.validationCode ||
-    documentValidationCode([school.schoolName, studentName, year]);
+    documentValidationCode([school.name, studentName, year]);
 
   const subjects = [
     {

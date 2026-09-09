@@ -6,6 +6,32 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-09)
 
+### Ciclo 73 — Resolução dos importadores de pessoas e ZERO erros em `tsc --noEmit` (2026-09-09)
+
+Continuação directa do Ciclo 72 e encerramento definitivo de todo o débito de tipos histórico do repositório (de 52 erros espalhados por 26 ficheiros para rigorosamente **ZERO**).
+
+**1. Resolução do cluster crítico nos importadores de pessoas (`encarregados`, `funcionarios`, `inscricoes`):**
+- Investigado e confirmado o achado sinalizado no Ciclo 72: a assinatura de `resolveOrCreatePerson` (`people-core.ts`) tinha sido refactorizada para aceitar `(candidate: PersonCandidate, existingPeople: ExistingPersonRow[], ctx: ImportCommitContext)` e devolver `{ personId, created, match, audits }`.
+- Três importadores (`encarregados-importer.ts`, `funcionarios-importer.ts`, `inscricoes-importer.ts`) continuavam a passar argumentos desactualizados (5 argumentos legados ou `normalized` cru) e a tentar aceder a propriedades inexistentes (`.id`, `.person.id`, `.status`, `.errors`).
+- Corrigidas as invocações com a construção correcta de `PersonCandidate`, propagação de `person.personId` para os relacionamentos (`student_guardians`, `person_roles`, `students`) e suporte a `ctx.dryRun`.
+- **Aperfeiçoamento preventivo em `people-core.ts`:** em criação bem-sucedida de uma nova pessoa, a mesma é agora adicionada imediatamente ao array em memória `existingPeople` do job, garantindo que registos subsequentes na mesma remessa de importação não criem pessoas duplicadas.
+
+**2. Eliminação dos restantes erros de compilação:**
+- `src/features/import/server.ts`: tipagem explícita de `safeBefore: Record<string, unknown>` no rollback e de `manifest` em `exportSchoolDataFn` para validação de serialização do TanStack Start.
+- `src/features/import/engine/excel-template-builder.ts`: cast em `sheetData.dataValidations` para compatibilidade com os tipos do `exceljs`.
+- `src/features/import/export-engine.ts`: correcção de tipos nas uniões de `class_groups` e `student_academic_history`.
+- `src/features/people/server.ts`: cast de segurança no fallback de pesquisa quando a base ainda não tem as colunas geográficas.
+- `src/features/alumni/admin-tools.ts`: indexação tipada de preferências de comunicação (`purposeKey`).
+- `src/features/calendar/server.ts`: narrowing estrito da união de erros em `listDayAgendaLessons`.
+- `src/features/documents/print-catalog.ts`: correcção de `school.schoolName` para `school.name` (`PrintSchoolContext`).
+- `src/features/integrations/ZoomMeetingButton.tsx`: extração e verificação de `joinUrl` evitando erros de tipos em `navigator.clipboard.writeText`.
+
+**Resultados Oficiais:**
+- **`tsc --noEmit`**: **0 erros** (limpo a 100%).
+- **`npm test -- --run`**: **1067/1069 passaram** (2 skipped), 158/160 ficheiros de teste 100% verdes.
+- **`npm run siga:check`**: 18 módulos inventariados + navegação validada.
+- **`npm run build`**: Bundle de produção Vite e Nitro Cloudflare Worker compilados com sucesso.
+
 ### Ciclo 72 — Bug real de perda de dados em 14 importadores (`entity_id` vs `target_record_id`) (2026-09-09)
 
 Continuação da auditoria de débito de `tsc --noEmit` (52 erros pré-existentes

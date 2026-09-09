@@ -138,7 +138,7 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   catalog.fields.forEach((field, colIdx) => {
     if (field.options && field.options.length > 0) {
       const colLetter = sheetData.getColumn(colIdx + 1).letter;
-      sheetData.dataValidations.add(`${colLetter}2:${colLetter}100`, {
+      (sheetData as any).dataValidations.add(`${colLetter}2:${colLetter}100`, {
         type: "list",
         allowBlank: !field.required,
         formulae: [`"${field.options.join(",")}"`],

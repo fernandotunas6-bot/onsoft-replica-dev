@@ -142,9 +142,10 @@ export const listDayAgendaLessons = createServerFn({ method: "GET" })
         : Promise.resolve({ data: [] as Array<{ id: string; person_id: string | null }>, error: null }),
     ]);
 
-    if (groupsRes.error || subjectsRes.error || teachersRes.error) {
+    const loadError = groupsRes.error ?? subjectsRes.error ?? teachersRes.error;
+    if (loadError) {
       throw publicDatabaseError(
-        groupsRes.error ?? subjectsRes.error ?? teachersRes.error,
+        loadError,
         "Não foi possível carregar as aulas do dia.",
       );
     }

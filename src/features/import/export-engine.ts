@@ -97,7 +97,7 @@ export async function exportSchoolData(
         const p = Array.isArray(s.people) ? s.people[0] : s.people;
         const enr = s.enrollments && s.enrollments.length > 0 ? s.enrollments[0] : null;
         const cg = enr?.class_groups;
-        const className = Array.isArray(cg) ? cg[0]?.name : cg?.name;
+        const className = Array.isArray(cg) ? (cg[0] as any)?.name : (cg as any)?.name;
 
         sheet.addRow([
           s.student_number || "",
@@ -540,7 +540,7 @@ export async function exportSchoolData(
         .eq("school_id", options.schoolId)
         .order("academic_year_label", { ascending: false });
 
-      let rows = historyRows || [];
+      let rows: any[] = historyRows || [];
 
       if (!rows.length) {
         const { data: enrollments } = await db

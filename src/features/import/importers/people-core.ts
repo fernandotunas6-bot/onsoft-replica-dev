@@ -146,6 +146,17 @@ export async function resolveOrCreatePerson(
     .single();
   if (error) throw new Error(`Não foi possível criar a pessoa: ${error.message}`);
 
+  const newPersonRow: ExistingPersonRow = {
+    id: created.id as string,
+    full_name: candidate.full_name,
+    email: candidate.email || null,
+    phone: candidate.phone || null,
+    national_id: candidate.national_id || null,
+    date_of_birth: candidate.birth_date || null,
+    status: "active",
+  };
+  existingPeople.push(newPersonRow);
+
   return {
     personId: created.id as string,
     created: true,

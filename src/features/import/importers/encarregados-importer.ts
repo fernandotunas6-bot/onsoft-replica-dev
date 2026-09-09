@@ -1,7 +1,7 @@
 import { findBestPersonMatch } from "../engine/dedupe";
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
-import { loadExistingPeople, resolveOrCreatePerson } from "./people-core";
+import { loadExistingPeople, resolveOrCreatePerson, type PersonCandidate } from "./people-core";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
 
 type EncarregadosCache = ImportRefCache & {
@@ -131,20 +131,17 @@ export const encarregadosImporter: RowImporter = {
     const student = studentMatch.row!;
 
     // Criar ou reaproveitar a pessoa encarregada
-    const person = await resolveOrCreatePerson(
-      ctx.db,
-      ctx.schoolId,
-      {
-        full_name: guardianName,
-        national_id: nationalId,
-        phone,
-        email,
-      },
-      cache.existingPeople,
-      normalized,
-    );
+    const candidate: PersonCandidate = {
+      full_name: guardianName,
+      national_id: nationalId || null,
+      phone: phone || null,
+      email: email || null,
+      birth_date: null,
+      gender: null,
+    };
+    const person = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
 
-    const relKey = `${student.id}:${person.id}`;
+    const relKey = `${student.id}:${person.personId}`;
     if (cache.existingGuardians.has(relKey)) {
       return {
         status: "duplicate",
@@ -155,10 +152,20 @@ export const encarregadosImporter: RowImporter = {
       };
     }
 
+    if (ctx.dryRun) {
+      return {
+        status: person.created ? "will_insert" : "will_update",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: person.audits,
+        target_record_id: relKey,
+      };
+    }
+
     const { error: relError } = await ctx.db.from("student_guardians").upsert({
       school_id: ctx.schoolId,
       student_id: student.id,
-      guardian_person_id: person.id,
+      guardian_person_id: person.personId,
       relationship,
       is_primary: isFinancial,
       authorized_pickup: true,
