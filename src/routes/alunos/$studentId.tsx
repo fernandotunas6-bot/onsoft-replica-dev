@@ -168,6 +168,12 @@ type StudentProfile = {
   gender: string | null;
   birth_date: string | null;
   photo_url: string | null;
+  national_id?: string | null;
+  admitted_on?: string | null;
+  province: string | null;
+  municipality: string | null;
+  commune: string | null;
+  address: string | null;
 };
 
 type StudentGuardian = {
