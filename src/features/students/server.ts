@@ -494,6 +494,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       phone?: string | null;
       sex?: string | null;
       date_of_birth?: string | null;
+      national_id?: string | null;
       photo_url?: string | null;
       province?: string | null;
       municipality?: string | null;
@@ -583,6 +584,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         full_name: person?.full_name ?? "—",
         email: person?.email ?? null,
         phone: person?.phone ?? null,
+        national_id: person?.national_id ?? null,
         student_status: student.status,
         payment_status: null,
         grade_name: gradeName,

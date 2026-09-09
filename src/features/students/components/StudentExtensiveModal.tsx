@@ -14,7 +14,7 @@ import {
   Loader2,
   History,
 } from "lucide-react";
-import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
+import { ModalShell, ModalHeader, ModalContent } from "@/components/ui/modal-system";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -86,26 +86,24 @@ export function StudentExtensiveModal({
   });
 
   const profile = profileQuery.data;
-  const person = profile?.person;
   const student = profile?.student;
-  const enrollment = profile?.enrollment;
   const guardians = profile?.guardians ?? [];
 
-  const personId = person?.id || (profile as any)?.person_id;
-  const schoolId = student?.school_id || (profile as any)?.school_id;
+  const personId = student?.person_id;
+  const schoolId = student?.school_id;
 
-  const fullName = person?.full_name || initialData?.full_name || "Aluno";
-  const studentNumber = student?.student_number || initialData?.registration_number || "—";
-  const statusKey = student?.status || initialData?.student_status || "active";
+  const fullName = student?.full_name || initialData?.full_name || "Aluno";
+  const studentNumber = student?.registration_number || initialData?.registration_number || "—";
+  const statusKey = student?.student_status || initialData?.student_status || "active";
   const paymentKey = initialData?.payment_status || null;
 
   useEffect(() => {
-    if (person?.photo_url) {
-      setCurrentPhotoUrl(person.photo_url);
+    if (student?.photo_url) {
+      setCurrentPhotoUrl(student.photo_url);
     } else if (initialData?.photo_url) {
       setCurrentPhotoUrl(initialData.photo_url);
     }
-  }, [person?.photo_url, initialData?.photo_url]);
+  }, [student?.photo_url, initialData?.photo_url]);
 
   useEffect(() => {
     if (!currentPhotoUrl) {
@@ -178,7 +176,7 @@ export function StudentExtensiveModal({
     <ModalShell open={open} onOpenChange={onOpenChange} size="xl" className="overflow-hidden">
       <ModalHeader
         title="Perfil Extensivo do Aluno"
-        description="Ficha rápida, dados pessoais, situação pedagógica e fotografia de identificação."
+        subtitle="Ficha rápida, dados pessoais, situação pedagógica e fotografia de identificação."
       />
 
       <ModalContent className="space-y-6 px-6 py-5 max-h-[78vh] overflow-y-auto">
@@ -232,15 +230,15 @@ export function StudentExtensiveModal({
               <span className="inline-flex items-center gap-1 font-mono font-medium text-foreground">
                 <span className="text-muted-foreground font-normal">Nº Processo:</span> {studentNumber}
               </span>
-              {(initialData?.grade_name || (enrollment as any)?.grade_name) ? (
+              {(initialData?.grade_name || student?.grade_name) ? (
                 <span className="inline-flex items-center gap-1">
                   <GraduationCap className="size-3.5 text-primary" />
-                  {initialData?.grade_name || (enrollment as any)?.grade_name}
+                  {initialData?.grade_name || student?.grade_name}
                 </span>
               ) : null}
-              {(initialData?.class_name || (enrollment as any)?.class_name) ? (
+              {(initialData?.class_name || student?.class_name) ? (
                 <span className="inline-flex items-center gap-1 font-semibold text-foreground">
-                  Turma {initialData?.class_name || (enrollment as any)?.class_name}
+                  Turma {initialData?.class_name || student?.class_name}
                 </span>
               ) : null}
             </div>
@@ -327,21 +325,21 @@ export function StudentExtensiveModal({
               <div className="p-3 rounded-xl bg-card border border-border/70">
                 <span className="text-xs font-medium text-muted-foreground block">Bilhete de Identidade / Cédula</span>
                 <span className="text-sm font-semibold font-mono text-foreground mt-0.5 block">
-                  {person?.national_id || "Não registado"}
+                  {student?.national_id || "Não registado"}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
                 <span className="text-xs font-medium text-muted-foreground block">Data de Nascimento</span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
-                  {person?.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString("pt-AO") : "—"}
+                  {student?.birth_date ? new Date(student.birth_date).toLocaleDateString("pt-AO") : "—"}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
                 <span className="text-xs font-medium text-muted-foreground block">Gênero</span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
-                  {person?.sex === "M" ? "Masculino" : person?.sex === "F" ? "Feminino" : "—"}
+                  {student?.gender === "M" ? "Masculino" : student?.gender === "F" ? "Feminino" : "—"}
                 </span>
               </div>
 
@@ -349,11 +347,11 @@ export function StudentExtensiveModal({
                 <span className="text-xs font-medium text-muted-foreground block">Telefone</span>
                 <div className="flex items-center justify-between mt-0.5">
                   <span className="text-sm font-semibold font-mono text-foreground">
-                    {person?.phone || initialData?.phone || "—"}
+                    {student?.phone || initialData?.phone || "—"}
                   </span>
-                  {(person?.phone || initialData?.phone) ? (
+                  {(student?.phone || initialData?.phone) ? (
                     <a
-                      href={whatsappHref(person?.phone || initialData?.phone || "")}
+                      href={whatsappHref(student?.phone || initialData?.phone || "")}
                       target="_blank"
                       rel="noreferrer"
                       className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
@@ -367,19 +365,14 @@ export function StudentExtensiveModal({
               <div className="p-3 rounded-xl bg-card border border-border/70">
                 <span className="text-xs font-medium text-muted-foreground block">E-mail</span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block truncate">
-                  {person?.email || initialData?.email || "—"}
+                  {student?.email || initialData?.email || "—"}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70 sm:col-span-2 lg:col-span-3">
                 <span className="text-xs font-medium text-muted-foreground block">Endereço Residencial</span>
                 <span className="text-sm font-medium text-foreground mt-0.5 block">
-                  {[
-                    person?.address,
-                    (person as any)?.commune,
-                    (person as any)?.municipality,
-                    (person as any)?.province,
-                  ]
+                  {[student?.address, student?.commune, student?.municipality, student?.province]
                     .filter(Boolean)
                     .join(" · ") || "Morada não especificada"}
                 </span>
@@ -421,15 +414,15 @@ export function StudentExtensiveModal({
               <div className="p-3 rounded-xl bg-card border border-border/70">
                 <span className="text-xs font-medium text-muted-foreground block">Data de Admissão</span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
-                  {student?.admission_date ? new Date(student.admission_date).toLocaleDateString("pt-AO") : "—"}
+                  {student?.admitted_on ? new Date(student.admitted_on).toLocaleDateString("pt-AO") : "—"}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
                 <span className="text-xs font-medium text-muted-foreground block">Assiduidade Registada</span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
-                  {enrollment?.attendance_rate !== null && enrollment?.attendance_rate !== undefined
-                    ? `${enrollment.attendance_rate}%`
+                  {student?.attendance_rate !== null && student?.attendance_rate !== undefined
+                    ? `${student.attendance_rate}%`
                     : "Regular"}
                 </span>
               </div>
@@ -529,7 +522,7 @@ export function StudentExtensiveModal({
         </Tabs>
       </ModalContent>
 
-      <ModalFooter className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border bg-secondary/15">
+      <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border bg-secondary/15">
         <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
           Fechar
         </Button>
@@ -556,7 +549,7 @@ export function StudentExtensiveModal({
             </>
           ) : null}
         </div>
-      </ModalFooter>
+      </div>
 
       {studentId ? (
         <StudentDigitalCardModal
@@ -566,7 +559,7 @@ export function StudentExtensiveModal({
             id: studentId,
             full_name: fullName,
             process_number: studentNumber,
-            class_name: initialData?.class_name || (enrollment as any)?.class_name || undefined,
+            class_name: initialData?.class_name || student?.class_name || undefined,
             academic_year: initialData?.academic_year || undefined,
             photo_url: resolvedPhotoSrc || currentPhotoUrl,
             status: statusKey,
