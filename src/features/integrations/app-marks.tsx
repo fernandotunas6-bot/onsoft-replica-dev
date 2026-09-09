@@ -1,5 +1,6 @@
 import type { ElementType } from "react";
 import {
+  Activity,
   BookOpen,
   CalendarDays,
   FileText,
@@ -7,7 +8,9 @@ import {
   FolderOpen,
   GraduationCap,
   KeyRound,
+  Landmark,
   LayoutGrid,
+  Mail,
   Megaphone,
   Network,
   NotebookPen,
@@ -39,15 +42,21 @@ const brandLogos: Record<string, { src: string; label: string; bleed?: boolean }
   canvas: { src: "/brands/canvas-color.svg", label: "Canvas LMS", bleed: true },
   multicaixa_express: { src: "/brands/multicaixa.svg", label: "Multicaixa Express", bleed: true },
   unitel_money: { src: "/brands/unitel.svg", label: "Unitel Money", bleed: true },
-  gmail_workspace: { src: "/brands/gmail.png", label: "Gmail Workspace" },
-  firebase_analytics: { src: "/brands/firebase.png", label: "Firebase & Crashlytics" },
-  sige: { src: "/brands/sige.png", label: "SIGE" },
   agt: { src: "/brands/agt.svg", label: "AGT", bleed: true },
 };
 
 export const brandedLauncherIds = Object.keys(brandLogos);
 
 type SigaMark = { icon: ElementType; tone: ChipTone; label: string };
+
+// Integrações sem ficheiro de logótipo próprio: ícone + chip de cor, no
+// mesmo padrão dos módulos internos do SIGA (sigaModuleMarks) em vez de
+// tentar carregar um ficheiro de marca que não existe em public/brands/.
+const genericIntegrationMarks: Record<string, SigaMark> = {
+  gmail_workspace: { icon: Mail, tone: "info", label: "Gmail Workspace" },
+  firebase_analytics: { icon: Activity, tone: "warning", label: "Firebase & Crashlytics" },
+  sige: { icon: Landmark, tone: "muted", label: "SIGE" },
+};
 
 export const sigaModuleMarks: Record<string, SigaMark> = {
   "siga-dashboard": { icon: LayoutGrid, tone: "primary", label: "Início" },
@@ -86,7 +95,7 @@ export function AppMark({ id, className }: { id: string; className?: string }) {
       <MediaFrame src={logo.src} alt={logo.label} ratio="1/1" rounded="rounded-[22%]" className={cn("size-10", logo.bleed ? undefined : "bg-background p-0.5 shadow-sm", className)} imgClassName="object-contain" />
     );
   }
-  const siga = sigaModuleMarks[id];
+  const siga = sigaModuleMarks[id] ?? genericIntegrationMarks[id];
   if (siga) return <PremiumIconMark {...siga} className={className} />;
   return <PremiumIconMark icon={LayoutGrid} tone="muted" label="SIGA" className={className} />;
 }
