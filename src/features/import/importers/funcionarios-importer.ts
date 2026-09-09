@@ -90,9 +90,7 @@ export const funcionariosImporter: RowImporter = {
     const email = normalizeText(valueOf(normalized, "email", "correio"));
     const roleTitle = normalizeText(valueOf(normalized, "role_title", "cargo", "funcao"))!;
 
-    const person = await resolveOrCreatePerson(
-      ctx.db,
-      ctx.schoolId,
+    const personResult = await resolveOrCreatePerson(
       {
         full_name: fullName,
         national_id: idNumber,
@@ -100,23 +98,23 @@ export const funcionariosImporter: RowImporter = {
         email,
       },
       cache.existingPeople,
-      normalized,
+      ctx,
     );
 
-    const roleKey = `${person.id}:${roleTitle}`;
+    const roleKey = `${personResult.personId}:${roleTitle}`;
     if (cache.existingRoleKeys.has(roleKey)) {
       return {
         status: "duplicate",
         warnings: analysis.warnings,
         errors: [],
-        audits: person.audits,
+        audits: personResult.audits,
         target_record_id: roleKey,
       };
     }
 
     const { error: roleError } = await ctx.db.from("person_roles").insert({
       school_id: ctx.schoolId,
-      person_id: person.id,
+      person_id: personResult.personId,
       role: roleTitle,
       active: true,
     });
@@ -126,16 +124,16 @@ export const funcionariosImporter: RowImporter = {
         status: "error",
         warnings: analysis.warnings,
         errors: [`Erro ao associar cargo ao funcionário: ${roleError.message}`],
-        audits: person.audits,
+        audits: personResult.audits,
       };
     }
 
     cache.existingRoleKeys.add(roleKey);
     return {
-      status: "created",
+      status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: person.audits,
+      audits: personResult.audits,
       target_record_id: roleKey,
     };
   },
