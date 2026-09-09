@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Layers, Clock, Plus, Tag, CheckCircle2, Save } from "lucide-react";
+import { BookOpen, Layers, Clock, Plus, Tag, CheckCircle2, Save, Trash2, User } from "lucide-react";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -20,20 +20,91 @@ import {
   listSchoolShifts,
   saveSchoolShift,
   listCurricula,
+  saveCurriculumMatrix,
+  listTeacherAvailability,
+  saveTeacherAvailability,
 } from "@/features/academic/server";
 import { toast } from "sonner";
 
+const availabilityWeekdays = [
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
+  "Domingo",
+] as const;
+
+type CurriculumRow = {
+  key: string;
+  subjectId: string;
+  subjectTypeId: string;
+  weeklyPeriods: number;
+  periodDurationMinutes: number;
+  isMandatory: boolean;
+};
+
+type AvailabilityRow = {
+  weekday: number;
+  isAvailable: boolean;
+  startsAt: string;
+  endsAt: string;
+  notes: string;
+};
+
+type CurriculumWithSubjects = {
+  id: string;
+  course_id: string;
+  grade_level_id: string;
+  curriculum_subjects?: Array<{
+    id?: string;
+    subject_id?: string;
+    subject_type_id?: string | null;
+    weekly_periods?: number;
+    period_duration_minutes?: number;
+    is_mandatory?: boolean;
+  }>;
+};
+
+type TeacherAvailabilityRecord = {
+  weekday: number;
+  is_available?: boolean;
+  starts_at?: string;
+  ends_at?: string;
+  notes?: string | null;
+  max_weekly_hours?: number;
+};
+
+function defaultAvailabilityRows(): AvailabilityRow[] {
+  return availabilityWeekdays.map((_, index) => ({
+    weekday: index + 1,
+    isAvailable: false,
+    startsAt: "07:00",
+    endsAt: "17:00",
+    notes: "",
+  }));
+}
+
 export function CurriculoWorkspaceTab({
   canManage,
+  activeYearId,
   courses,
   gradeLevels,
+  subjects,
+  teachers,
 }: {
   canManage: boolean;
-  courses: Array<{ id: string; name: string }>;
-  gradeLevels: Array<{ id: string; name: string }>;
+  activeYearId?: string;
+  courses: Array<{ id: string; name: string; code: string }>;
+  gradeLevels: Array<{ id: string; name: string; code: string }>;
+  subjects: Array<{ id: string; name: string; code: string; subject_type_id?: string | null }>;
+  teachers: Array<{ id: string; name: string }>;
 }) {
   const queryClient = useQueryClient();
-  const [subTab, setSubTab] = useState<"matriz" | "tipos" | "areas" | "turnos">("matriz");
+  const [subTab, setSubTab] = useState<"matriz" | "tipos" | "areas" | "turnos" | "disponibilidade">(
+    "matriz",
+  );
 
   const { data: subjectTypes = [] } = useQuery({
     queryKey: ["academic", "subject-types"],
@@ -54,6 +125,172 @@ export function CurriculoWorkspaceTab({
     queryKey: ["academic", "curricula"],
     queryFn: () => listCurricula({ data: {} }),
   });
+
+  // --- Matriz Curricular ---------------------------------------------------
+  const [matrixCourseId, setMatrixCourseId] = useState("");
+  const [matrixGradeLevelId, setMatrixGradeLevelId] = useState("");
+  const [matrixRows, setMatrixRows] = useState<CurriculumRow[]>([]);
+  const [savingMatrix, setSavingMatrix] = useState(false);
+
+  const selectedCurriculum = useMemo(() => {
+    if (!matrixCourseId || !matrixGradeLevelId) return null;
+    return (
+      (curricula as CurriculumWithSubjects[]).find(
+        (c) => c.course_id === matrixCourseId && c.grade_level_id === matrixGradeLevelId,
+      ) ?? null
+    );
+  }, [curricula, matrixCourseId, matrixGradeLevelId]);
+
+  useEffect(() => {
+    if (!matrixCourseId || !matrixGradeLevelId) {
+      setMatrixRows([]);
+      return;
+    }
+    const existingSubjects = selectedCurriculum?.curriculum_subjects ?? [];
+    setMatrixRows(
+      existingSubjects.map((row, index) => ({
+        key: row.id ?? `existing-${index}`,
+        subjectId: row.subject_id ?? "",
+        subjectTypeId: row.subject_type_id ?? "",
+        weeklyPeriods: row.weekly_periods ?? 4,
+        periodDurationMinutes: row.period_duration_minutes ?? 45,
+        isMandatory: row.is_mandatory ?? true,
+      })),
+    );
+  }, [selectedCurriculum, matrixCourseId, matrixGradeLevelId]);
+
+  const addMatrixRow = () => {
+    const firstSubject = subjects[0];
+    setMatrixRows((rows) => [
+      ...rows,
+      {
+        key: `new-${Date.now()}-${rows.length}`,
+        subjectId: firstSubject?.id ?? "",
+        subjectTypeId: firstSubject?.subject_type_id ?? "",
+        weeklyPeriods: 4,
+        periodDurationMinutes: 45,
+        isMandatory: true,
+      },
+    ]);
+  };
+
+  const updateMatrixRow = (key: string, patch: Partial<CurriculumRow>) => {
+    setMatrixRows((rows) => rows.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+  };
+
+  const removeMatrixRow = (key: string) => {
+    setMatrixRows((rows) => rows.filter((row) => row.key !== key));
+  };
+
+  const handleSaveMatrix = async () => {
+    if (!activeYearId || !matrixCourseId || !matrixGradeLevelId || matrixRows.length === 0) return;
+    const course = courses.find((c) => c.id === matrixCourseId);
+    const gradeLevel = gradeLevels.find((g) => g.id === matrixGradeLevelId);
+    setSavingMatrix(true);
+    try {
+      await saveCurriculumMatrix({
+        data: {
+          academicYearId: activeYearId,
+          courseId: matrixCourseId,
+          gradeLevelId: matrixGradeLevelId,
+          name: `${course?.name ?? "Curso"} — ${gradeLevel?.name ?? "Classe"}`,
+          subjects: matrixRows.map((row, index) => ({
+            subjectId: row.subjectId,
+            subjectTypeId: row.subjectTypeId || undefined,
+            weeklyPeriods: row.weeklyPeriods,
+            periodDurationMinutes: row.periodDurationMinutes,
+            isMandatory: row.isMandatory,
+            displayOrder: index,
+          })),
+        },
+      });
+      await queryClient.invalidateQueries({ queryKey: ["academic", "curricula"] });
+      toast.success("Matriz curricular guardada com sucesso.");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao guardar a matriz curricular.");
+    } finally {
+      setSavingMatrix(false);
+    }
+  };
+
+  // --- Disponibilidade Docente ----------------------------------------------
+  const [availabilityTeacherId, setAvailabilityTeacherId] = useState("");
+  const [availabilityRows, setAvailabilityRows] =
+    useState<AvailabilityRow[]>(defaultAvailabilityRows());
+  const [maxWeeklyHours, setMaxWeeklyHours] = useState(24);
+  const [savingAvailability, setSavingAvailability] = useState(false);
+
+  const { data: teacherAvailability = [] } = useQuery({
+    queryKey: ["academic", "teacher-availability", availabilityTeacherId, activeYearId],
+    queryFn: () =>
+      listTeacherAvailability({
+        data: { teacherId: availabilityTeacherId, academicYearId: activeYearId },
+      }),
+    enabled: Boolean(availabilityTeacherId),
+  });
+
+  useEffect(() => {
+    if (!availabilityTeacherId) {
+      setAvailabilityRows(defaultAvailabilityRows());
+      return;
+    }
+    const availabilityRecords = teacherAvailability as TeacherAvailabilityRecord[];
+    const byWeekday = new Map(availabilityRecords.map((row) => [row.weekday, row]));
+    setAvailabilityRows(
+      availabilityWeekdays.map((_, index) => {
+        const weekday = index + 1;
+        const existing = byWeekday.get(weekday);
+        if (!existing) {
+          return { weekday, isAvailable: false, startsAt: "07:00", endsAt: "17:00", notes: "" };
+        }
+        return {
+          weekday,
+          isAvailable: existing.is_available ?? true,
+          startsAt: String(existing.starts_at ?? "07:00").slice(0, 5),
+          endsAt: String(existing.ends_at ?? "17:00").slice(0, 5),
+          notes: existing.notes ?? "",
+        };
+      }),
+    );
+    if (availabilityRecords[0]?.max_weekly_hours) {
+      setMaxWeeklyHours(availabilityRecords[0].max_weekly_hours);
+    }
+  }, [teacherAvailability, availabilityTeacherId]);
+
+  const updateAvailabilityRow = (weekday: number, patch: Partial<AvailabilityRow>) => {
+    setAvailabilityRows((rows) =>
+      rows.map((row) => (row.weekday === weekday ? { ...row, ...patch } : row)),
+    );
+  };
+
+  const handleSaveAvailability = async () => {
+    if (!availabilityTeacherId) return;
+    setSavingAvailability(true);
+    try {
+      await saveTeacherAvailability({
+        data: {
+          teacherId: availabilityTeacherId,
+          academicYearId: activeYearId,
+          maxWeeklyHours,
+          slots: availabilityRows.map((row) => ({
+            weekday: row.weekday,
+            startsAt: row.startsAt,
+            endsAt: row.endsAt,
+            isAvailable: row.isAvailable,
+            notes: row.notes.trim() || undefined,
+          })),
+        },
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["academic", "teacher-availability", availabilityTeacherId],
+      });
+      toast.success("Disponibilidade guardada com sucesso.");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao guardar a disponibilidade.");
+    } finally {
+      setSavingAvailability(false);
+    }
+  };
 
   const handleCreateSubjectType = async (values: Record<string, string | undefined>) => {
     try {
@@ -157,6 +394,15 @@ export function CurriculoWorkspaceTab({
         >
           <Clock className="mr-1.5 size-3.5" /> Turnos & Períodos ({shifts.length})
         </Button>
+
+        <Button
+          variant={subTab === "disponibilidade" ? "default" : "outline"}
+          size="sm"
+          className="rounded-xl text-xs"
+          onClick={() => setSubTab("disponibilidade")}
+        >
+          <User className="mr-1.5 size-3.5" /> Disponibilidade Docente
+        </Button>
       </div>
 
       {/* 1. ABA MATRIZ CURRICULAR */}
@@ -165,22 +411,183 @@ export function CurriculoWorkspaceTab({
           title="Matrizes Curriculares da Instituição"
           description="A matriz curricular define a carga horária, aulas semanais e obrigatoriedade das disciplinas para cada Curso e Classe."
         >
-          <div className="rounded-xl border border-border bg-card p-6 text-center space-y-3">
-            <BookOpen className="mx-auto size-10 text-muted-foreground/60" />
-            <h4 className="text-sm font-semibold">Estrutura Curricular Unificada</h4>
-            <p className="max-w-md mx-auto text-xs text-muted-foreground">
-              A matriz curricular substitui a vinculação manual e solta de disciplinas, alimentando
-              automaticamente turmas, horários e cargas docentes sem duplicações.
+          {!canManage ? (
+            <p className="text-sm text-muted-foreground">
+              A gestão da matriz curricular está reservada a Secretaria/Admin.
             </p>
-            <div className="pt-2 flex justify-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                Cursos Registados: {courses.length}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">
-                Classes / Níveis: {gradeLevels.length}
-              </span>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <select
+                  value={matrixCourseId}
+                  onChange={(e) => setMatrixCourseId(e.target.value)}
+                  className="h-9 rounded-lg border border-input bg-background px-3 text-xs"
+                >
+                  <option value="">Seleccione o Curso…</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={matrixGradeLevelId}
+                  onChange={(e) => setMatrixGradeLevelId(e.target.value)}
+                  className="h-9 rounded-lg border border-input bg-background px-3 text-xs"
+                >
+                  <option value="">Seleccione a Classe…</option>
+                  {gradeLevels.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({g.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {!matrixCourseId || !matrixGradeLevelId ? (
+                <p className="text-sm text-muted-foreground">
+                  Escolha um Curso e uma Classe para ver ou construir a matriz curricular.
+                </p>
+              ) : (
+                <>
+                  <div className="overflow-hidden rounded-xl border border-border bg-card">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="text-xs font-semibold">Disciplina</TableHead>
+                          <TableHead className="text-xs font-semibold">Tipo</TableHead>
+                          <TableHead className="text-xs font-semibold text-center">
+                            Aulas/Semana
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-center">
+                            Duração (min)
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-center">
+                            Obrigatória
+                          </TableHead>
+                          <TableHead className="w-10" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {matrixRows.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={6}
+                              className="py-6 text-center text-xs text-muted-foreground"
+                            >
+                              Sem disciplinas na matriz. Adicione a primeira abaixo.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          matrixRows.map((row) => (
+                            <TableRow key={row.key}>
+                              <TableCell>
+                                <select
+                                  value={row.subjectId}
+                                  onChange={(e) =>
+                                    updateMatrixRow(row.key, { subjectId: e.target.value })
+                                  }
+                                  className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                >
+                                  {subjects.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                      {s.name} ({s.code})
+                                    </option>
+                                  ))}
+                                </select>
+                              </TableCell>
+                              <TableCell>
+                                <select
+                                  value={row.subjectTypeId}
+                                  onChange={(e) =>
+                                    updateMatrixRow(row.key, { subjectTypeId: e.target.value })
+                                  }
+                                  className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                >
+                                  <option value="">Padrão</option>
+                                  {(subjectTypes as Array<{ id: string; name: string }>).map(
+                                    (t) => (
+                                      <option key={t.id} value={t.id}>
+                                        {t.name}
+                                      </option>
+                                    ),
+                                  )}
+                                </select>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={25}
+                                  value={row.weeklyPeriods}
+                                  onChange={(e) =>
+                                    updateMatrixRow(row.key, {
+                                      weeklyPeriods: Number(e.target.value) || 1,
+                                    })
+                                  }
+                                  className="h-8 w-16 rounded-md border border-input bg-background px-2 text-xs text-center"
+                                />
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <input
+                                  type="number"
+                                  min={15}
+                                  max={180}
+                                  step={5}
+                                  value={row.periodDurationMinutes}
+                                  onChange={(e) =>
+                                    updateMatrixRow(row.key, {
+                                      periodDurationMinutes: Number(e.target.value) || 45,
+                                    })
+                                  }
+                                  className="h-8 w-16 rounded-md border border-input bg-background px-2 text-xs text-center"
+                                />
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={row.isMandatory}
+                                  onChange={(e) =>
+                                    updateMatrixRow(row.key, { isMandatory: e.target.checked })
+                                  }
+                                  className="size-4"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="size-7 p-0 text-muted-foreground hover:text-destructive"
+                                  onClick={() => removeMatrixRow(row.key)}
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={addMatrixRow}>
+                      <Plus className="size-3.5" /> Adicionar Disciplina
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={!activeYearId || matrixRows.length === 0 || savingMatrix}
+                      onClick={handleSaveMatrix}
+                    >
+                      <Save className="size-3.5" />
+                      {savingMatrix ? "A guardar…" : "Guardar Matriz"}
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
-          </div>
+          )}
         </Panel>
       )}
 
@@ -319,7 +726,12 @@ export function CurriculoWorkspaceTab({
                     type: "number",
                     defaultValue: "1",
                   },
-                  { name: "descricao", label: "Descrição", placeholder: "Disciplinas abrangidas", required: false },
+                  {
+                    name: "descricao",
+                    label: "Descrição",
+                    placeholder: "Disciplinas abrangidas",
+                    required: false,
+                  },
                   { name: "cor", label: "Cor Visual (Hex)", defaultValue: "#2563eb" },
                 ]}
                 trigger={(open) => (
@@ -442,6 +854,145 @@ export function CurriculoWorkspaceTab({
               </div>
             ))}
           </div>
+        </Panel>
+      )}
+
+      {/* 5. ABA DISPONIBILIDADE DOCENTE */}
+      {subTab === "disponibilidade" && (
+        <Panel
+          title="Disponibilidade Docente"
+          description="Defina os dias e horários em que cada professor está disponível para leccionar. O motor de conflitos usa esta informação ao validar novos slots."
+        >
+          {!canManage ? (
+            <p className="text-sm text-muted-foreground">
+              A gestão de disponibilidade docente está reservada a Secretaria/Admin.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={availabilityTeacherId}
+                  onChange={(e) => setAvailabilityTeacherId(e.target.value)}
+                  className="h-9 rounded-lg border border-input bg-background px-3 text-xs"
+                >
+                  <option value="">Seleccione o Professor…</option>
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+
+                {availabilityTeacherId && (
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    Carga horária semanal máxima
+                    <input
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={maxWeeklyHours}
+                      onChange={(e) => setMaxWeeklyHours(Number(e.target.value) || 24)}
+                      className="h-8 w-16 rounded-md border border-input bg-background px-2 text-xs text-center"
+                    />
+                    horas
+                  </label>
+                )}
+              </div>
+
+              {!availabilityTeacherId ? (
+                <p className="text-sm text-muted-foreground">
+                  Escolha um professor para ver ou editar a disponibilidade semanal.
+                </p>
+              ) : (
+                <>
+                  <div className="overflow-hidden rounded-xl border border-border bg-card">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="text-xs font-semibold">Dia</TableHead>
+                          <TableHead className="text-xs font-semibold text-center">
+                            Disponível
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-center">
+                            Início
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-center">Fim</TableHead>
+                          <TableHead className="text-xs font-semibold">Observações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {availabilityRows.map((row, index) => (
+                          <TableRow key={row.weekday}>
+                            <TableCell className="text-xs font-medium">
+                              {availabilityWeekdays[index]}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <input
+                                type="checkbox"
+                                checked={row.isAvailable}
+                                onChange={(e) =>
+                                  updateAvailabilityRow(row.weekday, {
+                                    isAvailable: e.target.checked,
+                                  })
+                                }
+                                className="size-4"
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <input
+                                type="time"
+                                value={row.startsAt}
+                                disabled={!row.isAvailable}
+                                onChange={(e) =>
+                                  updateAvailabilityRow(row.weekday, { startsAt: e.target.value })
+                                }
+                                className="h-8 rounded-md border border-input bg-background px-2 text-xs disabled:opacity-50"
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <input
+                                type="time"
+                                value={row.endsAt}
+                                disabled={!row.isAvailable}
+                                onChange={(e) =>
+                                  updateAvailabilityRow(row.weekday, { endsAt: e.target.value })
+                                }
+                                className="h-8 rounded-md border border-input bg-background px-2 text-xs disabled:opacity-50"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <input
+                                type="text"
+                                value={row.notes}
+                                disabled={!row.isAvailable}
+                                placeholder="Ex: só disponível quinzenalmente"
+                                onChange={(e) =>
+                                  updateAvailabilityRow(row.weekday, { notes: e.target.value })
+                                }
+                                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs disabled:opacity-50"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={savingAvailability}
+                      onClick={handleSaveAvailability}
+                    >
+                      <Save className="size-3.5" />
+                      {savingAvailability ? "A guardar…" : "Guardar Disponibilidade"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </Panel>
       )}
     </div>

@@ -4,7 +4,75 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-09-08)
+## Estado (2026-09-09)
+
+### Ciclo 66 — UI da Matriz Curricular e Disponibilidade Docente (2026-09-09)
+
+Continuação directa do commit `77dc771` (revisão de código aos Ciclos 62-63): o
+backend (`saveCurriculumMatrix`/`listTeacherAvailability`/`saveTeacherAvailability`
+em `advanced-academic-server.ts`) e as RPCs atómicas (`replace_curriculum_subjects`,
+`replace_teacher_availability`) já existiam e já estavam aplicadas ao vivo, mas
+**a aba Currículo em `/pedagogica` continuava a mostrar apenas um placeholder
+estático** ("Estrutura Curricular Unificada") — não havia nenhuma UI que
+efectivamente chamasse essas funções.
+
+**O que foi entregue e integrado:**
+- **`CurriculoWorkspaceTab.tsx`:** duas novas sub-abas funcionais:
+  - **Matrizes Curriculares:** selectors de Curso + Classe, tabela editável
+    (disciplina, tipo, aulas/semana, duração, obrigatória) com adicionar/remover
+    linha, carrega a matriz existente (`listCurricula`) e grava via
+    `saveCurriculumMatrix`.
+  - **Disponibilidade Docente:** selector de professor, carga horária semanal
+    máxima, tabela dos 7 dias da semana (disponível/início/fim/observações),
+    carrega via `listTeacherAvailability` e grava via `saveTeacherAvailability`.
+- **`pedagogica.tsx`:** passa `activeYearId`, `subjects` (com `subject_type_id`) e
+  `teachers` ao componente; `courses`/`gradeLevels` passam a incluir `code`.
+- **Checklist SQL:** `20260909000000_harden_advanced_academic_rls.sql` e
+  `20260909000100_academic_core_atomic_writes.sql` (já commitadas em `77dc771`,
+  já aplicadas ao vivo) estavam em falta no espelho consolidado — adicionadas ao
+  fim de `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql`.
+- **Qualidade:** eliminados os `any` novos introduzidos na primeira versão do
+  componente (`CurriculumWithSubjects`, `TeacherAvailabilityRecord` em vez de
+  `as any[]`); eslint/prettier alinhados ao padrão do resto do ficheiro.
+
+**Validado ao vivo (projecto `xodgfmxiaunpamctfeea`), ponta-a-ponta pela UI real:**
+- Disponibilidade Docente: marcada disponibilidade de "Madalena Pedro Chissengo"
+  → `POST saveTeacherAvailability` 200 → confirmado em `teacher_availability`
+  (7 linhas, weekday correcto marcado `is_available=true`).
+- Matriz Curricular: "Ensino Geral / 1.ª Classe" com Ciências Naturais + História
+  → `POST saveCurriculumMatrix` 200 → confirmado em `curricula`/`curriculum_subjects`
+  via query directa à BD.
+
+**Suite:** `vitest run` 1067/1069 (2 skipped) ✓ zero regressões, `npm run
+siga:check` ✓, eslint sem erros novos (apenas dívida pré-existente: 7
+`catch (err: any)`/`any` já presentes antes desta fatia), `tsc --noEmit` sem
+erros novos nos ficheiros tocados (27 erros pré-existentes noutros módulos —
+`import`, `students`, `financeiro/rh`, `people` — não relacionados a este ciclo).
+
+**Por fazer (não coberto nesta fatia):** o motor de conflitos
+(`assertScheduleSlotConflictsDetailed`) já lê `teacher_availability`, mas a UI
+de Horários (`ScheduleWorkspace`) ainda não mostra um aviso explícito quando o
+professor está fora da disponibilidade cadastrada — só bloqueia sobreposições
+duras; considerar surfacear esse warning na criação de slots.
+
+### Ciclo 65 — document_sequences completo, Auditoria Triggers/RLS (2026-09-09)
+
+Continuação directa do Ciclo 64. Correcção crítica: `document_sequences` estava vazia em ambas as escolas (bug silencioso desde sempre), o que tornava qualquer pagamento/contrato impossível.
+
+**O que foi entregue e integrado:**
+- **`seedDefaultDocumentSequences` expandido (school-bootstrap.ts):** de 2 para 9 tipos canónicos: `invoice(FT/4)`, `receipt(RC/6)`, `credit_note(NC)`, `expense(EX)`, `declaration(DC)`, `certificate(CE)`, `transfer(TF)`, `term(TM)`, `other(OT)`. Alinhado com o check constraint `document_sequences_document_type_check`.
+- **Migration 20260908200000 actualizada:** PASSO 3 adicionado — seed de 9 tipos via `CROSS JOIN` para todas as escolas (idempotente).
+- **Aplicado ao vivo:** 18 sequências (9 × 2 escolas) semeadas via REST API.
+- **Auditoria BD completa (Management API + PAT):**
+  - 125 triggers: **todos ✅ activos** (zero desactivados).
+  - **Todas as tabelas `public.*` com RLS activada** (zero exposição).
+  - 209 funções `private.*`/`public.*`: 149 capturadas em `20260908210000`.
+- **Commits:** `507abb3` (Ciclos 62-63), `3226a84` (Ciclo 64), `54a4833` (Ciclo 65) — todos em `feat/payflow-integration-production`.
+
+**Estado actual da BD ao vivo (`xodgfmxiaunpamctfeea`):**
+- 2 escolas × 8 papéis × permissões correctas = **510 role_permissions**
+- 2 escolas × 9 tipos = **18 document_sequences**
+- 125 triggers activos, RLS 100% em todas as tabelas
 
 ### Ciclo 64 — Backfill RBAC Huambo, Credenciais PostgreSQL Directas e Captura Completa de Funções BD (2026-09-08)
 

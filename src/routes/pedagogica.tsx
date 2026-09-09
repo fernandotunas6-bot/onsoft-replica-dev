@@ -1057,8 +1057,20 @@ function PedagogicaPage() {
           <TabsContent value="curriculo" className="mt-5 space-y-6">
             <CurriculoWorkspaceTab
               canManage={canManageAcademic}
-              courses={courses.map((c) => ({ id: c.id, name: c.name }))}
-              gradeLevels={visibleGradeLevels.map((g) => ({ id: g.id, name: g.name }))}
+              activeYearId={selectedYearId ?? undefined}
+              courses={courses.map((c) => ({ id: c.id, name: c.name, code: c.code }))}
+              gradeLevels={visibleGradeLevels.map((g) => ({
+                id: g.id,
+                name: g.name,
+                code: g.code,
+              }))}
+              subjects={subjects.map((s) => ({
+                id: s.id,
+                name: s.name,
+                code: s.code,
+                subject_type_id: s.subject_type_id,
+              }))}
+              teachers={teachers.map((t) => ({ id: t.id, name: t.full_name || "Docente" }))}
             />
           </TabsContent>
 
