@@ -212,11 +212,19 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                   name: "tipo",
                   label: "Tipo de Sala",
                   type: "select",
-                  options: Object.entries(roomTypeLabels).map(([value, label]) => ({ value, label })),
+                  options: Object.entries(roomTypeLabels).map(([value, label]) => ({
+                    value,
+                    label,
+                  })),
                   required: true,
                 },
                 { name: "bloco", label: "Bloco", placeholder: "Ex: Bloco B", required: false },
-                { name: "edificio", label: "Edifício", placeholder: "Ex: Edifício Principal", required: false },
+                {
+                  name: "edificio",
+                  label: "Edifício",
+                  placeholder: "Ex: Edifício Principal",
+                  required: false,
+                },
                 { name: "piso", label: "Piso", placeholder: "Ex: 1.º Andar", required: false },
               ]}
               trigger={(open) => (
@@ -353,14 +361,24 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                               })),
                               required: true,
                             },
-                            { name: "bloco", label: "Bloco", defaultValue: room.block || "", required: false },
+                            {
+                              name: "bloco",
+                              label: "Bloco",
+                              defaultValue: room.block || "",
+                              required: false,
+                            },
                             {
                               name: "edificio",
                               label: "Edifício",
                               defaultValue: room.building || "",
                               required: false,
                             },
-                            { name: "piso", label: "Piso", defaultValue: room.floor || "", required: false },
+                            {
+                              name: "piso",
+                              label: "Piso",
+                              defaultValue: room.floor || "",
+                              required: false,
+                            },
                           ]}
                           trigger={(open) => (
                             <Button variant="ghost" size="sm" className="size-8 p-0" onClick={open}>

@@ -34,10 +34,12 @@ describe("alumni schemas", () => {
   });
 
   it("rejects invalid alumni urls", () => {
-    expect(() => upsertAlumniInputSchema.parse({
-      studentId: "11111111-1111-4111-8111-111111111111",
-      linkedinUrl: "linkedin",
-    })).toThrow();
+    expect(() =>
+      upsertAlumniInputSchema.parse({
+        studentId: "11111111-1111-4111-8111-111111111111",
+        linkedinUrl: "linkedin",
+      }),
+    ).toThrow();
   });
 
   it("validates professional experience", () => {
@@ -63,7 +65,13 @@ describe("alumni schemas", () => {
 
   it("rejects self mentoring", () => {
     const id = "33333333-3333-4333-8333-333333333333";
-    expect(() => mentoringMatchInputSchema.parse({ mentorAlumniId: id, menteeAlumniId: id, focusArea: "Carreira" })).toThrow();
+    expect(() =>
+      mentoringMatchInputSchema.parse({
+        mentorAlumniId: id,
+        menteeAlumniId: id,
+        focusArea: "Carreira",
+      }),
+    ).toThrow();
   });
 
   it("validates alumni events", () => {
@@ -81,20 +89,32 @@ describe("alumni schemas", () => {
       title: "Tracer Study 2026",
       purpose: "tracer_study",
       status: "published",
-      schemaJson: [{ id: "employment", label: "Qual é a sua situação profissional?", type: "select", required: true, options: ["Empregado", "Empreendedor", "À procura"] }],
+      schemaJson: [
+        {
+          id: "employment",
+          label: "Qual é a sua situação profissional?",
+          type: "select",
+          required: true,
+          options: ["Empregado", "Empreendedor", "À procura"],
+        },
+      ],
     });
     expect(parsed.schemaJson).toHaveLength(1);
   });
 
   it("requires value or hours for contributions", () => {
-    expect(() => alumniContributionInputSchema.parse({
-      alumniId: "44444444-4444-4444-8444-444444444444",
-      contributionType: "donation",
-    })).toThrow();
-    expect(alumniContributionInputSchema.parse({
-      alumniId: "44444444-4444-4444-8444-444444444444",
-      contributionType: "volunteer_hours",
-      hours: 12,
-    }).hours).toBe(12);
+    expect(() =>
+      alumniContributionInputSchema.parse({
+        alumniId: "44444444-4444-4444-8444-444444444444",
+        contributionType: "donation",
+      }),
+    ).toThrow();
+    expect(
+      alumniContributionInputSchema.parse({
+        alumniId: "44444444-4444-4444-8444-444444444444",
+        contributionType: "volunteer_hours",
+        hours: 12,
+      }).hours,
+    ).toBe(12);
   });
 });

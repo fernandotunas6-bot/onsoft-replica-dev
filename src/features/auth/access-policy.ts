@@ -36,7 +36,11 @@ export const accessModules = [
       "/planos-aula",
     ],
   },
-  { key: "gestao", label: "Acessos / Config", prefixes: ["/acessos", "/configuracoes", "/catracas"] },
+  {
+    key: "gestao",
+    label: "Acessos / Config",
+    prefixes: ["/acessos", "/configuracoes", "/catracas"],
+  },
   { key: "arquivos", label: "Arquivos", prefixes: ["/arquivos"] },
   { key: "importacao", label: "Importar Dados", prefixes: ["/importar"] },
 ] as const;

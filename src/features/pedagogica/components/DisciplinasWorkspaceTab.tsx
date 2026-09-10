@@ -117,8 +117,10 @@ export function DisciplinasWorkspaceTab({
                     weeklyHours: Number.isFinite(weeklyHours) ? weeklyHours : 4,
                     gradeFrom: Number.isFinite(gradeFrom) ? gradeFrom : undefined,
                     gradeTo: Number.isFinite(gradeTo) ? gradeTo : undefined,
-                    subjectTypeId: values["tipo"] && values["tipo"] !== "none" ? values["tipo"] : undefined,
-                    curriculumAreaId: values["area"] && values["area"] !== "none" ? values["area"] : undefined,
+                    subjectTypeId:
+                      values["tipo"] && values["tipo"] !== "none" ? values["tipo"] : undefined,
+                    curriculumAreaId:
+                      values["area"] && values["area"] !== "none" ? values["area"] : undefined,
                   },
                 });
                 await onRefresh();
@@ -281,8 +283,12 @@ export function DisciplinasWorkspaceTab({
                                 </span>
                                 <div className="flex flex-wrap items-center gap-1.5 pl-6 text-[11px]">
                                   {(() => {
-                                    const typeObj = subjectTypes.find((t) => t.id === d.subject_type_id);
-                                    const areaObj = curriculumAreas.find((a) => a.id === d.curriculum_area_id);
+                                    const typeObj = subjectTypes.find(
+                                      (t) => t.id === d.subject_type_id,
+                                    );
+                                    const areaObj = curriculumAreas.find(
+                                      (a) => a.id === d.curriculum_area_id,
+                                    );
                                     return (
                                       <>
                                         {typeObj ? (
@@ -311,7 +317,8 @@ export function DisciplinasWorkspaceTab({
                                 const names = (workspace?.classSubjects ?? [])
                                   .filter((row) => row.subject_id === d.id && row.teacher_id)
                                   .map(
-                                    (row) => teacherNameById.get(row.teacher_id!) ?? row.subject_name,
+                                    (row) =>
+                                      teacherNameById.get(row.teacher_id!) ?? row.subject_name,
                                   );
                                 return names.length
                                   ? [...new Set(names)].join(" · ")

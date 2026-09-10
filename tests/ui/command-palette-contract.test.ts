@@ -14,9 +14,7 @@ describe("command palette catalog contract", () => {
   });
 
   it("hides finance pages from Professor", () => {
-    const pages = WORKSPACE_MODULE_SPECS.filter((spec) =>
-      canAccessPath(spec.navPath, "Professor"),
-    );
+    const pages = WORKSPACE_MODULE_SPECS.filter((spec) => canAccessPath(spec.navPath, "Professor"));
     expect(pages.some((page) => page.navPath === "/financeiro")).toBe(false);
     expect(pages.some((page) => page.navPath === "/calendario")).toBe(true);
   });

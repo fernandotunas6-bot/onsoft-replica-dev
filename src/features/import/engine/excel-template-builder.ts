@@ -60,11 +60,7 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   titleRow.font = { bold: true, size: 14, color: { argb: "FF1E3A8A" } };
 
   sheetReadme.addRow([]);
-  const descRow = sheetReadme.addRow([
-    "",
-    "Descrição do Módulo:",
-    catalog.description,
-  ]);
+  const descRow = sheetReadme.addRow(["", "Descrição do Módulo:", catalog.description]);
   descRow.font = { italic: true, size: 11 };
 
   sheetReadme.addRow([]);
@@ -72,13 +68,34 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   sheetReadme.lastRow!.font = { bold: true, size: 12, color: { argb: "FFB91C1C" } };
 
   const instructions = [
-    ["1. Inserção de Dados & Dados Demo", "A aba \"DADOS\" já vem com registos práticos de demonstração. Pode simplesmente editar estas linhas com os dados reais da sua instituição, mantendo o formato, e submeter o ficheiro para importação."],
-    ["2. Campos Obrigatórios", "As colunas com o símbolo (*) no cabeçalho e destacadas a azul escuro são obrigatórias."],
-    ["3. Formato de Datas", "Insira datas no formato AAAA-MM-DD (exemplo: 2010-04-15) para evitar erros de leitura."],
-    ["4. Identificadores Humanos", "Não é necessário preencher UUIDs ou códigos técnicos. Use Nº de Processo, BI, ou Nome da Turma."],
-    ["5. Validações Automáticas", "Alguns campos possuem listas suspensas (ex: Sexo, Turno). Selecione a opção directamente na célula."],
-    ["6. Exemplos de Referência", "Consulte a aba \"EXEMPLOS\" para visualizar mais linhas modelo com preenchimento correto."],
-    ["7. Aba METADADOS", "A aba \"METADADOS\" contém assinaturas técnicas do SIGA. Não a remova nem a modifique."],
+    [
+      "1. Inserção de Dados & Dados Demo",
+      'A aba "DADOS" já vem com registos práticos de demonstração. Pode simplesmente editar estas linhas com os dados reais da sua instituição, mantendo o formato, e submeter o ficheiro para importação.',
+    ],
+    [
+      "2. Campos Obrigatórios",
+      "As colunas com o símbolo (*) no cabeçalho e destacadas a azul escuro são obrigatórias.",
+    ],
+    [
+      "3. Formato de Datas",
+      "Insira datas no formato AAAA-MM-DD (exemplo: 2010-04-15) para evitar erros de leitura.",
+    ],
+    [
+      "4. Identificadores Humanos",
+      "Não é necessário preencher UUIDs ou códigos técnicos. Use Nº de Processo, BI, ou Nome da Turma.",
+    ],
+    [
+      "5. Validações Automáticas",
+      "Alguns campos possuem listas suspensas (ex: Sexo, Turno). Selecione a opção directamente na célula.",
+    ],
+    [
+      "6. Exemplos de Referência",
+      'Consulte a aba "EXEMPLOS" para visualizar mais linhas modelo com preenchimento correto.',
+    ],
+    [
+      "7. Aba METADADOS",
+      'A aba "METADADOS" contém assinaturas técnicas do SIGA. Não a remova nem a modifique.',
+    ],
   ];
 
   for (const [topic, desc] of instructions) {
@@ -96,9 +113,7 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   sheetData.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
 
   // Cabeçalhos
-  const headerLabels = catalog.fields.map(
-    (f) => `${f.label}${f.required ? " *" : ""}`,
-  );
+  const headerLabels = catalog.fields.map((f) => `${f.label}${f.required ? " *" : ""}`);
   const headerRow = sheetData.addRow(headerLabels);
   headerRow.height = 30;
 
@@ -154,13 +169,11 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   // ---------------------------------------------------------------------------
   const spec = OFFICIAL_TEMPLATES[moduleKey];
   const demoRowsSource =
-    spec?.demoRows && spec.demoRows.length > 0
-      ? spec.demoRows
-      : MODULE_DEMO_ROWS[moduleKey] || [];
+    spec?.demoRows && spec.demoRows.length > 0 ? spec.demoRows : MODULE_DEMO_ROWS[moduleKey] || [];
 
   for (const demoItem of demoRowsSource) {
     const rowValues = catalog.fields.map((f) =>
-      demoItem[f.key] !== undefined ? demoItem[f.key] : (f.example || ""),
+      demoItem[f.key] !== undefined ? demoItem[f.key] : f.example || "",
     );
     const dataRow = sheetData.addRow(rowValues);
     dataRow.height = 22;
@@ -198,7 +211,7 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   // Linhas de exemplo completas baseadas nos dados de demonstração
   for (const demoItem of demoRowsSource) {
     const rowValues = catalog.fields.map((f) =>
-      demoItem[f.key] !== undefined ? demoItem[f.key] : (f.example || ""),
+      demoItem[f.key] !== undefined ? demoItem[f.key] : f.example || "",
     );
     const exRow = sheetExamples.addRow(rowValues);
     exRow.height = 22;

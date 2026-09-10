@@ -5,9 +5,7 @@ import { validateTenantSlug, isReservedSubdomain } from "@/lib/saas/platform-dom
 
 function mapTenantRow(tenant: Record<string, unknown>): Tenant {
   const usage = tenant.tenant_usage as
-    | { active_students_count?: number }[]
-    | { active_students_count?: number }
-    | undefined;
+    { active_students_count?: number }[] | { active_students_count?: number } | undefined;
   const usageRow = Array.isArray(usage) ? usage[0] : usage;
   return {
     ...(tenant as unknown as Tenant),
@@ -85,7 +83,8 @@ export async function checkSlugAvailability(rawSlug: string): Promise<SlugAvaila
         slug,
         available: false,
         reason: "unavailable",
-        message: "Não foi possível confirmar a disponibilidade deste endereço agora. Tente novamente.",
+        message:
+          "Não foi possível confirmar a disponibilidade deste endereço agora. Tente novamente.",
       };
     }
 
@@ -109,7 +108,8 @@ export async function checkSlugAvailability(rawSlug: string): Promise<SlugAvaila
       slug,
       available: false,
       reason: "unavailable",
-      message: "Não foi possível confirmar a disponibilidade deste endereço agora. Tente novamente.",
+      message:
+        "Não foi possível confirmar a disponibilidade deste endereço agora. Tente novamente.",
     };
   }
 }

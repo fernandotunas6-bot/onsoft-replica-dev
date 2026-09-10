@@ -21,10 +21,7 @@ import {
   validateGatePassDeviceInputSchema,
 } from "./schemas";
 import { gatePassLookupTokens, normalizeRfidTag } from "./gate-pass-token";
-import {
-  evaluateGatePassAccess,
-  resolveGatePassDevice,
-} from "./gate-pass-validation";
+import { evaluateGatePassAccess, resolveGatePassDevice } from "./gate-pass-validation";
 import { runDeviceGatePassWebhook } from "./device-webhook-handler";
 
 export interface GateEntryRecord {
@@ -391,8 +388,7 @@ export const issueAccessCard = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existing) return existing;
 
-    const rfid =
-      data.rfidTag && data.rfidTag.trim() ? normalizeRfidTag(data.rfidTag) : null;
+    const rfid = data.rfidTag && data.rfidTag.trim() ? normalizeRfidTag(data.rfidTag) : null;
     if (rfid) {
       const { data: clash } = await db
         .from("siga_access_cards")

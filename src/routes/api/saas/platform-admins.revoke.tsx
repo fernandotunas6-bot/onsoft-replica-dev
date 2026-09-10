@@ -17,7 +17,11 @@ export const Route = createFileRoute("/api/saas/platform-admins/revoke")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "Corpo JSON inválido." }, { status: 400, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Corpo JSON inválido." },
+            { status: 400, apps: [...APPS] },
+          );
         }
         const parsed = revokePlatformAdminInputSchema.safeParse(body);
         if (!parsed.success) {
@@ -34,7 +38,8 @@ export const Route = createFileRoute("/api/saas/platform-admins/revoke")({
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Não foi possível revogar acesso.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },

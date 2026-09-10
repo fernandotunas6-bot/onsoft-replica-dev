@@ -34,7 +34,11 @@ export const Route = createFileRoute("/api/saas/email/routes")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "Corpo JSON inválido." }, { status: 400, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Corpo JSON inválido." },
+            { status: 400, apps: [...APPS] },
+          );
         }
 
         const parsed = createRouteBodySchema.safeParse(body);
@@ -83,7 +87,11 @@ export const Route = createFileRoute("/api/saas/email/routes")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "Corpo JSON inválido." }, { status: 400, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Corpo JSON inválido." },
+            { status: 400, apps: [...APPS] },
+          );
         }
 
         const parsed = deleteRouteBodySchema.safeParse(body);
@@ -119,7 +127,9 @@ function EmailRoutesApiPlaceholder() {
   return (
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
       <h1 className="font-display text-lg font-extrabold">API Rotas de E-mail</h1>
-      <p className="mt-2 text-sm text-muted-foreground">POST para criar, DELETE para remover. A UI vive no painel da escola.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        POST para criar, DELETE para remover. A UI vive no painel da escola.
+      </p>
     </main>
   );
 }

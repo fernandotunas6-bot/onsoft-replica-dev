@@ -46,7 +46,9 @@ describe("referencesMatch", () => {
 describe("gateway-simulate referenceDigitsForInvoice", () => {
   it("alinha com generateMulticaixaReference", () => {
     const invoiceId = "b2222222-3333-4444-5555-666666666666";
-    const fromTs = normalizePaymentReference(generateMulticaixaReference("99824", invoiceId, 1).reference);
+    const fromTs = normalizePaymentReference(
+      generateMulticaixaReference("99824", invoiceId, 1).reference,
+    );
     expect(referenceDigitsForInvoice(invoiceId)).toBe(fromTs);
   });
 });

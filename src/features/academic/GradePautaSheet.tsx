@@ -123,11 +123,7 @@ export function GradePautaSheet({
   evaluationPeriods?: number | undefined;
 }) {
   const queryClient = useQueryClient();
-  const {
-    selectedTerm: globalTerm,
-    terms: academicTerms,
-    setSelectedTermId,
-  } = useSchoolSettings();
+  const { selectedTerm: globalTerm, terms: academicTerms, setSelectedTermId } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const turnitinOn = installed.hasCapability("turnitin.originality");
   const moodleGrades = installed.hasCapability("moodle.grades");
@@ -688,9 +684,7 @@ export function GradePautaSheet({
               aria-label={periodNoun}
               className="flex h-9 min-w-[100px] rounded-lg border border-input bg-background px-3 text-sm text-foreground"
               value={term}
-              onChange={(event) =>
-                applyTermSelection(Number(event.target.value) as 1 | 2 | 3)
-              }
+              onChange={(event) => applyTermSelection(Number(event.target.value) as 1 | 2 | 3)}
             >
               {periodOptions.map((p) => (
                 <option key={p} value={p}>

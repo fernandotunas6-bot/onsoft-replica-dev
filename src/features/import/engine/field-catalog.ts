@@ -91,15 +91,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         required: false,
         options: ["M", "F"],
         example: "F",
-        aliases: [
-          "genero",
-          "género",
-          "sexo",
-          "gender",
-          "sex",
-          "m_f",
-          "m/f",
-        ],
+        aliases: ["genero", "género", "sexo", "gender", "sex", "m_f", "m/f"],
       },
       {
         key: "birth_date",
@@ -257,15 +249,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         required: true,
         options: ["M", "F"],
         example: "M",
-        aliases: [
-          "genero",
-          "género",
-          "sexo",
-          "gender",
-          "sex",
-          "m_f",
-          "m/f",
-        ],
+        aliases: ["genero", "género", "sexo", "gender", "sex", "m_f", "m/f"],
       },
       {
         key: "birth_date",
@@ -332,13 +316,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "text",
         required: false,
         example: "Pai",
-        aliases: [
-          "parentesco",
-          "grau de parentesco",
-          "relacao",
-          "relação",
-          "relationship",
-        ],
+        aliases: ["parentesco", "grau de parentesco", "relacao", "relação", "relationship"],
       },
       {
         key: "class_group",
@@ -364,14 +342,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "text",
         required: false,
         example: "Talatona, Sector 4",
-        aliases: [
-          "endereco",
-          "endereço",
-          "residencia",
-          "residência",
-          "bairro",
-          "morada",
-        ],
+        aliases: ["endereco", "endereço", "residencia", "residência", "bairro", "morada"],
       },
     ],
   },
@@ -494,14 +465,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "text",
         required: true,
         example: "10ª A Manhã",
-        aliases: [
-          "nome",
-          "nome da turma",
-          "turma",
-          "designacao",
-          "class group",
-          "class name",
-        ],
+        aliases: ["nome", "nome da turma", "turma", "designacao", "class group", "class name"],
       },
       {
         key: "code",
@@ -626,15 +590,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "text",
         required: true,
         example: "2026-0042",
-        aliases: [
-          "aluno",
-          "estudante",
-          "n processo",
-          "processo",
-          "n aluno",
-          "nome",
-          "student",
-        ],
+        aliases: ["aluno", "estudante", "n processo", "processo", "n aluno", "nome", "student"],
       },
       {
         key: "class_group",
@@ -653,14 +609,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "text",
         required: true,
         example: "Matemática",
-        aliases: [
-          "disciplina",
-          "materia",
-          "matéria",
-          "cadeira",
-          "subject",
-          "sigla",
-        ],
+        aliases: ["disciplina", "materia", "matéria", "cadeira", "subject", "sigla"],
       },
       {
         key: "term",
@@ -670,14 +619,7 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         required: false,
         recommended: true,
         example: "1º Trimestre",
-        aliases: [
-          "trimestre",
-          "periodo",
-          "período",
-          "term",
-          "epoca",
-          "época",
-        ],
+        aliases: ["trimestre", "periodo", "período", "term", "epoca", "época"],
       },
       {
         key: "mac",
@@ -695,7 +637,14 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "number",
         required: false,
         example: "13.0",
-        aliases: ["npp", "prova professor", "prova do professor", "prova de professor", "parcelar", "teste"],
+        aliases: [
+          "npp",
+          "prova professor",
+          "prova do professor",
+          "prova de professor",
+          "parcelar",
+          "teste",
+        ],
       },
       {
         key: "npt",
@@ -704,7 +653,13 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "number",
         required: false,
         example: "15.0",
-        aliases: ["npt", "prova trimestral", "prova do trimestre", "trimestral", "exame trimestral"],
+        aliases: [
+          "npt",
+          "prova trimestral",
+          "prova do trimestre",
+          "trimestral",
+          "exame trimestral",
+        ],
       },
       {
         key: "grade",
@@ -731,7 +686,14 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "text",
         required: true,
         example: "Matemática",
-        aliases: ["disciplina", "nome disciplina", "nome da disciplina", "materia", "subject", "subject name"],
+        aliases: [
+          "disciplina",
+          "nome disciplina",
+          "nome da disciplina",
+          "materia",
+          "subject",
+          "subject name",
+        ],
       },
       {
         key: "code",
@@ -750,7 +712,14 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "number",
         required: false,
         example: "4",
-        aliases: ["carga horaria", "carga horária", "tempos", "horas", "workload", "horas semanais"],
+        aliases: [
+          "carga horaria",
+          "carga horária",
+          "tempos",
+          "horas",
+          "workload",
+          "horas semanais",
+        ],
       },
     ],
   },
@@ -834,7 +803,8 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
       {
         key: "payment_channel",
         label: "Canal / Forma de Pagamento",
-        description: "Forma de pagamento (Multicaixa, Transferência, Depósito, Dinheiro, Unitel Money)",
+        description:
+          "Forma de pagamento (Multicaixa, Transferência, Depósito, Dinheiro, Unitel Money)",
         type: "select",
         options: ["Multicaixa", "Transferência", "Depósito", "Dinheiro", "Unitel Money"],
         required: false,
@@ -865,7 +835,15 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "text",
         required: true,
         example: "Manuel António Sebastião",
-        aliases: ["encarregado", "nome encarregado", "nome do encarregado", "tutor", "responsavel", "pai", "mae"],
+        aliases: [
+          "encarregado",
+          "nome encarregado",
+          "nome do encarregado",
+          "tutor",
+          "responsavel",
+          "pai",
+          "mae",
+        ],
       },
       {
         key: "id_number",
@@ -874,7 +852,13 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         type: "text",
         required: false,
         example: "001928374LA033",
-        aliases: ["bi encarregado", "bi do encarregado", "documento encarregado", "nif encarregado", "national id"],
+        aliases: [
+          "bi encarregado",
+          "bi do encarregado",
+          "documento encarregado",
+          "nif encarregado",
+          "national id",
+        ],
       },
       {
         key: "phone",
@@ -1223,7 +1207,14 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         label: "Dia da Semana",
         description: "Segunda-feira a Sábado",
         type: "select",
-        options: ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"],
+        options: [
+          "Segunda-feira",
+          "Terça-feira",
+          "Quarta-feira",
+          "Quinta-feira",
+          "Sexta-feira",
+          "Sábado",
+        ],
         required: true,
         example: "Segunda-feira",
         aliases: ["dia", "dia semana", "dia da semana", "weekday"],
@@ -1727,7 +1718,10 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
 };
 
 function stripStopWords(text: string): string {
-  return text.replace(/\b(de|do|da|dos|das|no|na)\b/g, "").replace(/\s+/g, " ").trim();
+  return text
+    .replace(/\b(de|do|da|dos|das|no|na)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /**

@@ -1,6 +1,14 @@
 import { useState, useMemo } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FileUp, History, ShieldCheck, Download, FileSpreadsheet, Sparkles, Search } from "lucide-react";
+import {
+  FileUp,
+  History,
+  ShieldCheck,
+  Download,
+  FileSpreadsheet,
+  Sparkles,
+  Search,
+} from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
@@ -62,18 +70,14 @@ export function ImportarDadosPage() {
   const [templateCategory, setTemplateCategory] = useState<string>(defaultCategory);
   const [templateSearch, setTemplateSearch] = useState<string>("");
 
-
   const filteredTemplates = useMemo(() => {
     return Object.entries(OFFICIAL_TEMPLATES).filter(([key, spec]) => {
-      const matchCategory =
-        templateCategory === "todos" || spec.category === templateCategory;
+      const matchCategory = templateCategory === "todos" || spec.category === templateCategory;
       const matchSearch =
         !templateSearch ||
         spec.label.toLowerCase().includes(templateSearch.toLowerCase()) ||
         spec.module.toLowerCase().includes(templateSearch.toLowerCase()) ||
-        spec.columns.some((c) =>
-          c.header.toLowerCase().includes(templateSearch.toLowerCase()),
-        );
+        spec.columns.some((c) => c.header.toLowerCase().includes(templateSearch.toLowerCase()));
       return matchCategory && matchSearch;
     });
   }, [templateCategory, templateSearch]);
@@ -195,7 +199,8 @@ export function ImportarDadosPage() {
                       Modelos Oficiais de Importação ({Object.keys(OFFICIAL_TEMPLATES).length})
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Descarregue modelos oficiais pré-formatados com validações de lista suspensa, exemplos angolanos e orientações relacionais.
+                      Descarregue modelos oficiais pré-formatados com validações de lista suspensa,
+                      exemplos angolanos e orientações relacionais.
                     </p>
                   </div>
                   <div className="relative w-full sm:w-64">
@@ -215,22 +220,30 @@ export function ImportarDadosPage() {
                     {
                       id: "pessoas",
                       label: "Identidade & Pessoas",
-                      count: Object.values(OFFICIAL_TEMPLATES).filter((t) => t.category === "pessoas").length,
+                      count: Object.values(OFFICIAL_TEMPLATES).filter(
+                        (t) => t.category === "pessoas",
+                      ).length,
                     },
                     {
                       id: "pedagogica",
                       label: "Estrutura Pedagógica",
-                      count: Object.values(OFFICIAL_TEMPLATES).filter((t) => t.category === "pedagogica").length,
+                      count: Object.values(OFFICIAL_TEMPLATES).filter(
+                        (t) => t.category === "pedagogica",
+                      ).length,
                     },
                     {
                       id: "academica",
                       label: "Gestão Académica",
-                      count: Object.values(OFFICIAL_TEMPLATES).filter((t) => t.category === "academica").length,
+                      count: Object.values(OFFICIAL_TEMPLATES).filter(
+                        (t) => t.category === "academica",
+                      ).length,
                     },
                     {
                       id: "financeira",
                       label: "Tesouraria & Finanças",
-                      count: Object.values(OFFICIAL_TEMPLATES).filter((t) => t.category === "financeira").length,
+                      count: Object.values(OFFICIAL_TEMPLATES).filter(
+                        (t) => t.category === "financeira",
+                      ).length,
                     },
                   ].map((cat) => (
                     <Button
@@ -261,7 +274,10 @@ export function ImportarDadosPage() {
                             </p>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-[10px] capitalize shrink-0 font-normal">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] capitalize shrink-0 font-normal"
+                        >
                           {spec.category === "pessoas"
                             ? "Identidade"
                             : spec.category === "pedagogica"

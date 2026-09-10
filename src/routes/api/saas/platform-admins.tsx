@@ -20,7 +20,8 @@ export const Route = createFileRoute("/api/saas/platform-admins")({
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Não foi possível listar administradores.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },
@@ -29,7 +30,11 @@ export const Route = createFileRoute("/api/saas/platform-admins")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "Corpo JSON inválido." }, { status: 400, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Corpo JSON inválido." },
+            { status: 400, apps: [...APPS] },
+          );
         }
         const parsed = grantPlatformAdminInputSchema.safeParse(body);
         if (!parsed.success) {
@@ -46,7 +51,8 @@ export const Route = createFileRoute("/api/saas/platform-admins")({
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Não foi possível conceder acesso.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },
@@ -59,7 +65,9 @@ function PlatformAdminsApiPlaceholder() {
   return (
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
       <h1 className="font-display text-lg font-extrabold">API de platform_admins</h1>
-      <p className="mt-2 text-sm text-muted-foreground">GET/POST autenticado. A UI vive no ADMIN.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        GET/POST autenticado. A UI vive no ADMIN.
+      </p>
     </main>
   );
 }

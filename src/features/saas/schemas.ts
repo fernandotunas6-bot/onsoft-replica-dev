@@ -27,7 +27,10 @@ export const createSchoolWizardInputSchema = z.object({
     .toLowerCase()
     .min(3, "Subdomínio deve ter pelo menos 3 caracteres")
     .max(50, "Subdomínio não pode ter mais de 50 caracteres")
-    .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, "Subdomínio só pode ter letras minúsculas, números e hífen")
+    .regex(
+      /^[a-z0-9][a-z0-9-]*[a-z0-9]$/,
+      "Subdomínio só pode ter letras minúsculas, números e hífen",
+    )
     .refine((slug) => !isReservedSubdomain(slug), {
       message: "Este subdomínio está reservado pela plataforma.",
     }),

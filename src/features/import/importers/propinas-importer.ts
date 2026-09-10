@@ -60,10 +60,16 @@ export const propinasImporter: RowImporter = {
       return { status: "error", warnings: analysis.warnings, errors: analysis.errors, audits: [] };
     }
 
-    const dueDay = Number(valueOf(normalized, "due_day", "dia_vencimento", "dia_limite", "vencimento") ?? 10);
-    const lateFee = Number(valueOf(normalized, "late_fee_percent", "multa", "percentual_multa") ?? 10);
+    const dueDay = Number(
+      valueOf(normalized, "due_day", "dia_vencimento", "dia_limite", "vencimento") ?? 10,
+    );
+    const lateFee = Number(
+      valueOf(normalized, "late_fee_percent", "multa", "percentual_multa") ?? 10,
+    );
     const graceDays = Number(valueOf(normalized, "grace_days", "dias_carencia", "tolerancia") ?? 5);
-    const siblingDiscount = Number(valueOf(normalized, "sibling_discount_percent", "desconto_irmao") ?? 0);
+    const siblingDiscount = Number(
+      valueOf(normalized, "sibling_discount_percent", "desconto_irmao") ?? 0,
+    );
 
     if (cache.existingSettingsId) {
       const { error } = await ctx.db

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Deploy Unificado do Ecossistema SIGA Plus para Cloudflare.
- * 
+ *
  * Orquestra o build e deploy de:
  * 1. DOC    (painel/docs)  → Cloudflare Pages (siga-docs.pages.dev)
  * 2. WEB    (painel/web)   → Cloudflare Pages (siga-web.pages.dev)
@@ -37,7 +37,10 @@ if (fs.existsSync(envFile)) {
 const mergedEnv = {
   ...process.env,
   ...envVars,
-  VITE_PAYFLOW_URL: envVars["VITE_PAYFLOW_URL"] || process.env.VITE_PAYFLOW_URL || "https://payflow.portal-siga.com",
+  VITE_PAYFLOW_URL:
+    envVars["VITE_PAYFLOW_URL"] ||
+    process.env.VITE_PAYFLOW_URL ||
+    "https://payflow.portal-siga.com",
 };
 
 function runStep(title, fn) {
@@ -58,11 +61,14 @@ runStep("Deploy DOC (painel/docs → siga-docs.pages.dev)", () => {
   console.log("==> Building DOC (VitePress)...");
   execSync("npm run build", { cwd: docsDir, stdio: "inherit", env: mergedEnv });
   console.log("==> Deploying DOC to Cloudflare Pages...");
-  execSync("npx wrangler pages deploy .vitepress/dist --project-name siga-docs --commit-dirty=true", {
-    cwd: docsDir,
-    stdio: "inherit",
-    env: mergedEnv,
-  });
+  execSync(
+    "npx wrangler pages deploy .vitepress/dist --project-name siga-docs --commit-dirty=true",
+    {
+      cwd: docsDir,
+      stdio: "inherit",
+      env: mergedEnv,
+    },
+  );
 });
 
 // 2. WEB (painel/web)

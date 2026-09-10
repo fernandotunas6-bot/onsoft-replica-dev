@@ -154,7 +154,12 @@ export function TopbarCalendar() {
                           {actions && (canCall || canQr) ? (
                             <div className="mt-1.5 flex flex-wrap gap-1 pl-14">
                               {canCall ? (
-                                <Button asChild size="sm" variant="secondary" className="h-7 gap-1 px-2 text-[11px]">
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="secondary"
+                                  className="h-7 gap-1 px-2 text-[11px]"
+                                >
                                   <Link
                                     to="/pedagogica"
                                     search={actions.callSearch}
@@ -165,7 +170,12 @@ export function TopbarCalendar() {
                                 </Button>
                               ) : null}
                               {canCall ? (
-                                <Button asChild size="sm" variant="ghost" className="h-7 gap-1 px-2 text-[11px]">
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 gap-1 px-2 text-[11px]"
+                                >
                                   <Link
                                     to="/pedagogica"
                                     search={actions.gradesSearch}
@@ -176,7 +186,12 @@ export function TopbarCalendar() {
                                 </Button>
                               ) : null}
                               {canQr ? (
-                                <Button asChild size="sm" variant="ghost" className="h-7 gap-1 px-2 text-[11px]">
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 gap-1 px-2 text-[11px]"
+                                >
                                   <Link
                                     to="/professor/presenca"
                                     search={actions.qrSearch}

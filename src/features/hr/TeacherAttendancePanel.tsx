@@ -108,7 +108,9 @@ export function TeacherAttendancePanel({
   const [cameraActive, setCameraActive] = useState(false);
   const [lastLocationAvailable, setLastLocationAvailable] = useState<boolean | null>(null);
   const [scanMode, setScanMode] = useState<"check_in" | "check_out">("check_in");
-  const [callOpen, setCallOpen] = useState(Boolean(initialCall?.sessionId || initialCall?.classGroupId));
+  const [callOpen, setCallOpen] = useState(
+    Boolean(initialCall?.sessionId || initialCall?.classGroupId),
+  );
   const [classroom, setClassroom] = useState<ClassroomHandoff | null>(
     initialCall?.classGroupId && initialCall?.subjectId
       ? {
@@ -264,7 +266,7 @@ export function TeacherAttendancePanel({
   const focusedLesson =
     focusLesson == null
       ? null
-      : lessons.find(
+      : (lessons.find(
           (lesson) =>
             lesson.class_group_id === focusLesson.classGroupId &&
             lesson.subject_id === focusLesson.subjectId &&
@@ -275,7 +277,7 @@ export function TeacherAttendancePanel({
             lesson.class_group_id === focusLesson.classGroupId &&
             lesson.subject_id === focusLesson.subjectId,
         ) ??
-        null;
+        null);
   const todayLessons = lessons.filter((lesson) => lesson.lesson_date === today);
   const confirmedCount = lessons.filter((lesson) => lesson.status === "confirmed").length;
   const awaitingCheckout = todayLessons.find(
@@ -342,9 +344,7 @@ export function TeacherAttendancePanel({
 
             {awaitingCheckout ? (
               <div className="rounded-lg border border-warning/40 bg-warning/10 p-3">
-                <p className="text-sm font-semibold">
-                  Aula em curso — falta o check-out
-                </p>
+                <p className="text-sm font-semibold">Aula em curso — falta o check-out</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {lessonTitle(awaitingCheckout)} · entrada{" "}
                   {formatDateTime(awaitingCheckout.actual_started_at)}. Peça o QR de saída à
@@ -451,7 +451,12 @@ export function TeacherAttendancePanel({
                     >
                       Abrir lista de alunos e marcar presença
                     </Button>
-                    <Button asChild size="sm" variant="outline" className="gap-1 touch-manipulation">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 touch-manipulation"
+                    >
                       <Link
                         to="/pedagogica"
                         search={teacherGradesSearch(classroom.classGroupId, classroom.subjectId)}
@@ -459,7 +464,12 @@ export function TeacherAttendancePanel({
                         <PieChart className="size-3.5" /> Lançar notas
                       </Link>
                     </Button>
-                    <Button asChild size="sm" variant="outline" className="gap-1 touch-manipulation">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 touch-manipulation"
+                    >
                       <Link
                         to="/planos-aula"
                         search={teacherLessonPlansSearch(
@@ -470,11 +480,13 @@ export function TeacherAttendancePanel({
                         <NotebookPen className="size-3.5" /> Plano
                       </Link>
                     </Button>
-                    <Button asChild size="sm" variant="outline" className="gap-1 touch-manipulation">
-                      <Link
-                        to="/arquivos"
-                        search={teacherClassFilesSearch(classroom.classGroupId)}
-                      >
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 touch-manipulation"
+                    >
+                      <Link to="/arquivos" search={teacherClassFilesSearch(classroom.classGroupId)}>
                         <FolderOpen className="size-3.5" /> Materiais
                       </Link>
                     </Button>
@@ -608,7 +620,9 @@ export function TeacherAttendancePanel({
                           {formatDateTime(lesson.actual_ended_at)}
                         </span>
                       </div>
-                      {canOpenCall || needsCheckout || (lesson.class_group_id && lesson.subject_id) ? (
+                      {canOpenCall ||
+                      needsCheckout ||
+                      (lesson.class_group_id && lesson.subject_id) ? (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {canOpenCall ? (
                             <Button

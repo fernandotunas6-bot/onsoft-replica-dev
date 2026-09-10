@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriter, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriter,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import {
   alumniContributionInputSchema,
   alumniOpportunityApplicationInputSchema,
@@ -9,8 +13,17 @@ import {
   alumniSurveyResponseInputSchema,
 } from "./schemas";
 
-async function assertAlumni(db: Awaited<ReturnType<typeof loadSgaAdminClient>>, schoolId: string, alumniId: string) {
-  const { data, error } = await db.from("alumni_profiles").select("id").eq("school_id", schoolId).eq("id", alumniId).maybeSingle();
+async function assertAlumni(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  alumniId: string,
+) {
+  const { data, error } = await db
+    .from("alumni_profiles")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("id", alumniId)
+    .maybeSingle();
   if (error) throw publicDatabaseError(error, "Não foi possível validar o Alumni.");
   if (!data) throw new Error("Alumni não encontrado nesta escola.");
 }
@@ -29,19 +42,26 @@ export const applyToAlumniOpportunity = createServerFn({ method: "POST" })
       .eq("school_id", membership.schoolId)
       .eq("id", data.opportunityId)
       .maybeSingle();
-    if (opportunityError) throw publicDatabaseError(opportunityError, "Não foi possível validar a oportunidade.");
+    if (opportunityError)
+      throw publicDatabaseError(opportunityError, "Não foi possível validar a oportunidade.");
     if (!opportunity) throw new Error("Oportunidade não encontrada nesta escola.");
 
-    const { error } = await db.from("alumni_opportunity_applications").upsert({
-      school_id: membership.schoolId,
-      opportunity_id: data.opportunityId,
-      alumni_id: data.alumniId,
-      status: data.status,
-      applied_at: ["applied", "shortlisted", "accepted", "rejected"].includes(data.status) ? new Date().toISOString() : null,
-      notes: data.notes,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "opportunity_id,alumni_id" });
-    if (error) throw publicDatabaseError(error, "Não foi possível actualizar a candidatura Alumni.");
+    const { error } = await db.from("alumni_opportunity_applications").upsert(
+      {
+        school_id: membership.schoolId,
+        opportunity_id: data.opportunityId,
+        alumni_id: data.alumniId,
+        status: data.status,
+        applied_at: ["applied", "shortlisted", "accepted", "rejected"].includes(data.status)
+          ? new Date().toISOString()
+          : null,
+        notes: data.notes,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "opportunity_id,alumni_id" },
+    );
+    if (error)
+      throw publicDatabaseError(error, "Não foi possível actualizar a candidatura Alumni.");
     return { ok: true };
   });
 
@@ -52,7 +72,11 @@ export const listAlumniSurveys = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
-    const { data, error } = await db.from("alumni_surveys").select("*").eq("school_id", membership.schoolId).order("created_at", { ascending: false });
+    const { data, error } = await db
+      .from("alumni_surveys")
+      .select("*")
+      .eq("school_id", membership.schoolId)
+      .order("created_at", { ascending: false });
     if (error) throw publicDatabaseError(error, "Não foi possível carregar pesquisas Alumni.");
     return data ?? [];
   });
@@ -76,9 +100,16 @@ export const upsertAlumniSurvey = createServerFn({ method: "POST" })
       updated_at: new Date().toISOString(),
     };
     const result = data.surveyId
-      ? await db.from("alumni_surveys").update(payload).eq("school_id", membership.schoolId).eq("id", data.surveyId).select("id").single()
+      ? await db
+          .from("alumni_surveys")
+          .update(payload)
+          .eq("school_id", membership.schoolId)
+          .eq("id", data.surveyId)
+          .select("id")
+          .single()
       : await db.from("alumni_surveys").insert(payload).select("id").single();
-    if (result.error) throw publicDatabaseError(result.error, "Não foi possível guardar a pesquisa Alumni.");
+    if (result.error)
+      throw publicDatabaseError(result.error, "Não foi possível guardar a pesquisa Alumni.");
     return result.data;
   });
 
@@ -90,16 +121,24 @@ export const submitAlumniSurveyResponse = createServerFn({ method: "POST" })
     const membership = await requireSgaWriter(context.userId);
     const db = await loadSgaAdminClient();
     await assertAlumni(db, membership.schoolId, data.alumniId);
-    const { data: survey, error: surveyError } = await db.from("alumni_surveys").select("id, status").eq("school_id", membership.schoolId).eq("id", data.surveyId).maybeSingle();
+    const { data: survey, error: surveyError } = await db
+      .from("alumni_surveys")
+      .select("id, status")
+      .eq("school_id", membership.schoolId)
+      .eq("id", data.surveyId)
+      .maybeSingle();
     if (surveyError) throw publicDatabaseError(surveyError, "Não foi possível validar a pesquisa.");
     if (!survey) throw new Error("Pesquisa não encontrada nesta escola.");
-    const { error } = await db.from("alumni_survey_responses").upsert({
-      school_id: membership.schoolId,
-      survey_id: data.surveyId,
-      alumni_id: data.alumniId,
-      response_json: data.responseJson,
-      submitted_at: new Date().toISOString(),
-    }, { onConflict: "survey_id,alumni_id" });
+    const { error } = await db.from("alumni_survey_responses").upsert(
+      {
+        school_id: membership.schoolId,
+        survey_id: data.surveyId,
+        alumni_id: data.alumniId,
+        response_json: data.responseJson,
+        submitted_at: new Date().toISOString(),
+      },
+      { onConflict: "survey_id,alumni_id" },
+    );
     if (error) throw publicDatabaseError(error, "Não foi possível guardar a resposta da pesquisa.");
     return { ok: true };
   });
@@ -137,7 +176,11 @@ export const recordAlumniContribution = createServerFn({ method: "POST" })
         value_numeric: data.amount ?? data.hours ?? null,
         notes: data.notes,
       }),
-      db.from("alumni_profiles").update({ last_engagement_at: occurredAt }).eq("school_id", membership.schoolId).eq("id", data.alumniId),
+      db
+        .from("alumni_profiles")
+        .update({ last_engagement_at: occurredAt })
+        .eq("school_id", membership.schoolId)
+        .eq("id", data.alumniId),
     ]);
     return { ok: true };
   });
@@ -149,18 +192,53 @@ export const getAlumniImpactAnalytics = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
-    const [{ data: profiles }, { data: contributions }, { data: responses }, { data: events }, { data: mentorships }] = await Promise.all([
-      db.from("alumni_profiles").select("graduation_year, employment_status, industry, province, country, skills, profile_completion").eq("school_id", membership.schoolId),
-      db.from("alumni_contributions").select("contribution_type, amount, currency, hours, occurred_at").eq("school_id", membership.schoolId),
-      db.from("alumni_survey_responses").select("survey_id, submitted_at").eq("school_id", membership.schoolId),
-      db.from("alumni_event_registrations").select("event_id, status").eq("school_id", membership.schoolId),
+    const [
+      { data: profiles },
+      { data: contributions },
+      { data: responses },
+      { data: events },
+      { data: mentorships },
+    ] = await Promise.all([
+      db
+        .from("alumni_profiles")
+        .select(
+          "graduation_year, employment_status, industry, province, country, skills, profile_completion",
+        )
+        .eq("school_id", membership.schoolId),
+      db
+        .from("alumni_contributions")
+        .select("contribution_type, amount, currency, hours, occurred_at")
+        .eq("school_id", membership.schoolId),
+      db
+        .from("alumni_survey_responses")
+        .select("survey_id, submitted_at")
+        .eq("school_id", membership.schoolId),
+      db
+        .from("alumni_event_registrations")
+        .select("event_id, status")
+        .eq("school_id", membership.schoolId),
       db.from("alumni_mentorships").select("status").eq("school_id", membership.schoolId),
     ]);
 
     const rows = profiles ?? [];
-    const byEmployment = Object.fromEntries([...new Set(rows.map((row) => row.employment_status))].map((status) => [status, rows.filter((row) => row.employment_status === status).length]));
-    const byProvince = Object.fromEntries([...new Set(rows.map((row) => row.province).filter(Boolean))].map((province) => [province, rows.filter((row) => row.province === province).length]));
-    const byCohort = Object.fromEntries([...new Set(rows.map((row) => row.graduation_year).filter(Boolean))].map((year) => [String(year), rows.filter((row) => row.graduation_year === year).length]));
+    const byEmployment = Object.fromEntries(
+      [...new Set(rows.map((row) => row.employment_status))].map((status) => [
+        status,
+        rows.filter((row) => row.employment_status === status).length,
+      ]),
+    );
+    const byProvince = Object.fromEntries(
+      [...new Set(rows.map((row) => row.province).filter(Boolean))].map((province) => [
+        province,
+        rows.filter((row) => row.province === province).length,
+      ]),
+    );
+    const byCohort = Object.fromEntries(
+      [...new Set(rows.map((row) => row.graduation_year).filter(Boolean))].map((year) => [
+        String(year),
+        rows.filter((row) => row.graduation_year === year).length,
+      ]),
+    );
     return {
       byEmployment,
       byProvince,

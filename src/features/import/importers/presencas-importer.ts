@@ -34,11 +34,14 @@ export const presencasImporter: RowImporter = {
     }
 
     const enrollmentByStudentId = new Map(
-      (enrollments.data ?? []).map((e) => [String(e.student_id), {
-        id: String(e.id),
-        student_id: String(e.student_id),
-        attendance_rate: e.attendance_rate !== null ? Number(e.attendance_rate) : null,
-      }]),
+      (enrollments.data ?? []).map((e) => [
+        String(e.student_id),
+        {
+          id: String(e.id),
+          student_id: String(e.student_id),
+          attendance_rate: e.attendance_rate !== null ? Number(e.attendance_rate) : null,
+        },
+      ]),
     );
 
     return {
@@ -58,7 +61,13 @@ export const presencasImporter: RowImporter = {
     const studentIdent = normalizeText(
       valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
     );
-    const rateVal = valueOf(normalized, "attendance_rate", "presenca", "taxa_presenca", "assiduidade");
+    const rateVal = valueOf(
+      normalized,
+      "attendance_rate",
+      "presenca",
+      "taxa_presenca",
+      "assiduidade",
+    );
 
     if (!studentIdent) errors.push("Identificador do aluno (Nº Processo ou BI) é obrigatório.");
     if (rateVal === null || rateVal === undefined) {
@@ -100,7 +109,13 @@ export const presencasImporter: RowImporter = {
     const studentIdent = normalizeText(
       valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
     )!;
-    const rateVal = valueOf(normalized, "attendance_rate", "presenca", "taxa_presenca", "assiduidade")!;
+    const rateVal = valueOf(
+      normalized,
+      "attendance_rate",
+      "presenca",
+      "taxa_presenca",
+      "assiduidade",
+    )!;
     const rateNum = Math.round(Number(String(rateVal).replace("%", "").trim()));
 
     const studentMatch = uniqueExactMatch(studentIdent, cache.students, [

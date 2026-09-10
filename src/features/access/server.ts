@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestIP } from "@tanstack/react-start/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -9,6 +10,7 @@ import { getAppName, getAppUrl, getAuthResetPasswordUrl } from "@/lib/app-config
 import { fetchSchoolBranding } from "@/features/auth/reset-password-server";
 import { renderSchoolInvitationEmail } from "@/features/auth/email-templates";
 import { resolveResendFromAddress, sendResendEmail } from "@/features/integrations/resend-client";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { resolveBiToEmailInputSchema } from "./bi-login";
 import {
   inviteUserInputSchema,
@@ -21,18 +23,31 @@ import {
   acceptSchoolInvitationInputSchema,
 } from "./schemas";
 
+const BI_LOOKUP_RATE_LIMIT = { windowMs: 60 * 1000, max: 10 };
+
 type AuthedContext = {
   supabase: SupabaseClient;
   userId: string;
+  claims?: Record<string, unknown>;
 };
+
+function isAdministratorRole(role: string): boolean {
+  const normalized = role.trim().toLowerCase();
+  return ["administrador", "admin", "owner", "diretor geral", "director geral"].includes(normalized);
+}
 
 async function requireAdminContext(context: AuthedContext) {
   const membership = await resolveSgaMembershipAdmin(context.userId);
   if (!membership) throw new Error("Não foi possível determinar a escola actual.");
   if (membership.appRole !== "Administrador" && membership.appRole !== "Secretaria") {
-    throw new Error("Apenas Administrador e Secretaria podem gerir contas de acesso.");
+    throw new Error("Apenas Administrador e Secretaria podem aceder à gestão de acessos.");
   }
-  return { schoolId: membership.schoolId, adminUserId: context.userId };
+  return {
+    schoolId: membership.schoolId,
+    adminUserId: context.userId,
+    appRole: membership.appRole,
+    isAdministrator: membership.appRole === "Administrador",
+  };
 }
 
 async function loadAdminClient() {
@@ -128,7 +143,10 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
   .validator((input: unknown) => inviteUserInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const { schoolId } = await requireAdminContext(context);
+    const { schoolId, isAdministrator } = await requireAdminContext(context);
+    if (data.cargo === "Administrador" && !isAdministrator) {
+      throw new Error("Apenas um Administrador pode convidar ou criar contas com cargo de Administrador.");
+    }
     const admin = await loadAdminClient();
 
     // Não usar inviteUserByEmail: o mailer nativo da Supabase (sem SMTP próprio)
@@ -302,12 +320,28 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateAccountCargoInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const { schoolId } = await requireAdminContext(context);
+    const { schoolId, isAdministrator } = await requireAdminContext(context);
     if (data.userId === context.userId && data.cargo !== "Administrador") {
       throw new Error("Não pode remover o seu próprio cargo de Administrador.");
     }
+    if (data.userId === context.userId && !isAdministrator) {
+      throw new Error("Não tem permissão para alterar o seu próprio cargo.");
+    }
+    if (data.cargo === "Administrador" && !isAdministrator) {
+      throw new Error("Apenas um Administrador pode atribuir o cargo de Administrador.");
+    }
 
     const admin = await loadAdminClient();
+    const { data: targetProfile } = await admin
+      .from("profiles")
+      .select("cargo")
+      .eq("id", data.userId)
+      .maybeSingle();
+
+    if (targetProfile?.cargo && isAdministratorRole(targetProfile.cargo) && !isAdministrator) {
+      throw new Error("Apenas Administradores podem alterar contas de outros Administradores.");
+    }
+
     const { data: membership, error } = await admin
       .from("school_memberships")
       .select("id")
@@ -363,12 +397,25 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
   .validator((input: unknown) => setAccountDisabledInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const { schoolId } = await requireAdminContext(context);
+    const { schoolId, isAdministrator } = await requireAdminContext(context);
     if (data.userId === context.userId) {
       throw new Error("Não pode suspender a sua própria conta.");
     }
+    if (!isAdministrator) {
+      throw new Error("Apenas Administradores podem suspender ou reactivar contas de acesso.");
+    }
 
     const admin = await loadAdminClient();
+    const { data: targetProfile } = await admin
+      .from("profiles")
+      .select("cargo")
+      .eq("id", data.userId)
+      .maybeSingle();
+
+    if (targetProfile?.cargo && isAdministratorRole(targetProfile.cargo)) {
+      throw new Error("Não é permitido suspender a conta de outro Administrador.");
+    }
+
     const { data: membership, error: profileError } = await admin
       .from("school_memberships")
       .select("id")
@@ -510,6 +557,13 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
 export const resolveBiToEmailFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => resolveBiToEmailInputSchema.parse(input))
   .handler(async ({ data }) => {
+    const ip = (typeof getRequestIP === "function" ? getRequestIP({ xForwardedFor: true }) : null) ?? "unknown";
+    const rateLimitKey = `bi_lookup:${ip}`;
+    if (!isRateLimitBypassed(rateLimitKey) && !checkRateLimit([rateLimitKey], BI_LOOKUP_RATE_LIMIT)) {
+      throw new Error("Muitas tentativas de consulta a partir deste endereço IP. Tente novamente mais tarde.");
+    }
+    recordRateLimitAttempt([rateLimitKey], BI_LOOKUP_RATE_LIMIT);
+
     const { resolveBiOrEmailToUserEmail } = await import("./bi-login");
     const resolvedEmail = await resolveBiOrEmailToUserEmail(data.identifier);
     return { email: resolvedEmail };
@@ -520,7 +574,10 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
   .validator((input: unknown) => resetStaffPasswordInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const { schoolId } = await requireAdminContext(context);
+    const { schoolId, isAdministrator } = await requireAdminContext(context);
+    if (!isAdministrator) {
+      throw new Error("Apenas Administradores podem redefinir senhas de funcionários directamente.");
+    }
     const admin = await loadAdminClient();
 
     const { data: membership, error: membershipError } = await admin
@@ -531,6 +588,18 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
       .maybeSingle();
     if (membershipError || !membership) {
       throw new Error("Conta de funcionário não encontrada nesta escola.");
+    }
+
+    if (data.userId !== context.userId) {
+      const { data: targetProfile } = await admin
+        .from("profiles")
+        .select("cargo")
+        .eq("id", data.userId)
+        .maybeSingle();
+
+      if (targetProfile?.cargo && isAdministratorRole(targetProfile.cargo)) {
+        throw new Error("Não é permitido redefinir directamente a senha de outro Administrador. Utilize a recuperação por e-mail.");
+      }
     }
 
     const { error } = await admin.auth.admin.updateUserById(data.userId, {
@@ -737,6 +806,15 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
       await admin.from("school_invitations").update({ status: "expired" }).eq("id", invitation.id);
       throw new Error("O convite expirou. Solicite um novo convite ao administrador da escola.");
+    }
+
+    // 3.1. Validar correspondência do destinatário (anti-sequestro de convite)
+    const userEmail = (context.claims?.email as string | undefined)?.toLowerCase().trim();
+    const invitedEmail = (invitation.email as string).toLowerCase().trim();
+    if (userEmail && userEmail !== invitedEmail) {
+      throw new Error(
+        `Este convite foi emitido para ${invitedEmail}. A sessão actual (${userEmail}) não corresponde ao destinatário do convite.`,
+      );
     }
 
     const schoolId = invitation.school_id as string;

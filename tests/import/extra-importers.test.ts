@@ -9,7 +9,9 @@ describe("Extra Importers (dividas, funcionarios, horarios)", () => {
       const cache = { students: [], existingInvoiceNumbers: new Set() };
       const analysis = dividasImporter.analyzeRow({}, cache as any);
       expect(analysis.status).toBe("error");
-      expect(analysis.errors).toContain("Identificador do aluno (Nº Processo ou BI) é obrigatório.");
+      expect(analysis.errors).toContain(
+        "Identificador do aluno (Nº Processo ou BI) é obrigatório.",
+      );
       expect(analysis.errors).toContain("Valor em dívida deve ser um número positivo em Kwanzas.");
     });
 
@@ -81,7 +83,9 @@ describe("Extra Importers (dividas, funcionarios, horarios)", () => {
       expect(analysis.status).toBe("error");
       expect(analysis.errors).toContain("Turma é obrigatória.");
       expect(analysis.errors).toContain("Disciplina é obrigatória.");
-      expect(analysis.errors).toContain("Dia da semana inválido (ex: Segunda-feira, Terça-feira...).");
+      expect(analysis.errors).toContain(
+        "Dia da semana inválido (ex: Segunda-feira, Terça-feira...).",
+      );
       expect(analysis.errors).toContain("Hora de início é obrigatória (ex: 07:30).");
       expect(analysis.errors).toContain("Hora de fim é obrigatória (ex: 08:15).");
     });

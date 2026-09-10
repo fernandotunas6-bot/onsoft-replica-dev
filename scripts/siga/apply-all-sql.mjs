@@ -35,10 +35,10 @@ async function executeSql(sql, label = "SQL") {
   const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query: sql })
+    body: JSON.stringify({ query: sql }),
   });
 
   const duration = ((Date.now() - start) / 1000).toFixed(2);
@@ -150,7 +150,7 @@ async function run() {
   console.log("=========================================================\n");
 }
 
-run().catch(err => {
+run().catch((err) => {
   console.error("\n❌ Falha na execução do SQL:", err);
   process.exit(1);
 });

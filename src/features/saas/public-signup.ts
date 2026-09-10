@@ -1,32 +1,16 @@
 import { provisionTenantCore } from "@/features/saas/provisioning-core";
 import type { PublicSchoolSignupInput } from "@/features/saas/schemas";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 
-const SIGNUP_RATE_WINDOW_MS = 60 * 60 * 1000;
-const SIGNUP_RATE_MAX_PER_KEY = 3;
-const signupAttempts = new Map<string, number[]>();
+const SIGNUP_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 3 };
 
 function checkSignupRateLimit(...keys: string[]): boolean {
-  if (
-    process.env.SIGA_E2E_LIVE === "1" ||
-    process.env.SIGA_E2E_LIVE === "true" ||
-    keys.some((k) => k.includes("siga-plus.test"))
-  ) {
-    return true;
-  }
-  const now = Date.now();
-  return keys.every((key) => {
-    const attempts = (signupAttempts.get(key) ?? []).filter((t) => now - t < SIGNUP_RATE_WINDOW_MS);
-    return attempts.length < SIGNUP_RATE_MAX_PER_KEY;
-  });
+  if (isRateLimitBypassed(...keys)) return true;
+  return checkRateLimit(keys, SIGNUP_RATE_LIMIT);
 }
 
 function recordSignupAttempt(...keys: string[]): void {
-  const now = Date.now();
-  for (const key of keys) {
-    const attempts = (signupAttempts.get(key) ?? []).filter((t) => now - t < SIGNUP_RATE_WINDOW_MS);
-    attempts.push(now);
-    signupAttempts.set(key, attempts);
-  }
+  recordRateLimitAttempt(keys, SIGNUP_RATE_LIMIT);
 }
 
 export async function runPublicSchoolSignup(

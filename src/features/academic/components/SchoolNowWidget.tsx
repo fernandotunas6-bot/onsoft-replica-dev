@@ -27,7 +27,9 @@ export function SchoolNowWidget() {
           </div>
           <div>
             <h4 className="text-sm font-semibold tracking-tight">Agora na Escola</h4>
-            <p className="text-xs text-muted-foreground">Monitorização ao vivo das actividades académicas</p>
+            <p className="text-xs text-muted-foreground">
+              Monitorização ao vivo das actividades académicas
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-xs font-mono font-medium text-foreground">
@@ -42,7 +44,9 @@ export function SchoolNowWidget() {
             <span className="text-xs font-medium text-muted-foreground">Turmas em Aula</span>
             <School className="size-4 text-blue-500" />
           </div>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{data.classesActiveNow}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+            {data.classesActiveNow}
+          </p>
         </div>
 
         <div className="rounded-xl border border-border/50 bg-background/60 p-3">
@@ -50,7 +54,9 @@ export function SchoolNowWidget() {
             <span className="text-xs font-medium text-muted-foreground">Professores em Aula</span>
             <Users className="size-4 text-purple-500" />
           </div>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{data.teachersActiveNow}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+            {data.teachersActiveNow}
+          </p>
         </div>
 
         <div className="rounded-xl border border-border/50 bg-background/60 p-3">
@@ -58,7 +64,9 @@ export function SchoolNowWidget() {
             <span className="text-xs font-medium text-muted-foreground">Salas Ocupadas</span>
             <DoorOpen className="size-4 text-amber-500" />
           </div>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{data.roomsOccupiedNow}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+            {data.roomsOccupiedNow}
+          </p>
         </div>
 
         <div className="rounded-xl border border-border/50 bg-background/60 p-3">

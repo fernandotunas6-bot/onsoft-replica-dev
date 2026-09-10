@@ -111,7 +111,11 @@ export async function resolveAuthenticatedTeacherId(
 
   const teacherId = String(byPerson.data.id);
   if (!byPerson.data.user_id) {
-    await db.from("teachers").update({ user_id: userId }).eq("id", teacherId).eq("school_id", schoolId);
+    await db
+      .from("teachers")
+      .update({ user_id: userId })
+      .eq("id", teacherId)
+      .eq("school_id", schoolId);
   }
   return teacherId;
 }
@@ -304,7 +308,9 @@ async function enrichOccurrencesWithClassroom(
         : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
     ]);
 
-    const groupName = new Map((groups ?? []).map((g: { id: string; name: string }) => [g.id, g.name]));
+    const groupName = new Map(
+      (groups ?? []).map((g: { id: string; name: string }) => [g.id, g.name]),
+    );
     const subjectName = new Map(
       (subjects ?? []).map((s: { id: string; name: string }) => [s.id, s.name]),
     );
@@ -420,11 +426,7 @@ export const listMyTeacherLessonOccurrences = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem vínculo activo com uma escola.");
     const db = await loadSgaAdminClient();
 
-    const teacherId = await resolveAuthenticatedTeacherId(
-      db,
-      membership.schoolId,
-      context.userId,
-    );
+    const teacherId = await resolveAuthenticatedTeacherId(db, membership.schoolId, context.userId);
     if (!teacherId) return [];
 
     const { data, error } = await db
@@ -459,11 +461,7 @@ export const openMyLessonClassroom = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem vínculo activo com uma escola.");
     const db = await loadSgaAdminClient();
 
-    const teacherId = await resolveAuthenticatedTeacherId(
-      db,
-      membership.schoolId,
-      context.userId,
-    );
+    const teacherId = await resolveAuthenticatedTeacherId(db, membership.schoolId, context.userId);
     if (!teacherId) {
       throw new Error("A sua conta ainda não está ligada a uma ficha de professor.");
     }

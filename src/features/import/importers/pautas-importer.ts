@@ -34,11 +34,14 @@ export const pautasImporter: RowImporter = {
     }
 
     const enrollmentByStudentId = new Map(
-      (enrollments.data ?? []).map((e) => [String(e.student_id), {
-        id: String(e.id),
-        student_id: String(e.student_id),
-        final_average: e.final_average !== null ? Number(e.final_average) : null,
-      }]),
+      (enrollments.data ?? []).map((e) => [
+        String(e.student_id),
+        {
+          id: String(e.id),
+          student_id: String(e.student_id),
+          final_average: e.final_average !== null ? Number(e.final_average) : null,
+        },
+      ]),
     );
 
     return {
@@ -58,7 +61,13 @@ export const pautasImporter: RowImporter = {
     const studentIdent = normalizeText(
       valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
     );
-    const scoreVal = valueOf(normalized, "final_average", "media_final", "resultado", "classificacao");
+    const scoreVal = valueOf(
+      normalized,
+      "final_average",
+      "media_final",
+      "resultado",
+      "classificacao",
+    );
 
     if (!studentIdent) errors.push("Identificador do aluno (Nº Processo ou BI) é obrigatório.");
     if (scoreVal === null || scoreVal === undefined) {
@@ -100,7 +109,13 @@ export const pautasImporter: RowImporter = {
     const studentIdent = normalizeText(
       valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
     )!;
-    const scoreVal = valueOf(normalized, "final_average", "media_final", "resultado", "classificacao")!;
+    const scoreVal = valueOf(
+      normalized,
+      "final_average",
+      "media_final",
+      "resultado",
+      "classificacao",
+    )!;
     const scoreNum = Math.round(Number(String(scoreVal).replace(",", ".").trim()) * 10) / 10;
 
     const studentMatch = uniqueExactMatch(studentIdent, cache.students, [

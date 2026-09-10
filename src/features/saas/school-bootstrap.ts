@@ -249,15 +249,33 @@ async function seedDefaultDocumentSequences(db: SupabaseClient, schoolId: string
     // Tipos válidos: check constraint document_sequences_document_type_check
     // invoice | receipt | credit_note | expense | declaration | certificate | transfer | term | other
     const rows = [
-      { school_id: schoolId, document_type: "invoice",     prefix: "FT", next_number: 1, padding: 4 },
-      { school_id: schoolId, document_type: "receipt",     prefix: "RC", next_number: 1, padding: 6 },
-      { school_id: schoolId, document_type: "credit_note", prefix: "NC", next_number: 1, padding: 6 },
-      { school_id: schoolId, document_type: "expense",     prefix: "EX", next_number: 1, padding: 6 },
-      { school_id: schoolId, document_type: "declaration", prefix: "DC", next_number: 1, padding: 6 },
-      { school_id: schoolId, document_type: "certificate", prefix: "CE", next_number: 1, padding: 6 },
-      { school_id: schoolId, document_type: "transfer",    prefix: "TF", next_number: 1, padding: 6 },
-      { school_id: schoolId, document_type: "term",        prefix: "TM", next_number: 1, padding: 6 },
-      { school_id: schoolId, document_type: "other",       prefix: "OT", next_number: 1, padding: 6 },
+      { school_id: schoolId, document_type: "invoice", prefix: "FT", next_number: 1, padding: 4 },
+      { school_id: schoolId, document_type: "receipt", prefix: "RC", next_number: 1, padding: 6 },
+      {
+        school_id: schoolId,
+        document_type: "credit_note",
+        prefix: "NC",
+        next_number: 1,
+        padding: 6,
+      },
+      { school_id: schoolId, document_type: "expense", prefix: "EX", next_number: 1, padding: 6 },
+      {
+        school_id: schoolId,
+        document_type: "declaration",
+        prefix: "DC",
+        next_number: 1,
+        padding: 6,
+      },
+      {
+        school_id: schoolId,
+        document_type: "certificate",
+        prefix: "CE",
+        next_number: 1,
+        padding: 6,
+      },
+      { school_id: schoolId, document_type: "transfer", prefix: "TF", next_number: 1, padding: 6 },
+      { school_id: schoolId, document_type: "term", prefix: "TM", next_number: 1, padding: 6 },
+      { school_id: schoolId, document_type: "other", prefix: "OT", next_number: 1, padding: 6 },
     ];
     const { error } = await db
       .from("document_sequences")

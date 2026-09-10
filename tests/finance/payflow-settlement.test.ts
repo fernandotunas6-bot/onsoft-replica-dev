@@ -18,9 +18,9 @@ describe("payflow-settlement", () => {
       currency: "AOA",
     });
     expect(paid.event).toBe("payment.paid");
-    expect(
-      payflowSettlementInputSchema.safeParse({ ...paid, currency: "USD" }).success,
-    ).toBe(false);
+    expect(payflowSettlementInputSchema.safeParse({ ...paid, currency: "USD" }).success).toBe(
+      false,
+    );
   });
 
   it("rejects short integration keys and mismatched bearer tokens", () => {

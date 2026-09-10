@@ -55,7 +55,7 @@ describe("runPublicSchoolSignup logic", () => {
         contact_phone: "912345678",
         trial_days: 14,
       },
-      { auditUserId: null, source: "public_signup" }
+      { auditUserId: null, source: "public_signup" },
     );
   });
 
@@ -67,14 +67,17 @@ describe("runPublicSchoolSignup logic", () => {
 
     // A 4ª deve falhar, pois o limite é 3 por IP/Email no prazo de 1h
     await expect(
-      runPublicSchoolSignup({ ...baseData, contact_email: "d@ex.com" }, "192.168.1.1")
+      runPublicSchoolSignup({ ...baseData, contact_email: "d@ex.com" }, "192.168.1.1"),
     ).rejects.toThrow(/Muitos pedidos/i);
 
     // Passada 1h e 1 minuto
     vi.advanceTimersByTime(60 * 60 * 1000 + 60000);
 
     // A próxima tentativa passa (rate-limit expirou)
-    const res = await runPublicSchoolSignup({ ...baseData, contact_email: "e@ex.com" }, "192.168.1.1");
+    const res = await runPublicSchoolSignup(
+      { ...baseData, contact_email: "e@ex.com" },
+      "192.168.1.1",
+    );
     expect(res.success).toBe(true);
   });
 
@@ -85,7 +88,7 @@ describe("runPublicSchoolSignup logic", () => {
 
     // 4ª falha porque o email já foi usado 3x
     await expect(
-      runPublicSchoolSignup({ ...baseData, contact_email: "limit@ex.com" }, "10.0.0.4")
+      runPublicSchoolSignup({ ...baseData, contact_email: "limit@ex.com" }, "10.0.0.4"),
     ).rejects.toThrow(/Muitos pedidos/i);
   });
 });

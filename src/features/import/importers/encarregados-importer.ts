@@ -31,13 +31,13 @@ export const encarregadosImporter: RowImporter = {
     ]);
 
     if (guardianRows.error) {
-      throw new Error(`Não foi possível carregar encarregados existentes: ${guardianRows.error.message}`);
+      throw new Error(
+        `Não foi possível carregar encarregados existentes: ${guardianRows.error.message}`,
+      );
     }
 
     const existingGuardians = new Set(
-      (guardianRows.data ?? []).map(
-        (r) => `${r.student_id}:${r.guardian_person_id}`,
-      ),
+      (guardianRows.data ?? []).map((r) => `${r.student_id}:${r.guardian_person_id}`),
     );
 
     return {
@@ -83,7 +83,11 @@ export const encarregadosImporter: RowImporter = {
 
     // Verificar se já existe como pessoa e relação
     const personMatch = findBestPersonMatch(
-      { full_name: guardianName, national_id: normalizeText(valueOf(normalized, "id_number", "bi")), phone },
+      {
+        full_name: guardianName,
+        national_id: normalizeText(valueOf(normalized, "id_number", "bi")),
+        phone,
+      },
       cache.existingPeople,
     );
 

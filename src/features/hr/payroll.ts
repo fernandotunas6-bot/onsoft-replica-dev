@@ -3,10 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import type { Json } from "@/integrations/supabase/types";
-import {
-  createPayrollRunInputSchema,
-  payrollRunIdInputSchema,
-} from "@/features/hr/schemas";
+import { createPayrollRunInputSchema, payrollRunIdInputSchema } from "@/features/hr/schemas";
 
 const PAYROLL_ROLES = new Set(["Administrador", "Tesouraria"]);
 

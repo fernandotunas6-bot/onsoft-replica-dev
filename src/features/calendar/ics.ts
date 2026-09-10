@@ -18,7 +18,11 @@ export type CalendarIcsTimedEvent = {
 };
 
 function icsEscape(value: string) {
-  return value.replaceAll("\\", "\\\\").replaceAll(";", "\\;").replaceAll(",", "\\,").replaceAll("\n", "\\n");
+  return value
+    .replaceAll("\\", "\\\\")
+    .replaceAll(";", "\\;")
+    .replaceAll(",", "\\,")
+    .replaceAll("\n", "\\n");
 }
 
 function icsDate(value: string) {
@@ -28,12 +32,16 @@ function icsDate(value: string) {
 function icsUtcDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) throw new Error("Data/hora inválida para ICS.");
-  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  return date
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
 }
 
 function calendarHeader(options?: { calendarName?: string; calendarDescription?: string }) {
   const calendarName = options?.calendarName?.trim() || "Calendário lectivo SIGA";
-  const calendarDescription = options?.calendarDescription?.trim() || "Períodos lectivos e feriados nacionais · Angola";
+  const calendarDescription =
+    options?.calendarDescription?.trim() || "Períodos lectivos e feriados nacionais · Angola";
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -81,7 +89,9 @@ export function toIcsTimedCalendar(
   const lines = calendarHeader(options);
   for (const event of events) {
     const start = icsUtcDateTime(event.starts_at);
-    const end = icsUtcDateTime(event.ends_at ?? new Date(new Date(event.starts_at).getTime() + 60 * 60 * 1000).toISOString());
+    const end = icsUtcDateTime(
+      event.ends_at ?? new Date(new Date(event.starts_at).getTime() + 60 * 60 * 1000).toISOString(),
+    );
     const uid = event.uid ?? `${start}-${icsEscape(event.title).slice(0, 40)}@siga.plus`;
     lines.push(
       "BEGIN:VEVENT",
@@ -103,7 +113,9 @@ export function calendarIcsFeedUrl(origin: string, token: string) {
 }
 
 export function calendarWebcalFeedUrl(origin: string, token: string) {
-  return calendarIcsFeedUrl(origin, token).replace(/^https:/, "webcal:").replace(/^http:/, "webcal:");
+  return calendarIcsFeedUrl(origin, token)
+    .replace(/^https:/, "webcal:")
+    .replace(/^http:/, "webcal:");
 }
 
 export function calendarIcsResponse(body: string) {

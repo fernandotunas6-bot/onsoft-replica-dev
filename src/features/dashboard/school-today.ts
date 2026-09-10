@@ -23,11 +23,7 @@ export function minutesFromHhMm(value: string) {
   return h * 60 + m;
 }
 
-export function isStartingWithinMinutes(
-  startsAt: string,
-  nowHhMm: string,
-  withinMinutes: number,
-) {
+export function isStartingWithinMinutes(startsAt: string, nowHhMm: string, withinMinutes: number) {
   const start = minutesFromHhMm(startsAt);
   const now = minutesFromHhMm(nowHhMm);
   if (start == null || now == null) return false;

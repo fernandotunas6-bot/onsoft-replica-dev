@@ -50,7 +50,9 @@ describe("Auth Premium Multi-Tenant - Iniciais e Branding da Escola", () => {
     expect(rendered.html).toContain("Redefinir Minha Senha");
     expect(rendered.html).toContain("Gerido com segurança por");
     expect(rendered.html).toContain("SIGA Plus");
-    expect(rendered.html).toContain("https://portal-siga.com/storage/v1/object/public/school-logos/logo.png");
+    expect(rendered.html).toContain(
+      "https://portal-siga.com/storage/v1/object/public/school-logos/logo.png",
+    );
     expect(rendered.html).not.toContain("Powered by Supabase");
     expect(rendered.html).not.toContain("Supabase Auth");
 
@@ -100,9 +102,8 @@ describe("Auth Premium Multi-Tenant - Validação de Schemas e Rotas Públicas",
 
 describe("Auth Premium Multi-Tenant - Demais Templates de E-mail Padronizados", () => {
   it("deve renderizar o template de convite institucional com branding", async () => {
-    const { renderSchoolInvitationEmail } = await import(
-      "@/features/auth/email-templates/invitation.html"
-    );
+    const { renderSchoolInvitationEmail } =
+      await import("@/features/auth/email-templates/invitation.html");
     const rendered = renderSchoolInvitationEmail({
       schoolName: "Liceu Rainha Ginga",
       roleName: "Professor(a)",
@@ -118,7 +119,8 @@ describe("Auth Premium Multi-Tenant - Demais Templates de E-mail Padronizados", 
   });
 
   it("deve renderizar o template de magic link com branding", async () => {
-    const { renderMagicLinkEmail } = await import("@/features/auth/email-templates/magic-link.html");
+    const { renderMagicLinkEmail } =
+      await import("@/features/auth/email-templates/magic-link.html");
     const rendered = renderMagicLinkEmail({
       schoolName: "Colégio Futuro Brilhante",
       magicLinkUrl: "https://portal-siga.com/auth/callback#access_token=token-456",
@@ -130,9 +132,8 @@ describe("Auth Premium Multi-Tenant - Demais Templates de E-mail Padronizados", 
   });
 
   it("deve renderizar o template de alteração de e-mail com branding", async () => {
-    const { renderEmailChangeEmail } = await import(
-      "@/features/auth/email-templates/email-change.html"
-    );
+    const { renderEmailChangeEmail } =
+      await import("@/features/auth/email-templates/email-change.html");
     const rendered = renderEmailChangeEmail({
       schoolName: "Instituto Horizonte",
       newEmail: "novo@horizonte.ao",
@@ -145,9 +146,8 @@ describe("Auth Premium Multi-Tenant - Demais Templates de E-mail Padronizados", 
   });
 
   it("deve renderizar o template de confirmação de cadastro com branding", async () => {
-    const { renderSignupConfirmationEmail } = await import(
-      "@/features/auth/email-templates/signup-confirm.html"
-    );
+    const { renderSignupConfirmationEmail } =
+      await import("@/features/auth/email-templates/signup-confirm.html");
     const rendered = renderSignupConfirmationEmail({
       schoolName: "Escola Nova Geração",
       confirmUrl: "https://portal-siga.com/auth/confirm#token=101",

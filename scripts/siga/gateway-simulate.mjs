@@ -94,7 +94,12 @@ if (args.help) {
   process.exit(0);
 }
 
-const sigaUrl = (args.url || process.env.VITE_SIGA_URL || process.env.SIGA_URL || "http://localhost:3006").replace(/\/$/, "");
+const sigaUrl = (
+  args.url ||
+  process.env.VITE_SIGA_URL ||
+  process.env.SIGA_URL ||
+  "http://localhost:3006"
+).replace(/\/$/, "");
 const apiKey = args.api_key || process.env.SIGA_GATEWAY_DEV_API_KEY;
 const invoiceId = args.invoice_id;
 

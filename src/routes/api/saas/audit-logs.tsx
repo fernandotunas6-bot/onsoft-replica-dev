@@ -19,8 +19,10 @@ export const Route = createFileRoute("/api/saas/audit-logs")({
           const logs = await fetchSaasAuditLogs(limit);
           return jsonWithCors(request, { logs }, { apps: [...APPS] });
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Não foi possível carregar a auditoria.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
+          const message =
+            error instanceof Error ? error.message : "Não foi possível carregar a auditoria.";
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },

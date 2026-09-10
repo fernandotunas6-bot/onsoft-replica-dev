@@ -69,7 +69,9 @@ export function StudentExtensiveModal({
   const account = useCurrentAccount();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(initialData?.photo_url ?? null);
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(
+    initialData?.photo_url ?? null,
+  );
   const [resolvedPhotoSrc, setResolvedPhotoSrc] = useState<string | null>(null);
   const [showDigitalCard, setShowDigitalCard] = useState(false);
 
@@ -189,7 +191,7 @@ export function StudentExtensiveModal({
               alt={fullName}
               className="size-24 rounded-2xl object-cover ring-2 ring-primary/25 shadow-md transition-transform duration-200 group-hover:scale-[1.02]"
             />
-            
+
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -228,15 +230,16 @@ export function StudentExtensiveModal({
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1 font-mono font-medium text-foreground">
-                <span className="text-muted-foreground font-normal">Nº Processo:</span> {studentNumber}
+                <span className="text-muted-foreground font-normal">Nº Processo:</span>{" "}
+                {studentNumber}
               </span>
-              {(initialData?.grade_name || student?.grade_name) ? (
+              {initialData?.grade_name || student?.grade_name ? (
                 <span className="inline-flex items-center gap-1">
                   <GraduationCap className="size-3.5 text-primary" />
                   {initialData?.grade_name || student?.grade_name}
                 </span>
               ) : null}
-              {(initialData?.class_name || student?.class_name) ? (
+              {initialData?.class_name || student?.class_name ? (
                 <span className="inline-flex items-center gap-1 font-semibold text-foreground">
                   Turma {initialData?.class_name || student?.class_name}
                 </span>
@@ -273,7 +276,9 @@ export function StudentExtensiveModal({
                           file,
                         });
                         await Promise.all([
-                          queryClient.invalidateQueries({ queryKey: ["students", "profile", studentId] }),
+                          queryClient.invalidateQueries({
+                            queryKey: ["students", "profile", studentId],
+                          }),
                           queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
                           queryClient.invalidateQueries({ queryKey: ["people", "get", personId] }),
                         ]);
@@ -318,28 +323,42 @@ export function StudentExtensiveModal({
           <TabsContent value="pessoal" className="space-y-4 pt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="p-3 rounded-xl bg-card border border-border/70">
-                <span className="text-xs font-medium text-muted-foreground block">Nome Completo</span>
-                <span className="text-sm font-semibold text-foreground mt-0.5 block">{fullName}</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Nome Completo
+                </span>
+                <span className="text-sm font-semibold text-foreground mt-0.5 block">
+                  {fullName}
+                </span>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
-                <span className="text-xs font-medium text-muted-foreground block">Bilhete de Identidade / Cédula</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Bilhete de Identidade / Cédula
+                </span>
                 <span className="text-sm font-semibold font-mono text-foreground mt-0.5 block">
                   {student?.national_id || "Não registado"}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
-                <span className="text-xs font-medium text-muted-foreground block">Data de Nascimento</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Data de Nascimento
+                </span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
-                  {student?.birth_date ? new Date(student.birth_date).toLocaleDateString("pt-AO") : "—"}
+                  {student?.birth_date
+                    ? new Date(student.birth_date).toLocaleDateString("pt-AO")
+                    : "—"}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
                 <span className="text-xs font-medium text-muted-foreground block">Gênero</span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
-                  {student?.gender === "M" ? "Masculino" : student?.gender === "F" ? "Feminino" : "—"}
+                  {student?.gender === "M"
+                    ? "Masculino"
+                    : student?.gender === "F"
+                      ? "Feminino"
+                      : "—"}
                 </span>
               </div>
 
@@ -349,7 +368,7 @@ export function StudentExtensiveModal({
                   <span className="text-sm font-semibold font-mono text-foreground">
                     {student?.phone || initialData?.phone || "—"}
                   </span>
-                  {(student?.phone || initialData?.phone) ? (
+                  {student?.phone || initialData?.phone ? (
                     <a
                       href={whatsappHref(student?.phone || initialData?.phone || "")}
                       target="_blank"
@@ -370,7 +389,9 @@ export function StudentExtensiveModal({
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70 sm:col-span-2 lg:col-span-3">
-                <span className="text-xs font-medium text-muted-foreground block">Endereço Residencial</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Endereço Residencial
+                </span>
                 <span className="text-sm font-medium text-foreground mt-0.5 block">
                   {[student?.address, student?.commune, student?.municipality, student?.province]
                     .filter(Boolean)
@@ -384,14 +405,20 @@ export function StudentExtensiveModal({
           <TabsContent value="academico" className="space-y-4 pt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="p-3 rounded-xl bg-card border border-border/70">
-                <span className="text-xs font-medium text-muted-foreground block">Turma Actual</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Turma Actual
+                </span>
                 <span className="text-sm font-bold text-primary mt-0.5 block">
-                  {initialData?.class_name ? `Turma ${initialData.class_name}` : "Sem turma atribuída"}
+                  {initialData?.class_name
+                    ? `Turma ${initialData.class_name}`
+                    : "Sem turma atribuída"}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
-                <span className="text-xs font-medium text-muted-foreground block">Classe / Grau</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Classe / Grau
+                </span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
                   {initialData?.grade_name || "—"}
                 </span>
@@ -405,21 +432,29 @@ export function StudentExtensiveModal({
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
-                <span className="text-xs font-medium text-muted-foreground block">Estado da Matrícula</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Estado da Matrícula
+                </span>
                 <div className="mt-1.5">
                   <StudentStatusBadge status={statusKey} size="md" />
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
-                <span className="text-xs font-medium text-muted-foreground block">Data de Admissão</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Data de Admissão
+                </span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
-                  {student?.admitted_on ? new Date(student.admitted_on).toLocaleDateString("pt-AO") : "—"}
+                  {student?.admitted_on
+                    ? new Date(student.admitted_on).toLocaleDateString("pt-AO")
+                    : "—"}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70">
-                <span className="text-xs font-medium text-muted-foreground block">Assiduidade Registada</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Assiduidade Registada
+                </span>
                 <span className="text-sm font-semibold text-foreground mt-0.5 block">
                   {student?.attendance_rate !== null && student?.attendance_rate !== undefined
                     ? `${student.attendance_rate}%`
@@ -434,7 +469,9 @@ export function StudentExtensiveModal({
             <div className="p-4 rounded-xl bg-card border border-border/70 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground block">Encarregado Principal</span>
+                  <span className="text-xs font-medium text-muted-foreground block">
+                    Encarregado Principal
+                  </span>
                   <span className="text-base font-bold text-foreground">
                     {initialData?.primary_guardian_name || "Nenhum encarregado vinculado"}
                   </span>
@@ -449,9 +486,16 @@ export function StudentExtensiveModal({
               {guardians.length > 0 ? (
                 <div className="divide-y divide-border/50 pt-2">
                   {guardians.map((g: any, i: number) => (
-                    <div key={i} className="py-2 flex items-center justify-between text-xs sm:text-sm">
-                      <span className="font-medium text-foreground">{g.relationship || "Encarregado(a)"}</span>
-                      <span className="text-muted-foreground">{g.is_primary ? "Responsável Financeiro" : "Contacto Autorizado"}</span>
+                    <div
+                      key={i}
+                      className="py-2 flex items-center justify-between text-xs sm:text-sm"
+                    >
+                      <span className="font-medium text-foreground">
+                        {g.relationship || "Encarregado(a)"}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {g.is_primary ? "Responsável Financeiro" : "Contacto Autorizado"}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -463,7 +507,9 @@ export function StudentExtensiveModal({
           <TabsContent value="financeiro" className="space-y-4 pt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="p-4 rounded-xl bg-card border border-border/70 space-y-2">
-                <span className="text-xs font-medium text-muted-foreground block">Situação das Propinas</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Situação das Propinas
+                </span>
                 <StudentFinanceBadge
                   status={paymentKey}
                   debtAmount={initialData?.debt_amount}
@@ -473,18 +519,19 @@ export function StudentExtensiveModal({
                 {initialData?.debt_amount && initialData.debt_amount > 0 ? (
                   <p className="text-xs text-destructive font-medium mt-1">
                     Em atraso: {formatKz(initialData.debt_amount)}
-                    {initialData.overdue_count
-                      ? ` · ${initialData.overdue_count} fatura(s)`
-                      : ""}
+                    {initialData.overdue_count ? ` · ${initialData.overdue_count} fatura(s)` : ""}
                   </p>
                 ) : null}
                 <p className="text-xs text-muted-foreground mt-2">
-                  As cobranças e recibos podem ser emitidos diretamente a partir da ficha completa do aluno.
+                  As cobranças e recibos podem ser emitidos diretamente a partir da ficha completa
+                  do aluno.
                 </p>
               </div>
 
               <div className="p-4 rounded-xl bg-card border border-border/70 space-y-2">
-                <span className="text-xs font-medium text-muted-foreground block">Resumo Financeiro</span>
+                <span className="text-xs font-medium text-muted-foreground block">
+                  Resumo Financeiro
+                </span>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-muted-foreground block">Facturado</span>
@@ -499,7 +546,9 @@ export function StudentExtensiveModal({
                     </span>
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground block pt-1">Moeda oficial: Kwanzas (AOA)</span>
+                <span className="text-xs text-muted-foreground block pt-1">
+                  Moeda oficial: Kwanzas (AOA)
+                </span>
               </div>
             </div>
             {studentId ? (

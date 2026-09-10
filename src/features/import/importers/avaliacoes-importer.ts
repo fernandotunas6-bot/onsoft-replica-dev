@@ -23,7 +23,10 @@ export const avaliacoesImporter: RowImporter = {
   async loadRefCache(ctx) {
     const [subjects, gradebooksRes, itemsRes] = await Promise.all([
       loadSubjectRefs(ctx.db, ctx.schoolId),
-      ctx.db.from("gradebooks").select("id, class_subject_id, term_id").eq("school_id", ctx.schoolId),
+      ctx.db
+        .from("gradebooks")
+        .select("id, class_subject_id, term_id")
+        .eq("school_id", ctx.schoolId),
       ctx.db.from("grade_items").select("code").eq("school_id", ctx.schoolId),
     ]);
 
@@ -51,9 +54,13 @@ export const avaliacoesImporter: RowImporter = {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    const name = normalizeText(valueOf(normalized, "assessment_name", "avaliacao", "prova", "titulo", "designacao"));
+    const name = normalizeText(
+      valueOf(normalized, "assessment_name", "avaliacao", "prova", "titulo", "designacao"),
+    );
     const code = normalizeText(valueOf(normalized, "code", "codigo", "sigla"))?.toUpperCase();
-    const maxScore = Number(valueOf(normalized, "max_score", "nota_maxima", "cotacao", "escala") ?? 20);
+    const maxScore = Number(
+      valueOf(normalized, "max_score", "nota_maxima", "cotacao", "escala") ?? 20,
+    );
 
     if (!name) errors.push("Designação ou nome da avaliação é obrigatório.");
     if (!code) errors.push("Código ou sigla da avaliação é obrigatório (ex: MAC, NPP, NPT, P1).");
@@ -72,9 +79,13 @@ export const avaliacoesImporter: RowImporter = {
       return { status: "error", warnings: analysis.warnings, errors: analysis.errors, audits: [] };
     }
 
-    const name = normalizeText(valueOf(normalized, "assessment_name", "avaliacao", "prova", "titulo", "designacao"))!;
+    const name = normalizeText(
+      valueOf(normalized, "assessment_name", "avaliacao", "prova", "titulo", "designacao"),
+    )!;
     const code = normalizeText(valueOf(normalized, "code", "codigo", "sigla"))!.toUpperCase();
-    const maxScore = Number(valueOf(normalized, "max_score", "nota_maxima", "cotacao", "escala") ?? 20);
+    const maxScore = Number(
+      valueOf(normalized, "max_score", "nota_maxima", "cotacao", "escala") ?? 20,
+    );
     const weight = Number(valueOf(normalized, "weight", "peso", "ponderacao") ?? 1);
 
     const gradebookId = cache.gradebooks[0]?.id;

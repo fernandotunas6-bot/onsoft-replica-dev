@@ -1,10 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import {
-  loadSgaAdminClient,
-  resolveSgaMembershipAdmin,
-} from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
 import { averagePercent } from "@/features/students/schemas";
 import { scoreAverage } from "@/lib/angola-academic";
@@ -121,7 +118,9 @@ async function resolveTeacherScope(
     let fullName = "";
     try {
       const { data: authUser } = await db.auth.admin.getUserById(userId);
-      email = String(authUser.user?.email ?? "").trim().toLowerCase();
+      email = String(authUser.user?.email ?? "")
+        .trim()
+        .toLowerCase();
       fullName = String(authUser.user?.user_metadata?.["full_name"] ?? "").trim();
     } catch {
       // Falha fechada: se não conseguirmos provar a identidade docente, não
@@ -139,12 +138,18 @@ async function resolveTeacherScope(
       }
       const person =
         (people ?? []).find(
-          (row) => email && String(row.email ?? "").trim().toLowerCase() === email,
+          (row) =>
+            email &&
+            String(row.email ?? "")
+              .trim()
+              .toLowerCase() === email,
         ) ??
         (people ?? []).find(
           (row) =>
             fullName &&
-            String(row.full_name ?? "").trim().toLowerCase() === fullName.toLowerCase(),
+            String(row.full_name ?? "")
+              .trim()
+              .toLowerCase() === fullName.toLowerCase(),
         );
       if (person?.id) {
         const { data: teacher, error: teacherError } = await db
@@ -205,9 +210,7 @@ async function resolveTeacherScope(
     classGroupIds,
     subjectIds,
     classSubjectIds,
-    pairKeys: new Set(
-      assignments.map((row) => pairKey(row.class_group_id, row.subject_id)),
-    ),
+    pairKeys: new Set(assignments.map((row) => pairKey(row.class_group_id, row.subject_id))),
   };
 }
 
@@ -322,9 +325,7 @@ async function buildTeacherWorkspace(db: Db, membership: Membership, userId: str
       id: assignment.class_group_id,
       name: String(group?.name ?? "Turma"),
       grade_name: String(grade?.name ?? "Classe"),
-      course_name: grade?.program_id
-        ? (programById.get(String(grade.program_id)) ?? "—")
-        : "—",
+      course_name: grade?.program_id ? (programById.get(String(grade.program_id)) ?? "—") : "—",
       subject_id: assignment.subject_id,
       subject_name: subjectById.get(assignment.subject_id) ?? "Disciplina",
       enrolled_count: enrollmentCountByClass.get(assignment.class_group_id) ?? 0,
@@ -347,7 +348,16 @@ async function buildTeacherWorkspace(db: Db, membership: Membership, userId: str
   const schedule = (slots ?? []).map((slot) => {
     const assignment = assignmentById.get(String(slot.class_subject_id));
     const weekday = Number(slot.weekday);
-    const weekdayLabels = ["", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+    const weekdayLabels = [
+      "",
+      "Segunda",
+      "Terça",
+      "Quarta",
+      "Quinta",
+      "Sexta",
+      "Sábado",
+      "Domingo",
+    ];
     return {
       id: String(slot.id),
       weekday,
@@ -407,7 +417,10 @@ export const listTermGrades = createServerFn({ method: "GET" })
       .in("class_group_id", scope.classGroupIds)
       .in("status", ["active", "pending"]);
     if (enrollmentError) {
-      throw publicDatabaseError(enrollmentError, "Não foi possível validar as matrículas do professor.");
+      throw publicDatabaseError(
+        enrollmentError,
+        "Não foi possível validar as matrículas do professor.",
+      );
     }
     const enrollmentClassById = new Map(
       (enrollments ?? []).map((row) => [String(row.id), String(row.class_group_id)]),
@@ -515,7 +528,9 @@ export const deleteAssessmentItem = createServerFn({ method: "POST" })
       }
       if (!item) throw new Error("Avaliação não encontrada nesta escola.");
       if (!scope.pairKeys.has(pairKey(item.class_group_id, item.subject_id))) {
-        throw new Error("O professor só pode eliminar avaliações da sua turma e disciplina atribuídas.");
+        throw new Error(
+          "O professor só pode eliminar avaliações da sua turma e disciplina atribuídas.",
+        );
       }
     }
 
@@ -613,26 +628,28 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       assignments.map((assignment) => pairKey(assignment.class_group_id, assignment.subject_id)),
     );
 
-    const [{ data: subjects, error: subjectsError }, { data: enrollments, error: enrollmentsError }] =
-      await Promise.all([
-        visibleSubjectIds.length
-          ? db
-              .from("subjects")
-              .select("*")
-              .eq("school_id", membership.schoolId)
-              .in("id", visibleSubjectIds)
-              .neq("status", "inactive")
-              .order("name")
-          : Promise.resolve({ data: [], error: null }),
-        visibleGroupIds.length
-          ? db
-              .from("enrollments")
-              .select("id, class_group_id, student_id, status, attendance_rate")
-              .eq("school_id", membership.schoolId)
-              .in("class_group_id", visibleGroupIds)
-              .in("status", ["active", "pending"])
-          : Promise.resolve({ data: [], error: null }),
-      ]);
+    const [
+      { data: subjects, error: subjectsError },
+      { data: enrollments, error: enrollmentsError },
+    ] = await Promise.all([
+      visibleSubjectIds.length
+        ? db
+            .from("subjects")
+            .select("*")
+            .eq("school_id", membership.schoolId)
+            .in("id", visibleSubjectIds)
+            .neq("status", "inactive")
+            .order("name")
+        : Promise.resolve({ data: [], error: null }),
+      visibleGroupIds.length
+        ? db
+            .from("enrollments")
+            .select("id, class_group_id, student_id, status, attendance_rate")
+            .eq("school_id", membership.schoolId)
+            .in("class_group_id", visibleGroupIds)
+            .in("status", ["active", "pending"])
+        : Promise.resolve({ data: [], error: null }),
+    ]);
     if (subjectsError)
       throw publicDatabaseError(subjectsError, "Não foi possível carregar as disciplinas.");
     if (enrollmentsError)
@@ -662,7 +679,8 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const { data: programs, error: programError } = programIds.length
       ? await db.from("programs").select("*").in("id", programIds)
       : { data: [], error: null };
-    if (programError) throw publicDatabaseError(programError, "Não foi possível carregar os cursos.");
+    if (programError)
+      throw publicDatabaseError(programError, "Não foi possível carregar os cursos.");
 
     const { data: timetableSlots, error: scheduleError } = visibleClassSubjectIds.length
       ? await db
@@ -700,7 +718,8 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const { data: studentRows, error: studentError } = studentIds.length
       ? await db.from("students").select("id, student_number, person_id").in("id", studentIds)
       : { data: [], error: null };
-    if (studentError) throw publicDatabaseError(studentError, "Não foi possível carregar os alunos.");
+    if (studentError)
+      throw publicDatabaseError(studentError, "Não foi possível carregar os alunos.");
     const personIds = [...new Set((studentRows ?? []).map((row) => String(row.person_id)))];
     const peopleById = await loadPeopleLite(db, membership.schoolId, personIds);
     const studentsById = new Map(
@@ -752,9 +771,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         status: String(group.status ?? "active"),
         campus_id: group.campus_id ? String(group.campus_id) : null,
         capacity: Number.isFinite(Number(group.capacity)) ? Number(group.capacity) : null,
-        whatsapp_invite_url: group.whatsapp_invite_url
-          ? String(group.whatsapp_invite_url)
-          : null,
+        whatsapp_invite_url: group.whatsapp_invite_url ? String(group.whatsapp_invite_url) : null,
         whatsapp_group_name: group.whatsapp_group_name ? String(group.whatsapp_group_name) : null,
         course_id: program ? String(program.id ?? "") : null,
         course_name: String(program?.name ?? "—"),
@@ -826,10 +843,11 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         weekly_hours: Number(subject.weekly_hours ?? 0),
         grade_from: Number.isFinite(Number(subject.grade_from)) ? Number(subject.grade_from) : null,
         grade_to: Number.isFinite(Number(subject.grade_to)) ? Number(subject.grade_to) : null,
-        classes_label: assignments
-          .filter((assignment) => assignment.subject_id === String(subject.id))
-          .map((assignment) => String(groupById.get(assignment.class_group_id)?.name ?? "Turma"))
-          .join(", ") || "—",
+        classes_label:
+          assignments
+            .filter((assignment) => assignment.subject_id === String(subject.id))
+            .map((assignment) => String(groupById.get(assignment.class_group_id)?.name ?? "Turma"))
+            .join(", ") || "—",
         weekly_hours_label: subject.weekly_hours ? `${Number(subject.weekly_hours)} h/semana` : "—",
         approval_rate:
           stats && stats.total > 0 ? Math.round((stats.pass / stats.total) * 100) : null,

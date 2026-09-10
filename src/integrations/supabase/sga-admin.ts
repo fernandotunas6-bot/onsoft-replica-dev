@@ -62,10 +62,16 @@ export async function requireSgaWriter(
   const directUserId = typeof clientOrUserId === "string";
   const userId = directUserId ? clientOrUserId : String(userIdOrRoles ?? "");
   const roles = directUserId
-    ? (Array.isArray(userIdOrRoles) ? userIdOrRoles : undefined)
-    : (Array.isArray(rolesOrPreferred) ? rolesOrPreferred : undefined);
+    ? Array.isArray(userIdOrRoles)
+      ? userIdOrRoles
+      : undefined
+    : Array.isArray(rolesOrPreferred)
+      ? rolesOrPreferred
+      : undefined;
   const preferredSchoolId = directUserId
-    ? (typeof rolesOrPreferred === "string" || rolesOrPreferred === null ? rolesOrPreferred : undefined)
+    ? typeof rolesOrPreferred === "string" || rolesOrPreferred === null
+      ? rolesOrPreferred
+      : undefined
     : preferredSchoolIdArg;
 
   if (!userId) throw new Error("Sessão inválida. Termine e volte a entrar.");

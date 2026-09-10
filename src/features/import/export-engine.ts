@@ -46,9 +46,10 @@ export async function exportSchoolData(
   // ---------------------------------------------------------------------------
   for (const mod of options.modules) {
     if (mod === "alunos") {
-      let query = db
+      const query = db
         .from("students")
-        .select(`
+        .select(
+          `
           id,
           student_number,
           people!inner(
@@ -65,7 +66,8 @@ export async function exportSchoolData(
             status,
             class_groups(name)
           )
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -117,7 +119,8 @@ export async function exportSchoolData(
     if (mod === "professores") {
       const { data: teachers } = await db
         .from("teachers")
-        .select(`
+        .select(
+          `
           id,
           employee_number,
           specialty,
@@ -128,7 +131,8 @@ export async function exportSchoolData(
             phone,
             email
           )
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -171,7 +175,8 @@ export async function exportSchoolData(
     if (mod === "turmas") {
       let query = db
         .from("class_groups")
-        .select(`
+        .select(
+          `
           id,
           name,
           code,
@@ -179,7 +184,8 @@ export async function exportSchoolData(
           capacity,
           room,
           grade_levels(name)
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -225,7 +231,8 @@ export async function exportSchoolData(
     if (mod === "matriculas") {
       let query = db
         .from("enrollments")
-        .select(`
+        .select(
+          `
           id,
           status,
           created_at,
@@ -234,7 +241,8 @@ export async function exportSchoolData(
             people!inner(full_name)
           ),
           class_groups!inner(name)
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -266,12 +274,7 @@ export async function exportSchoolData(
         const cg = Array.isArray(enr.class_groups) ? enr.class_groups[0] : enr.class_groups;
         const dateStr = enr.created_at ? enr.created_at.slice(0, 10) : "";
 
-        sheet.addRow([
-          std?.student_number || "",
-          cg?.name || "",
-          dateStr,
-          enr.status || "active",
-        ]);
+        sheet.addRow([std?.student_number || "", cg?.name || "", dateStr, enr.status || "active"]);
       }
       autoFitColumns(sheet);
     }
@@ -357,7 +360,8 @@ export async function exportSchoolData(
     if (mod === "pagamentos" || mod === "propinas") {
       const { data: invoices } = await db
         .from("finance_invoices")
-        .select(`
+        .select(
+          `
           id,
           invoice_number,
           amount,
@@ -370,7 +374,8 @@ export async function exportSchoolData(
             student_number,
             people(full_name)
           )
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -528,7 +533,8 @@ export async function exportSchoolData(
     if (mod === "historico_academico") {
       const { data: historyRows } = await db
         .from("student_academic_history")
-        .select(`
+        .select(
+          `
           id,
           academic_year_label,
           grade_level,
@@ -536,7 +542,8 @@ export async function exportSchoolData(
           final_average,
           outcome,
           students(student_number, people(full_name, national_id))
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .order("academic_year_label", { ascending: false });
 
@@ -545,14 +552,16 @@ export async function exportSchoolData(
       if (!rows.length) {
         const { data: enrollments } = await db
           .from("enrollments")
-          .select(`
+          .select(
+            `
             id,
             status,
             enrolled_on,
             students(student_number, people(full_name, national_id)),
             academic_years(name, code),
             class_groups(name, grade_levels(name))
-          `)
+          `,
+          )
           .eq("school_id", options.schoolId)
           .order("enrolled_on", { ascending: false });
 
@@ -632,7 +641,8 @@ export async function exportSchoolData(
     if (mod === "historico_financeiro") {
       const { data: invoices } = await db
         .from("finance_invoices")
-        .select(`
+        .select(
+          `
           id,
           invoice_number,
           amount,
@@ -645,7 +655,8 @@ export async function exportSchoolData(
             student_number,
             people(full_name, national_id)
           )
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null)
         .order("due_date", { ascending: false });

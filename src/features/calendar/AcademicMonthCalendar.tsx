@@ -82,10 +82,13 @@ export function AcademicMonthCalendar({
     (min, event) => (event.event_date < min ? event.event_date : min),
     events[0]?.event_date ?? `${yearMonth}-01`,
   );
-  const spanTo = events.reduce((max, event) => {
-    const end = event.ends_on || event.event_date;
-    return end > max ? end : max;
-  }, events[0]?.ends_on ?? `${yearMonth}-01`);
+  const spanTo = events.reduce(
+    (max, event) => {
+      const end = event.ends_on || event.event_date;
+      return end > max ? end : max;
+    },
+    events[0]?.ends_on ?? `${yearMonth}-01`,
+  );
   const yearMonths = monthsCovered(
     spanFrom < `${yearMonth}-01` ? spanFrom : `${yearMonth}-01`,
     spanTo > `${yearMonth}-28` ? spanTo : `${yearMonth}-28`,
@@ -225,7 +228,9 @@ export function AcademicMonthCalendar({
                 "min-h-16 rounded-md border px-1.5 py-1.5 text-left transition-colors",
                 "hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 primary ? termToneClass(primary.sequence) : "border-border bg-card",
-                holiday && !primary ? "border-destructive/40 bg-destructive/8" : "border-transparent",
+                holiday && !primary
+                  ? "border-destructive/40 bg-destructive/8"
+                  : "border-transparent",
                 isWeekend && !primary && !holiday && "bg-muted/40",
                 isToday && "ring-2 ring-primary/80 font-semibold",
                 isSelected && "border-primary ring-2 ring-primary",
@@ -237,10 +242,15 @@ export function AcademicMonthCalendar({
                 </span>
                 <span className="flex items-center gap-0.5">
                   {covering.length > 1 ? (
-                    <span className="text-[9px] font-semibold opacity-80">+{covering.length - 1}</span>
+                    <span className="text-[9px] font-semibold opacity-80">
+                      +{covering.length - 1}
+                    </span>
                   ) : null}
                   {holiday ? (
-                    <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-destructive" aria-hidden />
+                    <span
+                      className="mt-0.5 size-1.5 shrink-0 rounded-full bg-destructive"
+                      aria-hidden
+                    />
                   ) : null}
                 </span>
               </span>

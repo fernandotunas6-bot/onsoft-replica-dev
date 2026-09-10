@@ -30,10 +30,7 @@ import {
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
 import { ReviewAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { todayInLuanda } from "@/features/calendar/dates";
-import {
-  SchemaMissingBanner,
-  isSchemaMissingError,
-} from "@/components/ui/schema-missing-banner";
+import { SchemaMissingBanner, isSchemaMissingError } from "@/components/ui/schema-missing-banner";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export function AttendanceWorkspaceModule({
@@ -94,8 +91,7 @@ export function AttendanceWorkspaceModule({
     if (sessionsQuery.isLoading) return;
 
     const match = sessions.find(
-      (sess) =>
-        sess.class_group_id === initialClassGroupId && sess.subject_id === initialSubjectId,
+      (sess) => sess.class_group_id === initialClassGroupId && sess.subject_id === initialSubjectId,
     );
     if (match) {
       setSelectedSessionId(match.id);
@@ -109,12 +105,7 @@ export function AttendanceWorkspaceModule({
     setDraftCall({ classGroupId: initialClassGroupId, subjectId: initialSubjectId });
     setCallDialogOpen(true);
     autoOpenedRef.current = true;
-  }, [
-    initialClassGroupId,
-    initialSubjectId,
-    sessions,
-    sessionsQuery.isLoading,
-  ]);
+  }, [initialClassGroupId, initialSubjectId, sessions, sessionsQuery.isLoading]);
 
   return (
     <div className="space-y-6">

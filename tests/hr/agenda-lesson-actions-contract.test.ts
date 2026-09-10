@@ -43,9 +43,7 @@ describe("agenda lesson → chamada / QR", () => {
   });
 
   it("returns null when the lesson lacks turma or disciplina", () => {
-    expect(
-      agendaLessonActions({ classGroupId: null, subjectId: disciplina }),
-    ).toBeNull();
+    expect(agendaLessonActions({ classGroupId: null, subjectId: disciplina })).toBeNull();
   });
 
   it("exposes call, grades and qr searches when ids exist", () => {
@@ -84,17 +82,11 @@ describe("agenda lesson → chamada / QR", () => {
     expect(attendance).toContain("draftCall");
     expect(attendance).toContain("autoOpenedRef");
 
-    const panel = readFileSync(
-      resolve(root, "src/features/hr/TeacherAttendancePanel.tsx"),
-      "utf8",
-    );
+    const panel = readFileSync(resolve(root, "src/features/hr/TeacherAttendancePanel.tsx"), "utf8");
     expect(panel).toContain("focusLesson");
     expect(panel).toContain("Aula da agenda");
 
-    const presenceRoute = readFileSync(
-      resolve(root, "src/routes/professor.presenca.tsx"),
-      "utf8",
-    );
+    const presenceRoute = readFileSync(resolve(root, "src/routes/professor.presenca.tsx"), "utf8");
     expect(presenceRoute).toContain("focusLesson");
 
     const pedagogica = readFileSync(resolve(root, "src/routes/pedagogica.tsx"), "utf8");

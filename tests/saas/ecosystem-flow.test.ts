@@ -3,7 +3,16 @@ import { buildTenantUsageRows } from "@/features/saas/usage-sync";
 import { isAllowedEcosystemOrigin } from "@/lib/ecosystem-cors";
 import { isPublicAppPath } from "@/lib/public-paths";
 import { publicSchoolSignupInputSchema } from "@/features/saas/schemas";
-import { DOC_PATHS, getCreateSchoolUrl, getFinanceGatewayConfirmUrl, getPricingUrl, getPublicEnrollmentUrl, getSaasAdminUrl, getSigaNavDocUrl, getUnitelGatewayConfirmUrl } from "@/lib/ecosystem-urls";
+import {
+  DOC_PATHS,
+  getCreateSchoolUrl,
+  getFinanceGatewayConfirmUrl,
+  getPricingUrl,
+  getPublicEnrollmentUrl,
+  getSaasAdminUrl,
+  getSigaNavDocUrl,
+  getUnitelGatewayConfirmUrl,
+} from "@/lib/ecosystem-urls";
 
 describe("buildTenantUsageRows", () => {
   it("maps student and staff counts per tenant school", () => {
@@ -101,7 +110,8 @@ describe("ecossistema — contratos Fase 13", () => {
   });
 
   it("expõe URLs PayFlow sem hardcode de produção", async () => {
-    const { getPayflowPayerUrl, getPayflowAdminUrl, getPayflowUrl } = await import("@/lib/ecosystem-urls");
+    const { getPayflowPayerUrl, getPayflowAdminUrl, getPayflowUrl } =
+      await import("@/lib/ecosystem-urls");
     expect(getPayflowUrl("/api/v1/health")).toMatch(/\/api\/v1\/health$/);
     expect(getPayflowPayerUrl()).toMatch(/\/aluno\/pagar$/);
     expect(getPayflowAdminUrl()).toMatch(/\/admin$/);

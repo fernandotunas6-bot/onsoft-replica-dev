@@ -38,10 +38,7 @@ import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { PasswordChangeForm } from "@/features/auth/PasswordChangeForm";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSignOut } from "@/features/auth/use-sign-out";
-import {
-  updateCurrentProfile,
-  uploadCurrentProfileAvatar,
-} from "@/features/auth/server";
+import { updateCurrentProfile, uploadCurrentProfileAvatar } from "@/features/auth/server";
 import { normalizeAngolaPhone, validateAngolaPhone } from "@/lib/angola-phone";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 import type { UserSchoolMembershipItem } from "@/integrations/supabase/sga";
@@ -103,8 +100,7 @@ export function UserProfileModal({
     setSavingProfile(true);
     try {
       const normalizedPhone = phone.trim() ? normalizeAngolaPhone(phone) : "";
-      const expectedUpdated =
-        currentUser.profile.data?.updated_at || new Date().toISOString();
+      const expectedUpdated = currentUser.profile.data?.updated_at || new Date().toISOString();
 
       await updateCurrentProfile({
         data: {
@@ -362,7 +358,8 @@ export function UserProfileModal({
                   <div className="space-y-2 text-center sm:text-left">
                     <h4 className="text-sm font-semibold text-foreground">Fotografia de Perfil</h4>
                     <p className="text-xs text-muted-foreground max-w-sm">
-                      A sua fotografia é visível nos comunicados, mensagens internas e fichas de turma. Formatos suportados: PNG, JPG ou WebP até 4 MB.
+                      A sua fotografia é visível nos comunicados, mensagens internas e fichas de
+                      turma. Formatos suportados: PNG, JPG ou WebP até 4 MB.
                     </p>
                   </div>
                 </div>
@@ -461,7 +458,8 @@ export function UserProfileModal({
                       Instituições Associadas
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      A sua conta global permite aceder a múltiplas instituições com diferentes funções.
+                      A sua conta global permite aceder a múltiplas instituições com diferentes
+                      funções.
                     </p>
                   </div>
                   <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs">
@@ -517,7 +515,10 @@ export function UserProfileModal({
 
                           <div>
                             {isCurrent ? (
-                              <Badge variant="outline" className="gap-1 text-primary border-primary/30">
+                              <Badge
+                                variant="outline"
+                                className="gap-1 text-primary border-primary/30"
+                              >
                                 <CheckCircle2 className="size-3" />
                                 Em utilização
                               </Badge>

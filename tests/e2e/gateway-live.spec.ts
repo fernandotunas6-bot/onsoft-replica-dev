@@ -37,19 +37,16 @@ test.describe("Gateway EMIS @live", () => {
 
       const fixture = await seedE2EGatewayFixture(schoolId!, { amount: 45_000 });
 
-      const confirm = await request.post(
-        `${ECOSYSTEM_E2E_URLS.siga}/api/finance/gateway/confirm`,
-        {
-          data: {
-            apiKey,
-            reference: fixture.reference,
-            amount: fixture.amount,
-            invoiceId: fixture.invoiceId,
-            channel: "multicaixa_express",
-            externalId: `e2e-dev-${Date.now()}`,
-          },
+      const confirm = await request.post(`${ECOSYSTEM_E2E_URLS.siga}/api/finance/gateway/confirm`, {
+        data: {
+          apiKey,
+          reference: fixture.reference,
+          amount: fixture.amount,
+          invoiceId: fixture.invoiceId,
+          channel: "multicaixa_express",
+          externalId: `e2e-dev-${Date.now()}`,
         },
-      );
+      });
       expect(confirm.ok()).toBeTruthy();
       const body = (await confirm.json()) as {
         ok?: boolean;
@@ -88,18 +85,15 @@ test.describe("Gateway EMIS @live", () => {
 
       const fixture = await seedE2EGatewayFixture(schoolId!, { amount: 45_000 });
 
-      const confirm = await request.post(
-        `${ECOSYSTEM_E2E_URLS.siga}/api/finance/gateway/confirm`,
-        {
-          data: {
-            apiKey: schoolWebhookKey,
-            reference: fixture.reference,
-            amount: fixture.amount,
-            invoiceId: fixture.invoiceId,
-            channel: "multicaixa_express",
-          },
+      const confirm = await request.post(`${ECOSYSTEM_E2E_URLS.siga}/api/finance/gateway/confirm`, {
+        data: {
+          apiKey: schoolWebhookKey,
+          reference: fixture.reference,
+          amount: fixture.amount,
+          invoiceId: fixture.invoiceId,
+          channel: "multicaixa_express",
         },
-      );
+      });
       expect(confirm.ok()).toBeTruthy();
       const body = (await confirm.json()) as { ok?: boolean; planSettled?: boolean };
       expect(body.ok).toBe(true);

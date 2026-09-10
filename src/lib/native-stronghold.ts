@@ -18,9 +18,7 @@ export interface NativeSecretStore {
  * A política de desbloqueio (credencial do utilizador, keychain/biometria, etc.) deve
  * ser definida separadamente antes de ligar este store à sessão Supabase.
  */
-export async function createNativeStrongholdStore(
-  password: string,
-): Promise<NativeSecretStore> {
+export async function createNativeStrongholdStore(password: string): Promise<NativeSecretStore> {
   if (!isTauri()) {
     throw new Error("Stronghold só está disponível no runtime nativo do SIGA.");
   }

@@ -167,7 +167,11 @@ export function TeacherPortalDashboard() {
                   <QrCode className="size-3.5" /> QR presença
                 </Link>
               </Button>
-              <Button size="sm" className="gap-1.5 font-bold" onClick={() => openCall(nextLesson.id)}>
+              <Button
+                size="sm"
+                className="gap-1.5 font-bold"
+                onClick={() => openCall(nextLesson.id)}
+              >
                 <CheckSquare className="size-3.5" /> Marcar presença
               </Button>
               <Button asChild size="sm" variant="ghost" className="gap-1.5 font-bold">
@@ -224,7 +228,9 @@ export function TeacherPortalDashboard() {
             <span>Ano lectivo</span>
             <NotebookPen className="size-4 text-success" />
           </div>
-          <p className="text-lg font-extrabold leading-tight text-foreground">{selectedYearLabel}</p>
+          <p className="text-lg font-extrabold leading-tight text-foreground">
+            {selectedYearLabel}
+          </p>
           <p className="text-xs text-muted-foreground">Contexto pedagógico activo</p>
         </div>
       </div>
@@ -316,7 +322,13 @@ export function TeacherPortalDashboard() {
                   <CheckSquare className="size-4" />
                   {sess.status === "pending" ? "Fazer chamada agora" : "Ver / Editar chamada"}
                 </Button>
-                <Button asChild type="button" size="sm" variant="ghost" className="w-full gap-1 text-xs h-8">
+                <Button
+                  asChild
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="w-full gap-1 text-xs h-8"
+                >
                   <Link
                     to="/pedagogica"
                     search={teacherGradesSearch(sess.class_group_id, sess.subject_id)}
@@ -325,7 +337,13 @@ export function TeacherPortalDashboard() {
                   </Link>
                 </Button>
                 <div className="grid grid-cols-2 gap-1">
-                  <Button asChild type="button" size="sm" variant="ghost" className="gap-1 text-xs h-8">
+                  <Button
+                    asChild
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1 text-xs h-8"
+                  >
                     <Link
                       to="/planos-aula"
                       search={teacherLessonPlansSearch(sess.class_group_id, sess.subject_id)}
@@ -333,7 +351,13 @@ export function TeacherPortalDashboard() {
                       <NotebookPen className="size-3.5" /> Plano
                     </Link>
                   </Button>
-                  <Button asChild type="button" size="sm" variant="ghost" className="gap-1 text-xs h-8">
+                  <Button
+                    asChild
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1 text-xs h-8"
+                  >
                     <Link to="/arquivos" search={teacherClassFilesSearch(sess.class_group_id)}>
                       <FolderOpen className="size-3.5" /> Materiais
                     </Link>

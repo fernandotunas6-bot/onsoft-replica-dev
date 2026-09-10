@@ -3,6 +3,7 @@ import { z } from "zod";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { settleGatewayPayment } from "@/features/finance/gateway-webhook-handler";
 import { minorUnitsToKz } from "@/features/finance/payflow-education-sync";
+import { timingSafeEqual } from "@/lib/timing-safe-equal";
 
 export const payflowSettlementInputSchema = z.object({
   event: z.enum(["payment.paid", "payment.refunded"]),
@@ -17,21 +18,12 @@ export const payflowSettlementInputSchema = z.object({
 
 export type PayflowSettlementInput = z.infer<typeof payflowSettlementInputSchema>;
 
-function timingSafeEqual(left: string, right: string) {
-  if (!left || left.length !== right.length) return false;
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
-  }
-  return difference === 0;
-}
-
 export function payflowSettlementAuthorized(authorization: string | null) {
   const expected = process.env.PAYFLOW_INTEGRATION_API_KEY?.trim() ?? "";
   if (expected.length < 24) return false;
   const supplied = authorization?.startsWith("Bearer ")
     ? authorization.slice(7).trim()
-    : authorization?.trim() ?? "";
+    : (authorization?.trim() ?? "");
   return timingSafeEqual(supplied, expected);
 }
 
@@ -112,7 +104,11 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
       .eq("id", receipt.id)
       .eq("school_id", input.school_id);
     if (reverseError) {
-      return { ok: false as const, status: 500, message: "Não foi possível anular o recibo no SIGA." };
+      return {
+        ok: false as const,
+        status: 500,
+        message: "Não foi possível anular o recibo no SIGA.",
+      };
     }
   }
 
@@ -124,7 +120,11 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
       .eq("school_id", input.school_id)
       .eq("status", "paid");
     if (invoiceError) {
-      return { ok: false as const, status: 500, message: "Não foi possível reabrir a fatura no SIGA." };
+      return {
+        ok: false as const,
+        status: 500,
+        message: "Não foi possível reabrir a fatura no SIGA.",
+      };
     }
   }
 

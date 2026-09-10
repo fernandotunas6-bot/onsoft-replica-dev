@@ -30,11 +30,10 @@ export const historicoAcademicoImporter: RowImporter = {
       .eq("school_id", ctx.schoolId);
 
     const existingKeys = new Set(
-      (existing ?? []).map((row: {
-        student_id: string;
-        academic_year_label: string;
-        grade_level: string;
-      }) => historyKey(row.student_id, row.academic_year_label, row.grade_level)),
+      (existing ?? []).map(
+        (row: { student_id: string; academic_year_label: string; grade_level: string }) =>
+          historyKey(row.student_id, row.academic_year_label, row.grade_level),
+      ),
     );
 
     return {
@@ -57,9 +56,7 @@ export const historicoAcademicoImporter: RowImporter = {
     const academicYear = normalizeText(
       valueOf(normalized, "academic_year", "ano_lectivo", "ano_letivo", "ano"),
     );
-    const gradeLevel = normalizeText(
-      valueOf(normalized, "grade_level", "classe", "grau", "nivel"),
-    );
+    const gradeLevel = normalizeText(valueOf(normalized, "grade_level", "classe", "grau", "nivel"));
 
     if (!studentIdent) errors.push("Identificador do aluno (Nº Processo ou BI) é obrigatório.");
     if (!academicYear) errors.push("Ano lectivo histórico é obrigatório (ex: 2023/2024).");
@@ -107,7 +104,13 @@ export const historicoAcademicoImporter: RowImporter = {
     const outcome = normalizeText(
       valueOf(normalized, "outcome", "resultado", "desfecho", "conclusao"),
     );
-    const rawAverage = valueOf(normalized, "final_average", "media_final", "media", "resultado_numerico");
+    const rawAverage = valueOf(
+      normalized,
+      "final_average",
+      "media_final",
+      "media",
+      "resultado_numerico",
+    );
     const finalAverage =
       rawAverage === null || rawAverage === undefined || normalizeText(rawAverage) === ""
         ? null
@@ -125,8 +128,7 @@ export const historicoAcademicoImporter: RowImporter = {
       academic_year_label: academicYear,
       grade_level: gradeLevel,
       previous_school: previousSchool || null,
-      final_average:
-        finalAverage != null && !Number.isNaN(finalAverage) ? finalAverage : null,
+      final_average: finalAverage != null && !Number.isNaN(finalAverage) ? finalAverage : null,
       outcome: outcome || null,
       updated_at: new Date().toISOString(),
       created_by: ctx.userId,

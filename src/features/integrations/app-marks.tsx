@@ -78,7 +78,11 @@ export const sigaModuleMarks: Record<string, SigaMark> = {
   "siga-comunicacoes": { icon: Megaphone, tone: "info", label: "Comunicados" },
   "siga-pessoas": { icon: UserCog, tone: "primary", label: "Pessoas" },
   "siga-relatorios-academicos": { icon: PieChart, tone: "success", label: "Relatórios académicos" },
-  "siga-relatorios-financeiros": { icon: TrendingUp, tone: "success", label: "Relatórios financeiros" },
+  "siga-relatorios-financeiros": {
+    icon: TrendingUp,
+    tone: "success",
+    label: "Relatórios financeiros",
+  },
   "siga-acessos": { icon: KeyRound, tone: "destructive", label: "Acessos" },
   "siga-importar": { icon: FileUp, tone: "info", label: "Importação de Dados" },
   "siga-catracas": { icon: QrCode, tone: "primary", label: "Catracas" },
@@ -86,9 +90,24 @@ export const sigaModuleMarks: Record<string, SigaMark> = {
   "siga-matricula": { icon: UserPlus, tone: "success", label: "Matrícula" },
 };
 
-function PremiumIconMark({ icon: Icon, tone, label, className }: SigaMark & { className?: string }) {
+function PremiumIconMark({
+  icon: Icon,
+  tone,
+  label,
+  className,
+}: SigaMark & { className?: string }) {
   return (
-    <span role="img" aria-label={label} data-app-mark="" data-tone={tone} className={cn("inline-flex shrink-0 items-center justify-center rounded-[22%] leading-none shadow-sm ring-1 ring-black/5 dark:ring-white/10", toneClass[tone], className ?? "size-10")}>
+    <span
+      role="img"
+      aria-label={label}
+      data-app-mark=""
+      data-tone={tone}
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-[22%] leading-none shadow-sm ring-1 ring-black/5 dark:ring-white/10",
+        toneClass[tone],
+        className ?? "size-10",
+      )}
+    >
       <Icon className="size-[52%] shrink-0" strokeWidth={1.85} />
     </span>
   );
@@ -98,7 +117,18 @@ export function AppMark({ id, className }: { id: string; className?: string }) {
   const logo = brandLogos[id];
   if (logo) {
     return (
-      <MediaFrame src={logo.src} alt={logo.label} ratio="1/1" rounded="rounded-[22%]" className={cn("size-10", logo.bleed ? undefined : "bg-background p-0.5 shadow-sm", className)} imgClassName="object-contain" />
+      <MediaFrame
+        src={logo.src}
+        alt={logo.label}
+        ratio="1/1"
+        rounded="rounded-[22%]"
+        className={cn(
+          "size-10",
+          logo.bleed ? undefined : "bg-background p-0.5 shadow-sm",
+          className,
+        )}
+        imgClassName="object-contain"
+      />
     );
   }
   const siga = sigaModuleMarks[id] ?? genericIntegrationMarks[id];

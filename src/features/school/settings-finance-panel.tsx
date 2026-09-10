@@ -20,7 +20,11 @@ import {
 } from "@/lib/angola-banking";
 import { DOC_PATHS, getDocUrl } from "@/lib/ecosystem-urls";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
-import { BillingParametersSummary, BillingSettingsForm, FeePlanSettingsForm } from "./settings-billing-panel";
+import {
+  BillingParametersSummary,
+  BillingSettingsForm,
+  FeePlanSettingsForm,
+} from "./settings-billing-panel";
 import { PayflowBankSyncButton } from "@/features/finance/components/PayflowBankSyncButton";
 import { syncSchoolBankToPayflow } from "@/features/finance/server";
 

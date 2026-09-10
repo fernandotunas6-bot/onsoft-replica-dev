@@ -11,6 +11,8 @@ import {
   type GatewayWebhookEventMeta,
   type GatewayWebhookHandlerResult,
 } from "@/features/finance/gateway-webhook-telemetry";
+import { timingSafeEqual } from "@/lib/timing-safe-equal";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 
 function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
   if (method === "cash") return "cash";
@@ -23,12 +25,31 @@ function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "
 
 const GATEWAY_PROVIDERS = ["multicaixa_express", "unitel_money"] as const;
 
+/**
+ * Modo dev do gateway (e2e/CI, sem integração real configurada na escola).
+ * SEGURANÇA: nunca ter aqui um valor por omissão — um literal embutido no
+ * código é um segredo público a partir do momento em que o repositório é
+ * lido, e um guard baseado só em `NODE_ENV !== "production"` não é fiável
+ * (a variável pode não estar definida no runtime do Worker). O modo dev só
+ * activa quando `SIGA_GATEWAY_DEV_API_KEY` é definida explicitamente pelo
+ * operador (CI define-a em `scripts/siga/prepare-ci-env.mjs`) — nunca em
+ * produção, mesmo que a variável exista por engano.
+ */
+function resolveGatewayDevApiKey(): string | null {
+  const key = process.env.SIGA_GATEWAY_DEV_API_KEY?.trim();
+  if (!key || key.length < 16) return null;
+  if (process.env.NODE_ENV === "production") return null;
+  return key;
+}
+
 export async function resolveGatewaySchoolByApiKey(db: SupabaseClient, apiKey: string) {
-  const devKey =
-    process.env.SIGA_GATEWAY_DEV_API_KEY?.trim() ||
-    (process.env.NODE_ENV !== "production" ? "e2e-gateway-dev-key-ci" : undefined);
-  if (devKey && devKey === apiKey) {
-    return { schoolId: null as string | null, provider: "multicaixa_express" as const, devMode: true };
+  const devKey = resolveGatewayDevApiKey();
+  if (devKey && timingSafeEqual(devKey, apiKey)) {
+    return {
+      schoolId: null as string | null,
+      provider: "multicaixa_express" as const,
+      devMode: true,
+    };
   }
 
   const { data: rows, error } = await db
@@ -51,11 +72,7 @@ export async function resolveGatewaySchoolByApiKey(db: SupabaseClient, apiKey: s
   return null;
 }
 
-async function loadPaymentPlan(
-  db: SupabaseClient,
-  schoolId: string,
-  input: GatewayConfirmInput,
-) {
+async function loadPaymentPlan(db: SupabaseClient, schoolId: string, input: GatewayConfirmInput) {
   if (input.planId) {
     const { data, error } = await db
       .from("finance_payment_plans")
@@ -178,7 +195,8 @@ export async function settleGatewayPayment(
         })
         .select("id")
         .single();
-      if (recError) throw publicDatabaseError(recError, "Não foi possível emitir recibo do gateway.");
+      if (recError)
+        throw publicDatabaseError(recError, "Não foi possível emitir recibo do gateway.");
 
       const newStatus =
         alreadyPaid + input.amount >= Number(invoice.amount) ? "paid" : "partially_paid";
@@ -227,9 +245,7 @@ export async function settleGatewayPayment(
     if (invoicePlanError) {
       throw publicDatabaseError(invoicePlanError, "Não foi possível actualizar o plano.");
     }
-    planSettled = (updatedByInvoice ?? []).some((plan) =>
-      referencesMatch(plan.reference, normRef),
-    );
+    planSettled = (updatedByInvoice ?? []).some((plan) => referencesMatch(plan.reference, normRef));
     if (!planSettled) {
       const { data: updatedByRef, error: refPlanError } = await db
         .from("finance_payment_plans")
@@ -238,7 +254,8 @@ export async function settleGatewayPayment(
         .eq("reference", normRef)
         .in("status", ["pending_gateway", "scheduled"])
         .select("id");
-      if (refPlanError) throw publicDatabaseError(refPlanError, "Não foi possível actualizar o plano.");
+      if (refPlanError)
+        throw publicDatabaseError(refPlanError, "Não foi possível actualizar o plano.");
       planSettled = (updatedByRef ?? []).length > 0;
     }
   }
@@ -358,8 +375,23 @@ async function executeFinanceGatewayWebhook(
   }
 }
 
+// Sem limite aqui, um IP conseguia martelar `resolveGatewaySchoolByApiKey`
+// (que compara contra as keys de TODAS as integrações configuradas) para
+// tentar adivinhar uma API key por força bruta. Generoso o suficiente para
+// um gateway real com retries, apertado o suficiente para travar automação.
+const GATEWAY_WEBHOOK_RATE_LIMIT = { windowMs: 5 * 60 * 1000, max: 30 };
+
 /** Webhook EMIS / simulador — liquida fatura + plano quando a referência coincide. */
-export async function runFinanceGatewayWebhook(input: GatewayConfirmInput) {
+export async function runFinanceGatewayWebhook(input: GatewayConfirmInput, requestIp = "unknown") {
+  const rateLimitKey = `ip:${requestIp}`;
+  if (
+    !isRateLimitBypassed(rateLimitKey) &&
+    !checkRateLimit([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT)
+  ) {
+    return { ok: false as const, status: 429, message: "Demasiados pedidos. Tente mais tarde." };
+  }
+  recordRateLimitAttempt([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT);
+
   const { loadSgaAdminClient } = await import("@/integrations/supabase/sga-admin");
   const db = await loadSgaAdminClient();
   const meta = buildEventMeta(input);

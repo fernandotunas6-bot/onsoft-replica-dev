@@ -5,13 +5,32 @@ import {
   payflowSettlementInputSchema,
 } from "@/features/finance/payflow-settlement";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { clientIpFromRequest } from "@/lib/request-ip";
 
 // style-check: route-exempt — webhook HTTP PayFlow → SIGA (sem shell administrativo).
+
+// Trava força bruta sobre PAYFLOW_INTEGRATION_API_KEY: sem isto, um IP podia
+// tentar bearer tokens sem limite (a comparação em si é timing-safe, mas
+// nada impedia repetir o pedido).
+const PAYFLOW_SETTLEMENT_RATE_LIMIT = { windowMs: 5 * 60 * 1000, max: 30 };
 
 export const Route = createFileRoute("/api/finance/payflow/settlement")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const rateLimitKey = `ip:${clientIpFromRequest(request)}`;
+        if (
+          !isRateLimitBypassed(rateLimitKey) &&
+          !checkRateLimit([rateLimitKey], PAYFLOW_SETTLEMENT_RATE_LIMIT)
+        ) {
+          return Response.json(
+            { ok: false, message: "Demasiados pedidos. Tente mais tarde." },
+            { status: 429 },
+          );
+        }
+        recordRateLimitAttempt([rateLimitKey], PAYFLOW_SETTLEMENT_RATE_LIMIT);
+
         if (!payflowSettlementAuthorized(request.headers.get("authorization"))) {
           return Response.json(
             { ok: false, message: "Chave de integração PayFlow inválida." },
@@ -50,7 +69,8 @@ export const Route = createFileRoute("/api/finance/payflow/settlement")({
             { status: result.status },
           );
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Falha ao aplicar o acerto PayFlow.";
+          const message =
+            error instanceof Error ? error.message : "Falha ao aplicar o acerto PayFlow.";
           return Response.json({ ok: false, message }, { status: 502 });
         }
       },

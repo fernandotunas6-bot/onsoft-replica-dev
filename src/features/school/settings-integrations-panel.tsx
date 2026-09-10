@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { AppMark } from "@/features/integrations/app-marks";
-import { DOC_PATHS, getDocUrl, getFinanceGatewayConfirmUrl, getUnitelGatewayConfirmUrl } from "@/lib/ecosystem-urls";
+import {
+  DOC_PATHS,
+  getDocUrl,
+  getFinanceGatewayConfirmUrl,
+  getUnitelGatewayConfirmUrl,
+} from "@/lib/ecosystem-urls";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { groupCatalogItems, integrationFieldHints } from "@/features/integrations/catalog";
 import { InstallConsentModal } from "@/features/integrations/InstallConsentModal";
@@ -179,12 +184,9 @@ function GatewayWebhookHint({
       <p className="text-[11px] text-muted-foreground">
         Teste local:{" "}
         <code className="text-[10px]">npm run siga:gateway-simulate -- --invoice-id=…</code>
-        {provider === "unitel_money" ? (
-          <code className="text-[10px]"> --unitel</code>
-        ) : null}
+        {provider === "unitel_money" ? <code className="text-[10px]"> --unitel</code> : null}
         {" · "}
-        Operador:{" "}
-        <code className="text-[10px]">npm run siga:gateway-events-recent</code>
+        Operador: <code className="text-[10px]">npm run siga:gateway-events-recent</code>
         {" · "}
         <a
           href={getDocUrl(DOC_PATHS.integracoesEmis)}
@@ -355,7 +357,9 @@ function AcademicIntegrationsCatalog() {
                             });
                           })
                           .catch((error) =>
-                            toast.error(error instanceof Error ? error.message : "Falha ao guardar."),
+                            toast.error(
+                              error instanceof Error ? error.message : "Falha ao guardar.",
+                            ),
                           );
                       }}
                     >

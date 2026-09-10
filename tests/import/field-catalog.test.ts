@@ -58,7 +58,13 @@ describe("SIGA Data Import Engine — Field Catalog & Alias Matcher", () => {
   });
 
   it("deve sugerir módulo 'alunos' para planilhas com aluno, turma e encarregado", () => {
-    const headers = ["Nome do Aluno", "Nº de Processo", "Turma", "Encarregado de Educação", "Data de Nascimento"];
+    const headers = [
+      "Nome do Aluno",
+      "Nº de Processo",
+      "Turma",
+      "Encarregado de Educação",
+      "Data de Nascimento",
+    ];
     const suggestion = suggestModule(headers);
     expect(suggestion.module).toBe("alunos");
     expect(suggestion.score).toBeGreaterThan(0.5);

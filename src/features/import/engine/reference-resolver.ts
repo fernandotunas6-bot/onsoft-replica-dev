@@ -62,7 +62,9 @@ export class ReferenceResolver {
     const cleanName = normalizeText(personData.full_name);
     if (!cleanName) return null;
 
-    const cleanBi = personData.national_id ? normalizeText(personData.national_id).toUpperCase() : null;
+    const cleanBi = personData.national_id
+      ? normalizeText(personData.national_id).toUpperCase()
+      : null;
 
     // 1. Procurar por BI/documento na escola
     if (cleanBi) {
@@ -94,9 +96,7 @@ export class ReferenceResolver {
       .is("deleted_at", null);
 
     const foldedTarget = foldForCompare(cleanName);
-    const existing = (byNameList || []).find(
-      (p) => foldForCompare(p.full_name) === foldedTarget,
-    );
+    const existing = (byNameList || []).find((p) => foldForCompare(p.full_name) === foldedTarget);
 
     if (existing) {
       return {
@@ -129,7 +129,9 @@ export class ReferenceResolver {
       .single();
 
     if (error || !inserted) {
-      throw new Error(`Falha ao registrar pessoa "${cleanName}": ${error?.message || "Erro desconhecido"}`);
+      throw new Error(
+        `Falha ao registrar pessoa "${cleanName}": ${error?.message || "Erro desconhecido"}`,
+      );
     }
 
     return {
@@ -164,9 +166,7 @@ export class ReferenceResolver {
 
     const folded = foldForCompare(clean);
     const found = classes.find(
-      (c) =>
-        foldForCompare(c.name) === folded ||
-        (c.code && foldForCompare(c.code) === folded),
+      (c) => foldForCompare(c.name) === folded || (c.code && foldForCompare(c.code) === folded),
     );
 
     if (!found) return null;
@@ -196,9 +196,7 @@ export class ReferenceResolver {
 
     const folded = foldForCompare(clean);
     const found = subjects.find(
-      (s) =>
-        foldForCompare(s.name) === folded ||
-        (s.code && foldForCompare(s.code) === folded),
+      (s) => foldForCompare(s.name) === folded || (s.code && foldForCompare(s.code) === folded),
     );
 
     if (!found) return null;

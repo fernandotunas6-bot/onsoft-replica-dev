@@ -78,9 +78,10 @@ export const inscricoesImporter: RowImporter = {
 
     const personRes = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
 
-    const appNumber = normalizeText(
-      valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
-    ) || `CAND-${Date.now().toString().slice(-6)}`;
+    const appNumber =
+      normalizeText(
+        valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
+      ) || `CAND-${Date.now().toString().slice(-6)}`;
 
     if (ctx.dryRun) {
       return {

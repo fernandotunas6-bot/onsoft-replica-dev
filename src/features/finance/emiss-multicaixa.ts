@@ -9,7 +9,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export const DEFAULT_EMIS_ENTITY = "99824";
 
 /** Lê entidade EMIS do config de integração (merchantId ou emisEntity). */
-export function emisEntityFromIntegrationConfig(config: Record<string, unknown> | null | undefined) {
+export function emisEntityFromIntegrationConfig(
+  config: Record<string, unknown> | null | undefined,
+) {
   const raw = String(config?.emisEntity ?? config?.merchantId ?? "").trim();
   if (/^\d{4,6}$/.test(raw)) return raw;
   return DEFAULT_EMIS_ENTITY;

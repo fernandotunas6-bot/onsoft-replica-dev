@@ -134,27 +134,21 @@ export const listDayAgendaLessons = createServerFn({ method: "GET" })
         ? db.from("subjects").select("id, name").eq("school_id", schoolId).in("id", subjectIds)
         : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
       teacherIds.length
-        ? db
-            .from("teachers")
-            .select("id, person_id")
-            .eq("school_id", schoolId)
-            .in("id", teacherIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; person_id: string | null }>, error: null }),
+        ? db.from("teachers").select("id, person_id").eq("school_id", schoolId).in("id", teacherIds)
+        : Promise.resolve({
+            data: [] as Array<{ id: string; person_id: string | null }>,
+            error: null,
+          }),
     ]);
 
     const loadError = groupsRes.error ?? subjectsRes.error ?? teachersRes.error;
     if (loadError) {
-      throw publicDatabaseError(
-        loadError,
-        "Não foi possível carregar as aulas do dia.",
-      );
+      throw publicDatabaseError(loadError, "Não foi possível carregar as aulas do dia.");
     }
 
     const teacherPersonIds = [
       ...new Set(
-        (teachersRes.data ?? [])
-          .map((row) => String(row.person_id ?? ""))
-          .filter(Boolean),
+        (teachersRes.data ?? []).map((row) => String(row.person_id ?? "")).filter(Boolean),
       ),
     ];
     const peopleRes = teacherPersonIds.length
@@ -178,7 +172,7 @@ export const listDayAgendaLessons = createServerFn({ method: "GET" })
     const teacherName = new Map(
       (teachersRes.data ?? []).map((row) => [
         String(row.id),
-        row.person_id ? personNameById.get(String(row.person_id)) ?? "" : "",
+        row.person_id ? (personNameById.get(String(row.person_id)) ?? "") : "",
       ]),
     );
 

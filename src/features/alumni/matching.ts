@@ -27,30 +27,46 @@ function overlapCount(a?: string[] | null, b?: string[] | null) {
   return count;
 }
 
-export function scoreMentorMatch(mentee: AlumniMatchProfile, mentor: AlumniMatchProfile): AlumniMatchScore {
+export function scoreMentorMatch(
+  mentee: AlumniMatchProfile,
+  mentor: AlumniMatchProfile,
+): AlumniMatchScore {
   if (mentee.id === mentor.id || !mentor.availableForMentoring) return { score: 0, reasons: [] };
 
   let score = 0;
   const reasons: string[] = [];
 
-  const skillMatches = overlapCount(mentee.interests, mentor.skills) + overlapCount(mentee.skills, mentor.skills);
+  const skillMatches =
+    overlapCount(mentee.interests, mentor.skills) + overlapCount(mentee.skills, mentor.skills);
   if (skillMatches > 0) {
     const points = Math.min(skillMatches, 4) * 12;
     score += points;
     reasons.push(`${skillMatches} competência(s)/interesse(s) em comum`);
   }
 
-  if (mentee.industry && mentor.industry && mentee.industry.trim().toLowerCase() === mentor.industry.trim().toLowerCase()) {
+  if (
+    mentee.industry &&
+    mentor.industry &&
+    mentee.industry.trim().toLowerCase() === mentor.industry.trim().toLowerCase()
+  ) {
     score += 20;
     reasons.push("Mesmo sector profissional");
   }
 
-  if (mentee.province && mentor.province && mentee.province.trim().toLowerCase() === mentor.province.trim().toLowerCase()) {
+  if (
+    mentee.province &&
+    mentor.province &&
+    mentee.province.trim().toLowerCase() === mentor.province.trim().toLowerCase()
+  ) {
     score += 10;
     reasons.push("Mesma província");
   }
 
-  if (mentee.city && mentor.city && mentee.city.trim().toLowerCase() === mentor.city.trim().toLowerCase()) {
+  if (
+    mentee.city &&
+    mentor.city &&
+    mentee.city.trim().toLowerCase() === mentor.city.trim().toLowerCase()
+  ) {
     score += 5;
     reasons.push("Mesma cidade");
   }

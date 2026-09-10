@@ -77,9 +77,7 @@ export function CommandPalette() {
   }, []);
 
   const goToMemory = (path: string, search?: string) => {
-    const params = search
-      ? Object.fromEntries(new URLSearchParams(search).entries())
-      : undefined;
+    const params = search ? Object.fromEntries(new URLSearchParams(search).entries()) : undefined;
     void navigate({ to: path as "/", search: params as never });
   };
 

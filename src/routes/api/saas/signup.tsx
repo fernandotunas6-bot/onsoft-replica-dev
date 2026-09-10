@@ -3,16 +3,9 @@ import { publicSchoolSignupInputSchema } from "@/features/saas/schemas";
 import { runPublicSchoolSignup } from "@/features/saas/public-signup";
 import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
 import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls";
+import { clientIpFromRequest } from "@/lib/request-ip";
 
 const WEB_APPS = ["web"] as const;
-
-function clientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
 
 // style-check: route-exempt — API pública de signup comercial (WEB → SIGA).
 
@@ -25,7 +18,11 @@ export const Route = createFileRoute("/api/saas/signup")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "Corpo JSON inválido." }, { status: 400, apps: [...WEB_APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Corpo JSON inválido." },
+            { status: 400, apps: [...WEB_APPS] },
+          );
         }
         const parsed = publicSchoolSignupInputSchema.safeParse(body);
         if (!parsed.success) {
@@ -36,7 +33,7 @@ export const Route = createFileRoute("/api/saas/signup")({
           );
         }
         try {
-          const result = await runPublicSchoolSignup(parsed.data, clientIp(request));
+          const result = await runPublicSchoolSignup(parsed.data, clientIpFromRequest(request));
           return jsonWithCors(
             request,
             {
@@ -47,7 +44,8 @@ export const Route = createFileRoute("/api/saas/signup")({
             { apps: [...WEB_APPS] },
           );
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Não foi possível criar a escola.";
+          const message =
+            error instanceof Error ? error.message : "Não foi possível criar a escola.";
           const status = message.includes("Muitos pedidos") ? 429 : 400;
           return jsonWithCors(request, { error: message }, { status, apps: [...WEB_APPS] });
         }

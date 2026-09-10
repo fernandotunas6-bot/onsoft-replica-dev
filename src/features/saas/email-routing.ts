@@ -15,7 +15,7 @@ import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
 export type EmailRouteConfig = {
   institutionalAddress: string; // ex: esperanca@siga.ao
-  forwardTo: string;            // ex: direcao@gmail.com
+  forwardTo: string; // ex: direcao@gmail.com
   tenantSlug: string;
   tenantId: string;
 };
@@ -43,10 +43,7 @@ export type CloudflareCredentials = {
 /**
  * Constrói o endereço de e-mail institucional para um dado slug e domínio.
  */
-export function buildInstitutionalAddress(
-  slug: string,
-  platformDomain?: string,
-): string {
+export function buildInstitutionalAddress(slug: string, platformDomain?: string): string {
   const domain = platformDomain ?? getPlatformDomain();
   return `${slug.trim().toLowerCase()}@${domain}`;
 }
@@ -85,12 +82,8 @@ async function callCloudflareCreateRoute(
     const body = {
       name: `SIGA-${config.tenantSlug}`,
       enabled: true,
-      matchers: [
-        { field: "to", type: "literal", value: config.institutionalAddress },
-      ],
-      actions: [
-        { type: "forward", value: [config.forwardTo] },
-      ],
+      matchers: [{ field: "to", type: "literal", value: config.institutionalAddress }],
+      actions: [{ type: "forward", value: [config.forwardTo] }],
     };
 
     const response = await fetch(
@@ -98,7 +91,7 @@ async function callCloudflareCreateRoute(
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${creds.apiToken}`,
+          Authorization: `Bearer ${creds.apiToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
@@ -124,15 +117,12 @@ async function callCloudflareCreateRoute(
   }
 }
 
-export async function listEmailRoutes(
-  zoneId: string,
-  apiToken: string,
-): Promise<EmailRouteItem[]> {
+export async function listEmailRoutes(zoneId: string, apiToken: string): Promise<EmailRouteItem[]> {
   try {
     const response = await fetch(
       `https://api.cloudflare.com/client/v4/zones/${zoneId}/email/routing/rules`,
       {
-        headers: { "Authorization": `Bearer ${apiToken}` },
+        headers: { Authorization: `Bearer ${apiToken}` },
       },
     );
     const json = (await response.json()) as {
@@ -156,7 +146,7 @@ export async function deleteEmailRoute(
       `https://api.cloudflare.com/client/v4/zones/${zoneId}/email/routing/rules/${routeId}`,
       {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${apiToken}` },
+        headers: { Authorization: `Bearer ${apiToken}` },
       },
     );
     const json = (await response.json()) as { success: boolean; errors?: { message: string }[] };

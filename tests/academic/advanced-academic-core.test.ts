@@ -29,7 +29,7 @@ describe("Advanced Academic Core Schemas & Validation", () => {
       createSubjectTypeInputSchema.parse({
         code: "",
         name: "A",
-      })
+      }),
     ).toThrow();
   });
 
@@ -310,7 +310,8 @@ describe("Teacher Assignment Schemas & Logic", () => {
   });
 
   it("filters subject IDs for teacher assignment with classSubjectLinks fallback", async () => {
-    const { subjectIdsForTeacherAssignment } = await import("@/features/pedagogica/teacher-assignment");
+    const { subjectIdsForTeacherAssignment } =
+      await import("@/features/pedagogica/teacher-assignment");
     const allSubjects = ["sub-1", "sub-2", "sub-3"];
 
     // Without links, fallback to all subjects

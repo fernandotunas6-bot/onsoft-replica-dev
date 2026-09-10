@@ -5,11 +5,7 @@
  * Uso: npm run siga:e2e-cleanup-stale
  *      npm run siga:e2e-cleanup-stale -- --dry-run
  */
-import {
-  cleanupE2ETenantBySlug,
-  getSupabaseAdmin,
-  isE2ETenantSlug,
-} from "./e2e-cleanup-lib.mjs";
+import { cleanupE2ETenantBySlug, getSupabaseAdmin, isE2ETenantSlug } from "./e2e-cleanup-lib.mjs";
 
 const dryRun = process.argv.includes("--dry-run");
 

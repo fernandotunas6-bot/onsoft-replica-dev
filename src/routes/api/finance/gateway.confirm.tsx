@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { gatewayConfirmInputSchema } from "@/features/finance/gateway-webhook-schemas";
 import { runFinanceGatewayWebhook } from "@/features/finance/gateway-webhook-handler";
+import { clientIpFromRequest } from "@/lib/request-ip";
 
 // style-check: route-exempt — webhook HTTP EMIS/Multicaixa (sem shell administrativo).
 
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/api/finance/gateway/confirm")({
           );
         }
 
-        const result = await runFinanceGatewayWebhook(parsed.data);
+        const result = await runFinanceGatewayWebhook(parsed.data, clientIpFromRequest(request));
         return Response.json(
           {
             ok: result.ok,
@@ -51,8 +52,8 @@ function FinanceGatewayPlaceholder() {
       <p className="mt-2 text-sm text-muted-foreground">
         Envie <span className="font-mono text-xs">POST</span> com{" "}
         <span className="font-mono text-xs">{`{ apiKey, reference, amount, invoiceId? }`}</span>{" "}
-        para confirmar pagamentos Multicaixa/Unitel. Configure a API key em Definições →
-        Integrações → Multicaixa Express.
+        para confirmar pagamentos Multicaixa/Unitel. Configure a API key em Definições → Integrações
+        → Multicaixa Express.
       </p>
     </main>
   );

@@ -17,8 +17,10 @@ export const Route = createFileRoute("/api/saas/tenants")({
           const tenants = await fetchAllTenants();
           return jsonWithCors(request, { tenants }, { apps: [...APPS] });
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Não foi possível listar as escolas.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
+          const message =
+            error instanceof Error ? error.message : "Não foi possível listar as escolas.";
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },

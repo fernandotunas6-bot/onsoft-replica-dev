@@ -23,13 +23,43 @@ export const getAlumniDocumentWorkspace = createServerFn({ method: "GET" })
     if (alumniError) throw publicDatabaseError(alumniError, "Não foi possível validar o Alumni.");
     if (!alumni) throw new Error("Alumni não encontrado nesta escola.");
 
-    const [{ data: person }, { data: student }, { data: requests, error: requestsError }, { data: templates }] = await Promise.all([
-      db.from("people").select("id, full_name, photo_url").eq("school_id", membership.schoolId).eq("id", alumni.person_id).maybeSingle(),
-      db.from("students").select("id, student_number, status").eq("school_id", membership.schoolId).eq("id", alumni.student_id).maybeSingle(),
-      db.from("document_requests").select("id, template_id, request_type, status, purpose, created_at, updated_at").eq("school_id", membership.schoolId).eq("student_id", alumni.student_id).order("created_at", { ascending: false }).limit(100),
-      db.from("document_templates").select("id, name, document_type, status").eq("school_id", membership.schoolId).eq("status", "active").order("name"),
+    const [
+      { data: person },
+      { data: student },
+      { data: requests, error: requestsError },
+      { data: templates },
+    ] = await Promise.all([
+      db
+        .from("people")
+        .select("id, full_name, photo_url")
+        .eq("school_id", membership.schoolId)
+        .eq("id", alumni.person_id)
+        .maybeSingle(),
+      db
+        .from("students")
+        .select("id, student_number, status")
+        .eq("school_id", membership.schoolId)
+        .eq("id", alumni.student_id)
+        .maybeSingle(),
+      db
+        .from("document_requests")
+        .select("id, template_id, request_type, status, purpose, created_at, updated_at")
+        .eq("school_id", membership.schoolId)
+        .eq("student_id", alumni.student_id)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      db
+        .from("document_templates")
+        .select("id, name, document_type, status")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .order("name"),
     ]);
-    if (requestsError) throw publicDatabaseError(requestsError, "Não foi possível carregar os documentos do Alumni.");
+    if (requestsError)
+      throw publicDatabaseError(
+        requestsError,
+        "Não foi possível carregar os documentos do Alumni.",
+      );
 
     const templateById = new Map((templates ?? []).map((template) => [template.id, template]));
     return {
@@ -48,8 +78,12 @@ export const getAlumniDocumentWorkspace = createServerFn({ method: "GET" })
         purpose: request.purpose,
         createdAt: request.created_at,
         updatedAt: request.updated_at,
-        templateName: request.template_id ? templateById.get(request.template_id)?.name ?? request.request_type ?? "Documento" : request.request_type ?? "Documento",
-        documentType: request.template_id ? templateById.get(request.template_id)?.document_type ?? request.request_type : request.request_type,
+        templateName: request.template_id
+          ? (templateById.get(request.template_id)?.name ?? request.request_type ?? "Documento")
+          : (request.request_type ?? "Documento"),
+        documentType: request.template_id
+          ? (templateById.get(request.template_id)?.document_type ?? request.request_type)
+          : request.request_type,
       })),
       availableTemplates: templates ?? [],
     };

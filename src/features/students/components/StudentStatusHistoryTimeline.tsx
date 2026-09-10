@@ -36,17 +36,24 @@ export function StudentStatusHistoryTimeline({
     return (
       <div className="rounded-xl border border-dashed border-border p-6 text-center">
         <History className="mx-auto size-8 text-muted-foreground/50" />
-        <p className="mt-2 text-sm font-medium text-foreground">Sem alterações de estado registadas</p>
+        <p className="mt-2 text-sm font-medium text-foreground">
+          Sem alterações de estado registadas
+        </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Todas as movimentações de matrícula, transferências, anulações e actualizações de estado ficam
-          automaticamente auditadas neste registo.
+          Todas as movimentações de matrícula, transferências, anulações e actualizações de estado
+          ficam automaticamente auditadas neste registo.
         </p>
       </div>
     );
   }
 
   return (
-    <div className={cn("relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-border", className)}>
+    <div
+      className={cn(
+        "relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-border",
+        className,
+      )}
+    >
       {events.map((event, idx) => {
         const dateObj = new Date(event.created_at);
         const formattedDate = dateObj.toLocaleDateString("pt-AO", {
@@ -78,9 +85,7 @@ export function StudentStatusHistoryTimeline({
                   ) : null}
                   <StudentStatusBadge status={event.new_status} size="sm" />
                   {event.details ? (
-                    <span className="text-xs font-semibold text-foreground">
-                      · {event.details}
-                    </span>
+                    <span className="text-xs font-semibold text-foreground">· {event.details}</span>
                   ) : null}
                 </div>
 

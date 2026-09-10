@@ -49,7 +49,9 @@ export function AppSidebar({
   const { school, activeYearLabel } = useSchoolSettings();
   const { signOut, signingOut } = useSignOut();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [profileModalTab, setProfileModalTab] = useState<"perfil" | "foto" | "seguranca" | "instituicoes">("perfil");
+  const [profileModalTab, setProfileModalTab] = useState<
+    "perfil" | "foto" | "seguranca" | "instituicoes"
+  >("perfil");
 
   const hasSchool = Boolean(school?.name);
   const schoolLogoUrl = school?.branding?.logo_url?.trim() || null;
@@ -224,260 +226,261 @@ export function AppSidebar({
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
-                    <PlusCircle className="size-4 text-emerald-600 dark:text-emerald-400" /> Criar escola (WEB)
+                    <PlusCircle className="size-4 text-emerald-600 dark:text-emerald-400" /> Criar
+                    escola (WEB)
                   </a>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-          <a
-            href={getCreateSchoolUrl()}
-            target="_blank"
-            rel="noreferrer"
-            className={cn(
-              "flex items-center gap-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors border border-primary/25 shadow-xs",
-              collapsed ? "size-9 justify-center p-0" : "w-full justify-between px-3 py-2",
-            )}
-            title="Criar escola no portal WEB"
-          >
-            <div className="flex items-center gap-2 truncate">
-              <PlusCircle className="size-4 shrink-0 text-primary" />
-              {!collapsed ? <span className="truncate">Criar escola (WEB)</span> : null}
-            </div>
-            {!collapsed ? <Building2 className="size-3.5 shrink-0 opacity-70" /> : null}
-          </a>
-        )}
-      </div>
+            <a
+              href={getCreateSchoolUrl()}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "flex items-center gap-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors border border-primary/25 shadow-xs",
+                collapsed ? "size-9 justify-center p-0" : "w-full justify-between px-3 py-2",
+              )}
+              title="Criar escola no portal WEB"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <PlusCircle className="size-4 shrink-0 text-primary" />
+                {!collapsed ? <span className="truncate">Criar escola (WEB)</span> : null}
+              </div>
+              {!collapsed ? <Building2 className="size-3.5 shrink-0 opacity-70" /> : null}
+            </a>
+          )}
+        </div>
 
-      <nav
-        aria-label="Navegação principal"
-        className={cn(
-          "flex-1 pb-4",
-          collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
-        )}
-      >
-        {canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
-          <AcademicNavTree collapsed={collapsed} />
-        ) : null}
-        {visibleGroups.map((group) => (
-          <div key={group.title}>
-            <NavSubheader title={group.title} collapsed={collapsed} />
-            <ul className="space-y-0.5">
-              {group.items.map((item) => {
-                const isOpen = openMenus.includes(item.label);
-                const childActive = item.children?.some((c) => c.to === pathname) ?? false;
+        <nav
+          aria-label="Navegação principal"
+          className={cn(
+            "flex-1 pb-4",
+            collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
+          )}
+        >
+          {canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
+            <AcademicNavTree collapsed={collapsed} />
+          ) : null}
+          {visibleGroups.map((group) => (
+            <div key={group.title}>
+              <NavSubheader title={group.title} collapsed={collapsed} />
+              <ul className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isOpen = openMenus.includes(item.label);
+                  const childActive = item.children?.some((c) => c.to === pathname) ?? false;
 
-                // Flyout: com a barra recolhida, o rato revela um painel lateral
-                // com o rótulo e os sub-itens do menu.
-                const flyout = collapsed ? (
-                  <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
-                    <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-float">
-                      <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-[0.5px] text-sidebar-muted">
-                        {item.label}
-                      </p>
-                      {item.children ? (
-                        <ul className="space-y-0.5">
-                          {item.children.map((child) => (
-                            <li key={child.label}>
-                              {child.to ? (
-                                <NavLinkRow
-                                  to={child.to}
-                                  {...(child.search ? { search: child.search } : {})}
-                                  label={child.label}
-                                  depth="sub"
-                                  active={child.to === pathname}
-                                />
-                              ) : (
-                                <NavButtonRow label={child.label} depth="sub" />
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
+                  // Flyout: com a barra recolhida, o rato revela um painel lateral
+                  // com o rótulo e os sub-itens do menu.
+                  const flyout = collapsed ? (
+                    <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
+                      <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-float">
+                        <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-[0.5px] text-sidebar-muted">
+                          {item.label}
+                        </p>
+                        {item.children ? (
+                          <ul className="space-y-0.5">
+                            {item.children.map((child) => (
+                              <li key={child.label}>
+                                {child.to ? (
+                                  <NavLinkRow
+                                    to={child.to}
+                                    {...(child.search ? { search: child.search } : {})}
+                                    label={child.label}
+                                    depth="sub"
+                                    active={child.to === pathname}
+                                  />
+                                ) : (
+                                  <NavButtonRow label={child.label} depth="sub" />
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                ) : null;
+                  ) : null;
 
-                if (item.children) {
+                  if (item.children) {
+                    return (
+                      <li key={item.label} className="group/fly relative">
+                        <NavButtonRow
+                          label={item.label}
+                          icon={item.icon}
+                          collapsed={collapsed}
+                          active={childActive}
+                          expanded={isOpen}
+                          onClick={() => toggle(item.label)}
+                          trailing={
+                            <ChevronDown
+                              aria-hidden
+                              className={cn(
+                                "size-4 shrink-0 opacity-50 transition-transform duration-200",
+                                isOpen && "rotate-180",
+                              )}
+                            />
+                          }
+                        />
+
+                        {isOpen && !collapsed ? (
+                          <ul className={NAV_SUB_LIST}>
+                            {item.children.map((child) => (
+                              <li key={child.label}>
+                                {child.to ? (
+                                  <NavLinkRow
+                                    to={child.to}
+                                    {...(child.search ? { search: child.search } : {})}
+                                    label={child.label}
+                                    depth="sub"
+                                    active={child.to === pathname}
+                                  />
+                                ) : (
+                                  <NavButtonRow label={child.label} depth="sub" />
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {flyout}
+                      </li>
+                    );
+                  }
+
                   return (
                     <li key={item.label} className="group/fly relative">
-                      <NavButtonRow
+                      <NavLinkRow
+                        to={item.to as string}
                         label={item.label}
                         icon={item.icon}
                         collapsed={collapsed}
-                        active={childActive}
-                        expanded={isOpen}
-                        onClick={() => toggle(item.label)}
-                        trailing={
-                          <ChevronDown
-                            aria-hidden
-                            className={cn(
-                              "size-4 shrink-0 opacity-50 transition-transform duration-200",
-                              isOpen && "rotate-180",
-                            )}
-                          />
-                        }
+                        active={item.to === pathname}
                       />
-
-                      {isOpen && !collapsed ? (
-                        <ul className={NAV_SUB_LIST}>
-                          {item.children.map((child) => (
-                            <li key={child.label}>
-                              {child.to ? (
-                                <NavLinkRow
-                                  to={child.to}
-                                  {...(child.search ? { search: child.search } : {})}
-                                  label={child.label}
-                                  depth="sub"
-                                  active={child.to === pathname}
-                                />
-                              ) : (
-                                <NavButtonRow label={child.label} depth="sub" />
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
                       {flyout}
                     </li>
                   );
-                }
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
 
-                return (
-                  <li key={item.label} className="group/fly relative">
-                    <NavLinkRow
-                      to={item.to as string}
-                      label={item.label}
-                      icon={item.icon}
-                      collapsed={collapsed}
-                      active={item.to === pathname}
-                    />
-                    {flyout}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </nav>
-
-      <div
-        className={cn(
-          "mt-auto border-t border-sidebar-border",
-          collapsed ? "px-2 py-3" : "px-3 py-3",
-        )}
-      >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              data-account-trigger=""
-              aria-label="Abrir menu da conta"
-              className={cn(
-                "flex w-full items-center gap-3 rounded-xl text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
-                collapsed ? "justify-center px-1 py-2" : "px-2 py-2",
-              )}
-            >
-              <UserAvatar
-                url={currentUser.avatarUrl}
-                initials={currentUser.initials}
-                className="size-9 bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground"
-              />
-              {!collapsed ? (
-                <>
-                  <span className="min-w-0 flex-1 leading-tight">
-                    <span className="block truncate text-sm font-semibold text-sidebar-foreground">
-                      {currentUser.name}
+        <div
+          className={cn(
+            "mt-auto border-t border-sidebar-border",
+            collapsed ? "px-2 py-3" : "px-3 py-3",
+          )}
+        >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                data-account-trigger=""
+                aria-label="Abrir menu da conta"
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-xl text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
+                  collapsed ? "justify-center px-1 py-2" : "px-2 py-2",
+                )}
+              >
+                <UserAvatar
+                  url={currentUser.avatarUrl}
+                  initials={currentUser.initials}
+                  className="size-9 bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground"
+                />
+                {!collapsed ? (
+                  <>
+                    <span className="min-w-0 flex-1 leading-tight">
+                      <span className="block truncate text-sm font-semibold text-sidebar-foreground">
+                        {currentUser.name}
+                      </span>
+                      <span className="block truncate text-[11px] text-sidebar-muted">
+                        {currentUser.role}
+                      </span>
                     </span>
-                    <span className="block truncate text-[11px] text-sidebar-muted">
-                      {currentUser.role}
-                    </span>
-                  </span>
-                  <ChevronDown aria-hidden className="size-4 shrink-0 opacity-50" />
-                </>
-              ) : null}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" side="top" className="w-64">
-            <DropdownMenuLabel className="font-normal">
-              <span className="block truncate text-sm font-semibold text-foreground">
-                {currentUser.name}
-              </span>
-              <span className="block truncate text-xs font-normal text-muted-foreground">
-                {currentUser.email}
-              </span>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link to="/perfil">
-                <User className="size-4" /> Perfil
-              </Link>
-            </DropdownMenuItem>
-            {canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
-              <DropdownMenuItem onClick={() => onOpenSettings?.()}>
-                <Settings className="size-4" /> Configurações
-              </DropdownMenuItem>
-            ) : null}
-            {canAccessPath("/alterar-senha", currentUser.role) ? (
+                    <ChevronDown aria-hidden className="size-4 shrink-0 opacity-50" />
+                  </>
+                ) : null}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-64">
+              <DropdownMenuLabel className="font-normal">
+                <span className="block truncate text-sm font-semibold text-foreground">
+                  {currentUser.name}
+                </span>
+                <span className="block truncate text-xs font-normal text-muted-foreground">
+                  {currentUser.email}
+                </span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/alterar-senha">
-                  <Lock className="size-4" /> Alterar senha
+                <Link to="/perfil">
+                  <User className="size-4" /> Perfil
                 </Link>
               </DropdownMenuItem>
-            ) : null}
-            <DropdownMenuItem asChild>
-              <a href={getSigaNavDocUrl()} target="_blank" rel="noreferrer">
-                <CircleHelp className="size-4" /> Documentação
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <a href={getPricingUrl()} target="_blank" rel="noreferrer">
-                <CreditCard className="size-4" /> Planos
-              </a>
-            </DropdownMenuItem>
-            {currentUser.roles && currentUser.roles.length > 1 ? (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                  Mudar Área (Perfil)
-                </DropdownMenuLabel>
-                {currentUser.roles.map((r) => (
-                  <DropdownMenuItem
-                    key={r}
-                    onClick={() => currentUser.setActiveRole(r)}
-                    className={`text-xs flex items-center justify-between ${
-                      r === currentUser.role ? "font-bold text-primary bg-primary/5" : ""
-                    }`}
-                  >
-                    <span>{r}</span>
-                    {r === currentUser.role ? (
-                      <span className="text-primary font-bold">✓</span>
-                    ) : null}
-                  </DropdownMenuItem>
-                ))}
-              </>
-            ) : null}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => void signOut()}
-              disabled={signingOut}
-              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-            >
-              <LogOut className="size-4" /> {signingOut ? "A sair…" : "Sair"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        {!collapsed ? (
-          <p className="px-2 pt-2 text-[11px] text-sidebar-muted">{activeYearLabel}</p>
-        ) : null}
-      </div>
-    </aside>
+              {canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
+                <DropdownMenuItem onClick={() => onOpenSettings?.()}>
+                  <Settings className="size-4" /> Configurações
+                </DropdownMenuItem>
+              ) : null}
+              {canAccessPath("/alterar-senha", currentUser.role) ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/alterar-senha">
+                    <Lock className="size-4" /> Alterar senha
+                  </Link>
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem asChild>
+                <a href={getSigaNavDocUrl()} target="_blank" rel="noreferrer">
+                  <CircleHelp className="size-4" /> Documentação
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={getPricingUrl()} target="_blank" rel="noreferrer">
+                  <CreditCard className="size-4" /> Planos
+                </a>
+              </DropdownMenuItem>
+              {currentUser.roles && currentUser.roles.length > 1 ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                    Mudar Área (Perfil)
+                  </DropdownMenuLabel>
+                  {currentUser.roles.map((r) => (
+                    <DropdownMenuItem
+                      key={r}
+                      onClick={() => currentUser.setActiveRole(r)}
+                      className={`text-xs flex items-center justify-between ${
+                        r === currentUser.role ? "font-bold text-primary bg-primary/5" : ""
+                      }`}
+                    >
+                      <span>{r}</span>
+                      {r === currentUser.role ? (
+                        <span className="text-primary font-bold">✓</span>
+                      ) : null}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              ) : null}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => void signOut()}
+                disabled={signingOut}
+                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+              >
+                <LogOut className="size-4" /> {signingOut ? "A sair…" : "Sair"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {!collapsed ? (
+            <p className="px-2 pt-2 text-[11px] text-sidebar-muted">{activeYearLabel}</p>
+          ) : null}
+        </div>
+      </aside>
 
-    <UserProfileModal
-      open={profileModalOpen}
-      onOpenChange={setProfileModalOpen}
-      defaultTab={profileModalTab}
-    />
-  </>
+      <UserProfileModal
+        open={profileModalOpen}
+        onOpenChange={setProfileModalOpen}
+        defaultTab={profileModalTab}
+      />
+    </>
   );
 }

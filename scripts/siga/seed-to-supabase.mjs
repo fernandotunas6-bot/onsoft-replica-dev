@@ -310,10 +310,12 @@ async function linkDemoTenant() {
     });
   }
 
-  await supabase.from("tenant_usage").upsert(
-    { tenant_id: tenantId, active_students_count: 0, active_staff_count: 0 },
-    { onConflict: "tenant_id" },
-  );
+  await supabase
+    .from("tenant_usage")
+    .upsert(
+      { tenant_id: tenantId, active_students_count: 0, active_staff_count: 0 },
+      { onConflict: "tenant_id" },
+    );
 
   console.log(`✅ Tenant SaaS «${DEMO_TENANT_SLUG}» ligado à escola demo (ADMIN /tenants).`);
 }

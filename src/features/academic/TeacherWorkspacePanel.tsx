@@ -143,7 +143,10 @@ export function TeacherWorkspacePanel({
           }
         >
           {workspaceQuery.isLoading ? (
-            <div className="space-y-3 p-4"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-[85%]" /></div>
+            <div className="space-y-3 p-4">
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-[85%]" />
+            </div>
           ) : classes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Ainda sem turmas associadas a este professor. A secretaria liga disciplinas em Área

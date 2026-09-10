@@ -37,9 +37,7 @@ async function sign(value: string, secret: string) {
   return new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value)));
 }
 
-export function mapSigaRoleToPayflowAdmin(
-  appRole: string,
-): PayflowAdminRole | null {
+export function mapSigaRoleToPayflowAdmin(appRole: string): PayflowAdminRole | null {
   if (appRole === "Administrador") return "finance_admin";
   if (appRole === "Tesouraria") return "treasurer";
   if (appRole === "Secretaria") return "auditor";
@@ -50,7 +48,9 @@ export async function createPayflowSsoAssertion(claims: PayflowSsoClaims, secret
   if (secret.length < 32) {
     throw new Error("PAYFLOW_SSO_SECRET deve ter pelo menos 32 caracteres.");
   }
-  const header = encodeBase64Url(JSON.stringify({ alg: "HS256", typ: "JWT", kid: "siga-payflow-v1" }));
+  const header = encodeBase64Url(
+    JSON.stringify({ alg: "HS256", typ: "JWT", kid: "siga-payflow-v1" }),
+  );
   const payload = encodeBase64Url(JSON.stringify(claims));
   const unsigned = `${header}.${payload}`;
   return `${unsigned}.${encodeBase64Url(await sign(unsigned, secret))}`;

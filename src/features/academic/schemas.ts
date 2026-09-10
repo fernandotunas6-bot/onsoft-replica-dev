@@ -433,8 +433,14 @@ export type UpdateRoomInput = z.infer<typeof updateRoomInputSchema>;
 export const createSchoolShiftInputSchema = z.object({
   code: z.string().trim().min(1).max(40),
   name: z.string().trim().min(2).max(100),
-  startsAt: z.string().trim().regex(/^\d{2}:\d{2}(:\d{2})?$/),
-  endsAt: z.string().trim().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+  startsAt: z
+    .string()
+    .trim()
+    .regex(/^\d{2}:\d{2}(:\d{2})?$/),
+  endsAt: z
+    .string()
+    .trim()
+    .regex(/^\d{2}:\d{2}(:\d{2})?$/),
   defaultLessonDuration: z.number().int().min(15).max(180).default(45),
   defaultBreakDuration: z.number().int().min(0).max(120).default(15),
   activeDays: z.array(z.number().int().min(1).max(7)).default([1, 2, 3, 4, 5]),
@@ -469,8 +475,14 @@ export const saveTeacherAvailabilityInputSchema = z.object({
   slots: z.array(
     z.object({
       weekday: z.number().int().min(1).max(7),
-      startsAt: z.string().trim().regex(/^\d{2}:\d{2}(:\d{2})?$/),
-      endsAt: z.string().trim().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+      startsAt: z
+        .string()
+        .trim()
+        .regex(/^\d{2}:\d{2}(:\d{2})?$/),
+      endsAt: z
+        .string()
+        .trim()
+        .regex(/^\d{2}:\d{2}(:\d{2})?$/),
       isAvailable: z.boolean().default(true),
       notes: optionalText,
     }),
@@ -494,4 +506,3 @@ export const publishAcademicScheduleInputSchema = z.object({
   syncToCalendar: z.boolean().default(true),
 });
 export type PublishAcademicScheduleInput = z.infer<typeof publishAcademicScheduleInputSchema>;
-

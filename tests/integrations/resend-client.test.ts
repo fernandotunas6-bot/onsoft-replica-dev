@@ -19,9 +19,7 @@ describe("resend-client", () => {
 
   it("resolve credentials from school integration config", () => {
     expect(resolveResendCredentials({})).toBeNull();
-    expect(
-      resolveResendCredentials({ merchantId: "re_test", callbackUrl: "escola.ao" }),
-    ).toEqual({
+    expect(resolveResendCredentials({ merchantId: "re_test", callbackUrl: "escola.ao" })).toEqual({
       apiKey: "re_test",
       from: "SIGA Plus <noreply@escola.ao>",
     });

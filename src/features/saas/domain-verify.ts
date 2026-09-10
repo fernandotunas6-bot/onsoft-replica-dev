@@ -33,8 +33,7 @@ export function txtRecordsIncludeToken(records: string[][], token: string): bool
 }
 
 export type DomainDnsCheckResult =
-  | { ok: true; method: "cname" | "txt" }
-  | { ok: false; reason: string };
+  { ok: true; method: "cname" | "txt" } | { ok: false; reason: string };
 
 export async function verifyCustomDomainDns(
   hostname: string,

@@ -13,7 +13,9 @@ export const Route = createFileRoute("/api/saas/tenants/lookup")({
       OPTIONS: async ({ request }) => corsPreflight(request, [...APPS]),
       GET: async ({ request }) => {
         const url = new URL(request.url);
-        const parsed = tenantSlugInputSchema.safeParse({ slug: url.searchParams.get("slug") ?? "" });
+        const parsed = tenantSlugInputSchema.safeParse({
+          slug: url.searchParams.get("slug") ?? "",
+        });
         if (!parsed.success) {
           return jsonWithCors(
             request,
@@ -46,7 +48,9 @@ function TenantLookupApiPlaceholder() {
   return (
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
       <h1 className="font-display text-lg font-extrabold">API lookup tenant</h1>
-      <p className="mt-2 text-sm text-muted-foreground">GET ?slug= para branding e verificação E2E.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        GET ?slug= para branding e verificação E2E.
+      </p>
     </main>
   );
 }

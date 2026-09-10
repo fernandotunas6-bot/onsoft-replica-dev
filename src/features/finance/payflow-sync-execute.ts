@@ -150,7 +150,9 @@ export async function executePayflowStudentSync(input: {
     invoiceRows = (invoices ?? []) as typeof invoiceRows;
   }
 
-  const feeIds = [...new Set(invoiceRows.map((row) => row.fee_item_id).filter(Boolean))] as string[];
+  const feeIds = [
+    ...new Set(invoiceRows.map((row) => row.fee_item_id).filter(Boolean)),
+  ] as string[];
   const { data: feeItems } = feeIds.length
     ? await db.from("fee_items").select("id, name").in("id", feeIds)
     : { data: [] as Array<{ id: string; name: string }> };
@@ -245,10 +247,7 @@ export async function executePayflowStudentSync(input: {
 }
 
 /** Auto-sync após emitir fatura — só com PAYFLOW_AUTO_SYNC=1. Nunca bloqueia a emissão. */
-export function queuePayflowStudentSyncBestEffort(input: {
-  schoolId: string;
-  studentId: string;
-}) {
+export function queuePayflowStudentSyncBestEffort(input: { schoolId: string; studentId: string }) {
   if (process.env.PAYFLOW_AUTO_SYNC?.trim() !== "1") return;
   void executePayflowStudentSync(input).catch((error) => {
     console.warn("payflow_auto_sync_skipped", {

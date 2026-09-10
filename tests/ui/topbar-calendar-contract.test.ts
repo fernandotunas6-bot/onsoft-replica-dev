@@ -35,10 +35,7 @@ describe("Topbar calendar mini-agenda contract", () => {
   });
 
   it("loads day timetable lessons alongside periods", () => {
-    const source = readFileSync(
-      resolve(root, "src/components/layout/TopbarCalendar.tsx"),
-      "utf8",
-    );
+    const source = readFileSync(resolve(root, "src/components/layout/TopbarCalendar.tsx"), "utf8");
     expect(source).toContain("listDayAgendaLessons");
     expect(source).toContain("Aulas de hoje");
     expect(source).toContain("takeUpcomingDayLessons");

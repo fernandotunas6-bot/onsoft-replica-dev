@@ -6,15 +6,9 @@
  */
 
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import {
-  getPlatformDomain,
-  getPlatformSubdomain,
-} from "@/lib/saas/platform-domain";
+import { getPlatformDomain, getPlatformSubdomain } from "@/lib/saas/platform-domain";
 import { domainDnsInstructions } from "@/features/saas/platform-ops";
-import {
-  buildInstitutionalAddress,
-  validateForwardingEmail,
-} from "@/features/saas/email-routing";
+import { buildInstitutionalAddress, validateForwardingEmail } from "@/features/saas/email-routing";
 
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -75,7 +69,11 @@ export async function getSchoolDomainStatus(
   const db = await loadSgaAdminClient();
 
   // Procurar o school_id a partir do tenantId
-  const { data: schoolRow } = await db.from("schools").select("id").eq("tenant_id", tenantId).maybeSingle();
+  const { data: schoolRow } = await db
+    .from("schools")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
   const schoolId = schoolRow?.id;
 
   // Subdomínio permanente (sempre activo)
@@ -87,9 +85,7 @@ export async function getSchoolDomainStatus(
   // Domínio personalizado
   const { data: customDomainRow } = await db
     .from("tenant_domains")
-    .select(
-      "id, hostname, status, verified_at, last_checked_at, check_count",
-    )
+    .select("id, hostname, status, verified_at, last_checked_at, check_count")
     .eq("tenant_id", tenantId)
     .eq("type", "custom_domain")
     .order("created_at", { ascending: false })
@@ -122,9 +118,11 @@ export async function getSchoolDomainStatus(
   let emailRoute: EmailRouteInfo | null = null;
   if (emailRouteRow) {
     emailRoute = {
-      institutionalEmail: String(emailRouteRow.source_address ?? buildInstitutionalAddress(tenantSlug)),
+      institutionalEmail: String(
+        emailRouteRow.source_address ?? buildInstitutionalAddress(tenantSlug),
+      ),
       forwardTo: (emailRouteRow.destination_address ?? null) as string | null,
-      active: emailRouteRow.status === 'active',
+      active: emailRouteRow.status === "active",
       provider: (emailRouteRow.provider ?? null) as string | null,
     };
   } else {
@@ -229,7 +227,9 @@ export async function requestCustomDomainVerification(input: {
       .single();
 
     if (error || !inserted) {
-      throw new Error(`Não foi possível registar o domínio: ${error?.message ?? "erro desconhecido"}`);
+      throw new Error(
+        `Não foi possível registar o domínio: ${error?.message ?? "erro desconhecido"}`,
+      );
     }
     domainId = inserted.id as string;
   }
@@ -253,23 +253,25 @@ export async function saveEmailForwardingRoute(input: {
     return { ok: false, institutionalEmail: "", reason: "E-mail de encaminhamento inválido." };
   }
 
-  const institutionalEmail = buildInstitutionalAddress(
-    input.tenantSlug,
-    getPlatformDomain(),
-  );
+  const institutionalEmail = buildInstitutionalAddress(input.tenantSlug, getPlatformDomain());
 
   const db = await loadSgaAdminClient();
-  
+
   // Buscar schoolId
-  const { data: schoolRow } = await db.from("schools").select("id").eq("tenant_id", input.tenantId).maybeSingle();
-  if (!schoolRow) return { ok: false, institutionalEmail: "", reason: "Escola não encontrada para este tenant." };
-  
+  const { data: schoolRow } = await db
+    .from("schools")
+    .select("id")
+    .eq("tenant_id", input.tenantId)
+    .maybeSingle();
+  if (!schoolRow)
+    return { ok: false, institutionalEmail: "", reason: "Escola não encontrada para este tenant." };
+
   const { error } = await db.from("school_email_routes").upsert(
     {
       school_id: schoolRow.id,
       source_address: institutionalEmail,
       destination_address: input.forwardTo,
-      status: 'active',
+      status: "active",
       provider: "simulated",
       updated_at: new Date().toISOString(),
     },
@@ -283,7 +285,6 @@ export async function saveEmailForwardingRoute(input: {
   return { ok: true, institutionalEmail };
 }
 
-
 export async function saveSchoolBranding(input: {
   tenantId: string;
   primaryColor?: string;
@@ -293,8 +294,12 @@ export async function saveSchoolBranding(input: {
   faviconUrl?: string;
 }): Promise<{ ok: boolean; reason?: string }> {
   const db = await loadSgaAdminClient();
-  
-  const { data: schoolRow } = await db.from("schools").select("id").eq("tenant_id", input.tenantId).maybeSingle();
+
+  const { data: schoolRow } = await db
+    .from("schools")
+    .select("id")
+    .eq("tenant_id", input.tenantId)
+    .maybeSingle();
   if (!schoolRow) return { ok: false, reason: "Escola não encontrada para este tenant." };
 
   const { error } = await db.from("school_branding").upsert(
@@ -307,7 +312,7 @@ export async function saveSchoolBranding(input: {
       ...(input.faviconUrl && { favicon_url: input.faviconUrl }),
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "school_id" }
+    { onConflict: "school_id" },
   );
 
   if (error) {

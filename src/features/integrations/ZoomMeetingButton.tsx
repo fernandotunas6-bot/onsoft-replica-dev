@@ -71,7 +71,8 @@ export function ZoomMeetingButton({
       const msg = err?.message || "";
       if (msg.includes("Zoom não está ligado") || msg.includes("Configuração Zoom em falta")) {
         toast.info("Conta Zoom não conectada", {
-          description: "Conecte o Zoom da escola em Definições → Integrações para gerar reuniões automáticas.",
+          description:
+            "Conecte o Zoom da escola em Definições → Integrações para gerar reuniões automáticas.",
         });
         const fallbackUrl = meetingRoomLink("zoom");
         window.open(fallbackUrl, "_blank", "noopener,noreferrer");

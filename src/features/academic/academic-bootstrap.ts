@@ -54,9 +54,7 @@ async function requireConfiguredAcademicCalendar(
     return null;
   }
 
-  const bySequence = new Map(
-    (terms ?? []).map((term) => [Number(term.sequence), term] as const),
-  );
+  const bySequence = new Map((terms ?? []).map((term) => [Number(term.sequence), term] as const));
   for (const sequence of [1, 2, 3]) {
     const term = bySequence.get(sequence);
     if (!term?.starts_on || !term?.ends_on) {

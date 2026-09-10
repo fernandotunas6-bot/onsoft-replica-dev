@@ -166,7 +166,9 @@ export function SchoolSettingsPanel() {
   const calendarQuery = useQuery({
     queryKey: ["calendar", "events", "settings"],
     queryFn: () =>
-      listCalendarEvents({ data: { limit: 8, includePast: true } }) as Promise<CalendarEventSummary[]>,
+      listCalendarEvents({ data: { limit: 8, includePast: true } }) as Promise<
+        CalendarEventSummary[]
+      >,
     staleTime: 60_000,
     retry: false,
   });
@@ -655,7 +657,11 @@ export function SchoolSettingsPanel() {
                   className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-4 py-2.5 text-sm"
                 >
                   <span>
-                    <Link to="/calendario" search={{ dia: event.event_date }} className="font-semibold hover:underline">
+                    <Link
+                      to="/calendario"
+                      search={{ dia: event.event_date }}
+                      className="font-semibold hover:underline"
+                    >
                       {event.title}
                     </Link>
                     <span className="ml-2 text-xs text-muted-foreground">

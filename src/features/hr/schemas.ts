@@ -6,12 +6,7 @@ export type HrAdminRole = (typeof HR_ADMIN_ROLES)[number];
 
 // ─── Domínio: enums canónicos (espelham CHECK constraints SQL) ───────────────
 
-export const hrEmploymentStatusSchema = z.enum([
-  "draft",
-  "active",
-  "suspended",
-  "terminated",
-]);
+export const hrEmploymentStatusSchema = z.enum(["draft", "active", "suspended", "terminated"]);
 export type HrEmploymentStatus = z.infer<typeof hrEmploymentStatusSchema>;
 
 export const hrSalaryTypeSchema = z.enum(["monthly", "hourly", "lesson_hour"]);
@@ -24,19 +19,10 @@ export const hrRemunerationModelSchema = z.enum([
 ]);
 export type HrRemunerationModel = z.infer<typeof hrRemunerationModelSchema>;
 
-export const hrAbsenceTypeSchema = z.enum([
-  "justified_paid",
-  "justified_unpaid",
-  "unjustified",
-]);
+export const hrAbsenceTypeSchema = z.enum(["justified_paid", "justified_unpaid", "unjustified"]);
 export type HrAbsenceType = z.infer<typeof hrAbsenceTypeSchema>;
 
-export const hrValidationStatusSchema = z.enum([
-  "pending",
-  "validated",
-  "rejected",
-  "cancelled",
-]);
+export const hrValidationStatusSchema = z.enum(["pending", "validated", "rejected", "cancelled"]);
 export type HrValidationStatus = z.infer<typeof hrValidationStatusSchema>;
 
 export const hrPayrollRunStatusSchema = z.enum([
@@ -100,18 +86,16 @@ export type HrAssuranceDecision = z.infer<typeof hrAssuranceDecisionSchema>;
 // ─── Máquinas de estado (spec operacional) ───────────────────────────────────
 
 /** Transições permitidas de `hr_payroll_runs.status`. */
-export const HR_PAYROLL_RUN_TRANSITIONS: Record<
-  HrPayrollRunStatus,
-  readonly HrPayrollRunStatus[]
-> = {
-  draft: ["calculating", "cancelled"],
-  calculating: ["review", "draft", "cancelled"],
-  review: ["approved", "draft", "cancelled"],
-  approved: ["processing", "cancelled"],
-  processing: ["paid", "approved"],
-  paid: [],
-  cancelled: [],
-};
+export const HR_PAYROLL_RUN_TRANSITIONS: Record<HrPayrollRunStatus, readonly HrPayrollRunStatus[]> =
+  {
+    draft: ["calculating", "cancelled"],
+    calculating: ["review", "draft", "cancelled"],
+    review: ["approved", "draft", "cancelled"],
+    approved: ["processing", "cancelled"],
+    processing: ["paid", "approved"],
+    paid: [],
+    cancelled: [],
+  };
 
 /** Transições permitidas de `hr_payroll_payment_batches.status`. */
 export const HR_PAYMENT_BATCH_TRANSITIONS: Record<
@@ -134,10 +118,7 @@ export const HR_PAYMENT_CONFIRMABLE_STATUSES = [
   "failed",
 ] as const satisfies readonly HrPaymentItemStatus[];
 
-export function canTransitionPayrollRun(
-  from: HrPayrollRunStatus,
-  to: HrPayrollRunStatus,
-): boolean {
+export function canTransitionPayrollRun(from: HrPayrollRunStatus, to: HrPayrollRunStatus): boolean {
   return HR_PAYROLL_RUN_TRANSITIONS[from].includes(to);
 }
 
@@ -217,9 +198,7 @@ export const upsertHrPaymentDestinationInputSchema = z
       });
     }
   });
-export type UpsertHrPaymentDestinationInput = z.infer<
-  typeof upsertHrPaymentDestinationInputSchema
->;
+export type UpsertHrPaymentDestinationInput = z.infer<typeof upsertHrPaymentDestinationInputSchema>;
 
 export const confirmPayrollPaymentItemInputSchema = z
   .object({
@@ -237,9 +216,7 @@ export const confirmPayrollPaymentItemInputSchema = z
       });
     }
   });
-export type ConfirmPayrollPaymentItemInput = z.infer<
-  typeof confirmPayrollPaymentItemInputSchema
->;
+export type ConfirmPayrollPaymentItemInput = z.infer<typeof confirmPayrollPaymentItemInputSchema>;
 
 export const attendanceAssurancePolicySchema = z
   .object({

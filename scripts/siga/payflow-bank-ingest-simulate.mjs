@@ -108,7 +108,9 @@ const bookedAt = args.booked_at || new Date().toISOString();
 const verifiedBy = args.verified_by || "payflow_bank_ingest_simulate";
 
 if (!schoolId || !transferReference || !Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
-  console.error("Faltam --school-id, --transfer-reference e --amount-minor (inteiro > 0). Use --help.");
+  console.error(
+    "Faltam --school-id, --transfer-reference e --amount-minor (inteiro > 0). Use --help.",
+  );
   process.exit(1);
 }
 if (apiKey.length < 24) {

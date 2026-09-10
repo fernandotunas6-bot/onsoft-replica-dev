@@ -46,7 +46,9 @@ export const historicoFinanceiroImporter: RowImporter = {
       valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
     );
     const amountVal = Number(valueOf(normalized, "amount", "valor", "total", "montante"));
-    const invoiceNumber = normalizeText(valueOf(normalized, "invoice_number", "numero_fatura", "recibo", "documento"));
+    const invoiceNumber = normalizeText(
+      valueOf(normalized, "invoice_number", "numero_fatura", "recibo", "documento"),
+    );
 
     if (!studentIdent) errors.push("Identificador do aluno (Nº Processo ou BI) é obrigatório.");
     if (!amountVal || isNaN(amountVal) || amountVal <= 0) {
@@ -77,12 +79,13 @@ export const historicoFinanceiroImporter: RowImporter = {
       valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
     )!;
     const amountVal = Number(valueOf(normalized, "amount", "valor", "total", "montante"));
-    const invoiceNumber = normalizeText(
-      valueOf(normalized, "invoice_number", "numero_fatura", "recibo", "documento"),
-    ) || `HIST-${Date.now().toString().slice(-6)}`;
-    const description = normalizeText(
-      valueOf(normalized, "description", "descricao", "historico", "motivo"),
-    ) || "Registo financeiro consolidado de exercício anterior";
+    const invoiceNumber =
+      normalizeText(
+        valueOf(normalized, "invoice_number", "numero_fatura", "recibo", "documento"),
+      ) || `HIST-${Date.now().toString().slice(-6)}`;
+    const description =
+      normalizeText(valueOf(normalized, "description", "descricao", "historico", "motivo")) ||
+      "Registo financeiro consolidado de exercício anterior";
 
     const studentMatch = uniqueExactMatch(studentIdent, cache.students, [
       (s) => s.student_number,

@@ -308,11 +308,20 @@ export function ProfileSettingsPanel() {
             autoComplete="tel"
           />
         </div>
-        <Field id="set-cargo" label="Cargo / Função Actual" defaultValue={currentUser.role} readOnly />
+        <Field
+          id="set-cargo"
+          label="Cargo / Função Actual"
+          defaultValue={currentUser.role}
+          readOnly
+        />
         <Field
           id="set-escola"
           label="Instituição Actual"
-          defaultValue={currentUser.activeSchool?.schoolName ?? currentUser.schoolName ?? "Instituição Principal"}
+          defaultValue={
+            currentUser.activeSchool?.schoolName ??
+            currentUser.schoolName ??
+            "Instituição Principal"
+          }
           readOnly
         />
       </div>

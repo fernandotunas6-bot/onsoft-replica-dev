@@ -71,7 +71,10 @@ export function getPlatformDomain(): string {
       (import.meta.env?.VITE_PLATFORM_DOMAIN || import.meta.env?.PLATFORM_DOMAIN));
 
   if (envDomain && typeof envDomain === "string" && envDomain.trim()) {
-    return envDomain.trim().toLowerCase().replace(/^\.+|\.+$/g, "");
+    return envDomain
+      .trim()
+      .toLowerCase()
+      .replace(/^\.+|\.+$/g, "");
   }
 
   return "portal-siga.com";
@@ -130,7 +133,8 @@ export function validateTenantSlug(slug: string): { valid: boolean; reason?: str
   if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(normalized) && normalized.length > 2) {
     return {
       valid: false,
-      reason: "O endereço só pode conter letras minúsculas, números e hífens (não pode começar ou terminar com hífen).",
+      reason:
+        "O endereço só pode conter letras minúsculas, números e hífens (não pode começar ou terminar com hífen).",
     };
   }
 

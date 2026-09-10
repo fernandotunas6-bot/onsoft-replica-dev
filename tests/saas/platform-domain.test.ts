@@ -113,7 +113,9 @@ describe("platform-domain module", () => {
 
   describe("slugifySchoolName", () => {
     it("transforma nomes com acentos e espaços em slugs limpos", () => {
-      expect(slugifySchoolName("Colégio Adventista Esperança")).toBe("colegio-adventista-esperanca");
+      expect(slugifySchoolName("Colégio Adventista Esperança")).toBe(
+        "colegio-adventista-esperanca",
+      );
       expect(slugifySchoolName("Escola Primária Nº 123")).toBe("escola-primaria-n-123");
       expect(slugifySchoolName("Liceu São José (Bengo)")).toBe("liceu-sao-jose-bengo");
       expect(slugifySchoolName("   Complexo   Escolar   ")).toBe("complexo-escolar");

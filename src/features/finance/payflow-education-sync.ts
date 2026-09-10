@@ -4,18 +4,15 @@
  */
 
 export type PayflowEnrollmentStatus =
-  | "pending"
-  | "active"
-  | "suspended"
-  | "transferred"
-  | "withdrawn"
-  | "completed"
-  | "cancelled";
+  "pending" | "active" | "suspended" | "transferred" | "withdrawn" | "completed" | "cancelled";
 
 export type PayflowInvoiceStatus = "open" | "overdue" | "paid" | "cancelled";
 
 /** Código público do aluno no PayFlow: exactamente 7 dígitos. */
-export function toPayflowStudentCode(studentNumber: string | null | undefined, studentId: string): string {
+export function toPayflowStudentCode(
+  studentNumber: string | null | undefined,
+  studentId: string,
+): string {
   const digits = String(studentNumber ?? "").replace(/\D/g, "");
   if (digits.length >= 7) return digits.slice(-7);
   if (digits.length > 0) return digits.padStart(7, "0");

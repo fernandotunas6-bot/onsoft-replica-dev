@@ -6,7 +6,9 @@ import {
   type DayAgendaLesson,
 } from "@/features/calendar/day-lessons";
 
-function lesson(partial: Partial<DayAgendaLesson> & Pick<DayAgendaLesson, "id" | "startsAt">): DayAgendaLesson {
+function lesson(
+  partial: Partial<DayAgendaLesson> & Pick<DayAgendaLesson, "id" | "startsAt">,
+): DayAgendaLesson {
   return {
     endsAt: partial.endsAt ?? "10:00",
     room: null,
@@ -42,9 +44,6 @@ describe("day agenda lessons", () => {
       lesson({ id: "now", startsAt: "08:00", endsAt: "08:45" }),
       lesson({ id: "next", startsAt: "09:00", endsAt: "09:45" }),
     ];
-    expect(takeUpcomingDayLessons(rows, "08:10", 2).map((row) => row.id)).toEqual([
-      "now",
-      "next",
-    ]);
+    expect(takeUpcomingDayLessons(rows, "08:10", 2).map((row) => row.id)).toEqual(["now", "next"]);
   });
 });

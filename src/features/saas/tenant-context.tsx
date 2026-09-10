@@ -54,7 +54,8 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsLoadingTenant(true);
     const hostname = typeof window !== "undefined" ? window.location.hostname : "";
     const lookup = resolveTenantLookup(hostname);
-    const slug = lookup.mode === "slug" ? lookup.slug : lookup.hostname.split(".")[0] || "minha-escola";
+    const slug =
+      lookup.mode === "slug" ? lookup.slug : lookup.hostname.split(".")[0] || "minha-escola";
     setActiveSlug(slug);
 
     const isAdmin = isAdminSubdomain(hostname);
@@ -151,8 +152,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             </div>
             <h1 className="text-2xl font-bold">{copy.title}</h1>
             <p className="mt-2 text-sm text-slate-400">
-              {copy.body} Instituição{" "}
-              <strong className="text-white">{activeTenant?.name}</strong>.
+              {copy.body} Instituição <strong className="text-white">{activeTenant?.name}</strong>.
             </p>
             <p className="mt-4 text-xs text-slate-500">
               Regularize a assinatura no portal comercial ou contacte o suporte da plataforma.

@@ -16,14 +16,10 @@ export interface StudentFinanceBadgeProps extends HTMLAttributes<HTMLSpanElement
 }
 
 const financeTones: Record<FinancialStatus, string> = {
-  settled:
-    "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25",
-  pending:
-    "bg-amber-500/12 text-amber-700 dark:text-amber-400 border border-amber-500/25",
-  overdue:
-    "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30",
-  partial:
-    "bg-sky-500/12 text-sky-700 dark:text-sky-400 border border-sky-500/25",
+  settled: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25",
+  pending: "bg-amber-500/12 text-amber-700 dark:text-amber-400 border border-amber-500/25",
+  overdue: "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30",
+  partial: "bg-sky-500/12 text-sky-700 dark:text-sky-400 border border-sky-500/25",
 };
 
 export function StudentFinanceBadge({
@@ -37,9 +33,7 @@ export function StudentFinanceBadge({
 }: StudentFinanceBadgeProps) {
   if (!status) return null;
 
-  const normStatus = (status in FINANCIAL_STATUS_LABELS
-    ? status
-    : "pending") as FinancialStatus;
+  const normStatus = (status in FINANCIAL_STATUS_LABELS ? status : "pending") as FinancialStatus;
   const baseLabel = FINANCIAL_STATUS_LABELS[normStatus] ?? status;
   const tone = financeTones[normStatus] ?? financeTones.pending;
 

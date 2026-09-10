@@ -28,10 +28,7 @@ describe("Pedagogical Importers (cursos, classes, disciplinas, salas)", () => {
       const cache = {
         existingCourses: [{ id: "c1", code: "CFB", name: "Ciências Físicas e Biológicas" }],
       };
-      const analysis = cursosImporter.analyzeRow(
-        { code: "cfb", name: "Outro Nome" },
-        cache as any,
-      );
+      const analysis = cursosImporter.analyzeRow({ code: "cfb", name: "Outro Nome" }, cache as any);
       expect(analysis.status).toBe("duplicate");
       expect(analysis.duplicate_of).toBe("c1");
     });

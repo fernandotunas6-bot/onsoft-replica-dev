@@ -126,7 +126,6 @@ export function ImportWorkflowWizard({
   const [stageProgress, setStageProgress] = useState({ done: 0, total: 0 });
   const [stageCounts, setStageCounts] = useState({ valid: 0, invalid: 0, duplicate: 0 });
 
-
   const [stagingRows, setStagingRows] = useState<ImportRowRecord[]>([]);
   const [stagingTotal, setStagingTotal] = useState(0);
   const [stagingPage, setStagingPage] = useState(1);
@@ -437,7 +436,10 @@ export function ImportWorkflowWizard({
             </p>
             {initialModule ? (
               <div className="mx-auto mt-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary font-medium">
-                <span>Módulo focado: <strong>{MODULE_DISPLAY_LABELS[initialModule] || initialModule}</strong></span>
+                <span>
+                  Módulo focado:{" "}
+                  <strong>{MODULE_DISPLAY_LABELS[initialModule] || initialModule}</strong>
+                </span>
                 <button
                   type="button"
                   onClick={handleDownloadTemplate}
@@ -535,7 +537,17 @@ export function ImportWorkflowWizard({
                   <SelectLabel className="text-[11px] font-semibold text-primary">
                     Estrutura Pedagógica &amp; Docência
                   </SelectLabel>
-                  {(["professores", "turmas", "classes", "cursos", "disciplinas", "salas", "notas"] as const).map((mod) => (
+                  {(
+                    [
+                      "professores",
+                      "turmas",
+                      "classes",
+                      "cursos",
+                      "disciplinas",
+                      "salas",
+                      "notas",
+                    ] as const
+                  ).map((mod) => (
                     <SelectItem key={mod} value={mod} className="text-xs font-medium">
                       {MODULE_DISPLAY_LABELS[mod] || mod}
                     </SelectItem>
@@ -591,9 +603,12 @@ export function ImportWorkflowWizard({
                 Sugestão automática, com base nos cabeçalhos (
                 {selectedSheet.headers.slice(0, 4).join(", ")}
                 {selectedSheet.headers.length > 4 ? "…" : ""}):{" "}
-                <strong>{MODULE_DISPLAY_LABELS[selectedSheet.suggested_module] || selectedSheet.suggested_module}</strong> (
-                {Math.round(selectedSheet.suggested_module_score * 100)}% de confiança). Confirme ou
-                corrija.
+                <strong>
+                  {MODULE_DISPLAY_LABELS[selectedSheet.suggested_module] ||
+                    selectedSheet.suggested_module}
+                </strong>{" "}
+                ({Math.round(selectedSheet.suggested_module_score * 100)}% de confiança). Confirme
+                ou corrija.
               </span>
             </div>
           </div>

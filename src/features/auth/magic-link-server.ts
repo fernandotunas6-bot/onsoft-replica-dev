@@ -1,11 +1,19 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestIP } from "@tanstack/react-start/server";
 import { getAppUrl, getAppName, getAuthMagicLinkUrl } from "@/lib/app-config";
 import { resolveTenantLookup } from "@/lib/saas/tenant-resolver";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { fetchSchoolBranding } from "./reset-password-server";
 import { renderMagicLinkEmail } from "./email-templates/magic-link.html";
 import { sendResendEmail, resolveResendFromAddress } from "@/features/integrations/resend-client";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+
+// Sem limite aqui, um único cliente conseguia disparar chamadas ilimitadas ao
+// Auth Admin da Supabase e ao Resend só a variar o email — custo directo e
+// vector de assédio (inundar a caixa de outra pessoa). 5 por 15 min por
+// IP/email é generoso para um utilizador legítimo e barra automação.
+const MAGIC_LINK_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 5 };
 
 export const requestMagicLinkInputSchema = z.object({
   email: z.string().trim().email("Indique um endereço de e-mail válido."),
@@ -33,6 +41,17 @@ export const requestMagicLinkFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<MagicLinkResponse> => {
     const email = data.email.toLowerCase().trim();
     const hostname = data.hostname?.toLowerCase().trim() || "";
+
+    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const rateLimitKeys = [`ip:${ip}`, `email:${email}`];
+    if (
+      !isRateLimitBypassed(...rateLimitKeys) &&
+      !checkRateLimit(rateLimitKeys, MAGIC_LINK_RATE_LIMIT)
+    ) {
+      // Resposta neutra igual à de sucesso — não revelar que houve limite.
+      return { success: true, message: NEUTRAL_SUCCESS_MESSAGE };
+    }
+    recordRateLimitAttempt(rateLimitKeys, MAGIC_LINK_RATE_LIMIT);
 
     try {
       const db = await loadSgaAdminClient();

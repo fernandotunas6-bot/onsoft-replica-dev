@@ -33,7 +33,11 @@ for (const mod of catalog.modules) {
     console.log(`✗ ${mod.id}`);
     for (const file of absent) console.log(`    missing ${file}`);
   } else {
-    const navHint = mod.navPath ? ` → ${mod.navPath}` : mod.publicPath ? ` (public ${mod.publicPath})` : "";
+    const navHint = mod.navPath
+      ? ` → ${mod.navPath}`
+      : mod.publicPath
+        ? ` (public ${mod.publicPath})`
+        : "";
     console.log(`✓ ${mod.id}  (${mod.skill})${navHint}`);
   }
 }

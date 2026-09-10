@@ -580,7 +580,11 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
       ).length;
       ops.roomsInUse = new Set(
         slotRows
-          .map((slot) => String(slot.room ?? "").trim().toLocaleLowerCase())
+          .map((slot) =>
+            String(slot.room ?? "")
+              .trim()
+              .toLocaleLowerCase(),
+          )
           .filter(Boolean),
       ).size;
 
@@ -652,8 +656,8 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
         .eq("school_id", schoolId)
         .not("birth_date", "is", null)
         .limit(2000);
-      ops.birthdaysToday = (people ?? []).filter((person) =>
-        String(person.birth_date ?? "").slice(5, 10) === mmDd,
+      ops.birthdaysToday = (people ?? []).filter(
+        (person) => String(person.birth_date ?? "").slice(5, 10) === mmDd,
       ).length;
     } catch {
       /* aniversários opcionais */

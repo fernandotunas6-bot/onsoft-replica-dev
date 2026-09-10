@@ -472,7 +472,9 @@ export const commitImportBatch = createServerFn({ method: "POST" })
         .eq("id", job.id);
     }
 
-    const lastRow = (pendingRows ?? [])[pendingRows && pendingRows.length > 0 ? pendingRows.length - 1 : -1];
+    const lastRow = (pendingRows ?? [])[
+      pendingRows && pendingRows.length > 0 ? pendingRows.length - 1 : -1
+    ];
     return {
       processed: pendingRows?.length ?? 0,
       remaining: Math.max(remaining, 0),
@@ -600,7 +602,10 @@ export const rollbackImportJob = createServerFn({ method: "POST" })
         .eq("id", job.id)
         .eq("school_id", job.school_id);
       if (statusError) {
-        throw publicDatabaseError(statusError, "Dados revertidos, mas falhou a actualização do processo.");
+        throw publicDatabaseError(
+          statusError,
+          "Dados revertidos, mas falhou a actualização do processo.",
+        );
       }
     }
 
@@ -683,4 +688,3 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       manifest: result.manifest as Record<string, any> | undefined,
     };
   });
-

@@ -57,7 +57,11 @@ const endpoints = [
     expect: [401],
   },
   { label: "API domains (anon GET)", url: "http://localhost:3006/api/saas/domains", expect: [401] },
-  { label: "API subscriptions (anon GET)", url: "http://localhost:3006/api/saas/subscriptions", expect: [401] },
+  {
+    label: "API subscriptions (anon GET)",
+    url: "http://localhost:3006/api/saas/subscriptions",
+    expect: [401],
+  },
   {
     label: "API subscriptions backfill (anon POST)",
     url: "http://localhost:3006/api/saas/subscriptions/backfill",
@@ -110,7 +114,12 @@ const endpoints = [
     expect: [401],
   },
   { label: "PAYFLOW home", url: "http://localhost:3007/", expect: [200], optionalInCi: true },
-  { label: "PAYFLOW health", url: "http://localhost:3007/api/v1/health", expect: [200], optionalInCi: true },
+  {
+    label: "PAYFLOW health",
+    url: "http://localhost:3007/api/v1/health",
+    expect: [200],
+    optionalInCi: true,
+  },
   {
     label: "PAYFLOW EMIS webhook (anon POST)",
     url: "http://localhost:3007/api/v1/webhooks/emis",
@@ -164,4 +173,6 @@ if (failed > 0) {
   process.exit(1);
 }
 
-console.log("\nSmoke E2E local OK — fluxo comercial pode ser testado em http://localhost:5174/start");
+console.log(
+  "\nSmoke E2E local OK — fluxo comercial pode ser testado em http://localhost:5174/start",
+);

@@ -60,10 +60,9 @@ function CalendarFeedPage() {
         className="mt-6 inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
         disabled={!events.length}
         onClick={() => {
-          const blob = new Blob(
-            [toIcsCalendar(events, { calendarName: feed?.calendarName })],
-            { type: "text/calendar;charset=utf-8" },
-          );
+          const blob = new Blob([toIcsCalendar(events, { calendarName: feed?.calendarName })], {
+            type: "text/calendar;charset=utf-8",
+          });
           const href = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = href;

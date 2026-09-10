@@ -189,9 +189,7 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
           ? schoolBrandingRow.secondary_color
           : null,
       portal_title:
-        typeof schoolBrandingRow?.portal_title === "string"
-          ? schoolBrandingRow.portal_title
-          : null,
+        typeof schoolBrandingRow?.portal_title === "string" ? schoolBrandingRow.portal_title : null,
     },
     banking: {
       bank_name: typeof bankingValue["bank_name"] === "string" ? bankingValue["bank_name"] : "",

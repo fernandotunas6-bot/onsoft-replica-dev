@@ -127,7 +127,7 @@ export function TodayAtSchoolCard() {
           <div>
             <h2 className="text-base font-semibold">Hoje na escola</h2>
             <p className="mt-0.5 text-sm capitalize text-muted-foreground">
-              {loading ? "A carregar o dia…" : ops?.dateLabel ?? "—"}
+              {loading ? "A carregar o dia…" : (ops?.dateLabel ?? "—")}
             </p>
           </div>
         </div>

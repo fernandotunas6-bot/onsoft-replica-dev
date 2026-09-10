@@ -317,9 +317,9 @@ export function WindowsDesktopSettingsModal({
               <ShieldCheck className="size-4 text-primary" /> Validação SIGA (webhook local)
             </h4>
             <p className="text-[11px] text-muted-foreground">
-              O daemon em <span className="font-mono">127.0.0.1:8088</span> encaminha leituras RFID/QR
-              para <span className="font-mono">POST /api/catracas/device-scan</span> usando a Key do
-              dispositivo registado em Catracas.
+              O daemon em <span className="font-mono">127.0.0.1:8088</span> encaminha leituras
+              RFID/QR para <span className="font-mono">POST /api/catracas/device-scan</span> usando
+              a Key do dispositivo registado em Catracas.
             </p>
             <div className="space-y-2">
               <div className="space-y-1">
@@ -377,8 +377,8 @@ export function WindowsDesktopSettingsModal({
             ) : null}
             {!discoverError && discovered.length === 0 && !discoverBusy ? (
               <p className="text-[11px] text-muted-foreground">
-                Nenhum dispositivo encontrado. Ligue um leitor USB ou configure uma impressora
-                CUPS e volte a procurar.
+                Nenhum dispositivo encontrado. Ligue um leitor USB ou configure uma impressora CUPS
+                e volte a procurar.
               </p>
             ) : null}
             <ul className="space-y-2 max-h-40 overflow-y-auto">

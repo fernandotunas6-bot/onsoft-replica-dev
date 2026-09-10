@@ -199,7 +199,9 @@ export const CYCLE_PERIOD_COUNT: Record<AngolaTeachingCycle, 2 | 3> = {
 };
 
 /** Ciclos em regime semestral — o nome do período vem daqui, nunca da contagem. */
-const SEMESTER_CYCLES: ReadonlySet<AngolaTeachingCycle> = new Set<AngolaTeachingCycle>(["superior"]);
+const SEMESTER_CYCLES: ReadonlySet<AngolaTeachingCycle> = new Set<AngolaTeachingCycle>([
+  "superior",
+]);
 
 export const MIN_EVALUATION_PERIODS = 2;
 export const MAX_EVALUATION_PERIODS = 3;

@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Download, FileSpreadsheet, ShieldAlert, Sparkles, CheckSquare, Square, RefreshCw } from "lucide-react";
+import {
+  Download,
+  FileSpreadsheet,
+  ShieldAlert,
+  Sparkles,
+  CheckSquare,
+  Square,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { exportSchoolDataFn } from "../server";
@@ -161,7 +169,8 @@ export function SchoolDataExportPanel({
             <FileSpreadsheet className="size-4 text-emerald-600" /> Exportação de Dados Escolares
           </h3>
           <p className="text-xs text-muted-foreground">
-            Exporte os dados da instituição em folhas de cálculo Excel (.xlsx) profissionais e reimportáveis.
+            Exporte os dados da instituição em folhas de cálculo Excel (.xlsx) profissionais e
+            reimportáveis.
           </p>
         </div>
 
@@ -195,7 +204,10 @@ export function SchoolDataExportPanel({
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Gera livro Excel com aba <code className="text-primary font-mono text-[10px]">00_MANIFESTO</code>, checksum SHA-256 e identificadores estáveis que permitem alterar valores e reimportar no SIGA com idempotência total.
+            Gera livro Excel com aba{" "}
+            <code className="text-primary font-mono text-[10px]">00_MANIFESTO</code>, checksum
+            SHA-256 e identificadores estáveis que permitem alterar valores e reimportar no SIGA com
+            idempotência total.
           </p>
         </button>
 
@@ -217,7 +229,8 @@ export function SchoolDataExportPanel({
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Layout limpo, estilização executiva e formatação pronta para leitura humana, análise em conselhos pedagógicos e arquivo físico.
+            Layout limpo, estilização executiva e formatação pronta para leitura humana, análise em
+            conselhos pedagógicos e arquivo físico.
           </p>
         </button>
       </div>
@@ -269,7 +282,9 @@ export function SchoolDataExportPanel({
         <div>
           <p className="font-semibold text-foreground">Garantia de Segurança e RLS</p>
           <p className="text-[11px] mt-0.5">
-            Senhas, chaves de API e credenciais de utilizador são estritamente excluídas da exportação. Apenas operadores com cargo de Administração ou Secretaria têm autorização para descarregar estes dados.
+            Senhas, chaves de API e credenciais de utilizador são estritamente excluídas da
+            exportação. Apenas operadores com cargo de Administração ou Secretaria têm autorização
+            para descarregar estes dados.
           </p>
         </div>
       </div>

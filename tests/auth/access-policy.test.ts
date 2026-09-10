@@ -3,7 +3,15 @@ import { canAccessPath, canReadModule, canWriteModule } from "@/features/auth/ac
 
 describe("access policy", () => {
   it("allows administrators into every protected area", () => {
-    for (const path of ["/", "/configuracoes", "/acessos", "/financeiro", "/alunos", "/alumni", "/alumni/portal"]) {
+    for (const path of [
+      "/",
+      "/configuracoes",
+      "/acessos",
+      "/financeiro",
+      "/alunos",
+      "/alumni",
+      "/alumni/portal",
+    ]) {
       expect(canAccessPath(path, "Administrador")).toBe(true);
     }
   });

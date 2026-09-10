@@ -21,20 +21,17 @@ export const pagamentosImporter: RowImporter = {
   async loadRefCache(ctx) {
     const [students, paymentRows] = await Promise.all([
       loadStudentRefs(ctx.db, ctx.schoolId),
-      ctx.db
-        .from("payments")
-        .select("receipt_number")
-        .eq("school_id", ctx.schoolId),
+      ctx.db.from("payments").select("receipt_number").eq("school_id", ctx.schoolId),
     ]);
 
     if (paymentRows.error) {
-      throw new Error(`Não foi possível carregar pagamentos existentes: ${paymentRows.error.message}`);
+      throw new Error(
+        `Não foi possível carregar pagamentos existentes: ${paymentRows.error.message}`,
+      );
     }
 
     const existingReceipts = new Set(
-      (paymentRows.data ?? [])
-        .map((r) => normalizeText(r.receipt_number))
-        .filter(Boolean),
+      (paymentRows.data ?? []).map((r) => normalizeText(r.receipt_number)).filter(Boolean),
     );
 
     return {
@@ -121,7 +118,9 @@ export const pagamentosImporter: RowImporter = {
     if (cache.existingReceipts.has(receiptNum)) {
       return {
         status: "ignored",
-        warnings: analysis.warnings.length ? analysis.warnings : [`Recibo "${receiptNum}" já existe. Linha ignorada.`],
+        warnings: analysis.warnings.length
+          ? analysis.warnings
+          : [`Recibo "${receiptNum}" já existe. Linha ignorada.`],
         errors: [],
         audits: [],
         target_record_id: receiptNum,
@@ -186,4 +185,3 @@ export const pagamentosImporter: RowImporter = {
     };
   },
 };
-

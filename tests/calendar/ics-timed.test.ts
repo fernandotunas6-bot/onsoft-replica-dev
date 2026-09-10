@@ -3,16 +3,19 @@ import { toIcsTimedCalendar } from "@/features/calendar/ics";
 
 describe("timed ICS calendar", () => {
   it("preserves start, end and location for timed events", () => {
-    const ics = toIcsTimedCalendar([
-      {
-        uid: "alumni-event-1@siga.plus",
-        title: "Encontro Alumni",
-        description: "Networking e mentoria",
-        starts_at: "2026-10-10T09:00:00+01:00",
-        ends_at: "2026-10-10T11:30:00+01:00",
-        location: "Huambo",
-      },
-    ], { calendarName: "SIGA · Alumni" });
+    const ics = toIcsTimedCalendar(
+      [
+        {
+          uid: "alumni-event-1@siga.plus",
+          title: "Encontro Alumni",
+          description: "Networking e mentoria",
+          starts_at: "2026-10-10T09:00:00+01:00",
+          ends_at: "2026-10-10T11:30:00+01:00",
+          location: "Huambo",
+        },
+      ],
+      { calendarName: "SIGA · Alumni" },
+    );
 
     expect(ics).toContain("DTSTART:20261010T080000Z");
     expect(ics).toContain("DTEND:20261010T103000Z");

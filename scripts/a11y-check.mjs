@@ -51,11 +51,10 @@ function normalizePath(path) {
 
 function changedFilesFrom(ref) {
   try {
-    const output = execFileSync(
-      "git",
-      ["diff", "--name-only", `${ref}...HEAD`, "--", "src"],
-      { cwd: ROOT, encoding: "utf8" },
-    );
+    const output = execFileSync("git", ["diff", "--name-only", `${ref}...HEAD`, "--", "src"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
 
     return new Set(
       output

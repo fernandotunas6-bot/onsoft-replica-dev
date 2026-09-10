@@ -146,16 +146,17 @@ export function PautasWorkspaceModule({
   const classSubjectNav = workspace?.classSubjects ?? [];
   const allTermGrades = workspace?.termGrades ?? [];
 
-  const [selectedClassId, setSelectedClassId] = useState<string>(
-    () => classGroups[0]?.id ?? "",
-  );
+  const [selectedClassId, setSelectedClassId] = useState<string>(() => classGroups[0]?.id ?? "");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
 
   // Mantém selectedClassId atualizado quando as turmas do workspace forem carregadas
   useEffect(() => {
-    if ((!selectedClassId || !classGroups.some((cg) => cg.id === selectedClassId)) && classGroups.length > 0) {
+    if (
+      (!selectedClassId || !classGroups.some((cg) => cg.id === selectedClassId)) &&
+      classGroups.length > 0
+    ) {
       setSelectedClassId(classGroups[0].id);
     }
   }, [classGroups, selectedClassId]);
@@ -506,13 +507,7 @@ export function PautasWorkspaceModule({
       students: [],
       signatures: { jury: ["", "", ""], pedagogicalDeputy: "", director: "" },
     };
-  }, [
-    selectedCycle,
-    schoolSettings,
-    currentClass,
-    activeYearLabel,
-    configuredPeriodCount,
-  ]);
+  }, [selectedCycle, schoolSettings, currentClass, activeYearLabel, configuredPeriodCount]);
 
   // Filtered Documents based on search query and status filter
   const filterStudentList = <T extends { name: string; code?: string; status?: string }>(
@@ -937,8 +932,8 @@ export function PautasWorkspaceModule({
             Nenhuma turma selecionada ou configurada
           </p>
           <p className="text-xs text-muted-foreground max-w-md">
-            Crie turmas e matricule alunos no ano lectivo activo para visualizar e exportar as pautas
-            oficiais segundo o Decreto Executivo n.º 424/25.
+            Crie turmas e matricule alunos no ano lectivo activo para visualizar e exportar as
+            pautas oficiais segundo o Decreto Executivo n.º 424/25.
           </p>
         </div>
       ) : isRealClassEmpty ? (
@@ -965,7 +960,8 @@ export function PautasWorkspaceModule({
                 </p>
                 <p className="text-xs text-muted-foreground max-w-md">
                   O SIGA calcula e apresenta as pautas oficiais a partir das avaliações contínuas
-                  (MAC/NPP/NPT). Para registar avaliações adicionais, consulte o Manual ou os Planos de Aula.
+                  (MAC/NPP/NPT). Para registar avaliações adicionais, consulte o Manual ou os Planos
+                  de Aula.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                   <Button type="button" size="sm" variant="outline" asChild>
@@ -976,9 +972,7 @@ export function PautasWorkspaceModule({
                     size="sm"
                     variant="ghost"
                     className="gap-1"
-                    onClick={() =>
-                      window.open(getSigaNavDocUrl(), "_blank", "noopener,noreferrer")
-                    }
+                    onClick={() => window.open(getSigaNavDocUrl(), "_blank", "noopener,noreferrer")}
                   >
                     Manual DOC
                   </Button>

@@ -97,7 +97,9 @@ async function runManagementSql(query) {
   const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();
   const projectRef = process.env.SUPABASE_PROJECT_ID?.trim();
   if (!token || !projectRef) {
-    throw new Error("SUPABASE_ACCESS_TOKEN e SUPABASE_PROJECT_ID são precisos para limpar a escola.");
+    throw new Error(
+      "SUPABASE_ACCESS_TOKEN e SUPABASE_PROJECT_ID são precisos para limpar a escola.",
+    );
   }
   const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
     method: "POST",

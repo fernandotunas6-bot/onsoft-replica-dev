@@ -195,7 +195,10 @@ export async function resolveUserLinkedEntities(
   };
 }
 
-import { listUserSchoolMemberships, type UserSchoolMembershipItem } from "@/integrations/supabase/sga";
+import {
+  listUserSchoolMemberships,
+  type UserSchoolMembershipItem,
+} from "@/integrations/supabase/sga";
 
 export const getCurrentAccountContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

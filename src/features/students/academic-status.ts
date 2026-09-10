@@ -30,20 +30,10 @@ export type FinancialStatus = "settled" | "pending" | "overdue" | "partial";
 export type QuickFilterCategory = "todos" | "activos" | "candidatos" | "divida" | "inactivos";
 
 export type InactiveSubFilter =
-  | "todos"
-  | "transferred"
-  | "inactive"
-  | "graduated"
-  | "cancelled"
-  | "suspended"
-  | "locked";
+  "todos" | "transferred" | "inactive" | "graduated" | "cancelled" | "suspended" | "locked";
 
 export type CandidateSubFilter =
-  | "todos"
-  | "waiting_class"
-  | "pending_application"
-  | "approved"
-  | "converted";
+  "todos" | "waiting_class" | "pending_application" | "approved" | "converted";
 
 export interface StudentFinancialSummary {
   paymentStatus: FinancialStatus | null;

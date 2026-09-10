@@ -20,6 +20,9 @@ import {
   upsertFeePlanSettingsInputSchema,
   syncStudentToPayflowInputSchema,
 } from "./schemas";
+// Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
+// gerador de XML continua a ser carregado dinamicamente dentro do handler.
+import { generateSaftInputSchema } from "./saft-generator";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
@@ -1573,10 +1576,7 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
 
 export const exportSaftAoXml = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => {
-    const { generateSaftInputSchema } = require("./saft-generator");
-    return generateSaftInputSchema.parse(input);
-  })
+  .validator((input: unknown) => generateSaftInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [

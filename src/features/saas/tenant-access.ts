@@ -49,7 +49,11 @@ export function sumTenantUsageStudents(
 }
 
 export function usageFromTenantRow(
-  usage: { active_students_count?: number | null } | Array<{ active_students_count?: number | null }> | null | undefined,
+  usage:
+    | { active_students_count?: number | null }
+    | Array<{ active_students_count?: number | null }>
+    | null
+    | undefined,
 ): number {
   if (Array.isArray(usage)) return usage[0]?.active_students_count ?? 0;
   return usage?.active_students_count ?? 0;

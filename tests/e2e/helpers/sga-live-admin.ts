@@ -199,7 +199,8 @@ export async function seedE2EGatewayFixture(
       })
       .select("id")
       .single();
-    if (yearErr) throw new Error(`Falha ao criar ano lectivo: ${yearErr.message} (${yearErr.details || ""})`);
+    if (yearErr)
+      throw new Error(`Falha ao criar ano lectivo: ${yearErr.message} (${yearErr.details || ""})`);
     year = createdYear;
   }
   if (!year?.id) throw new Error("Ano lectivo em falta — bootstrap incompleto.");
@@ -317,7 +318,8 @@ export async function seedE2EGatewayFixture(
       })
       .select("id")
       .single();
-    if (groupErr) throw new Error(`Falha ao criar turma: ${groupErr.message} (${groupErr.details || ""})`);
+    if (groupErr)
+      throw new Error(`Falha ao criar turma: ${groupErr.message} (${groupErr.details || ""})`);
     classGroup = createdGroup;
   }
   if (!classGroup?.id) throw new Error("Turma em falta — bootstrap incompleto.");

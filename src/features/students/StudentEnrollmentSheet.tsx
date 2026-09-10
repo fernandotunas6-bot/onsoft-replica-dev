@@ -622,7 +622,9 @@ export function StudentEnrollmentSheet({
                       selectedTurma.capacity > 0 &&
                       (selectedTurma.enrolled_count ?? 0) >= selectedTurma.capacity ? (
                         <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
-                          ⚠️ <strong>Lotação atingida:</strong> Esta turma já tem {selectedTurma.enrolled_count ?? 0} de {selectedTurma.capacity} vagas preenchidas. Uma nova matrícula constituirá sobrelotação.
+                          ⚠️ <strong>Lotação atingida:</strong> Esta turma já tem{" "}
+                          {selectedTurma.enrolled_count ?? 0} de {selectedTurma.capacity} vagas
+                          preenchidas. Uma nova matrícula constituirá sobrelotação.
                         </div>
                       ) : null}
                     </>

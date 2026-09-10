@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { gatewayConfirmInputSchema } from "@/features/finance/gateway-webhook-schemas";
 import { runFinanceGatewayWebhook } from "@/features/finance/gateway-webhook-handler";
+import { clientIpFromRequest } from "@/lib/request-ip";
 
 // style-check: route-exempt — webhook HTTP Unitel Money (alias dedicado).
 
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/api/finance/gateway/unitel/confirm")({
           );
         }
 
-        const result = await runFinanceGatewayWebhook(parsed.data);
+        const result = await runFinanceGatewayWebhook(parsed.data, clientIpFromRequest(request));
         return Response.json(
           {
             ok: result.ok,
@@ -54,8 +55,7 @@ function UnitelGatewayPlaceholder() {
       <p className="mt-2 text-sm text-muted-foreground">
         Envie <span className="font-mono text-xs">POST</span> com{" "}
         <span className="font-mono text-xs">{`{ apiKey, reference, amount, invoiceId? }`}</span>{" "}
-        para confirmar pagamentos Unitel. A API key está em Definições → Integrações → Unitel
-        Money.
+        para confirmar pagamentos Unitel. A API key está em Definições → Integrações → Unitel Money.
       </p>
     </main>
   );

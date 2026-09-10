@@ -12,10 +12,7 @@ export const Route = createFileRoute("/api/catracas/device-scan")({
         try {
           body = await request.json();
         } catch {
-          return Response.json(
-            { granted: false, reason: "Corpo JSON inválido." },
-            { status: 400 },
-          );
+          return Response.json({ granted: false, reason: "Corpo JSON inválido." }, { status: 400 });
         }
 
         const parsed = validateGatePassDeviceInputSchema.safeParse(body);

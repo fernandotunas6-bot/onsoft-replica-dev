@@ -93,53 +93,53 @@ export function getPortalNavigation(
   if (mode === "student") {
     return filterNavGroups(
       [
-      {
-        title: "Portal do Aluno",
-        items: [
-          { label: "Início", icon: LayoutGrid, to: "/" },
-          {
-            label: "Académico",
-            icon: GraduationCap,
-            children: [
-              {
-                label: "Minha Turma",
-                icon: BookOpen,
-                to: "/pedagogica",
-                search: { tab: "turmas" },
-              },
-              {
-                label: "Horário",
-                icon: CalendarDays,
-                to: "/pedagogica",
-                search: { tab: "horarios" },
-              },
-              {
-                label: "Avaliações e Notas",
-                icon: PieChart,
-                to: "/pedagogica",
-                search: { tab: "notas" },
-              },
-            ],
-          },
-          { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
-          {
-            label: "Frequência",
-            icon: CheckSquare,
-            to: "/pedagogica",
-            search: { tab: "presencas" },
-          },
-          {
-            label: "Financeiro",
-            icon: CreditCard,
-            to: "/financeiro",
-          },
-          { label: "Documentos", icon: FileText, to: "/documentos" },
-          { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
-          { label: "Meu Portal Alumni", icon: Network, to: "/alumni/portal" },
-          { label: "Meu Perfil", icon: User, to: "/perfil" },
-        ],
-      },
-    ],
+        {
+          title: "Portal do Aluno",
+          items: [
+            { label: "Início", icon: LayoutGrid, to: "/" },
+            {
+              label: "Académico",
+              icon: GraduationCap,
+              children: [
+                {
+                  label: "Minha Turma",
+                  icon: BookOpen,
+                  to: "/pedagogica",
+                  search: { tab: "turmas" },
+                },
+                {
+                  label: "Horário",
+                  icon: CalendarDays,
+                  to: "/pedagogica",
+                  search: { tab: "horarios" },
+                },
+                {
+                  label: "Avaliações e Notas",
+                  icon: PieChart,
+                  to: "/pedagogica",
+                  search: { tab: "notas" },
+                },
+              ],
+            },
+            { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
+            {
+              label: "Frequência",
+              icon: CheckSquare,
+              to: "/pedagogica",
+              search: { tab: "presencas" },
+            },
+            {
+              label: "Financeiro",
+              icon: CreditCard,
+              to: "/financeiro",
+            },
+            { label: "Documentos", icon: FileText, to: "/documentos" },
+            { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
+            { label: "Meu Portal Alumni", icon: Network, to: "/alumni/portal" },
+            { label: "Meu Perfil", icon: User, to: "/perfil" },
+          ],
+        },
+      ],
       role,
       grants,
       plan,
@@ -149,55 +149,55 @@ export function getPortalNavigation(
   if (mode === "guardian") {
     return filterNavGroups(
       [
-      {
-        title: "Portal do Encarregado",
-        items: [
-          { label: "Meu Educando", icon: LayoutGrid, to: "/" },
-          {
-            label: "Desempenho",
-            icon: PieChart,
-            children: [
-              {
-                label: "Notas e Boletim",
-                icon: PieChart,
-                to: "/pedagogica",
-                search: { tab: "notas" },
-              },
-              {
-                label: "Turma e Disciplinas",
-                icon: BookOpen,
-                to: "/pedagogica",
-                search: { tab: "turmas" },
-              },
-              {
-                label: "Horário de Aulas",
-                icon: CalendarDays,
-                to: "/pedagogica",
-                search: { tab: "horarios" },
-              },
-            ],
-          },
-          { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
-          {
-            label: "Frequência",
-            icon: CheckSquare,
-            to: "/pedagogica",
-            search: { tab: "presencas" },
-          },
-          {
-            label: "Financeiro",
-            icon: CreditCard,
-            children: [
-              { label: "Propinas e Faturas", icon: CreditCard, to: "/financeiro" },
-              { label: "Recibos", icon: Receipt, to: "/faturas" },
-            ],
-          },
-          { label: "Documentos", icon: FileText, to: "/documentos" },
-          { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
-          { label: "Meu Perfil", icon: User, to: "/perfil" },
-        ],
-      },
-    ],
+        {
+          title: "Portal do Encarregado",
+          items: [
+            { label: "Meu Educando", icon: LayoutGrid, to: "/" },
+            {
+              label: "Desempenho",
+              icon: PieChart,
+              children: [
+                {
+                  label: "Notas e Boletim",
+                  icon: PieChart,
+                  to: "/pedagogica",
+                  search: { tab: "notas" },
+                },
+                {
+                  label: "Turma e Disciplinas",
+                  icon: BookOpen,
+                  to: "/pedagogica",
+                  search: { tab: "turmas" },
+                },
+                {
+                  label: "Horário de Aulas",
+                  icon: CalendarDays,
+                  to: "/pedagogica",
+                  search: { tab: "horarios" },
+                },
+              ],
+            },
+            { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
+            {
+              label: "Frequência",
+              icon: CheckSquare,
+              to: "/pedagogica",
+              search: { tab: "presencas" },
+            },
+            {
+              label: "Financeiro",
+              icon: CreditCard,
+              children: [
+                { label: "Propinas e Faturas", icon: CreditCard, to: "/financeiro" },
+                { label: "Recibos", icon: Receipt, to: "/faturas" },
+              ],
+            },
+            { label: "Documentos", icon: FileText, to: "/documentos" },
+            { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
+            { label: "Meu Perfil", icon: User, to: "/perfil" },
+          ],
+        },
+      ],
       role,
       grants,
       plan,
@@ -207,65 +207,65 @@ export function getPortalNavigation(
   if (mode === "teacher") {
     return filterNavGroups(
       [
-      {
-        title: "Portal do Professor",
-        items: [
-          { label: "Início", icon: LayoutGrid, to: "/" },
-          {
-            label: "Frequência",
-            icon: CheckSquare,
-            children: [
-              {
-                label: "Fazer Chamada",
-                icon: CheckSquare,
-                to: "/pedagogica",
-                search: { tab: "chamada" },
-              },
-              {
-                label: "Histórico de Presenças",
-                icon: CheckSquare,
-                to: "/pedagogica",
-                search: { tab: "presencas" },
-              },
-              {
-                label: "Minha presença (QR)",
-                icon: QrCode,
-                to: "/professor/presenca",
-              },
-            ],
-          },
-          {
-            label: "Ensino e Avaliações",
-            icon: BookOpen,
-            children: [
-              {
-                label: "Minhas Turmas",
-                icon: BookOpen,
-                to: "/pedagogica",
-                search: { tab: "turmas" },
-              },
-              {
-                label: "Lançar Notas e Pautas",
-                icon: PieChart,
-                to: "/pedagogica",
-                search: { tab: "notas" },
-              },
-              {
-                label: "Horário de Aulas",
-                icon: CalendarDays,
-                to: "/pedagogica",
-                search: { tab: "horarios" },
-              },
-              { label: "Planos de Aula", icon: NotebookPen, to: "/planos-aula" },
-            ],
-          },
-          { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
-          { label: "Biblioteca & Materiais", icon: FolderOpen, to: "/arquivos" },
-          { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
-          { label: "Meu Perfil", icon: User, to: "/perfil" },
-        ],
-      },
-    ],
+        {
+          title: "Portal do Professor",
+          items: [
+            { label: "Início", icon: LayoutGrid, to: "/" },
+            {
+              label: "Frequência",
+              icon: CheckSquare,
+              children: [
+                {
+                  label: "Fazer Chamada",
+                  icon: CheckSquare,
+                  to: "/pedagogica",
+                  search: { tab: "chamada" },
+                },
+                {
+                  label: "Histórico de Presenças",
+                  icon: CheckSquare,
+                  to: "/pedagogica",
+                  search: { tab: "presencas" },
+                },
+                {
+                  label: "Minha presença (QR)",
+                  icon: QrCode,
+                  to: "/professor/presenca",
+                },
+              ],
+            },
+            {
+              label: "Ensino e Avaliações",
+              icon: BookOpen,
+              children: [
+                {
+                  label: "Minhas Turmas",
+                  icon: BookOpen,
+                  to: "/pedagogica",
+                  search: { tab: "turmas" },
+                },
+                {
+                  label: "Lançar Notas e Pautas",
+                  icon: PieChart,
+                  to: "/pedagogica",
+                  search: { tab: "notas" },
+                },
+                {
+                  label: "Horário de Aulas",
+                  icon: CalendarDays,
+                  to: "/pedagogica",
+                  search: { tab: "horarios" },
+                },
+                { label: "Planos de Aula", icon: NotebookPen, to: "/planos-aula" },
+              ],
+            },
+            { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
+            { label: "Biblioteca & Materiais", icon: FolderOpen, to: "/arquivos" },
+            { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
+            { label: "Meu Perfil", icon: User, to: "/perfil" },
+          ],
+        },
+      ],
       role,
       grants,
       plan,
@@ -329,8 +329,18 @@ export function getPortalNavigation(
           icon: FileUp,
           children: [
             { label: "Nova Importação", icon: FileUp, to: "/importar", search: { tab: "novo" } },
-            { label: "Histórico & Auditoria", icon: History, to: "/importar", search: { tab: "historico" } },
-            { label: "Modelos Oficiais Excel", icon: Download, to: "/importar", search: { tab: "modelos" } },
+            {
+              label: "Histórico & Auditoria",
+              icon: History,
+              to: "/importar",
+              search: { tab: "historico" },
+            },
+            {
+              label: "Modelos Oficiais Excel",
+              icon: Download,
+              to: "/importar",
+              search: { tab: "modelos" },
+            },
           ],
         },
         {
@@ -338,13 +348,27 @@ export function getPortalNavigation(
           icon: Users,
           children: [
             { label: "Lista de Alunos", icon: GraduationCap, to: "/alunos" },
-            { label: "Matricular Aluno", icon: UserPlus, to: "/alunos", search: { action: "matricular" } },
-            { label: "Confirmar Matrícula", icon: UserCheck, to: "/alunos", search: { action: "confirmar" } },
+            {
+              label: "Matricular Aluno",
+              icon: UserPlus,
+              to: "/alunos",
+              search: { action: "matricular" },
+            },
+            {
+              label: "Confirmar Matrícula",
+              icon: UserCheck,
+              to: "/alunos",
+              search: { action: "confirmar" },
+            },
             { label: "Estado do Aluno", icon: Users, to: "/alunos", search: { action: "estado" } },
             { label: "Alumni · Antigos Alunos", icon: Network, to: "/alumni" },
           ],
         },
-        { label: "Documentos", icon: FileText, children: [{ label: "Emissão de Documentos", icon: FileText, to: "/documentos" }] },
+        {
+          label: "Documentos",
+          icon: FileText,
+          children: [{ label: "Emissão de Documentos", icon: FileText, to: "/documentos" }],
+        },
         { label: "Biblioteca de Arquivos", icon: FolderOpen, to: "/arquivos" },
       ],
     },
@@ -388,11 +412,36 @@ export function getPortalNavigation(
           label: "Definições",
           icon: Settings,
           children: [
-            { label: "Escola e branding", icon: Building2, to: "/configuracoes", search: { painel: "escola" } },
-            { label: "Matrícula online", icon: Link2, to: "/configuracoes", search: { painel: "matricula" } },
-            { label: "Integrações", icon: Plug, to: "/configuracoes", search: { painel: "integracoes" } },
-            { label: "Financeiro", icon: CreditCard, to: "/configuracoes", search: { painel: "financeiro" } },
-            { label: "Segurança", icon: ShieldCheck, to: "/configuracoes", search: { painel: "seguranca" } },
+            {
+              label: "Escola e branding",
+              icon: Building2,
+              to: "/configuracoes",
+              search: { painel: "escola" },
+            },
+            {
+              label: "Matrícula online",
+              icon: Link2,
+              to: "/configuracoes",
+              search: { painel: "matricula" },
+            },
+            {
+              label: "Integrações",
+              icon: Plug,
+              to: "/configuracoes",
+              search: { painel: "integracoes" },
+            },
+            {
+              label: "Financeiro",
+              icon: CreditCard,
+              to: "/configuracoes",
+              search: { painel: "financeiro" },
+            },
+            {
+              label: "Segurança",
+              icon: ShieldCheck,
+              to: "/configuracoes",
+              search: { painel: "seguranca" },
+            },
           ],
         },
         { label: "Meu Perfil", icon: User, to: "/perfil" },

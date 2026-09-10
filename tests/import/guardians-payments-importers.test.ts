@@ -8,7 +8,9 @@ describe("Guardians & Payments Importers", () => {
       const cache = { students: [], existingPeople: [], existingGuardians: new Set() };
       const analysis = encarregadosImporter.analyzeRow({}, cache as any);
       expect(analysis.status).toBe("error");
-      expect(analysis.errors).toContain("Identificador do aluno (Nº Processo ou BI) é obrigatório.");
+      expect(analysis.errors).toContain(
+        "Identificador do aluno (Nº Processo ou BI) é obrigatório.",
+      );
       expect(analysis.errors).toContain("Nome do encarregado é obrigatório.");
       expect(analysis.errors).toContain("Telefone do encarregado é obrigatório.");
     });
@@ -58,8 +60,12 @@ describe("Guardians & Payments Importers", () => {
       const cache = { students: [], existingReceipts: new Set() };
       const analysis = pagamentosImporter.analyzeRow({}, cache as any);
       expect(analysis.status).toBe("error");
-      expect(analysis.errors).toContain("Identificador do aluno (Nº Processo ou BI) é obrigatório.");
-      expect(analysis.errors).toContain("Valor do pagamento deve ser um número positivo em Kwanzas.");
+      expect(analysis.errors).toContain(
+        "Identificador do aluno (Nº Processo ou BI) é obrigatório.",
+      );
+      expect(analysis.errors).toContain(
+        "Valor do pagamento deve ser um número positivo em Kwanzas.",
+      );
     });
 
     it("reconhece pagamento válido para aluno existente", () => {

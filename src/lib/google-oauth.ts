@@ -68,7 +68,7 @@ export function getGoogleOAuthUrl(options?: {
   return `https://accounts.google.com/o/oauth2/v2/auth?${queryParams.toString()}`;
 }
 
-let memoryStorage: Record<string, string> = {};
+const memoryStorage: Record<string, string> = {};
 
 function getStorage():
   | Storage

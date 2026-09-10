@@ -25,11 +25,7 @@ import {
   updateEnrollmentInputSchema,
   updateStudentProfileInputSchema,
 } from "./schemas";
-import {
-  deriveAcademicStatus,
-  deriveFinancialSnapshot,
-  type InvoiceLike,
-} from "./academic-status";
+import { deriveAcademicStatus, deriveFinancialSnapshot, type InvoiceLike } from "./academic-status";
 import { recordStudentStatusHistory } from "./status-history";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
@@ -218,7 +214,9 @@ export const searchStudents = createServerFn({ method: "GET" })
           }
 
           const studentIdByContract = new Map<string, string>();
-          const studentByEnrollment = new Map((allEnrollments ?? []).map((e) => [e.id, e.student_id]));
+          const studentByEnrollment = new Map(
+            (allEnrollments ?? []).map((e) => [e.id, e.student_id]),
+          );
           for (const c of contracts ?? []) {
             const sid = studentByEnrollment.get(c.enrollment_id);
             if (sid) studentIdByContract.set(c.id, sid);
@@ -1430,8 +1428,12 @@ export const getStudentStatusHistory = createServerFn({ method: "GET" })
     // 3. Resolver nomes de utilizadores
     const userIds = [
       ...new Set([
-        ...(historyRows ?? []).map((r: { changed_by: string | null }) => r.changed_by).filter(Boolean),
-        ...(applications ?? []).map((a: { decided_by: string | null }) => a.decided_by).filter(Boolean),
+        ...(historyRows ?? [])
+          .map((r: { changed_by: string | null }) => r.changed_by)
+          .filter(Boolean),
+        ...(applications ?? [])
+          .map((a: { decided_by: string | null }) => a.decided_by)
+          .filter(Boolean),
       ]),
     ] as string[];
 

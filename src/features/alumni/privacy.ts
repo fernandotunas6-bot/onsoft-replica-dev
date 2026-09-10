@@ -40,11 +40,14 @@ export const getMyAlumniPrivacy = createServerFn({ method: "GET" })
     const { membership, db, profile } = await ownContext(context.userId);
     const { data: preferences, error } = await db
       .from("alumni_communication_preferences")
-      .select("email_enabled, sms_enabled, whatsapp_enabled, opportunities_enabled, events_enabled, mentoring_enabled, surveys_enabled, fundraising_enabled")
+      .select(
+        "email_enabled, sms_enabled, whatsapp_enabled, opportunities_enabled, events_enabled, mentoring_enabled, surveys_enabled, fundraising_enabled",
+      )
       .eq("school_id", membership.schoolId)
       .eq("alumni_id", profile.id)
       .maybeSingle();
-    if (error) throw publicDatabaseError(error, "Não foi possível carregar as preferências Alumni.");
+    if (error)
+      throw publicDatabaseError(error, "Não foi possível carregar as preferências Alumni.");
 
     return {
       contactConsent: profile.contact_consent,
@@ -73,37 +76,54 @@ export const updateMyAlumniPrivacy = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
 
     const [profileResult, preferenceResult] = await Promise.all([
-      db.from("alumni_profiles").update({
-        contact_consent: data.contactConsent,
-        directory_visibility: data.directoryVisibility,
-        updated_at: now,
-      }).eq("school_id", membership.schoolId).eq("id", profile.id),
-      db.from("alumni_communication_preferences").upsert({
+      db
+        .from("alumni_profiles")
+        .update({
+          contact_consent: data.contactConsent,
+          directory_visibility: data.directoryVisibility,
+          updated_at: now,
+        })
+        .eq("school_id", membership.schoolId)
+        .eq("id", profile.id),
+      db.from("alumni_communication_preferences").upsert(
+        {
+          school_id: membership.schoolId,
+          alumni_id: profile.id,
+          email_enabled: data.emailEnabled,
+          sms_enabled: data.smsEnabled,
+          whatsapp_enabled: data.whatsappEnabled,
+          opportunities_enabled: data.opportunitiesEnabled,
+          events_enabled: data.eventsEnabled,
+          mentoring_enabled: data.mentoringEnabled,
+          surveys_enabled: data.surveysEnabled,
+          fundraising_enabled: data.fundraisingEnabled,
+          updated_at: now,
+        },
+        { onConflict: "school_id,alumni_id" },
+      ),
+    ]);
+    if (profileResult.error)
+      throw publicDatabaseError(
+        profileResult.error,
+        "Não foi possível actualizar a privacidade Alumni.",
+      );
+    if (preferenceResult.error)
+      throw publicDatabaseError(
+        preferenceResult.error,
+        "Não foi possível guardar as preferências de comunicação.",
+      );
+
+    const auditRows: Array<Record<string, unknown>> = [
+      {
         school_id: membership.schoolId,
         alumni_id: profile.id,
-        email_enabled: data.emailEnabled,
-        sms_enabled: data.smsEnabled,
-        whatsapp_enabled: data.whatsappEnabled,
-        opportunities_enabled: data.opportunitiesEnabled,
-        events_enabled: data.eventsEnabled,
-        mentoring_enabled: data.mentoringEnabled,
-        surveys_enabled: data.surveysEnabled,
-        fundraising_enabled: data.fundraisingEnabled,
-        updated_at: now,
-      }, { onConflict: "school_id,alumni_id" }),
-    ]);
-    if (profileResult.error) throw publicDatabaseError(profileResult.error, "Não foi possível actualizar a privacidade Alumni.");
-    if (preferenceResult.error) throw publicDatabaseError(preferenceResult.error, "Não foi possível guardar as preferências de comunicação.");
-
-    const auditRows: Array<Record<string, unknown>> = [{
-      school_id: membership.schoolId,
-      alumni_id: profile.id,
-      auth_user_id: context.userId,
-      action: "consent_update",
-      previous_value: previous,
-      new_value: data,
-      occurred_at: now,
-    }];
+        auth_user_id: context.userId,
+        action: "consent_update",
+        previous_value: previous,
+        new_value: data,
+        occurred_at: now,
+      },
+    ];
     if (previous.directoryVisibility !== data.directoryVisibility) {
       auditRows.push({
         school_id: membership.schoolId,
@@ -116,7 +136,11 @@ export const updateMyAlumniPrivacy = createServerFn({ method: "POST" })
       });
     }
     const { error: auditError } = await db.from("alumni_privacy_audit").insert(auditRows);
-    if (auditError) throw publicDatabaseError(auditError, "As preferências foram guardadas, mas a auditoria falhou.");
+    if (auditError)
+      throw publicDatabaseError(
+        auditError,
+        "As preferências foram guardadas, mas a auditoria falhou.",
+      );
     return { ok: true };
   });
 
@@ -132,6 +156,7 @@ export const listMyAlumniPrivacyAudit = createServerFn({ method: "GET" })
       .eq("alumni_id", profile.id)
       .order("occurred_at", { ascending: false })
       .limit(50);
-    if (error) throw publicDatabaseError(error, "Não foi possível carregar a auditoria de privacidade.");
+    if (error)
+      throw publicDatabaseError(error, "Não foi possível carregar a auditoria de privacidade.");
     return data ?? [];
   });

@@ -18,10 +18,7 @@ describe("global term ↔ notas sync", () => {
   });
 
   it("GradePautaSheet bidirectionally syncs term with the topbar period", () => {
-    const source = readFileSync(
-      resolve(root, "src/features/academic/GradePautaSheet.tsx"),
-      "utf8",
-    );
+    const source = readFileSync(resolve(root, "src/features/academic/GradePautaSheet.tsx"), "utf8");
     expect(source).toContain('from "@/features/auth/use-school-settings"');
     expect(source).toContain("applyTermSelection");
     expect(source).toContain("globalTerm?.sequence");

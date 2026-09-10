@@ -22,10 +22,7 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { QuickModal } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
-import {
-  ClassCourseTable,
-  StudentDossierTable,
-} from "@/features/academic/AssessmentViewTables";
+import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
 import {
   AssessmentStat,
@@ -212,11 +209,7 @@ export function AssessmentCenter({
   initialSubjectId?: string | undefined;
 }) {
   const queryClient = useQueryClient();
-  const {
-    selectedTerm: globalTerm,
-    terms: academicTerms,
-    setSelectedTermId,
-  } = useSchoolSettings();
+  const { selectedTerm: globalTerm, terms: academicTerms, setSelectedTermId } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const turnitinOn = installed.hasCapability("turnitin.originality");
   const moodleGrades = installed.hasCapability("moodle.grades");
@@ -250,11 +243,7 @@ export function AssessmentCenter({
   useEffect(() => {
     if (!open) return;
     if (initialTerm && initialTerm !== "todos") setFilter("trimestre", initialTerm);
-    else if (
-      globalTerm?.sequence &&
-      globalTerm.sequence >= 1 &&
-      globalTerm.sequence <= 3
-    ) {
+    else if (globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3) {
       setFilter("trimestre", String(globalTerm.sequence));
     }
     if (initialClassGroupId) setFilter("turma", initialClassGroupId);
@@ -266,14 +255,7 @@ export function AssessmentCenter({
       setScope("alunos");
       setMode("lancamento");
     }
-  }, [
-    globalTerm?.sequence,
-    initialClassGroupId,
-    initialSubjectId,
-    initialTerm,
-    open,
-    setFilter,
-  ]);
+  }, [globalTerm?.sequence, initialClassGroupId, initialSubjectId, initialTerm, open, setFilter]);
 
   const term = (Number(filters.trimestre) || 1) as 1 | 2 | 3;
   const termClosed = closedTerms.includes(term);

@@ -82,9 +82,7 @@ export async function findGatePassCard(
       .from("siga_access_cards")
       .select("id, person_id, student_id, status, card_number")
       .eq("school_id", schoolId)
-      .or(
-        `card_number.eq.${token},barcode.eq.${token},qr_secret.eq.${token},rfid_tag.eq.${token}`,
-      )
+      .or(`card_number.eq.${token},barcode.eq.${token},qr_secret.eq.${token},rfid_tag.eq.${token}`)
       .maybeSingle();
     if (found) return found;
   }

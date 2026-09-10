@@ -24,7 +24,8 @@ function parseWeekday(val: unknown): number | null {
   if (norm.includes("quarta") || norm === "3" || norm === "qua") return 3;
   if (norm.includes("quinta") || norm === "4" || norm === "qui") return 4;
   if (norm.includes("sexta") || norm === "5" || norm === "sex") return 5;
-  if (norm.includes("sabado") || norm.includes("sábado") || norm === "6" || norm === "sab") return 6;
+  if (norm.includes("sabado") || norm.includes("sábado") || norm === "6" || norm === "sab")
+    return 6;
   return null;
 }
 
@@ -42,8 +43,10 @@ export const horariosImporter: RowImporter = {
     ]);
 
     if (groups.error) throw new Error(`Não foi possível carregar turmas: ${groups.error.message}`);
-    if (subjects.error) throw new Error(`Não foi possível carregar disciplinas: ${subjects.error.message}`);
-    if (slotRows.error) throw new Error(`Não foi possível carregar horários: ${slotRows.error.message}`);
+    if (subjects.error)
+      throw new Error(`Não foi possível carregar disciplinas: ${subjects.error.message}`);
+    if (slotRows.error)
+      throw new Error(`Não foi possível carregar horários: ${slotRows.error.message}`);
 
     const existingSlots = new Set(
       (slotRows.data ?? []).map(
@@ -87,13 +90,18 @@ export const horariosImporter: RowImporter = {
 
     if (errors.length) return { status: "error", warnings, errors };
 
-    const groupMatch = uniqueExactMatch(groupVal, cache.classGroups, [(r) => r.code, (r) => r.name]);
+    const groupMatch = uniqueExactMatch(groupVal, cache.classGroups, [
+      (r) => r.code,
+      (r) => r.name,
+    ]);
     if (groupMatch.ambiguous) errors.push(`Turma "${normalizeText(groupVal)}" é ambígua.`);
-    else if (!groupMatch.row) errors.push(`Turma "${normalizeText(groupVal)}" não encontrada nesta escola.`);
+    else if (!groupMatch.row)
+      errors.push(`Turma "${normalizeText(groupVal)}" não encontrada nesta escola.`);
 
     const subjMatch = uniqueExactMatch(subjectVal, cache.subjects, [(r) => r.code, (r) => r.name]);
     if (subjMatch.ambiguous) errors.push(`Disciplina "${normalizeText(subjectVal)}" é ambígua.`);
-    else if (!subjMatch.row) errors.push(`Disciplina "${normalizeText(subjectVal)}" não encontrada nesta escola.`);
+    else if (!subjMatch.row)
+      errors.push(`Disciplina "${normalizeText(subjectVal)}" não encontrada nesta escola.`);
 
     if (errors.length) return { status: "error", warnings, errors };
 
@@ -123,7 +131,10 @@ export const horariosImporter: RowImporter = {
     const startTime = normalizeText(valueOf(normalized, "start_time", "inicio", "hora_inicio"))!;
     const endTime = normalizeText(valueOf(normalized, "end_time", "fim", "hora_fim"))!;
 
-    const group = uniqueExactMatch(groupVal, cache.classGroups, [(r) => r.code, (r) => r.name]).row!;
+    const group = uniqueExactMatch(groupVal, cache.classGroups, [
+      (r) => r.code,
+      (r) => r.name,
+    ]).row!;
     const subj = uniqueExactMatch(subjectVal, cache.subjects, [(r) => r.code, (r) => r.name]).row!;
 
     const slotKey = `${group.id}:${weekday}:${startTime}`;

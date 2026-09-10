@@ -400,8 +400,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
       };
       setLocalMessages(appendLocalThread(currentUser.id, peer.id, fallback));
       toast.message("Mensagem guardada neste dispositivo", {
-        description:
-          error instanceof Error ? error.message : sqlApplyHint("premium"),
+        description: error instanceof Error ? error.message : sqlApplyHint("premium"),
       });
     } finally {
       setSending(false);

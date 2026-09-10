@@ -102,7 +102,12 @@ export async function listUserSchoolMemberships(
         .select("id, name, slug")
         .in("id", schoolIds);
       if (schoolsData) {
-        schoolsMap = new Map(schoolsData.map((s: { id: string; name: string; slug?: string | null }) => [s.id, { name: s.name, slug: s.slug ?? null }]));
+        schoolsMap = new Map(
+          schoolsData.map((s: { id: string; name: string; slug?: string | null }) => [
+            s.id,
+            { name: s.name, slug: s.slug ?? null },
+          ]),
+        );
       }
     } catch {
       /* ignore if schools table query has issues */
@@ -110,8 +115,8 @@ export async function listUserSchoolMemberships(
   }
 
   // Fetch member roles
-  let memberRolesMap = new Map<string, string[]>();
-  let allRoleIds: string[] = [];
+  const memberRolesMap = new Map<string, string[]>();
+  const allRoleIds: string[] = [];
   if (membershipIds.length) {
     try {
       const { data: mrData } = await db
@@ -140,7 +145,9 @@ export async function listUserSchoolMemberships(
         .select("id, code, name")
         .in("id", [...new Set(allRoleIds)]);
       if (rolesData) {
-        rolesMap = new Map(rolesData.map((r: { id: string; code: string; name: string }) => [r.id, r]));
+        rolesMap = new Map(
+          rolesData.map((r: { id: string; code: string; name: string }) => [r.id, r]),
+        );
       }
     } catch {
       /* ignore */
@@ -150,7 +157,10 @@ export async function listUserSchoolMemberships(
   return memberships.map((m: { id: string; school_id: string; status: string }) => {
     const schoolInfo = schoolsMap.get(m.school_id);
     const roleIds = memberRolesMap.get(m.id) ?? [];
-    const roles = roleIds.map((rid) => rolesMap.get(rid)).filter(Boolean) as Array<{ code: string; name: string }>;
+    const roles = roleIds.map((rid) => rolesMap.get(rid)).filter(Boolean) as Array<{
+      code: string;
+      name: string;
+    }>;
 
     let roleCode = "member";
     let roleName = "Utilizador";

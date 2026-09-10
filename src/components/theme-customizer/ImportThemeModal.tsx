@@ -78,7 +78,9 @@ export function ImportThemeModal({ open, onOpenChange, onImport }: ImportThemeMo
         <DialogHeader>
           <DialogTitle className="text-lg font-bold">Importar CSS Personalizado</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Cole o código CSS do tema gerado no Tweakcn ou na Web. Inclua as secções <code>:root</code> (modo claro) e <code>.dark</code> (modo escuro) com variáveis CSS como <code>--primary</code>, <code>--background</code>, <code>--sidebar</code>, etc.
+            Cole o código CSS do tema gerado no Tweakcn ou na Web. Inclua as secções{" "}
+            <code>:root</code> (modo claro) e <code>.dark</code> (modo escuro) com variáveis CSS
+            como <code>--primary</code>, <code>--background</code>, <code>--sidebar</code>, etc.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">

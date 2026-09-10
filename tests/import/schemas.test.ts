@@ -56,7 +56,10 @@ describe("Motor de Importação SIGA — Schemas & Templates", () => {
 
   it("possuir especificação para todos os 22 modelos oficiais do SIGA", () => {
     for (const mod of importModuleOptions) {
-      expect(OFFICIAL_TEMPLATES[mod], `Modelo oficial para "${mod}" deve estar definido`).toBeDefined();
+      expect(
+        OFFICIAL_TEMPLATES[mod],
+        `Modelo oficial para "${mod}" deve estar definido`,
+      ).toBeDefined();
       expect(OFFICIAL_TEMPLATES[mod].columns.length).toBeGreaterThan(0);
       expect(OFFICIAL_TEMPLATES[mod].label).toBeTruthy();
       expect(OFFICIAL_TEMPLATES[mod].category).toBeTruthy();

@@ -27,11 +27,7 @@ export function teacherAttendanceCallSearch(
  * Abre `/professor/presenca` com contexto da aula (sem abrir a chamada).
  * O painel destaca a ocorrência correspondente para o check-in QR.
  */
-export function teacherQrPresenceSearch(
-  classGroupId: string,
-  subjectId: string,
-  date?: string,
-) {
+export function teacherQrPresenceSearch(classGroupId: string, subjectId: string, date?: string) {
   return {
     turma: classGroupId,
     disciplina: subjectId,
@@ -60,11 +56,7 @@ export function agendaLessonActions(lesson: {
 }) {
   if (!lesson.classGroupId || !lesson.subjectId) return null;
   return {
-    callSearch: teacherAttendanceCallSearch(
-      lesson.classGroupId,
-      lesson.subjectId,
-      lesson.date,
-    ),
+    callSearch: teacherAttendanceCallSearch(lesson.classGroupId, lesson.subjectId, lesson.date),
     gradesSearch: teacherGradesSearch(lesson.classGroupId, lesson.subjectId),
     qrSearch: teacherQrPresenceSearch(lesson.classGroupId, lesson.subjectId, lesson.date),
   };

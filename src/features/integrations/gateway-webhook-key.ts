@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "@/lib/timing-safe-equal";
+
 /** Período em que a API key anterior continua válida após rotação (portal banco). */
 export const GATEWAY_WEBHOOK_KEY_GRACE_MS = 24 * 60 * 60 * 1000;
 
@@ -5,10 +7,7 @@ export function generateWebhookApiKey() {
   return crypto.randomUUID().replace(/-/g, "");
 }
 
-export function buildRotatedWebhookConfig(
-  existing: Record<string, unknown>,
-  nowMs = Date.now(),
-) {
+export function buildRotatedWebhookConfig(existing: Record<string, unknown>, nowMs = Date.now()) {
   const current = String(existing.webhookApiKey ?? "").trim();
   if (!current) {
     throw new Error("Integração sem API key — instale a integração primeiro.");
@@ -35,10 +34,10 @@ export function gatewayWebhookApiKeyMatches(
   nowMs = Date.now(),
 ): boolean {
   const stored = String(config.webhookApiKey ?? "").trim();
-  if (stored && stored === apiKey) return true;
+  if (stored && timingSafeEqual(stored, apiKey)) return true;
 
   const previous = String(config.webhookApiKeyPrevious ?? "").trim();
-  if (!previous || previous !== apiKey) return false;
+  if (!previous || !timingSafeEqual(previous, apiKey)) return false;
 
   const expires = Date.parse(String(config.webhookApiKeyPreviousExpiresAt ?? ""));
   return Number.isFinite(expires) && nowMs <= expires;

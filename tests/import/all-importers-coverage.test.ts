@@ -44,7 +44,9 @@ describe("All 22 Importers Completeness & Coverage", () => {
       const res = avaliacoesImporter.analyzeRow({}, {} as any);
       expect(res.status).toBe("error");
       expect(res.errors).toContain("Designação ou nome da avaliação é obrigatório.");
-      expect(res.errors).toContain("Código ou sigla da avaliação é obrigatório (ex: MAC, NPP, NPT, P1).");
+      expect(res.errors).toContain(
+        "Código ou sigla da avaliação é obrigatório (ex: MAC, NPP, NPT, P1).",
+      );
     });
 
     it("valida avaliação correcta", () => {
@@ -59,7 +61,15 @@ describe("All 22 Importers Completeness & Coverage", () => {
   describe("historicoAcademicoImporter", () => {
     it("valida dados escolares históricos", () => {
       const cache = {
-        students: [{ id: "s1", student_number: "PROC-1", national_id: "0012LA", status: "active", person_id: "p1" }],
+        students: [
+          {
+            id: "s1",
+            student_number: "PROC-1",
+            national_id: "0012LA",
+            status: "active",
+            person_id: "p1",
+          },
+        ],
         existingKeys: new Set(),
       };
       const res = historicoAcademicoImporter.analyzeRow(
@@ -71,7 +81,15 @@ describe("All 22 Importers Completeness & Coverage", () => {
 
     it("avisa quando o histórico já existe (idempotência)", () => {
       const cache = {
-        students: [{ id: "s1", student_number: "PROC-1", national_id: "0012LA", status: "active", person_id: "p1" }],
+        students: [
+          {
+            id: "s1",
+            student_number: "PROC-1",
+            national_id: "0012LA",
+            status: "active",
+            person_id: "p1",
+          },
+        ],
         existingKeys: new Set(["s1::2023/2024::8ª Classe"]),
       };
       const res = historicoAcademicoImporter.analyzeRow(
@@ -86,7 +104,15 @@ describe("All 22 Importers Completeness & Coverage", () => {
   describe("historicoFinanceiroImporter", () => {
     it("valida valor financeiro e aluno", () => {
       const cache = {
-        students: [{ id: "s1", student_number: "PROC-1", national_id: "0012LA", status: "active", person_id: "p1" }],
+        students: [
+          {
+            id: "s1",
+            student_number: "PROC-1",
+            national_id: "0012LA",
+            status: "active",
+            person_id: "p1",
+          },
+        ],
         existingInvoices: new Set(),
       };
       const res = historicoFinanceiroImporter.analyzeRow(

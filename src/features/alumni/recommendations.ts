@@ -20,7 +20,9 @@ export const getAlumniMentorRecommendations = createServerFn({ method: "GET" })
 
     const { data: target, error: targetError } = await db
       .from("alumni_profiles")
-      .select("id, graduation_year, industry, province, city, skills, interests, available_for_mentoring, seeking_mentor")
+      .select(
+        "id, graduation_year, industry, province, city, skills, interests, available_for_mentoring, seeking_mentor",
+      )
       .eq("school_id", membership.schoolId)
       .eq("id", data.alumniId)
       .maybeSingle();
@@ -29,12 +31,15 @@ export const getAlumniMentorRecommendations = createServerFn({ method: "GET" })
 
     const { data: mentors, error: mentorsError } = await db
       .from("alumni_profiles")
-      .select("id, person_id, graduation_year, industry, province, city, skills, interests, available_for_mentoring, seeking_mentor, current_company, current_role, headline, verified_at")
+      .select(
+        "id, person_id, graduation_year, industry, province, city, skills, interests, available_for_mentoring, seeking_mentor, current_company, current_role, headline, verified_at",
+      )
       .eq("school_id", membership.schoolId)
       .eq("available_for_mentoring", true)
       .neq("id", data.alumniId)
       .limit(250);
-    if (mentorsError) throw publicDatabaseError(mentorsError, "Não foi possível carregar os mentores Alumni.");
+    if (mentorsError)
+      throw publicDatabaseError(mentorsError, "Não foi possível carregar os mentores Alumni.");
 
     const ranked = rankMentors(
       {
@@ -67,7 +72,11 @@ export const getAlumniMentorRecommendations = createServerFn({ method: "GET" })
       .map((row) => mentorRows.get(row.mentor.id)?.person_id)
       .filter((value): value is string => Boolean(value));
     const { data: people } = personIds.length
-      ? await db.from("people").select("id, full_name, photo_url").eq("school_id", membership.schoolId).in("id", personIds)
+      ? await db
+          .from("people")
+          .select("id, full_name, photo_url")
+          .eq("school_id", membership.schoolId)
+          .in("id", personIds)
       : { data: [] };
     const peopleById = new Map((people ?? []).map((row) => [row.id, row]));
 

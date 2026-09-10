@@ -9,9 +9,7 @@ import {
  * domínio customizado ou ambiente local de desenvolvimento).
  */
 
-export type TenantLookup =
-  | { mode: "slug"; slug: string }
-  | { mode: "hostname"; hostname: string };
+export type TenantLookup = { mode: "slug"; slug: string } | { mode: "hostname"; hostname: string };
 
 function normalizeHost(hostname?: string): string {
   const raw = hostname || (typeof window !== "undefined" ? window.location.hostname : "");
@@ -20,13 +18,23 @@ function normalizeHost(hostname?: string): string {
 
 export function isLocalDevHostname(hostname?: string): boolean {
   const host = normalizeHost(hostname);
-  return host === "localhost" || host === "127.0.0.1" || host.startsWith("192.168.") || host.endsWith(".local");
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.startsWith("192.168.") ||
+    host.endsWith(".local")
+  );
 }
 
 export function isPortalSigaHostname(hostname?: string): boolean {
   const host = normalizeHost(hostname);
   const platformDomain = getPlatformDomain();
-  return host === platformDomain || host.endsWith(`.${platformDomain}`) || host === "portal-siga.com" || host.endsWith(".portal-siga.com");
+  return (
+    host === platformDomain ||
+    host.endsWith(`.${platformDomain}`) ||
+    host === "portal-siga.com" ||
+    host.endsWith(".portal-siga.com")
+  );
 }
 
 /**
@@ -71,7 +79,12 @@ export function resolveTenantLookup(hostname?: string): TenantLookup {
       // como tenants escolares. Também rejeitamos labels aninhados ou slugs
       // fora do formato canónico para impedir resolução ambígua.
       const slugValidation = validateTenantSlug(subdomain);
-      if (!subdomain || subdomain.includes(".") || isReservedSubdomain(subdomain) || !slugValidation.valid) {
+      if (
+        !subdomain ||
+        subdomain.includes(".") ||
+        isReservedSubdomain(subdomain) ||
+        !slugValidation.valid
+      ) {
         return { mode: "hostname", hostname: host };
       }
 

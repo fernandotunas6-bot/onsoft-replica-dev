@@ -8,11 +8,10 @@ describe("SAFT-AO AGT XML Generator", () => {
   });
 
   it("uses custom software certificate when provided", () => {
-    const xml = buildSaftAoXml(
-      { nif: "5417001234", name: "Escola" },
-      [],
-      { fiscalYear: 2026, softwareCertificateNumber: "123/AGT/2026" },
-    );
+    const xml = buildSaftAoXml({ nif: "5417001234", name: "Escola" }, [], {
+      fiscalYear: 2026,
+      softwareCertificateNumber: "123/AGT/2026",
+    });
     expect(xml).toContain("<SoftwareCertificateNumber>123/AGT/2026</SoftwareCertificateNumber>");
   });
 

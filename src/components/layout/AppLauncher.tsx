@@ -169,7 +169,12 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
   });
   const currentUser = useCurrentAccount();
   const { activePlan } = useTenant();
-  const canManage = canAccessPath("/configuracoes", currentUser.role, currentUser.grants, activePlan);
+  const canManage = canAccessPath(
+    "/configuracoes",
+    currentUser.role,
+    currentUser.grants,
+    activePlan,
+  );
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
   const [hubSection, setHubSection] = useState<LauncherSectionId>("workspace");

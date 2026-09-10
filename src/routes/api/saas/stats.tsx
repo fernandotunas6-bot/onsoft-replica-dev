@@ -17,8 +17,10 @@ export const Route = createFileRoute("/api/saas/stats")({
           const stats = await fetchSaaSStats();
           return jsonWithCors(request, { stats }, { apps: [...APPS] });
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Não foi possível carregar as métricas.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
+          const message =
+            error instanceof Error ? error.message : "Não foi possível carregar as métricas.";
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },

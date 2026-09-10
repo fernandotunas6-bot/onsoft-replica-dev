@@ -412,7 +412,8 @@ function ResetPasswordPage() {
 
         {/* Footer Institucional */}
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Gerido com segurança por <span className="font-semibold text-foreground">{getAppName()}</span>
+          Gerido com segurança por{" "}
+          <span className="font-semibold text-foreground">{getAppName()}</span>
         </p>
       </div>
     </main>

@@ -11,9 +11,7 @@ export async function servePublicCalendarIcs(request: Request) {
   }
   try {
     const events = await loadPublicCalendarFeed(parsed.data.token);
-    return calendarIcsResponse(
-      toIcsCalendar(events.events, { calendarName: events.calendarName }),
-    );
+    return calendarIcsResponse(toIcsCalendar(events.events, { calendarName: events.calendarName }));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Feed de calendário inválido.";
     return new Response(message, { status: 404 });

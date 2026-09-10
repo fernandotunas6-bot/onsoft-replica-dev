@@ -463,7 +463,12 @@ export function AttendanceCallDialog({
 
             <div className="flex flex-wrap items-center gap-2">
               {gradesSearch ? (
-                <Button asChild type="button" variant="secondary" className="gap-2 text-xs font-bold">
+                <Button
+                  asChild
+                  type="button"
+                  variant="secondary"
+                  className="gap-2 text-xs font-bold"
+                >
                   <Link to="/pedagogica" search={gradesSearch}>
                     <PieChart className="size-4" /> Lançar notas
                   </Link>

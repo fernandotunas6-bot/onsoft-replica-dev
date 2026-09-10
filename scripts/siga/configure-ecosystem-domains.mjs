@@ -83,7 +83,9 @@ async function ensurePagesDomain(project, hostname) {
     fail(`add domain ${hostname} → ${project}`, created);
     return false;
   }
-  console.log(`✓ Pages ${project}: ${hostname} adicionado (status=${created.result?.status || "?"})`);
+  console.log(
+    `✓ Pages ${project}: ${hostname} adicionado (status=${created.result?.status || "?"})`,
+  );
   return true;
 }
 

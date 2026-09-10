@@ -36,7 +36,15 @@ describe("alumni mentor matching", () => {
   it("ranks the strongest mentor first", () => {
     const ranked = rankMentors(mentee, [
       { id: "weak", availableForMentoring: true, province: "Luanda", skills: ["Contabilidade"] },
-      { id: "strong", availableForMentoring: true, graduationYear: 2018, industry: "Tecnologia", province: "Huambo", city: "Huambo", skills: ["TypeScript", "Produto", "Liderança"] },
+      {
+        id: "strong",
+        availableForMentoring: true,
+        graduationYear: 2018,
+        industry: "Tecnologia",
+        province: "Huambo",
+        city: "Huambo",
+        skills: ["TypeScript", "Produto", "Liderança"],
+      },
     ]);
     expect(ranked[0]?.mentor.id).toBe("strong");
   });

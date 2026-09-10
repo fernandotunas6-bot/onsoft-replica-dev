@@ -21,7 +21,12 @@ export function PayflowPayerLink({
   if (!href) return null;
 
   return (
-    <Button asChild variant={variant} size={size} className={cn("gap-2 font-bold text-xs", className)}>
+    <Button
+      asChild
+      variant={variant}
+      size={size}
+      className={cn("gap-2 font-bold text-xs", className)}
+    >
       <a href={href} target="_blank" rel="noreferrer">
         <PayflowBrandIcon size={14} />
         {label}

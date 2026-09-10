@@ -55,7 +55,8 @@ export function suggestColumnMapping(
         continue;
       }
       const partial = spec.columns.find(
-        (c) => foldForCompare(c.header).includes(folded) || folded.includes(foldForCompare(c.header)),
+        (c) =>
+          foldForCompare(c.header).includes(folded) || folded.includes(foldForCompare(c.header)),
       );
       if (partial) {
         mapping[header] = partial.key;

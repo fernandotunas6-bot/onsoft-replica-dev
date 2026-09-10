@@ -19,17 +19,32 @@ describe("alumni portfolio schema", () => {
     expect(parsed.featured).toBe(true);
   });
 
-  it.each(["primary", "middle", "higher"] as const)("accepts education level %s", (educationLevel) => {
-    const parsed = portfolioItemSchema.parse({ itemType: "project", educationLevel, title: "Projecto escolar" });
-    expect(parsed.educationLevel).toBe(educationLevel);
-  });
+  it.each(["primary", "middle", "higher"] as const)(
+    "accepts education level %s",
+    (educationLevel) => {
+      const parsed = portfolioItemSchema.parse({
+        itemType: "project",
+        educationLevel,
+        title: "Projecto escolar",
+      });
+      expect(parsed.educationLevel).toBe(educationLevel);
+    },
+  );
 
   it("rejects unknown education levels", () => {
-    expect(portfolioItemSchema.safeParse({ itemType: "project", educationLevel: "secondary", title: "Projecto escolar" }).success).toBe(false);
+    expect(
+      portfolioItemSchema.safeParse({
+        itemType: "project",
+        educationLevel: "secondary",
+        title: "Projecto escolar",
+      }).success,
+    ).toBe(false);
   });
 
   it("keeps legacy items without education level valid", () => {
-    expect(portfolioItemSchema.safeParse({ itemType: "project", title: "Projecto antigo" }).success).toBe(true);
+    expect(
+      portfolioItemSchema.safeParse({ itemType: "project", title: "Projecto antigo" }).success,
+    ).toBe(true);
   });
 
   it("rejects an end date before the start date", () => {
@@ -43,7 +58,12 @@ describe("alumni portfolio schema", () => {
   });
 
   it("normalises empty urls to null", () => {
-    const parsed = portfolioItemSchema.parse({ itemType: "link", title: "Perfil", externalUrl: "", imageUrl: "" });
+    const parsed = portfolioItemSchema.parse({
+      itemType: "link",
+      title: "Perfil",
+      externalUrl: "",
+      imageUrl: "",
+    });
     expect(parsed.externalUrl).toBeNull();
     expect(parsed.imageUrl).toBeNull();
   });
