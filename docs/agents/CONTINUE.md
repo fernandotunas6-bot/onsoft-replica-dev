@@ -25,12 +25,29 @@ Continuação directa dos Ciclos 71–73, com foco em testes de segurança estru
 - `eslint.config.js`: Ignorados artefactos de compilação Tauri/Rust (`src-tauri/target/**`, `src-tauri/gen/**`).
 - Correções de formatação e remoção de redundâncias de sintaxe em `access/server.ts`, `alumni/server.ts`, `alumni/self-service.ts`, `integrations/zoom.ts` e suites de segurança.
 
+**4. Primeiro teste de componente do repositório (bug real de render apanhado):**
+- **Bug corrigido (commit `77f8e2b`):** `src/routes/alumni.portal.portfolio.showcase.tsx` chamava `useMemo` **depois** de dois `return` condicionais (ecrã de loading e "portal não activado"). O primeiro render corria 5 Hooks e saía cedo; quando as queries resolviam, o render seguinte corria 6 e o React rebentava com *"Rendered more hooks than during the previous render"* — de forma **determinística**, sempre que a página acabava de carregar. Os `useMemo` subiram para cima dos returns.
+- **Porque é que nenhum dos ~1.100 testes apanhou isto:** nenhum montava um componente. Toda a suite era lógica pura em ambiente `node`.
+- **Infra nova (opt-in, sem custo para a suite existente):** `@testing-library/react` + `@testing-library/dom` + `jsdom` nas devDependencies; `react()` adicionado aos plugins do `vitest.config.ts`; `include` alargado a `tests/**/*.test.{ts,tsx}`. O ambiente por omissão **continua `node`** — arrancar jsdom nos ~160 ficheiros de lógica só custava tempo. Os testes de componente pedem jsdom com o docblock `// @vitest-environment jsdom` no topo do ficheiro (`environmentMatchGlobs` foi removido no Vitest 4).
+- **`tests/routes/alumni-portfolio-showcase.test.tsx` (2 testes):** faz exactamente a transição loading → carregado que rebentava, mais o ramo "portal não activado". Rotas do TanStack, `AppShell` e `MediaAvatar` são mockados; as três server functions do Alumni são substituídas por `vi.fn()`.
+- **Rede de segurança complementar:** com o gate de lint estrito do ponto 3, `react-hooks/rules-of-hooks` corre agora a **error** em todo o `src/` — auditado o repositório inteiro, **zero ocorrências** da mesma classe de bug fora desta.
+
+**5. `tests/` sob verificação estrita de tipos:**
+- `tsconfig.json`: `include` alargado a `tests/**/*.ts` e `tests/**/*.tsx` — até aqui as suites nunca passavam por `tsc --noEmit` e podiam mentir sobre a forma dos dados que asseveravam.
+- Corrigidos os erros que isso destapou em `tests/angola/finance-print.test.ts`, `tests/intelligence/students/narrative-engine.test.ts`, `tests/saas/*` e `tests/security/access-security.test.ts`.
+- Adicionado `scripts/siga/gateway-reference.d.mts`: o `gateway-reference.mjs` é JS puro partilhado entre a CLI de simulação e os testes, mas era importado de TypeScript como `any` implícito.
+
 **Resultados Oficiais:**
-- **`tsc --noEmit`**: **0 erros** (100% limpo).
-- **`npm run lint`**: **0 erros** (205 warnings não-bloqueantes).
-- **`vitest run`**: **161 ficheiros passaram / 2 skipped (163)**, **1.097 testes passaram (1.099)** com 100% de sucesso.
+- **`tsc --noEmit`**: **0 erros** (100% limpo, agora **incluindo `tests/`**).
+- **`npm run lint`**: **0 erros** (190 warnings não-bloqueantes: 155 `no-explicit-any`, 35 `react-refresh/only-export-components`).
+- **`vitest run`**: **162 ficheiros passaram / 2 skipped (164)**, **1.099 testes passaram / 2 skipped (1.101)** com 100% de sucesso.
 - **`npm run siga:check`**: 18 módulos inventariados + rotas de navegação 100% validadas.
 - **`npm run build`**: Bundle de produção Vite e Nitro Cloudflare Worker compilados com sucesso em 13.1s.
+
+**Próxima fatia (opções por ordem de valor):**
+1. **Alargar testes de render** com a infra do ponto 4 às rotas mais pesadas (`pedagogica`, `financeiro`, `acessos`) — a classe de bug "página rebenta ao acabar de carregar" continua sem cobertura fora do Alumni, e o lint só apanha o subconjunto que viola as Rules of Hooks.
+2. **Semear `role_permissions`** de `treasury`/`teacher`/`guardian`/`student`/`user` (ver "Por fazer" do Ciclo 60) — só `owner`/`admin`/`secretary` estão preenchidos.
+3. **Fechar a flakiness de `enrollment-live.spec.ts`** (Ciclo 71) com a máquina em repouso, para separar carga real de regressão.
 
 ---
 
