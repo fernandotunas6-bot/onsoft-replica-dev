@@ -27,12 +27,45 @@ Continuação directa do Ciclo 74, cumprindo o item de maior valor do roadmap: e
 **3. Resiliência do Pipeline de CI (`.github/workflows/ci.yml`):**
 - Adicionado fallback `HEAD~1` para `STYLE_CHECK_CHANGED_FROM` tanto em `check:style` como em `check:a11y:report` durante eventos que não sejam `pull_request` (e.g. `push` para `main`), assegurando que verificações incrementais não quebrem o workflow por dívida legada documentada.
 
-**Resultados Oficiais:**
+**4. Duas armadilhas do jsdom que custaram tempo — ler antes de escrever a próxima rota:**
+- **`IntersectionObserver` não pode ser um noop.** O `LazyVisible`
+  (`src/components/ui/lazy-visible.tsx`) renderiza os filhos de imediato quando a
+  API **não existe**, mas fica preso no placeholder quando existe e nunca
+  reporta intersecção. Com um noop, painéis inteiros de `/acessos` — tabela de
+  contas, lista de equipa — ficavam vazios e os testes falhavam a dizer que o
+  conteúdo "não existe". Por isso o harness instala um
+  `ImmediateIntersectionObserver` que reporta visibilidade à cabeça.
+- **O `import` da rota não cabe nos 5s por omissão do Vitest.** O grafo de
+  módulos de uma rota grande demora ~5s a transformar à primeira; dentro de um
+  `it` isso esgotava o timeout antes de o render sequer começar. O `import` vive
+  agora num `beforeAll` com timeout próprio, e cada ficheiro declara
+  `vi.setConfig({ testTimeout: 20_000 })` — montar uma rota leva ~1s isolado mas
+  passa dos 5s com a suite inteira em paralelo (a mesma flakiness por carga que
+  o Ciclo 71 documentou).
+- **Mockar às cegas dá falsa confiança.** A primeira versão do fixture de turmas
+  passava com `enrolled` em vez de `enrolled_count` e sem 11 campos, porque
+  levava um `as`. A regra da pasta é construir os fixtures **sem cast**, contra
+  os tipos reais importados com `import type` do módulo que está mockado (o
+  `import type` é apagado na compilação, por isso não colide com o `vi.mock`).
+  Com `tests/` dentro do `tsconfig` desde o Ciclo 74, é o `tsc` que garante que
+  o teste não asseverar contra dados que já não existem.
+
+**Resultados Oficiais (todos corridos e verificados):**
 - **`tsc --noEmit`**: **0 erros** (100% limpo, incluindo todo o `src/` e `tests/`).
 - **`npm run lint`**: **0 erros** (warnings reduzidos de 190 para 168).
 - **`vitest run`**: **165 ficheiros passaram / 2 skipped (167)**, **1.108 testes passaram / 2 skipped (1.110)** com 100% de aprovação.
-- **`npm run siga:check`**: 18 módulos inventariados + catálogo de navegação validado.
-- **`npm run build`**: Bundle de produção Vite e Nitro Cloudflare Worker compilados com sucesso.
+- **`npm run siga:check`**: 18 módulos inventariados + `siga:check-nav` (13 testes) ✓.
+- **`npm run build`**: Bundle de produção Vite (2.51s) e Nitro Cloudflare Worker compilados com sucesso.
+
+**Próxima fatia (por ordem de valor):**
+1. **Mais rotas no harness** — `/comunicacoes`, `/calendario`, `/relatorios.academicos`
+   e `/alunos` seguem o mesmo molde e agora custam pouco: mockar as server
+   functions da rota, `Route.useSearch` se a rota a usar, e asseverar um ramo
+   real de cada lado (vazio vs. carregado).
+2. **Semear `role_permissions`** de `treasury`/`teacher`/`guardian`/`student`/`user`
+   (ver "Por fazer" do Ciclo 60) — só `owner`/`admin`/`secretary` estão preenchidos.
+3. **Fechar a flakiness de `enrollment-live.spec.ts`** (Ciclo 71) com a máquina
+   em repouso, para separar carga real de regressão.
 
 ---
 
