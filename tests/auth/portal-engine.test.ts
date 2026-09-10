@@ -3,6 +3,7 @@ import {
   resolvePortalMode,
   getPortalNavigation,
   getPortalContextualSuggestions,
+  isNavChildActive,
 } from "@/features/auth/portal-engine";
 
 describe("Smart Portal Engine", () => {
@@ -79,5 +80,59 @@ describe("Smart Portal Engine", () => {
 
     const guardianSugg = getPortalContextualSuggestions("Encarregado");
     expect(guardianSugg.some((s) => s.label === "Faltas e Presenças")).toBe(true);
+  });
+});
+
+/**
+ * Regressão do realce múltiplo na barra lateral.
+ *
+ * "Área Pedagógica" tem cinco sub-itens e quatro deles apontam para o MESMO
+ * caminho (`/pedagogica`), distinguindo-se apenas pelo `?tab=`. O estado activo
+ * comparava só `child.to === pathname`, por isso em `/pedagogica` os quatro
+ * acendiam ao mesmo tempo e a barra deixava de dizer em que separador se está —
+ * bem visível no telemóvel, onde a barra ocupa o ecrã todo.
+ */
+describe("isNavChildActive", () => {
+  const pedagogicaChildren = [
+    { to: "/pedagogica", search: { tab: "turmas" } },
+    { to: "/pedagogica", search: { tab: "notas" } },
+    { to: "/pedagogica", search: { tab: "horarios" } },
+    { to: "/pedagogica", search: { tab: "chamada" } },
+    { to: "/planos-aula" },
+  ];
+
+  it("acende um único separador de /pedagogica de cada vez", () => {
+    const activos = pedagogicaChildren.filter((child) =>
+      isNavChildActive(child, "/pedagogica", { tab: "horarios" }),
+    );
+    expect(activos).toEqual([{ to: "/pedagogica", search: { tab: "horarios" } }]);
+  });
+
+  it("não acende nenhum separador quando o URL não fixa a aba", () => {
+    const activos = pedagogicaChildren.filter((child) =>
+      isNavChildActive(child, "/pedagogica", {}),
+    );
+    expect(activos).toEqual([]);
+  });
+
+  it("continua a distinguir sub-itens por caminho", () => {
+    expect(isNavChildActive({ to: "/planos-aula" }, "/planos-aula", {})).toBe(true);
+    expect(isNavChildActive({ to: "/planos-aula" }, "/pedagogica", {})).toBe(false);
+  });
+
+  it("ignora chaves de pesquisa indefinidas em vez de as exigir no URL", () => {
+    expect(
+      isNavChildActive(
+        { to: "/pedagogica", search: { tab: "notas", turma: undefined } },
+        "/pedagogica",
+        { tab: "notas" },
+      ),
+    ).toBe(true);
+  });
+
+  it("exige todas as chaves definidas, não só a primeira", () => {
+    const child = { to: "/pedagogica", search: { tab: "notas", turma: "t-1" } };
+    expect(isNavChildActive(child, "/pedagogica", { tab: "notas" })).toBe(false);
+    expect(isNavChildActive(child, "/pedagogica", { tab: "notas", turma: "t-1" })).toBe(true);
   });
 });

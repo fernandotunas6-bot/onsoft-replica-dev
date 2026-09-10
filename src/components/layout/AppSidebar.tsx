@@ -25,7 +25,7 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
-import { getPortalNavigation } from "@/features/auth/portal-engine";
+import { getPortalNavigation, isNavChildActive } from "@/features/auth/portal-engine";
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
 import { UserProfileModal } from "@/components/auth/UserProfileModal";
@@ -44,6 +44,11 @@ export function AppSidebar({
   onOpenSettings?: (panelId?: string) => void;
 }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  // Os sub-itens de "Área Pedagógica" partilham todos o caminho `/pedagogica`
+  // e distinguem-se pelo `?tab=`, por isso o estado activo precisa da pesquisa.
+  const locationSearch = useRouterState({
+    select: (r) => r.location.search as Record<string, unknown>,
+  });
   const currentUser = useCurrentAccount();
   const { activePlan } = useTenant();
   const { school, activeYearLabel } = useSchoolSettings();
@@ -295,7 +300,7 @@ export function AppSidebar({
                                     {...(child.search ? { search: child.search } : {})}
                                     label={child.label}
                                     depth="sub"
-                                    active={child.to === pathname}
+                                    active={isNavChildActive(child, pathname, locationSearch)}
                                   />
                                 ) : (
                                   <NavButtonRow label={child.label} depth="sub" />
@@ -339,7 +344,7 @@ export function AppSidebar({
                                     {...(child.search ? { search: child.search } : {})}
                                     label={child.label}
                                     depth="sub"
-                                    active={child.to === pathname}
+                                    active={isNavChildActive(child, pathname, locationSearch)}
                                   />
                                 ) : (
                                   <NavButtonRow label={child.label} depth="sub" />

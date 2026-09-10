@@ -60,6 +60,26 @@ export type NavItem = {
 
 export type NavGroup = { title: string; items: NavItem[] };
 
+/**
+ * Um sub-item da barra lateral só está activo quando o caminho **e** os
+ * parâmetros de pesquisa que ele fixa coincidem com a localização actual.
+ *
+ * Comparar apenas `to` marcava as quatro entradas de "Área Pedagógica" como
+ * activas ao mesmo tempo: todas apontam para `/pedagogica` e distinguem-se só
+ * pelo `?tab=` (turmas, notas, horarios, chamada). Ficavam as quatro com o
+ * fundo de item activo, sem dizer ao utilizador em que separador está.
+ */
+export function isNavChildActive(
+  child: Pick<NavChild, "to" | "search">,
+  pathname: string,
+  search: Record<string, unknown> = {},
+): boolean {
+  if (child.to !== pathname) return false;
+  return Object.entries(child.search ?? {}).every(
+    ([key, value]) => value === undefined || search[key] === value,
+  );
+}
+
 function filterNavGroups(
   groups: NavGroup[],
   role: ApplicationRole,
