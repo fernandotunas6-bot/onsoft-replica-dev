@@ -82,18 +82,54 @@ falhar de forma intermitente em 2 de 4 corridas **isoladas** (só este
 ficheiro, sem concorrência de outras suites) — fica sinalizado, não
 resolvido; a causa não parece ser só carga da máquina.
 
+**6. `/importar`, `/saas-admin` e `/professor/presenca` (3 suites, 12 testes):**
+- `tests/routes/importar.test.tsx` (5): a aba "Nova Importação" (por
+  omissão) monta `ImportWorkflowWizard`, que **não** chama o servidor até o
+  utilizador escolher um ficheiro — por isso a rota monta em segurança;
+  cobre o deep link `?tab=modelos&modulo=alunos` (a categoria vem derivada
+  do módulo, não solta do URL) e o filtro de modelos oficiais por
+  categoria/texto.
+- `tests/routes/saas-admin.test.tsx` (3): página estática (ponte SIGA →
+  ADMIN), sem `AppShell`. Fixa que "Criar escola no WEB" aponta para o WEB
+  e nunca para `/criar-escola` do SIGA — a regra não negociável do
+  ecossistema (o wizard de criação pertence ao WEB) validada no DOM, não só
+  em documentação.
+- `tests/routes/professor-presenca.test.tsx` (4): `TeacherAttendancePanel`
+  (721 linhas, câmara QR) só chama o servidor para listar as próprias
+  ocorrências — a câmara só é acedida por interacção, por isso a rota monta
+  sem `getUserMedia`. Cobre o indicador "Aulas hoje", o estado vazio, e o
+  aviso de check-out pendente (efeito que muda o modo de leitura do QR para
+  saída automaticamente).
+- Revisto também `src/features/arquivos/FileBrowser.tsx` (1527 linhas, ~8
+  queries, 6 `useEffect`) à procura da classe de bug do Ciclo 76 — nenhum
+  encontrado, mas fora de âmbito para suite de teste neste ciclo (ficheiro
+  grande demais; ver nota de coordenação abaixo).
+
+**Nota de coordenação — sessão concorrente na mesma árvore:** ao longo
+deste ciclo outra sessão/worktree esteve activa em paralelo na mesma
+directoria de trabalho (visível por ficheiros a mudar fora dos meus commits
+— `painel/web/src/app/start/page.tsx`, `ecosystem-urls.ts`,
+`src/features/catracas/...`, e as suites `tests/routes/arquivos.test.tsx`,
+`catracas.test.tsx`, `perfil.test.tsx`, `planos-aula.test.tsx`). Segui a
+mesma "próxima fatia" deste handoff, por isso houve sobreposição de alvos —
+resolvida escolhendo sempre rotas que a outra sessão ainda não tinha
+tocado, e nunca fazendo commit dos ficheiros dela. Se `arquivos`, `catracas`,
+`perfil` ou `planos-aula` aparecerem como "por fazer" nalgum handoff antigo,
+confirmar primeiro se já não têm suite antes de escrever outra.
+
 **Resultados Oficiais (todos corridos e verificados):**
 - **`tsc --noEmit`**: **0 erros**.
 - **`npx eslint tests/routes/*.test.tsx`** (ficheiros tocados neste ciclo): 0 erros, 0 warnings.
-- **`vitest run tests/routes/`**: **17 ficheiros / 75 testes**, 100% verde.
-- **`vitest run` (suíte completa)**: **179 ficheiros / 2 skipped**, **1.181 testes / 2 skipped**, 100% verde.
-- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (10.4s).
+- **`vitest run tests/routes/`**: (ficheiros deste ciclo) **20 ficheiros / 87 testes**, 100% verde.
+- **`vitest run` (suíte completa)**: **184 ficheiros / 2 skipped**, **1.204 testes / 2 skipped**, 100% verde — a única falha é a flakiness intermitente já conhecida (ponto 5), não reproduzida nesta corrida.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (20s).
 
 **Próxima fatia:**
-1. **~30 rotas em `src/routes/` ainda sem suite em `tests/routes/`**
-   (todo o `alumni.*`, `importar`, `saas-admin`, `catracas`, `arquivos`,
-   `professor.presenca`, `perfil`, `configuracoes`, etc.) — mesmo molde
-   deste ciclo. O agrupamento `financeiro/rh` está agora completo.
+1. **Rotas em `src/routes/` ainda sem suite em `tests/routes/`** — confirmar
+   estado actual antes de escolher, dada a sessão concorrente (ver nota de
+   coordenação): pelo menos todo o `alumni.*` (11 rotas) e `configuracoes`
+   continuam por fazer a esta data. `financeiro/rh`, `importar`,
+   `saas-admin` e `professor.presenca` estão completos.
 2. **Flakiness intermitente em `tests/routes/relatorios-academicos.test.tsx`**
    ("diz que ainda não há turmas...") — reproduz em ~1 de 4 corridas
    isoladas repetidas, não só sob paralelismo pesado; vale a pena investigar
