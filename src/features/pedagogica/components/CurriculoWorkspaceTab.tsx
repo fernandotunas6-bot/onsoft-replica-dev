@@ -25,6 +25,7 @@ import {
   saveTeacherAvailability,
 } from "@/features/academic/server";
 import { toast } from "sonner";
+import { EMPTY_LIST } from "@/lib/stable-empty";
 
 const availabilityWeekdays = [
   "Segunda",
@@ -106,25 +107,29 @@ export function CurriculoWorkspaceTab({
     "matriz",
   );
 
-  const { data: subjectTypes = [] } = useQuery({
+  const subjectTypesQuery = useQuery({
     queryKey: ["academic", "subject-types"],
     queryFn: () => listSubjectTypes(),
   });
+  const subjectTypes = subjectTypesQuery.data ?? EMPTY_LIST;
 
-  const { data: curriculumAreas = [] } = useQuery({
+  const curriculumAreasQuery = useQuery({
     queryKey: ["academic", "curriculum-areas"],
     queryFn: () => listCurriculumAreas(),
   });
+  const curriculumAreas = curriculumAreasQuery.data ?? EMPTY_LIST;
 
-  const { data: shifts = [] } = useQuery({
+  const shiftsQuery = useQuery({
     queryKey: ["academic", "school-shifts"],
     queryFn: () => listSchoolShifts(),
   });
+  const shifts = shiftsQuery.data ?? EMPTY_LIST;
 
-  const { data: curricula = [] } = useQuery({
+  const curriculaQuery = useQuery({
     queryKey: ["academic", "curricula"],
     queryFn: () => listCurricula({ data: {} }),
   });
+  const curricula = curriculaQuery.data ?? EMPTY_LIST;
 
   // --- Matriz Curricular ---------------------------------------------------
   const [matrixCourseId, setMatrixCourseId] = useState("");
@@ -220,7 +225,7 @@ export function CurriculoWorkspaceTab({
   const [maxWeeklyHours, setMaxWeeklyHours] = useState(24);
   const [savingAvailability, setSavingAvailability] = useState(false);
 
-  const { data: teacherAvailability = [] } = useQuery({
+  const teacherAvailabilityQuery = useQuery({
     queryKey: ["academic", "teacher-availability", availabilityTeacherId, activeYearId],
     queryFn: () =>
       listTeacherAvailability({
@@ -228,6 +233,7 @@ export function CurriculoWorkspaceTab({
       }),
     enabled: Boolean(availabilityTeacherId),
   });
+  const teacherAvailability = teacherAvailabilityQuery.data ?? EMPTY_LIST;
 
   useEffect(() => {
     if (!availabilityTeacherId) {

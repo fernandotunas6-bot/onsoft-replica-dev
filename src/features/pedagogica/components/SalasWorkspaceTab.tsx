@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { listRooms, createRoom, updateRoom } from "@/features/academic/server";
 import { toast } from "sonner";
+import { EMPTY_LIST } from "@/lib/stable-empty";
 
 const roomTypeLabels: Record<string, string> = {
   standard: "Sala Comum",
@@ -45,10 +46,12 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
   const [query, setQuery] = useState("");
   const [selectedType, setSelectedType] = useState("todos");
 
-  const { data: rooms = [], isLoading } = useQuery({
+  const roomsQuery = useQuery({
     queryKey: ["academic", "rooms"],
     queryFn: () => listRooms(),
   });
+  const rooms = roomsQuery.data ?? EMPTY_LIST;
+  const isLoading = roomsQuery.isLoading;
 
   const filteredRooms = rooms.filter((room: any) => {
     const q = query.trim().toLowerCase();
