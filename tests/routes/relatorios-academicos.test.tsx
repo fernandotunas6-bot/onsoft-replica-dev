@@ -135,9 +135,9 @@ describe("/relatorios/academicos — render", () => {
 
     await waitFor(() => {
       expect(screen.getAllByText("10ª A").length).toBeGreaterThan(0);
+      expect(screen.getByText("Ciências Físicas e Biológicas")).toBeDefined();
     });
     expect(screen.getByRole("heading", { name: "Relatórios Académicos" })).toBeDefined();
-    expect(screen.getByText("Ciências Físicas e Biológicas")).toBeDefined();
   });
 
   it("diz que ainda não há turmas em vez de uma tabela vazia", async () => {

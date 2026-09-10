@@ -52,20 +52,55 @@ dois é dependência do projecto; interacção via `fireEvent.click`), e
 isolado mas estourava os 5s por omissão quando a pasta inteira corre em
 paralelo (mesma mitigação já presente em `faturas.test.tsx`/`documentos.test.tsx`).
 
+**4. Fechado o agrupamento RH por completo (4 suites novas, 21 testes):**
+`tests/routes/financeiro-rh-faltas.test.tsx` (6), `financeiro-rh-folha.test.tsx`
+(5), `financeiro-rh-presenca.test.tsx` (5) e `financeiro-rh-pagamentos.test.tsx`
+(5) — as quatro rotas do RH que faltavam depois do ponto 3. Nada de novo em
+matéria de bugs, mas dois achados de teste que valem registo:
+- **`/financeiro/rh/pagamentos` e `/financeiro/rh/folha` têm queries
+  independentes que resolvem em tempos diferentes**: um `waitFor` que só
+  cobre a primeira e depois lê a segunda de forma síncrona falha
+  intermitentemente sob carga — cada estado vazio/carregado precisa do seu
+  próprio `waitFor`.
+- **Textos duplicados na mesma página não são bug**: `/financeiro/rh/folha`
+  mostra "Calcular folha" duas vezes (acção do painel + estado vazio dos
+  itens) e `/financeiro/rh/faltas` mostra o mesmo indicador "1" em StatGrid
+  duas vezes (pendente + validada) — `getByText` rebenta com "multiple
+  elements"; a correcção é `getAllByText`/`getAllByRole`, não mexer no
+  componente.
+
+**5. Corrigida uma instância da flakiness sob paralelismo já documentada no
+próprio ficheiro (Ciclo 71):** `tests/routes/relatorios-academicos.test.tsx`
+tinha duas asserções síncronas depois de um único `waitFor` — sob carga
+pesada (suite inteira em paralelo) o React ainda não tinha pintado o texto
+vindo da query quando a segunda asserção corria. Movida para dentro do
+`waitFor`. **Não é a mesma flakiness do Ciclo 71** (aquela é sobre
+`enrollment-live.spec.ts`, Playwright ao vivo) — esta é uma segunda
+instância, isolada ao render em jsdom, e mesmo depois desta correcção outro
+teste do mesmo ficheiro (`"diz que ainda não há turmas..."`) continuou a
+falhar de forma intermitente em 2 de 4 corridas **isoladas** (só este
+ficheiro, sem concorrência de outras suites) — fica sinalizado, não
+resolvido; a causa não parece ser só carga da máquina.
+
 **Resultados Oficiais (todos corridos e verificados):**
-- **`tsc --noEmit`**: **0 erros** (confirmado limpo após a correcção do ponto 2).
-- **`npx eslint tests/routes/financeiro-rh.test.tsx tests/routes/documentos.test.tsx`**: 0 erros, 0 warnings.
-- **`vitest run tests/routes/`**: **13 ficheiros / 54 testes**, 100% verde.
-- **`vitest run` (suíte completa)**: **175 ficheiros / 2 skipped**, **1.160 testes / 2 skipped**, 100% verde.
-- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (12.5s).
+- **`tsc --noEmit`**: **0 erros**.
+- **`npx eslint tests/routes/*.test.tsx`** (ficheiros tocados neste ciclo): 0 erros, 0 warnings.
+- **`vitest run tests/routes/`**: **17 ficheiros / 75 testes**, 100% verde.
+- **`vitest run` (suíte completa)**: **179 ficheiros / 2 skipped**, **1.181 testes / 2 skipped**, 100% verde.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (10.4s).
 
 **Próxima fatia:**
-1. **~35 rotas em `src/routes/` ainda sem suite em `tests/routes/`**
-   (`alumni.*`, `financeiro.rh.faltas`, `financeiro.rh.folha`,
-   `financeiro.rh.pagamentos`, `financeiro.rh.presenca`, `importar`,
-   `saas-admin`, `catracas`, `arquivos`, etc.) — mesmo molde deste ciclo.
-2. **Flakiness de `enrollment-live.spec.ts`** (Ciclo 71) com a máquina em repouso.
-3. **Integração do ecossistema das 5 apps**: avaliar os refinamentos pendentes em `painel/` (redireccionamentos canónicos, boundaries resilientes e bridges para o PayFlow) — ainda por auditar em profundidade, este ciclo só confirmou a regra de open redirect no SIGA.
+1. **~30 rotas em `src/routes/` ainda sem suite em `tests/routes/`**
+   (todo o `alumni.*`, `importar`, `saas-admin`, `catracas`, `arquivos`,
+   `professor.presenca`, `perfil`, `configuracoes`, etc.) — mesmo molde
+   deste ciclo. O agrupamento `financeiro/rh` está agora completo.
+2. **Flakiness intermitente em `tests/routes/relatorios-academicos.test.tsx`**
+   ("diz que ainda não há turmas...") — reproduz em ~1 de 4 corridas
+   isoladas repetidas, não só sob paralelismo pesado; vale a pena investigar
+   com mais tempo (possível fuga de estado entre testes ou uma corrida
+   genuína na query).
+3. **Flakiness de `enrollment-live.spec.ts`** (Ciclo 71) com a máquina em repouso.
+4. **Integração do ecossistema das 5 apps**: avaliar os refinamentos pendentes em `painel/` (redireccionamentos canónicos, boundaries resilientes e bridges para o PayFlow) — ainda por auditar em profundidade, este ciclo só confirmou a regra de open redirect no SIGA.
 
 ---
 
