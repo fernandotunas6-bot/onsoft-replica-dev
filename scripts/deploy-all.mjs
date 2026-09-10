@@ -37,6 +37,17 @@ if (fs.existsSync(envFile)) {
 const mergedEnv = {
   ...process.env,
   ...envVars,
+  // Sem isto, `vite build`/`next build` em painel/web|admin|docs caem de volta
+  // para o `.env.local` de cada app (localhost:xxxx, só para dev) — o valor
+  // fica embutido no bundle estático e QUALQUER chamada entre apps em
+  // produção (signup, links cruzados) tenta falar com localhost do visitante
+  // e falha em silêncio. Mesmo padrão já aplicado em deploy-cf.mjs (SIGA).
+  VITE_WEB_URL: envVars["VITE_WEB_URL"] || process.env.VITE_WEB_URL || "https://siga-web.pages.dev",
+  VITE_ADMIN_URL:
+    envVars["VITE_ADMIN_URL"] || process.env.VITE_ADMIN_URL || "https://siga-admin.pages.dev",
+  VITE_DOCS_URL:
+    envVars["VITE_DOCS_URL"] || process.env.VITE_DOCS_URL || "https://siga-docs.pages.dev",
+  VITE_SIGA_URL: envVars["VITE_SIGA_URL"] || process.env.VITE_SIGA_URL || "https://portal-siga.com",
   VITE_PAYFLOW_URL:
     envVars["VITE_PAYFLOW_URL"] ||
     process.env.VITE_PAYFLOW_URL ||

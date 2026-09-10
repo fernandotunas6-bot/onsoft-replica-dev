@@ -79,7 +79,7 @@ export function CampusAttendanceReconciliationPanel() {
         <div className="py-6 text-center text-xs text-muted-foreground animate-pulse">
           A analisar dados de presenças da portaria e turmas...
         </div>
-      ) : !data || data.anomalies.length === 0 ? (
+      ) : !data || !data.anomalies || data.anomalies.length === 0 ? (
         <div className="p-4 rounded-xl border border-success/30 bg-success/10 text-success-strong text-xs flex items-center gap-3">
           <CheckCircle className="size-5 shrink-0 text-success" />
           <div>

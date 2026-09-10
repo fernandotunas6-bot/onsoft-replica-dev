@@ -6,7 +6,7 @@ const isLocal =
     window.location.hostname.startsWith("192.168.") ||
     window.location.hostname.endsWith(".local"));
 
-const PLATFORM_DOMAIN = String(
+export const PLATFORM_DOMAIN = String(
   import.meta.env.VITE_PLATFORM_DOMAIN || import.meta.env.PLATFORM_DOMAIN || "portal-siga.com",
 )
   .trim()

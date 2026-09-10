@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form"
 import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
 import { cn } from "@/lib/utils"
-import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls"
+import { ECOSYSTEM_URLS, PLATFORM_DOMAIN } from "@/lib/ecosystem-urls"
 import { fetchSaasPlans, signupSchool, type PlanCode, type SaasPlan } from "@/lib/saas-api"
 
 const FALLBACK_PLANS: SaasPlan[] = [
@@ -65,9 +65,18 @@ const STEPS = [
   { id: 2, title: "Responsável" },
   { id: 3, title: "Plano" },
   { id: 4, title: "Conta" },
-  { id: 5, title: "Endereço" },
+  { id: 5, title: "Domínio" },
   { id: 6, title: "Revisão" },
 ]
+
+function formatAoa(value?: number) {
+  if (value == null) return null
+  return new Intl.NumberFormat("pt-AO", {
+    style: "currency",
+    currency: "AOA",
+    maximumFractionDigits: 0,
+  }).format(value)
+}
 
 function slugFromName(name: string) {
   return name
@@ -173,7 +182,7 @@ export function StartSchoolWizard() {
       return
     }
     setDone({
-      hostname: result.hostname || `${payload.slug}.portal-siga.com`,
+      hostname: result.hostname || `${payload.slug}.${PLATFORM_DOMAIN}`,
       sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
       adminTenantsUrl: result.adminTenantsUrl,
       adminInviteDelivered: result.adminInviteDelivered ?? false,
@@ -334,7 +343,14 @@ export function StartSchoolWizard() {
                         : "hover:bg-muted/60",
                     )}
                   >
-                    <span className="font-medium">{plan.name}</span>
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="font-medium">{plan.name}</span>
+                      {formatAoa(plan.price_aoa_monthly) ? (
+                        <span className="shrink-0 text-xs font-semibold text-primary">
+                          {formatAoa(plan.price_aoa_monthly)}/mês
+                        </span>
+                      ) : null}
+                    </span>
                     {plan.description ? (
                       <span className="mt-0.5 block text-xs text-muted-foreground">{plan.description}</span>
                     ) : null}
@@ -361,7 +377,7 @@ export function StartSchoolWizard() {
                       <FormControl>
                         <Input id="subdomain-slug" {...field} />
                       </FormControl>
-                      <span className="shrink-0 text-xs text-muted-foreground">.portal-siga.com</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">.{PLATFORM_DOMAIN}</span>
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -372,10 +388,12 @@ export function StartSchoolWizard() {
             {step === 6 ? (
               <dl className="grid gap-2 text-sm">
                 <Row label="Escola" value={values.name} />
+                <Row label="Cidade" value={values.city ?? ""} />
+                <Row label="Endereço" value={values.address ?? ""} />
                 <Row label="Responsável" value={values.contact_name} />
                 <Row label="Plano" value={planLabel} />
                 <Row label="Administrador" value={`${values.admin_name} · ${values.admin_email}`} />
-                <Row label="Endereço" value={`${values.slug}.portal-siga.com`} />
+                <Row label="Domínio" value={`${values.slug}.${PLATFORM_DOMAIN}`} />
               </dl>
             ) : null}
 
