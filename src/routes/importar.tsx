@@ -120,9 +120,9 @@ export function ImportarDadosPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast.success("Modelo Excel descarregado com sucesso!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Falha ao gerar modelo Excel", {
-        description: err?.message || "Tente descarregar o formato CSV.",
+        description: err instanceof Error ? err.message : "Tente descarregar o formato CSV.",
       });
     }
   };

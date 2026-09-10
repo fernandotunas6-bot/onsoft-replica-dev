@@ -6,6 +6,36 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-10)
 
+### Ciclo 75 — Expansão dos Testes de Render de Rotas, Redução de Any e Resiliência no CI (2026-09-10)
+
+Continuação directa do Ciclo 74, cumprindo o item de maior valor do roadmap: expansão dos testes de montagem/render às rotas mais complexas do sistema e erradicação de débitos de tipagem.
+
+**1. Expansão de Testes de Render de Componentes (`tests/routes/` — 11 testes):**
+- Criado `tests/routes/_harness.tsx`: ambiente partilhado para jsdom com polyfills resilientes (`ResizeObserver`, `ImmediateIntersectionObserver`, `matchMedia`, `scrollIntoView`), permitindo que componentes complexos (gráficos `recharts`, primitivos Radix, visualizações `LazyVisible`) montem com precisão determinística.
+- **`tests/routes/pedagogica.test.tsx` (3 testes):** Validação da renderização completa de `/pedagogica`, incluindo o ecrã de bootstrap enquanto não há estrutura, a listagem de turmas quando semeada, e a navegação directa via query param `?tab=horarios`.
+- **`tests/routes/financeiro.test.tsx` (3 testes):** Renderização de `/financeiro`, verificando a transição loading → carregado, o bloqueio seguro de emissão quando faltam colunas de esquema e o pedido amigável de plano de propinas.
+- **`tests/routes/acessos.test.tsx` (3 testes):** Renderização de `/acessos`, testando a transição de carregamento, o estado vazio na ausência de contas e a mensagem de contingência na falta de chave de serviço.
+
+**2. Higienização de Tipos e Redução de `any`:**
+- **`src/routes/pedagogica.tsx`:** Remoção de casts `as any` em `subjectTypes`, `curriculumAreas` e no mapeamento de salas (`rooms`), utilizando os tipos canónicos de `advanced-academic-server`.
+- **`src/routes/alumni.tsx`:** Tipagem estrita de `employmentStatus` via `alumniEmploymentStatuses` e remoção de `any` nos mappings de eventos e oportunidades.
+- **`src/routes/alumni.portal.portfolio.tsx`:** Tipagem estrita de estágios e itens; substituição de tag `<img>` nua por `<MediaFrame>` com proporção `16/9`, satisfazendo as directrizes de estilo do SIGA.
+- **`src/routes/alunos/index.tsx`:** Tipagem da linha do export SIGE/EMIS para `CsvValue` seguro e cast tipado de `newStatus` com `studentStatusOptions`.
+- **`src/routes/importar.tsx`:** Tratamento estrito de erro em bloco `catch` (instância de `Error`).
+- **Suítes de Teste:** Limpeza de `any` em `tests/catracas/gate-pass-validation.test.ts`, `tests/auth/user-profile-specs.test.ts`, `tests/auth/permissions.test.ts`, `tests/auth/multi-school-memberships.test.ts` e `tests/import/schemas.test.ts`.
+
+**3. Resiliência do Pipeline de CI (`.github/workflows/ci.yml`):**
+- Adicionado fallback `HEAD~1` para `STYLE_CHECK_CHANGED_FROM` tanto em `check:style` como em `check:a11y:report` durante eventos que não sejam `pull_request` (e.g. `push` para `main`), assegurando que verificações incrementais não quebrem o workflow por dívida legada documentada.
+
+**Resultados Oficiais:**
+- **`tsc --noEmit`**: **0 erros** (100% limpo, incluindo todo o `src/` e `tests/`).
+- **`npm run lint`**: **0 erros** (warnings reduzidos de 190 para 168).
+- **`vitest run`**: **165 ficheiros passaram / 2 skipped (167)**, **1.108 testes passaram / 2 skipped (1.110)** com 100% de aprovação.
+- **`npm run siga:check`**: 18 módulos inventariados + catálogo de navegação validado.
+- **`npm run build`**: Bundle de produção Vite e Nitro Cloudflare Worker compilados com sucesso.
+
+---
+
 ### Ciclo 74 — Blindagem de Autenticação, Isolamento Multi-Tenant, Zero Erros de Lint e Expansão da Inteligência (2026-09-10)
 
 Continuação directa dos Ciclos 71–73, com foco em testes de segurança estruturais, activação do pipeline de Lint no CI e integração de mapas relacionais no Dashboard.

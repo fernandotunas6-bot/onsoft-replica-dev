@@ -26,9 +26,9 @@ describe("Motor de Importação SIGA — Schemas & Templates", () => {
   it("rejeita módulos inválidos no schema de jobs", () => {
     expect(() =>
       createImportJobSchema.parse({
-        module: "modulo_inexistente" as any,
+        module: "modulo_inexistente",
         file_name: "teste.xlsx",
-      }),
+      } as unknown as Record<string, unknown>),
     ).toThrow();
   });
 

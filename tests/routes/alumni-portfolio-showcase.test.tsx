@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { describe, expect, it, vi, afterEach, beforeAll } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactElement, ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 
 /**
  * Regressão do crash da página de portfólio Alumni.
@@ -16,6 +16,12 @@ import type { ReactElement, ReactNode } from "react";
  * Este teste faz exactamente essa transição loading → carregado. Nenhum dos
  * ~1100 testes existentes montava um componente, por isso o bug passou.
  */
+
+// Montar uma rota real em jsdom leva ~1s isolado, mas passa facilmente dos 5s
+// por omissão quando a suite inteira corre em paralelo (o handoff já regista
+// falhas por carga da máquina no Ciclo 71). Timeout explícito para estes
+// testes: fica a medir o render, não a fila de CPU.
+vi.setConfig({ testTimeout: 20_000 });
 
 vi.mock("@/components/layout/AppShell", () => ({
   AppShell: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -44,13 +50,18 @@ vi.mock("@/features/alumni/education-history", () => ({
   getMyAlumniEducationHistory: () => getMyAlumniEducationHistory(),
 }));
 
-async function loadShowcaseComponent() {
-  const mod = await import("@/routes/alumni.portal.portfolio.showcase");
-  const route = mod.Route as unknown as { component: () => ReactElement };
-  return route.component;
-}
+// O `import` da rota arrasta um grafo de módulos grande e, com a máquina sob
+// carga, passava dos 5s de timeout por omissão do Vitest quando corria dentro
+// do primeiro `it`. Fica no `beforeAll`, com timeout próprio.
+let Showcase: ComponentType;
 
-function renderWithQuery(Component: () => ReactElement) {
+beforeAll(async () => {
+  const mod = await import("@/routes/alumni.portal.portfolio.showcase");
+  const route = mod.Route as unknown as { component: ComponentType };
+  Showcase = route.component;
+}, 60_000);
+
+function renderWithQuery(Component: ComponentType) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
@@ -83,7 +94,6 @@ describe("Portfólio Alumni — showcase", () => {
     ]);
     getMyAlumniEducationHistory.mockResolvedValue([]);
 
-    const Showcase = await loadShowcaseComponent();
     renderWithQuery(Showcase);
 
     // Primeiro render: ecrã de loading (early return, menos Hooks).
@@ -101,7 +111,6 @@ describe("Portfólio Alumni — showcase", () => {
     getMyAlumniPortfolio.mockResolvedValue([]);
     getMyAlumniEducationHistory.mockResolvedValue([]);
 
-    const Showcase = await loadShowcaseComponent();
     renderWithQuery(Showcase);
 
     await waitFor(() => {

@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { MediaFrame } from "@/components/ui/media-frame";
 import {
   alumniPortfolioEducationLevels,
   alumniPortfolioItemTypes,
@@ -74,7 +75,7 @@ function AlumniPortfolioPage() {
     queryFn: () => getMyAlumniEducationHistory(),
   });
   const stageOptions = (educationQuery.data ?? []).filter(
-    (stage: any) => stage.education_level === educationLevel,
+    (stage) => stage.education_level === educationLevel,
   );
 
   const saveMutation = useMutation({
@@ -194,7 +195,7 @@ function AlumniPortfolioPage() {
                 className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
               >
                 <option value="">Sem instituição específica</option>
-                {stageOptions.map((stage: any) => (
+                {stageOptions.map((stage) => (
                   <option key={stage.id} value={stage.id}>
                     {stage.institution_name}
                     {stage.course_name ? ` · ${stage.course_name}` : ""}
@@ -324,10 +325,16 @@ function AlumniPortfolioPage() {
               </Card>
             ) : items.length ? (
               <div className="grid gap-4 md:grid-cols-2">
-                {items.map((item: any) => (
+                {items.map((item) => (
                   <Card key={item.id} className="overflow-hidden border-border/70 shadow-sm">
                     {item.image_url ? (
-                      <img src={item.image_url} alt="" className="h-40 w-full object-cover" />
+                      <MediaFrame
+                        src={item.image_url}
+                        alt={item.title || "Imagem do portfólio"}
+                        ratio="16/9"
+                        rounded="rounded-none"
+                        className="h-40 w-full"
+                      />
                     ) : null}
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-3">

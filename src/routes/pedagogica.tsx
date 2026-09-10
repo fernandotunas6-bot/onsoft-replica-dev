@@ -850,8 +850,8 @@ function PedagogicaPage() {
               teachingLevels={teachingLevels}
               classroomOn={classroomOn}
               moodleOn={moodleOn}
-              subjectTypes={(subjectTypesQuery.data as any) ?? []}
-              curriculumAreas={(curriculumAreasQuery.data as any) ?? []}
+              subjectTypes={subjectTypesQuery.data ?? []}
+              curriculumAreas={curriculumAreasQuery.data ?? []}
               onRefresh={refreshAcademic}
             />
           </TabsContent>
@@ -1086,7 +1086,7 @@ function PedagogicaPage() {
               scheduleAvailable={scheduleAvailable}
               classGroups={classGroups}
               subjects={subjects}
-              rooms={classrooms.map((r: any) => ({
+              rooms={classrooms.map((r) => ({
                 id: r.id,
                 name: r.name,
                 code: r.code || r.name,

@@ -53,6 +53,7 @@ import {
   type CandidateSubFilter,
 } from "@/features/students/academic-status";
 import { batchAssignClass, batchUpdateStudentStatus } from "@/features/students/server";
+import { studentStatusOptions } from "@/features/students/schemas";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -467,9 +468,13 @@ function StudentsPage() {
   const exportarAlunosCsv = () => exportCsv("alunos-filtrados", alunoExportColumns, filtered);
   const exportarAlunosSige = () => {
     const sigeData = buildEmisExportPayload(activeTenant?.id ?? "school", filtered);
+    type EmisRow = (typeof sigeData)[number];
     exportCsv(
       "alunos-sige-emis",
-      Object.keys(sigeData[0] ?? {}).map((k) => ({ label: k, value: (r: any) => r[k] })),
+      (Object.keys(sigeData[0] ?? {}) as Array<keyof EmisRow>).map((k) => ({
+        label: k,
+        value: (r: EmisRow) => r[k] ?? "",
+      })),
       sigeData,
     );
   };
@@ -1605,7 +1610,7 @@ function StudentsPage() {
                     await batchUpdateStudentStatus({
                       data: {
                         studentIds: selectedIds,
-                        newStatus: values["estado"] as any,
+                        newStatus: values["estado"] as (typeof studentStatusOptions)[number],
                         reason: values["motivo"] || undefined,
                       },
                     });

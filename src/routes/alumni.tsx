@@ -33,6 +33,7 @@ import {
   listAlumniEvents,
   listAlumniOpportunities,
 } from "@/features/alumni/server";
+import { alumniEmploymentStatuses } from "@/features/alumni/schemas";
 
 export const Route = createFileRoute("/alumni")({
   head: () => ({
@@ -123,7 +124,10 @@ function AlumniPage() {
       listAlumni({
         data: {
           query,
-          employmentStatus: employment === "all" ? undefined : (employment as any),
+          employmentStatus:
+            employment === "all"
+              ? undefined
+              : (employment as (typeof alumniEmploymentStatuses)[number]),
           mentoringOnly,
           opportunitiesOnly,
           verifiedOnly,
@@ -163,8 +167,7 @@ function AlumniPage() {
   const opportunities = opportunitiesQuery.data ?? [];
   const events = eventsQuery.data ?? [];
   const upcomingEvents = events.filter(
-    (event: any) =>
-      event.status === "published" && new Date(event.starts_at).getTime() >= Date.now(),
+    (event) => event.status === "published" && new Date(event.starts_at).getTime() >= Date.now(),
   );
   const topCohorts = useMemo(() => {
     const counts = new Map<number, number>();
@@ -440,7 +443,7 @@ function AlumniPage() {
           <TabsContent value="opportunities" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {opportunities.length ? (
-                opportunities.map((item: any) => (
+                opportunities.map((item) => (
                   <Card key={item.id} className="border-border/70 shadow-sm">
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-3">
@@ -502,7 +505,7 @@ function AlumniPage() {
           <TabsContent value="events">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {upcomingEvents.length ? (
-                upcomingEvents.map((item: any) => (
+                upcomingEvents.map((item) => (
                   <Card key={item.id} className="border-border/70 shadow-sm">
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between">
