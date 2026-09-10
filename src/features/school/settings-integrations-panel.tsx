@@ -236,7 +236,7 @@ function AcademicIntegrationsCatalog() {
     queryFn: () => listSchoolIntegrations() as Promise<SchoolIntegrationSummary[]>,
     retry: false,
   });
-  const items = catalogQuery.data ?? [];
+  const items = useMemo(() => catalogQuery.data ?? [], [catalogQuery.data]);
   const grouped = useMemo(() => groupCatalogItems(items), [items]);
 
   useEffect(() => {

@@ -52,7 +52,7 @@ export function useFrequentColleagues() {
     if (currentUser.id) setRecentIds(readRecentContactIds(currentUser.id));
   }, [currentUser.id]);
 
-  const colleagues = colleaguesQuery.data ?? [];
+  const colleagues = useMemo(() => colleaguesQuery.data ?? [], [colleaguesQuery.data]);
   const frequent = useMemo(() => {
     const byId = new Map(colleagues.map((row) => [row.id, row]));
     const picked: SchoolColleague[] = [];

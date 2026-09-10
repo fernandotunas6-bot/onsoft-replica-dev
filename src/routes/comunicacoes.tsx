@@ -198,7 +198,7 @@ function ComunicacoesPage() {
     };
   }, [queryClient, realtimeInstanceId]);
 
-  const items = announcementsQuery.data ?? [];
+  const items = useMemo(() => announcementsQuery.data ?? [], [announcementsQuery.data]);
   const migrationMissing =
     announcementsQuery.isError &&
     announcementsQuery.error instanceof Error &&

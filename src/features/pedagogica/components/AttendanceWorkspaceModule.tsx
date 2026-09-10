@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CheckSquare,
@@ -72,7 +72,10 @@ export function AttendanceWorkspaceModule({
     queryFn: () => getStudentAttendanceHistory({ data: {} }),
   });
 
-  const sessions = sessionsQuery.data?.sessions ?? [];
+  const sessions = useMemo(
+    () => sessionsQuery.data?.sessions ?? [],
+    [sessionsQuery.data?.sessions],
+  );
   const pendingCount = sessionsQuery.data?.pendingCount ?? 0;
   const historyRecords = historyQuery.data?.records ?? [];
 

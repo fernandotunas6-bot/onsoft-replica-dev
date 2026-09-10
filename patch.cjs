@@ -1,35 +1,36 @@
-const fs = require('fs');
-const file = '/Users/valentinocanguele/edu/onsoft-replica-dev/src/features/school/settings-identity-panel.tsx';
-let content = fs.readFileSync(file, 'utf-8');
+const fs = require("fs");
+const file =
+  "/Users/valentinocanguele/edu/onsoft-replica-dev/src/features/school/settings-identity-panel.tsx";
+let content = fs.readFileSync(file, "utf-8");
 
 // Adicionar import provisionMailbox se não existir
-if (!content.includes('provisionMailbox')) {
+if (!content.includes("provisionMailbox")) {
   content = content.replace(
-    'updateEmailForwarding,',
-    'updateEmailForwarding,\n  provisionMailbox,'
+    "updateEmailForwarding,",
+    "updateEmailForwarding,\n  provisionMailbox,",
   );
 }
 
 // Adicionar estado da mailbox
-if (!content.includes('mailboxState')) {
+if (!content.includes("mailboxState")) {
   content = content.replace(
-    '// Estados de Encaminhamento de E-mail',
-    '// Estados de Caixa Profissional\n  const [mailboxState, setMailboxState] = useState<{email: string, status: string, provider: string} | null>(null);\n  const [isProvisioningMailbox, setIsProvisioningMailbox] = useState(false);\n  const provisionMailboxFn = useServerFn(provisionMailbox);\n\n  // Estados de Encaminhamento de E-mail'
+    "// Estados de Encaminhamento de E-mail",
+    "// Estados de Caixa Profissional\n  const [mailboxState, setMailboxState] = useState<{email: string, status: string, provider: string} | null>(null);\n  const [isProvisioningMailbox, setIsProvisioningMailbox] = useState(false);\n  const provisionMailboxFn = useServerFn(provisionMailbox);\n\n  // Estados de Encaminhamento de E-mail",
   );
 }
 
 // Actualizar loadDomainData para ler mailbox
-if (!content.includes('setMailboxState(')) {
+if (!content.includes("setMailboxState(")) {
   content = content.replace(
-    'if (data.emailRoute) {',
-    'if (data.mailbox) {\n        setMailboxState(data.mailbox);\n      }\n\n      if (data.emailRoute) {'
+    "if (data.emailRoute) {",
+    "if (data.mailbox) {\n        setMailboxState(data.mailbox);\n      }\n\n      if (data.emailRoute) {",
   );
 }
 
 // Adicionar handleProvisionMailbox
-if (!content.includes('handleProvisionMailbox')) {
+if (!content.includes("handleProvisionMailbox")) {
   content = content.replace(
-    'const handleSaveEmailRoute = async () => {',
+    "const handleSaveEmailRoute = async () => {",
     `const handleProvisionMailbox = async () => {
     if (!activeTenant || !activeSlug) return;
     setIsProvisioningMailbox(true);
@@ -57,12 +58,12 @@ if (!content.includes('handleProvisionMailbox')) {
     }
   };
 
-  const handleSaveEmailRoute = async () => {`
+  const handleSaveEmailRoute = async () => {`,
   );
 }
 
 // Adicionar UI da mailbox na aba "email"
-if (!content.includes('Caixa de Correio Profissional')) {
+if (!content.includes("Caixa de Correio Profissional")) {
   content = content.replace(
     '<TabsContent value="email" className="space-y-4">',
     `<TabsContent value="email" className="space-y-4">
@@ -132,7 +133,7 @@ if (!content.includes('Caixa de Correio Profissional')) {
               )}
             </CardContent>
           </Card>
-`
+`,
   );
 }
 

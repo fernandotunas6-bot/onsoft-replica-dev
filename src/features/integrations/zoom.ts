@@ -271,26 +271,24 @@ export const disconnectZoom = createServerFn({ method: "POST" })
       existing?.config && typeof existing.config === "object" && !Array.isArray(existing.config)
         ? existing.config
         : {};
-    const { error } = await db
-      .from("school_integrations")
-      .upsert(
-        {
-          school_id: membership.schoolId,
-          provider: "zoom",
-          status: "disconnected",
-          config: {
-            ...current,
-            accountId: "",
-            accountEmail: "",
-            accountName: "",
-            connectedAt: null,
-            grantedCapabilities: [],
-          },
-          updated_by: context.userId,
-          created_by: context.userId,
+    const { error } = await db.from("school_integrations").upsert(
+      {
+        school_id: membership.schoolId,
+        provider: "zoom",
+        status: "disconnected",
+        config: {
+          ...current,
+          accountId: "",
+          accountEmail: "",
+          accountName: "",
+          connectedAt: null,
+          grantedCapabilities: [],
         },
-        { onConflict: "school_id,provider" },
-      );
+        updated_by: context.userId,
+        created_by: context.userId,
+      },
+      { onConflict: "school_id,provider" },
+    );
     if (error) throw error;
     return { ok: true };
   });

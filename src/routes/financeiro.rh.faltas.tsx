@@ -81,7 +81,7 @@ function HrAbsencesPage() {
       toast.error(error instanceof Error ? error.message : "Não foi possível guardar a decisão."),
   });
 
-  const rows = absences.data ?? [];
+  const rows = useMemo(() => absences.data ?? [], [absences.data]);
   const filtered = useMemo(
     () => rows.filter((row) => filter === "all" || row.validationStatus === filter),
     [filter, rows],

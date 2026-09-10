@@ -332,8 +332,13 @@ export function AssessmentCenter({
     retry: false,
   });
 
-  const items = assessmentsQuery.data?.items ?? [];
-  const scores = assessmentsQuery.data?.scores ?? [];
+  // useMemo para a identidade destas listas não mudar a cada render — sem
+  // isto os useMemo/useEffect a jusante recalculavam sempre.
+  const items = useMemo(() => assessmentsQuery.data?.items ?? [], [assessmentsQuery.data?.items]);
+  const scores = useMemo(
+    () => assessmentsQuery.data?.scores ?? [],
+    [assessmentsQuery.data?.scores],
+  );
   const assessmentsAvailable = assessmentsQuery.data?.available !== false;
 
   useEffect(() => {
@@ -671,6 +676,10 @@ export function AssessmentCenter({
       void saveChanges();
     }, 1600);
     return () => window.clearTimeout(timer);
+    // `saveChanges` é recriada a cada render: incluí-la reiniciaria o debounce
+    // a cada tecla e o autosave nunca chegaria a disparar. Estas três são o
+    // gatilho pretendido.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autosave, canEdit, dirtyCount]);
 
   const officialRows: PautaExportRow[] = visibleRows.map((entry, index) => ({
@@ -1069,6 +1078,10 @@ export function AssessmentCenter({
     if (!open) return;
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // `undo`/`redo`/`fillDown` são recriadas a cada render: incluí-las voltaria
+    // a registar o listener de teclado em cada render. O atalho só precisa de
+    // ser (re)ligado quando o painel abre ou fecha.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const classes = Array.from(new Set(classGroups.map((group) => group.grade_name).filter(Boolean)));

@@ -20,6 +20,10 @@ export default tseslint.config(
       "**/*.gen.ts",
       "src/integrations/supabase/types.ts",
       ".claude/**",
+      // Artefactos de build do Tauri/Rust — o flat config não lê .gitignore,
+      // e sem isto o lint analisava JS gerado dentro de src-tauri/target/.
+      "src-tauri/target/**",
+      "src-tauri/gen/**",
     ],
   },
   {

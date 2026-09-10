@@ -84,7 +84,10 @@ describe("Client IP Extraction Security", () => {
 });
 
 describe("Invitation Recipient Protection Logic", () => {
-  function validateInvitationRecipient(userEmail: string | undefined, invitedEmail: string): boolean {
+  function validateInvitationRecipient(
+    userEmail: string | undefined,
+    invitedEmail: string,
+  ): boolean {
     const uEmail = userEmail?.toLowerCase().trim();
     const iEmail = invitedEmail.toLowerCase().trim();
     if (uEmail && uEmail !== iEmail) {
@@ -94,14 +97,10 @@ describe("Invitation Recipient Protection Logic", () => {
   }
 
   it("accepts invitation when authenticated session matches invited email", () => {
-    expect(
-      validateInvitationRecipient("professor@escola.ao", "professor@escola.ao")
-    ).toBe(true);
+    expect(validateInvitationRecipient("professor@escola.ao", "professor@escola.ao")).toBe(true);
   });
 
   it("rejects invitation when authenticated session belongs to a different email", () => {
-    expect(
-      validateInvitationRecipient("attacker@externo.com", "professor@escola.ao")
-    ).toBe(false);
+    expect(validateInvitationRecipient("attacker@externo.com", "professor@escola.ao")).toBe(false);
   });
 });

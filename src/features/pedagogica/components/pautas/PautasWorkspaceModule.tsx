@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Award,
   Printer,
@@ -141,10 +141,17 @@ export function PautasWorkspaceModule({
       ? globalTerm.sequence
       : 1;
   const [selectedTerm, setSelectedTerm] = useState<number>(initialTerm);
-  const classGroups = workspace?.classGroups ?? [];
-  const enrollmentOptions = workspace?.enrollmentOptions ?? [];
-  const classSubjectNav = workspace?.classSubjects ?? [];
-  const allTermGrades = workspace?.termGrades ?? [];
+  // `?? []` cria um array novo a cada render, o que fazia todos os useMemo/
+  // useEffect que dependem destas listas recalcularem sempre — memoização a
+  // zero numa página pesada. Com useMemo a identidade só muda quando os dados
+  // mudam de facto.
+  const classGroups = useMemo(() => workspace?.classGroups ?? [], [workspace?.classGroups]);
+  const enrollmentOptions = useMemo(
+    () => workspace?.enrollmentOptions ?? [],
+    [workspace?.enrollmentOptions],
+  );
+  const classSubjectNav = useMemo(() => workspace?.classSubjects ?? [], [workspace?.classSubjects]);
+  const allTermGrades = useMemo(() => workspace?.termGrades ?? [], [workspace?.termGrades]);
 
   const [selectedClassId, setSelectedClassId] = useState<string>(() => classGroups[0]?.id ?? "");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
@@ -509,55 +516,60 @@ export function PautasWorkspaceModule({
     };
   }, [selectedCycle, schoolSettings, currentClass, activeYearLabel, configuredPeriodCount]);
 
-  // Filtered Documents based on search query and status filter
-  const filterStudentList = <T extends { name: string; code?: string; status?: string }>(
-    list: T[],
-  ): T[] => {
-    return list.filter((item) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch =
-        !q ||
-        item.name.toLowerCase().includes(q) ||
-        (item.code && item.code.toLowerCase().includes(q));
+  // Filtered Documents based on search query and status filter.
+  // `useCallback` para que os quatro useMemo abaixo possam depender desta
+  // função directamente: antes listavam à mão `searchQuery`/`statusFilter`
+  // (o que ela fecha por dentro), e bastava alguém acrescentar aqui outro
+  // valor e esquecer os quatro arrays para nascer uma closure obsoleta.
+  const filterStudentList = useCallback(
+    <T extends { name: string; code?: string; status?: string }>(list: T[]): T[] => {
+      return list.filter((item) => {
+        const q = searchQuery.toLowerCase().trim();
+        const matchSearch =
+          !q ||
+          item.name.toLowerCase().includes(q) ||
+          (item.code && item.code.toLowerCase().includes(q));
 
-      if (!matchSearch) return false;
+        if (!matchSearch) return false;
 
-      if (statusFilter === "pass") {
-        return (
-          item.status === "TRANSITA" ||
-          item.status === "APROVADO" ||
-          item.status === "APTO" ||
-          item.status === "APTO (PAP)"
-        );
-      }
-      if (statusFilter === "fail") {
-        return (
-          item.status === "NÃO TRANSITA" ||
-          item.status === "REPROVADO" ||
-          item.status === "NÃO APTO" ||
-          item.status === "NÃO APTO (PAP)" ||
-          item.status === "RECURSO"
-        );
-      }
-      return true;
-    });
-  };
+        if (statusFilter === "pass") {
+          return (
+            item.status === "TRANSITA" ||
+            item.status === "APROVADO" ||
+            item.status === "APTO" ||
+            item.status === "APTO (PAP)"
+          );
+        }
+        if (statusFilter === "fail") {
+          return (
+            item.status === "NÃO TRANSITA" ||
+            item.status === "REPROVADO" ||
+            item.status === "NÃO APTO" ||
+            item.status === "NÃO APTO (PAP)" ||
+            item.status === "RECURSO"
+          );
+        }
+        return true;
+      });
+    },
+    [searchQuery, statusFilter],
+  );
 
   const filteredMiniDocument = useMemo(
     () => ({ ...rawMiniDocument, students: filterStudentList(rawMiniDocument.students) }),
-    [rawMiniDocument, searchQuery, statusFilter],
+    [rawMiniDocument, filterStudentList],
   );
   const filteredTrimesterDocument = useMemo(
     () => ({ ...rawTrimesterDocument, students: filterStudentList(rawTrimesterDocument.students) }),
-    [rawTrimesterDocument, searchQuery, statusFilter],
+    [rawTrimesterDocument, filterStudentList],
   );
   const filteredFinalDocument = useMemo(
     () => ({ ...rawFinalDocument, students: filterStudentList(rawFinalDocument.students) }),
-    [rawFinalDocument, searchQuery, statusFilter],
+    [rawFinalDocument, filterStudentList],
   );
   const filteredExamDocument = useMemo(
     () => ({ ...rawExamDocument, students: filterStudentList(rawExamDocument.students) }),
-    [rawExamDocument, searchQuery, statusFilter],
+    [rawExamDocument, filterStudentList],
   );
 
   // Active student list based on selected view mode

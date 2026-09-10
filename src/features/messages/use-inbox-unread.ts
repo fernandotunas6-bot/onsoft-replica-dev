@@ -62,6 +62,10 @@ export function useInboxUnread(colleagues: SchoolColleague[] = []) {
     initialData: 0,
   });
 
+  // `readTick.data` não é usado no corpo, mas é o sinal de invalidação: o mapa
+  // vem do localStorage e só deve ser relido quando o tick avança. Removê-lo
+  // (como a regra sugere) congelaria a contagem de não-lidos.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- tick de invalidação deliberado
   const lastRead = useMemo(() => readLastReadMap(currentUser.id), [currentUser.id, readTick.data]);
 
   const previews = useMemo(() => {

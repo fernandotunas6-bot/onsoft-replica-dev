@@ -169,7 +169,7 @@ function CalendarioPage() {
     retry: false,
   });
 
-  const events = eventsQuery.data ?? [];
+  const events = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
 
   // Sem ano lectivo activo nada se destranca: nem períodos, nem planos de
   // propina (fee_plans.academic_year_id é NOT NULL), nem estrutura pedagógica.

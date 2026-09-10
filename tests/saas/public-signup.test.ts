@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeEach, vi, afterEach } from "vitest";
 import { runPublicSchoolSignup } from "@/features/saas/public-signup";
 import { provisionTenantCore } from "@/features/saas/provisioning-core";
-import { validatePublicSchoolSignup } from "@/features/saas/schemas";
 
 // Mock provisionTenantCore to avoid actually touching DB during these logic tests.
 // O mock devolve `slug`/`hostname` porque é o núcleo que os resolve (via
@@ -20,12 +19,19 @@ vi.mock("@/features/saas/provisioning-core", () => ({
 }));
 
 describe("runPublicSchoolSignup logic", () => {
+  // Forma real de `PublicSchoolSignupInput` (ver features/saas/schemas.ts).
+  // Antes este fixture usava `school_name` e omitia `plan_code`/`admin_*` —
+  // campos que o schema exige. Como `provisionTenantCore` está mockado, o
+  // teste passava a validar uma forma que a rota real rejeitaria.
   const baseData = {
-    school_name: "Escola Nova",
+    name: "Escola Nova",
     slug: "escola-nova",
     contact_name: "Admin",
     contact_email: "test@example.com",
     contact_phone: "912345678",
+    plan_code: "start" as const,
+    admin_email: "admin@example.com",
+    admin_name: "Administrador",
     website: "", // Honeypot must be empty
   };
 
@@ -48,11 +54,14 @@ describe("runPublicSchoolSignup logic", () => {
     expect(res).not.toHaveProperty("adminSetupUrl");
     expect(provisionTenantCore).toHaveBeenCalledWith(
       {
-        school_name: "Escola Nova",
+        name: "Escola Nova",
         slug: "escola-nova",
         contact_name: "Admin",
         contact_email: "test@example.com",
         contact_phone: "912345678",
+        plan_code: "start",
+        admin_email: "admin@example.com",
+        admin_name: "Administrador",
         trial_days: 14,
       },
       { auditUserId: null, source: "public_signup" },

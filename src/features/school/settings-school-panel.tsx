@@ -173,16 +173,22 @@ export function SchoolSettingsPanel() {
     retry: false,
   });
   const canEdit = currentUser.role === "Administrador";
-  const baselineInstitution: Institution = schoolQuery.data
-    ? {
-        nome: schoolQuery.data.name,
-        nif: schoolQuery.data.nif ?? "",
-        diretor: schoolQuery.data.director_name ?? "",
-        telefone: schoolQuery.data.phone ?? "",
-        email: schoolQuery.data.email ?? "",
-        endereco: schoolQuery.data.address ?? "",
-      }
-    : initialInstitution;
+  // Memoizado: o objecto era reconstruído a cada render, o que fazia o useMemo
+  // que o consome (detecção de alterações por guardar) recalcular sempre.
+  const baselineInstitution: Institution = useMemo(
+    () =>
+      schoolQuery.data
+        ? {
+            nome: schoolQuery.data.name,
+            nif: schoolQuery.data.nif ?? "",
+            diretor: schoolQuery.data.director_name ?? "",
+            telefone: schoolQuery.data.phone ?? "",
+            email: schoolQuery.data.email ?? "",
+            endereco: schoolQuery.data.address ?? "",
+          }
+        : initialInstitution,
+    [schoolQuery.data],
+  );
 
   useEffect(() => {
     const school = schoolQuery.data;

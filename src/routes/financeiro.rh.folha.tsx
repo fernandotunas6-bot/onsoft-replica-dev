@@ -117,7 +117,7 @@ function PayrollOperationsPage() {
       toast.error(error instanceof Error ? error.message : "Não foi possível aprovar a folha."),
   });
   const selected = detail.data?.run ?? null;
-  const items = detail.data?.items ?? [];
+  const items = useMemo(() => detail.data?.items ?? [], [detail.data?.items]);
   const totalBase = useMemo(() => items.reduce((sum, item) => sum + item.baseAmountKz, 0), [items]);
   const totalVariable = useMemo(
     () =>

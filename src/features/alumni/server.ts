@@ -333,15 +333,13 @@ export const bootstrapGraduatedStudents = createServerFn({ method: "POST" })
     const missing = graduated.filter((row) => !existingIds.has(row.id));
     if (!missing.length) return { created: 0 };
 
-    const { error: insertError } = await db
-      .from("alumni_profiles")
-      .insert(
-        missing.map((row) => ({
-          school_id: membership.schoolId,
-          student_id: row.id,
-          person_id: row.person_id,
-        })),
-      );
+    const { error: insertError } = await db.from("alumni_profiles").insert(
+      missing.map((row) => ({
+        school_id: membership.schoolId,
+        student_id: row.id,
+        person_id: row.person_id,
+      })),
+    );
     if (insertError) throw publicDatabaseError(insertError, "Não foi possível activar os Alumni.");
     return { created: missing.length };
   });
@@ -591,17 +589,15 @@ export const recordAlumniEngagement = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     await assertAlumniInSchool(db, membership.schoolId, data.alumniId);
     const occurredAt = data.occurredAt ?? new Date().toISOString();
-    const { error } = await db
-      .from("alumni_engagements")
-      .insert({
-        school_id: membership.schoolId,
-        alumni_id: data.alumniId,
-        kind: data.kind,
-        title: data.title,
-        occurred_at: occurredAt,
-        value_numeric: data.valueNumeric,
-        notes: data.notes,
-      });
+    const { error } = await db.from("alumni_engagements").insert({
+      school_id: membership.schoolId,
+      alumni_id: data.alumniId,
+      kind: data.kind,
+      title: data.title,
+      occurred_at: occurredAt,
+      value_numeric: data.valueNumeric,
+      notes: data.notes,
+    });
     if (error) throw publicDatabaseError(error, "Não foi possível registar a interação Alumni.");
     await db
       .from("alumni_profiles")
@@ -668,17 +664,15 @@ export const registerAlumniForEvent = createServerFn({ method: "POST" })
     const membership = await requireSgaWriter(context.userId);
     const db = await loadSgaAdminClient();
     await assertAlumniInSchool(db, membership.schoolId, data.alumniId);
-    const { error } = await db
-      .from("alumni_event_registrations")
-      .upsert(
-        {
-          school_id: membership.schoolId,
-          event_id: data.eventId,
-          alumni_id: data.alumniId,
-          status: data.status,
-        },
-        { onConflict: "event_id,alumni_id" },
-      );
+    const { error } = await db.from("alumni_event_registrations").upsert(
+      {
+        school_id: membership.schoolId,
+        event_id: data.eventId,
+        alumni_id: data.alumniId,
+        status: data.status,
+      },
+      { onConflict: "event_id,alumni_id" },
+    );
     if (error)
       throw publicDatabaseError(error, "Não foi possível actualizar a inscrição no evento.");
     return { ok: true };

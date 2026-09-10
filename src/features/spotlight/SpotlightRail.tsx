@@ -43,9 +43,12 @@ export function SpotlightRail({
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
+  // Extraído para variável: a regra não consegue verificar estaticamente uma
+  // expressão complexa dentro do array de dependências.
+  const itemIdsKey = items.map((item) => item.id).join("|");
   useEffect(() => {
     setIndex(0);
-  }, [items.map((item) => item.id).join("|")]);
+  }, [itemIdsKey]);
 
   useEffect(() => {
     if (items.length < 2 || paused) return;

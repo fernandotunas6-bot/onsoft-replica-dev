@@ -4,11 +4,12 @@ import type { StudentRelationsSnapshot } from "@/features/intelligence/students/
 
 const baseSnapshot: StudentRelationsSnapshot = {
   studentId: "123",
-  enrollment: { id: "en-1", classId: "class-1", className: "10A" },
-  finance: { overdueCount: 0 },
+  // Forma real de StudentRelationsSnapshot["enrollment"]: não tem `classId`.
+  enrollment: { id: "en-1", status: "active", className: "10A", gradeName: "10ª" },
+  finance: { hasData: true, overdueCount: 0, overallStatus: "settled" },
   academic: { finalAverage: null, absences: 0 },
   documents: { hasData: false, pendingCount: 0 },
-  guardians: { count: 1 },
+  guardians: { count: 1, hasPrimary: true },
 };
 
 describe("generateStudentNarrativeReport", () => {
@@ -28,7 +29,7 @@ describe("generateStudentNarrativeReport", () => {
       {
         ...baseSnapshot,
         academic: { finalAverage: 8, absences: 6 },
-        finance: { overdueCount: 2 },
+        finance: { hasData: true, overdueCount: 2, overallStatus: "overdue" },
       },
       "Maria",
     );

@@ -53,12 +53,7 @@ async function verifyLocalJwtSignature(token: string, secret: string): Promise<b
       ["verify"],
     );
 
-    return await crypto.subtle.verify(
-      "HMAC",
-      key,
-      sigBytes,
-      new TextEncoder().encode(unsigned),
-    );
+    return await crypto.subtle.verify("HMAC", key, sigBytes, new TextEncoder().encode(unsigned));
   } catch {
     return false;
   }

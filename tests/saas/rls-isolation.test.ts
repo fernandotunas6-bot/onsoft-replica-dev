@@ -99,8 +99,8 @@ describe("hasPermission — Professor", () => {
     expect(hasPermission(["Professor"], "finance.invoice")).toBe(false);
   });
 
-  it("Professor NÃO tem acessos.manage", () => {
-    expect(hasPermission(["Professor"], "acessos.manage")).toBe(false);
+  it("Professor NÃO tem access.manage", () => {
+    expect(hasPermission(["Professor"], "access.manage")).toBe(false);
   });
 
   it("Professor NÃO tem documents.issue", () => {
@@ -167,7 +167,7 @@ describe("hasPermission — grant overrides", () => {
 
   it("Administrador tem acesso total independentemente de grants (por design)", () => {
     // O Administrador faz bypass a todos os grants — é a regra arquitectural
-    expect(hasPermission(["Administrador"], "acessos.manage")).toBe(true);
+    expect(hasPermission(["Administrador"], "access.manage")).toBe(true);
     expect(hasPermission(["Administrador"], "finance.invoice")).toBe(true);
   });
 

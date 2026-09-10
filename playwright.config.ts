@@ -9,11 +9,7 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   retries: isCi ? 1 : 0,
   reporter: isCi
-    ? [
-        ["github"],
-        ["html", { open: "never", outputFolder: "playwright-report" }],
-        ["list"],
-      ]
+    ? [["github"], ["html", { open: "never", outputFolder: "playwright-report" }], ["list"]]
     : [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {
     baseURL: process.env.VITE_SIGA_URL ?? "http://localhost:3006",

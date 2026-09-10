@@ -303,18 +303,16 @@ export const submitMyAlumniSurvey = createServerFn({ method: "POST" })
       .or(`closes_at.is.null,closes_at.gte.${now}`)
       .maybeSingle();
     if (!survey) throw new Error("Esta pesquisa já não está disponível.");
-    const { error } = await db
-      .from("alumni_survey_responses")
-      .upsert(
-        {
-          school_id: membership.schoolId,
-          survey_id: data.surveyId,
-          alumni_id: profile.id,
-          response_json: data.response,
-          submitted_at: now,
-        },
-        { onConflict: "survey_id,alumni_id" },
-      );
+    const { error } = await db.from("alumni_survey_responses").upsert(
+      {
+        school_id: membership.schoolId,
+        survey_id: data.surveyId,
+        alumni_id: profile.id,
+        response_json: data.response,
+        submitted_at: now,
+      },
+      { onConflict: "survey_id,alumni_id" },
+    );
     if (error) throw publicDatabaseError(error, "Não foi possível enviar a pesquisa.");
     return { ok: true };
   });

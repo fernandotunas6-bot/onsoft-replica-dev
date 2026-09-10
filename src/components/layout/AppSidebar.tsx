@@ -66,10 +66,17 @@ export function AppSidebar({
     () => getPortalNavigation(currentUser.role, currentUser.grants, activePlan),
     [currentUser.role, currentUser.grants, activePlan],
   );
-  const parentsOfActive = visibleGroups
-    .flatMap((g) => g.items)
-    .filter((i) => i.children?.some((c) => c.to === pathname))
-    .map((i) => i.label);
+  // Memoizado para o efeito abaixo poder depender dele directamente. Antes
+  // dependia só de `pathname`, o que deixava de fora a mudança de
+  // `visibleGroups` (papel/grants/plano): os menus recém-visíveis não abriam.
+  const parentsOfActive = useMemo(
+    () =>
+      visibleGroups
+        .flatMap((g) => g.items)
+        .filter((i) => i.children?.some((c) => c.to === pathname))
+        .map((i) => i.label),
+    [visibleGroups, pathname],
+  );
   const [openMenus, setOpenMenus] = useState<string[]>(parentsOfActive);
 
   useEffect(() => {
@@ -86,7 +93,7 @@ export function AppSidebar({
 
   useEffect(() => {
     setOpenMenus((prev) => Array.from(new Set([...prev, ...parentsOfActive])));
-  }, [pathname]);
+  }, [parentsOfActive]);
 
   const toggle = (label: string) =>
     setOpenMenus((prev) => {

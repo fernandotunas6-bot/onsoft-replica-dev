@@ -201,7 +201,10 @@ function PedagogicaPage() {
     account.role === "Administrador" ||
     account.role === "Secretaria" ||
     account.role === "Professor";
-  const teachingLevels = school?.pedagogy?.teachingLevels ?? [];
+  const teachingLevels = useMemo(
+    () => school?.pedagogy?.teachingLevels ?? [],
+    [school?.pedagogy?.teachingLevels],
+  );
 
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
@@ -275,14 +278,14 @@ function PedagogicaPage() {
   };
 
   const workspace = workspaceQuery.data;
-  const classGroups = workspace?.classGroups ?? [];
+  const classGroups = useMemo(() => workspace?.classGroups ?? [], [workspace?.classGroups]);
   const academicYears = workspace?.academicYears ?? [];
   const courses = workspace?.courses ?? [];
   const gradeLevels = workspace?.gradeLevels ?? [];
   const rooms = workspace?.rooms ?? [];
   const classrooms = classroomsQuery.data ?? [];
   const subjects = workspace?.subjects ?? [];
-  const termGrades = workspace?.termGrades ?? [];
+  const termGrades = useMemo(() => workspace?.termGrades ?? [], [workspace?.termGrades]);
   const enrollmentOptions = workspace?.enrollmentOptions ?? [];
   const classSubjects = workspace?.classSubjects ?? [];
   const scheduleSlots = workspace?.scheduleSlots ?? [];

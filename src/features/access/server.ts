@@ -33,7 +33,9 @@ type AuthedContext = {
 
 function isAdministratorRole(role: string): boolean {
   const normalized = role.trim().toLowerCase();
-  return ["administrador", "admin", "owner", "diretor geral", "director geral"].includes(normalized);
+  return ["administrador", "admin", "owner", "diretor geral", "director geral"].includes(
+    normalized,
+  );
 }
 
 async function requireAdminContext(context: AuthedContext) {
@@ -145,7 +147,9 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
     if (!context) throw new Error("Unauthorized");
     const { schoolId, isAdministrator } = await requireAdminContext(context);
     if (data.cargo === "Administrador" && !isAdministrator) {
-      throw new Error("Apenas um Administrador pode convidar ou criar contas com cargo de Administrador.");
+      throw new Error(
+        "Apenas um Administrador pode convidar ou criar contas com cargo de Administrador.",
+      );
     }
     const admin = await loadAdminClient();
 
@@ -557,10 +561,17 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
 export const resolveBiToEmailFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => resolveBiToEmailInputSchema.parse(input))
   .handler(async ({ data }) => {
-    const ip = (typeof getRequestIP === "function" ? getRequestIP({ xForwardedFor: true }) : null) ?? "unknown";
+    const ip =
+      (typeof getRequestIP === "function" ? getRequestIP({ xForwardedFor: true }) : null) ??
+      "unknown";
     const rateLimitKey = `bi_lookup:${ip}`;
-    if (!isRateLimitBypassed(rateLimitKey) && !checkRateLimit([rateLimitKey], BI_LOOKUP_RATE_LIMIT)) {
-      throw new Error("Muitas tentativas de consulta a partir deste endereço IP. Tente novamente mais tarde.");
+    if (
+      !isRateLimitBypassed(rateLimitKey) &&
+      !checkRateLimit([rateLimitKey], BI_LOOKUP_RATE_LIMIT)
+    ) {
+      throw new Error(
+        "Muitas tentativas de consulta a partir deste endereço IP. Tente novamente mais tarde.",
+      );
     }
     recordRateLimitAttempt([rateLimitKey], BI_LOOKUP_RATE_LIMIT);
 
@@ -576,7 +587,9 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
     if (!context) throw new Error("Unauthorized");
     const { schoolId, isAdministrator } = await requireAdminContext(context);
     if (!isAdministrator) {
-      throw new Error("Apenas Administradores podem redefinir senhas de funcionários directamente.");
+      throw new Error(
+        "Apenas Administradores podem redefinir senhas de funcionários directamente.",
+      );
     }
     const admin = await loadAdminClient();
 
@@ -598,7 +611,9 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
         .maybeSingle();
 
       if (targetProfile?.cargo && isAdministratorRole(targetProfile.cargo)) {
-        throw new Error("Não é permitido redefinir directamente a senha de outro Administrador. Utilize a recuperação por e-mail.");
+        throw new Error(
+          "Não é permitido redefinir directamente a senha de outro Administrador. Utilize a recuperação por e-mail.",
+        );
       }
     }
 
@@ -875,7 +890,6 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     }
 
     // 6. Ligar people.user_id por email (idempotente)
-    const invitedEmail = (invitation.email as string).toLowerCase().trim();
     try {
       await admin
         .from("people")

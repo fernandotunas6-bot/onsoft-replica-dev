@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthSession } from "@/components/auth/AuthGate";
 import { getCurrentAccountContext } from "@/features/auth/server";
@@ -63,7 +63,10 @@ export function useCurrentAccount() {
   const firstName = profile.data?.first_name || null;
   const lastName = profile.data?.last_name || null;
   const primaryRole = (profile.data?.cargo as ApplicationRole) || "Utilizador";
-  const availableRoles = (profile.data?.roles as ApplicationRole[]) ?? [primaryRole];
+  const availableRoles = useMemo(
+    () => (profile.data?.roles as ApplicationRole[]) ?? [primaryRole],
+    [profile.data?.roles, primaryRole],
+  );
 
   const schools: UserSchoolMembershipItem[] = profile.data?.schools ?? [];
   const currentSchoolId = profile.data?.school_id ?? null;

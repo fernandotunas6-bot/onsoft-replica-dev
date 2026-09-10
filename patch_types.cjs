@@ -1,6 +1,6 @@
-const fs = require('fs');
-const file = 'src/integrations/supabase/types.ts';
-let data = fs.readFileSync(file, 'utf8');
+const fs = require("fs");
+const file = "src/integrations/supabase/types.ts";
+let data = fs.readFileSync(file, "utf8");
 
 const tablesToAdd = `      permissions: {
         Row: { id: string; code: string; description: string | null; created_at: string; };
@@ -43,19 +43,25 @@ const tablesToAdd = `      permissions: {
       };
 `;
 
-if (!data.includes('school_memberships: {')) {
-  data = data.replace('    Tables: {', '    Tables: {\n' + tablesToAdd);
+if (!data.includes("school_memberships: {")) {
+  data = data.replace("    Tables: {", "    Tables: {\n" + tablesToAdd);
 }
 
 // Modify profiles to remove mandatory cargo/school_id and add new fields
-data = data.replace(/avatar_url: string \| null;\n[ ]+cargo: string;\n[ ]+created_at: string;\n[ ]+full_name: string \| null;\n[ ]+id: string;\n[ ]+school_id: string;/g, 
-'avatar_url: string | null;\n          cargo: string | null;\n          first_name: string | null;\n          last_name: string | null;\n          phone: string | null;\n          status: string | null;\n          created_at: string;\n          full_name: string | null;\n          id: string;\n          school_id: string | null;');
+data = data.replace(
+  /avatar_url: string \| null;\n[ ]+cargo: string;\n[ ]+created_at: string;\n[ ]+full_name: string \| null;\n[ ]+id: string;\n[ ]+school_id: string;/g,
+  "avatar_url: string | null;\n          cargo: string | null;\n          first_name: string | null;\n          last_name: string | null;\n          phone: string | null;\n          status: string | null;\n          created_at: string;\n          full_name: string | null;\n          id: string;\n          school_id: string | null;",
+);
 
-data = data.replace(/avatar_url\?: string \| null;\n[ ]+cargo\?: string;\n[ ]+created_at\?: string;\n[ ]+full_name\?: string \| null;\n[ ]+id: string;\n[ ]+school_id: string;/g, 
-'avatar_url?: string | null;\n          cargo?: string | null;\n          first_name?: string | null;\n          last_name?: string | null;\n          phone?: string | null;\n          status?: string | null;\n          created_at?: string;\n          full_name?: string | null;\n          id: string;\n          school_id?: string | null;');
+data = data.replace(
+  /avatar_url\?: string \| null;\n[ ]+cargo\?: string;\n[ ]+created_at\?: string;\n[ ]+full_name\?: string \| null;\n[ ]+id: string;\n[ ]+school_id: string;/g,
+  "avatar_url?: string | null;\n          cargo?: string | null;\n          first_name?: string | null;\n          last_name?: string | null;\n          phone?: string | null;\n          status?: string | null;\n          created_at?: string;\n          full_name?: string | null;\n          id: string;\n          school_id?: string | null;",
+);
 
-data = data.replace(/avatar_url\?: string \| null;\n[ ]+cargo\?: string;\n[ ]+created_at\?: string;\n[ ]+full_name\?: string \| null;\n[ ]+id\?: string;\n[ ]+school_id\?: string;/g, 
-'avatar_url?: string | null;\n          cargo?: string | null;\n          first_name?: string | null;\n          last_name?: string | null;\n          phone?: string | null;\n          status?: string | null;\n          created_at?: string;\n          full_name?: string | null;\n          id?: string;\n          school_id?: string | null;');
+data = data.replace(
+  /avatar_url\?: string \| null;\n[ ]+cargo\?: string;\n[ ]+created_at\?: string;\n[ ]+full_name\?: string \| null;\n[ ]+id\?: string;\n[ ]+school_id\?: string;/g,
+  "avatar_url?: string | null;\n          cargo?: string | null;\n          first_name?: string | null;\n          last_name?: string | null;\n          phone?: string | null;\n          status?: string | null;\n          created_at?: string;\n          full_name?: string | null;\n          id?: string;\n          school_id?: string | null;",
+);
 
 fs.writeFileSync(file, data);
-console.log('Types patched successfully');
+console.log("Types patched successfully");

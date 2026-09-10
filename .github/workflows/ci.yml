@@ -69,8 +69,11 @@ jobs:
           name: a11y-report
           path: reports/a11y.html
 
+      # Sem `continue-on-error`: o lint voltou a ser um gate a sério. Estava
+      # desligado porque rebentava (`RangeError: Invalid string length`) com
+      # o volume de erros de formatação — agora corre a zero erros e só deixa
+      # avisos, por isso uma regressão real (ex.: rules-of-hooks) falha aqui.
       - name: Lint
-        continue-on-error: true
         run: bun run lint
 
       - name: Testes (Vitest)

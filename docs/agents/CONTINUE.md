@@ -4,7 +4,35 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-09-09)
+## Estado (2026-09-10)
+
+### Ciclo 74 — Blindagem de Autenticação, Isolamento Multi-Tenant, Zero Erros de Lint e Expansão da Inteligência (2026-09-10)
+
+Continuação directa dos Ciclos 71–73, com foco em testes de segurança estruturais, activação do pipeline de Lint no CI e integração de mapas relacionais no Dashboard.
+
+**1. Testes de Segurança Estruturais do Núcleo:**
+- **`tests/security/auth-middleware.test.ts` (11 testes):** Cobertura exaustiva do middleware `requireSupabaseAuth`. Fixação das duas barreiras contra tokens forjados:
+  1. Quando a Supabase Auth API responde (mesmo rejeitando), a decisão é terminativa e nunca cai em fallback local.
+  2. Em caso de inacessibilidade de rede (SSR), validação estrita de assinatura HMAC-SHA256 e expiração contra `SUPABASE_JWT_SECRET`. Rejeição determinística de tokens forjados ou com assinaturas adulteradas.
+- **`tests/security/tenant-isolation.test.ts` (10 testes):** Verificação das fronteiras multi-tenant em `requireSgaWriter` e `resolveSgaMembershipAdmin`. Garantia de que tentativas de leitura/escrita com `school_id` inconsistente, falsificação de cookie de escola activa ou utilizadores sem membership correspondente falham estritamente com `ACTIVE_SCHOOL_UNAVAILABLE`.
+
+**2. Expansão do Motor Relacional no Dashboard:**
+- Adicionado `src/features/intelligence/dashboard/dashboard-overview-relation-map.ts` mapeando os atalhos relacionais e contextuais de `/pedagogica?tab=horarios` e `/calendario` a partir de `dashboard-overview`.
+- Integrado em `src/features/intelligence/use-relations.ts`.
+
+**3. Hardening do CI e Higienização de Lint:**
+- `.github/workflows/ci.yml`: Re-activado o gate estrito de Lint (`bun run lint` sem `continue-on-error`), eliminando bloqueios anteriores.
+- `eslint.config.js`: Ignorados artefactos de compilação Tauri/Rust (`src-tauri/target/**`, `src-tauri/gen/**`).
+- Correções de formatação e remoção de redundâncias de sintaxe em `access/server.ts`, `alumni/server.ts`, `alumni/self-service.ts`, `integrations/zoom.ts` e suites de segurança.
+
+**Resultados Oficiais:**
+- **`tsc --noEmit`**: **0 erros** (100% limpo).
+- **`npm run lint`**: **0 erros** (205 warnings não-bloqueantes).
+- **`vitest run`**: **161 ficheiros passaram / 2 skipped (163)**, **1.097 testes passaram (1.099)** com 100% de sucesso.
+- **`npm run siga:check`**: 18 módulos inventariados + rotas de navegação 100% validadas.
+- **`npm run build`**: Bundle de produção Vite e Nitro Cloudflare Worker compilados com sucesso em 13.1s.
+
+---
 
 ### Ciclo 73 — Resolução dos importadores de pessoas e ZERO erros em `tsc --noEmit` (2026-09-09)
 

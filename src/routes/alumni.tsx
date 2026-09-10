@@ -159,7 +159,7 @@ function AlumniPage() {
   });
 
   const overview = overviewQuery.data;
-  const alumni = alumniQuery.data ?? [];
+  const alumni = useMemo(() => alumniQuery.data ?? [], [alumniQuery.data]);
   const opportunities = opportunitiesQuery.data ?? [];
   const events = eventsQuery.data ?? [];
   const upcomingEvents = events.filter(

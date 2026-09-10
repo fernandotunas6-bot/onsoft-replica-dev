@@ -180,7 +180,7 @@ function AcessosPage() {
     });
   };
 
-  const accounts = accountsQuery.data ?? [];
+  const accounts = useMemo(() => accountsQuery.data ?? [], [accountsQuery.data]);
   const staff = (staffQuery.data ?? []).filter(
     (person): person is NonNullable<typeof person> => person != null,
   );

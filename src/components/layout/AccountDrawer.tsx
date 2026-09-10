@@ -13,7 +13,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,12 +107,17 @@ export function AccountDrawer({
     "perfil" | "foto" | "seguranca" | "instituicoes"
   >("perfil");
 
-  const openThread = (next: SchoolColleague) => {
-    touchRecentContact(currentUser.id, next.id);
-    setPeer(next);
-    setView("thread");
-    setPendingPeerId(null);
-  };
+  // `useCallback` para os dois efeitos abaixo poderem depender desta função
+  // em vez de replicarem à mão o que ela fecha por dentro (`currentUser.id`).
+  const openThread = useCallback(
+    (next: SchoolColleague) => {
+      touchRecentContact(currentUser.id, next.id);
+      setPeer(next);
+      setView("thread");
+      setPendingPeerId(null);
+    },
+    [currentUser.id],
+  );
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -124,14 +129,14 @@ export function AccountDrawer({
     };
     window.addEventListener(OPEN_DM_EVENT, handler);
     return () => window.removeEventListener(OPEN_DM_EVENT, handler);
-  }, [colleagues, currentUser.id]);
+  }, [colleagues, openThread]);
 
   useEffect(() => {
     if (!pendingPeerId) return;
     const person = colleagues.find((row) => row.id === pendingPeerId);
     if (!person) return;
     openThread(person);
-  }, [colleagues, pendingPeerId, currentUser.id]);
+  }, [colleagues, pendingPeerId, openThread]);
 
   const handleSignOut = async () => {
     await signOut();
