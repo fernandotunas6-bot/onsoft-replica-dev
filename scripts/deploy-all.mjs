@@ -52,6 +52,23 @@ const mergedEnv = {
     envVars["VITE_PAYFLOW_URL"] ||
     process.env.VITE_PAYFLOW_URL ||
     "https://payflow.portal-siga.com",
+  // ADMIN (Next.js) lê NEXT_PUBLIC_*, não VITE_* — mesma lacuna, prefixo diferente.
+  NEXT_PUBLIC_WEB_URL:
+    envVars["NEXT_PUBLIC_WEB_URL"] || process.env.NEXT_PUBLIC_WEB_URL || "https://siga-web.pages.dev",
+  NEXT_PUBLIC_ADMIN_URL:
+    envVars["NEXT_PUBLIC_ADMIN_URL"] ||
+    process.env.NEXT_PUBLIC_ADMIN_URL ||
+    "https://siga-admin.pages.dev",
+  NEXT_PUBLIC_DOCS_URL:
+    envVars["NEXT_PUBLIC_DOCS_URL"] ||
+    process.env.NEXT_PUBLIC_DOCS_URL ||
+    "https://siga-docs.pages.dev",
+  NEXT_PUBLIC_SIGA_URL:
+    envVars["NEXT_PUBLIC_SIGA_URL"] || process.env.NEXT_PUBLIC_SIGA_URL || "https://portal-siga.com",
+  NEXT_PUBLIC_PAYFLOW_URL:
+    envVars["NEXT_PUBLIC_PAYFLOW_URL"] ||
+    process.env.NEXT_PUBLIC_PAYFLOW_URL ||
+    "https://payflow.portal-siga.com",
 };
 
 function runStep(title, fn) {
