@@ -2,7 +2,13 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import type { ComponentType } from "react";
-import { renderRoute, resetRouteLocation, routeComponentOf, setRouteSearch } from "./_harness";
+import {
+  renderRoute,
+  resetPersistedFilters,
+  resetRouteLocation,
+  routeComponentOf,
+  setRouteSearch,
+} from "./_harness";
 import type { PedagogicalWorkspace } from "@/features/academic/server";
 
 /**
@@ -103,7 +109,7 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   resetRouteLocation();
-  localStorage.clear();
+  resetPersistedFilters();
 });
 
 describe("/pedagogica — render", () => {

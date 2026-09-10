@@ -17,6 +17,8 @@ import { MediaAvatar } from "@/components/ui/media-frame";
 import { getMyAlumniPortal } from "@/features/alumni/self-service";
 import { getMyAlumniPortfolio } from "@/features/alumni/portfolio";
 
+type PortfolioItem = Awaited<ReturnType<typeof getMyAlumniPortfolio>>[number];
+
 export const Route = createFileRoute("/alumni/portal/portfolio/print")({
   head: () => ({
     meta: [
@@ -70,11 +72,11 @@ function AlumniPortfolioPrintPage() {
   }
 
   const items = portfolioQuery.data ?? [];
-  const publicItems = items.filter((item: any) => item.visibility !== "private");
-  const featured = publicItems.filter((item: any) => item.featured);
-  const remaining = publicItems.filter((item: any) => !item.featured);
-  const profile = portal.profile as Record<string, any>;
-  const person = (portal.person ?? {}) as Record<string, any>;
+  const publicItems = items.filter((item) => item.visibility !== "private");
+  const featured = publicItems.filter((item) => item.featured);
+  const remaining = publicItems.filter((item) => !item.featured);
+  const profile = portal.profile;
+  const person = portal.person;
 
   return (
     <AppShell>
@@ -96,8 +98,8 @@ function AlumniPortfolioPrintPage() {
           <header className="border-b border-border/60 p-7 md:p-10 print:p-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
               <MediaAvatar
-                src={person.photo_url ?? null}
-                alt={person.full_name ?? "Alumni"}
+                src={person?.photo_url ?? null}
+                alt={person?.full_name ?? "Alumni"}
                 className="size-24 rounded-[26px] object-cover"
               />
               <div className="min-w-0 flex-1">
@@ -105,7 +107,7 @@ function AlumniPortfolioPrintPage() {
                   SIGA · Alumni Portfolio
                 </div>
                 <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">
-                  {person.full_name ?? "Alumni"}
+                  {person?.full_name ?? "Alumni"}
                 </h1>
                 <p className="mt-2 text-base font-semibold text-muted-foreground">
                   {profile.headline || profile.current_role || "Perfil profissional Alumni"}
@@ -163,7 +165,7 @@ function AlumniPortfolioPrintPage() {
                   <h2 className="text-xl font-black">Trabalhos em destaque</h2>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {featured.map((item: any) => (
+                  {featured.map((item) => (
                     <PortfolioCard key={item.id} item={item} />
                   ))}
                 </div>
@@ -177,7 +179,7 @@ function AlumniPortfolioPrintPage() {
               </div>
               {remaining.length ? (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {remaining.map((item: any) => (
+                  {remaining.map((item) => (
                     <PortfolioCard key={item.id} item={item} />
                   ))}
                 </div>
@@ -194,7 +196,7 @@ function AlumniPortfolioPrintPage() {
               <section>
                 <h2 className="mb-4 text-xl font-black">Experiência</h2>
                 <div className="space-y-3">
-                  {portal.experiences.map((item: any) => (
+                  {portal.experiences.map((item) => (
                     <div
                       key={item.id}
                       className="rounded-2xl border border-border/60 p-4 break-inside-avoid"
@@ -234,7 +236,7 @@ function AlumniPortfolioPrintPage() {
   );
 }
 
-function PortfolioCard({ item }: { item: any }) {
+function PortfolioCard({ item }: { item: PortfolioItem }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border/60 break-inside-avoid">
       {item.image_url ? (

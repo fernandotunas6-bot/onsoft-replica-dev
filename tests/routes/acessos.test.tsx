@@ -2,7 +2,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import type { ComponentType } from "react";
-import { renderRoute, routeComponentOf } from "./_harness";
+import { renderRoute, resetPersistedFilters, routeComponentOf } from "./_harness";
 import type {
   listSystemAccounts,
   listSchoolInvitations,
@@ -94,7 +94,7 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  localStorage.clear();
+  resetPersistedFilters();
 });
 
 describe("/acessos — render", () => {

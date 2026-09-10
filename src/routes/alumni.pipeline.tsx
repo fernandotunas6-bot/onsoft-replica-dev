@@ -217,49 +217,50 @@ function AlumniPipelinePage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {applications.length ? (
-                  applications.map((row: any) => (
-                    <div
-                      key={row.id}
-                      className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px] lg:items-center"
-                    >
-                      <div>
-                        <p className="font-bold">{row.alumni.fullName}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {row.alumni.studentNumber || "Sem nº de processo"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">
-                          {row.alumni_opportunities?.title || "Oportunidade"}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {row.alumni_opportunities?.organization ||
-                            row.alumni_opportunities?.opportunity_type ||
-                            "Rede Alumni"}
-                        </p>
-                      </div>
-                      <select
-                        value={row.status}
-                        onChange={(e) =>
-                          applicationMutation.mutate({
-                            opportunityId: row.opportunity_id,
-                            alumniId: row.alumni_id,
-                            status: e.target.value as (typeof applicationStatuses)[number],
-                          })
-                        }
-                        className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                  applications.map((row) => {
+                    const opp = Array.isArray(row.alumni_opportunities)
+                      ? row.alumni_opportunities[0]
+                      : row.alumni_opportunities;
+                    return (
+                      <div
+                        key={row.id}
+                        className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px] lg:items-center"
                       >
-                        {applicationStatuses.map((status) => (
-                          <option key={status} value={status}>
-                            {statusLabel[status]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ))
+                        <div>
+                          <p className="font-bold">{row.alumni.fullName}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {row.alumni.studentNumber || "Sem nº de processo"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">{opp?.title || "Oportunidade"}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {opp?.organization || opp?.opportunity_type || "Rede Alumni"}
+                          </p>
+                        </div>
+                        <select
+                          value={row.status}
+                          onChange={(e) =>
+                            applicationMutation.mutate({
+                              opportunityId: row.opportunity_id,
+                              alumniId: row.alumni_id,
+                              status: e.target.value as (typeof applicationStatuses)[number],
+                            })
+                          }
+                          className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                        >
+                          {applicationStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {statusLabel[status]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Ainda não existem candidaturas ou manifestações de interesse.
+                    Sem candidaturas registadas nesta selecção.
                   </p>
                 )}
               </CardContent>
@@ -273,48 +274,51 @@ function AlumniPipelinePage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {registrations.length ? (
-                  registrations.map((row: any) => (
-                    <div
-                      key={row.id}
-                      className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px] lg:items-center"
-                    >
-                      <div>
-                        <p className="font-bold">{row.alumni.fullName}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {row.checked_in_at
-                            ? `Check-in: ${new Date(row.checked_in_at).toLocaleString("pt-AO")}`
-                            : "Sem check-in"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">
-                          {row.alumni_events?.title || "Evento Alumni"}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {row.alumni_events?.starts_at
-                            ? new Date(row.alumni_events.starts_at).toLocaleString("pt-AO")
-                            : "Data por confirmar"}
-                        </p>
-                      </div>
-                      <select
-                        value={row.status}
-                        onChange={(e) =>
-                          registrationMutation.mutate({
-                            eventId: row.event_id,
-                            alumniId: row.alumni_id,
-                            status: e.target.value as (typeof eventStatuses)[number],
-                          })
-                        }
-                        className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                  registrations.map((row) => {
+                    const event = Array.isArray(row.alumni_events)
+                      ? row.alumni_events[0]
+                      : row.alumni_events;
+                    return (
+                      <div
+                        key={row.id}
+                        className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px] lg:items-center"
                       >
-                        {eventStatuses.map((status) => (
-                          <option key={status} value={status}>
-                            {statusLabel[status]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ))
+                        <div>
+                          <p className="font-bold">{row.alumni.fullName}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {row.checked_in_at
+                              ? `Check-in: ${new Date(row.checked_in_at).toLocaleString("pt-AO")}`
+                              : "Sem check-in"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">{event?.title || "Evento Alumni"}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {event?.starts_at
+                              ? new Date(event.starts_at).toLocaleString("pt-AO")
+                              : "Data por confirmar"}
+                          </p>
+                        </div>
+                        <select
+                          value={row.status}
+                          onChange={(e) =>
+                            registrationMutation.mutate({
+                              eventId: row.event_id,
+                              alumniId: row.alumni_id,
+                              status: e.target.value as (typeof eventStatuses)[number],
+                            })
+                          }
+                          className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                        >
+                          {eventStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {statusLabel[status]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Ainda não existem inscrições em eventos.
@@ -387,7 +391,7 @@ function AlumniPipelinePage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {mentorships.length ? (
-                  mentorships.map((row: any) => (
+                  mentorships.map((row) => (
                     <div
                       key={row.id}
                       className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_200px] lg:items-center"

@@ -83,6 +83,38 @@ disto antes de suspeitar de lentidão.
 
 ---
 
+### Ciclo 77 — Render de `/comunicacoes`, `/calendario`, `/relatorios/academicos` e `/alunos`, e Tipagem Estrita em Alumni (2026-09-10)
+
+Continuação directa do Ciclo 75/76, cumprindo o ponto 1 da sua «próxima fatia»: as quatro rotas que faltavam no harness de render e a higienização de tipos nas rotas de Alumni.
+
+**1. Quatro suítes novas (`tests/routes/` — 21 testes):**
+- **`comunicacoes.test.tsx` (6):** loading → carregado, estado vazio, aviso de migração em falta (que substitui o erro cru do Postgres **e** fecha a redacção), erro real quando a falha não é de schema, corte por papel (`canManage`) e subscrição realtime de `school_announcements`.
+- **`calendario.test.tsx` (5):** o impasse da escola nova — sem ano lectivo activo o ecrã tem de pedir «Definir ano lectivo» e **não** «Novo período», que não teria onde gravar; mais o estado vazio com ano activo, o encaminhamento para a secretaria em papéis sem gestão e o ramo de erro.
+- **`relatorios-academicos.test.tsx` (5):** aviso de migração académica incompleta a substituir os indicadores (a zero seriam lidos como resultado real da escola), tabela de desempenho por turma, ramo de erro e o corte por papel — que também fixa que a query **nem sequer arranca** (`enabled: canRead`).
+- **`alunos.test.tsx` (5):** o estado vazio muda de texto conforme a categoria activa, que vem do deep link `?action=confirmar` do dashboard; mais o aviso de turmas em falta e as **cinco** subscrições realtime da listagem.
+
+**2. Harness (`tests/routes/_harness.tsx`) — três peças novas:**
+- `setCurrentAccount` / `resetCurrentAccount`: muda o papel teste a teste. A fábrica do `vi.mock` corre uma vez por módulo, por isso sem isto cada papel exigia um ficheiro próprio — e os ramos por permissão ficavam por testar.
+- `supabaseClientMock` + `realtimeBindingsFor` / `emitRealtime`: substitui o cliente Supabase, que de outra forma é construído no import do módulo e abre uma **WebSocket para produção** durante o teste. Além de cortar a rede, deixa asseverar a tabela subscrita — a classe de bug do Ciclo 54 (`direct_messages` vs. `siga_direct_messages`), que não dá erro nenhum: o painel só nunca actualiza. Verificado que o guarda falha ao trocar o nome da tabela.
+- `resetPersistedFilters`: ver a armadilha abaixo.
+
+**3. Terceira armadilha do jsdom — os filtros persistem também na URL:** `usePersistedListFilters` guarda os critérios em **dois** sítios: `localStorage` e a query string (`?lf=`, via `history.replaceState`). O jsdom reutiliza a mesma `window.location` em todo o ficheiro, por isso `localStorage.clear()` no `afterEach` **não chega** — um teste que activa um filtro contamina os seguintes, e a falha aparece como uma linha que «não existe» numa lista que devia tê-la. Custou uma sessão de depuração em `/alunos`. `resetPersistedFilters` limpa os dois e substituiu o `localStorage.clear()` nas sete suítes.
+
+**4. Higienização de Tipos e Erradicação de `any` em Alumni:**
+- `src/routes/alumni.$alumniId.portfolio.tsx`, `alumni.portal.portfolio.print.tsx`, `alumni.portal.portfolio.showcase.tsx`: tipagem estrita de itens de portfólio (`AdminPortfolioItem`, `PortfolioItem`) e remoção do padrão inseguro `person ?? {}` (que transformava o tipo em `{}` e ocultava campos reais no TypeScript), substituído por optional chaining limpo `person?.photo_url` e `person?.full_name`.
+- `src/routes/alumni.pipeline.tsx`: desconstrução segura de relações de junção PostgREST (`alumni_opportunities`, `alumni_events`), tratando transparentemente cenários onde o retorno do driver PostgREST é inferido como array sem recorrer a casts `any`.
+
+**Resultados Oficiais (todos corridos e verificados):**
+- **`tsc --noEmit`**: **0 erros** (100% limpo em todo o `src/` e `tests/`).
+- **`npm run lint`**: **0 erros** (warnings reduzidos de 168 para 130).
+- **`vitest run`**: **171 ficheiros / 2 skipped**, **1.141 testes / 2 skipped**, 100% verde (Node 24).
+- **`npm run siga:check`**: 18 módulos inventariados + `siga:check-nav` (13 testes) ✓.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker compilados com sucesso (4.93s).
+
+**Próxima fatia:** os pontos 2 e 3 do Ciclo 75 mantêm-se (semear `role_permissions` dos papéis em falta; flakiness de `enrollment-live.spec.ts`). Em render, as rotas que ainda faltam e seguem o mesmo molde: `/faturas` (realtime + SAF-T), `/documentos` e `/pessoas`.
+
+---
+
 ### Ciclo 75 — Expansão dos Testes de Render de Rotas, Redução de Any e Resiliência no CI (2026-09-10)
 
 Continuação directa do Ciclo 74, cumprindo o item de maior valor do roadmap: expansão dos testes de montagem/render às rotas mais complexas do sistema e erradicação de débitos de tipagem.

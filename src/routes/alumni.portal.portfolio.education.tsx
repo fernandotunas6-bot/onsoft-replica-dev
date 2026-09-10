@@ -184,7 +184,7 @@ function AlumniPortfolioEducationPage() {
 
           <div className="space-y-8">
             {alumniPortfolioEducationLevels.map((level) => {
-              const rows = stages.filter((stage: any) => stage.education_level === level);
+              const rows = stages.filter((stage) => stage.education_level === level);
               return (
                 <section key={level}>
                   <div className="mb-3 flex items-center gap-2">
@@ -194,7 +194,7 @@ function AlumniPortfolioEducationPage() {
                   </div>
                   {rows.length ? (
                     <div className="divide-y divide-border/60 border-y border-border/60">
-                      {rows.map((stage: any) => (
+                      {rows.map((stage) => (
                         <div key={stage.id} className="flex items-start gap-4 py-5">
                           <School className="mt-1 size-5 shrink-0 text-muted-foreground" />
                           <div className="min-w-0 flex-1">

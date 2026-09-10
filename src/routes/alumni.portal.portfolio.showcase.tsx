@@ -77,16 +77,13 @@ function AlumniPortfolioShowcasePage() {
   // returns abaixo. Um Hook (useMemo) chamado depois de um `return`
   // condicional só corre nalguns renders, o que viola as Rules of Hooks e
   // fazia o React rebentar ("Rendered more hooks than during the previous
-  // render") assim que os dados chegavam depois do ecrã de loading.
-  const visibleItems = (portfolioQuery.data ?? []).filter(
-    (item: any) => item.visibility !== "private",
-  );
+  const visibleItems = (portfolioQuery.data ?? []).filter((item) => item.visibility !== "private");
   const counts = useMemo(
     () => ({
-      primary: visibleItems.filter((item: any) => item.education_level === "primary").length,
-      middle: visibleItems.filter((item: any) => item.education_level === "middle").length,
-      higher: visibleItems.filter((item: any) => item.education_level === "higher").length,
-      legacy: visibleItems.filter((item: any) => !item.education_level).length,
+      primary: visibleItems.filter((item) => item.education_level === "primary").length,
+      middle: visibleItems.filter((item) => item.education_level === "middle").length,
+      higher: visibleItems.filter((item) => item.education_level === "higher").length,
+      legacy: visibleItems.filter((item) => !item.education_level).length,
     }),
     [visibleItems],
   );
@@ -109,8 +106,8 @@ function AlumniPortfolioShowcasePage() {
       </AppShell>
     );
 
-  const profile = portal.profile as Record<string, any>;
-  const person = (portal.person ?? {}) as Record<string, any>;
+  const profile = portal.profile;
+  const person = portal.person;
   const educationStages = educationQuery.data ?? [];
 
   const availableLevels = (Object.keys(levelMeta) as EducationLevel[]).filter(
@@ -120,24 +117,22 @@ function AlumniPortfolioShowcasePage() {
     ? selectedLevel
     : (availableLevels[0] ?? "primary");
   const activeMeta = levelMeta[activeLevel];
-  const stageOptions = educationStages.filter(
-    (stage: any) => stage.education_level === activeLevel,
-  );
-  const validStageId = stageOptions.some((stage: any) => stage.id === selectedStageId)
+  const stageOptions = educationStages.filter((stage) => stage.education_level === activeLevel);
+  const validStageId = stageOptions.some((stage) => stage.id === selectedStageId)
     ? selectedStageId
     : "all";
-  const levelItems = visibleItems.filter((item: any) =>
+  const levelItems = visibleItems.filter((item) =>
     activeLevel === "legacy" ? !item.education_level : item.education_level === activeLevel,
   );
   const institutionItems =
     validStageId === "all"
       ? levelItems
-      : levelItems.filter((item: any) => item.education_stage_id === validStageId);
-  const featured = institutionItems.filter((item: any) => item.featured);
+      : levelItems.filter((item) => item.education_stage_id === validStageId);
+  const featured = institutionItems.filter((item) => item.featured);
   const work = featured.length
-    ? [...featured, ...institutionItems.filter((item: any) => !item.featured)]
+    ? [...featured, ...institutionItems.filter((item) => !item.featured)]
     : institutionItems;
-  const activeStage = stageOptions.find((stage: any) => stage.id === validStageId) ?? null;
+  const activeStage = stageOptions.find((stage) => stage.id === validStageId) ?? null;
 
   return (
     <AppShell>
@@ -162,7 +157,7 @@ function AlumniPortfolioShowcasePage() {
                 {profile.current_role || profile.industry || "Perfil académico e profissional"}
               </p>
               <h1 className="text-5xl font-black leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
-                {person.full_name ?? "Estudante"}
+                {person?.full_name ?? "Estudante"}
               </h1>
               <p className="mt-7 max-w-3xl text-lg leading-8 text-muted-foreground sm:text-xl">
                 {profile.headline ||
@@ -174,7 +169,7 @@ function AlumniPortfolioShowcasePage() {
                   <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     Nome completo
                   </dt>
-                  <dd className="mt-2 text-sm font-semibold">{person.full_name ?? "—"}</dd>
+                  <dd className="mt-2 text-sm font-semibold">{person?.full_name ?? "—"}</dd>
                 </div>
                 <div>
                   <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -208,8 +203,8 @@ function AlumniPortfolioShowcasePage() {
               <div className="absolute -inset-3 rounded-[34px] border border-border/50 bg-muted/30" />
               <div className="relative overflow-hidden rounded-[30px] border border-border/70 bg-background p-2 shadow-sm">
                 <MediaAvatar
-                  src={person.photo_url ?? null}
-                  alt={person.full_name ?? "Estudante"}
+                  src={person?.photo_url ?? null}
+                  alt={person?.full_name ?? "Estudante"}
                   className="aspect-[4/5] h-auto w-full rounded-[24px] object-cover"
                 />
               </div>
@@ -253,7 +248,7 @@ function AlumniPortfolioShowcasePage() {
                 >
                   Todas
                 </button>
-                {stageOptions.map((stage: any) => (
+                {stageOptions.map((stage) => (
                   <button
                     key={stage.id}
                     type="button"
@@ -306,7 +301,7 @@ function AlumniPortfolioShowcasePage() {
             </div>
             {work.length ? (
               <div className="space-y-16">
-                {work.map((item: any, index: number) => (
+                {work.map((item, index: number) => (
                   <article
                     key={item.id}
                     className="grid gap-7 border-t border-border/60 pt-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,.9fr)]"

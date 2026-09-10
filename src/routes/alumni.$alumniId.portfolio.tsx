@@ -9,6 +9,8 @@ import { MediaAvatar } from "@/components/ui/media-frame";
 import { getAlumniProfile } from "@/features/alumni/server";
 import { listAlumniPortfolioAdmin, setAlumniPortfolioFeatured } from "@/features/alumni/portfolio";
 
+type AdminPortfolioItem = Awaited<ReturnType<typeof listAlumniPortfolioAdmin>>[number];
+
 export const Route = createFileRoute("/alumni/$alumniId/portfolio")({
   head: () => ({ meta: [{ title: "Portfólio Alumni 360º · SIGA" }] }),
   component: AlumniPortfolio360Page,
@@ -69,11 +71,11 @@ function AlumniPortfolio360Page() {
     );
   }
 
-  const profile = profileQuery.data.profile as Record<string, any>;
-  const person = (profileQuery.data.person ?? {}) as Record<string, any>;
+  const profile = profileQuery.data.profile;
+  const person = profileQuery.data.person;
   const items = portfolioQuery.data ?? [];
-  const visible = items.filter((item: any) => item.visibility !== "private");
-  const privateItems = items.filter((item: any) => item.visibility === "private");
+  const visible = items.filter((item) => item.visibility !== "private");
+  const privateItems = items.filter((item) => item.visibility === "private");
 
   return (
     <AppShell>
@@ -96,8 +98,8 @@ function AlumniPortfolio360Page() {
         <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-center">
             <MediaAvatar
-              src={person.photo_url ?? null}
-              alt={person.full_name ?? "Alumni"}
+              src={person?.photo_url ?? null}
+              alt={person?.full_name ?? "Alumni"}
               className="size-20 rounded-[24px] object-cover"
             />
             <div className="min-w-0 flex-1">
@@ -105,7 +107,7 @@ function AlumniPortfolio360Page() {
                 <FolderKanban className="size-3.5" /> Portfólio Alumni 360º
               </div>
               <h1 className="mt-3 text-3xl font-black tracking-tight">
-                {person.full_name ?? "Alumni"}
+                {person?.full_name ?? "Alumni"}
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {profile.headline ||
@@ -120,7 +122,7 @@ function AlumniPortfolio360Page() {
               </div>
               <div className="rounded-2xl bg-muted/60 p-3">
                 <p className="text-2xl font-black">
-                  {items.filter((item: any) => item.featured).length}
+                  {items.filter((item) => item.featured).length}
                 </p>
                 <p className="text-[10px] font-bold uppercase text-muted-foreground">Destaques</p>
               </div>
@@ -138,7 +140,7 @@ function AlumniPortfolio360Page() {
           </div>
           {visible.length ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {visible.map((item: any) => (
+              {visible.map((item) => (
                 <PortfolioAdminCard
                   key={item.id}
                   item={item}
@@ -167,7 +169,7 @@ function AlumniPortfolio360Page() {
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {privateItems.map((item: any) => (
+              {privateItems.map((item) => (
                 <PortfolioAdminCard
                   key={item.id}
                   item={item}
@@ -188,7 +190,7 @@ function PortfolioAdminCard({
   item,
   onToggleFeatured,
 }: {
-  item: any;
+  item: AdminPortfolioItem;
   onToggleFeatured: () => void;
 }) {
   return (

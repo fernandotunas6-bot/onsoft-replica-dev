@@ -91,6 +91,21 @@ export function setRouteParams(next: Record<string, string>) {
   routeParams = next;
 }
 
+/**
+ * Limpa os filtros de lista persistidos entre testes.
+ *
+ * `usePersistedListFilters` guarda os critérios em **dois** sítios:
+ * `localStorage` e a query string (`?lf=`, escrita com `history.replaceState`).
+ * O jsdom reutiliza a mesma `window.location` em todo o ficheiro de teste, por
+ * isso limpar só o `localStorage` não chega — os filtros de um teste
+ * sobreviviam ao seguinte e a lista aparecia filtrada por critérios que
+ * ninguém escolheu, com a falha a queixar-se de que a linha "não existe".
+ */
+export function resetPersistedFilters() {
+  localStorage.clear();
+  window.history.replaceState(null, "", "/");
+}
+
 /** Repõe search e params — chamar no `afterEach` para não contaminar testes. */
 export function resetRouteLocation() {
   routeSearch = {};
@@ -123,11 +138,29 @@ export function reactRouterMock() {
   };
 }
 
+let accountOverrides: Record<string, unknown> = {};
+
+/**
+ * Muda o que `useCurrentAccount()` devolve no próximo render — tipicamente o
+ * `role`. As rotas escondem acções inteiras atrás do papel (`canManage`), e
+ * sem isto cada papel exigiria um ficheiro de teste próprio, porque a fábrica
+ * do `vi.mock` corre uma vez por módulo. Chamar antes de `renderRoute`.
+ */
+export function setCurrentAccount(overrides: Record<string, unknown>) {
+  accountOverrides = overrides;
+}
+
+/** Repõe a conta por omissão (Administrador) — chamar no `afterEach`. */
+export function resetCurrentAccount() {
+  accountOverrides = {};
+}
+
 /**
  * `useCurrentAccount` real depende da sessão Supabase do `AuthGate`, que num
  * teste não existe — sem sessão devolve um papel vazio e as rotas escondem
  * tudo o que é interessante atrás das verificações de permissão. Aqui entra um
- * Administrador; `overrides` serve para exercitar outros papéis.
+ * Administrador; `overrides` fixa o valor para todo o ficheiro e
+ * `setCurrentAccount` sobrepõe-se a ele teste a teste.
  *
  * O `as never` é deliberado e está confinado a este ponto: o retorno real tem
  * ~20 campos e setters que nenhuma rota usa no caminho de render.
@@ -161,6 +194,7 @@ export function currentAccountMock(overrides: Record<string, unknown> = {}) {
         setActiveStudentId: () => {},
         profile: { data: null, isLoading: false, isError: false },
         ...overrides,
+        ...accountOverrides,
       }) as never,
   };
 }
@@ -182,6 +216,67 @@ export function mediaFrameMock() {
     MediaAvatar: () => <div data-testid="media-avatar" />,
     MediaFrame: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   };
+}
+
+type RealtimeFilter = { event?: string; schema?: string; table?: string };
+
+type RealtimeBinding = RealtimeFilter & {
+  channel: string;
+  handler: (payload: unknown) => void;
+};
+
+const realtimeBindings: RealtimeBinding[] = [];
+
+/**
+ * Substituto do cliente Supabase para rotas com subscrições realtime.
+ *
+ * Sem isto o cliente real é construído no import do módulo e abre uma
+ * WebSocket para o projecto **de produção** durante o teste — o que é lento,
+ * não determinístico e sai da máquina. Aqui as subscrições ficam registadas em
+ * memória e podem ser inspeccionadas (`realtimeBindingsFor`) ou disparadas
+ * (`emitRealtime`).
+ *
+ * Vale a pena asseverar sobre elas: o Ciclo 54 documenta um bug em que o
+ * cliente escutava `direct_messages` e a tabela real era `siga_direct_messages`
+ * — o painel simplesmente nunca actualizava, sem erro nenhum a assinalá-lo.
+ */
+export function supabaseClientMock() {
+  return {
+    supabase: {
+      channel(name: string) {
+        const channel = {
+          on(_event: string, filter: RealtimeFilter, handler: (payload: unknown) => void) {
+            realtimeBindings.push({ ...filter, channel: name, handler });
+            return channel;
+          },
+          subscribe() {
+            return channel;
+          },
+        };
+        return channel;
+      },
+      removeChannel: () => Promise.resolve("ok"),
+    },
+  };
+}
+
+/** Subscrições realtime registadas até agora para uma tabela. */
+export function realtimeBindingsFor(table: string) {
+  return realtimeBindings.filter((binding) => binding.table === table);
+}
+
+/**
+ * Dispara as subscrições de uma tabela, como faria um `postgres_changes`.
+ * Serve para verificar que o evento chega a invalidar a query certa — a outra
+ * metade do contrato de realtime que nenhum teste de lógica alcança.
+ */
+export function emitRealtime(table: string, payload: unknown = {}) {
+  for (const binding of realtimeBindingsFor(table)) binding.handler(payload);
+}
+
+/** Limpa as subscrições registadas — chamar no `afterEach`. */
+export function resetRealtime() {
+  realtimeBindings.length = 0;
 }
 
 /**

@@ -2,7 +2,12 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import type { ComponentType } from "react";
-import { renderRoute, resetRouteLocation, routeComponentOf } from "./_harness";
+import {
+  renderRoute,
+  resetPersistedFilters,
+  resetRouteLocation,
+  routeComponentOf,
+} from "./_harness";
 import type {
   getFinanceReporting,
   getFinanceSchemaStatus,
@@ -113,7 +118,7 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   resetRouteLocation();
-  localStorage.clear();
+  resetPersistedFilters();
 });
 
 describe("/financeiro — render", () => {
