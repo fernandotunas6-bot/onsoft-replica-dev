@@ -6,6 +6,83 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-10)
 
+### Ciclo 76 — Dois ciclos infinitos de render, navegação da barra lateral e um guarda para a classe toda (2026-09-10)
+
+Partiu de uma captura de ecrã de um telemóvel em `/pedagogica`: blocos de
+textura corrompida no lugar do texto da barra lateral, e quatro sub-itens de
+"Área Pedagógica" realçados como activos ao mesmo tempo. A investigação
+destapou três bugs reais e uma classe inteira.
+
+**1. Realce múltiplo na barra lateral (visível na captura):**
+- `AppSidebar` decidia o estado activo com `child.to === pathname`. Os quatro
+  sub-itens de "Área Pedagógica" apontam todos para `/pedagogica` e
+  distinguem-se só pelo `?tab=`, por isso acendiam os quatro e a barra deixava
+  de dizer em que separador se está. Não era do telemóvel — acontecia também no
+  desktop.
+- Extraído `isNavChildActive` (`portal-engine.ts`), que exige também a
+  coincidência dos parâmetros de pesquisa definidos.
+
+**2. Separador perdido nos portais Aluno e Encarregado (bug funcional):**
+- O item de topo "Frequência" aponta para `/pedagogica?tab=presencas`, mas o
+  render dos itens de topo passava só `to` ao `NavLinkRow` e deixava cair o
+  `search` — ao contrário do render dos sub-itens, que já o passava. O aluno
+  carregava em "Frequência" e aterrava em "Turmas". São os dois únicos itens de
+  topo com `search` em todo o catálogo de navegação.
+
+**3. Dois ciclos infinitos de render (o achado mais grave):**
+- **`AppSidebar`:** `useCurrentAccount` devolvia `grants: profile.data?.grants ?? {}`
+  — objecto NOVO a cada render enquanto a query de conta não resolvesse. Esse
+  valor é dependência de um `useMemo` que alimenta um `useEffect` que fazia
+  `setOpenMenus` com um array sempre novo: dependência muda → `setState` muda de
+  identidade → render → repete. **Descoberto ao tentar montar a barra num
+  teste: o processo pendurou sem sequer o timeout do Vitest disparar.**
+  Corrigido nas duas pontas — `NO_GRANTS` congelado e `mergeOpenMenus` a
+  devolver `prev` quando não há nada a abrir (o React desiste da actualização e
+  o ciclo quebra mesmo com dependências instáveis a montante).
+- **`CurriculoWorkspaceTab`:** `const { data: teacherAvailability = [] } = useQuery(...)`
+  com `availabilityTeacherId` a começar vazio → query desactivada → `data`
+  undefined → array novo a cada render → efeito com `setAvailabilityRows` →
+  ciclo **desde o momento em que a aba monta**, sem nada no ecrã a indicá-lo,
+  só CPU queimada. É plausível que seja a causa real da corrupção de textura da
+  captura: um componente a renderizar sem parar dentro de um painel com
+  `backdrop-filter` é exactamente o que faz um compositor de telemóvel devolver
+  lixo.
+
+**4. Eliminada a classe toda:**
+- `src/lib/stable-empty.ts` com `EMPTY_LIST` (congelado, identidade estável),
+  aplicado às 6 ocorrências do padrão (5 em `CurriculoWorkspaceTab`, 1 em
+  `SalasWorkspaceTab`).
+- `tests/lib/stable-query-defaults.test.ts` varre o `src/` e falha se
+  `const { data: x = [] } = useQuery(...)` voltar. Regra estreita de propósito:
+  só a desestruturação directa do resultado de uma query; valores por omissão
+  em props têm a mesma instabilidade mas hoje nenhum alimenta hooks.
+
+**5. Mitigação da corrupção de textura:**
+- `sheet.tsx`: `backdrop-filter` sai em `max-sm` (véu passa de 50% para 60% para
+  manter a separação visual). Um `backdrop-filter` obriga o compositor a
+  promover o painel que desliza a uma camada própria e a re-rasterizá-la durante
+  a animação. **Não reproduzível em máquina de desenvolvimento — depende da GPU
+  do dispositivo.** A confirmar no telemóvel: se os blocos voltarem, fazer
+  scroll na barra; se o texto aparecer correcto, é artefacto de pintura.
+
+**Testes acrescentados (10):** `isNavChildActive` (5), `mergeOpenMenus` (2),
+montagem da `AppSidebar` a inspeccionar `to`/`search` de cada link (3, com o
+guarda estático a somar 2). Verificado que os testes de montagem falham sem a
+correcção do ponto 2 e que o guarda estático falha ao reintroduzir o padrão.
+
+**Resultados Oficiais (todos corridos e verificados):**
+- **`tsc --noEmit`**: **0 erros**.
+- **`npm run lint`**: **0 erros** (168 warnings).
+- **`vitest run`**: **167 ficheiros / 2 skipped (169)**, **1.120 testes / 2 skipped (1.122)**.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓.
+
+**Nota para quem montar componentes em testes:** um ciclo infinito de render
+**pendura o Vitest sem o timeout disparar** — o ciclo corre em efeitos passivos
+e esfomeia o event loop. Se um teste de montagem ficar sem output, suspeitar
+disto antes de suspeitar de lentidão.
+
+---
+
 ### Ciclo 75 — Expansão dos Testes de Render de Rotas, Redução de Any e Resiliência no CI (2026-09-10)
 
 Continuação directa do Ciclo 74, cumprindo o item de maior valor do roadmap: expansão dos testes de montagem/render às rotas mais complexas do sistema e erradicação de débitos de tipagem.
