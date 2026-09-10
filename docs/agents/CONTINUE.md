@@ -6,6 +6,69 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-10)
 
+### Ciclo 79 — Vasculha por classes de bugs conhecidas, render de `/financeiro/rh` e correcção de um `tsc` que já não estava limpo (2026-09-10)
+
+Pedido amplo ("refinar toda a lógica, do painel principal aos pequenos
+ajustes"). Sem incidente concreto reportado, seguiu-se o método dos Ciclos
+75-78: caçar as mesmas classes de bugs já vistas neste projecto (`useEffect`
+com dependências instáveis, `?? {}`/`?? []` a apagar tipos, navegação sem
+`search`, open redirect sem allowlist) num lote de rotas do dia-a-dia, e
+fechar a fatia de cobertura de render ainda em falta.
+
+**1. Vasculha dirigida (sem bugs novos encontrados):** painel principal
+(`/`), `/configuracoes`, `/perfil`, `/financeiro/rh/pagamentos`,
+`/financeiro/rh/presenca`, `/planos-aula` — `tsc` e `eslint` limpos, sem
+`useEffect` de dependência instável, sem `?? {}`/`?? []` a esconder tipos.
+Verificado também que a regra "não negociável" de open redirect
+(`docs/agents/ARCHITECTURE_HARMONIZATION.md §5`) está de facto aplicada: o
+`redirectTo`/`targetOrigin` de magic-link só assume um hostname de cliente
+depois de o confirmar contra `tenant_domains` com `status: "verified"` — não é
+allowlist decorativa.
+
+**2. `tsc --noEmit` **não** estava limpo apesar do Ciclo 78 reclamar "0
+erros":** `tests/routes/documentos.test.tsx` fixava um `template` de teste
+sem o campo `status`, que passou a ser obrigatório no tipo de retorno de
+`listDocumentWorkspace` na mesma alteração do Ciclo 78
+(`src/features/documents/server.ts`) — o fixture do teste ficou para trás do
+tipo que a própria alteração endureceu. Corrigido a acrescentar
+`status: "active"` ao fixture. Vale registar: um "0 erros" reportado por um
+ciclo não é garantia rígida — vale a pena revalidar `tsc` antes de assumir a
+baseline limpa.
+
+**3. Suite de render nova (`tests/routes/financeiro-rh.test.tsx` — 6
+testes):** cobre `/financeiro/rh`, a única rota do agrupamento RH ainda sem
+teste de montagem: transição loading → carregado com os indicadores da
+`StatGrid`, contingência de esquema em falta (`ready: false`) a substituir os
+indicadores por um aviso — os zeros seriam lidos como dado real da escola —,
+estado vazio de ocorrências de aula, geração real de QR de check-in
+(`QRCode.toDataURL` correr a sério, sem mock, para confirmar que produz uma
+data URL válida), e dois ramos distintos do dashboard: erro (a página inteira
+colapsa num único painel — fixado deliberadamente, é um comportamento visível
+para quem usa RH, não óbvio à partida) e sucesso sem folhas salariais.
+Seguida a convenção do ficheiro (`.toBeDefined()`/`queryByText(...).toBeNull()`,
+sem `@testing-library/jest-dom` nem `@testing-library/user-event` — nenhum dos
+dois é dependência do projecto; interacção via `fireEvent.click`), e
+`vi.setConfig({ testTimeout: 20_000 })` — sem isto o primeiro teste passava
+isolado mas estourava os 5s por omissão quando a pasta inteira corre em
+paralelo (mesma mitigação já presente em `faturas.test.tsx`/`documentos.test.tsx`).
+
+**Resultados Oficiais (todos corridos e verificados):**
+- **`tsc --noEmit`**: **0 erros** (confirmado limpo após a correcção do ponto 2).
+- **`npx eslint tests/routes/financeiro-rh.test.tsx tests/routes/documentos.test.tsx`**: 0 erros, 0 warnings.
+- **`vitest run tests/routes/`**: **13 ficheiros / 54 testes**, 100% verde.
+- **`vitest run` (suíte completa)**: **175 ficheiros / 2 skipped**, **1.160 testes / 2 skipped**, 100% verde.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (12.5s).
+
+**Próxima fatia:**
+1. **~35 rotas em `src/routes/` ainda sem suite em `tests/routes/`**
+   (`alumni.*`, `financeiro.rh.faltas`, `financeiro.rh.folha`,
+   `financeiro.rh.pagamentos`, `financeiro.rh.presenca`, `importar`,
+   `saas-admin`, `catracas`, `arquivos`, etc.) — mesmo molde deste ciclo.
+2. **Flakiness de `enrollment-live.spec.ts`** (Ciclo 71) com a máquina em repouso.
+3. **Integração do ecossistema das 5 apps**: avaliar os refinamentos pendentes em `painel/` (redireccionamentos canónicos, boundaries resilientes e bridges para o PayFlow) — ainda por auditar em profundidade, este ciclo só confirmou a regra de open redirect no SIGA.
+
+---
+
 ### Ciclo 76 — Dois ciclos infinitos de render, navegação da barra lateral e um guarda para a classe toda (2026-09-10)
 
 Partiu de uma captura de ecrã de um telemóvel em `/pedagogica`: blocos de

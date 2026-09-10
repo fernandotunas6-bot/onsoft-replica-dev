@@ -72,7 +72,9 @@ const emptyWorkspace: DocumentWorkspace = {
 
 const sampleWorkspace: DocumentWorkspace = {
   students: [{ id: "stu-1", full_name: "Teresa Garcia", registration_number: "2025-0088" }],
-  templates: [{ id: "tpl-1", name: "Declaração de Matrícula", active: true, fee_amount: 0 }],
+  templates: [
+    { id: "tpl-1", name: "Declaração de Matrícula", status: "active", active: true, fee_amount: 0 },
+  ],
   requests: [
     {
       id: "req-1",
