@@ -69,6 +69,24 @@ export type NavGroup = { title: string; items: NavItem[] };
  * pelo `?tab=` (turmas, notas, horarios, chamada). Ficavam as quatro com o
  * fundo de item activo, sem dizer ao utilizador em que separador está.
  */
+/**
+ * Funde os menus a abrir com os já abertos, devolvendo **a mesma referência**
+ * quando não há nada a acrescentar.
+ *
+ * Isto não é micro-optimização: a `AppSidebar` chama isto dentro de um
+ * `useEffect` cuja dependência é derivada do papel/grants do utilizador. Se
+ * devolvesse sempre um array novo, o `setState` mudava de identidade, o
+ * componente voltava a renderizar, a dependência voltava a mudar e a barra
+ * lateral entrava em ciclo infinito de render — a montar a barra num teste, o
+ * processo ficava pendurado sem nunca terminar. Devolver `prev` faz o React
+ * desistir da actualização e quebra o ciclo mesmo que a dependência acima seja
+ * instável.
+ */
+export function mergeOpenMenus(prev: string[], parents: string[]): string[] {
+  if (parents.every((label) => prev.includes(label))) return prev;
+  return Array.from(new Set([...prev, ...parents]));
+}
+
 export function isNavChildActive(
   child: Pick<NavChild, "to" | "search">,
   pathname: string,

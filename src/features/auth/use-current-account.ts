@@ -10,6 +10,16 @@ import {
   rememberActiveSchool,
 } from "@/features/auth/active-school";
 
+/**
+ * Identidade estável para "sem grants".
+ *
+ * `profile.data?.grants ?? {}` criava um objecto novo em CADA render enquanto a
+ * query de conta não resolvesse (ou se a resposta não trouxesse grants). Quem
+ * consome isto como dependência de `useMemo`/`useEffect` — a `AppSidebar`
+ * fá-lo — via a dependência mudar sempre e reentrava em ciclo de render.
+ */
+const NO_GRANTS: Record<string, string> = Object.freeze({});
+
 const ACTIVE_ROLE_KEY = "siga:active-role";
 const ACTIVE_STUDENT_KEY = "siga:active-student-id";
 
@@ -160,7 +170,7 @@ export function useCurrentAccount() {
     setActiveRole,
     avatarUrl,
     initials,
-    grants: profile.data?.grants ?? {},
+    grants: profile.data?.grants ?? NO_GRANTS,
     schoolId: currentSchoolId,
     schoolName: currentSchoolName,
     schoolSlug: currentSchoolSlug,

@@ -25,7 +25,11 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
-import { getPortalNavigation, isNavChildActive } from "@/features/auth/portal-engine";
+import {
+  getPortalNavigation,
+  isNavChildActive,
+  mergeOpenMenus,
+} from "@/features/auth/portal-engine";
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
 import { UserProfileModal } from "@/components/auth/UserProfileModal";
@@ -97,7 +101,7 @@ export function AppSidebar({
   }, []);
 
   useEffect(() => {
-    setOpenMenus((prev) => Array.from(new Set([...prev, ...parentsOfActive])));
+    setOpenMenus((prev) => mergeOpenMenus(prev, parentsOfActive));
   }, [parentsOfActive]);
 
   const toggle = (label: string) =>
@@ -362,10 +366,18 @@ export function AppSidebar({
                     <li key={item.label} className="group/fly relative">
                       <NavLinkRow
                         to={item.to as string}
+                        {...(item.search ? { search: item.search } : {})}
                         label={item.label}
                         icon={item.icon}
                         collapsed={collapsed}
-                        active={item.to === pathname}
+                        active={isNavChildActive(
+                          {
+                            to: item.to as string,
+                            ...(item.search ? { search: item.search } : {}),
+                          },
+                          pathname,
+                          locationSearch,
+                        )}
                       />
                       {flyout}
                     </li>

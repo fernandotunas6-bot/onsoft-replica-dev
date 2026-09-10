@@ -4,6 +4,7 @@ import {
   getPortalNavigation,
   getPortalContextualSuggestions,
   isNavChildActive,
+  mergeOpenMenus,
 } from "@/features/auth/portal-engine";
 
 describe("Smart Portal Engine", () => {
@@ -134,5 +135,30 @@ describe("isNavChildActive", () => {
     const child = { to: "/pedagogica", search: { tab: "notas", turma: "t-1" } };
     expect(isNavChildActive(child, "/pedagogica", { tab: "notas" })).toBe(false);
     expect(isNavChildActive(child, "/pedagogica", { tab: "notas", turma: "t-1" })).toBe(true);
+  });
+});
+
+/**
+ * Regressão do ciclo infinito de render da barra lateral.
+ *
+ * A `AppSidebar` chama isto num `useEffect` cuja dependência deriva do
+ * papel/grants do utilizador. Enquanto `useCurrentAccount` devolvia
+ * `grants: … ?? {}` — objecto novo a cada render — a dependência mudava
+ * sempre; se o merge também devolvesse sempre um array novo, o `setState`
+ * mudava de identidade e o ciclo nunca parava. Montar a barra num teste
+ * pendurava o processo, sem sequer o timeout do Vitest a disparar.
+ */
+describe("mergeOpenMenus", () => {
+  it("devolve a MESMA referência quando não há nada a abrir", () => {
+    const prev = ["Área Pedagógica"];
+    expect(mergeOpenMenus(prev, ["Área Pedagógica"])).toBe(prev);
+    expect(mergeOpenMenus(prev, [])).toBe(prev);
+  });
+
+  it("acrescenta os menus em falta sem duplicar os já abertos", () => {
+    expect(mergeOpenMenus(["Área Pedagógica"], ["Área Pedagógica", "Financeiro"])).toEqual([
+      "Área Pedagógica",
+      "Financeiro",
+    ]);
   });
 });
