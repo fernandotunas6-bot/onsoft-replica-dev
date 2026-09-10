@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -152,12 +153,12 @@ export function LoginForm1({
                       <FormItem>
                         <div className="flex items-center">
                           <FormLabel>Senha</FormLabel>
-                          <a
-                            href="/auth/forgot-password"
+                          <Link
+                            href="/forgot-password"
                             className="ml-auto text-sm underline-offset-4 hover:underline"
                           >
                             Esqueceu a senha?
-                          </a>
+                          </Link>
                         </div>
                         <FormControl>
                           <Input type="password" {...field} />

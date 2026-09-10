@@ -62,7 +62,7 @@ runStep("Deploy DOC (painel/docs → siga-docs.pages.dev)", () => {
   execSync("npm run build", { cwd: docsDir, stdio: "inherit", env: mergedEnv });
   console.log("==> Deploying DOC to Cloudflare Pages...");
   execSync(
-    "npx wrangler pages deploy .vitepress/dist --project-name siga-docs --commit-dirty=true",
+    "npx wrangler pages deploy .vitepress/dist --project-name siga-docs --branch main --commit-dirty=true",
     {
       cwd: docsDir,
       stdio: "inherit",
@@ -77,7 +77,7 @@ runStep("Deploy WEB (painel/web → siga-web.pages.dev)", () => {
   console.log("==> Building WEB (Vite SPA)...");
   execSync("npm run build", { cwd: webDir, stdio: "inherit", env: mergedEnv });
   console.log("==> Deploying WEB to Cloudflare Pages...");
-  execSync("npx wrangler pages deploy dist --project-name siga-web --commit-dirty=true", {
+  execSync("npx wrangler pages deploy dist --project-name siga-web --branch main --commit-dirty=true", {
     cwd: webDir,
     stdio: "inherit",
     env: mergedEnv,
@@ -90,7 +90,7 @@ runStep("Deploy ADMIN (painel/admin → siga-admin.pages.dev)", () => {
   console.log("==> Building ADMIN (Next.js Static Export)...");
   execSync("npm run build", { cwd: adminDir, stdio: "inherit", env: mergedEnv });
   console.log("==> Deploying ADMIN to Cloudflare Pages...");
-  execSync("npx wrangler pages deploy out --project-name siga-admin --commit-dirty=true", {
+  execSync("npx wrangler pages deploy out --project-name siga-admin --branch main --commit-dirty=true", {
     cwd: adminDir,
     stdio: "inherit",
     env: mergedEnv,
