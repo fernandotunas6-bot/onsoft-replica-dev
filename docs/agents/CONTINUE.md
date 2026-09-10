@@ -81,6 +81,30 @@ correcção do ponto 2 e que o guarda estático falha ao reintroduzir o padrão.
 e esfomeia o event loop. Se um teste de montagem ficar sem output, suspeitar
 disto antes de suspeitar de lentidão.
 
+### Ciclo 78 — Render de `/faturas`, `/documentos` e `/pessoas`, Subscrições Realtime e Fecho do Catálogo de Rotas (2026-09-10)
+
+Continuação directa do Ciclo 77, completando a meta de cobrir com testes de montagem/render as rotas centrais do SIGA.
+
+**1. Três novas suítes de render de rotas (`tests/routes/` — 13 testes):**
+- **`faturas.test.tsx` (6):** transição loading → carregado com listagem de faturas reais, estado vazio ("Nenhuma factura neste filtro"), contingência de schema bloqueado quando faltam colunas no Postgres (`missingPenaltyAmount`), alerta para configuração de plano de propinas (`missingActiveFeePlan`), registo e integridade das subscrições realtime nas tabelas `invoices` e `payments`, e tratamento de falhas da API com mensagem de erro na tabela.
+- **`documentos.test.tsx` (4):** montagem de pedidos de certidões/declarações com associação ao aluno e turma, estado vazio de secretaria ("Ainda não há pedidos de documentos"), subscrição realtime de `document_requests` (evento `*`), e contingência de erro da API.
+- **`pessoas.test.tsx` (3):** montagem concorrente da listagem de professores e do registo central de pessoas, estados vazios amigáveis ("Nenhum professor neste filtro" e "Nenhuma pessoa encontrada"), e feedback visual seguro perante falhas de pesquisa no Postgres.
+
+**2. Refinamento de Tipagem em Documentos:**
+- **`src/features/documents/server.ts`:** tipagem explícita de `template` preservando `id`, `name` e `status` no retorno de `listDocumentWorkspace`, evitando que desestruturações com tipos soltos (`Record<string, unknown>`) apagassem propriedades essenciais para componentes de formulário (`QuickFormModal`) e garantindo verificação determinística de tipos no `tsc`.
+
+**Resultados Oficiais (todos corridos e verificados):**
+- **`tsc --noEmit`**: **0 erros** (100% limpo em todo o `src/` e `tests/`).
+- **`npx eslint tests/routes`**: **0 erros, 0 warnings**.
+- **`vitest run tests/routes/`**: **12 ficheiros / 48 testes**, 100% verde.
+- **`vitest run` (suíte completa)**: **174 ficheiros / 2 skipped**, **1.154 testes / 2 skipped**, 100% verde (Node 24).
+- **`npm run siga:check`**: 18 módulos inventariados + `siga:check-nav` (13 testes) ✓.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker compilados com sucesso.
+
+**Próxima fatia:**
+1. **Flakiness de `enrollment-live.spec.ts`** (Ciclo 71) com a máquina em repouso.
+2. **Integração do ecossistema das 5 apps**: avaliar os refinamentos pendentes em `painel/` (redireccionamentos canónicos, boundaries resilientes e bridges para o PayFlow).
+
 ---
 
 ### Ciclo 77 — Render de `/comunicacoes`, `/calendario`, `/relatorios/academicos` e `/alunos`, e Tipagem Estrita em Alumni (2026-09-10)

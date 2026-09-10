@@ -145,11 +145,19 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     );
 
     return {
-      templates: (templatesResult.data ?? []).map((template: Record<string, unknown>) => ({
-        ...template,
-        active: template["status"] === "active",
-        fee_amount: 0,
-      })),
+      templates: (templatesResult.data ?? []).map(
+        (
+          template: Record<string, unknown> & {
+            id: string;
+            name: string;
+            status: string;
+          },
+        ) => ({
+          ...template,
+          active: template.status === "active",
+          fee_amount: 0,
+        }),
+      ),
       students,
       requests: (requestsResult.data ?? []).map(
         (request: {
