@@ -31,6 +31,10 @@ async function assertPlatformAdmin(
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  if (pathname === '/' || pathname === '') {
+    return NextResponse.redirect(new URL('/tenants', request.url))
+  }
+
   if (pathname === '/login') {
     return NextResponse.redirect(new URL('/sign-in', request.url))
   }

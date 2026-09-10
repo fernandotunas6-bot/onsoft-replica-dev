@@ -1,8 +1,11 @@
 import { lazy } from 'react'
 import { SHOW_TEMPLATE_SURFACES } from '@/lib/feature-flags'
 import { AliveBridgeRedirect } from '@/components/alive-bridge-redirect'
+import Landing from '@/app/landing/page'
+import FAQs from '@/app/faqs/page'
+import Pricing from '@/app/pricing/page'
+import StartSchool from '@/app/start/page'
 
-const Landing = lazy(() => import('@/app/landing/page'))
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
 const Mail = lazy(() => import('@/app/mail/page'))
@@ -10,9 +13,6 @@ const Tasks = lazy(() => import('@/app/tasks/page'))
 const Chat = lazy(() => import('@/app/chat/page'))
 const Calendar = lazy(() => import('@/app/calendar/page'))
 const Users = lazy(() => import('@/app/users/page'))
-const FAQs = lazy(() => import('@/app/faqs/page'))
-const Pricing = lazy(() => import('@/app/pricing/page'))
-const StartSchool = lazy(() => import('@/app/start/page'))
 
 const SignIn = lazy(() => import('@/app/auth/sign-in/page'))
 const SignIn2 = lazy(() => import('@/app/auth/sign-in-2/page'))
