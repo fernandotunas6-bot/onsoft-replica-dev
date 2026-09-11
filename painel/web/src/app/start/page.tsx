@@ -20,7 +20,13 @@ import {
 import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
 import { cn } from "@/lib/utils"
 import { ECOSYSTEM_URLS, PLATFORM_DOMAIN } from "@/lib/ecosystem-urls"
-import { fetchSaasPlans, signupSchool, type PlanCode, type SaasPlan } from "@/lib/saas-api"
+import {
+  checkSlugAvailability,
+  fetchSaasPlans,
+  signupSchool,
+  type PlanCode,
+  type SaasPlan,
+} from "@/lib/saas-api"
 
 const FALLBACK_PLANS: SaasPlan[] = [
   { code: "start", name: "Start", description: "Escolas pequenas" },
@@ -158,6 +164,26 @@ export function StartSchoolWizard() {
     [plans, values.plan_code],
   )
 
+  const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle")
+  const slug = values.slug
+  useEffect(() => {
+    if (!slug || slug.length < 3) {
+      setSlugStatus("idle")
+      return
+    }
+    setSlugStatus("checking")
+    const timeout = setTimeout(() => {
+      void checkSlugAvailability(slug).then((available) => {
+        if (available == null) {
+          setSlugStatus("idle") // não deu para confirmar — não bloqueia, o servidor valida na submissão
+        } else {
+          setSlugStatus(available ? "available" : "taken")
+        }
+      })
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [slug])
+
   async function validateStep() {
     const fieldsByStep: Record<number, (keyof FormValues)[]> = {
       1: ["name"],
@@ -174,6 +200,10 @@ export function StartSchoolWizard() {
   async function onNext() {
     setServerError(null)
     if (!(await validateStep())) return
+    if (step === 5 && slugStatus === "taken") {
+      form.setError("slug", { message: "Este subdomínio já está em uso por outra escola." })
+      return
+    }
     if (step === 2 && !form.getValues("admin_name")) {
       form.setValue("admin_name", form.getValues("contact_name"))
       form.setValue("admin_email", form.getValues("contact_email"))
@@ -191,6 +221,10 @@ export function StartSchoolWizard() {
     setServerError(null)
     const ok = await form.trigger()
     if (!ok) return
+    if (slugStatus === "taken") {
+      setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 5 e escolha outro.")
+      return
+    }
     const { admin_password_confirm: _confirm, ...payload } = form.getValues()
     const result = await signupSchool({
       ...payload,
@@ -424,6 +458,17 @@ export function StartSchoolWizard() {
                       </FormControl>
                       <span className="shrink-0 text-xs text-muted-foreground">.{PLATFORM_DOMAIN}</span>
                     </div>
+                    {slugStatus === "checking" ? (
+                      <p className="text-xs text-muted-foreground">A verificar disponibilidade…</p>
+                    ) : slugStatus === "available" ? (
+                      <p className="text-xs text-emerald-600">
+                        {field.value}.{PLATFORM_DOMAIN} está disponível.
+                      </p>
+                    ) : slugStatus === "taken" ? (
+                      <p className="text-xs text-destructive">
+                        {field.value}.{PLATFORM_DOMAIN} já está em uso por outra escola.
+                      </p>
+                    ) : null}
                     <FormMessage />
                   </FormItem>
                 )}
