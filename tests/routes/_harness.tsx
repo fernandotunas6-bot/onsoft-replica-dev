@@ -12,9 +12,23 @@
  * Não é ficheiro de teste (`include` do Vitest só apanha `*.test.{ts,tsx}`).
  */
 
-import { render } from "@testing-library/react";
+import { configure, fireEvent, render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentType, ReactNode } from "react";
+
+/**
+ * `vi.setConfig({ testTimeout: 20_000 })`, espalhado pelos ficheiros desta
+ * pasta para aguentar a suite inteira em paralelo, só estende o orçamento
+ * total de CADA `it(...)` — não o timeout interno do `waitFor`/`findBy*` do
+ * testing-library, que por omissão continua a ser 1000ms independentemente
+ * disso. Sob carga pesada isso fazia `findByRole`/`waitFor` falhar bem antes
+ * do `it` ter esgotado o seu próprio tempo, com o erro a apontar para "não
+ * encontrei o elemento" em vez de para o motivo real (a máquina estava
+ * ocupada). Alinhado aqui com os 20s já usados nos `it(...)` — um sítio só,
+ * em vez de cada ficheiro ter de lembrar de passar `{ timeout: 20_000 }` a
+ * cada chamada.
+ */
+configure({ asyncUtilTimeout: 20_000 });
 
 /**
  * Polyfills que o jsdom não traz e de que a UI real depende: o `recharts` usa
@@ -304,4 +318,23 @@ export function routeComponentOf(mod: unknown): ComponentType {
     throw new Error("Módulo de rota sem `Route.component` — o mock do router mudou?");
   }
   return route.component;
+}
+
+/**
+ * Activa um `TabsTrigger` (Radix) num teste.
+ *
+ * `fireEvent.click` sozinho não chega: o Radix activa o separador a partir
+ * do `onPointerDown`, não do `click` — em jsdom isso deixa o clique
+ * silenciosamente sem efeito (`aria-selected` não muda, o conteúdo da aba
+ * anterior continua montado), sem nenhum erro a assinalar a causa. Chamar
+ * `fireEvent.click(screen.getByRole("tab", ...))` directamente já
+ * funcionou por coincidência nalguns ficheiros mais antigos desta pasta —
+ * não confiar nisso; usar sempre este helper para trocar de aba.
+ */
+export function clickTab(tab: Element) {
+  fireEvent.pointerDown(tab);
+  fireEvent.mouseDown(tab);
+  fireEvent.click(tab);
+  fireEvent.pointerUp(tab);
+  fireEvent.mouseUp(tab);
 }

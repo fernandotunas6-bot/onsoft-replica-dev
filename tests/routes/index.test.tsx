@@ -42,7 +42,10 @@ import { emptySchoolTodayOps } from "@/features/dashboard/school-today";
 
 type Overview = Awaited<ReturnType<typeof getDashboardOverview>>;
 
-vi.setConfig({ testTimeout: 20_000 });
+// 30s, não os 20s de costume — esta suite monta a árvore mais pesada de
+// tests/routes/ (AdminPortalDashboard + SpotlightRail + DashboardCalendarCard
+// + TodayAtSchoolCard, cada um com a sua própria query), ~25s isolada.
+vi.setConfig({ testTimeout: 30_000 });
 
 vi.mock("@tanstack/react-router", async () => (await import("./_harness")).reactRouterMock());
 vi.mock("@/components/layout/AppShell", async () => (await import("./_harness")).appShellMock());

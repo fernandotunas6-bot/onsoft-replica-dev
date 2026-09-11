@@ -6,6 +6,89 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-11)
 
+### Ciclo 81 — Início do módulo Alumni e uma causa raiz de flakiness em `tests/routes/` corrigida de vez (2026-09-11)
+
+Continuação do Ciclo 80. 4 suites novas do módulo Alumni (16 testes) e uma
+correcção de infra-estrutura de testes que se revelou mais valiosa do que
+as suites em si.
+
+**1. Achado de infra-estrutura — `waitFor`/`findBy*` tinham o seu próprio
+timeout de 1000ms, independente do `vi.setConfig({ testTimeout: 20_000 })`
+espalhado pelos ficheiros:** ao escrever `tests/routes/alumni-documents.test.tsx`,
+um `findByRole` rebentava com "elemento não encontrado" sob carga — não
+por o elemento não existir, mas porque o `waitFor` interno do
+testing-library desiste aos 1000ms por omissão, e `vi.setConfig` só estende
+o orçamento total do `it(...)`, nunca esse timeout interno. Isto **era
+quase de certeza a causa raiz** da flakiness intermitente que o Ciclo 79
+tinha deixado por resolver em `relatorios-academicos.test.tsx` ("diz que
+ainda não há turmas...", 2 em 4 corridas mesmo isoladas) — confirmado: 4/4
+corridas limpas depois da correcção, contra 2/4 falhas antes. Corrigido
+**uma vez** em `tests/routes/_harness.tsx` com
+`configure({ asyncUtilTimeout: 20_000 })` do testing-library, em vez de
+cada ficheiro ter de lembrar de passar `{ timeout: 20_000 }` a cada
+`waitFor`/`findBy*`. Vale para **todos** os ~34 ficheiros desta pasta, não
+só os deste ciclo.
+
+**2. Achado de infra-estrutura — `fireEvent.click` sozinho não activa um
+`TabsTrigger` (Radix) em jsdom:** descoberto ao escrever o teste de troca
+de aba em `alumni.test.tsx` — o Radix activa o separador a partir do
+`onPointerDown`, não do `click`; em jsdom isso deixa o clique em silêncio
+sem efeito (`aria-selected` não muda, sem erro a apontar a causa).
+Confirmado com um teste de debug isolado: a sequência completa
+`pointerdown → mousedown → click → pointerup → mouseup` funciona, `click`
+sozinho não. Adicionado `clickTab(tab: Element)` a `_harness.tsx` — usar
+sempre este helper para trocar de aba num teste, nunca `fireEvent.click`
+directo num `role="tab"`. **Aviso para quem revir `tests/routes/perfil.test.tsx`**
+(sessão concorrente, Ciclo 79/80): esse ficheiro clica num `TabsTrigger`
+com `fireEvent.click` directo e o teste passa — não tive orçamento para
+confirmar se troca mesmo de aba ou se a asserção passa por coincidência;
+vale a pena verificar com este helper.
+
+**3. `/alumni` — directório principal (`alumni.test.tsx`, 5 testes):**
+indicadores + cartão de Alumni real, estado vazio do directório,
+`bootstrapGraduatedStudents` a invalidar overview/directório ao suceder, a
+aba "Eventos" a filtrar correctamente por `status: "published"` **e**
+data futura (um evento publicado mas já passado não aparece), e o botão
+"Mentores" do cabeçalho a alternar o filtro.
+
+**4. `/alumni/calendar`, `/alumni/matching`, `/alumni/documents` (3+3+3
+testes):** exportação ICS desactivada sem eventos; o `<select>` de Alumni
+nestas três rotas monta **antes** de `listAlumni` resolver — mudar o valor
+do `<select>` antes da opção existir é ignorado em silêncio pelo jsdom
+(nenhum erro, o valor simplesmente não muda), por isso todos os testes que
+seleccionam um Alumni esperam primeiro pela `<option>` real. Em
+`/alumni/matching` e `/alumni/documents`, a query de detalhe só arranca
+com `enabled: Boolean(alumniId)` — confirmado que nunca dispara sem
+selecção.
+
+**Resultados Oficiais (todos corridos e verificados):**
+- **`tsc --noEmit`**: **0 erros**.
+- **`npx eslint`** (ficheiros deste ciclo): 0 erros, 0 warnings.
+- **`vitest run tests/routes/`**: **33 ficheiros / 141 testes**, 100%
+  verde — **sem nenhuma flakiness**, incluindo o teste que o Ciclo 79
+  tinha deixado por resolver.
+- **`vitest run` (suíte completa)**: **196 ficheiros / 2 skipped**,
+  **1.256 testes / 2 skipped**, 100% verde.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (7.8s).
+
+**Próxima fatia:**
+1. **Resto do módulo Alumni** (10 rotas por fazer): `alumni.$alumniId`,
+   `alumni.$alumniId.portfolio`, `alumni.communications`, `alumni.insights`,
+   `alumni.operations`, `alumni.pipeline`, `alumni.portal`,
+   `alumni.portal.portfolio`, `alumni.portal.portfolio.education`,
+   `alumni.portal.portfolio.print` (o `.showcase` já tinha suite).
+2. **`criar-escola`, `convite.$token`, `calendario.ics`,
+   `relatorios.financeiros`** — por fazer.
+3. **Verificar `tests/routes/perfil.test.tsx`** com o novo `clickTab` (ver
+   ponto 2 acima) — não é ficheiro deste agente, mas vale a pena confirmar
+   antes de assumir que a troca de aba lá está mesmo a ser testada.
+4. **Portais de Aluno/Encarregado/Professor do painel principal** — só o
+   portal Administrador tem suite (Ciclo 80).
+5. Itens antigos: flakiness de `enrollment-live.spec.ts` (Ciclo 71),
+   auditoria mais profunda às pontes do ecossistema (`painel/`).
+
+---
+
 ### Ciclo 80 — Painel principal (`/`), fluxos de auth pública e `/configuracoes` (2026-09-11)
 
 Continuação directa do Ciclo 79 (mesmo pedido amplo do utilizador, "continua"
