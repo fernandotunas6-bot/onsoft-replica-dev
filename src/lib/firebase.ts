@@ -26,19 +26,35 @@ export interface FirebaseClientConfig {
 }
 
 export const firebaseConfig: FirebaseClientConfig = {
-  projectId: configJson.projectId || "gen-lang-client-0509105360",
-  appId: configJson.appId || "1:445079520865:web:a45d9ac25a5c7b1570cc20",
-  apiKey: configJson.apiKey || "AIzaSyCy6DNTJp1HRhUJpjPHor5qxkhln049cuU",
-  authDomain: configJson.authDomain || "gen-lang-client-0509105360.firebaseapp.com",
+  projectId:
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_PROJECT_ID) ||
+    configJson.projectId ||
+    "siga-plus-3ba9c",
+  appId:
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_APP_ID) ||
+    configJson.appId ||
+    "1:1051179373088:web:62ffc7fccf3ad61262e245",
+  apiKey:
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_API_KEY) ||
+    configJson.apiKey ||
+    "AIzaSyCLOIqKSrOru6yTCf7uK-LI0OWZbG_QZws",
+  authDomain:
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN) ||
+    configJson.authDomain ||
+    "siga-plus-3ba9c.firebaseapp.com",
   storageBucket:
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET) ||
     (configJson as { storageBucket?: string }).storageBucket ||
-    "gen-lang-client-0509105360.firebasestorage.app",
+    "siga-plus-3ba9c.firebasestorage.app",
   messagingSenderId:
-    (configJson as { messagingSenderId?: string }).messagingSenderId || "445079520865",
-  measurementId: (configJson as { measurementId?: string }).measurementId || "",
-  oAuthClientId:
-    (configJson as { oAuthClientId?: string }).oAuthClientId ||
-    "445079520865-7jlrh1du2vjp1o1ro3p8o7ms2qo7e8b8.apps.googleusercontent.com",
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID) ||
+    (configJson as { messagingSenderId?: string }).messagingSenderId ||
+    "1051179373088",
+  measurementId:
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_FIREBASE_MEASUREMENT_ID) ||
+    (configJson as { measurementId?: string }).measurementId ||
+    "G-F99KXGH8CF",
+  oAuthClientId: (configJson as { oAuthClientId?: string }).oAuthClientId || "",
   recaptchaSiteKey: (configJson as { recaptchaSiteKey?: string }).recaptchaSiteKey || "",
 };
 

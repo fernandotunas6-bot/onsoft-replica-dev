@@ -6,7 +6,11 @@ import { getAppUrl, getAppName, getAuthEmailChangeUrl } from "@/lib/app-config";
 import { resolveTenantLookup } from "@/lib/saas/tenant-resolver";
 import { fetchSchoolBranding } from "./reset-password-server";
 import { renderEmailChangeEmail } from "./email-templates/email-change.html";
-import { sendResendEmail, resolveResendFromAddress } from "@/features/integrations/resend-client";
+import {
+  sendResendEmail,
+  resolveResendFromAddress,
+  resolveSystemSender,
+} from "@/features/integrations/resend-client";
 
 export const requestEmailChangeInputSchema = z.object({
   newEmail: z.string().trim().email("Indique um endereço de e-mail válido."),
@@ -109,7 +113,7 @@ export const requestEmailChangeFn = createServerFn({ method: "POST" })
     });
     await sendResendEmail({
       apiKey,
-      from: process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl()),
+      from: resolveSystemSender("auth", { schoolName }),
       to: [newEmail],
       subject: message.subject,
       html: message.html,

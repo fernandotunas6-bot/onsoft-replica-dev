@@ -9,7 +9,11 @@ import { ensureTeacherHrRecord } from "@/features/people/server";
 import { getAppName, getAppUrl, getAuthResetPasswordUrl } from "@/lib/app-config";
 import { fetchSchoolBranding } from "@/features/auth/reset-password-server";
 import { renderSchoolInvitationEmail } from "@/features/auth/email-templates";
-import { resolveResendFromAddress, sendResendEmail } from "@/features/integrations/resend-client";
+import {
+  resolveResendFromAddress,
+  resolveSystemSender,
+  sendResendEmail,
+} from "@/features/integrations/resend-client";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { resolveBiToEmailInputSchema } from "./bi-login";
 import {
@@ -296,7 +300,7 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
           });
           await sendResendEmail({
             apiKey,
-            from: process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl()),
+            from: resolveSystemSender("auth", { schoolName: school?.name }),
             to: [data.email],
             subject: message.subject,
             html: message.html,
@@ -548,7 +552,7 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
     });
     await sendResendEmail({
       apiKey,
-      from: process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl()),
+      from: resolveSystemSender("auth", { schoolName: school?.name }),
       to: [email],
       subject: message.subject,
       html: message.html,
@@ -735,7 +739,7 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
         });
         await sendResendEmail({
           apiKey,
-          from: process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl()),
+          from: resolveSystemSender("auth", { schoolName: school?.name }),
           to: [data.email],
           subject: message.subject,
           html: message.html,

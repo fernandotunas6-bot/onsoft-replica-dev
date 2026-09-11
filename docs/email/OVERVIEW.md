@@ -368,11 +368,76 @@ primeira versão de `fetchSchoolBranding` só lia `school_settings`, portanto
 `primary_color` nunca aparecia nos e-mails mesmo quando a escola o configurava
 no painel. Corrigido para ler as duas fontes com a mesma precedência do painel.
 
-### Testes ainda por fazer (checklist do prompt master, secção 26)
+### Validação em Produção do Domínio e Disparo Resend (2026-09-11)
 
-Verificação de tipos (`tsc --noEmit`) passou nos ficheiros alterados. Os testes
-end-to-end (pedir recuperação → receber e-mail → link funciona → nova senha
-autentica → tenant correcto → RLS intacto; idem para o convite) **não foram
-executados neste ciclo** — requerem `RESEND_API_KEY` real e uma base Supabase
-acessível, que este ambiente de desenvolvimento não tinha configurados para
-disparo de e-mail real.
+- **Domínio:** `portal-siga.com` verificado no Resend (`0d44a3aa-689d-43a5-8f35-f8879b19cd3b`) com DKIM e SPF validados no Cloudflare.
+- **Remetente padrão:** `SIGA Plus <noreply@portal-siga.com>`.
+- **Chave de API:** Chave ativa configurada no `.env` (`RESEND_API_KEY`), testada diretamente contra a API oficial.
+- **Teste de Envio Real:** Disparo de teste executado com sucesso (ID: `4c20d680-a1a5-4925-8d3a-e1e174fa8581`), evento confirmado como `delivered` via Amazon SES Irlanda (`eu-west-1`).
+
+---
+
+## Múltiplos Remetentes no Código (Canais Padronizados)
+
+Implementado em `src/features/integrations/resend-client.ts` através da função `resolveSystemSender(channel, options)`.
+
+| Canal | Propósito | Remetente Padrão (Plataforma) | Com Branding Escolar | Env Override |
+|---|---|---|---|---|
+| `academic` | Notas, pautas, faltas, boletins | `SIGA Académico <notificacoes@portal-siga.com>` | `{{escola}} via SIGA <notificacoes@portal-siga.com>` | `RESEND_FROM_ACADEMIC_EMAIL` |
+| `finance` | Payflow, faturas, recibos, alertas gateway | `SIGA Payflow <financeiro@portal-siga.com>` | `{{escola}} (Financeiro) <financeiro@portal-siga.com>` | `RESEND_FROM_FINANCE_EMAIL` |
+| `auth` | Reset de senha, magic link, convites | `SIGA Segurança <seguranca@portal-siga.com>` | `{{escola}} via SIGA <seguranca@portal-siga.com>` | `RESEND_FROM_AUTH_EMAIL` |
+| `support` | Atendimento, suporte ao utilizador | `SIGA Suporte <suporte@portal-siga.com>` | `{{escola}} (Suporte) <suporte@portal-siga.com>` | `RESEND_FROM_SUPPORT_EMAIL` |
+| `default` | Comunicações gerais da plataforma | `SIGA Plus <noreply@portal-siga.com>` | `{{escola}} via SIGA <noreply@portal-siga.com>` | `RESEND_FROM_EMAIL` |
+
+---
+
+## Cloudflare Email Routing (Aliases Gratuitos)
+
+Permite receber mensagens enviadas para endereços de atendimento e suporte a custo zero, encaminhando automaticamente para uma caixa de entrada existente (ex.: Gmail).
+
+### 1. Registos DNS no Cloudflare (`portal-siga.com`)
+
+| Tipo | Nome | Conteúdo / Destino | Prioridade | TTL |
+|---|---|---|---|---|
+| `MX` | `@` | `isaac.mx.cloudflare.net` | `9` | Auto |
+| `MX` | `@` | `linda.mx.cloudflare.net` | `59` | Auto |
+| `MX` | `@` | `amir.mx.cloudflare.net` | `94` | Auto |
+| `TXT` | `@` | `v=spf1 include:_spf.mx.cloudflare.net ~all` | — | Auto |
+
+*(O envio de saída do Resend é autenticado através de `bounces.portal-siga.com` CNAME e DKIM `resend._domainkey`, sem colidir com o roteamento de entrada do Cloudflare).*
+
+### 2. Regras de Encaminhamento (Custom Addresses)
+
+No Cloudflare Dashboard: `portal-siga.com` → **Email** → **Email Routing** → **Routing Rules**:
+
+| Endereço Personalizado | Ação | Destino Verificado |
+|---|---|---|
+| `suporte@portal-siga.com` | Encaminhar para | `seu-email-pessoal@gmail.com` |
+| `contacto@portal-siga.com` | Encaminhar para | `seu-email-pessoal@gmail.com` |
+| `dmarc@portal-siga.com` | Encaminhar para | `seu-email-pessoal@gmail.com` *(relatórios agregados)* |
+| *Catch-all* | Rejeitar (ou descartar) | Proteção contra spam de caixas inexistentes |
+
+---
+
+## Registo DMARC Estrito (`p=reject`)
+
+Para maximizar a entregabilidade na caixa de entrada (inbox rate) e bloquear tentativas de spoofing ou phishing:
+
+### Registo DNS no Cloudflare
+
+```dns
+Tipo:    TXT
+Nome:    _dmarc
+TTL:     Auto (ou 1 hora)
+Conteúdo: v=DMARC1; p=reject; sp=reject; pct=100; rua=mailto:dmarc@portal-siga.com; aspf=r; adkim=r
+```
+
+### Explicação dos Parâmetros
+
+* `v=DMARC1`: Versão 1 do protocolo DMARC.
+* `p=reject`: Política estrita — servidores de destino (Google, Microsoft, Yahoo) rejeitam imediatamente e-mails que não passem na validação DKIM/SPF do SIGA.
+* `sp=reject`: Aplica a mesma política estrita de rejeição a todos os subdomínios.
+* `pct=100`: Aplica a regra a 100% dos fluxos de envio.
+* `rua=mailto:dmarc@portal-siga.com`: Envia relatórios agregados semanais para o alias de recepção gerido pelo Cloudflare Email Routing.
+* `aspf=r` e `adkim=r`: Alinhamento flexível/compatível com os subdomínios de retorno do Resend (`bounces.portal-siga.com`).
+

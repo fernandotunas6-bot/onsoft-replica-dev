@@ -6,8 +6,14 @@ import { resolveTenantLookup } from "@/lib/saas/tenant-resolver";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { fetchSchoolBranding } from "./reset-password-server";
 import { renderMagicLinkEmail } from "./email-templates/magic-link.html";
-import { sendResendEmail, resolveResendFromAddress } from "@/features/integrations/resend-client";
+import {
+  sendResendEmail,
+  resolveResendFromAddress,
+  resolveSystemSender,
+} from "@/features/integrations/resend-client";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { ContactVerificationService } from "@/features/contacts/contact-verification-service";
 
 // Sem limite aqui, um único cliente conseguia disparar chamadas ilimitadas ao
 // Auth Admin da Supabase e ao Resend só a variar o email — custo directo e
@@ -156,8 +162,7 @@ export const requestMagicLinkFn = createServerFn({ method: "POST" })
       });
 
       const resendApiKey = process.env["RESEND_API_KEY"]?.trim();
-      const resendFrom =
-        process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl());
+      const resendFrom = resolveSystemSender("auth", { schoolName });
 
       let sentViaResend = false;
       let deliveryError: string | null = null;
@@ -201,5 +206,23 @@ export const requestMagicLinkFn = createServerFn({ method: "POST" })
     } catch (err) {
       console.error("[MagicLink] Error processing request:", err);
       return { success: true, message: NEUTRAL_SUCCESS_MESSAGE };
+    }
+  });
+
+/**
+ * Marca o e-mail como verificado após login bem-sucedido via magic link.
+ * Chamado pelo frontend após a sessão ser estabelecida.
+ */
+export const syncMagicLinkVerificationFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
+
+    try {
+      await ContactVerificationService.markEmailAsVerified(context.userId);
+      return { success: true };
+    } catch (err) {
+      console.error("[MagicLink] Failed to sync verification:", err);
+      return { success: false };
     }
   });

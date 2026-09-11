@@ -8,12 +8,17 @@ import {
   Award,
   Download,
   FileDown,
+  FileText,
   Mail,
   MessageSquare,
   Monitor,
   Pencil,
+  Radio,
   Send,
 } from "lucide-react";
+import { DispatchesTrackingPanel } from "@/features/communications/DispatchesTrackingPanel";
+import { TemplatesCatalogModal } from "@/features/communications/TemplatesCatalogModal";
+import type { CommunicationTemplate } from "@/features/communications/templates";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
@@ -161,6 +166,8 @@ function ComunicacoesPage() {
   const outlookOn = installed.hasCapability("m365.outlook");
   const formRef = useRef<HTMLFormElement>(null);
   const [draftAttachment, setDraftAttachment] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"announcements" | "dispatches">("announcements");
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "comunicacoes",
     comunicacoesFilterDefaults,
@@ -449,6 +456,25 @@ function ComunicacoesPage() {
     void saveAnnouncement(form, scheduledFor ? "scheduled" : "draft");
   };
 
+  const handleApplyTemplate = (template: CommunicationTemplate) => {
+    abrirFormulario();
+    setTimeout(() => {
+      const form = formRef.current;
+      if (!form) return;
+      const tituloInput = form.querySelector<HTMLInputElement>("#titulo");
+      const mensagemTextarea = form.querySelector<HTMLTextAreaElement>("#mensagem");
+      if (tituloInput) {
+        tituloInput.value = template.subject;
+        tituloInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      if (mensagemTextarea) {
+        mensagemTextarea.value = template.defaultText;
+        mensagemTextarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      toast.success(`Template "${template.name}" aplicado.`);
+    }, 100);
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -459,6 +485,13 @@ function ComunicacoesPage() {
           actions={
             <>
               <DocHelpButton title="Navegação — Comunicações" />
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setTemplatesModalOpen(true)}
+              >
+                <FileText className="size-4" /> Templates
+              </Button>
               <Button
                 variant="outline"
                 className="gap-2"
@@ -502,7 +535,30 @@ function ComunicacoesPage() {
 
         <InstalledModuleTools module="comunicacoes" />
 
-        <StatGrid
+        <div className="flex gap-2 border-b border-border pb-3">
+          <Button
+            variant={activeTab === "announcements" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("announcements")}
+            className="gap-2 text-xs"
+          >
+            <MessageSquare className="size-3.5" /> Comunicados da Escola
+          </Button>
+          <Button
+            variant={activeTab === "dispatches" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("dispatches")}
+            className="gap-2 text-xs"
+          >
+            <Radio className="size-3.5" /> Entregas &amp; Histórico Multicanal
+          </Button>
+        </div>
+
+        {activeTab === "dispatches" ? (
+          <DispatchesTrackingPanel />
+        ) : (
+          <>
+            <StatGrid
           collapsible
           storageKey="comunicacoes"
           items={[
@@ -997,6 +1053,14 @@ function ComunicacoesPage() {
             )}
           </Panel>
         </div>
+          </>
+        )}
+
+        <TemplatesCatalogModal
+          open={templatesModalOpen}
+          onOpenChange={setTemplatesModalOpen}
+          onSelectTemplate={handleApplyTemplate}
+        />
       </div>
     </AppShell>
   );

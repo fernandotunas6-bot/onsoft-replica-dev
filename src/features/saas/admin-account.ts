@@ -1,6 +1,10 @@
 import { getAppName, getAppUrl, getAuthResetPasswordUrl } from "@/lib/app-config";
 import { renderSchoolInvitationEmail } from "@/features/auth/email-templates";
-import { resolveResendFromAddress, sendResendEmail } from "@/features/integrations/resend-client";
+import {
+  resolveResendFromAddress,
+  resolveSystemSender,
+  sendResendEmail,
+} from "@/features/integrations/resend-client";
 
 /**
  * Conta do administrador de uma escola acabada de provisionar.
@@ -125,7 +129,7 @@ export async function createSchoolAdminAccount(
     });
     await sendResendEmail({
       apiKey,
-      from: process.env["RESEND_FROM_EMAIL"]?.trim() || resolveResendFromAddress(getAppUrl()),
+      from: resolveSystemSender("auth", { schoolName: input.schoolName }),
       to: [email],
       subject: message.subject,
       html: message.html,

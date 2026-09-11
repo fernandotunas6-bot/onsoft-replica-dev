@@ -74,6 +74,7 @@ import { Route as AlumniPortalPortfolioPrintRouteImport } from './routes/alumni.
 import { Route as AlumniPortalPortfolioShowcaseRouteImport } from './routes/alumni.portal.portfolio.showcase'
 import { Route as ApiFinanceGatewayConfirmRouteImport } from './routes/api/finance/gateway.confirm'
 import { Route as ApiFinancePayflowSettlementRouteImport } from './routes/api/finance/payflow.settlement'
+import { Route as ApiIntegrationsResendWebhookRouteImport } from './routes/api/integrations/resend.webhook'
 import { Route as ApiIntegrationsZoomCallbackRouteImport } from './routes/api/integrations/zoom/callback'
 import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domains.check'
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
@@ -418,6 +419,12 @@ const ApiFinancePayflowSettlementRoute =
     path: '/api/finance/payflow/settlement',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiIntegrationsResendWebhookRoute =
+  ApiIntegrationsResendWebhookRouteImport.update({
+    id: '/api/integrations/resend/webhook',
+    path: '/api/integrations/resend/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiIntegrationsZoomCallbackRoute =
   ApiIntegrationsZoomCallbackRouteImport.update({
     id: '/api/integrations/zoom/callback',
@@ -555,6 +562,7 @@ export interface FileRoutesByFullPath {
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
+  '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
@@ -635,6 +643,7 @@ export interface FileRoutesByTo {
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
+  '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
@@ -716,6 +725,7 @@ export interface FileRoutesById {
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
+  '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
@@ -798,6 +808,7 @@ export interface FileRouteTypes {
     | '/alumni/portal/portfolio/showcase'
     | '/api/finance/gateway/confirm'
     | '/api/finance/payflow/settlement'
+    | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
@@ -878,6 +889,7 @@ export interface FileRouteTypes {
     | '/alumni/portal/portfolio/showcase'
     | '/api/finance/gateway/confirm'
     | '/api/finance/payflow/settlement'
+    | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
@@ -958,6 +970,7 @@ export interface FileRouteTypes {
     | '/alumni/portal/portfolio/showcase'
     | '/api/finance/gateway/confirm'
     | '/api/finance/payflow/settlement'
+    | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
@@ -1019,6 +1032,7 @@ export interface RootRouteChildren {
   ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
   ApiFinanceGatewayConfirmRoute: typeof ApiFinanceGatewayConfirmRoute
   ApiFinancePayflowSettlementRoute: typeof ApiFinancePayflowSettlementRoute
+  ApiIntegrationsResendWebhookRoute: typeof ApiIntegrationsResendWebhookRoute
   ApiIntegrationsZoomCallbackRoute: typeof ApiIntegrationsZoomCallbackRoute
   ApiSaasEmailRoutesRoute: typeof ApiSaasEmailRoutesRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
@@ -1482,6 +1496,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFinancePayflowSettlementRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/integrations/resend/webhook': {
+      id: '/api/integrations/resend/webhook'
+      path: '/api/integrations/resend/webhook'
+      fullPath: '/api/integrations/resend/webhook'
+      preLoaderRoute: typeof ApiIntegrationsResendWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/integrations/zoom/callback': {
       id: '/api/integrations/zoom/callback'
       path: '/api/integrations/zoom/callback'
@@ -1790,6 +1811,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,
   ApiFinanceGatewayConfirmRoute: ApiFinanceGatewayConfirmRoute,
   ApiFinancePayflowSettlementRoute: ApiFinancePayflowSettlementRoute,
+  ApiIntegrationsResendWebhookRoute: ApiIntegrationsResendWebhookRoute,
   ApiIntegrationsZoomCallbackRoute: ApiIntegrationsZoomCallbackRoute,
   ApiSaasEmailRoutesRoute: ApiSaasEmailRoutesRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,

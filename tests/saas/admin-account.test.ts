@@ -14,6 +14,7 @@ vi.mock("@/features/auth/email-templates", () => ({
 
 vi.mock("@/features/integrations/resend-client", () => ({
   resolveResendFromAddress: vi.fn(() => "no-reply@portal-siga.com"),
+  resolveSystemSender: vi.fn(() => "SIGA Plus <noreply@portal-siga.com>"),
   sendResendEmail: vi.fn().mockResolvedValue({ id: "resend-1" }),
 }));
 

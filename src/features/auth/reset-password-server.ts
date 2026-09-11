@@ -6,8 +6,14 @@ import { getPlatformDomain } from "@/lib/saas/platform-domain";
 import { resolveTenantLookup } from "@/lib/saas/tenant-resolver";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { renderResetPasswordEmail } from "./email-templates/reset-password.html";
-import { sendResendEmail, resolveResendFromAddress } from "@/features/integrations/resend-client";
+import {
+  sendResendEmail,
+  resolveResendFromAddress,
+  resolveSystemSender,
+} from "@/features/integrations/resend-client";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { ContactVerificationService } from "@/features/contacts/contact-verification-service";
 
 // Mesma razão do magic-link-server.ts: sem limite, chamadas ilimitadas ao
 // Auth Admin + Resend só a variar o email (custo + assédio).
@@ -202,9 +208,8 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
       // 4. Enviar e-mail via Resend — ver nota abaixo sobre não haver fallback nativo
       const resendApiKey = process.env["RESEND_API_KEY"]?.trim();
       const resendFrom =
-        process.env["RESEND_FROM_EMAIL"]?.trim() ||
         process.env["E2E_ALERT_EMAIL_FROM"]?.trim() ||
-        resolveResendFromAddress(`seguranca@${getPlatformDomain()}`);
+        resolveSystemSender("auth", { schoolName });
 
       // Envio exclusivo via Resend: o template nativo do Supabase não tem branding
       // institucional e exporia "Supabase Auth" ao utilizador, o que é proibido.
@@ -262,5 +267,23 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
         success: true,
         message: NEUTRAL_SUCCESS_MESSAGE,
       };
+    }
+  });
+
+/**
+ * Marca o e-mail como verificado após reset de password bem-sucedido.
+ * Chamado pelo frontend após a sessão ser estabelecida.
+ */
+export const syncPasswordResetVerificationFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
+
+    try {
+      await ContactVerificationService.markEmailAsVerified(context.userId);
+      return { success: true };
+    } catch (err) {
+      console.error("[PasswordReset] Failed to sync verification:", err);
+      return { success: false };
     }
   });
