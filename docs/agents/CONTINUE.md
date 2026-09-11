@@ -6,6 +6,83 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-11)
 
+### Ciclo 84 — Módulo Alumni completo: portal público do antigo aluno (2026-09-11)
+
+Continuação directa do Ciclo 83 — fecha o módulo Alumni por completo.
+6 suites novas, 24 testes, nenhum bug novo em código de produção.
+
+**Investigação prévia (pedida pelo utilizador):** apesar do nome "portal",
+`/alumni/portal` e as suas 3 sub-rotas **não** são um portal externo com
+perfil de autenticação diferente — vivem dentro do `AppShell` como
+qualquer rota do SIGA. É o painel de self-service do próprio Alumni
+autenticado (papel Alumni), simétrico ao resto do módulo, não uma
+superfície pública separada. Mesmo padrão de mock de sempre.
+
+**1. `/alumni/portal` (5 testes):** perfil ainda não activado
+(`getMyAlumniPortal` falha) mostra o ecrã de activação — não um erro
+genérico nem o loading preso; `claimMyAlumniProfile` a invalidar a query
+do portal ao suceder; candidatura já "applied" mostra o botão "Retirar";
+evento já inscrito mostra "Inscrito" desactivado, sem chamar
+`registerMyAlumniEvent` de novo.
+
+**2. `/alumni/portal/portfolio` (5 testes):** trocar o nível de ensino
+filtra o `<select>` de instituição pelo nível **e** reinicia a
+instituição escolhida; "Adicionar item" só desbloqueia com título de 2+
+caracteres; remover um item chama `deleteMyAlumniPortfolioItem` com o ID
+certo.
+
+**3. `/alumni/portal/portfolio/education` (3 testes):** as três secções
+de nível (Primária/Médio/Superior) aparecem sempre, mesmo vazias, cada
+uma com a sua contagem; envia os anos como `Number`, não `string`, e
+`undefined` quando vazios.
+
+**4. `/alumni/portal/portfolio/print` (4 testes) — a vista pública/
+imprimível:** itens `visibility: "private"` **nunca** aparecem, nem em
+destaque nem na lista geral (ao contrário da vista administrativa, ver
+ponto 6); um item em destaque não é duplicado na secção "Portfólio"
+geral; sem nenhum item público, mostra o aviso de portfólio vazio — não
+um "Portfólio" em branco silencioso.
+
+**5. `/alumni/$alumniId/portfolio` (4 testes) — vista administrativa
+360º:** ao contrário da vista pública de impressão, itens privados
+**continuam visíveis** aqui, mas numa secção própria "Itens privados"
+com aviso de uso restrito — a secção só existe quando há pelo menos um
+item privado; alternar destaque envia sempre o inverso do estado actual
+do item (`!item.featured`).
+
+**Resultados Oficiais (âmbito deste ciclo):**
+- **`tsc --noEmit`**: **0 erros nos ficheiros deste ciclo.** Nota:
+  `tsc` global tem ~11 erros neste momento (`Cannot find name`) em
+  `src/features/access/server.ts`, `auth/magic-link-server.ts`,
+  `auth/reset-password-server.ts` — **não são meus**, confirmado por
+  `git status` que são refactor em curso e não commitado de outra sessão
+  (o mesmo refactor de e-mail/Resend que rodou o `RESEND_API_KEY` no
+  `.env` durante este ciclo). `npm run build` continua a passar (Vite não
+  faz verificação de tipos completa), por isso não bloqueou este ciclo.
+- **`npx eslint`** (ficheiros deste ciclo): 0 erros, 0 warnings.
+- **`vitest run tests/routes/`**: **43 ficheiros / 184 testes**, 100%
+  verde — sem nenhuma flakiness.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (15.4s).
+
+**Módulo Alumni: COMPLETO.** As 14 rotas de `src/routes/alumni*.tsx` têm
+agora suite de render em `tests/routes/`.
+
+**Próxima fatia:**
+1. **`criar-escola`, `convite.$token`, `calendario.ics`,
+   `relatorios.financeiros`** — únicas rotas "normais" ainda por fazer.
+2. **Verificar `tests/routes/perfil.test.tsx`** com o `clickTab` do
+   Ciclo 81 (ainda por confirmar, não é ficheiro deste agente).
+3. **Portais de Aluno/Encarregado/Professor do painel principal** — só o
+   portal Administrador tem suite (Ciclo 80).
+4. **Quando a sessão concorrente terminar o refactor de e-mail/Resend**:
+   revalidar `tsc --noEmit` global antes de assumir baseline limpa —
+   ver nota acima sobre os erros actuais em `access/server.ts` e
+   `auth/{magic-link,reset-password}-server.ts`.
+5. Itens antigos: flakiness de `enrollment-live.spec.ts` (Ciclo 71),
+   auditoria mais profunda às pontes do ecossistema (`painel/`).
+
+---
+
 ### Ciclo 83 — Módulo Alumni quase completo: comunicação, insights e operações (2026-09-11)
 
 Continuação directa do Ciclo 82. 3 suites novas, 13 testes, nenhum bug
