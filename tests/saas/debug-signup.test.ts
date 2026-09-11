@@ -11,6 +11,7 @@ test.skipIf(!process.env.SUPABASE_SECRET_KEY)("debug full signup final", async (
       slug: "bug-fix-final-" + Date.now(),
       admin_email: "valentino.final+" + Date.now() + "@gmail.com",
       admin_name: "Valentino C",
+      admin_password: "senha-forte-123",
       trial_days: 14,
     },
     { auditUserId: null, source: "public_signup" },

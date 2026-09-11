@@ -12,6 +12,7 @@ async function run() {
         slug: "bug-test-" + Date.now(),
         admin_email: "valentino.bug@example.com",
         admin_name: "Valentino C",
+        admin_password: "senha-forte-123",
       },
       "127.0.0.1",
     );

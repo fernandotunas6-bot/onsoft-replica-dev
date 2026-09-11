@@ -37,6 +37,12 @@ export const createSchoolWizardInputSchema = z.object({
 
   admin_email: z.string().trim().email("E-mail do administrador inválido"),
   admin_name: z.string().trim().min(2, "Nome do administrador obrigatório"),
+  // Opcional aqui: o wizard interno (platform_admin) pode continuar a criar a
+  // conta sem senha e entregar o link de acesso por fora. No signup público
+  // é obrigatório — ver publicSchoolSignupInputSchema — porque o e-mail de
+  // convite depende de RESEND_API_KEY estar configurada, e sem senha própria
+  // a escola fica sem forma nenhuma de entrar se esse envio falhar.
+  admin_password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres.").optional(),
 });
 
 export type CreateSchoolWizardInput = z.infer<typeof createSchoolWizardInputSchema>;
@@ -130,9 +136,10 @@ export type TenantHostnameInput = z.infer<typeof tenantHostnameInputSchema>;
  * preenche; se vier com valor, o pedido é rejeitado na validação.
  */
 export const publicSchoolSignupInputSchema = createSchoolWizardInputSchema
-  .omit({ trial_days: true })
+  .omit({ trial_days: true, admin_password: true })
   .extend({
     website: z.string().max(0, "Pedido inválido.").optional().or(z.literal("")),
+    admin_password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres."),
   });
 
 export type PublicSchoolSignupInput = z.infer<typeof publicSchoolSignupInputSchema>;

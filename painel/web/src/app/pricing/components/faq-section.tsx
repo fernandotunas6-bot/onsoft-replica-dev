@@ -17,7 +17,7 @@ export function FAQSection({ faqs }: FAQSectionProps) {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Perguntas frequentes</CardTitle>
         <CardDescription>
-          Get answers to the most common questions about our pricing and plans
+          Respostas às dúvidas mais comuns sobre os nossos planos e preços
         </CardDescription>
       </CardHeader>
       <CardContent className="mt-6 sm:mt-8">

@@ -23,6 +23,7 @@ export async function runPublicSchoolSignup(
   hostname: string;
   bootstrapSeeded: string[];
   adminInviteDelivered: boolean;
+  adminPasswordSet: boolean;
 }> {
   const { website: _honeypot, ...wizardData } = data;
   const emailKey = wizardData.contact_email.trim().toLowerCase();

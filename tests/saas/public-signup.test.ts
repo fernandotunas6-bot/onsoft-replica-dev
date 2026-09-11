@@ -14,6 +14,7 @@ vi.mock("@/features/saas/provisioning-core", () => ({
     hostname: "escola-nova.portal-siga.com",
     bootstrapSeeded: ["academic_years", "roles"],
     adminInviteDelivered: false,
+    adminPasswordSet: true,
     adminSetupUrl: "https://exemplo.invalid/definir-senha",
   }),
 }));
@@ -32,6 +33,7 @@ describe("runPublicSchoolSignup logic", () => {
     plan_code: "start" as const,
     admin_email: "admin@example.com",
     admin_name: "Administrador",
+    admin_password: "senha-forte-123",
     website: "", // Honeypot must be empty
   };
 
@@ -62,6 +64,7 @@ describe("runPublicSchoolSignup logic", () => {
         plan_code: "start",
         admin_email: "admin@example.com",
         admin_name: "Administrador",
+        admin_password: "senha-forte-123",
         trial_days: 14,
       },
       { auditUserId: null, source: "public_signup" },

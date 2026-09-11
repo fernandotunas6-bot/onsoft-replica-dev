@@ -1,3 +1,5 @@
+import { E2E_LIVE_ADMIN_PASSWORD } from "./sga-live-admin";
+
 export const ECOSYSTEM_E2E_URLS = {
   web: process.env.VITE_WEB_URL ?? "http://localhost:5174",
   siga: process.env.VITE_SIGA_URL ?? "http://localhost:3006",
@@ -23,6 +25,7 @@ export function buildSignupPayload(slug: string) {
     slug,
     admin_name: "Director E2E",
     admin_email: email,
+    admin_password: E2E_LIVE_ADMIN_PASSWORD,
     website: "",
   };
 }

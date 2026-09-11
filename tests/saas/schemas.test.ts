@@ -143,8 +143,38 @@ describe("SaaS Control Center schemas", () => {
       slug: "horizonte",
       admin_name: "Dr. Manuel K.",
       admin_email: "direcao@horizonte.co.ao",
+      admin_password: "senha-forte-123",
     });
     expect(parsed).not.toHaveProperty("trial_days");
+  });
+
+  it("rejects a public signup payload without admin_password", () => {
+    expect(() =>
+      publicSchoolSignupInputSchema.parse({
+        name: "Colégio Horizonte",
+        contact_name: "Dr. Manuel K.",
+        contact_email: "direcao@horizonte.co.ao",
+        plan_code: "start",
+        slug: "horizonte",
+        admin_name: "Dr. Manuel K.",
+        admin_email: "direcao@horizonte.co.ao",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a public signup payload with a short admin_password", () => {
+    expect(() =>
+      publicSchoolSignupInputSchema.parse({
+        name: "Colégio Horizonte",
+        contact_name: "Dr. Manuel K.",
+        contact_email: "direcao@horizonte.co.ao",
+        plan_code: "start",
+        slug: "horizonte",
+        admin_name: "Dr. Manuel K.",
+        admin_email: "direcao@horizonte.co.ao",
+        admin_password: "curta",
+      }),
+    ).toThrow();
   });
 
   it("rejects a public signup payload with the honeypot field filled", () => {
@@ -157,6 +187,7 @@ describe("SaaS Control Center schemas", () => {
         slug: "horizonte",
         admin_name: "Dr. Manuel K.",
         admin_email: "direcao@horizonte.co.ao",
+        admin_password: "senha-forte-123",
         website: "http://bot-filled-this.example",
       }),
     ).toThrow();

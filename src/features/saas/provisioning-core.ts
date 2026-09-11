@@ -36,6 +36,7 @@ export async function provisionTenantCore(
   hostname: string;
   bootstrapSeeded: string[];
   adminInviteDelivered: boolean;
+  adminPasswordSet: boolean;
   adminSetupUrl: string | null;
 }> {
   const db = await loadSgaAdminClient();
@@ -181,6 +182,7 @@ export async function provisionTenantCore(
       email: data.admin_email,
       fullName: data.admin_name,
       schoolName: data.name,
+      password: data.admin_password,
     });
     adminUserId = adminAccount.userId;
 
@@ -283,6 +285,7 @@ export async function provisionTenantCore(
       admin_invite_delivered: adminAccount?.inviteDelivered ?? false,
       admin_invite_channel: adminAccount?.inviteChannel ?? null,
       admin_invite_error: adminAccount?.deliveryError ?? null,
+      admin_password_set: adminAccount?.passwordSet ?? false,
     },
   });
 
@@ -293,6 +296,7 @@ export async function provisionTenantCore(
     hostname: getPlatformSubdomain(data.slug),
     bootstrapSeeded,
     adminInviteDelivered: adminAccount?.inviteDelivered ?? false,
+    adminPasswordSet: adminAccount?.passwordSet ?? false,
     // O link de definição de senha nunca sai no signup público: só quem já é
     // admin de plataforma o recebe, para o entregar ao director.
     adminSetupUrl: opts.source === "platform_admin" ? (adminAccount?.setupUrl ?? null) : null,

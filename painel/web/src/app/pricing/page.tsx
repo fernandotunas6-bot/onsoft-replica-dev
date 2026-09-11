@@ -18,8 +18,8 @@ export default function PricingPage() {
         <section id="pricing">
           <PricingPlans
             mode="pricing"
-            onPlanSelect={() => {
-              window.location.href = getCreateSchoolUrl()
+            onPlanSelect={(planCode) => {
+              window.location.href = getCreateSchoolUrl(planCode)
             }}
           />
         </section>

@@ -1,10 +1,12 @@
 "use client"
 
+import { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Sparkles, Check } from "lucide-react"
 import { cn } from '@/lib/utils'
+import { fetchSaasPlans, formatAoaPrice, planLimitFeatures } from '@/lib/saas-api'
 
 export interface PricingPlan {
   id: string
@@ -20,66 +22,59 @@ export interface PricingPlan {
 interface PricingPlansProps {
   plans?: PricingPlan[]
   mode?: 'pricing' | 'billing'
+  /** Alterna entre mensal e anual quando os planos vêm do catálogo real (ambos os preços existem no plano). */
+  billingPeriod?: 'monthly' | 'yearly'
   currentPlanId?: string
   onPlanSelect?: (planId: string) => void
 }
 
-const defaultPlans: PricingPlan[] = [
-  {
-    id: 'basic',
-    name: 'Essencial',
-    description: 'Para escolas a digitalizar a secretaria',
-    price: '0 Kz',
-    frequency: '/mês',
-    features: ['Trial de 14 dias', 'Alunos e pautas', 'Tesouraria básica', 'Documentos oficiais'],
-  },
-  {
-    id: 'professional',
-    name: 'Profissional',
-    description: 'Para escolas em crescimento',
-    price: '25.000 Kz',
-    frequency: '/mês',
-    features: [
-      'Multicaixa Express',
-      'Arquivos e materiais',
-      'WhatsApp Business',
-      'Catracas',
-      'Suporte prioritário',
-      'Limite de alunos alargado',
-    ],
-    popular: true,
-  },
-  {
-    id: 'enterprise',
-    name: 'Institucional',
-    description: 'Para grupos escolares',
-    price: '50.000 Kz',
-    frequency: '/mês',
-    features: [
-      'Várias escolas',
-      'Integrações avançadas',
-      'Acompanhamento dedicado',
-      'SLA de suporte',
-      'Limites superiores',
-      'Facturação à medida',
-    ],
-  },
-]
+const POPULAR_PLAN_CODE = 'professional'
 
-export function PricingPlans({ 
-  plans = defaultPlans, 
-  mode = 'pricing', 
+export function PricingPlans({
+  plans,
+  mode = 'pricing',
+  billingPeriod = 'monthly',
   currentPlanId,
-  onPlanSelect 
+  onPlanSelect,
 }: PricingPlansProps) {
+  const [fetchedPlans, setFetchedPlans] = useState<PricingPlan[] | null>(null)
+
+  useEffect(() => {
+    if (plans) return // o chamador já trouxe os planos (ex.: contexto de facturação real)
+    let cancelled = false
+    void fetchSaasPlans().then((list) => {
+      if (cancelled || !list.length) return
+      setFetchedPlans(
+        list.map((plan) => {
+          const priceValue =
+            billingPeriod === 'yearly' ? plan.price_aoa_yearly : plan.price_aoa_monthly
+          return {
+            id: plan.code,
+            name: plan.name,
+            description: plan.description ?? '',
+            price: formatAoaPrice(priceValue) ?? 'Sob consulta',
+            frequency: billingPeriod === 'yearly' ? '/ano' : '/mês',
+            features: planLimitFeatures(plan),
+            popular: plan.code === POPULAR_PLAN_CODE,
+          }
+        }),
+      )
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [plans, billingPeriod])
+
+  const resolvedPlans = plans ?? fetchedPlans ?? []
+
   const getButtonText = (plan: PricingPlan) => {
     if (mode === 'billing') {
       if (currentPlanId === plan.id) {
         return 'Plano actual'
       }
-      const currentIndex = plans.findIndex(p => p.id === currentPlanId)
-      const planIndex = plans.findIndex(p => p.id === plan.id)
-      
+      const currentIndex = resolvedPlans.findIndex((p) => p.id === currentPlanId)
+      const planIndex = resolvedPlans.findIndex((p) => p.id === plan.id)
+
       if (planIndex > currentIndex) {
         return 'Subir de plano'
       } else if (planIndex < currentIndex) {
@@ -93,21 +88,27 @@ export function PricingPlans({
     if (mode === 'billing' && currentPlanId === plan.id) {
       return 'outline' as const
     }
-    return plan.popular ? 'default' as const : 'outline' as const
+    return plan.popular ? ('default' as const) : ('outline' as const)
   }
 
   const isButtonDisabled = (plan: PricingPlan) => {
     return mode === 'billing' && currentPlanId === plan.id
   }
 
+  if (resolvedPlans.length === 0) {
+    return (
+      <p className="text-muted-foreground text-center text-sm">A carregar planos…</p>
+    )
+  }
+
   return (
-    <div className='grid gap-8 lg:grid-cols-3'>
-      {plans.map(tier => (
+    <div className={cn('grid gap-8', resolvedPlans.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
+      {resolvedPlans.map((tier) => (
         <Card
           key={tier.id}
-          className={cn('flex flex-col pt-0', { 
+          className={cn('flex flex-col pt-0', {
             'border-primary relative shadow-lg': tier.popular,
-            'border-primary': currentPlanId === tier.id && mode === 'billing'
+            'border-primary': currentPlanId === tier.id && mode === 'billing',
           })}
           aria-labelledby={`${tier.id}-title`}
         >

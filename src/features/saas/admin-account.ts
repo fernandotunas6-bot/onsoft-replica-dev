@@ -17,6 +17,8 @@ import { resolveResendFromAddress, sendResendEmail } from "@/features/integratio
  */
 export type SchoolAdminAccount = {
   userId: string;
+  /** true quando a conta já tem senha própria (definida por quem provisionou) — login imediato, sem depender de e-mail. */
+  passwordSet: boolean;
   inviteDelivered: boolean;
   inviteChannel: "resend" | null;
   /** Link de definição de senha. Só para quem provisiona — nunca para o público. */
@@ -29,6 +31,7 @@ type AuthAdminApi = {
     admin: {
       createUser: (attrs: {
         email: string;
+        password?: string;
         email_confirm?: boolean;
         user_metadata?: Record<string, unknown>;
       }) => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>;
@@ -65,12 +68,13 @@ export function translateAdminAccountError(message: string): string {
  */
 export async function createSchoolAdminAccount(
   db: AuthAdminApi,
-  input: { email: string; fullName: string; schoolName: string },
+  input: { email: string; fullName: string; schoolName: string; password?: string },
 ): Promise<SchoolAdminAccount> {
   const email = input.email.trim().toLowerCase();
 
   const { data: created, error: createErr } = await db.auth.admin.createUser({
     email,
+    password: input.password,
     email_confirm: true,
     user_metadata: { full_name: input.fullName },
   });
@@ -85,6 +89,7 @@ export async function createSchoolAdminAccount(
 
   const account: SchoolAdminAccount = {
     userId,
+    passwordSet: Boolean(input.password),
     inviteDelivered: false,
     inviteChannel: null,
     setupUrl: null,

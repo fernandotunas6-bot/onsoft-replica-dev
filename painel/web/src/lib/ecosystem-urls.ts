@@ -31,8 +31,9 @@ export function getSigaLoginUrl(): string {
   return ECOSYSTEM_URLS.siga;
 }
 
-export function getCreateSchoolUrl(): string {
-  return ECOSYSTEM_URLS.web + "/start";
+export function getCreateSchoolUrl(planCode?: string): string {
+  const base = ECOSYSTEM_URLS.web + "/start";
+  return planCode ? `${base}?plan=${encodeURIComponent(planCode)}` : base;
 }
 
 export function getPricingUrl(): string {

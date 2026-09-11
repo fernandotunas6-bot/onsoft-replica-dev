@@ -49,6 +49,8 @@ const schema = z.object({
   plan_code: z.enum(["start", "professional", "business", "enterprise"]),
   admin_name: z.string().trim().min(2, "Nome do administrador obrigatório"),
   admin_email: z.string().trim().email("E-mail do administrador inválido"),
+  admin_password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres"),
+  admin_password_confirm: z.string().min(1, "Confirme a senha"),
   slug: z
     .string()
     .trim()
@@ -56,6 +58,9 @@ const schema = z.object({
     .min(3, "Mínimo 3 caracteres")
     .regex(/^[a-z0-9-]+$/, "Só letras minúsculas, números e hífen"),
   website: z.string().max(0).optional().or(z.literal("")),
+}).refine((data) => data.admin_password === data.admin_password_confirm, {
+  message: "As senhas não coincidem",
+  path: ["admin_password_confirm"],
 })
 
 type FormValues = z.infer<typeof schema>
@@ -97,6 +102,7 @@ export function StartSchoolWizard() {
     sigaUrl: string
     adminTenantsUrl?: string
     adminInviteDelivered: boolean
+    adminPasswordSet: boolean
   } | null>(null)
 
   const form = useForm<FormValues>({
@@ -115,6 +121,8 @@ export function StartSchoolWizard() {
       plan_code: "professional",
       admin_name: "",
       admin_email: "",
+      admin_password: "",
+      admin_password_confirm: "",
       slug: "",
       website: "",
     },
@@ -125,6 +133,17 @@ export function StartSchoolWizard() {
       if (list.length) setPlans(list)
     })
   }, [])
+
+  // Chegar de /pricing com um plano já escolhido (?plan=professional) não deve
+  // obrigar a repetir a escolha no passo 3 — só pré-selecciona, a pessoa ainda
+  // confirma lá.
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("plan")
+    const validCodes: PlanCode[] = ["start", "professional", "business", "enterprise"]
+    if (requested && (validCodes as string[]).includes(requested)) {
+      form.setValue("plan_code", requested as PlanCode, { shouldValidate: false })
+    }
+  }, [form])
 
   const name = form.watch("name")
   useEffect(() => {
@@ -144,7 +163,7 @@ export function StartSchoolWizard() {
       1: ["name"],
       2: ["contact_name", "contact_email"],
       3: ["plan_code"],
-      4: ["admin_name", "admin_email"],
+      4: ["admin_name", "admin_email", "admin_password", "admin_password_confirm"],
       5: ["slug"],
     }
     const fields = fieldsByStep[step]
@@ -172,7 +191,7 @@ export function StartSchoolWizard() {
     setServerError(null)
     const ok = await form.trigger()
     if (!ok) return
-    const payload = form.getValues()
+    const { admin_password_confirm: _confirm, ...payload } = form.getValues()
     const result = await signupSchool({
       ...payload,
       email: payload.email || payload.contact_email,
@@ -186,6 +205,7 @@ export function StartSchoolWizard() {
       sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
       adminTenantsUrl: result.adminTenantsUrl,
       adminInviteDelivered: result.adminInviteDelivered ?? false,
+      adminPasswordSet: result.adminPasswordSet ?? false,
     })
   }
 
@@ -235,7 +255,14 @@ export function StartSchoolWizard() {
 
           <div className="rounded-lg border p-4 space-y-2 text-left">
             <h3 className="font-semibold text-sm">Acesso do administrador</h3>
-            {done.adminInviteDelivered ? (
+            {done.adminPasswordSet ? (
+              <p className="text-sm text-muted-foreground">
+                A conta já está pronta. Entre no SIGA Plus com <strong>{values.admin_email}</strong> e a senha que definiu neste registo.
+                {done.adminInviteDelivered
+                  ? " Também enviámos um e-mail de confirmação — se não chegar em poucos minutos, verifique a pasta de spam."
+                  : ""}
+              </p>
+            ) : done.adminInviteDelivered ? (
               <p className="text-sm text-muted-foreground">
                 Enviámos para <strong>{values.admin_email}</strong> o link para definir a senha de acesso. Se não chegar em poucos minutos, verifique a pasta de spam.
               </p>
@@ -362,7 +389,25 @@ export function StartSchoolWizard() {
             {step === 4 ? (
               <>
                 <Field form={form} name="admin_name" label="Nome do administrador inicial" />
-                <Field form={form} name="admin_email" label="E-mail da conta SIGA" />
+                <Field
+                  form={form}
+                  name="admin_email"
+                  label="E-mail da conta SIGA"
+                  description="É o e-mail usado para entrar no SIGA Plus."
+                />
+                <Field
+                  form={form}
+                  name="admin_password"
+                  label="Senha de acesso"
+                  type="password"
+                  description="Mínimo 8 caracteres. Guarde-a — vai usá-la para entrar no SIGA Plus."
+                />
+                <Field
+                  form={form}
+                  name="admin_password_confirm"
+                  label="Confirmar senha"
+                  type="password"
+                />
               </>
             ) : null}
 
@@ -437,10 +482,14 @@ function Field({
   form,
   name,
   label,
+  type = "text",
+  description,
 }: {
   form: ReturnType<typeof useForm<FormValues>>
   name: keyof FormValues
   label: string
+  type?: string
+  description?: string
 }) {
   return (
     <FormField
@@ -450,8 +499,9 @@ function Field({
         <FormItem>
           <FormLabel>{label}</FormLabel>
           <FormControl>
-            <Input {...field} value={field.value ?? ""} />
+            <Input type={type} {...field} value={field.value ?? ""} />
           </FormControl>
+          {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
           <FormMessage />
         </FormItem>
       )}
