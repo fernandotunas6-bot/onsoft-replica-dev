@@ -6,6 +6,50 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-11)
 
+### Ciclo 82 — Continuação do módulo Alumni: ficha 360º e pipeline operacional (2026-09-11)
+
+Continuação directa do Ciclo 81. 2 suites novas, 9 testes, nenhum bug novo
+em código de produção.
+
+**1. `/alumni/$alumniId` — ficha 360º (`alumni-profile.test.tsx`, 5
+testes):** loading → identidade carregada, ramo de erro (`isError` ou
+dados ausentes — mesma mensagem para os dois, o componente não distingue),
+`verifyAlumniProfile` a invalidar a query do perfil ao suceder, o crachá
+"Identidade verificada" a substituir o botão quando já verificado, e a
+aba "Académico" a mostrar as matrículas preservadas do registo original.
+
+**2. `/alumni/pipeline` — candidaturas, eventos e mentorias
+(`alumni-pipeline.test.tsx`, 4 testes):** contadores + candidatura real,
+três estados vazios, mudança de estado num `<select>` a chamar
+`updateOpportunityApplicationStatus` com os IDs da linha (não valores
+soltos do estado do componente), e o formulário de nova mentoria — o
+`<select>` de mentorado **exclui o mentor já seleccionado** (`row.id !==
+mentorId`, sem outro filtro), e "Criar mentoria" só desbloqueia com
+mentor + mentorado + foco (2+ caracteres).
+
+**Resultados Oficiais (todos corridos e verificados):**
+- **`tsc --noEmit`**: **0 erros**.
+- **`npx eslint`** (ficheiros deste ciclo): 0 erros, 0 warnings.
+- **`vitest run tests/routes/`**: **35 ficheiros / 150 testes**, 100%
+  verde — sem nenhuma flakiness.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓.
+
+**Próxima fatia:**
+1. **Resto do módulo Alumni** (8 rotas por fazer): `alumni.communications`,
+   `alumni.insights`, `alumni.operations`, `alumni.portal`,
+   `alumni.portal.portfolio`, `alumni.portal.portfolio.education`,
+   `alumni.portal.portfolio.print`, `alumni.$alumniId.portfolio`.
+2. **`criar-escola`, `convite.$token`, `calendario.ics`,
+   `relatorios.financeiros`** — por fazer.
+3. **Verificar `tests/routes/perfil.test.tsx`** com o novo `clickTab`
+   (Ciclo 81, ainda por confirmar).
+4. **Portais de Aluno/Encarregado/Professor do painel principal** — só o
+   portal Administrador tem suite (Ciclo 80).
+5. Itens antigos: flakiness de `enrollment-live.spec.ts` (Ciclo 71),
+   auditoria mais profunda às pontes do ecossistema (`painel/`).
+
+---
+
 ### Ciclo 81 — Início do módulo Alumni e uma causa raiz de flakiness em `tests/routes/` corrigida de vez (2026-09-11)
 
 Continuação do Ciclo 80. 4 suites novas do módulo Alumni (16 testes) e uma
