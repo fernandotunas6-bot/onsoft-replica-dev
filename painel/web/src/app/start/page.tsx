@@ -5,7 +5,7 @@ import { Link } from "react-router-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { ArrowLeft, ArrowRight, Check } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -103,6 +103,10 @@ export function StartSchoolWizard() {
   const [step, setStep] = useState(1)
   const [plans, setPlans] = useState<SaasPlan[]>(FALLBACK_PLANS)
   const [serverError, setServerError] = useState<string | null>(null)
+  // `form.formState.isSubmitting` só activa dentro de `form.handleSubmit(...)` — o
+  // <form onSubmit> aqui chama onNext/onCreate directamente, então nunca acendia.
+  // Sem isto, um duplo clique em "Criar escola" disparava dois pedidos de signup.
+  const [isCreating, setIsCreating] = useState(false)
   const [done, setDone] = useState<{
     hostname: string
     sigaUrl: string
@@ -218,6 +222,7 @@ export function StartSchoolWizard() {
   }, [step, done])
 
   async function onCreate() {
+    if (isCreating) return
     setServerError(null)
     const ok = await form.trigger()
     if (!ok) return
@@ -225,22 +230,38 @@ export function StartSchoolWizard() {
       setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 5 e escolha outro.")
       return
     }
-    const { admin_password_confirm: _confirm, ...payload } = form.getValues()
-    const result = await signupSchool({
-      ...payload,
-      email: payload.email || payload.contact_email,
-    })
-    if (!result.ok) {
-      setServerError(result.error || "Falha ao criar a escola.")
-      return
+    setIsCreating(true)
+    try {
+      const { admin_password_confirm: _confirm, ...payload } = form.getValues()
+      let result: Awaited<ReturnType<typeof signupSchool>>
+      try {
+        result = await signupSchool({
+          ...payload,
+          email: payload.email || payload.contact_email,
+        })
+      } catch {
+        // Falha de rede (servidor em baixo, sem ligação) — signupSchool() não
+        // apanha isto sozinho, e sem este catch o erro ficava só na consola:
+        // o botão voltava ao normal e a pessoa não fazia ideia do que correu mal.
+        setServerError(
+          "Não foi possível ligar ao servidor. Verifique a sua ligação à internet e tente novamente.",
+        )
+        return
+      }
+      if (!result.ok) {
+        setServerError(result.error || "Falha ao criar a escola.")
+        return
+      }
+      setDone({
+        hostname: result.hostname || `${payload.slug}.${PLATFORM_DOMAIN}`,
+        sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
+        adminTenantsUrl: result.adminTenantsUrl,
+        adminInviteDelivered: result.adminInviteDelivered ?? false,
+        adminPasswordSet: result.adminPasswordSet ?? false,
+      })
+    } finally {
+      setIsCreating(false)
     }
-    setDone({
-      hostname: result.hostname || `${payload.slug}.${PLATFORM_DOMAIN}`,
-      sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
-      adminTenantsUrl: result.adminTenantsUrl,
-      adminInviteDelivered: result.adminInviteDelivered ?? false,
-      adminPasswordSet: result.adminPasswordSet ?? false,
-    })
   }
 
   if (done) {
@@ -521,7 +542,12 @@ export function StartSchoolWizard() {
 
             <div className="flex gap-2 pt-2">
               {step > 1 ? (
-                <Button type="button" variant="outline" onClick={() => setStep((s) => s - 1)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isCreating}
+                  onClick={() => setStep((s) => s - 1)}
+                >
                   <ArrowLeft className="size-4" />
                   Voltar
                 </Button>
@@ -530,8 +556,12 @@ export function StartSchoolWizard() {
                   <Link to="/">Cancelar</Link>
                 </Button>
               )}
-              <Button type="submit" className="ml-auto" disabled={form.formState.isSubmitting}>
-                {step < 6 ? (
+              <Button type="submit" className="ml-auto" disabled={isCreating}>
+                {isCreating ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" /> A criar a escola...
+                  </>
+                ) : step < 6 ? (
                   <>
                     Continuar <ArrowRight className="size-4" />
                   </>
