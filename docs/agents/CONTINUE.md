@@ -4,7 +4,99 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-09-10)
+## Estado (2026-09-11)
+
+### Ciclo 80 — Painel principal (`/`), fluxos de auth pública e `/configuracoes` (2026-09-11)
+
+Continuação directa do Ciclo 79 (mesmo pedido amplo do utilizador, "continua"
+sessão após sessão). 5 suites novas, 24 testes, nenhum bug novo em código de
+produção.
+
+**1. `/` — o painel principal em si (`tests/routes/index.test.tsx`, 4
+testes):** o papel por omissão do mock partilhado ("Administrador") monta
+`AdminPortalDashboard`, que arrasta três sub-componentes com query própria
+e sem `enabled` condicional — `TodayAtSchoolCard` (`getSchoolTodayOps`),
+`DashboardCalendarCard` (`listCalendarEvents`) e `SpotlightRail`
+(`listSpotlightConfig`) — por isso os três precisaram de mock só para a
+página montar, não apenas o `getDashboardOverview` que a rota já importava
+directamente. Cobre a transição loading → indicadores reais, `"—"` em vez
+de zero quando falta capacidade de leitura académica (um zero seria lido
+como "a escola não tem alunos"), e as quatro subscrições realtime
+(students/enrollments/invoices/school_announcements). Um quinto teste
+troca o papel para "Aluno" só para confirmar que `resolvePortalMode`
+decide o portal certo — **os portais de Aluno/Encarregado/Professor não
+têm suite própria**: cada um arrasta módulos adicionais (cartão virtual,
+PayFlow, chamada de presença) fora de âmbito deste ciclo.
+
+**2. Fluxos públicos de autenticação (3 suites, 15 testes) — a mesma
+família de bug class, três vezes:** `/auth/magic-link`,
+`/auth/reset-password` e `/auth/email-change` leem `window.location`
+directamente (é a Supabase que gera o URL, não o router da app) e
+implementam a mesma cadeia de fallback `error → code → token_hash+type →
+…`. Diferenças reais capturadas em teste, não só documentadas:
+- `/auth/magic-link` tem fallback para `getSession()` quando não há
+  `code`/`token_hash`; `/auth/email-change` **não tem** — chegar lá sem
+  parâmetros válidos é sempre erro. Um teste fixa isto explicitamente
+  (`expect(getSessionMock).not.toHaveBeenCalled()`).
+- Ambos normalizam o `type` do URL antes de chamar `verifyOtp`:
+  `magic-link` aceita `type=magiclink` no URL mas chama sempre com
+  `type: "recovery"` (nunca `"magiclink"` puro — criaria conta para
+  e-mail inexistente); `email-change` aceita `type=email_change_new` mas
+  chama sempre com `type: "email_change"`.
+- `/auth/reset-password` tem uma terceira via de entrada que as outras
+  duas não têm: `onAuthStateChange("PASSWORD_RECOVERY", …)` pode
+  desbloquear o formulário mesmo sem nenhum parâmetro no URL (o cliente
+  Supabase processou o hash antes do fallback de 800ms correr) — testado
+  disparando o callback do listener directamente.
+- `/auth/reset-password` também tem os requisitos de senha em tempo real:
+  o botão só desbloqueia com todos os requisitos a bater certo
+  (comprimento, letra, número, confirmação igual) e submete
+  `password.trim()`, não o valor em bruto.
+
+**3. `/configuracoes` (4 testes):** redireccionador puro — nunca mostra
+conteúdo próprio. `?painel=documentos`/`modelos` (case-insensitive, com
+espaços) vai para `/documentos#modelos`; qualquer outro valor grava em
+`sessionStorage` (`requestSettingsOpen`) e volta para `/`. Como o mock
+partilhado de `useNavigate` é um no-op fixo, este foi o primeiro ficheiro
+a sobrepor localmente o mock do router só para poder espiar a chamada de
+navegação — padrão reutilizável para a próxima rota que precise do mesmo.
+
+**Nota de coordenação — sessão concorrente continua activa:** durante
+este ciclo, outra sessão tinha um refactor grande e não commitado a meio
+(`src/features/saas/{schemas,public-signup,provisioning-core,
+admin-account}.ts` + testes correspondentes em `tests/saas/`), que deixou
+`tsc --noEmit` com ~12 erros em `tests/saas/public-signup.test.ts`
+(fixtures sem o novo campo obrigatório `admin_password`). **Não são meus
+ficheiros e não os toquei** — confirmado que os erros desaparecem ao
+filtrar esse ficheiro do output, e que nenhum ficheiro tocado neste ciclo
+está envolvido. Se `tsc` não estiver limpo no próximo handoff, verificar
+primeiro se é este refactor ainda em curso antes de assumir regressão.
+
+**Resultados Oficiais (âmbito deste ciclo):**
+- **`tsc --noEmit`**: limpo para todos os ficheiros deste ciclo (erros
+  pré-existentes fora de âmbito em `tests/saas/public-signup.test.ts`,
+  ver nota de coordenação acima).
+- **`npx eslint`** (ficheiros deste ciclo): 0 erros, 0 warnings.
+- **`vitest run tests/routes/`**: **29 ficheiros / 1 falhou · 127 testes / 1 falhou** —
+  a única falha é a flakiness intermitente já conhecida em
+  `relatorios-academicos.test.tsx` (Ciclo 79, ponto 5), não relacionada
+  com este ciclo.
+
+**Próxima fatia:**
+1. **Módulo Alumni completo** (`alumni.tsx` + 13 sub-rotas) — ainda por
+   começar; é o maior bloco de cobertura em falta.
+2. **`criar-escola`, `convite.$token`, `calendario.ics`,
+   `relatorios.financeiros`** — por fazer.
+3. **Portais de Aluno/Encarregado/Professor do painel principal** — só o
+   portal Administrador tem suite; os outros três precisam de investigar
+   as dependências próprias (cartão virtual, PayFlow, chamada) antes de
+   escrever teste.
+4. Itens antigos ainda por resolver: flakiness intermitente em
+   `relatorios-academicos.test.tsx` (Ciclo 79), flakiness de
+   `enrollment-live.spec.ts` (Ciclo 71), auditoria mais profunda às
+   pontes do ecossistema (`painel/`).
+
+---
 
 ### Ciclo 79 — Vasculha por classes de bugs conhecidas, render de `/financeiro/rh` e correcção de um `tsc` que já não estava limpo (2026-09-10)
 
