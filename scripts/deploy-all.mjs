@@ -54,7 +54,9 @@ const mergedEnv = {
     "https://payflow.portal-siga.com",
   // ADMIN (Next.js) lê NEXT_PUBLIC_*, não VITE_* — mesma lacuna, prefixo diferente.
   NEXT_PUBLIC_WEB_URL:
-    envVars["NEXT_PUBLIC_WEB_URL"] || process.env.NEXT_PUBLIC_WEB_URL || "https://siga-web.pages.dev",
+    envVars["NEXT_PUBLIC_WEB_URL"] ||
+    process.env.NEXT_PUBLIC_WEB_URL ||
+    "https://siga-web.pages.dev",
   NEXT_PUBLIC_ADMIN_URL:
     envVars["NEXT_PUBLIC_ADMIN_URL"] ||
     process.env.NEXT_PUBLIC_ADMIN_URL ||
@@ -64,7 +66,9 @@ const mergedEnv = {
     process.env.NEXT_PUBLIC_DOCS_URL ||
     "https://siga-docs.pages.dev",
   NEXT_PUBLIC_SIGA_URL:
-    envVars["NEXT_PUBLIC_SIGA_URL"] || process.env.NEXT_PUBLIC_SIGA_URL || "https://portal-siga.com",
+    envVars["NEXT_PUBLIC_SIGA_URL"] ||
+    process.env.NEXT_PUBLIC_SIGA_URL ||
+    "https://portal-siga.com",
   NEXT_PUBLIC_PAYFLOW_URL:
     envVars["NEXT_PUBLIC_PAYFLOW_URL"] ||
     process.env.NEXT_PUBLIC_PAYFLOW_URL ||
@@ -105,11 +109,14 @@ runStep("Deploy WEB (painel/web → siga-web.pages.dev)", () => {
   console.log("==> Building WEB (Vite SPA)...");
   execSync("npm run build", { cwd: webDir, stdio: "inherit", env: mergedEnv });
   console.log("==> Deploying WEB to Cloudflare Pages...");
-  execSync("npx wrangler pages deploy dist --project-name siga-web --branch main --commit-dirty=true", {
-    cwd: webDir,
-    stdio: "inherit",
-    env: mergedEnv,
-  });
+  execSync(
+    "npx wrangler pages deploy dist --project-name siga-web --branch main --commit-dirty=true",
+    {
+      cwd: webDir,
+      stdio: "inherit",
+      env: mergedEnv,
+    },
+  );
 });
 
 // 3. ADMIN (painel/admin)
@@ -118,11 +125,14 @@ runStep("Deploy ADMIN (painel/admin → siga-admin.pages.dev)", () => {
   console.log("==> Building ADMIN (Next.js Static Export)...");
   execSync("npm run build", { cwd: adminDir, stdio: "inherit", env: mergedEnv });
   console.log("==> Deploying ADMIN to Cloudflare Pages...");
-  execSync("npx wrangler pages deploy out --project-name siga-admin --branch main --commit-dirty=true", {
-    cwd: adminDir,
-    stdio: "inherit",
-    env: mergedEnv,
-  });
+  execSync(
+    "npx wrangler pages deploy out --project-name siga-admin --branch main --commit-dirty=true",
+    {
+      cwd: adminDir,
+      stdio: "inherit",
+      env: mergedEnv,
+    },
+  );
 });
 
 // 4. PAYFLOW (painel/payflow)
