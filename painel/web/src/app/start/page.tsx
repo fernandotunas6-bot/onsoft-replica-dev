@@ -256,6 +256,9 @@ export function StartSchoolWizard() {
     return (
       <Card>
         <CardHeader className="text-center">
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+            <Check className="h-6 w-6 text-emerald-600" />
+          </div>
           <CardTitle className="text-xl">Pedido da escola registado com sucesso</CardTitle>
           <CardDescription>
             O acesso experimental pode iniciar agora. O plano pago só fica activo depois da validação do pagamento.
@@ -346,16 +349,33 @@ export function StartSchoolWizard() {
         <CardDescription>
           Passo {step} de {STEPS.length} · {STEPS[step - 1]?.title}
         </CardDescription>
-        <ol className="mt-4 flex justify-center gap-1.5">
-          {STEPS.map((item) => (
-            <li
-              key={item.id}
-              className={cn(
-                "h-1.5 w-8 rounded-full",
-                item.id <= step ? "bg-primary" : "bg-muted",
-              )}
-            />
-          ))}
+        <ol className="mt-5 flex items-center justify-center">
+          {STEPS.map((item, index) => {
+            const isComplete = item.id < step
+            const isActive = item.id === step
+            return (
+              <li key={item.id} className="flex items-center">
+                <div
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                    isComplete
+                      ? "bg-primary text-primary-foreground"
+                      : isActive
+                        ? "border-2 border-primary text-primary"
+                        : "border border-muted-foreground/30 text-muted-foreground",
+                  )}
+                  aria-current={isActive ? "step" : undefined}
+                >
+                  {isComplete ? <Check className="h-3.5 w-3.5" /> : item.id}
+                </div>
+                {index < STEPS.length - 1 ? (
+                  <div
+                    className={cn("h-px w-4 sm:w-8", isComplete ? "bg-primary" : "bg-muted")}
+                  />
+                ) : null}
+              </li>
+            )
+          })}
         </ol>
       </CardHeader>
       <CardContent>
@@ -373,20 +393,26 @@ export function StartSchoolWizard() {
             {step === 1 ? (
               <>
                 <Field form={form} name="name" label="Nome da instituição" />
-                <Field form={form} name="nif" label="NIF (opcional)" />
-                <Field form={form} name="city" label="Cidade" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field form={form} name="nif" label="NIF (opcional)" />
+                  <Field form={form} name="city" label="Cidade" />
+                </div>
                 <Field form={form} name="address" label="Endereço (opcional)" />
-                <Field form={form} name="phone" label="Telefone (opcional)" />
-                <Field form={form} name="email" label="E-mail institucional (opcional)" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field form={form} name="phone" label="Telefone (opcional)" />
+                  <Field form={form} name="email" label="E-mail institucional (opcional)" />
+                </div>
               </>
             ) : null}
 
             {step === 2 ? (
               <>
                 <Field form={form} name="contact_name" label="Nome do responsável" />
-                <Field form={form} name="contact_role" label="Função (opcional)" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field form={form} name="contact_role" label="Função (opcional)" />
+                  <Field form={form} name="contact_phone" label="Telefone (opcional)" />
+                </div>
                 <Field form={form} name="contact_email" label="E-mail" />
-                <Field form={form} name="contact_phone" label="Telefone (opcional)" />
               </>
             ) : null}
 
