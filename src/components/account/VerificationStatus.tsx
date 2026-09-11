@@ -5,7 +5,12 @@ import {
   getCommunicationPreferencesFn,
   updateCommunicationPreferencesFn,
 } from "@/features/contacts";
-import type { ContactVerificationProfile, CommunicationPreferences } from "@/features/contacts";
+import type {
+  ContactVerificationProfile,
+  CommunicationPreferences,
+  UpdateCommunicationPreferencesInput,
+} from "@/features/contacts";
+import { PhoneChangeModal } from "./PhoneChangeModal";
 
 /**
  * VerificationStatus — Componente para gerenciar verificação de contactos
@@ -18,6 +23,7 @@ import type { ContactVerificationProfile, CommunicationPreferences } from "@/fea
 export function VerificationStatus() {
   const queryClient = useQueryClient();
   const [expandedSection, setExpandedSection] = useState<"verification" | "preferences" | null>(null);
+  const [phoneChangeModalOpen, setPhoneChangeModalOpen] = useState(false);
 
   // 1. Obter perfil de verificação
   const {
@@ -41,7 +47,8 @@ export function VerificationStatus() {
 
   // 3. Mutation para atualizar preferências
   const updatePrefsMutation = useMutation({
-    mutationFn: updateCommunicationPreferencesFn,
+    mutationFn: (data: UpdateCommunicationPreferencesInput) =>
+      updateCommunicationPreferencesFn({ data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["communication-preferences"] });
     },
@@ -69,9 +76,10 @@ export function VerificationStatus() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Secção 1: Verificação de Contactos */}
-      <div className="border rounded-lg">
+    <>
+      <div className="space-y-6">
+        {/* Secção 1: Verificação de Contactos */}
+        <div className="border rounded-lg">
         <button
           onClick={() =>
             setExpandedSection(expandedSection === "verification" ? null : "verification")
@@ -116,12 +124,18 @@ export function VerificationStatus() {
                       ✓ Verificado
                     </span>
                   ) : (
-                    <button className="text-blue-600 text-xs hover:underline font-medium">
+                    <button
+                      className="text-blue-600 text-xs hover:underline font-medium"
+                      onClick={() => setPhoneChangeModalOpen(true)}
+                    >
                       Verificar
                     </button>
                   )
                 ) : (
-                  <button className="text-blue-600 text-xs hover:underline font-medium">
+                  <button
+                    className="text-blue-600 text-xs hover:underline font-medium"
+                    onClick={() => setPhoneChangeModalOpen(true)}
+                  >
                     Adicionar
                   </button>
                 )}
@@ -253,6 +267,14 @@ export function VerificationStatus() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      {/* Modal para mudança de telefone */}
+      <PhoneChangeModal
+        open={phoneChangeModalOpen}
+        onOpenChange={setPhoneChangeModalOpen}
+        currentPhone={profile?.phoneNumber}
+      />
+    </>
   );
 }
