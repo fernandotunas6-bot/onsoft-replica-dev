@@ -49,6 +49,14 @@ export function planLimitFeatures(plan: SaasPlan): string[] {
   if (plan.max_staff) items.push(`Até ${plan.max_staff.toLocaleString("pt-AO")} funcionários`)
   if (plan.max_storage_gb) items.push(`${plan.max_storage_gb} GB de armazenamento`)
   items.push("Académico, financeiro, documentos e frequência")
+  // Espelha o gate real do servidor (src/features/saas/plan-features.ts) — só
+  // aparece aqui o que o SIGA de facto liga/desliga por plano, não promessa.
+  if (plan.code === "business" || plan.code === "enterprise") {
+    items.push("Domínio próprio e e-mail profissional")
+  }
+  if (plan.code === "enterprise") {
+    items.push("Identidade visual avançada (logótipo e cores)")
+  }
   return items
 }
 
