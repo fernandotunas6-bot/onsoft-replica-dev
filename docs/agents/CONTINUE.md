@@ -6,6 +6,66 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-11)
 
+### Ciclo 83 — Módulo Alumni quase completo: comunicação, insights e operações (2026-09-11)
+
+Continuação directa do Ciclo 82. 3 suites novas, 13 testes, nenhum bug
+novo em código de produção.
+
+**1. `/alumni/communications` (5 testes):** contadores da audiência bruta
+vs. a contagem "Pré-validação" filtrada pelo canal — trocar para "E-mail"
+remove do preview quem não tem e-mail autorizado, mas não mexe nos
+contadores do topo (que contam a audiência consentida, não a elegível por
+canal); aviso explícito em vez de lista vazia silenciosa; "Guardar
+rascunho" só desbloqueia com título+mensagem e envia a audiência já
+mapeada para o `audience` da finalidade seleccionada; mudar de finalidade
+dispara nova consulta.
+
+**2. `/alumni/insights` (4 testes):** indicadores geográficos e % de
+empregabilidade calculada a partir do dataset; distribuição por
+província com as suas cidades; trocar de finalidade na aba de
+comunicação segmentada dispara nova consulta; `getAlumniExportDataset`
+só é pedido ao clicar "Exportar CSV" — a query fica `enabled: false` até
+lá, confirmado que nunca dispara sozinha.
+
+**3. `/alumni/operations` (4 testes):** contadores só contam itens
+`published` (e eventos só os futuros); "Publicar oportunidade" só
+desbloqueia com título e envia `remoteAllowed`/`status` fixos; no
+construtor de Tracer Study, o campo "Uma opção por linha" só aparece
+para perguntas do tipo Selecção/Múltipla selecção; contribuição do tipo
+"Horas de voluntariado" envia `hours` (não `amount`) — o inverso dos
+outros tipos.
+
+**Achado de teste (não de produção):** numa das suites, uma asserção sem
+`waitFor` corria logo a seguir a um `waitFor` de um texto **estático**
+("Publicar oportunidade", sempre renderizado, não depende de query) — o
+texto resolvia quase de imediato, mas os contadores (que dependem de três
+queries) ainda não tinham chegado, e a asserção seguinte rebentava fora
+do `waitFor`. Mesma lição do Ciclo 81: nunca confiar que um `waitFor`
+anterior cobre um estado diferente do que ele próprio verificou.
+
+**Resultados Oficiais (todos corridos e verificados):**
+- **`tsc --noEmit`**: **0 erros**.
+- **`npx eslint`** (ficheiros deste ciclo): 0 erros, 0 warnings.
+- **`vitest run tests/routes/`**: **38 ficheiros / 163 testes**, 100%
+  verde — sem nenhuma flakiness.
+- **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (4.4s).
+
+**Próxima fatia:**
+1. **Resto do módulo Alumni** (5 rotas por fazer, todas do portal
+   público do antigo aluno): `alumni.portal`, `alumni.portal.portfolio`,
+   `alumni.portal.portfolio.education`, `alumni.portal.portfolio.print`,
+   `alumni.$alumniId.portfolio` — com isto o módulo Alumni fica completo.
+2. **`criar-escola`, `convite.$token`, `calendario.ics`,
+   `relatorios.financeiros`** — por fazer.
+3. **Verificar `tests/routes/perfil.test.tsx`** com o novo `clickTab`
+   (Ciclo 81, ainda por confirmar).
+4. **Portais de Aluno/Encarregado/Professor do painel principal** — só o
+   portal Administrador tem suite (Ciclo 80).
+5. Itens antigos: flakiness de `enrollment-live.spec.ts` (Ciclo 71),
+   auditoria mais profunda às pontes do ecossistema (`painel/`).
+
+---
+
 ### Ciclo 82 — Continuação do módulo Alumni: ficha 360º e pipeline operacional (2026-09-11)
 
 Continuação directa do Ciclo 81. 2 suites novas, 9 testes, nenhum bug novo
