@@ -3,37 +3,59 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
- * Toda a tabela que carrega `school_id` guarda dados de uma escola concreta e,
- * num Postgres partilhado por N escolas, precisa de RLS — a linha só é visível
- * a quem pertence àquela escola.
+ * Completude do SQL versionado, não postura de segurança.
  *
- * Hoje a aplicação lê quase tudo pelo cliente service_role, que ignora RLS, por
- * isso uma tabela sem política não é necessariamente explorável. Mas isso é
- * precisamente o problema: o isolamento fica a depender só da camada
- * TypeScript. Uma tabela sem RLS é uma fuga latente — basta alguém conceder
- * acesso ao papel `authenticated`, ou passar a lê-la pelo cliente do browser,
- * para deixar de haver rede por baixo.
+ * Este ficheiro lê o SQL do repositório e responde a uma pergunta só: o que
+ * está **declarado** aqui. Não responde ao que está **aplicado** na base — e a
+ * diferença entre as duas coisas provou-se grande. A produção tem um schema
+ * `private` com 95 funções, um modelo de permissões próprio, e RLS em tabelas
+ * que este repositório nem sabe criar.
  *
- * Este teste não substitui os testes pgTAP em `supabase/tests/` (que verificam
- * as políticas contra uma base real). Faz o que eles não podem fazer sem base
- * de dados: impedir que a lista de tabelas desprotegidas cresça.
+ * A distinção não é académica: uma versão anterior deste ficheiro tratava a
+ * lista de «sem RLS declarada» como «desprotegidas» e deu origem a uma migração
+ * que teria acrescentado políticas redundantes a tabelas já protegidas.
+ *
+ * Para a postura real existe `rls-live-probe.test.ts`, que pergunta à base.
+ * Para o esquema de produção deixar de ser invisível, existe o OPS-01.
  */
 
 const REPO = resolve(__dirname, "../..");
 
 /**
- * Dívida conhecida: tabelas com `school_id` para as quais ainda não existe RLS
- * declarado. Está vazia — as 17 que faltavam passaram a ter política em
- * `supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql`.
+ * Tabelas com `school_id` sem RLS declarada **no repositório**.
  *
- * Atenção ao que este teste mede: lê o SQL do repositório, portanto verifica
- * que a política está **escrita**, não que está **aplicada** em produção. Essa
- * distinção só desaparece quando o esquema de produção estiver sob controlo de
- * versões. Até lá, confirmar depois de aplicar:
+ * Atenção à formulação, porque foi corrigida à custa de um erro. A versão
+ * anterior tratava esta lista como «tabelas desprotegidas» e deu origem a uma
+ * migração que quase foi aplicada. Ao consultar a produção a 2026-09-12,
+ * verificou-se que **todas estas já têm `relrowsecurity = true` e políticas** —
+ * a maioria três cada. O que falta é a declaração no repositório, não a
+ * protecção na base.
  *
- *   select relname, relrowsecurity from pg_class where relname like 'hr_%';
+ * Ou seja: este ficheiro mede a completude do SQL versionado, não a postura de
+ * segurança. Quem quiser a postura real tem `rls-live-probe.test.ts`, que
+ * pergunta à base. Enquanto o esquema de produção não estiver sob controlo de
+ * versões (OPS-01), os dois números continuam a divergir e é preciso saber qual
+ * se está a ler.
  */
-const RLS_PENDING = new Set<string>([]);
+const RLS_PENDING = new Set<string>([
+  "academic_schedules",
+  "curricula",
+  "curriculum_areas",
+  "curriculum_subjects",
+  "hr_compensation_events",
+  "hr_contracts",
+  "hr_departments",
+  "hr_employments",
+  "hr_payroll_item_components",
+  "hr_payroll_items",
+  "hr_payroll_runs",
+  "hr_positions",
+  "notification_preferences",
+  "school_shift_slots",
+  "school_shifts",
+  "subject_types",
+  "teacher_availability",
+]);
 
 /**
  * Tabelas que a aplicação consulta e que não têm `CREATE TABLE` em lado nenhum
@@ -198,13 +220,35 @@ describe("RLS nas tabelas com school_id", () => {
     ).toEqual([]);
   });
 
-  it("as tabelas de RH e salários têm política declarada", () => {
-    // Explícito por serem as de maior sensibilidade: contratos e vencimentos de
-    // trabalhadores, não dados operacionais da escola.
-    const hrTables = schoolTables.filter((table) => table.startsWith("hr_"));
-    expect(hrTables.length).toBeGreaterThan(0);
-    for (const table of hrTables) {
-      expect(rlsEnabled.has(table), `${table} sem ENABLE ROW LEVEL SECURITY`).toBe(true);
-    }
+  it("o repositório continua a não descrever a protecção do núcleo de RH", () => {
+    // Precisão importa aqui. Das tabelas `hr_*`, a maioria tem RLS declarada no
+    // repositório — assiduidade, pagamentos, vínculos docentes. As que faltam
+    // são exactamente as oito de contratos e processamento salarial.
+    //
+    // Não é um alarme: em produção estão protegidas, com RLS activo e três
+    // políticas cada, confirmado a 2026-09-12. É um marcador da divergência
+    // entre o que o repositório descreve e o que a base faz.
+    const CORE_HR_UNDECLARED = [
+      "hr_compensation_events",
+      "hr_contracts",
+      "hr_departments",
+      "hr_employments",
+      "hr_payroll_item_components",
+      "hr_payroll_items",
+      "hr_payroll_runs",
+      "hr_positions",
+    ];
+
+    const undeclared = schoolTables
+      .filter((table) => table.startsWith("hr_") && !rlsEnabled.has(table))
+      .sort();
+
+    expect(
+      undeclared,
+      undeclared.length < CORE_HR_UNDECLARED.length
+        ? `Passaram a ter RLS declarada no repositório tabelas que não tinham. ` +
+            `Boa notícia — remova-as de RLS_PENDING e desta lista.`
+        : `Mais tabelas de RH ficaram sem declaração: ${undeclared.join(", ")}.`,
+    ).toEqual(CORE_HR_UNDECLARED);
   });
 });

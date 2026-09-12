@@ -12,8 +12,7 @@
   ],
   "sqlHarden": [
     "supabase/HARDEN_TENANT_ISOLATION.sql",
-    "supabase/HARDEN_TEACHER_ASSESSMENT_SCOPE.sql",
-    "supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql"
+    "supabase/HARDEN_TEACHER_ASSESSMENT_SCOPE.sql"
   ],
   "sqlPatchAfterVerify": "supabase/APPLY_MISSING_FROM_VERIFY.sql",
   "sqlNeverApplyToSga": [

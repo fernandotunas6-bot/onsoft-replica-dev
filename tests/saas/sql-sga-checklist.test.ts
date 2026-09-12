@@ -28,7 +28,6 @@ describe("SQL SGA checklist", () => {
     expect(catalog.sqlHarden).toEqual([
       "supabase/HARDEN_TENANT_ISOLATION.sql",
       "supabase/HARDEN_TEACHER_ASSESSMENT_SCOPE.sql",
-      "supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql",
     ]);
     for (const file of catalog.sqlHarden) {
       expect(existsSync(resolve(file)), file).toBe(true);

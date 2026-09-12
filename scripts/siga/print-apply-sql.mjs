@@ -151,12 +151,12 @@ export const SQL_CHECKLIST = {
     ],
   },
   "supabase/APPLY_ASSESSMENT_SCORE_HISTORY.sql": {
-    title: "Histórico de alterações de notas",
-    tables: ["siga_assessment_score_history"],
+    title: "Auditoria de alterações de notas",
+    tables: ["audit_logs"],
     notes: [
-      "Trilha imutável por trigger: quem alterou, de que valor para que valor, quando",
-      "siga_assessment_scores só guardava previous_score e sobrescrevia recorded_by",
-      "Semeia uma linha de base a partir das notas já existentes",
+      "Liga siga_assessment_scores ao private.audit_row_change() que 41 tabelas já usavam",
+      "As notas eram das poucas coisas importantes fora da auditoria central",
+      "APLICADO em produção a 2026-09-12 — 41 → 42 tabelas com auditoria",
     ],
   },
   "supabase/HARDEN_TENANT_ISOLATION.sql": {
@@ -168,15 +168,6 @@ export const SQL_CHECKLIST = {
     title: "Âmbito docente sobre avaliações",
     tables: [],
     notes: ["Professor limitado às turmas e disciplinas activamente atribuídas"],
-  },
-  "supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql": {
-    title: "RLS nas 17 tabelas escolares que não a tinham",
-    tables: [],
-    notes: [
-      "RH e salários: só Administrador e Tesouraria",
-      "Estrutura académica: leitura para membros, escrita para Secretaria/Direcção",
-      "Confirmar antes os privilégios de `authenticated` — instruções no cabeçalho",
-    ],
   },
 };
 
