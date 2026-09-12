@@ -7,7 +7,8 @@
     "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
     "supabase/APPLY_SAAS_PLATFORM.sql",
     "supabase/APPLY_DIGITAL_IDENTITY.sql",
-    "supabase/APPLY_ALUMNI_MODULE.sql"
+    "supabase/APPLY_ALUMNI_MODULE.sql",
+    "supabase/APPLY_ASSESSMENT_SCORE_HISTORY.sql"
   ],
   "sqlPatchAfterVerify": "supabase/APPLY_MISSING_FROM_VERIFY.sql",
   "sqlNeverApplyToSga": [

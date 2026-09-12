@@ -150,6 +150,15 @@ export const SQL_CHECKLIST = {
       "Perfis 360º, portfólio por nível de ensino, mentoria, tracer studies, eventos e privacidade",
     ],
   },
+  "supabase/APPLY_ASSESSMENT_SCORE_HISTORY.sql": {
+    title: "Histórico de alterações de notas",
+    tables: ["siga_assessment_score_history"],
+    notes: [
+      "Trilha imutável por trigger: quem alterou, de que valor para que valor, quando",
+      "siga_assessment_scores só guardava previous_score e sobrescrevia recorded_by",
+      "Semeia uma linha de base a partir das notas já existentes",
+    ],
+  },
 };
 
 function printChecklist() {

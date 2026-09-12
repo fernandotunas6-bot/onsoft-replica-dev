@@ -13,6 +13,7 @@ import { scoreAverage, inferTeachingCycle } from "@/lib/angola-academic";
 import { buildClassAcademicSummaries } from "./assessment-engine";
 import { ensureAcademicDefaultsCore } from "./academic-bootstrap";
 import { listSgaTermGrades, upsertSgaTermGrade, upsertSgaTermGradesBatch } from "./sga-grades";
+import { reportSigaError } from "@/lib/ops-report";
 import {
   createClassGroupInputSchema,
   createSubjectInputSchema,
@@ -1503,6 +1504,20 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
           .eq("school_id", membership.schoolId);
       }),
     ]);
+    // Lançar notas é a escrita de maior consequência do sistema. Sem registo,
+    // um lote que falha a meio — uns alunos gravados, outros não — chega ao
+    // professor como uma mensagem genérica e não deixa rasto nenhum.
+    const failure = insertResult.error ?? updateResults.find((result) => result.error)?.error;
+    if (failure) {
+      reportSigaError("assessment.score.write_failed", failure, {
+        module: "academic",
+        action: "score.upsert",
+        school_id: membership.schoolId,
+        assessment_item_id: data.itemId,
+        user_id: context.userId,
+        count: data.rows.length,
+      });
+    }
     if (insertResult.error)
       throw publicDatabaseError(insertResult.error, "Não foi possível lançar as notas.");
     for (const result of updateResults) {

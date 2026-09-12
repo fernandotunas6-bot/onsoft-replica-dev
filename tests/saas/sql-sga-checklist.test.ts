@@ -3,14 +3,17 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 describe("SQL SGA checklist", () => {
-  it("print-apply-sql lista os 3 ficheiros canónicos e existem no disco", () => {
+  it("print-apply-sql lista os ficheiros canónicos, por ordem, e existem no disco", () => {
     const catalog = JSON.parse(readFileSync(resolve("scripts/siga/modules.json"), "utf8"));
+    // A ordem importa: cada ficheiro assume as tabelas e funções criadas pelos
+    // anteriores. Acrescentar ao fim; nunca intercalar.
     expect(catalog.sqlApply).toEqual([
       "supabase/APPLY_IN_SQL_EDITOR.sql",
       "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
       "supabase/APPLY_SAAS_PLATFORM.sql",
       "supabase/APPLY_DIGITAL_IDENTITY.sql",
       "supabase/APPLY_ALUMNI_MODULE.sql",
+      "supabase/APPLY_ASSESSMENT_SCORE_HISTORY.sql",
     ]);
     for (const file of catalog.sqlApply) {
       expect(existsSync(resolve(file)), file).toBe(true);
