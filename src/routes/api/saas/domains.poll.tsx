@@ -4,10 +4,17 @@ import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
 import { pollCustomDomainDns, persistPollResult } from "@/features/saas/domain-polling";
 import { domainDnsInstructions } from "@/features/saas/platform-ops";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { requireTenantAccess, resolveBearerUserId } from "@/features/saas/platform-guard";
 
 // style-check: route-exempt — polling DNS de domínio personalizado.
 
 const APPS = ["web", "admin"] as const;
+
+function authErrorStatus(message: string): number {
+  if (message === "Unauthorized" || message.includes("Sem permissão")) return 401;
+  if (message.includes("não encontrada")) return 404;
+  return 500;
+}
 
 const pollBodySchema = z.object({
   domainId: z.string().uuid("domainId deve ser um UUID válido."),
@@ -38,6 +45,16 @@ export const Route = createFileRoute("/api/saas/domains/poll")({
           );
         }
 
+        // Autenticar antes de tocar na base de dados: sem isto, um `domainId`
+        // arbitrário lia e escrevia `tenant_domains` de qualquer escola, porque
+        // o cliente admin ignora RLS.
+        let userId: string;
+        try {
+          userId = await resolveBearerUserId(request.headers.get("Authorization"));
+        } catch {
+          return jsonWithCors(request, { error: "Unauthorized" }, { status: 401, apps: [...APPS] });
+        }
+
         const db = await loadSgaAdminClient();
         const { data: domain, error: loadErr } = await db
           .from("tenant_domains")
@@ -50,6 +67,18 @@ export const Route = createFileRoute("/api/saas/domains/poll")({
             request,
             { error: "Domínio não encontrado." },
             { status: 404, apps: [...APPS] },
+          );
+        }
+
+        try {
+          await requireTenantAccess(userId, String(domain.tenant_id));
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Sem permissão para gerir esta escola.";
+          return jsonWithCors(
+            request,
+            { error: message },
+            { status: authErrorStatus(message), apps: [...APPS] },
           );
         }
 

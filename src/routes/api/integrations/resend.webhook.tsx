@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import {
+  resolveResendWebhookSecret,
+  verifyResendWebhookSignature,
+} from "@/features/integrations/resend-webhook-signature";
 
 // style-check: route-exempt — webhook HTTP Resend para entrega, aberturas e bounces.
 
@@ -26,9 +30,31 @@ export const Route = createFileRoute("/api/integrations/resend/webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Falha fechada: sem segredo configurado não se aceitam eventos, em vez
+        // de aceitar tudo como antes.
+        const secret = resolveResendWebhookSecret();
+        if (!secret) {
+          return Response.json({ ok: false, message: "Webhook não configurado." }, { status: 500 });
+        }
+
+        // O corpo tem de ser lido como texto: a assinatura cobre os bytes
+        // exactos recebidos, e voltar a serializar o JSON invalidaria-a.
+        const rawBody = await request.text();
+        const signature = await verifyResendWebhookSignature({
+          payload: rawBody,
+          svixId: request.headers.get("svix-id"),
+          svixTimestamp: request.headers.get("svix-timestamp"),
+          svixSignature: request.headers.get("svix-signature"),
+          secret,
+        });
+
+        if (!signature.valid) {
+          return Response.json({ ok: false, message: "Assinatura inválida." }, { status: 401 });
+        }
+
         let payload: ResendWebhookPayload;
         try {
-          payload = (await request.json()) as ResendWebhookPayload;
+          payload = JSON.parse(rawBody) as ResendWebhookPayload;
         } catch {
           return Response.json({ ok: false, message: "Payload JSON inválido." }, { status: 400 });
         }

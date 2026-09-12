@@ -299,10 +299,15 @@ export function DigitalIdentityPanel() {
       setDomainVerificationStatus("pending");
       toast.success("Domínio registado! Verifique as instruções de DNS abaixo.");
 
-      // Inicia o polling via endpoint
+      // Inicia o polling via endpoint. O token da sessão é obrigatório: o
+      // endpoint confirma que esta conta manda no tenant do domínio.
+      const { data: sessionData } = await supabase.auth.getSession();
       const pollRes = await fetch("/api/saas/domains/poll", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session?.access_token ?? ""}`,
+        },
         body: JSON.stringify({ domainId: res.domainId }),
       });
 
