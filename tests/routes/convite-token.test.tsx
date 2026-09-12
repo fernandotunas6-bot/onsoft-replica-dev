@@ -73,7 +73,9 @@ describe("/convite/$token", () => {
     mockSession = { user: { id: "user-123" } };
 
     const acceptSpy = vi.spyOn(accessServer, "acceptSchoolInvitation").mockResolvedValue({
+      success: true,
       schoolId: "school-abc",
+      roleCode: "admin",
     });
 
     const Page = await loadPage();

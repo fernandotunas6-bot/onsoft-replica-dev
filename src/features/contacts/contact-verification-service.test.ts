@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { ContactVerificationService } from "./contact-verification-service";
+import { ContactVerificationService, type ContactVerificationProfile } from "./contact-verification-service";
 
 /**
  * Testes para ContactVerificationService
@@ -18,7 +18,7 @@ describe("ContactVerificationService", () => {
 
   describe("resolveChannel", () => {
     it("retorna email se apenas email está verificado", () => {
-      const profile = {
+      const profile: ContactVerificationProfile = {
         id: "1",
         userId: mockUserId,
         schoolId: mockSchoolId,
@@ -46,7 +46,7 @@ describe("ContactVerificationService", () => {
     });
 
     it("retorna null se nenhum canal está verificado", () => {
-      const profile = {
+      const profile: ContactVerificationProfile = {
         id: "1",
         userId: mockUserId,
         schoolId: mockSchoolId,
@@ -74,7 +74,7 @@ describe("ContactVerificationService", () => {
     });
 
     it("respeita canais preferidos quando disponíveis", () => {
-      const profile = {
+      const profile: ContactVerificationProfile = {
         id: "1",
         userId: mockUserId,
         schoolId: mockSchoolId,
@@ -103,7 +103,7 @@ describe("ContactVerificationService", () => {
     });
 
     it("faz fallback ao canal preferido se o preferido não está disponível", () => {
-      const profile = {
+      const profile: ContactVerificationProfile = {
         id: "1",
         userId: mockUserId,
         schoolId: mockSchoolId,
@@ -132,7 +132,7 @@ describe("ContactVerificationService", () => {
     });
 
     it("usa primeira opção disponível se preferido não está disponível", () => {
-      const profile = {
+      const profile: ContactVerificationProfile = {
         id: "1",
         userId: mockUserId,
         schoolId: mockSchoolId,

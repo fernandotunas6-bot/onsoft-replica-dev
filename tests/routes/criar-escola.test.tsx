@@ -39,7 +39,7 @@ describe("/criar-escola", () => {
     const replaceMock = vi.fn();
     const originalLocation = window.location;
     delete (window as any).location;
-    window.location = { ...originalLocation, replace: replaceMock } as any;
+    (window as any).location = { ...originalLocation, replace: replaceMock };
 
     try {
       const Page = await loadPage();
@@ -50,7 +50,7 @@ describe("/criar-escola", () => {
       });
       expect(urlSpy).toHaveBeenCalled();
     } finally {
-      Object.defineProperty(window, "location", { value: originalLocation, writable: true });
+      (window as any).location = originalLocation;
     }
   });
 });

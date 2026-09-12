@@ -4,7 +4,30 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-09-11)
+## Estado (2026-09-12)
+
+### Ciclo 87 — Blindagem dos Portais Especializados do Dashboard e Cobertura Total de Rotas (2026-09-12)
+
+Conclusão e blindagem dos testes de todas as superfícies de interface e rotas em falta:
+
+1. **Rotas em Falta Concluídas (`tests/routes/`):**
+   - Implementadas e blindadas as 5 rotas restantes: `criar-escola`, `calendario.ics`, `convite.$token`, `alterar-senha` e `relatorios.financeiros`.
+   - Isolados os módulos de exportação e de gráficos assíncronos no jsdom (`relatorios.financeiros`) prevenindo timeouts.
+   - Normalização e validação de parâmetros de convite e download com tipagem rigorosa.
+
+2. **Portais Especializados do Dashboard (`tests/routes/dashboard-portals.test.tsx`):**
+   - Resolução correta via `resolvePortalMode`:
+     - **Portal do Aluno (`StudentPortalDashboard`)**: turma activa, auto-serviço (boletim, turma, presenças), cartão virtual de catraca e métricas de assiduidade.
+     - **Portal do Encarregado (`GuardianPortalDashboard`)**: acompanhamento de educandos, selector de educando activo e canais institucionais.
+     - **Portal do Professor (`TeacherPortalDashboard`)**: lista de sessões de chamada do dia com `starts_at`/`ends_at` ordenados, turmas leccionadas e menu de docência.
+   - Saneamento do mock de `useCurrentAccount.linkedEntities` em `_harness.tsx` para coincidir com o tipo canónico do SGA.
+
+3. **Verificação Oficial:**
+   - `tsc --noEmit`: **0 erros em todo o projeto**.
+   - `vitest run tests/routes/`: **49 ficheiros / 196 testes, 100% verde**.
+   - `npm run siga:check`: 18 módulos + catálogo de navegação 100% verde.
+
+---
 
 ### Ciclo 86 — SIGA Communication & Identity Layer (Fase 1 + 2) & Fluxo de Alteração de Telefone com OTP (2026-09-11)
 
@@ -187,17 +210,11 @@ anterior cobre um estado diferente do que ele próprio verificou.
 - **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (4.4s).
 
 **Próxima fatia:**
-1. **Resto do módulo Alumni** (5 rotas por fazer, todas do portal
-   público do antigo aluno): `alumni.portal`, `alumni.portal.portfolio`,
-   `alumni.portal.portfolio.education`, `alumni.portal.portfolio.print`,
-   `alumni.$alumniId.portfolio` — com isto o módulo Alumni fica completo.
-2. ~~**`criar-escola`, `convite.$token`, `calendario.ics`, `relatorios.financeiros` e `alterar-senha`**~~ — **Concluído e blindado.** (Todas as suites de teste a verde com jsdom)
-3. **Verificar `tests/routes/perfil.test.tsx`** com o novo `clickTab`
-   (Ciclo 81, ainda por confirmar).
-4. **Portais de Aluno/Encarregado/Professor do painel principal** — só o
-   portal Administrador tem suite (Ciclo 80).
-5. Itens antigos: flakiness de `enrollment-live.spec.ts` (Ciclo 71),
-   auditoria mais profunda às pontes do ecossistema (`painel/`).
+1. ~~**Módulo Alumni completo**~~ — **Concluído no Ciclo 84** (todas as rotas com suite de teste dedicada).
+2. ~~**`criar-escola`, `convite.$token`, `calendario.ics`, `relatorios.financeiros` e `alterar-senha`**~~ — **Concluído no Ciclo 87** (todas a verde com jsdom).
+3. ~~**Verificar `tests/routes/perfil.test.tsx`**~~ — **Confirmado e 100% verde no Ciclo 87** (4/4 testes a passar).
+4. ~~**Portais de Aluno/Encarregado/Professor do painel principal**~~ — **Concluído no Ciclo 87** (`tests/routes/dashboard-portals.test.tsx`, 3 testes a verde).
+5. **Auditoria de pontes e ecossistema (`painel/web`, `painel/admin`, `painel/payflow`, `painel/docs`)** ou itens de e2e (`enrollment-live.spec.ts`).
 
 ---
 

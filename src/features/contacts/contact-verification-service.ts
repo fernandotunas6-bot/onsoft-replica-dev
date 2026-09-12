@@ -3,6 +3,48 @@ import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
 export type ContactChannel = "email" | "sms" | "whatsapp";
 
+interface ContactVerificationProfileRow {
+  id: string;
+  user_id: string;
+  school_id: string | null;
+  email_address: string | null;
+  email_verified: boolean;
+  email_verified_at: string | null;
+  phone_number: string | null;
+  phone_verified: boolean;
+  phone_verified_at: string | null;
+  whatsapp_number: string | null;
+  whatsapp_verified: boolean;
+  whatsapp_verified_at: string | null;
+  preferred_communication_channel: string;
+  preferred_language: string;
+  last_email_sent_at: string | null;
+  last_sms_sent_at: string | null;
+  last_whatsapp_sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+  version: number;
+}
+
+interface UserCommunicationPreferencesRow {
+  id: string;
+  user_id: string;
+  school_id: string | null;
+  security_enabled: boolean;
+  academic_enabled: boolean;
+  financial_enabled: boolean;
+  attendance_enabled: boolean;
+  calendar_enabled: boolean;
+  announcements_enabled: boolean;
+  events_enabled: boolean;
+  documents_enabled: boolean;
+  marketing_enabled: boolean;
+  channel_preferences?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  version: number;
+}
+
 export interface ContactVerificationProfile {
   id: string;
   userId: string;
@@ -425,7 +467,7 @@ export class ContactVerificationService {
   }
 
   private static mapRowToProfile(
-    row: Database["public"]["Tables"]["contact_verification_profiles"]["Row"],
+    row: ContactVerificationProfileRow,
   ): ContactVerificationProfile {
     return {
       id: row.id,
@@ -458,7 +500,7 @@ export class ContactVerificationService {
   }
 
   private static mapRowToPreferences(
-    row: Database["public"]["Tables"]["user_communication_preferences"]["Row"],
+    row: UserCommunicationPreferencesRow,
   ): CommunicationPreferences {
     return {
       id: row.id,

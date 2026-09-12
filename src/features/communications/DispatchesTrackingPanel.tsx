@@ -156,7 +156,7 @@ export function DispatchesTrackingPanel() {
       <Panel
         title="Histórico de Entregas em Tempo Real"
         description="Monitorização de e-mails (Resend), mensagens de WhatsApp e SMS com atualização de status."
-        actions={
+        action={
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
