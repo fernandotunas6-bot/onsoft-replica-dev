@@ -23,7 +23,6 @@ import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as FaturasRouteImport } from './routes/faturas'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as ImportarRouteImport } from './routes/importar'
-import { Route as PagamentosConfiguracaoRouteImport } from './routes/pagamentos-configuracao'
 import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
@@ -66,6 +65,8 @@ import { Route as ApiSaasSignupRouteImport } from './routes/api/saas/signup'
 import { Route as ApiSaasStatsRouteImport } from './routes/api/saas/stats'
 import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subscriptions'
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
+import { Route as ApiWebhooksTwilioSmsRouteImport } from './routes/api/webhooks/twilio-sms'
+import { Route as ApiWebhooksWhatsappStatusRouteImport } from './routes/api/webhooks/whatsapp-status'
 import { Route as FinanceiroRhFaltasRouteImport } from './routes/financeiro.rh.faltas'
 import { Route as FinanceiroRhFolhaRouteImport } from './routes/financeiro.rh.folha'
 import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro.rh.pagamentos'
@@ -158,11 +159,6 @@ const FinanceiroRoute = FinanceiroRouteImport.update({
 const ImportarRoute = ImportarRouteImport.update({
   id: '/importar',
   path: '/importar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PagamentosConfiguracaoRoute = PagamentosConfiguracaoRouteImport.update({
-  id: '/pagamentos-configuracao',
-  path: '/pagamentos-configuracao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PedagogicaRoute = PedagogicaRouteImport.update({
@@ -375,6 +371,17 @@ const ApiSaasTenantsRoute = ApiSaasTenantsRouteImport.update({
   path: '/api/saas/tenants',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksTwilioSmsRoute = ApiWebhooksTwilioSmsRouteImport.update({
+  id: '/api/webhooks/twilio-sms',
+  path: '/api/webhooks/twilio-sms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksWhatsappStatusRoute =
+  ApiWebhooksWhatsappStatusRouteImport.update({
+    id: '/api/webhooks/whatsapp-status',
+    path: '/api/webhooks/whatsapp-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const FinanceiroRhFaltasRoute = FinanceiroRhFaltasRouteImport.update({
   id: '/faltas',
   path: '/faltas',
@@ -517,7 +524,6 @@ export interface FileRoutesByFullPath {
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
-  '/pagamentos-configuracao': typeof PagamentosConfiguracaoRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
@@ -560,6 +566,8 @@ export interface FileRoutesByFullPath {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
+  '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
@@ -599,7 +607,6 @@ export interface FileRoutesByTo {
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
-  '/pagamentos-configuracao': typeof PagamentosConfiguracaoRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
@@ -642,6 +649,8 @@ export interface FileRoutesByTo {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
+  '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
@@ -682,7 +691,6 @@ export interface FileRoutesById {
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
-  '/pagamentos-configuracao': typeof PagamentosConfiguracaoRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
@@ -725,6 +733,8 @@ export interface FileRoutesById {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
+  '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
@@ -766,7 +776,6 @@ export interface FileRouteTypes {
     | '/faturas'
     | '/financeiro'
     | '/importar'
-    | '/pagamentos-configuracao'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
@@ -809,6 +818,8 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/api/webhooks/twilio-sms'
+    | '/api/webhooks/whatsapp-status'
     | '/financeiro/rh/faltas'
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
@@ -848,7 +859,6 @@ export interface FileRouteTypes {
     | '/faturas'
     | '/financeiro'
     | '/importar'
-    | '/pagamentos-configuracao'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
@@ -891,6 +901,8 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/api/webhooks/twilio-sms'
+    | '/api/webhooks/whatsapp-status'
     | '/financeiro/rh/faltas'
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
@@ -930,7 +942,6 @@ export interface FileRouteTypes {
     | '/faturas'
     | '/financeiro'
     | '/importar'
-    | '/pagamentos-configuracao'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
@@ -973,6 +984,8 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/api/webhooks/twilio-sms'
+    | '/api/webhooks/whatsapp-status'
     | '/financeiro/rh/faltas'
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
@@ -1013,7 +1026,6 @@ export interface RootRouteChildren {
   FaturasRoute: typeof FaturasRoute
   FinanceiroRoute: typeof FinanceiroRouteWithChildren
   ImportarRoute: typeof ImportarRoute
-  PagamentosConfiguracaoRoute: typeof PagamentosConfiguracaoRoute
   PedagogicaRoute: typeof PedagogicaRoute
   PerfilRoute: typeof PerfilRoute
   PlanosAulaRoute: typeof PlanosAulaRoute
@@ -1043,6 +1055,8 @@ export interface RootRouteChildren {
   ApiSaasStatsRoute: typeof ApiSaasStatsRoute
   ApiSaasSubscriptionsRoute: typeof ApiSaasSubscriptionsRouteWithChildren
   ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
+  ApiWebhooksTwilioSmsRoute: typeof ApiWebhooksTwilioSmsRoute
+  ApiWebhooksWhatsappStatusRoute: typeof ApiWebhooksWhatsappStatusRoute
   ApiFinanceGatewayConfirmRoute: typeof ApiFinanceGatewayConfirmRoute
   ApiFinancePayflowSettlementRoute: typeof ApiFinancePayflowSettlementRoute
   ApiIntegrationsResendWebhookRoute: typeof ApiIntegrationsResendWebhookRoute
@@ -1150,13 +1164,6 @@ declare module '@tanstack/react-router' {
       path: '/importar'
       fullPath: '/importar'
       preLoaderRoute: typeof ImportarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pagamentos-configuracao': {
-      id: '/pagamentos-configuracao'
-      path: '/pagamentos-configuracao'
-      fullPath: '/pagamentos-configuracao'
-      preLoaderRoute: typeof PagamentosConfiguracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pedagogica': {
@@ -1451,6 +1458,20 @@ declare module '@tanstack/react-router' {
       path: '/api/saas/tenants'
       fullPath: '/api/saas/tenants'
       preLoaderRoute: typeof ApiSaasTenantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/twilio-sms': {
+      id: '/api/webhooks/twilio-sms'
+      path: '/api/webhooks/twilio-sms'
+      fullPath: '/api/webhooks/twilio-sms'
+      preLoaderRoute: typeof ApiWebhooksTwilioSmsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/whatsapp-status': {
+      id: '/api/webhooks/whatsapp-status'
+      path: '/api/webhooks/whatsapp-status'
+      fullPath: '/api/webhooks/whatsapp-status'
+      preLoaderRoute: typeof ApiWebhooksWhatsappStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/financeiro/rh/faltas': {
@@ -1800,7 +1821,6 @@ const rootRouteChildren: RootRouteChildren = {
   FaturasRoute: FaturasRoute,
   FinanceiroRoute: FinanceiroRouteWithChildren,
   ImportarRoute: ImportarRoute,
-  PagamentosConfiguracaoRoute: PagamentosConfiguracaoRoute,
   PedagogicaRoute: PedagogicaRoute,
   PerfilRoute: PerfilRoute,
   PlanosAulaRoute: PlanosAulaRoute,
@@ -1830,6 +1850,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasStatsRoute: ApiSaasStatsRoute,
   ApiSaasSubscriptionsRoute: ApiSaasSubscriptionsRouteWithChildren,
   ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,
+  ApiWebhooksTwilioSmsRoute: ApiWebhooksTwilioSmsRoute,
+  ApiWebhooksWhatsappStatusRoute: ApiWebhooksWhatsappStatusRoute,
   ApiFinanceGatewayConfirmRoute: ApiFinanceGatewayConfirmRoute,
   ApiFinancePayflowSettlementRoute: ApiFinancePayflowSettlementRoute,
   ApiIntegrationsResendWebhookRoute: ApiIntegrationsResendWebhookRoute,
