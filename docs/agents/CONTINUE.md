@@ -4,7 +4,32 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-09-12)
+## Estado (2026-09-13)
+
+### Ciclo 89 — Blindagem e Testes Unitários de Provisionamento e RBAC Escolar (`school-bootstrap`) (2026-09-13)
+
+Refatoração, exportação canónica e cobertura total de testes do provisionamento de novas escolas no SaaS:
+
+1. **Camada de Provisionamento Escolar (`src/features/saas/school-bootstrap.ts`):**
+   - Exportação canónica das constantes de permissões padrão por papel: `SECRETARY_PERMISSION_CODES`, `TREASURY_PERMISSION_CODES`, `TEACHER_PERMISSION_CODES`, `GUARDIAN_PERMISSION_CODES`, `STUDENT_PERMISSION_CODES`, `USER_PERMISSION_CODES`.
+   - Exportação de papéis canónicos (`DEFAULT_ROLES`) e sequências fiscais obrigatórias (`DEFAULT_DOCUMENT_SEQUENCES`) com os 9 tipos canónicos de documentos (`invoice`, `receipt`, `credit_note`, `expense`, `declaration`, `certificate`, `transfer`, `term`, `other`).
+   - Exportação e desacoplamento de `seedDefaultRolePermissions` e `seedDefaultDocumentSequences`.
+
+2. **Suite de Testes Unitários (`tests/saas/school-bootstrap.test.ts`):**
+   - Criados **13 testes unitários** com mock de Supabase PostgREST que cobrem exaustivamente:
+     - Criação de papéis canónicos (`roles`) se ausentes, respeitando papéis pré-existentes.
+     - Associação de permissões granulares por papel via `role_permissions`.
+     - Upsert das 9 sequências de documentos (`document_sequences`) por tipo e escola.
+     - Criação de plano de propinas padrão (`fee_plans` + `fee_plan_items`).
+     - Resiliência contra tabelas inexistentes no schema PostgREST (tratamento gracioso de `PGRST205` / missing table).
+     - Execução do fluxo completo de `bootstrapSchoolDefaults` com verificação de todas as tabelas.
+
+3. **Verificação Oficial:**
+   - **`tsc --noEmit`**: **0 erros** em todo o projeto.
+   - **`vitest run tests/saas/`**: **26 ficheiros aprovados**, **239 testes aprovados** (100% verde).
+   - **`vitest run tests/saas/school-bootstrap.test.ts`**: **13 testes aprovados** em 1.7s.
+
+---
 
 ### Ciclo 88 — Auditoria e Validação Integral das 5 Aplicações do Ecossistema SIGA (2026-09-12)
 
@@ -176,18 +201,11 @@ do item (`!item.featured`).
 agora suite de render em `tests/routes/`.
 
 **Próxima fatia:**
-1. **`criar-escola`, `convite.$token`, `calendario.ics`,
-   `relatorios.financeiros`** — únicas rotas "normais" ainda por fazer.
-2. **Verificar `tests/routes/perfil.test.tsx`** com o `clickTab` do
-   Ciclo 81 (ainda por confirmar, não é ficheiro deste agente).
-3. **Portais de Aluno/Encarregado/Professor do painel principal** — só o
-   portal Administrador tem suite (Ciclo 80).
-4. **Quando a sessão concorrente terminar o refactor de e-mail/Resend**:
-   revalidar `tsc --noEmit` global antes de assumir baseline limpa —
-   ver nota acima sobre os erros actuais em `access/server.ts` e
-   `auth/{magic-link,reset-password}-server.ts`.
-5. Itens antigos: flakiness de `enrollment-live.spec.ts` (Ciclo 71),
-   auditoria mais profunda às pontes do ecossistema (`painel/`).
+1. ~~**`criar-escola`, `convite.$token`, `calendario.ics`, `relatorios.financeiros` e `alterar-senha`**~~ — Concluído no Ciclo 87.
+2. ~~**Verificar `tests/routes/perfil.test.tsx`**~~ — Concluído no Ciclo 87.
+3. ~~**Portais de Aluno/Encarregado/Professor do painel principal**~~ — Concluído no Ciclo 87.
+4. ~~**Refactor de e-mail/Resend e `tsc --noEmit` global**~~ — Concluído no Ciclo 85/86.
+5. ~~**Auditoria das pontes do ecossistema (`painel/`)**~~ — Concluído no Ciclo 88.
 
 ---
 

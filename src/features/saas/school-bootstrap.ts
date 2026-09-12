@@ -28,7 +28,7 @@ function isMissingTable(error: { code?: string; message?: string } | null) {
 // as restantes correspondem ao que a Secretaria já usa em produção. Papéis
 // treasury/teacher/student/guardian/user ainda não têm um conjunto de
 // referência — ficam sem permissões finas nesta fatia.
-const SECRETARY_PERMISSION_CODES = [
+export const SECRETARY_PERMISSION_CODES = [
   "academic.classes.read",
   "academic.classes.manage",
   "academic.structure.read",
@@ -73,7 +73,7 @@ const SECRETARY_PERMISSION_CODES = [
   "teachers.records.update",
 ] as const;
 
-const TREASURY_PERMISSION_CODES = [
+export const TREASURY_PERMISSION_CODES = [
   "finance.contracts.create",
   "finance.contracts.read",
   "finance.invoices.cancel",
@@ -96,7 +96,7 @@ const TREASURY_PERMISSION_CODES = [
   "communication.announcements.read",
 ] as const;
 
-const TEACHER_PERMISSION_CODES = [
+export const TEACHER_PERMISSION_CODES = [
   "academic.classes.read",
   "academic.structure.read",
   "academic.subjects.read",
@@ -118,7 +118,7 @@ const TEACHER_PERMISSION_CODES = [
   "files.objects.create",
 ] as const;
 
-const GUARDIAN_PERMISSION_CODES = [
+export const GUARDIAN_PERMISSION_CODES = [
   "academic.structure.read",
   "academic.classes.read",
   "academic.timetable.read",
@@ -135,7 +135,7 @@ const GUARDIAN_PERMISSION_CODES = [
   "students.records.read",
 ] as const;
 
-const STUDENT_PERMISSION_CODES = [
+export const STUDENT_PERMISSION_CODES = [
   "academic.structure.read",
   "academic.classes.read",
   "academic.timetable.read",
@@ -149,12 +149,23 @@ const STUDENT_PERMISSION_CODES = [
   "documents.requests.manage",
 ] as const;
 
-const USER_PERMISSION_CODES = [
+export const USER_PERMISSION_CODES = [
   "communication.announcements.read",
   "communication.inbox.read",
 ] as const;
 
-async function seedDefaultRolePermissions(db: SupabaseClient, schoolId: string) {
+export const DEFAULT_ROLES = [
+  { code: "owner", name: "Proprietário", is_system: false },
+  { code: "admin", name: "Administrador", is_system: false },
+  { code: "secretary", name: "Secretaria", is_system: false },
+  { code: "treasury", name: "Tesouraria", is_system: false },
+  { code: "teacher", name: "Professor", is_system: false },
+  { code: "student", name: "Aluno", is_system: false },
+  { code: "guardian", name: "Encarregado", is_system: false },
+  { code: "user", name: "Utilizador", is_system: false },
+] as const;
+
+export async function seedDefaultRolePermissions(db: SupabaseClient, schoolId: string) {
   try {
     const [{ data: roles, error: rolesError }, { data: permissions, error: permsError }] =
       await Promise.all([
@@ -242,41 +253,39 @@ async function seedDefaultRolePermissions(db: SupabaseClient, schoolId: string) 
 // RBAC-v2 para gerar nº de fatura/recibo) exige uma linha em
 // `document_sequences` por (escola, tipo) — sem isto falha com 55000
 // "Sequência de documentos não configurada para esta escola". Mesma classe de
-// bug que role_permissions: nunca foi semeada no provisionamento. Prefixos e
-// padding replicam o padrão já em produção na "Colegio Adventista - Huambo".
-async function seedDefaultDocumentSequences(db: SupabaseClient, schoolId: string) {
+export const DEFAULT_DOCUMENT_SEQUENCES = [
+  { document_type: "invoice", prefix: "FT", next_number: 1, padding: 4 },
+  { document_type: "receipt", prefix: "RC", next_number: 1, padding: 6 },
+  {
+    document_type: "credit_note",
+    prefix: "NC",
+    next_number: 1,
+    padding: 6,
+  },
+  { document_type: "expense", prefix: "EX", next_number: 1, padding: 6 },
+  {
+    document_type: "declaration",
+    prefix: "DC",
+    next_number: 1,
+    padding: 6,
+  },
+  {
+    document_type: "certificate",
+    prefix: "CE",
+    next_number: 1,
+    padding: 6,
+  },
+  { document_type: "transfer", prefix: "TF", next_number: 1, padding: 6 },
+  { document_type: "term", prefix: "TM", next_number: 1, padding: 6 },
+  { document_type: "other", prefix: "OT", next_number: 1, padding: 6 },
+] as const;
+
+export async function seedDefaultDocumentSequences(db: SupabaseClient, schoolId: string) {
   try {
-    // Tipos válidos: check constraint document_sequences_document_type_check
-    // invoice | receipt | credit_note | expense | declaration | certificate | transfer | term | other
-    const rows = [
-      { school_id: schoolId, document_type: "invoice", prefix: "FT", next_number: 1, padding: 4 },
-      { school_id: schoolId, document_type: "receipt", prefix: "RC", next_number: 1, padding: 6 },
-      {
-        school_id: schoolId,
-        document_type: "credit_note",
-        prefix: "NC",
-        next_number: 1,
-        padding: 6,
-      },
-      { school_id: schoolId, document_type: "expense", prefix: "EX", next_number: 1, padding: 6 },
-      {
-        school_id: schoolId,
-        document_type: "declaration",
-        prefix: "DC",
-        next_number: 1,
-        padding: 6,
-      },
-      {
-        school_id: schoolId,
-        document_type: "certificate",
-        prefix: "CE",
-        next_number: 1,
-        padding: 6,
-      },
-      { school_id: schoolId, document_type: "transfer", prefix: "TF", next_number: 1, padding: 6 },
-      { school_id: schoolId, document_type: "term", prefix: "TM", next_number: 1, padding: 6 },
-      { school_id: schoolId, document_type: "other", prefix: "OT", next_number: 1, padding: 6 },
-    ];
+    const rows = DEFAULT_DOCUMENT_SEQUENCES.map((seq) => ({
+      school_id: schoolId,
+      ...seq,
+    }));
     const { error } = await db
       .from("document_sequences")
       .upsert(rows, { onConflict: "school_id,document_type", ignoreDuplicates: true });
@@ -430,17 +439,6 @@ export async function bootstrapSchoolDefaults(
 
   // ── Papéis canónicos da escola ───────────────────────────────────────────
   // Seed apenas se a tabela existir; falha silenciosa caso contrário.
-  const DEFAULT_ROLES = [
-    { code: "owner", name: "Proprietário", is_system: false },
-    { code: "admin", name: "Administrador", is_system: false },
-    { code: "secretary", name: "Secretaria", is_system: false },
-    { code: "treasury", name: "Tesouraria", is_system: false },
-    { code: "teacher", name: "Professor", is_system: false },
-    { code: "student", name: "Aluno", is_system: false },
-    { code: "guardian", name: "Encarregado", is_system: false },
-    { code: "user", name: "Utilizador", is_system: false },
-  ] as const;
-
   try {
     const { data: existingRoles } = await db
       .from("roles")

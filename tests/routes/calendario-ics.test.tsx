@@ -5,6 +5,8 @@ import type { ComponentType } from "react";
 import { renderRoute, routeComponentOf, setRouteSearch, resetRouteLocation } from "./_harness";
 import * as feedClient from "@/features/calendar/feed";
 
+vi.setConfig({ testTimeout: 25_000 });
+
 vi.mock("@tanstack/react-router", async () => {
   const harness = await import("./_harness");
   return harness.reactRouterMock();

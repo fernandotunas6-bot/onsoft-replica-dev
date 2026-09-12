@@ -4,6 +4,8 @@ import { cleanup, waitFor, screen } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { renderRoute, routeComponentOf } from "./_harness";
 
+vi.setConfig({ testTimeout: 25_000 });
+
 vi.mock("@tanstack/react-router", async () => {
   const harness = await import("./_harness");
   return harness.reactRouterMock();

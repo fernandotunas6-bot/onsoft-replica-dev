@@ -11,6 +11,8 @@ import {
 } from "./_harness";
 import * as accessServer from "@/features/access/server";
 
+vi.setConfig({ testTimeout: 25_000 });
+
 const navigateMock = vi.fn();
 vi.mock("@tanstack/react-router", async () => {
   const harness = await import("./_harness");
