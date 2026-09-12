@@ -147,6 +147,49 @@ describe.skipIf(!canProbe)("sonda de isolamento contra a base real", () => {
     expect(leaking, `fuga confirmada sem autenticação: ${leaking.join(", ")}`).toEqual([]);
   });
 
+  it("as funções de que as políticas dependem existem mesmo na produção", async () => {
+    // Esta era uma pergunta sem resposta: os ficheiros HARDEN_* não constavam de
+    // lista nenhuma, e o esquema de produção não está no repositório, por isso
+    // não havia como saber se alguma vez foram aplicados. As políticas de
+    // isolamento chamam estas funções — se não existirem, as políticas que o
+    // repositório declara não podem estar a proteger nada.
+    //
+    // Como se distingue: o PostgREST expõe funções como RPC. Uma função que
+    // existe mas não está concedida ao papel anónimo devolve 42501; uma que não
+    // existe devolve 42883 ou PGRST202. Verificado a 2026-09-12: as quatro
+    // existem, logo HARDEN_TENANT_ISOLATION e HARDEN_TEACHER_ASSESSMENT_SCOPE
+    // estão aplicados.
+    const required: Array<{ fn: string; args: Record<string, unknown>; from: string }> = [
+      { fn: "current_school_id", args: {}, from: "HARDEN_TENANT_ISOLATION" },
+      {
+        fn: "current_school_role_is",
+        args: { p_allowed_roles: ["admin"] },
+        from: "HARDEN_TENANT_ISOLATION",
+      },
+      {
+        fn: "is_school_member",
+        args: { p_school_id: "00000000-0000-0000-0000-000000000000" },
+        from: "APPLY_ENROLLMENT_AND_PREMIUM",
+      },
+      { fn: "current_teacher_id", args: {}, from: "HARDEN_TEACHER_ASSESSMENT_SCOPE" },
+    ];
+
+    const missing: string[] = [];
+    for (const { fn, args, from } of required) {
+      const { error } = await anon.rpc(fn, args);
+      const code = error?.code ?? "";
+      if (code === "42883" || code === "PGRST202") missing.push(`${fn} (${from})`);
+    }
+
+    expect(
+      missing,
+      `Funções em falta na base de produção: ${missing.join(", ")}. As políticas ` +
+        `RLS declaradas no repositório chamam-nas; sem elas, essas políticas não ` +
+        `estão a proteger nada. Aplicar os ficheiros indicados — ` +
+        `npm run siga:sql mostra a ordem.`,
+    ).toEqual([]);
+  });
+
   it("a superfície alcançável pelo papel anónimo não muda sem se dar por isso", async () => {
     // Observado em produção: students, people, finance_* e os segredos devolvem
     // 42501 — o papel anónimo não tem privilégio nenhum sobre elas. As `hr_*`
