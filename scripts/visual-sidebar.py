@@ -8,7 +8,7 @@ Cenários capturados (por viewport):
 Uso:
   python3 scripts/visual-sidebar.py            # comparar com baseline
   python3 scripts/visual-sidebar.py --update   # (re)criar baselines
-  BASE_URL=http://localhost:8080 python3 scripts/visual-sidebar.py
+  BASE_URL=http://localhost:3006 python3 scripts/visual-sidebar.py
 """
 from __future__ import annotations
 

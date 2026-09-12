@@ -14,7 +14,7 @@ Valida:
 
 Uso:
   python3 scripts/a11y-sidebar.py
-  BASE_URL=http://localhost:8080 python3 scripts/a11y-sidebar.py
+  BASE_URL=http://localhost:3006 python3 scripts/a11y-sidebar.py
 """
 from __future__ import annotations
 

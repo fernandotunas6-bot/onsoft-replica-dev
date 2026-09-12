@@ -12,7 +12,7 @@ Para cada rota:
 Uso:
   python3 scripts/visual-regression.py                # comparar
   python3 scripts/visual-regression.py --update       # (re)criar baselines
-  BASE_URL=http://localhost:8080 python3 scripts/visual-regression.py
+  BASE_URL=http://localhost:3006 python3 scripts/visual-regression.py
 """
 from __future__ import annotations
 

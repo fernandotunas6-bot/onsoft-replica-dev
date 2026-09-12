@@ -10,6 +10,14 @@ on:
     # Scan de segurança semanal (segundas, 04:00 UTC)
     - cron: "0 4 * * 1"
 
+# Fonte única da porta do servidor de desenvolvimento no CI. `bun run dev` fixa
+# 3006 (package.json); a porta 8080 só existe dentro do sandbox do Lovable, que
+# a força quando `LOVABLE_SANDBOX` está definida — variável que o CI não define.
+# Enquanto as sondas inquiriam 8080, esperavam 120 s sem nunca confirmar nada e
+# seguiam na mesma. Os scripts Python já liam BASE_URL; agora é explícita.
+env:
+  BASE_URL: http://localhost:3006
+
 jobs:
   security:
     name: Auditoria de dependências (falha em alta/crítica)
@@ -111,7 +119,12 @@ jobs:
       - name: Arrancar servidor de desenvolvimento
         run: |
           bun run dev &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null "$BASE_URL/" && echo "servidor pronto em $BASE_URL" && exit 0
+            sleep 2
+          done
+          echo "::error::servidor não respondeu em $BASE_URL após 120s"
+          exit 1
 
       - name: Resumo de cobertura de estilo por rota
         run: python scripts/style-coverage.py
@@ -139,7 +152,22 @@ jobs:
       - name: Arrancar servidor de desenvolvimento
         run: |
           bun run dev &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null "$BASE_URL/" && echo "servidor pronto em $BASE_URL" && exit 0
+            sleep 2
+          done
+          echo "::error::servidor não respondeu em $BASE_URL após 120s"
+          exit 1
+
+      # lighthouserc.json é JSON, não interpola variáveis — se as URLs lá
+      # deixarem de coincidir com BASE_URL, o Lighthouse mede um servidor que
+      # não existe e o relatório passa a ser ficção. Falhar aqui é mais barato.
+      - name: Confirmar que o Lighthouse aponta para o servidor arrancado
+        run: |
+          grep -q "$BASE_URL" lighthouserc.json || {
+            echo "::error::lighthouserc.json não aponta para $BASE_URL"
+            exit 1
+          }
 
       - name: Correr Lighthouse CI
         run: bunx --bun @lhci/cli@0.14.x autorun --config=lighthouserc.json
@@ -176,7 +204,12 @@ jobs:
       - name: Arrancar servidor de desenvolvimento
         run: |
           bun run dev &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null "$BASE_URL/" && echo "servidor pronto em $BASE_URL" && exit 0
+            sleep 2
+          done
+          echo "::error::servidor não respondeu em $BASE_URL após 120s"
+          exit 1
 
       - name: Comparar screenshots com as baselines
         run: python scripts/visual-regression.py
