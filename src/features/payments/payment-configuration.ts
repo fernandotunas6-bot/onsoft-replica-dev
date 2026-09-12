@@ -5,7 +5,6 @@
  */
 
 import { z } from 'zod'
-import type { Database } from '@/integrations/supabase/database.types'
 
 /**
  * Tipos de mercado de pagamento
@@ -233,29 +232,31 @@ export async function listActiveSaasPlans(db: any): Promise<SaasPaymentPlan[]> {
 
     if (error) return []
 
-    return data
-      .map((row: any) =>
-        saasPaymentPlanSchema.safeParse({
-          id: row.id,
-          name: row.name,
-          description: row.description,
-          amount: row.amount,
-          currency: row.currency,
-          billingCycle: row.billing_cycle,
-          paymentApplicationId: row.payment_application_id,
-          paymentProvider: row.payment_provider,
-          features: row.features || [],
-          maxStudents: row.max_students,
-          maxStaff: row.max_staff,
-          maxModules: row.max_modules,
-          isActive: row.is_active,
-          isPublished: row.is_published,
-          createdAt: new Date(row.created_at),
-          updatedAt: new Date(row.updated_at),
-        }),
-      )
-      .filter((result) => result.success)
-      .map((result) => result.data)
+    const parsed: SaasPaymentPlan[] = []
+    for (const row of data as Array<Record<string, any>>) {
+      const result = saasPaymentPlanSchema.safeParse({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        amount: row.amount,
+        currency: row.currency,
+        billingCycle: row.billing_cycle,
+        paymentApplicationId: row.payment_application_id,
+        paymentProvider: row.payment_provider,
+        features: row.features || [],
+        maxStudents: row.max_students,
+        maxStaff: row.max_staff,
+        maxModules: row.max_modules,
+        isActive: row.is_active,
+        isPublished: row.is_published,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+      })
+      if (result.success) {
+        parsed.push(result.data)
+      }
+    }
+    return parsed
   } catch (err) {
     console.error('[SaasPlans] Error listing plans:', err)
     return []

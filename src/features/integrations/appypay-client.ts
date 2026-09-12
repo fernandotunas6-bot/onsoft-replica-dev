@@ -124,7 +124,13 @@ export class AppyPayClient {
       isEnabled: app.isEnabled,
       createdAt: new Date(app.CreatedDate),
       updatedAt: new Date(app.UpdatedDate),
-      applicationKeys: app.applicationKeys,
+      applicationKeys: app.applicationKeys?.map((key) => ({
+        apiKey: key.apiKey,
+        webHookName: key.webHookName,
+        webHookDescription: key.webHookdescription,
+        webHookUrl: key.webHookUrl,
+        isActive: key.isActive,
+      })),
     }))
   }
 

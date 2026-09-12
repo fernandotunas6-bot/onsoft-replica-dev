@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { AppyPayAdapter } from './appypay-adapter'
+import { AppyPayAdapter } from '@/features/payments/appypay-adapter'
 import type { AppyPayClient } from '@/features/integrations/appypay-client'
 
 // Mock do AppyPayClient
@@ -27,7 +27,7 @@ describe('AppyPayAdapter', () => {
       const payload = {
         id: '550e8400-e29b-41d4-a716-446655440000',
         merchantId: 'merchant-123',
-        applicationId: 'app-gpo-123',
+        applicationId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
         transactionId: 'txn-12345',
         amount: 500.0,
         currency: 'AOA',
@@ -57,7 +57,7 @@ describe('AppyPayAdapter', () => {
       const payload = {
         id: '550e8400-e29b-41d4-a716-446655440000',
         merchantId: 'merchant-123',
-        applicationId: 'app-gpo-123',
+        applicationId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
         transactionId: 'txn-12345',
         amount: 500.0,
         currency: 'AOA',
@@ -74,7 +74,7 @@ describe('AppyPayAdapter', () => {
       const payload = {
         id: '550e8400-e29b-41d4-a716-446655440000',
         merchantId: 'merchant-123',
-        applicationId: 'app-gpo-123',
+        applicationId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
         transactionId: 'txn-12345',
         amount: 500.0,
         currency: 'AOA',
@@ -93,7 +93,7 @@ describe('AppyPayAdapter', () => {
       const payload = {
         id: '550e8400-e29b-41d4-a716-446655440000',
         merchantId: 'merchant-123',
-        applicationId: 'app-gpo-123',
+        applicationId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
         transactionId: 'txn-12345',
         amount: 500.0,
         currency: 'AOA',
@@ -120,7 +120,7 @@ describe('AppyPayAdapter', () => {
       const payload = {
         id: '550e8400-e29b-41d4-a716-446655440000',
         merchantId: 'merchant-123',
-        applicationId: 'app-gpo-123',
+        applicationId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
         transactionId: 'txn-12345',
         amount: 500.0,
         currency: 'AOA',
@@ -133,7 +133,7 @@ describe('AppyPayAdapter', () => {
 
       expect(event.metadata).toEqual({
         merchantId: 'merchant-123',
-        applicationId: 'app-gpo-123',
+        applicationId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
       })
     })
   })

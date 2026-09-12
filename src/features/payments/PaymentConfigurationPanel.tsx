@@ -1,6 +1,4 @@
-'use client'
-
-import { useState, useCallback } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getSchoolPaymentConfiguration,
@@ -11,14 +9,24 @@ import {
   type SchoolPaymentConfigInput,
 } from './payment-configuration-server'
 
+type TestCredentialsResult = {
+  success: boolean
+  message?: string
+  error?: string
+  applications: Array<{
+    id: string
+    name: string
+    paymentMethod: string
+    isDefault: boolean
+    isActive: boolean
+    isEnabled: boolean
+  }>
+}
+
 export function PaymentConfigurationPanel() {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
-  const [testResult, setTestResult] = useState<{
-    success: boolean
-    message: string
-    applications: Array<{ id: string; name: string; paymentMethod: string }>
-  } | null>(null)
+  const [testResult, setTestResult] = useState<TestCredentialsResult | null>(null)
 
   // Buscar configuração existente
   const { data: config, isLoading } = useQuery({
@@ -34,7 +42,8 @@ export function PaymentConfigurationPanel() {
 
   // Testar credenciais
   const testCredentialsMutation = useMutation({
-    mutationFn: testAppyPayCredentials,
+    mutationFn: (vars: { merchantId: string; bearerToken: string; webhookSecret: string }) =>
+      testAppyPayCredentials({ data: vars }),
     onSuccess: (data) => {
       setTestResult(data)
     },
@@ -42,7 +51,7 @@ export function PaymentConfigurationPanel() {
 
   // Salvar configuração
   const saveConfigMutation = useMutation({
-    mutationFn: saveSchoolPaymentConfiguration,
+    mutationFn: (vars: SchoolPaymentConfigInput) => saveSchoolPaymentConfiguration({ data: vars }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['school-payment-config'] })
       setShowForm(false)
@@ -55,7 +64,7 @@ export function PaymentConfigurationPanel() {
 
   // Desativar configuração
   const disableConfigMutation = useMutation({
-    mutationFn: disableSchoolPaymentConfiguration,
+    mutationFn: () => disableSchoolPaymentConfiguration(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['school-payment-config'] })
       alert('Configuração desativada')
@@ -89,13 +98,15 @@ export function PaymentConfigurationPanel() {
                   <strong>Merchant ID:</strong> {config.merchantId}
                 </p>
                 <p>
-                  <strong>Aplicações Habilitadas:</strong> {config.enabledApplicationIds.length}
+                  <strong>Aplicações Habilitadas:</strong> {config.enabledApplicationIds?.length ?? 0}
                 </p>
                 <p>
-                  <strong>Configurado em:</strong> {new Date(config.createdAt).toLocaleDateString('pt-BR')}
+                  <strong>Configurado em:</strong>{' '}
+                  {config.createdAt ? new Date(config.createdAt).toLocaleDateString('pt-BR') : '—'}
                 </p>
                 <p>
-                  <strong>Última atualização:</strong> {new Date(config.updatedAt).toLocaleDateString('pt-BR')}
+                  <strong>Última atualização:</strong>{' '}
+                  {config.updatedAt ? new Date(config.updatedAt).toLocaleDateString('pt-BR') : '—'}
                 </p>
               </div>
             </div>
@@ -140,29 +151,14 @@ export function PaymentConfigurationPanel() {
       {/* Formulário de Configuração */}
       {showForm && (
         <ConfigurationForm
-          onSubmit={(data) => {
-            // Validar credenciais antes de salvar
-            testCredentialsMutation.mutate(
-              {
-                merchantId: data.appyPayMerchantId,
-                bearerToken: data.appyPayBearerToken,
-                webhookSecret: data.appyPayWebhookSecret,
-              },
-              {
-                onSuccess: (result) => {
-                  if (result.success) {
-                    // Se teste passou, salvar configuração
-                    saveConfigMutation.mutate(data)
-                  }
-                },
-              },
-            )
-          }}
+          onTest={(vars) => testCredentialsMutation.mutate(vars)}
+          onSubmit={(data) => saveConfigMutation.mutate(data)}
           onCancel={() => {
             setShowForm(false)
             setTestResult(null)
           }}
-          isLoading={testCredentialsMutation.isPending || saveConfigMutation.isPending}
+          isTesting={testCredentialsMutation.isPending}
+          isSaving={saveConfigMutation.isPending}
           testResult={testResult}
         />
       )}
@@ -219,43 +215,55 @@ export function PaymentConfigurationPanel() {
  * Formulário de Configuração
  */
 function ConfigurationForm({
+  onTest,
   onSubmit,
   onCancel,
-  isLoading,
+  isTesting,
+  isSaving,
   testResult,
 }: {
+  onTest: (vars: { merchantId: string; bearerToken: string; webhookSecret: string }) => void
   onSubmit: (data: SchoolPaymentConfigInput) => void
   onCancel: () => void
-  isLoading: boolean
-  testResult: any
+  isTesting: boolean
+  isSaving: boolean
+  testResult: TestCredentialsResult | null
 }) {
-  const [formData, setFormData] = useState<SchoolPaymentConfigInput>({
+  const [formData, setFormData] = useState({
     appyPayMerchantId: '',
     appyPayBearerToken: '',
     appyPayWebhookSecret: '',
-    enabledApplicationIds: [],
-    defaultApplicationId: undefined,
   })
+  const isLoading = isTesting || isSaving
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleTest = () => {
+    if (!formData.appyPayMerchantId || !formData.appyPayBearerToken || !formData.appyPayWebhookSecret) {
+      alert('Preencha todos os campos obrigatórios antes de testar')
+      return
+    }
+    onTest({
+      merchantId: formData.appyPayMerchantId,
+      bearerToken: formData.appyPayBearerToken,
+      webhookSecret: formData.appyPayWebhookSecret,
+    })
+  }
+
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
 
-    if (!formData.appyPayMerchantId || !formData.appyPayBearerToken || !formData.appyPayWebhookSecret) {
-      alert('Preencha todos os campos obrigatórios')
+    if (!testResult || !testResult.success || testResult.applications.length === 0) {
+      alert('Execute o teste de conexão primeiro')
       return
     }
 
-    if (testResult && testResult.success && testResult.applications.length > 0) {
-      // Se houver teste bem-sucedido, usar as aplicações detectadas
-      const appIds = testResult.applications.map((app: any) => app.id)
-      onSubmit({
-        ...formData,
-        enabledApplicationIds: appIds,
-        defaultApplicationId: appIds[0],
-      })
-    } else {
-      alert('Execute o teste de conexão primeiro')
-    }
+    const appIds = testResult.applications.map((app) => app.id)
+    onSubmit({
+      appyPayMerchantId: formData.appyPayMerchantId,
+      appyPayBearerToken: formData.appyPayBearerToken,
+      appyPayWebhookSecret: formData.appyPayWebhookSecret,
+      enabledApplicationIds: appIds,
+      defaultApplicationId: appIds[0],
+    })
   }
 
   return (
@@ -317,7 +325,17 @@ function ConfigurationForm({
           </p>
         </div>
 
-        {/* Teste de Conexão */}
+        {/* Botão de Teste */}
+        <button
+          type="button"
+          onClick={handleTest}
+          disabled={isLoading}
+          className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium text-sm"
+        >
+          {isTesting ? 'Testando...' : 'Testar Conexão'}
+        </button>
+
+        {/* Resultado do Teste */}
         {testResult && (
           <div
             className={`p-3 rounded-lg ${testResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}
@@ -325,7 +343,7 @@ function ConfigurationForm({
             <p
               className={`text-sm font-medium ${testResult.success ? 'text-green-900' : 'text-red-900'}`}
             >
-              {testResult.message}
+              {testResult.success ? testResult.message : testResult.error}
             </p>
             {testResult.success && testResult.applications.length > 0 && (
               <div className="mt-3 space-y-2">
@@ -344,10 +362,10 @@ function ConfigurationForm({
         <div className="flex gap-2 pt-4">
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !testResult?.success}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm"
           >
-            {isLoading ? 'Salvando...' : 'Salvar Configuração'}
+            {isSaving ? 'Salvando...' : 'Salvar Configuração'}
           </button>
           <button
             type="button"
@@ -384,7 +402,8 @@ function ConfigurationGuide() {
           <ol className="list-decimal list-inside space-y-2 ml-2">
             <li>Acesse o site AppyPay: https://appypay.co.ao</li>
             <li>Clique em "Criar Conta" ou "Registrar"</li>
-            <li>Preencha dados da sua escola:
+            <li>
+              Preencha dados da sua escola:
               <ul className="list-disc list-inside ml-4 mt-1">
                 <li>Nome da escola</li>
                 <li>Email administrativo</li>
@@ -409,9 +428,15 @@ function ConfigurationGuide() {
           <ol className="list-decimal list-inside space-y-2 ml-2">
             <li>Faça login no painel AppyPay: https://dashboard.appypay.co.ao</li>
             <li>Vá para: Configurações → Credenciais da API</li>
-            <li>Copie: <strong>Merchant ID</strong></li>
-            <li>Gere um novo: <strong>Bearer Token</strong> (ou use o existente)</li>
-            <li>Gere um novo: <strong>Webhook Secret</strong></li>
+            <li>
+              Copie: <strong>Merchant ID</strong>
+            </li>
+            <li>
+              Gere um novo: <strong>Bearer Token</strong> (ou use o existente)
+            </li>
+            <li>
+              Gere um novo: <strong>Webhook Secret</strong>
+            </li>
             <li>Cole cada um no formulário acima</li>
           </ol>
           <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-3">
@@ -470,7 +495,8 @@ function ConfigurationGuide() {
             <li>Copie a URL do Webhook acima (botão Copiar)</li>
             <li>Vá ao painel AppyPay: Webhooks → Criar Novo</li>
             <li>Cole a URL</li>
-            <li>Selecione eventos:
+            <li>
+              Selecione eventos:
               <ul className="list-disc list-inside ml-4 mt-1">
                 <li>payment.succeeded</li>
                 <li>payment.failed</li>
@@ -491,8 +517,8 @@ function ConfigurationGuide() {
             <strong>Como testar:</strong>
           </p>
           <ol className="list-decimal list-inside space-y-2 ml-2">
-            <li>Preencheu todos os campos? Clique em "Salvar Configuração"</li>
-            <li>O sistema testa conexão automaticamente</li>
+            <li>Preencheu todos os campos? Clique em "Testar Conexão"</li>
+            <li>O sistema valida as credenciais com o AppyPay</li>
             <li>Se aparecer ✓ (verde), está funcionando!</li>
             <li>Se aparecer ✗ (vermelho), verifique as credenciais</li>
           </ol>
@@ -516,9 +542,7 @@ function ConfigurationGuide() {
               className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 font-medium text-gray-900 text-sm"
             >
               {section.title}
-              <span className="text-gray-500">
-                {expandedSection === section.id ? '▼' : '▶'}
-              </span>
+              <span className="text-gray-500">{expandedSection === section.id ? '▼' : '▶'}</span>
             </button>
             {expandedSection === section.id && (
               <div className="px-4 py-4 bg-white">{section.content}</div>

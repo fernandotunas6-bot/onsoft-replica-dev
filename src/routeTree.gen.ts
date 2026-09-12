@@ -23,6 +23,7 @@ import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as FaturasRouteImport } from './routes/faturas'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as ImportarRouteImport } from './routes/importar'
+import { Route as PagamentosConfiguracaoRouteImport } from './routes/pagamentos-configuracao'
 import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
@@ -157,6 +158,11 @@ const FinanceiroRoute = FinanceiroRouteImport.update({
 const ImportarRoute = ImportarRouteImport.update({
   id: '/importar',
   path: '/importar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagamentosConfiguracaoRoute = PagamentosConfiguracaoRouteImport.update({
+  id: '/pagamentos-configuracao',
+  path: '/pagamentos-configuracao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PedagogicaRoute = PedagogicaRouteImport.update({
@@ -511,6 +517,7 @@ export interface FileRoutesByFullPath {
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
+  '/pagamentos-configuracao': typeof PagamentosConfiguracaoRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
@@ -592,6 +599,7 @@ export interface FileRoutesByTo {
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
+  '/pagamentos-configuracao': typeof PagamentosConfiguracaoRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
@@ -674,6 +682,7 @@ export interface FileRoutesById {
   '/faturas': typeof FaturasRoute
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/importar': typeof ImportarRoute
+  '/pagamentos-configuracao': typeof PagamentosConfiguracaoRoute
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
@@ -757,6 +766,7 @@ export interface FileRouteTypes {
     | '/faturas'
     | '/financeiro'
     | '/importar'
+    | '/pagamentos-configuracao'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
@@ -838,6 +848,7 @@ export interface FileRouteTypes {
     | '/faturas'
     | '/financeiro'
     | '/importar'
+    | '/pagamentos-configuracao'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
@@ -919,6 +930,7 @@ export interface FileRouteTypes {
     | '/faturas'
     | '/financeiro'
     | '/importar'
+    | '/pagamentos-configuracao'
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
@@ -1001,6 +1013,7 @@ export interface RootRouteChildren {
   FaturasRoute: typeof FaturasRoute
   FinanceiroRoute: typeof FinanceiroRouteWithChildren
   ImportarRoute: typeof ImportarRoute
+  PagamentosConfiguracaoRoute: typeof PagamentosConfiguracaoRoute
   PedagogicaRoute: typeof PedagogicaRoute
   PerfilRoute: typeof PerfilRoute
   PlanosAulaRoute: typeof PlanosAulaRoute
@@ -1137,6 +1150,13 @@ declare module '@tanstack/react-router' {
       path: '/importar'
       fullPath: '/importar'
       preLoaderRoute: typeof ImportarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagamentos-configuracao': {
+      id: '/pagamentos-configuracao'
+      path: '/pagamentos-configuracao'
+      fullPath: '/pagamentos-configuracao'
+      preLoaderRoute: typeof PagamentosConfiguracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pedagogica': {
@@ -1780,6 +1800,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaturasRoute: FaturasRoute,
   FinanceiroRoute: FinanceiroRouteWithChildren,
   ImportarRoute: ImportarRoute,
+  PagamentosConfiguracaoRoute: PagamentosConfiguracaoRoute,
   PedagogicaRoute: PedagogicaRoute,
   PerfilRoute: PerfilRoute,
   PlanosAulaRoute: PlanosAulaRoute,
