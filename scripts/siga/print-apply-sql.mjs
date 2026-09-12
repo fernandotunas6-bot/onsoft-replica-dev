@@ -159,6 +159,25 @@ export const SQL_CHECKLIST = {
       "Semeia uma linha de base a partir das notas já existentes",
     ],
   },
+  "supabase/HARDEN_TENANT_ISOLATION.sql": {
+    title: "Isolamento entre escolas",
+    tables: [],
+    notes: ["current_school_id(), current_school_role_is(), is_school_member() e políticas base"],
+  },
+  "supabase/HARDEN_TEACHER_ASSESSMENT_SCOPE.sql": {
+    title: "Âmbito docente sobre avaliações",
+    tables: [],
+    notes: ["Professor limitado às turmas e disciplinas activamente atribuídas"],
+  },
+  "supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql": {
+    title: "RLS nas 17 tabelas escolares que não a tinham",
+    tables: [],
+    notes: [
+      "RH e salários: só Administrador e Tesouraria",
+      "Estrutura académica: leitura para membros, escrita para Secretaria/Direcção",
+      "Confirmar antes os privilégios de `authenticated` — instruções no cabeçalho",
+    ],
+  },
 };
 
 function printChecklist() {
@@ -180,6 +199,26 @@ function printChecklist() {
       for (const note of meta.notes) console.log(`       • ${note}`);
       console.log(`     Smoke tables (${meta.tables.length}):`);
       console.log(`       ${meta.tables.join(", ")}`);
+    }
+    console.log("");
+  }
+
+  // Os HARDEN_* não criam tabelas — apertam RLS, âmbito docente e privilégios
+  // sobre o que os APPLY_* já criaram. Não constavam de lista nenhuma, o que
+  // significava que nada dizia a um operador para os aplicar e o verify não os
+  // cobria: as garantias de isolamento do projecto viviam em ficheiros órfãos.
+  const harden = catalog.sqlHarden ?? [];
+  if (harden.length) {
+    console.log("DEPOIS DOS APPLY — endurecimento (aplicar por esta ordem):\n");
+    for (const [index, file] of harden.entries()) {
+      const abs = resolve(root, file);
+      const ok = existsSync(abs) ? "✓" : "✗ FICHEIRO EM FALTA";
+      console.log(`  ${index + 1}. ${file}  ${ok}`);
+      const meta = SQL_CHECKLIST[file];
+      if (meta) {
+        console.log(`     → ${meta.title}`);
+        for (const note of meta.notes) console.log(`       • ${note}`);
+      }
     }
     console.log("");
   }

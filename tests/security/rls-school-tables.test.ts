@@ -22,40 +22,18 @@ import { resolve } from "node:path";
 const REPO = resolve(__dirname, "../..");
 
 /**
- * Tabelas com `school_id` que hoje não têm RLS declarado em lado nenhum do
- * repositório. Esta lista é dívida conhecida e só deve encolher.
+ * Dívida conhecida: tabelas com `school_id` para as quais ainda não existe RLS
+ * declarado. Está vazia — as 17 que faltavam passaram a ter política em
+ * `supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql`.
  *
- * A mais preocupante é a família `hr_*`: contratos, vencimentos e processamento
- * salarial do pessoal da escola. Antes de lhes acrescentar políticas, convém
- * confirmar na base de produção se o papel `authenticated` tem privilégios
- * sobre elas — o repositório não o diz, porque o esquema de produção não está
- * cá (ver OPS-01):
+ * Atenção ao que este teste mede: lê o SQL do repositório, portanto verifica
+ * que a política está **escrita**, não que está **aplicada** em produção. Essa
+ * distinção só desaparece quando o esquema de produção estiver sob controlo de
+ * versões. Até lá, confirmar depois de aplicar:
  *
- *   select relname, relrowsecurity
- *   from pg_class where relname like 'hr_%';
- *
- *   select table_name, privilege_type from information_schema.role_table_grants
- *   where grantee = 'authenticated' and table_name like 'hr_%';
+ *   select relname, relrowsecurity from pg_class where relname like 'hr_%';
  */
-const RLS_PENDING = new Set([
-  "academic_schedules",
-  "curricula",
-  "curriculum_areas",
-  "curriculum_subjects",
-  "hr_compensation_events",
-  "hr_contracts",
-  "hr_departments",
-  "hr_employments",
-  "hr_payroll_item_components",
-  "hr_payroll_items",
-  "hr_payroll_runs",
-  "hr_positions",
-  "notification_preferences",
-  "school_shift_slots",
-  "school_shifts",
-  "subject_types",
-  "teacher_availability",
-]);
+const RLS_PENDING = new Set<string>([]);
 
 function collectSqlFiles(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;
@@ -122,11 +100,13 @@ describe("RLS nas tabelas com school_id", () => {
     ).toEqual([]);
   });
 
-  it("a dívida conhecida não cresce", () => {
-    const stillPending = [...RLS_PENDING].filter((table) => !rlsEnabled.has(table));
-    expect(
-      stillPending.length,
-      `RLS_PENDING tem ${RLS_PENDING.size} entradas. Se resolveu alguma, remova-a da lista.`,
-    ).toBeLessThanOrEqual(RLS_PENDING.size);
+  it("as tabelas de RH e salários têm política declarada", () => {
+    // Explícito por serem as de maior sensibilidade: contratos e vencimentos de
+    // trabalhadores, não dados operacionais da escola.
+    const hrTables = schoolTables.filter((table) => table.startsWith("hr_"));
+    expect(hrTables.length).toBeGreaterThan(0);
+    for (const table of hrTables) {
+      expect(rlsEnabled.has(table), `${table} sem ENABLE ROW LEVEL SECURITY`).toBe(true);
+    }
   });
 });

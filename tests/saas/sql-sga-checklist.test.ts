@@ -20,6 +20,23 @@ describe("SQL SGA checklist", () => {
     }
   });
 
+  it("os ficheiros de endurecimento estão listados e existem", () => {
+    // Os HARDEN_* não constavam de lista nenhuma: nada dizia a um operador para
+    // os aplicar, e são eles que carregam as garantias de isolamento. Ficheiros
+    // de segurança órfãos parecem cobertura e não são.
+    const catalog = JSON.parse(readFileSync(resolve("scripts/siga/modules.json"), "utf8"));
+    expect(catalog.sqlHarden).toEqual([
+      "supabase/HARDEN_TENANT_ISOLATION.sql",
+      "supabase/HARDEN_TEACHER_ASSESSMENT_SCOPE.sql",
+      "supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql",
+    ]);
+    for (const file of catalog.sqlHarden) {
+      expect(existsSync(resolve(file)), file).toBe(true);
+    }
+    const script = readFileSync(resolve("scripts/siga/print-apply-sql.mjs"), "utf8");
+    expect(script).toContain("sqlHarden");
+  });
+
   it("DOC sql-sga e script --verify existem", () => {
     expect(existsSync(resolve("painel/docs/guide/sql-sga.md"))).toBe(true);
     expect(existsSync(resolve("supabase/APPLY_MISSING_FROM_VERIFY.sql"))).toBe(true);
