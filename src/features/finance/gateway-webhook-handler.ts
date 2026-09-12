@@ -13,6 +13,7 @@ import {
 } from "@/features/finance/gateway-webhook-telemetry";
 import { timingSafeEqual } from "@/lib/timing-safe-equal";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { reportSigaError } from "@/lib/ops-report";
 
 function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
   if (method === "cash") return "cash";
@@ -370,6 +371,18 @@ async function executeFinanceGatewayWebhook(
       planSettled: settled.planSettled,
     };
   } catch (error) {
+    // Uma liquidação falhada é dinheiro que o provedor recebeu e o SIGA não
+    // registou. Sem isto, o erro morria aqui: a resposta 502 ia para o
+    // gateway e mais ninguém ficava a saber.
+    reportSigaError("finance.settlement.failed", error, {
+      module: "finance",
+      action: "gateway.settle",
+      school_id: schoolId,
+      invoice_id: invoiceId,
+      source: meta.provider ?? null,
+      amount_cents: Math.round(input.amount * 100),
+      reference: input.reference ?? null,
+    });
     const message = error instanceof Error ? error.message : "Erro ao liquidar pagamento.";
     return { ok: false, status: 502, message };
   }
