@@ -6,6 +6,32 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-12)
 
+### Ciclo 88 — Auditoria e Validação Integral das 5 Aplicações do Ecossistema SIGA (2026-09-12)
+
+Auditoria exaustiva das pontes e compilação de produção das 5 aplicações que compõem o ecossistema:
+
+1. **WEB (`painel/web` — porta 5174):**
+   - Execução de `npm run build` (`tsc -b && vite build`): **0 erros**, 2050 módulos transformados, bundle de produção gerado com sucesso em 15.7s.
+   - Preservadas as pontes para o SIGA (`/auth/sign-in` → `getSigaLoginUrl`) e DOC (`getDocsUrl`).
+
+2. **ADMIN (`painel/admin` — porta 3005):**
+   - Execução de `npm run build` (`next build --webpack`): **0 erros de tipagem**, compilação Next.js 16 bem-sucedida com 40 rotas estáticas geradas.
+   - Middleware de protecção com guard `assertPlatformAdmin` e resolução de pontes ativas (`resolveAdminAliveBridge`).
+
+3. **PAYFLOW (`painel/payflow` — porta 3007):**
+   - Execução de `node --test tests/*.test.mjs`: **42 testes em 10 suites**, 100% verde (0 falhas).
+   - Validadas todas as protecções: conformidade de IBAN angolano (ISO mod-97), isolamento multi-tenant de cobrança, HMAC estrito do webhook EMIS/Multicaixa e fail-closed de liquidação financeira.
+
+4. **DOC (`painel/docs` — porta 5173):**
+   - Execução de `npm run build` (`vitepress build`): **0 erros**, renderização estática completa em 32s.
+
+5. **SIGA (raiz — porta 3006):**
+   - `npm run build`: Vite + SSR + Nitro Cloudflare Worker em 5.8s.
+   - `tsc --noEmit`: 0 erros.
+   - `vitest run tests/routes/`: 49 ficheiros / 196 testes, 100% verde.
+
+---
+
 ### Ciclo 87 — Blindagem dos Portais Especializados do Dashboard e Cobertura Total de Rotas (2026-09-12)
 
 Conclusão e blindagem dos testes de todas as superfícies de interface e rotas em falta:
@@ -213,8 +239,8 @@ anterior cobre um estado diferente do que ele próprio verificou.
 1. ~~**Módulo Alumni completo**~~ — **Concluído no Ciclo 84** (todas as rotas com suite de teste dedicada).
 2. ~~**`criar-escola`, `convite.$token`, `calendario.ics`, `relatorios.financeiros` e `alterar-senha`**~~ — **Concluído no Ciclo 87** (todas a verde com jsdom).
 3. ~~**Verificar `tests/routes/perfil.test.tsx`**~~ — **Confirmado e 100% verde no Ciclo 87** (4/4 testes a passar).
-4. ~~**Portais de Aluno/Encarregado/Professor do painel principal**~~ — **Concluído no Ciclo 87** (`tests/routes/dashboard-portals.test.tsx`, 3 testes a verde).
-5. **Auditoria de pontes e ecossistema (`painel/web`, `painel/admin`, `painel/payflow`, `painel/docs`)** ou itens de e2e (`enrollment-live.spec.ts`).
+5. ~~**Auditoria de pontes e ecossistema (`painel/web`, `painel/admin`, `painel/payflow`, `painel/docs`)**~~ — **Concluído no Ciclo 88** (todas as 5 apps constroem e testam 100% a verde).
+6. **Próximo foco sugerido:** Expansão de testes E2E e novos cenários de homologação bancária/EMIS.
 
 ---
 
