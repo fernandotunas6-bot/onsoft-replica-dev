@@ -3,6 +3,20 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { Tenant } from "@/features/saas/types";
 import { validateTenantSlug, isReservedSubdomain } from "@/lib/saas/platform-domain";
 
+/**
+ * Colunas devolvidas na resolução de tenant por slug ou hostname.
+ *
+ * Estas duas funções são alcançáveis **sem sessão** — a página de login precisa
+ * de resolver a escola pelo hostname antes de haver utilizador. Por isso não
+ * podem devolver `*`: as colunas `contact_name`, `contact_phone` e
+ * `contact_email` são dados pessoais do responsável da instituição e sair daqui
+ * significaria expô-los a quem souber o subdomínio da escola, que é público.
+ * Quem precisa deles (o painel de definições, o ADMIN) lê-os por vias
+ * autenticadas.
+ */
+const PUBLIC_TENANT_SELECT =
+  "id, name, slug, status, plan_id, subscription_status, trial_ends_at, max_students, max_storage_gb, created_at, updated_at, plans(*), tenant_usage(active_students_count)" as const;
+
 function mapTenantRow(tenant: Record<string, unknown>): Tenant {
   const usage = tenant.tenant_usage as
     { active_students_count?: number }[] | { active_students_count?: number } | undefined;
@@ -17,7 +31,7 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
   const db = await loadSgaAdminClient();
   const { data: tenant, error } = await db
     .from("tenants")
-    .select("*, plans(*), tenant_usage(active_students_count)")
+    .select(PUBLIC_TENANT_SELECT)
     .eq("slug", slug.trim().toLowerCase())
     .maybeSingle();
   if (error) throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
@@ -41,7 +55,7 @@ export async function fetchTenantByHostname(hostname: string): Promise<Tenant | 
 
   const { data: tenant, error } = await db
     .from("tenants")
-    .select("*, plans(*), tenant_usage(active_students_count)")
+    .select(PUBLIC_TENANT_SELECT)
     .eq("id", domain.tenant_id)
     .maybeSingle();
   if (error) throw publicDatabaseError(error, "Não foi possível carregar a instituição.");

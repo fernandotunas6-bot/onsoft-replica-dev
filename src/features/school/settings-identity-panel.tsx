@@ -84,9 +84,11 @@ export function DigitalIdentityPanel() {
   const [institutionalEmail, setInstitutionalEmail] = useState(
     `${activeSlug || "escola"}@${platformDomain}`,
   );
-  const [forwardingEmail, setForwardingEmail] = useState(
-    activeTenant?.contact_email || "direcao@escola.ao",
-  );
+  // Vazio de propósito: o contacto da instituição deixou de vir na resolução
+  // pública do tenant (é dado pessoal). Se já existir encaminhamento, o valor
+  // real é carregado mais abaixo; caso contrário o administrador escreve-o, em
+  // vez de lhe sugerirmos um destino que não escolheu.
+  const [forwardingEmail, setForwardingEmail] = useState("");
   const [isSavingEmail, setIsSavingEmail] = useState(false);
   const [emailRouteActive, setEmailRouteActive] = useState(false);
 
