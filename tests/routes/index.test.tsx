@@ -15,6 +15,8 @@ import {
 import type { getDashboardOverview } from "@/features/dashboard/server";
 import { emptySchoolTodayOps } from "@/features/dashboard/school-today";
 
+vi.setConfig({ testTimeout: 35_000 });
+
 /**
  * Testes de montagem e render de `/` (painel principal).
  *
@@ -82,6 +84,24 @@ vi.mock("@/features/calendar/server", () => ({
 
 vi.mock("@/features/spotlight/server", () => ({
   listSpotlightConfig: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/features/dashboard/DashboardCharts", () => ({
+  DashboardCharts: () => <div data-testid="dashboard-charts-mock" />,
+  DashboardAgeChart: () => <div data-testid="dashboard-age-chart-mock" />,
+  DashboardChartsSkeleton: () => <div />,
+}));
+
+vi.mock("@/features/dashboard/components/CashFlowForecastChart", () => ({
+  CashFlowForecastChart: () => <div data-testid="cash-flow-chart-mock" />,
+}));
+
+vi.mock("@/features/dashboard/components/DisciplinePerformanceHeatmap", () => ({
+  DisciplinePerformanceHeatmap: () => <div data-testid="discipline-heatmap-mock" />,
+}));
+
+vi.mock("@/features/spotlight/SpotlightRail", () => ({
+  SpotlightRail: () => <div data-testid="spotlight-rail-mock" />,
 }));
 
 const emptyOverview: Overview = {

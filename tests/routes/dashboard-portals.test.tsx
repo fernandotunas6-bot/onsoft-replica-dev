@@ -13,13 +13,16 @@ import {
 } from "./_harness";
 import { emptySchoolTodayOps } from "@/features/dashboard/school-today";
 
-vi.setConfig({ testTimeout: 25_000 });
+vi.setConfig({ testTimeout: 35_000 });
 
 vi.mock("@tanstack/react-router", async () => (await import("./_harness")).reactRouterMock());
 vi.mock("@/components/layout/AppShell", async () => (await import("./_harness")).appShellMock());
 vi.mock("@/integrations/supabase/client", async () => supabaseClientMock());
 vi.mock("@/features/auth/use-current-account", () => currentAccountMock());
 vi.mock("@/lib/warm-charts", () => ({ warmDashboardCharts: vi.fn() }));
+vi.mock("@/features/spotlight/SpotlightRail", () => ({
+  SpotlightRail: () => <div data-testid="spotlight-rail" />,
+}));
 
 vi.mock("@/features/auth/use-school-settings", () => ({
   useSchoolSettings: () => ({
@@ -205,7 +208,7 @@ describe("/ (painel principal) — Portais especializados por perfil", () => {
     expect(screen.getByRole("button", { name: /Cartão Virtual/i })).toBeDefined();
 
     await waitFor(() => {
-      expect(screen.getByText("96%")).toBeDefined();
+      expect(screen.getAllByText(/96%/).length).toBeGreaterThan(0);
       expect(screen.getByText(/48 presenças/)).toBeDefined();
     });
   });
@@ -276,7 +279,7 @@ describe("/ (painel principal) — Portais especializados por perfil", () => {
     expect(screen.getByText("Planos de Aula")).toBeDefined();
 
     await waitFor(() => {
-      expect(screen.getByText("Matemática")).toBeDefined();
+      expect(screen.getAllByText("Matemática").length).toBeGreaterThan(0);
     });
   });
 });

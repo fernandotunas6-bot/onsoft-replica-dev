@@ -12,6 +12,7 @@
     "deploy:all": "node scripts/deploy-all.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
     "test": "vitest run",
+    "test:routes": "vitest run tests/routes/ --fileParallelism=false",
     "lint": "eslint .",
     "check:style": "node scripts/style-checklist.mjs",
     "check:a11y": "node scripts/a11y-check.mjs",
