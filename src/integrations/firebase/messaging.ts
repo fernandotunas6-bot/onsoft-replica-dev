@@ -106,9 +106,7 @@ export async function getFcmToken(options?: GetFcmTokenOptions): Promise<string 
 
     const vapidKey =
       options?.vapidKey ||
-      (typeof import.meta !== "undefined"
-        ? import.meta.env?.VITE_FIREBASE_VAPID_KEY
-        : undefined);
+      (typeof import.meta !== "undefined" ? import.meta.env?.VITE_FIREBASE_VAPID_KEY : undefined);
 
     const token = await getToken(messaging, {
       vapidKey: vapidKey || undefined,

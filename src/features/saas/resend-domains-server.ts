@@ -72,9 +72,7 @@ export const createResendDomainFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createResendDomainInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-    ]);
+    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     const db = await loadSgaAdminClient();
 
     try {

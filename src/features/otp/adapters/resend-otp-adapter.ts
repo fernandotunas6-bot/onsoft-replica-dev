@@ -6,8 +6,7 @@ export class ResendOtpAdapter implements IMessageDeliveryAdapter {
   public providerName = "resend";
 
   async sendCode(payload: OtpPayload): Promise<OtpDeliveryResult> {
-    const apiKey =
-      (typeof process !== "undefined" && process.env?.RESEND_API_KEY?.trim()) || "";
+    const apiKey = (typeof process !== "undefined" && process.env?.RESEND_API_KEY?.trim()) || "";
 
     if (!apiKey) {
       return {

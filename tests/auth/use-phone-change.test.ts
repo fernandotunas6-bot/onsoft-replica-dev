@@ -24,14 +24,12 @@ describe("usePhoneChange hook", () => {
 
   describe("requestCode", () => {
     it("actualiza estado para requesting quando iniciado", async () => {
-      vi.spyOn(phoneChangeServer, "requestPhoneChangeOtpFn").mockImplementation(
-        async () => ({
-          success: true,
-          message: "Código enviado via WhatsApp",
-          channelUsed: "whatsapp",
-          cooldownSeconds: 60,
-        }),
-      );
+      vi.spyOn(phoneChangeServer, "requestPhoneChangeOtpFn").mockImplementation(async () => ({
+        success: true,
+        message: "Código enviado via WhatsApp",
+        channelUsed: "whatsapp",
+        cooldownSeconds: 60,
+      }));
 
       const { result } = renderHook(() => usePhoneChange(), { wrapper });
 
@@ -53,13 +51,11 @@ describe("usePhoneChange hook", () => {
 
     it("actualiza estado para error se falha", async () => {
       const errorMessage = "Número de telefone inválido";
-      vi.spyOn(phoneChangeServer, "requestPhoneChangeOtpFn").mockImplementation(
-        async () => ({
-          success: false,
-          message: errorMessage,
-          cooldownSeconds: 0,
-        }),
-      );
+      vi.spyOn(phoneChangeServer, "requestPhoneChangeOtpFn").mockImplementation(async () => ({
+        success: false,
+        message: errorMessage,
+        cooldownSeconds: 0,
+      }));
 
       const { result } = renderHook(() => usePhoneChange(), { wrapper });
 
@@ -95,23 +91,19 @@ describe("usePhoneChange hook", () => {
 
   describe("confirmCode", () => {
     beforeEach(() => {
-      vi.spyOn(phoneChangeServer, "requestPhoneChangeOtpFn").mockImplementation(
-        async () => ({
-          success: true,
-          message: "Código enviado",
-          channelUsed: "whatsapp",
-          cooldownSeconds: 60,
-        }),
-      );
+      vi.spyOn(phoneChangeServer, "requestPhoneChangeOtpFn").mockImplementation(async () => ({
+        success: true,
+        message: "Código enviado",
+        channelUsed: "whatsapp",
+        cooldownSeconds: 60,
+      }));
     });
 
     it("actualiza estado para success após confirmação bem-sucedida", async () => {
-      vi.spyOn(phoneChangeServer, "confirmPhoneChangeWithOtpFn").mockImplementation(
-        async () => ({
-          success: true,
-          message: "Número de telemóvel atualizado e confirmado com sucesso!",
-        }),
-      );
+      vi.spyOn(phoneChangeServer, "confirmPhoneChangeWithOtpFn").mockImplementation(async () => ({
+        success: true,
+        message: "Número de telemóvel atualizado e confirmado com sucesso!",
+      }));
 
       const { result } = renderHook(() => usePhoneChange(), { wrapper });
 
@@ -137,12 +129,10 @@ describe("usePhoneChange hook", () => {
     });
 
     it("trata erro de código expirado", async () => {
-      vi.spyOn(phoneChangeServer, "confirmPhoneChangeWithOtpFn").mockImplementation(
-        async () => ({
-          success: false,
-          message: "O código de verificação expirou. Solicite um novo código.",
-        }),
-      );
+      vi.spyOn(phoneChangeServer, "confirmPhoneChangeWithOtpFn").mockImplementation(async () => ({
+        success: false,
+        message: "O código de verificação expirou. Solicite um novo código.",
+      }));
 
       const { result } = renderHook(() => usePhoneChange(), { wrapper });
 
@@ -166,12 +156,10 @@ describe("usePhoneChange hook", () => {
     });
 
     it("trata erro de tentativas excedidas", async () => {
-      vi.spyOn(phoneChangeServer, "confirmPhoneChangeWithOtpFn").mockImplementation(
-        async () => ({
-          success: false,
-          message: "Limite de tentativas excedido. O código foi cancelado por segurança.",
-        }),
-      );
+      vi.spyOn(phoneChangeServer, "confirmPhoneChangeWithOtpFn").mockImplementation(async () => ({
+        success: false,
+        message: "Limite de tentativas excedido. O código foi cancelado por segurança.",
+      }));
 
       const { result } = renderHook(() => usePhoneChange(), { wrapper });
 
@@ -195,13 +183,11 @@ describe("usePhoneChange hook", () => {
     });
 
     it("mostra tentativas restantes em caso de código incorreto", async () => {
-      vi.spyOn(phoneChangeServer, "confirmPhoneChangeWithOtpFn").mockImplementation(
-        async () => ({
-          success: false,
-          message: "Código incorreto. Tentativas restantes: 2.",
-          attemptsLeft: 2,
-        }),
-      );
+      vi.spyOn(phoneChangeServer, "confirmPhoneChangeWithOtpFn").mockImplementation(async () => ({
+        success: false,
+        message: "Código incorreto. Tentativas restantes: 2.",
+        attemptsLeft: 2,
+      }));
 
       const { result } = renderHook(() => usePhoneChange(), { wrapper });
 
@@ -228,14 +214,12 @@ describe("usePhoneChange hook", () => {
 
   describe("reset", () => {
     it("redefine o estado para idle", async () => {
-      vi.spyOn(phoneChangeServer, "requestPhoneChangeOtpFn").mockImplementation(
-        async () => ({
-          success: true,
-          message: "Código enviado",
-          channelUsed: "whatsapp",
-          cooldownSeconds: 60,
-        }),
-      );
+      vi.spyOn(phoneChangeServer, "requestPhoneChangeOtpFn").mockImplementation(async () => ({
+        success: true,
+        message: "Código enviado",
+        channelUsed: "whatsapp",
+        cooldownSeconds: 60,
+      }));
 
       const { result } = renderHook(() => usePhoneChange(), { wrapper });
 

@@ -70,4 +70,3 @@ export async function getFcmDevicePushToken(vapidKey?: string): Promise<string |
     return null;
   }
 }
-

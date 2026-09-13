@@ -2,7 +2,12 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import type { ComponentType } from "react";
-import { renderRoute, resetPersistedFilters, resetRouteLocation, routeComponentOf } from "./_harness";
+import {
+  renderRoute,
+  resetPersistedFilters,
+  resetRouteLocation,
+  routeComponentOf,
+} from "./_harness";
 import type { PedagogicalWorkspace } from "@/features/academic/server";
 import type { LessonPlansResult } from "@/features/lesson-plans/server";
 
@@ -114,9 +119,7 @@ const samplePlansResult: LessonPlansResult = {
       created_by: "user-1",
       class_group_name: "Turma 7A",
       subject_name: "Língua Portuguesa",
-      components: [
-        { id: "c-3", kind: "avaliacao", name: "AC2", planned_count: 2, sequence: 1 },
-      ],
+      components: [{ id: "c-3", kind: "avaliacao", name: "AC2", planned_count: 2, sequence: 1 }],
     },
   ],
 };

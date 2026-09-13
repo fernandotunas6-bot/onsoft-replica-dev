@@ -1,10 +1,7 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import {
-  loadSgaAdminClient,
-  resolveSgaMembershipAdmin,
-} from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 
 export const listDispatchesInputSchema = z.object({
   channel: z.enum(["email", "sms", "whatsapp", "all"]).default("all"),

@@ -78,7 +78,9 @@ export const syncSchoolContactsToResendFn = createServerFn({ method: "POST" })
       const email = String(p.email ?? "").trim();
       if (!email || !email.includes("@")) continue;
 
-      const parts = String(p.full_name ?? "").trim().split(" ");
+      const parts = String(p.full_name ?? "")
+        .trim()
+        .split(" ");
       const firstName = parts[0] || "";
       const lastName = parts.slice(1).join(" ") || undefined;
 

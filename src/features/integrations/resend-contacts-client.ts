@@ -23,9 +23,7 @@ export interface CreateContactInput {
 
 export class ResendContactsClient {
   private static getApiKey(): string {
-    return (
-      (typeof process !== "undefined" && process.env?.RESEND_API_KEY?.trim()) || ""
-    );
+    return (typeof process !== "undefined" && process.env?.RESEND_API_KEY?.trim()) || "";
   }
 
   /**

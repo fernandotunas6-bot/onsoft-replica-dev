@@ -87,13 +87,17 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
         <DialogHeader>
           <DialogTitle>Alterar Número de Telefone</DialogTitle>
           <DialogDescription>
-            {currentPhone ? `Número actual: ${currentPhone}` : "Adicione um novo número de telefone à sua conta"}
+            {currentPhone
+              ? `Número actual: ${currentPhone}`
+              : "Adicione um novo número de telefone à sua conta"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Etapa 1: Solicitar Código */}
-          {state.step === "idle" || state.step === "requesting" || (state.step === "error" && !state.channelUsed) ? (
+          {state.step === "idle" ||
+          state.step === "requesting" ||
+          (state.step === "error" && !state.channelUsed) ? (
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Novo Número de Telefone</label>
@@ -108,7 +112,10 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
 
               <div>
                 <label className="text-sm font-medium">Canal Preferido</label>
-                <Select value={preferredChannel} onValueChange={(value: any) => setPreferredChannel(value)}>
+                <Select
+                  value={preferredChannel}
+                  onValueChange={(value: any) => setPreferredChannel(value)}
+                >
                   <SelectTrigger className="mt-1.5">
                     <SelectValue />
                   </SelectTrigger>
@@ -133,7 +140,8 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
             <div className="space-y-4">
               <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                 <p className="text-sm text-blue-800">
-                  ✓ Código enviado via <strong>{state.channelUsed?.toUpperCase() || "mensagem"}</strong>
+                  ✓ Código enviado via{" "}
+                  <strong>{state.channelUsed?.toUpperCase() || "mensagem"}</strong>
                 </p>
               </div>
 
@@ -155,7 +163,9 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
                   <div className="flex-1">
                     <p className="text-sm font-medium text-red-800">{state.message}</p>
                     {state.attemptsLeft !== undefined && (
-                      <p className="text-xs text-red-700 mt-1">Tentativas restantes: {state.attemptsLeft}</p>
+                      <p className="text-xs text-red-700 mt-1">
+                        Tentativas restantes: {state.attemptsLeft}
+                      </p>
                     )}
                   </div>
                 </div>

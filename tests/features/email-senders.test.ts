@@ -38,23 +38,23 @@ describe("Email Senders Architecture - resolveSystemSender", () => {
   });
 
   it("applies institutional school branding", () => {
-    expect(
-      resolveSystemSender("academic", { schoolName: "Colégio Esperança" }),
-    ).toBe("Colégio Esperança via SIGA <notificacoes@portal-siga.com>");
+    expect(resolveSystemSender("academic", { schoolName: "Colégio Esperança" })).toBe(
+      "Colégio Esperança via SIGA <notificacoes@portal-siga.com>",
+    );
 
-    expect(
-      resolveSystemSender("finance", { schoolName: "Colégio Esperança" }),
-    ).toBe("Colégio Esperança (Financeiro) <financeiro@portal-siga.com>");
+    expect(resolveSystemSender("finance", { schoolName: "Colégio Esperança" })).toBe(
+      "Colégio Esperança (Financeiro) <financeiro@portal-siga.com>",
+    );
 
-    expect(
-      resolveSystemSender("auth", { schoolName: "Colégio Esperança" }),
-    ).toBe("Colégio Esperança via SIGA <seguranca@portal-siga.com>");
+    expect(resolveSystemSender("auth", { schoolName: "Colégio Esperança" })).toBe(
+      "Colégio Esperança via SIGA <seguranca@portal-siga.com>",
+    );
   });
 
   it("allows custom displayName override", () => {
-    expect(
-      resolveSystemSender("finance", { displayName: "SIGA Payflow Alertas" }),
-    ).toBe("SIGA Payflow Alertas <financeiro@portal-siga.com>");
+    expect(resolveSystemSender("finance", { displayName: "SIGA Payflow Alertas" })).toBe(
+      "SIGA Payflow Alertas <financeiro@portal-siga.com>",
+    );
   });
 
   it("respects specific environment variable overrides per channel", () => {

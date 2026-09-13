@@ -44,7 +44,9 @@ export function OtpVerificationCard({
   onCancel,
 }: OtpVerificationCardProps) {
   const [code, setCode] = React.useState("");
-  const [activeChannel, setActiveChannel] = React.useState<"email" | "sms" | "whatsapp">(initialChannel);
+  const [activeChannel, setActiveChannel] = React.useState<"email" | "sms" | "whatsapp">(
+    initialChannel,
+  );
   const [cooldown, setCooldown] = React.useState(60);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isVerifying, setIsVerifying] = React.useState(false);
@@ -131,9 +133,7 @@ export function OtpVerificationCard({
         <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           <ShieldCheck className="h-6 w-6" />
         </div>
-        <h3 className="text-lg font-bold tracking-tight text-foreground">
-          Código de Verificação
-        </h3>
+        <h3 className="text-lg font-bold tracking-tight text-foreground">Código de Verificação</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Enviámos um código de 6 dígitos para{" "}
           <strong className="text-foreground">{targetIdentifier}</strong> através de{" "}
@@ -184,8 +184,7 @@ export function OtpVerificationCard({
         >
           {isVerifying ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              A verificar código...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />A verificar código...
             </>
           ) : (
             "Confirmar Código"

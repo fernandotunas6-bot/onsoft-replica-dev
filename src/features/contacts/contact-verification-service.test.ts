@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { ContactVerificationService, type ContactVerificationProfile } from "./contact-verification-service";
+import {
+  ContactVerificationService,
+  type ContactVerificationProfile,
+} from "./contact-verification-service";
 
 /**
  * Testes para ContactVerificationService

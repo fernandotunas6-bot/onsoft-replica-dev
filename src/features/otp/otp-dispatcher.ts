@@ -59,18 +59,13 @@ export class OtpDispatcher {
   /**
    * Determina a ordem de canais prioritários para a cascata de envio.
    */
-  public resolveChannelCascade(
-    identifier: string,
-    preferred?: OtpChannel,
-  ): OtpChannel[] {
+  public resolveChannelCascade(identifier: string, preferred?: OtpChannel): OtpChannel[] {
     const isEmail = identifier.includes("@");
     const primary = preferred || (isEmail ? "email" : "whatsapp");
 
     if (isEmail) {
       // Para e-mail, tentar e-mail primeiro
-      return [primary, "email"].filter(
-        (v, i, a) => a.indexOf(v) === i,
-      ) as OtpChannel[];
+      return [primary, "email"].filter((v, i, a) => a.indexOf(v) === i) as OtpChannel[];
     }
 
     // Para telefone (+244 Angola): WhatsApp -> SMS -> E-mail

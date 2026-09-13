@@ -61,7 +61,8 @@ export const PushNotificationBanner: React.FC<PushNotificationBannerProps> = ({
             Receber Alertas e Notificações Push
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Ative para receber avisos de faltas, pautas, notas e lembretes escolares em tempo real no seu Android/Web.
+            Ative para receber avisos de faltas, pautas, notas e lembretes escolares em tempo real
+            no seu Android/Web.
           </p>
         </div>
       </div>

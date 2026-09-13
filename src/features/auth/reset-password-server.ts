@@ -208,8 +208,7 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
       // 4. Enviar e-mail via Resend — ver nota abaixo sobre não haver fallback nativo
       const resendApiKey = process.env["RESEND_API_KEY"]?.trim();
       const resendFrom =
-        process.env["E2E_ALERT_EMAIL_FROM"]?.trim() ||
-        resolveSystemSender("auth", { schoolName });
+        process.env["E2E_ALERT_EMAIL_FROM"]?.trim() || resolveSystemSender("auth", { schoolName });
 
       // Envio exclusivo via Resend: o template nativo do Supabase não tem branding
       // institucional e exporia "Supabase Auth" ao utilizador, o que é proibido.

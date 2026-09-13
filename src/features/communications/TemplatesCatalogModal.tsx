@@ -45,7 +45,8 @@ export function TemplatesCatalogModal({
             Catálogo de Templates Oficiais do SIGA Plus
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Modelos institucionais pré-formatados com variáveis automáticas para e-mail, WhatsApp e avisos.
+            Modelos institucionais pré-formatados com variáveis automáticas para e-mail, WhatsApp e
+            avisos.
           </DialogDescription>
         </DialogHeader>
 
@@ -77,12 +78,16 @@ export function TemplatesCatalogModal({
           {activeTemplate && (
             <div className="flex flex-col h-full overflow-y-auto rounded-lg border border-border bg-muted/20 p-4 space-y-4 text-xs">
               <div>
-                <span className="text-[11px] font-medium text-muted-foreground">Assunto Predefinido:</span>
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  Assunto Predefinido:
+                </span>
                 <p className="font-semibold text-foreground mt-0.5">{activeTemplate.subject}</p>
               </div>
 
               <div>
-                <span className="text-[11px] font-medium text-muted-foreground">Variáveis Disponíveis:</span>
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  Variáveis Disponíveis:
+                </span>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {activeTemplate.variables.map((v) => (
                     <code
@@ -97,14 +102,20 @@ export function TemplatesCatalogModal({
 
               <div className="flex-1 flex flex-col">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-medium text-muted-foreground">Mensagem (Texto Padrão):</span>
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    Mensagem (Texto Padrão):
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleCopy(activeTemplate.defaultText)}
                     className="h-6 px-2 text-[10px] gap-1"
                   >
-                    {copied ? <Check className="size-3 text-primary" /> : <Copy className="size-3" />}
+                    {copied ? (
+                      <Check className="size-3 text-primary" />
+                    ) : (
+                      <Copy className="size-3" />
+                    )}
                     Copiar
                   </Button>
                 </div>

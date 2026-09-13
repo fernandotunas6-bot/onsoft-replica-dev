@@ -60,7 +60,8 @@ export const requestPhoneChangeOtpFn = createServerFn({ method: "POST" })
 
     return {
       success: true,
-      message: `Código de verificação enviado via ${result.channelUsed?.toUpperCase() || "mensagem"}.` as string,
+      message:
+        `Código de verificação enviado via ${result.channelUsed?.toUpperCase() || "mensagem"}.` as string,
       channelUsed: result.channelUsed,
       cooldownSeconds: result.cooldownSeconds,
     };

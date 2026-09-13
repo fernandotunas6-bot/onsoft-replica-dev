@@ -26,9 +26,12 @@ export class TwilioSmsAdapter implements IMessageDeliveryAdapter {
     }
 
     // Carregar credenciais
-    const accountSid = (typeof process !== "undefined" && process.env?.TWILIO_ACCOUNT_SID?.trim()) || "";
-    const authToken = (typeof process !== "undefined" && process.env?.TWILIO_AUTH_TOKEN?.trim()) || "";
-    const fromNumber = (typeof process !== "undefined" && process.env?.TWILIO_FROM_NUMBER?.trim()) || "";
+    const accountSid =
+      (typeof process !== "undefined" && process.env?.TWILIO_ACCOUNT_SID?.trim()) || "";
+    const authToken =
+      (typeof process !== "undefined" && process.env?.TWILIO_AUTH_TOKEN?.trim()) || "";
+    const fromNumber =
+      (typeof process !== "undefined" && process.env?.TWILIO_FROM_NUMBER?.trim()) || "";
 
     if (!accountSid || !authToken || !fromNumber) {
       return {
@@ -44,18 +47,21 @@ export class TwilioSmsAdapter implements IMessageDeliveryAdapter {
 
     try {
       // Chamar Twilio API via fetch (sem SDK para evitar dependency)
-      const response = await fetch("https://api.twilio.com/2010-04-01/Accounts/" + accountSid + "/Messages.json", {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-          "Content-Type": "application/x-www-form-urlencoded",
+      const response = await fetch(
+        "https://api.twilio.com/2010-04-01/Accounts/" + accountSid + "/Messages.json",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            From: fromNumber,
+            To: payload.recipient,
+            Body: messageBody,
+          }).toString(),
         },
-        body: new URLSearchParams({
-          From: fromNumber,
-          To: payload.recipient,
-          Body: messageBody,
-        }).toString(),
-      });
+      );
 
       interface TwilioResponse {
         sid?: string;
@@ -66,8 +72,7 @@ export class TwilioSmsAdapter implements IMessageDeliveryAdapter {
       const data = (await response.json().catch(() => ({}))) as TwilioResponse;
 
       if (!response.ok || !data.sid) {
-        const errorMsg =
-          data.message || `HTTP ${response.status}`;
+        const errorMsg = data.message || `HTTP ${response.status}`;
         return {
           success: false,
           channel: "sms",

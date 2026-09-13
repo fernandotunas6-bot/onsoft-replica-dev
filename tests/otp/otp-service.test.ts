@@ -36,7 +36,9 @@ describe("OtpService", () => {
     expect(OtpService.normalizeIdentifier("244923456789")).toBe("+244923456789");
 
     // E-mails
-    expect(OtpService.normalizeIdentifier("  Joao.Manuel@Escola.AO ")).toBe("joao.manuel@escola.ao");
+    expect(OtpService.normalizeIdentifier("  Joao.Manuel@Escola.AO ")).toBe(
+      "joao.manuel@escola.ao",
+    );
   });
 });
 

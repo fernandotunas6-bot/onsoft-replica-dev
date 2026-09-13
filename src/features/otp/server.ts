@@ -56,7 +56,11 @@ export const requestOtpVerificationFn = createServerFn({ method: "POST" })
       try {
         const db = await loadSgaAdminClient();
         const tenantInfo = resolveTenantLookup(data.hostname);
-        if (tenantInfo.mode === "slug" && tenantInfo.slug !== "admin" && tenantInfo.slug !== "minha-escola") {
+        if (
+          tenantInfo.mode === "slug" &&
+          tenantInfo.slug !== "admin" &&
+          tenantInfo.slug !== "minha-escola"
+        ) {
           const { data: tenant } = await db
             .from("tenants")
             .select("id, name")

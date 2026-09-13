@@ -47,7 +47,10 @@ export class SmsOtpAdapter implements IMessageDeliveryAdapter {
       });
 
       const data = (await res.json().catch(() => ({}))) as {
-        messages?: Array<{ messageId?: string; status?: { groupName?: string; description?: string } }>;
+        messages?: Array<{
+          messageId?: string;
+          status?: { groupName?: string; description?: string };
+        }>;
         error?: string;
       };
 

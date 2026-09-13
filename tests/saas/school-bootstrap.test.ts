@@ -76,7 +76,10 @@ function createMockSupabase(config: MockDbConfig = {}) {
           if (tableError) return { data: null, error: tableError };
 
           if (tableName === "academic_years") {
-            const year = config.activeAcademicYear !== undefined ? config.activeAcademicYear : { id: "year-123" };
+            const year =
+              config.activeAcademicYear !== undefined
+                ? config.activeAcademicYear
+                : { id: "year-123" };
             return { data: year, error: null };
           }
           if (tableName === "fee_plans") {
@@ -248,7 +251,10 @@ describe("school-bootstrap", () => {
       expect(guardianSet.size).toBe(GUARDIAN_PERMISSION_CODES.length);
       expect(guardianSet.has("attendance.records.read")).toBe(true);
       expect(guardianSet.has("finance.invoices.read")).toBe(true);
-      expect(guardianSet.has("documents.requests.create" as any) || guardianSet.has("documents.requests.manage")).toBe(true);
+      expect(
+        guardianSet.has("documents.requests.create" as any) ||
+          guardianSet.has("documents.requests.manage"),
+      ).toBe(true);
 
       const studentSet = new Set(STUDENT_PERMISSION_CODES);
       expect(studentSet.size).toBe(STUDENT_PERMISSION_CODES.length);
@@ -286,7 +292,10 @@ describe("school-bootstrap", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const db = createMockSupabase({
         tableErrors: {
-          document_sequences: { code: "42P01", message: "relation document_sequences does not exist" },
+          document_sequences: {
+            code: "42P01",
+            message: "relation document_sequences does not exist",
+          },
         },
       });
 
@@ -353,7 +362,9 @@ describe("school-bootstrap", () => {
       const adminPerms = rows.filter((r) => r.role_id === "r-admin");
       expect(ownerPerms).toHaveLength(7);
       expect(adminPerms).toHaveLength(7);
-      expect(ownerPerms.map((r) => r.permission_id)).toEqual(adminPerms.map((r) => r.permission_id));
+      expect(ownerPerms.map((r) => r.permission_id)).toEqual(
+        adminPerms.map((r) => r.permission_id),
+      );
 
       // user recebe apenas communication.inbox.read e communication.announcements.read (2 permissões)
       const userPerms = rows.filter((r) => r.role_id === "r-user");
@@ -387,7 +398,10 @@ describe("school-bootstrap", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const db = createMockSupabase({
         tableErrors: {
-          role_permissions: { code: "PGRST205", message: "could not find table 'role_permissions' in schema cache" },
+          role_permissions: {
+            code: "PGRST205",
+            message: "could not find table 'role_permissions' in schema cache",
+          },
         },
       });
 
@@ -415,7 +429,9 @@ describe("school-bootstrap", () => {
       });
 
       // 1. Chamou bootstrap do ano lectivo e estrutura académica
-      expect(bootstrapAcademicYearIfMissing).toHaveBeenCalledWith(db, { schoolId: "school-novo-1" });
+      expect(bootstrapAcademicYearIfMissing).toHaveBeenCalledWith(db, {
+        schoolId: "school-novo-1",
+      });
       expect(bootstrapAcademicStructure).toHaveBeenCalledWith(db, {
         schoolId: "school-novo-1",
         userId: "user-admin-uuid-1",
@@ -471,7 +487,16 @@ describe("school-bootstrap", () => {
 
     it("salta a criação de itens quando já existem (idempotência)", async () => {
       const db = createMockSupabase({
-        existingRolesCodes: ["owner", "admin", "secretary", "treasury", "teacher", "student", "guardian", "user"],
+        existingRolesCodes: [
+          "owner",
+          "admin",
+          "secretary",
+          "treasury",
+          "teacher",
+          "student",
+          "guardian",
+          "user",
+        ],
         activeAcademicYear: { id: "year-active-1" },
         existingFeePlan: { id: "plan-already-exists" },
         existingEnrollmentForm: { id: "form-already-exists" },
@@ -520,7 +545,14 @@ describe("school-bootstrap", () => {
       const insertedRoles = db._insertCalls.roles[0] as { code: string; school_id: string }[];
       expect(insertedRoles).toHaveLength(6);
       const insertedCodes = insertedRoles.map((r) => r.code);
-      expect(insertedCodes).toEqual(["secretary", "treasury", "teacher", "student", "guardian", "user"]);
+      expect(insertedCodes).toEqual([
+        "secretary",
+        "treasury",
+        "teacher",
+        "student",
+        "guardian",
+        "user",
+      ]);
       expect(insertedCodes).not.toContain("owner");
       expect(insertedCodes).not.toContain("admin");
     });

@@ -28,8 +28,8 @@ export function Route() {
           <div className="border rounded-lg p-4 bg-blue-50">
             <h3 className="font-semibold text-sm mb-2">💡 Dica</h3>
             <p className="text-xs text-gray-700">
-              Verificar múltiplos contactos garante que você receba notificações importantes,
-              mesmo se um canal estiver indisponível.
+              Verificar múltiplos contactos garante que você receba notificações importantes, mesmo
+              se um canal estiver indisponível.
             </p>
           </div>
 

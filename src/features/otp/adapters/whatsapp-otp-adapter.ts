@@ -30,10 +30,13 @@ export class WhatsAppOtpAdapter implements IMessageDeliveryAdapter {
     }
 
     // Carregar credenciais
-    const phoneNumberId = (typeof process !== "undefined" && process.env?.WHATSAPP_PHONE_NUMBER_ID?.trim()) || "";
-    const accessToken = (typeof process !== "undefined" && process.env?.WHATSAPP_ACCESS_TOKEN?.trim()) || "";
+    const phoneNumberId =
+      (typeof process !== "undefined" && process.env?.WHATSAPP_PHONE_NUMBER_ID?.trim()) || "";
+    const accessToken =
+      (typeof process !== "undefined" && process.env?.WHATSAPP_ACCESS_TOKEN?.trim()) || "";
     const templateName =
-      (typeof process !== "undefined" && process.env?.WHATSAPP_OTP_TEMPLATE_NAME?.trim()) || "siga_auth_code";
+      (typeof process !== "undefined" && process.env?.WHATSAPP_OTP_TEMPLATE_NAME?.trim()) ||
+      "siga_auth_code";
 
     if (!phoneNumberId || !accessToken) {
       return {

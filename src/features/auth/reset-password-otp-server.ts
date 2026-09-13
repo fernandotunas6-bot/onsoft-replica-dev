@@ -72,9 +72,7 @@ export const resetPasswordWithOtpFn = createServerFn({ method: "POST" })
       // Tentar resolver diretamente na base de autenticação se profile não bater
       const { data: listUsers } = await supabaseAdmin.auth.admin.listUsers();
       const matched = listUsers?.users?.find((u) =>
-        isEmail
-          ? u.email?.toLowerCase() === normalized
-          : u.phone === normalized,
+        isEmail ? u.email?.toLowerCase() === normalized : u.phone === normalized,
       );
       userId = matched?.id ?? null;
     }
@@ -116,6 +114,7 @@ export const resetPasswordWithOtpFn = createServerFn({ method: "POST" })
 
     return {
       success: true,
-      message: "Palavra-passe redefinida com sucesso! Pode agora iniciar sessão com a nova credencial.",
+      message:
+        "Palavra-passe redefinida com sucesso! Pode agora iniciar sessão com a nova credencial.",
     };
   });

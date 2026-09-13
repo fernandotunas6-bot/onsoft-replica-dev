@@ -153,7 +153,14 @@ export const OFFICIAL_COMMUNICATION_TEMPLATES: Record<string, CommunicationTempl
     name: "Recibo de Pagamento (Payflow)",
     category: "finance",
     subject: "Recibo {{RECEIPT_NUMBER}}: {{AMOUNT}} AOA — {{SCHOOL_NAME}}",
-    variables: ["PAYER_NAME", "STUDENT_NAME", "AMOUNT", "RECEIPT_NUMBER", "MONTH_LABEL", "SCHOOL_NAME"],
+    variables: [
+      "PAYER_NAME",
+      "STUDENT_NAME",
+      "AMOUNT",
+      "RECEIPT_NUMBER",
+      "MONTH_LABEL",
+      "SCHOOL_NAME",
+    ],
     description: "Enviado aos encarregados após liquidação de propinas ou emolumentos.",
     defaultText:
       "Olá {{PAYER_NAME}},\n\nConfirmamos a liquidação de {{AMOUNT}} AOA referente a {{MONTH_LABEL}} (Aluno: {{STUDENT_NAME}}). Recibo n.º {{RECEIPT_NUMBER}} emitido.\n{{SCHOOL_NAME}}",
@@ -223,7 +230,14 @@ export const OFFICIAL_COMMUNICATION_TEMPLATES: Record<string, CommunicationTempl
     name: "Publicação de Pauta / Notas",
     category: "academic",
     subject: "Notas Publicadas: {{SUBJECT_NAME}} ({{TERM_LABEL}}) — {{SCHOOL_NAME}}",
-    variables: ["STUDENT_NAME", "SUBJECT_NAME", "TERM_LABEL", "GRADE_VALUE", "SCHOOL_NAME", "PORTAL_URL"],
+    variables: [
+      "STUDENT_NAME",
+      "SUBJECT_NAME",
+      "TERM_LABEL",
+      "GRADE_VALUE",
+      "SCHOOL_NAME",
+      "PORTAL_URL",
+    ],
     description: "Notificação imediata aos pais quando uma nota é lançada ou homologada.",
     defaultText:
       "{{SCHOOL_NAME}}: Foi publicada a nota de {{SUBJECT_NAME}} ({{TERM_LABEL}}) do aluno {{STUDENT_NAME}}: {{GRADE_VALUE}} valores.\nConsulte o portal: {{PORTAL_URL}}",

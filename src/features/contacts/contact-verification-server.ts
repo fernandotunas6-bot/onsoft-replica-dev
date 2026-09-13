@@ -46,15 +46,11 @@ export const getCommunicationPreferencesFn = createServerFn({
   method: "GET",
 })
   .middleware([requireSupabaseAuth])
-  .handler(
-    async ({ context }): Promise<CommunicationPreferences> => {
-      if (!context) throw new Error("Unauthorized");
+  .handler(async ({ context }): Promise<CommunicationPreferences> => {
+    if (!context) throw new Error("Unauthorized");
 
-      return ContactVerificationService.getOrCreateCommunicationPreferences(
-        context.userId,
-      );
-    },
-  );
+    return ContactVerificationService.getOrCreateCommunicationPreferences(context.userId);
+  });
 
 /**
  * setPreferredCommunicationChannelFn — Define o canal de comunicação preferido.
@@ -92,19 +88,16 @@ export const updateCommunicationPreferencesFn = createServerFn({
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
 
-    await ContactVerificationService.updateCommunicationCategories(
-      context.userId,
-      {
-        academic: data.academic,
-        financial: data.financial,
-        attendance: data.attendance,
-        calendar: data.calendar,
-        announcements: data.announcements,
-        events: data.events,
-        documents: data.documents,
-        marketing: data.marketing,
-      },
-    );
+    await ContactVerificationService.updateCommunicationCategories(context.userId, {
+      academic: data.academic,
+      financial: data.financial,
+      attendance: data.attendance,
+      calendar: data.calendar,
+      announcements: data.announcements,
+      events: data.events,
+      documents: data.documents,
+      marketing: data.marketing,
+    });
 
     return { success: true };
   });

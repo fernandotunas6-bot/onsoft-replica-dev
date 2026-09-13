@@ -25,7 +25,9 @@ import { syncSchoolContactsToResendFn } from "./contacts-sync-server";
 
 export function DispatchesTrackingPanel() {
   const queryClient = useQueryClient();
-  const [channelFilter, setChannelFilter] = React.useState<"all" | "email" | "sms" | "whatsapp">("all");
+  const [channelFilter, setChannelFilter] = React.useState<"all" | "email" | "sms" | "whatsapp">(
+    "all",
+  );
   const [isSyncing, setIsSyncing] = React.useState(false);
 
   const statsQuery = useQuery({
@@ -137,11 +139,15 @@ export function DispatchesTrackingPanel() {
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
           <p className="text-xs font-medium text-muted-foreground">Entregues</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{stats.delivered}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+            {stats.delivered}
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
           <p className="text-xs font-medium text-muted-foreground">Abertos / Lidos</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{stats.opened + stats.clicked}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+            {stats.opened + stats.clicked}
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
           <p className="text-xs font-medium text-muted-foreground">Bounces</p>
@@ -165,7 +171,11 @@ export function DispatchesTrackingPanel() {
               disabled={isSyncing}
               className="gap-1.5 text-xs"
             >
-              {isSyncing ? <Loader2 className="size-3.5 animate-spin" /> : <Users className="size-3.5" />}
+              {isSyncing ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Users className="size-3.5" />
+              )}
               Sincronizar Audiência
             </Button>
 
@@ -212,13 +222,18 @@ export function DispatchesTrackingPanel() {
         </div>
 
         {dispatchesQuery.isLoading ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">A carregar registos de entrega…</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            A carregar registos de entrega…
+          </p>
         ) : dispatches.length === 0 ? (
           <div className="py-12 text-center">
             <Mail className="mx-auto size-8 text-muted-foreground opacity-50" />
-            <p className="mt-2 text-sm font-semibold text-foreground">Nenhum registo de envio encontrado</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">
+              Nenhum registo de envio encontrado
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Os disparos de verificação OTP, cobranças Payflow e comunicados aparecerão aqui em tempo real.
+              Os disparos de verificação OTP, cobranças Payflow e comunicados aparecerão aqui em
+              tempo real.
             </p>
           </div>
         ) : (

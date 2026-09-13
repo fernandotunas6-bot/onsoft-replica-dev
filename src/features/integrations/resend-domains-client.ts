@@ -19,9 +19,7 @@ export interface ResendDomainItem {
 
 export class ResendDomainsClient {
   private static getApiKey(): string {
-    return (
-      (typeof process !== "undefined" && process.env?.RESEND_API_KEY?.trim()) || ""
-    );
+    return (typeof process !== "undefined" && process.env?.RESEND_API_KEY?.trim()) || "";
   }
 
   /**
@@ -104,13 +102,16 @@ export class ResendDomainsClient {
     const apiKey = this.getApiKey();
     if (!apiKey) throw new Error("RESEND_API_KEY não configurada no servidor.");
 
-    const res = await fetch(`https://api.resend.com/domains/${encodeURIComponent(domainId)}/verify`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    const res = await fetch(
+      `https://api.resend.com/domains/${encodeURIComponent(domainId)}/verify`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
 
     return { success: res.ok };
   }

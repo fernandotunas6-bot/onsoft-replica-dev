@@ -559,500 +559,503 @@ function ComunicacoesPage() {
         ) : (
           <>
             <StatGrid
-          collapsible
-          storageKey="comunicacoes"
-          items={[
-            {
-              label: "Comunicados",
-              value: migrationMissing ? "—" : String(items.length),
-              hint: migrationMissing ? "Migração pendente" : "Registos na escola",
-            },
-            {
-              label: "Enviados",
-              value: String(enviados.length),
-              hint: "Publicados nos canais activos",
-            },
-            {
-              label: "Agendados",
-              value: String(agendados.length),
-              hint: "Aguardam data programada",
-            },
-            {
-              label: "Rascunhos",
-              value: String(rascunhos.length),
-              hint: "Conteúdos ainda em revisão",
-            },
-          ]}
-        />
-
-        {migrationMissing ? (
-          <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-4 text-sm">
-            <p className="font-semibold">Migração de comunicações ainda não aplicada</p>
-            <p className="mt-1 text-muted-foreground">
-              A tabela <code className="font-mono">announcements</code> não está acessível neste
-              projecto SGA. Os comunicados internos só funcionam quando o schema estiver disponível.
-            </p>
-          </div>
-        ) : null}
-
-        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-          <Panel title="Histórico" description="Comunicados criados na escola">
-            <ListFilterBar
-              className="mb-4"
-              values={filters}
-              activeCount={activeCount}
-              onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
-              onReset={resetFilters}
-              fields={[
+              collapsible
+              storageKey="comunicacoes"
+              items={[
                 {
-                  name: "q",
-                  placeholder: "Pesquisar assunto ou mensagem…",
-                  "aria-label": "Pesquisar comunicado",
+                  label: "Comunicados",
+                  value: migrationMissing ? "—" : String(items.length),
+                  hint: migrationMissing ? "Migração pendente" : "Registos na escola",
                 },
                 {
-                  name: "estado",
-                  type: "select",
-                  label: "Estado",
-                  emptyValue: "todos",
-                  options: [
-                    { value: "todos", label: "Todos os estados" },
-                    { value: "sent", label: "Enviado" },
-                    { value: "scheduled", label: "Agendado" },
-                    { value: "draft", label: "Rascunho" },
-                    { value: "cancelled", label: "Arquivado" },
-                  ],
+                  label: "Enviados",
+                  value: String(enviados.length),
+                  hint: "Publicados nos canais activos",
                 },
                 {
-                  name: "canal",
-                  type: "select",
-                  label: "Canal",
-                  emptyValue: "todos",
-                  options: [
-                    { value: "todos", label: "Todos os canais" },
-                    { value: "portal", label: "Portal" },
-                    { value: "email", label: "E-mail" },
-                    { value: "sms", label: "SMS" },
-                  ],
+                  label: "Agendados",
+                  value: String(agendados.length),
+                  hint: "Aguardam data programada",
+                },
+                {
+                  label: "Rascunhos",
+                  value: String(rascunhos.length),
+                  hint: "Conteúdos ainda em revisão",
                 },
               ]}
             />
-            {announcementsQuery.isLoading ? (
-              <p className="text-sm text-muted-foreground">A carregar comunicados…</p>
-            ) : announcementsQuery.isError && !migrationMissing ? (
-              <p className="text-sm text-destructive">
-                {announcementsQuery.error instanceof Error
-                  ? announcementsQuery.error.message
-                  : "Não foi possível carregar os comunicados."}
-              </p>
-            ) : items.length === 0 ? (
-              <EmptyState
-                icon={MessageSquare}
-                title="Ainda não há comunicados"
+
+            {migrationMissing ? (
+              <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-4 text-sm">
+                <p className="font-semibold">Migração de comunicações ainda não aplicada</p>
+                <p className="mt-1 text-muted-foreground">
+                  A tabela <code className="font-mono">announcements</code> não está acessível neste
+                  projecto SGA. Os comunicados internos só funcionam quando o schema estiver
+                  disponível.
+                </p>
+              </div>
+            ) : null}
+
+            <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+              <Panel title="Histórico" description="Comunicados criados na escola">
+                <ListFilterBar
+                  className="mb-4"
+                  values={filters}
+                  activeCount={activeCount}
+                  onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
+                  onReset={resetFilters}
+                  fields={[
+                    {
+                      name: "q",
+                      placeholder: "Pesquisar assunto ou mensagem…",
+                      "aria-label": "Pesquisar comunicado",
+                    },
+                    {
+                      name: "estado",
+                      type: "select",
+                      label: "Estado",
+                      emptyValue: "todos",
+                      options: [
+                        { value: "todos", label: "Todos os estados" },
+                        { value: "sent", label: "Enviado" },
+                        { value: "scheduled", label: "Agendado" },
+                        { value: "draft", label: "Rascunho" },
+                        { value: "cancelled", label: "Arquivado" },
+                      ],
+                    },
+                    {
+                      name: "canal",
+                      type: "select",
+                      label: "Canal",
+                      emptyValue: "todos",
+                      options: [
+                        { value: "todos", label: "Todos os canais" },
+                        { value: "portal", label: "Portal" },
+                        { value: "email", label: "E-mail" },
+                        { value: "sms", label: "SMS" },
+                      ],
+                    },
+                  ]}
+                />
+                {announcementsQuery.isLoading ? (
+                  <p className="text-sm text-muted-foreground">A carregar comunicados…</p>
+                ) : announcementsQuery.isError && !migrationMissing ? (
+                  <p className="text-sm text-destructive">
+                    {announcementsQuery.error instanceof Error
+                      ? announcementsQuery.error.message
+                      : "Não foi possível carregar os comunicados."}
+                  </p>
+                ) : items.length === 0 ? (
+                  <EmptyState
+                    icon={MessageSquare}
+                    title="Ainda não há comunicados"
+                    description={
+                      canManage
+                        ? "Redija o primeiro comunicado no painel à direita para informar a comunidade escolar."
+                        : "Quando a escola publicar avisos, aparecerão aqui no portal."
+                    }
+                    compact
+                  />
+                ) : filtered.length === 0 ? (
+                  <EmptyState
+                    icon={MessageSquare}
+                    title="Nenhum comunicado corresponde aos filtros"
+                    description="Ajuste o canal, o estado ou a pesquisa para ver outros comunicados."
+                    compact
+                  />
+                ) : (
+                  <ul className="space-y-4">
+                    {filtered.map((c) => {
+                      const channel = c.channel as Channel;
+                      const status = c.status as AnnouncementStatus;
+                      const audience = c.audience as Audience;
+                      const Icon = canalIcon[channel] ?? Monitor;
+                      return (
+                        <li key={c.id} className="rounded-xl border border-border p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="flex items-start gap-3">
+                              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong">
+                                <Icon className="size-4" />
+                              </span>
+                              <div>
+                                <p className="font-semibold">{c.title}</p>
+                                <p className="mt-1 text-sm text-muted-foreground">{c.body}</p>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                  {audienceLabel[audience] ?? c.audience} ·{" "}
+                                  {canalLabel[channel] ?? c.channel} ·{" "}
+                                  {status === "scheduled" && c.scheduled_for
+                                    ? `Agendado para ${new Date(
+                                        `${c.scheduled_for}T00:00:00`,
+                                      ).toLocaleDateString("pt-PT")}`
+                                    : status === "sent" && c.published_at
+                                      ? new Date(c.published_at).toLocaleDateString("pt-PT")
+                                      : new Date(c.created_at).toLocaleDateString("pt-PT")}
+                                </p>
+                                {whatsappNotices || resendOn || zoomInvites || outlookOn ? (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {whatsappNotices ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={async () => {
+                                          const text = `${c.title}\n\n${c.body}`;
+                                          const dispatch = await sendSchoolWhatsAppMessage({
+                                            data: { text },
+                                          });
+                                          if (dispatch.mode === "sent") {
+                                            toast.success(
+                                              `WhatsApp enviado a ${dispatch.recipientCount} destinatário(s)`,
+                                            );
+                                            return;
+                                          }
+                                          await navigator.clipboard.writeText(text);
+                                          window.open(
+                                            `https://wa.me/?text=${encodeURIComponent(text)}`,
+                                            "_blank",
+                                            "noopener,noreferrer",
+                                          );
+                                          toast.success(
+                                            dispatch.reason || "Mensagem pronta no WhatsApp",
+                                          );
+                                        }}
+                                      >
+                                        WhatsApp
+                                      </Button>
+                                    ) : null}
+                                    {resendOn ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={async () => {
+                                          await navigator.clipboard.writeText(
+                                            `${c.title}\n\n${c.body}`,
+                                          );
+                                          toast.success("Texto copiado para envio Resend");
+                                        }}
+                                      >
+                                        E-mail Resend
+                                      </Button>
+                                    ) : null}
+                                    {outlookOn ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={async () => {
+                                          const body = `${c.title}\n\n${c.body}`;
+                                          await navigator.clipboard.writeText(body);
+                                          window.open(
+                                            `mailto:?subject=${encodeURIComponent(c.title)}&body=${encodeURIComponent(c.body)}`,
+                                          );
+                                          toast.success("Texto copiado para Outlook");
+                                        }}
+                                      >
+                                        Outlook
+                                      </Button>
+                                    ) : null}
+                                    {zoomInvites ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={async () => {
+                                          await navigator.clipboard.writeText(
+                                            `${c.title}\n${c.body}\n\nSala: instale o horário Zoom na Pedagógica.`,
+                                          );
+                                          toast.success("Convite copiado");
+                                        }}
+                                      >
+                                        Convite Zoom
+                                      </Button>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                                {canManage ? (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {status === "draft" || status === "scheduled" ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={async () => {
+                                          try {
+                                            await updateSchoolAnnouncementStatus({
+                                              data: { id: c.id, status: "sent" },
+                                            });
+                                            await invalidate();
+                                            toast.success("Comunicado marcado como enviado");
+                                          } catch (error) {
+                                            toast.error("Falha ao actualizar", {
+                                              description:
+                                                error instanceof Error
+                                                  ? error.message
+                                                  : "Tente novamente.",
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        {status === "scheduled"
+                                          ? "Publicar agora"
+                                          : "Marcar enviado"}
+                                      </Button>
+                                    ) : null}
+                                    {status === "cancelled" ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={async () => {
+                                          try {
+                                            await updateSchoolAnnouncementStatus({
+                                              data: { id: c.id, status: "sent" },
+                                            });
+                                            await invalidate();
+                                            toast.success("Comunicado republicado no dashboard");
+                                          } catch (error) {
+                                            toast.error("Falha ao republicar", {
+                                              description:
+                                                error instanceof Error
+                                                  ? error.message
+                                                  : "Tente novamente.",
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        Republicar
+                                      </Button>
+                                    ) : null}
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="gap-1.5"
+                                      onClick={() => void printAnnouncement(c)}
+                                    >
+                                      <FileDown className="size-3.5" /> Imprimir
+                                    </Button>
+                                    {status !== "cancelled" ? (
+                                      <>
+                                        <QuickFormModal
+                                          title="Editar comunicado"
+                                          description="Actualiza o assunto e o texto. O estado não muda."
+                                          icon={<Pencil className="size-5" />}
+                                          submitLabel="Guardar"
+                                          successDescription="Comunicado actualizado."
+                                          onSubmit={async (values) => {
+                                            await updateSchoolAnnouncement({
+                                              data: {
+                                                id: c.id,
+                                                title: values["titulo"] ?? "",
+                                                body: values["mensagem"] ?? "",
+                                              },
+                                            });
+                                            await invalidate();
+                                          }}
+                                          fields={[
+                                            {
+                                              name: "titulo",
+                                              label: "Assunto",
+                                              defaultValue: c.title,
+                                              full: true,
+                                            },
+                                            {
+                                              name: "mensagem",
+                                              label: "Mensagem",
+                                              type: "textarea",
+                                              defaultValue: String(c.body ?? ""),
+                                              full: true,
+                                            },
+                                          ]}
+                                          trigger={(open) => (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="gap-1.5"
+                                              onClick={open}
+                                            >
+                                              <Pencil className="size-3.5" /> Editar
+                                            </Button>
+                                          )}
+                                        />
+                                        <ConfirmActionModal
+                                          title="Arquivar comunicado"
+                                          description={`«${c.title}» deixa de aparecer no dashboard.`}
+                                          confirmLabel="Arquivar"
+                                          onConfirm={async () => {
+                                            await archiveSchoolAnnouncement({ data: { id: c.id } });
+                                            await invalidate();
+                                          }}
+                                          trigger={(open) => (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="gap-1.5 text-destructive"
+                                              onClick={open}
+                                            >
+                                              <Archive className="size-3.5" /> Arquivar
+                                            </Button>
+                                          )}
+                                        />
+                                      </>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                            <span className={cn(badgeBase, estadoTone[status] ?? toneClass.muted)}>
+                              {estadoLabel[status] ?? c.status}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </Panel>
+
+              <Panel
+                title="Redigir comunicado"
                 description={
                   canManage
-                    ? "Redija o primeiro comunicado no painel à direita para informar a comunidade escolar."
-                    : "Quando a escola publicar avisos, aparecerão aqui no portal."
+                    ? "Registo no portal. Envio externo: instale Resend/WhatsApp em Definições → Integrações."
+                    : "Somente leitura para o seu perfil"
                 }
-                compact
-              />
-            ) : filtered.length === 0 ? (
-              <EmptyState
-                icon={MessageSquare}
-                title="Nenhum comunicado corresponde aos filtros"
-                description="Ajuste o canal, o estado ou a pesquisa para ver outros comunicados."
-                compact
-              />
-            ) : (
-              <ul className="space-y-4">
-                {filtered.map((c) => {
-                  const channel = c.channel as Channel;
-                  const status = c.status as AnnouncementStatus;
-                  const audience = c.audience as Audience;
-                  const Icon = canalIcon[channel] ?? Monitor;
-                  return (
-                    <li key={c.id} className="rounded-xl border border-border p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="flex items-start gap-3">
-                          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong">
-                            <Icon className="size-4" />
-                          </span>
-                          <div>
-                            <p className="font-semibold">{c.title}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">{c.body}</p>
-                            <p className="mt-2 text-xs text-muted-foreground">
-                              {audienceLabel[audience] ?? c.audience} ·{" "}
-                              {canalLabel[channel] ?? c.channel} ·{" "}
-                              {status === "scheduled" && c.scheduled_for
-                                ? `Agendado para ${new Date(
-                                    `${c.scheduled_for}T00:00:00`,
-                                  ).toLocaleDateString("pt-PT")}`
-                                : status === "sent" && c.published_at
-                                  ? new Date(c.published_at).toLocaleDateString("pt-PT")
-                                  : new Date(c.created_at).toLocaleDateString("pt-PT")}
-                            </p>
-                            {whatsappNotices || resendOn || zoomInvites || outlookOn ? (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {whatsappNotices ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      const text = `${c.title}\n\n${c.body}`;
-                                      const dispatch = await sendSchoolWhatsAppMessage({
-                                        data: { text },
-                                      });
-                                      if (dispatch.mode === "sent") {
-                                        toast.success(
-                                          `WhatsApp enviado a ${dispatch.recipientCount} destinatário(s)`,
-                                        );
-                                        return;
-                                      }
-                                      await navigator.clipboard.writeText(text);
-                                      window.open(
-                                        `https://wa.me/?text=${encodeURIComponent(text)}`,
-                                        "_blank",
-                                        "noopener,noreferrer",
-                                      );
-                                      toast.success(
-                                        dispatch.reason || "Mensagem pronta no WhatsApp",
-                                      );
-                                    }}
-                                  >
-                                    WhatsApp
-                                  </Button>
-                                ) : null}
-                                {resendOn ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      await navigator.clipboard.writeText(
-                                        `${c.title}\n\n${c.body}`,
-                                      );
-                                      toast.success("Texto copiado para envio Resend");
-                                    }}
-                                  >
-                                    E-mail Resend
-                                  </Button>
-                                ) : null}
-                                {outlookOn ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      const body = `${c.title}\n\n${c.body}`;
-                                      await navigator.clipboard.writeText(body);
-                                      window.open(
-                                        `mailto:?subject=${encodeURIComponent(c.title)}&body=${encodeURIComponent(c.body)}`,
-                                      );
-                                      toast.success("Texto copiado para Outlook");
-                                    }}
-                                  >
-                                    Outlook
-                                  </Button>
-                                ) : null}
-                                {zoomInvites ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      await navigator.clipboard.writeText(
-                                        `${c.title}\n${c.body}\n\nSala: instale o horário Zoom na Pedagógica.`,
-                                      );
-                                      toast.success("Convite copiado");
-                                    }}
-                                  >
-                                    Convite Zoom
-                                  </Button>
-                                ) : null}
-                              </div>
-                            ) : null}
-                            {canManage ? (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {status === "draft" || status === "scheduled" ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      try {
-                                        await updateSchoolAnnouncementStatus({
-                                          data: { id: c.id, status: "sent" },
-                                        });
-                                        await invalidate();
-                                        toast.success("Comunicado marcado como enviado");
-                                      } catch (error) {
-                                        toast.error("Falha ao actualizar", {
-                                          description:
-                                            error instanceof Error
-                                              ? error.message
-                                              : "Tente novamente.",
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    {status === "scheduled" ? "Publicar agora" : "Marcar enviado"}
-                                  </Button>
-                                ) : null}
-                                {status === "cancelled" ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      try {
-                                        await updateSchoolAnnouncementStatus({
-                                          data: { id: c.id, status: "sent" },
-                                        });
-                                        await invalidate();
-                                        toast.success("Comunicado republicado no dashboard");
-                                      } catch (error) {
-                                        toast.error("Falha ao republicar", {
-                                          description:
-                                            error instanceof Error
-                                              ? error.message
-                                              : "Tente novamente.",
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    Republicar
-                                  </Button>
-                                ) : null}
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="gap-1.5"
-                                  onClick={() => void printAnnouncement(c)}
-                                >
-                                  <FileDown className="size-3.5" /> Imprimir
-                                </Button>
-                                {status !== "cancelled" ? (
-                                  <>
-                                    <QuickFormModal
-                                      title="Editar comunicado"
-                                      description="Actualiza o assunto e o texto. O estado não muda."
-                                      icon={<Pencil className="size-5" />}
-                                      submitLabel="Guardar"
-                                      successDescription="Comunicado actualizado."
-                                      onSubmit={async (values) => {
-                                        await updateSchoolAnnouncement({
-                                          data: {
-                                            id: c.id,
-                                            title: values["titulo"] ?? "",
-                                            body: values["mensagem"] ?? "",
-                                          },
-                                        });
-                                        await invalidate();
-                                      }}
-                                      fields={[
-                                        {
-                                          name: "titulo",
-                                          label: "Assunto",
-                                          defaultValue: c.title,
-                                          full: true,
-                                        },
-                                        {
-                                          name: "mensagem",
-                                          label: "Mensagem",
-                                          type: "textarea",
-                                          defaultValue: String(c.body ?? ""),
-                                          full: true,
-                                        },
-                                      ]}
-                                      trigger={(open) => (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="gap-1.5"
-                                          onClick={open}
-                                        >
-                                          <Pencil className="size-3.5" /> Editar
-                                        </Button>
-                                      )}
-                                    />
-                                    <ConfirmActionModal
-                                      title="Arquivar comunicado"
-                                      description={`«${c.title}» deixa de aparecer no dashboard.`}
-                                      confirmLabel="Arquivar"
-                                      onConfirm={async () => {
-                                        await archiveSchoolAnnouncement({ data: { id: c.id } });
-                                        await invalidate();
-                                      }}
-                                      trigger={(open) => (
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="gap-1.5 text-destructive"
-                                          onClick={open}
-                                        >
-                                          <Archive className="size-3.5" /> Arquivar
-                                        </Button>
-                                      )}
-                                    />
-                                  </>
-                                ) : null}
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                        <span className={cn(badgeBase, estadoTone[status] ?? toneClass.muted)}>
-                          {estadoLabel[status] ?? c.status}
-                        </span>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel
-            title="Redigir comunicado"
-            description={
-              canManage
-                ? "Registo no portal. Envio externo: instale Resend/WhatsApp em Definições → Integrações."
-                : "Somente leitura para o seu perfil"
-            }
-          >
-            {!canManage ? (
-              <p className="text-sm text-muted-foreground">
-                Apenas Administrador e Secretaria podem criar ou alterar comunicados.
-              </p>
-            ) : migrationMissing ? (
-              <p className="text-sm text-muted-foreground">
-                Aplique a migração para activar a redacção de comunicados.
-              </p>
-            ) : (
-              <>
-                {!resendOn && !whatsappNotices ? (
-                  <p className="mb-3 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                    Sem Resend/WhatsApp instalados, o comunicado fica só no portal.{" "}
-                    <Link
-                      to="/configuracoes"
-                      search={{ painel: "integracoes" }}
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      Abrir Integrações
-                    </Link>
-                    {" · "}
-                    <a
-                      href={getDocUrl(DOC_PATHS.guideFeatures)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      Manual DOC
-                    </a>
+              >
+                {!canManage ? (
+                  <p className="text-sm text-muted-foreground">
+                    Apenas Administrador e Secretaria podem criar ou alterar comunicados.
                   </p>
-                ) : null}
-                <form ref={formRef} className="space-y-4" onSubmit={onSubmitSent}>
-                  <div className="space-y-2">
-                    <Label htmlFor="titulo">Assunto</Label>
-                    <Input
-                      id="titulo"
-                      name="titulo"
-                      placeholder="Ex.: Reunião de encarregados"
-                      required
-                      minLength={2}
-                      maxLength={160}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="destino">Destinatários</Label>
-                    <select
-                      id="destino"
-                      name="destino"
-                      required
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      defaultValue="school"
-                    >
-                      {audienceOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="canal">Canal</Label>
-                    <select
-                      id="canal"
-                      name="canal"
-                      required
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      defaultValue="portal"
-                    >
-                      <option value="sms">SMS</option>
-                      <option value="email">E-mail</option>
-                      <option value="portal">Portal</option>
-                    </select>
-                    {resendOn || whatsappNotices ? (
-                      <p className="text-xs text-muted-foreground">
-                        {resendOn
-                          ? "Canal E-mail: envio HTTP Resend (ou cópia se faltar API key). "
-                          : ""}
-                        {whatsappNotices ? "Use WhatsApp nos cartões depois de publicar." : ""}
+                ) : migrationMissing ? (
+                  <p className="text-sm text-muted-foreground">
+                    Aplique a migração para activar a redacção de comunicados.
+                  </p>
+                ) : (
+                  <>
+                    {!resendOn && !whatsappNotices ? (
+                      <p className="mb-3 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                        Sem Resend/WhatsApp instalados, o comunicado fica só no portal.{" "}
+                        <Link
+                          to="/configuracoes"
+                          search={{ painel: "integracoes" }}
+                          className="font-medium text-primary underline-offset-2 hover:underline"
+                        >
+                          Abrir Integrações
+                        </Link>
+                        {" · "}
+                        <a
+                          href={getDocUrl(DOC_PATHS.guideFeatures)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-primary underline-offset-2 hover:underline"
+                        >
+                          Manual DOC
+                        </a>
                       </p>
                     ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="agendar">Agendar para (opcional)</Label>
-                    <Input id="agendar" name="agendar" type="date" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <Label htmlFor="mensagem">Mensagem</Label>
-                      <PickFileButton
-                        label={draftAttachment ? "Trocar anexo" : "Anexar arquivo"}
-                        area="escola"
-                        variant="outline"
-                        size="sm"
-                        onPick={(file) => {
-                          const line = `\n\n[Arquivo SIGA] ${file.name}`;
-                          const textarea =
-                            formRef.current?.querySelector<HTMLTextAreaElement>("#mensagem");
-                          if (textarea) {
-                            const next = `${textarea.value.trimEnd()}${line}`.slice(0, 4000);
-                            textarea.value = next;
-                            textarea.dispatchEvent(new Event("input", { bubbles: true }));
-                          }
-                          setDraftAttachment(file.name);
-                          toast.success("Referência do ficheiro adicionada à mensagem", {
-                            description: file.name,
-                          });
-                        }}
-                      />
-                    </div>
-                    {draftAttachment ? (
-                      <p className="text-xs text-muted-foreground">Anexo: {draftAttachment}</p>
-                    ) : null}
-                    <Textarea
-                      id="mensagem"
-                      name="mensagem"
-                      rows={5}
-                      placeholder="Escreva a mensagem…"
-                      required
-                      minLength={2}
-                      maxLength={4000}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Button type="submit" className="w-full gap-2">
-                      <Send className="size-4" /> Registar como enviado
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={onSaveDraftOrSchedule}
-                    >
-                      Guardar rascunho / agendar
-                    </Button>
-                  </div>
-                </form>
-              </>
-            )}
-          </Panel>
-        </div>
+                    <form ref={formRef} className="space-y-4" onSubmit={onSubmitSent}>
+                      <div className="space-y-2">
+                        <Label htmlFor="titulo">Assunto</Label>
+                        <Input
+                          id="titulo"
+                          name="titulo"
+                          placeholder="Ex.: Reunião de encarregados"
+                          required
+                          minLength={2}
+                          maxLength={160}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="destino">Destinatários</Label>
+                        <select
+                          id="destino"
+                          name="destino"
+                          required
+                          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                          defaultValue="school"
+                        >
+                          {audienceOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="canal">Canal</Label>
+                        <select
+                          id="canal"
+                          name="canal"
+                          required
+                          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                          defaultValue="portal"
+                        >
+                          <option value="sms">SMS</option>
+                          <option value="email">E-mail</option>
+                          <option value="portal">Portal</option>
+                        </select>
+                        {resendOn || whatsappNotices ? (
+                          <p className="text-xs text-muted-foreground">
+                            {resendOn
+                              ? "Canal E-mail: envio HTTP Resend (ou cópia se faltar API key). "
+                              : ""}
+                            {whatsappNotices ? "Use WhatsApp nos cartões depois de publicar." : ""}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="agendar">Agendar para (opcional)</Label>
+                        <Input id="agendar" name="agendar" type="date" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <Label htmlFor="mensagem">Mensagem</Label>
+                          <PickFileButton
+                            label={draftAttachment ? "Trocar anexo" : "Anexar arquivo"}
+                            area="escola"
+                            variant="outline"
+                            size="sm"
+                            onPick={(file) => {
+                              const line = `\n\n[Arquivo SIGA] ${file.name}`;
+                              const textarea =
+                                formRef.current?.querySelector<HTMLTextAreaElement>("#mensagem");
+                              if (textarea) {
+                                const next = `${textarea.value.trimEnd()}${line}`.slice(0, 4000);
+                                textarea.value = next;
+                                textarea.dispatchEvent(new Event("input", { bubbles: true }));
+                              }
+                              setDraftAttachment(file.name);
+                              toast.success("Referência do ficheiro adicionada à mensagem", {
+                                description: file.name,
+                              });
+                            }}
+                          />
+                        </div>
+                        {draftAttachment ? (
+                          <p className="text-xs text-muted-foreground">Anexo: {draftAttachment}</p>
+                        ) : null}
+                        <Textarea
+                          id="mensagem"
+                          name="mensagem"
+                          rows={5}
+                          placeholder="Escreva a mensagem…"
+                          required
+                          minLength={2}
+                          maxLength={4000}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button type="submit" className="w-full gap-2">
+                          <Send className="size-4" /> Registar como enviado
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={onSaveDraftOrSchedule}
+                        >
+                          Guardar rascunho / agendar
+                        </Button>
+                      </div>
+                    </form>
+                  </>
+                )}
+              </Panel>
+            </div>
           </>
         )}
 

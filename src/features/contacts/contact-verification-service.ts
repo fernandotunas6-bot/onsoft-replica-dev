@@ -116,7 +116,7 @@ export class ContactVerificationService {
   ): Promise<ContactVerificationProfile> {
     const db = await loadSgaAdminClient();
 
-    let { data: profile, error } = await db
+    const { data: profile, error } = await db
       .from("contact_verification_profiles")
       .select("*")
       .eq("user_id", userId)
@@ -150,10 +150,7 @@ export class ContactVerificationService {
   /**
    * Atualiza o endereço de email e marca como não verificado.
    */
-  public static async updateEmailAddress(
-    userId: string,
-    newEmail: string,
-  ): Promise<void> {
+  public static async updateEmailAddress(userId: string, newEmail: string): Promise<void> {
     const db = await loadSgaAdminClient();
 
     const { error } = await db
@@ -194,10 +191,7 @@ export class ContactVerificationService {
   /**
    * Atualiza o número de telefone e marca como não verificado.
    */
-  public static async updatePhoneNumber(
-    userId: string,
-    phoneNumber: string,
-  ): Promise<void> {
+  public static async updatePhoneNumber(userId: string, phoneNumber: string): Promise<void> {
     const db = await loadSgaAdminClient();
 
     const { error } = await db
@@ -238,10 +232,7 @@ export class ContactVerificationService {
   /**
    * Atualiza o número do WhatsApp e marca como não verificado.
    */
-  public static async updateWhatsappNumber(
-    userId: string,
-    whatsappNumber: string,
-  ): Promise<void> {
+  public static async updateWhatsappNumber(userId: string, whatsappNumber: string): Promise<void> {
     const db = await loadSgaAdminClient();
 
     const { error } = await db
@@ -282,10 +273,7 @@ export class ContactVerificationService {
   /**
    * Atualiza o canal de comunicação preferido.
    */
-  public static async setPreferredChannel(
-    userId: string,
-    channel: ContactChannel,
-  ): Promise<void> {
+  public static async setPreferredChannel(userId: string, channel: ContactChannel): Promise<void> {
     const db = await loadSgaAdminClient();
 
     const { error } = await db
@@ -339,7 +327,7 @@ export class ContactVerificationService {
   ): Promise<CommunicationPreferences> {
     const db = await loadSgaAdminClient();
 
-    let { data: prefs, error } = await db
+    const { data: prefs, error } = await db
       .from("user_communication_preferences")
       .select("*")
       .eq("user_id", userId)
@@ -376,38 +364,34 @@ export class ContactVerificationService {
    */
   public static async updateCommunicationCategories(
     userId: string,
-    categories: Partial<Record<
-      | "academic"
-      | "financial"
-      | "attendance"
-      | "calendar"
-      | "announcements"
-      | "events"
-      | "documents"
-      | "marketing",
-      boolean
-    >>,
+    categories: Partial<
+      Record<
+        | "academic"
+        | "financial"
+        | "attendance"
+        | "calendar"
+        | "announcements"
+        | "events"
+        | "documents"
+        | "marketing",
+        boolean
+      >
+    >,
   ): Promise<void> {
     const db = await loadSgaAdminClient();
 
     const updates: Record<string, boolean> = {};
 
-    if (typeof categories.academic === "boolean")
-      updates.academic_enabled = categories.academic;
-    if (typeof categories.financial === "boolean")
-      updates.financial_enabled = categories.financial;
+    if (typeof categories.academic === "boolean") updates.academic_enabled = categories.academic;
+    if (typeof categories.financial === "boolean") updates.financial_enabled = categories.financial;
     if (typeof categories.attendance === "boolean")
       updates.attendance_enabled = categories.attendance;
-    if (typeof categories.calendar === "boolean")
-      updates.calendar_enabled = categories.calendar;
+    if (typeof categories.calendar === "boolean") updates.calendar_enabled = categories.calendar;
     if (typeof categories.announcements === "boolean")
       updates.announcements_enabled = categories.announcements;
-    if (typeof categories.events === "boolean")
-      updates.events_enabled = categories.events;
-    if (typeof categories.documents === "boolean")
-      updates.documents_enabled = categories.documents;
-    if (typeof categories.marketing === "boolean")
-      updates.marketing_enabled = categories.marketing;
+    if (typeof categories.events === "boolean") updates.events_enabled = categories.events;
+    if (typeof categories.documents === "boolean") updates.documents_enabled = categories.documents;
+    if (typeof categories.marketing === "boolean") updates.marketing_enabled = categories.marketing;
 
     const { error } = await db
       .from("user_communication_preferences")
@@ -466,9 +450,7 @@ export class ContactVerificationService {
     return availableChannels[0] ?? null;
   }
 
-  private static mapRowToProfile(
-    row: ContactVerificationProfileRow,
-  ): ContactVerificationProfile {
+  private static mapRowToProfile(row: ContactVerificationProfileRow): ContactVerificationProfile {
     return {
       id: row.id,
       userId: row.user_id,
