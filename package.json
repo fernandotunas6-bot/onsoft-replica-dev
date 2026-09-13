@@ -31,6 +31,7 @@
     "siga:check": "node scripts/siga/check-modules.mjs && npm run siga:check-nav",
     "siga:check-nav": "vitest run tests/auth/navigation-catalog.test.ts",
     "siga:sql": "node scripts/siga/print-apply-sql.mjs",
+    "siga:db-snapshot": "node scripts/siga/capture-db-snapshot.mjs",
     "siga:sql:verify": "node scripts/siga/print-apply-sql.mjs --verify",
     "siga:sql:patch": "node scripts/siga/print-missing-patch.mjs",
     "siga:sql:demo": "node scripts/siga/print-seed-demo.mjs",

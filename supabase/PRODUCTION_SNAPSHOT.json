@@ -1,0 +1,5568 @@
+{
+  "capturadoEm": "2026-09-13T22:29:59.079Z",
+  "resumo": {
+    "com_rls": 149,
+    "funcoes_private": 95,
+    "politicas": 286,
+    "tabelas": 149,
+    "triggers": 132
+  },
+  "tabelas": [
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "academic_levels"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "academic_schedules"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 4,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "academic_years"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_communication_preferences"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_contributions"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_education_stages"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_engagements"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_event_registrations"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_events"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_experiences"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_mentorships"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_opportunities"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_opportunity_applications"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_portfolio_items"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_privacy_audit"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_profiles"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_survey_responses"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "alumni_surveys"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 4,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "announcements"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "attendance_records"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "attendance_session_roster"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "attendance_sessions"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "audit_logs"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "calendar_feed_tokens"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "campuses"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 7,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "class_groups"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 4,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "class_subjects"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "curricula"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "curriculum_areas"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "curriculum_subjects"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "document_requests"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "document_sequences"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "document_signatures"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "document_templates"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "email_aliases"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "enrollment_applications"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "enrollment_forms"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 6,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "enrollments"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "fee_items"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "fee_plans"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "finance_contracts"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "finance_gateway_webhook_events"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "finance_invoice_events"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "finance_invoices"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "finance_payment_plans"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "finance_receipts"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "financial_rule_sets"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 6,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "grade_items"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 4,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "grade_levels"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 6,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "grade_scores"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "grade_sheet_rows"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "grade_sheets"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 6,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "gradebooks"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "grading_scales"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_absence_events"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_attendance_assurance_evidence"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_attendance_assurance_policies"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_compensation_events"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_contract_remuneration_policies"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_contracts"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_departments"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_employments"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_payment_destinations"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_payment_settings"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_payroll_item_components"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_payroll_items"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_payroll_payment_batches"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_payroll_payment_items"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_payroll_runs"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_positions"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_teacher_attendance_policies"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_teacher_employment_links"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_teacher_lesson_occurrences"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "hr_teacher_qr_sessions"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "import_audits"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "import_jobs"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "import_rows"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "import_templates"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "issued_documents"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "mailboxes"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 4,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "member_roles"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "module_catalog"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "notification_preferences"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "notifications"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 7,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "people"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "permissions"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 5,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "person_documents"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "person_roles"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "plans"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "platform_admins"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "profiles"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "program_subjects"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "programs"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "report_cards"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "reserved_subdomains"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "role_permissions"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "roles"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "rooms"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "saas_audit_logs"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "school_announcements"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "school_billing_settings"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "school_branding"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "school_email_routes"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "school_integration_secrets"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "school_integrations"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "school_invitations"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "school_memberships"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "school_modules"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "school_settings"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "school_shift_slots"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "school_shifts"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "school_slug_history"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "schools"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_access_cards"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_access_logs"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_assessment_items"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_assessment_scores"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_attendance_audits"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_attendance_justifications"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_attendance_records"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_attendance_sessions"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_cash_expenses"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_direct_messages"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_file_events"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_files"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "siga_lesson_meetings"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_lesson_plan_components"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_lesson_plans"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_turnstile_devices"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "slug_reservations"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "staff_module_grants"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "student_academic_history"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 4,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "student_guardians"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "student_status_events"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "student_status_history"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 6,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "students"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "subject_types"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 4,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "subjects"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "subscription_addons"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "subscriptions"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "teacher_availability"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "teacher_subjects"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 3,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "teachers"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "tenant_domains"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "tenant_provisioning"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "tenant_usage"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "tenants"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 4,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "terms"
+    },
+    {
+      "anon_select": false,
+      "auth_select": true,
+      "politicas": 4,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "timetable_slots"
+    }
+  ],
+  "politicas": [
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "academic_levels_select_authorized",
+      "tabela": "academic_levels",
+      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create academic_schedules in own school",
+      "tabela": "academic_schedules",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read academic_schedules in own school",
+      "tabela": "academic_schedules",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update academic_schedules in own school",
+      "tabela": "academic_schedules",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create academic_years in own school",
+      "tabela": "academic_years",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read academic_years in own school",
+      "tabela": "academic_years",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update academic_years in own school",
+      "tabela": "academic_years",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "academic_years_select_authorized",
+      "tabela": "academic_years",
+      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school announcements",
+      "tabela": "announcements",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "announcements_insert",
+      "tabela": "announcements",
+      "usando": "",
+      "verificando": "private.has_permission(school_id, 'communication.announcements.manage'::text)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "announcements_select",
+      "tabela": "announcements",
+      "usando": "(private.has_permission(school_id, 'communication.announcements.manage'::text) OR ((status = 'published'::text) AND private.is_active_member(school_id)) OR private.has_permission(school_id, 'communication.announcements.read'::text))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "announcements_update",
+      "tabela": "announcements",
+      "usando": "private.has_permission(school_id, 'communication.announcements.manage'::text)",
+      "verificando": "private.has_permission(school_id, 'communication.announcements.manage'::text)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "attendance_records_select_authorized",
+      "tabela": "attendance_records",
+      "usando": "private.has_permission(school_id, 'attendance.records.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "attendance_session_roster_select_authorized",
+      "tabela": "attendance_session_roster",
+      "usando": "private.has_permission(school_id, 'attendance.records.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "attendance_sessions_select_authorized",
+      "tabela": "attendance_sessions",
+      "usando": "private.has_permission(school_id, 'attendance.records.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "audit_select_authorized",
+      "tabela": "audit_logs",
+      "usando": "private.has_permission(school_id, 'audit.logs.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read own calendar feed token",
+      "tabela": "calendar_feed_tokens",
+      "usando": "(user_id = auth.uid())",
+      "verificando": ""
+    },
+    {
+      "cmd": "DELETE",
+      "papeis": "{authenticated}",
+      "politica": "Revoke own calendar feed token",
+      "tabela": "calendar_feed_tokens",
+      "usando": "(user_id = auth.uid())",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "campuses_select_authorized",
+      "tabela": "campuses",
+      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create class_groups in own school",
+      "tabela": "class_groups",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Professor reads assigned class groups",
+      "tabela": "class_groups",
+      "usando": "(is_school_member(school_id) AND (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.school_id = class_groups.school_id) AND (cs.class_group_id = class_groups.id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read class_groups in own school",
+      "tabela": "class_groups",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update class_groups in own school",
+      "tabela": "class_groups",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "class_groups_insert_authorized",
+      "tabela": "class_groups",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'academic.classes.manage'::text) AND (created_by = ( SELECT auth.uid() AS uid)) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "class_groups_select_authorized",
+      "tabela": "class_groups",
+      "usando": "private.has_permission(school_id, 'academic.classes.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "class_groups_update_authorized",
+      "tabela": "class_groups",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'academic.classes.manage'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'academic.classes.manage'::text) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Academic create class subjects",
+      "tabela": "class_subjects",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Academic read class subjects",
+      "tabela": "class_subjects",
+      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM teachers t\n  WHERE ((t.id = class_subjects.teacher_id) AND (t.school_id = class_subjects.school_id) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))) OR (NOT (EXISTS ( SELECT 1\n   FROM teachers self_teacher\n  WHERE ((self_teacher.school_id = class_subjects.school_id) AND (self_teacher.status = 'active'::text) AND (self_teacher.user_id = ( SELECT auth.uid() AS uid))))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Academic update class subjects",
+      "tabela": "class_subjects",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "class_subjects_select_authorized",
+      "tabela": "class_subjects",
+      "usando": "private.has_permission(school_id, 'academic.timetable.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create curricula in own school",
+      "tabela": "curricula",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read curricula in own school",
+      "tabela": "curricula",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update curricula in own school",
+      "tabela": "curricula",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create curriculum_areas in own school",
+      "tabela": "curriculum_areas",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read curriculum_areas in own school",
+      "tabela": "curriculum_areas",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update curriculum_areas in own school",
+      "tabela": "curriculum_areas",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create curriculum_subjects in own school",
+      "tabela": "curriculum_subjects",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read curriculum_subjects in own school",
+      "tabela": "curriculum_subjects",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update curriculum_subjects in own school",
+      "tabela": "curriculum_subjects",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "document_requests_insert",
+      "tabela": "document_requests",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.requests.manage'::text) AND (requested_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "document_requests_select",
+      "tabela": "document_requests",
+      "usando": "private.has_permission(school_id, 'documents.requests.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "document_requests_update",
+      "tabela": "document_requests",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.requests.manage'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.requests.manage'::text))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "document_sequences_select_authorized",
+      "tabela": "document_sequences",
+      "usando": "private.has_permission(school_id, 'finance.settings.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "document_signatures_insert",
+      "tabela": "document_signatures",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.signatures.sign'::text) AND (requested_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "document_signatures_select",
+      "tabela": "document_signatures",
+      "usando": "(private.has_permission(school_id, 'documents.signatures.read'::text) OR private.has_permission(school_id, 'documents.issued.read'::text))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "document_signatures_update",
+      "tabela": "document_signatures",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.signatures.sign'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.signatures.sign'::text))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "document_templates_insert",
+      "tabela": "document_templates",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.templates.manage'::text) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "document_templates_select",
+      "tabela": "document_templates",
+      "usando": "(private.has_permission(school_id, 'documents.templates.read'::text) OR private.has_permission(school_id, 'documents.issued.issue'::text))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "document_templates_update",
+      "tabela": "document_templates",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.templates.manage'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.templates.manage'::text))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_aliases",
+      "tabela": "email_aliases",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{anon}",
+      "politica": "Public insert open enrollment applications",
+      "tabela": "enrollment_applications",
+      "usando": "",
+      "verificando": "((status = 'pending'::text) AND (EXISTS ( SELECT 1\n   FROM enrollment_forms forms\n  WHERE ((forms.id = enrollment_applications.form_id) AND (forms.school_id = forms.school_id) AND (forms.is_open = true) AND (forms.deleted_at IS NULL)))))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read enrollment applications in own school",
+      "tabela": "enrollment_applications",
+      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update enrollment applications in own school",
+      "tabela": "enrollment_applications",
+      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage enrollment forms in own school",
+      "tabela": "enrollment_forms",
+      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{anon}",
+      "politica": "Public read open enrollment forms",
+      "tabela": "enrollment_forms",
+      "usando": "((is_open = true) AND (deleted_at IS NULL))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read enrollment forms in own school",
+      "tabela": "enrollment_forms",
+      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create enrollments in own school",
+      "tabela": "enrollments",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Professor reads assigned enrollments",
+      "tabela": "enrollments",
+      "usando": "(is_school_member(school_id) AND (status = ANY (ARRAY['active'::text, 'pending'::text])) AND (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.school_id = enrollments.school_id) AND (cs.class_group_id = enrollments.class_group_id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read enrollments in own school",
+      "tabela": "enrollments",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update enrollments in own school",
+      "tabela": "enrollments",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "enrollments_select_authorized",
+      "tabela": "enrollments",
+      "usando": "private.has_permission(school_id, 'students.enrollments.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "enrollments_update_authorized",
+      "tabela": "enrollments",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'students.enrollments.update'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'students.enrollments.update'::text) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "fee_items_select_authorized",
+      "tabela": "fee_items",
+      "usando": "private.has_permission(school_id, 'finance.settings.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "fee_plans_select_authorized",
+      "tabela": "fee_plans",
+      "usando": "private.has_permission(school_id, 'finance.settings.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "finance_contracts_select_authorized",
+      "tabela": "finance_contracts",
+      "usando": "private.has_permission(school_id, 'finance.contracts.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read gateway webhook events in own school",
+      "tabela": "finance_gateway_webhook_events",
+      "usando": "(is_school_member(school_id) AND ((( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text, 'owner'::text, 'admin'::text, 'treasury'::text, 'finance'::text])) OR (EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = ( SELECT auth.uid() AS uid)) AND (profiles.cargo = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read own school invoice events",
+      "tabela": "finance_invoice_events",
+      "usando": "(school_id = ( SELECT current_school_id() AS current_school_id))",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Write own school invoice events",
+      "tabela": "finance_invoice_events",
+      "usando": "",
+      "verificando": "(school_id = ( SELECT current_school_id() AS current_school_id))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "finance_invoices_select_authorized",
+      "tabela": "finance_invoices",
+      "usando": "private.has_permission(school_id, 'finance.invoices.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage payment plans in own school",
+      "tabela": "finance_payment_plans",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "finance_receipts_select_authorized",
+      "tabela": "finance_receipts",
+      "usando": "private.has_permission(school_id, 'finance.invoices.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "financial_rules_select_authorized",
+      "tabela": "financial_rule_sets",
+      "usando": "private.has_permission(school_id, 'finance.settings.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Academic create grade items",
+      "tabela": "grade_items",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Academic read grade items",
+      "tabela": "grade_items",
+      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM ((gradebooks gb\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gb.id = grade_items.gradebook_id) AND (gb.school_id = grade_items.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Academic update grade items",
+      "tabela": "grade_items",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "grade_items_insert",
+      "tabela": "grade_items",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "grade_items_select",
+      "tabela": "grade_items",
+      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "grade_items_update",
+      "tabela": "grade_items",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create grade_levels in own school",
+      "tabela": "grade_levels",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read grade_levels in own school",
+      "tabela": "grade_levels",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update grade_levels in own school",
+      "tabela": "grade_levels",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "grade_levels_select_authorized",
+      "tabela": "grade_levels",
+      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Academic create grade scores",
+      "tabela": "grade_scores",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Academic read grade scores",
+      "tabela": "grade_scores",
+      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Academic update grade scores",
+      "tabela": "grade_scores",
+      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
+      "verificando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "grade_scores_insert",
+      "tabela": "grade_scores",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text) AND (recorded_by = ( SELECT auth.uid() AS uid)) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "grade_scores_select",
+      "tabela": "grade_scores",
+      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "grade_scores_update",
+      "tabela": "grade_scores",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "grade_sheet_rows_select",
+      "tabela": "grade_sheet_rows",
+      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "grade_sheet_rows_write",
+      "tabela": "grade_sheet_rows",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "grade_sheets_insert",
+      "tabela": "grade_sheets",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text) AND (created_by = ( SELECT auth.uid() AS uid)) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "grade_sheets_select",
+      "tabela": "grade_sheets",
+      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "grade_sheets_update",
+      "tabela": "grade_sheets",
+      "usando": "(private.is_aal2() AND (private.has_permission(school_id, 'assessment.grades.submit'::text) OR private.has_permission(school_id, 'assessment.grades.homologate'::text) OR private.has_permission(school_id, 'assessment.grades.reopen'::text) OR private.has_permission(school_id, 'assessment.grades.manage'::text)))",
+      "verificando": "(private.is_aal2() AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Academic create gradebooks",
+      "tabela": "gradebooks",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Academic read gradebooks",
+      "tabela": "gradebooks",
+      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.id = gradebooks.class_subject_id) AND (cs.school_id = gradebooks.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Academic update gradebooks",
+      "tabela": "gradebooks",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "gradebooks_insert",
+      "tabela": "gradebooks",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.manage'::text) AND (created_by = ( SELECT auth.uid() AS uid)) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "gradebooks_select",
+      "tabela": "gradebooks",
+      "usando": "private.has_permission(school_id, 'assessment.grades.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "gradebooks_update",
+      "tabela": "gradebooks",
+      "usando": "(private.is_aal2() AND (private.has_permission(school_id, 'assessment.grades.manage'::text) OR private.has_permission(school_id, 'assessment.grades.submit'::text) OR private.has_permission(school_id, 'assessment.grades.reopen'::text)))",
+      "verificando": "(private.is_aal2() AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "grading_scales_select_authorized",
+      "tabela": "grading_scales",
+      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "HR creates absence events in own school",
+      "tabela": "hr_absence_events",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "HR reads absence events in own school",
+      "tabela": "hr_absence_events",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "HR updates absence events in own school",
+      "tabela": "hr_absence_events",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "HR reads attendance assurance evidence",
+      "tabela": "hr_attendance_assurance_evidence",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ((( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) OR (actor_user_id = ( SELECT auth.uid() AS uid))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "HR reads attendance assurance policy",
+      "tabela": "hr_attendance_assurance_policies",
+      "usando": "(school_id = ( SELECT current_school_id() AS current_school_id))",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create hr_compensation_events finance role",
+      "tabela": "hr_compensation_events",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read hr_compensation_events in own school",
+      "tabela": "hr_compensation_events",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update hr_compensation_events finance role",
+      "tabela": "hr_compensation_events",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "HR creates remuneration policies in own school",
+      "tabela": "hr_contract_remuneration_policies",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "HR reads remuneration policies in own school",
+      "tabela": "hr_contract_remuneration_policies",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "HR updates remuneration policies in own school",
+      "tabela": "hr_contract_remuneration_policies",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create hr_contracts finance role",
+      "tabela": "hr_contracts",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read hr_contracts in own school",
+      "tabela": "hr_contracts",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update hr_contracts finance role",
+      "tabela": "hr_contracts",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create hr_departments in own school",
+      "tabela": "hr_departments",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read hr_departments in own school",
+      "tabela": "hr_departments",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update hr_departments in own school",
+      "tabela": "hr_departments",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create hr_employments finance role",
+      "tabela": "hr_employments",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read hr_employments in own school",
+      "tabela": "hr_employments",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update hr_employments finance role",
+      "tabela": "hr_employments",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "HR payment destinations own school",
+      "tabela": "hr_payment_destinations",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "HR payment settings own school",
+      "tabela": "hr_payment_settings",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create hr_payroll_item_components finance role",
+      "tabela": "hr_payroll_item_components",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read hr_payroll_item_components in own school",
+      "tabela": "hr_payroll_item_components",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create hr_payroll_items finance role",
+      "tabela": "hr_payroll_items",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read hr_payroll_items in own school",
+      "tabela": "hr_payroll_items",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update hr_payroll_items finance role",
+      "tabela": "hr_payroll_items",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "HR payment batches own school",
+      "tabela": "hr_payroll_payment_batches",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "HR payment items own school",
+      "tabela": "hr_payroll_payment_items",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create hr_payroll_runs finance role",
+      "tabela": "hr_payroll_runs",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read hr_payroll_runs in own school",
+      "tabela": "hr_payroll_runs",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update hr_payroll_runs finance role",
+      "tabela": "hr_payroll_runs",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create hr_positions in own school",
+      "tabela": "hr_positions",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read hr_positions in own school",
+      "tabela": "hr_positions",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update hr_positions in own school",
+      "tabela": "hr_positions",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "HR creates teacher attendance policy in own school",
+      "tabela": "hr_teacher_attendance_policies",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "HR reads teacher attendance policy in own school",
+      "tabela": "hr_teacher_attendance_policies",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "HR updates teacher attendance policy in own school",
+      "tabela": "hr_teacher_attendance_policies",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "HR creates teacher employment links in own school",
+      "tabela": "hr_teacher_employment_links",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "HR reads teacher employment links in own school",
+      "tabela": "hr_teacher_employment_links",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "HR updates teacher employment links in own school",
+      "tabela": "hr_teacher_employment_links",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "HR creates teacher lesson occurrences in own school",
+      "tabela": "hr_teacher_lesson_occurrences",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "HR reads teacher lesson occurrences in own school",
+      "tabela": "hr_teacher_lesson_occurrences",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])) AND (deleted_at IS NULL))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "HR updates teacher lesson occurrences in own school",
+      "tabela": "hr_teacher_lesson_occurrences",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "HR creates teacher QR sessions in own school",
+      "tabela": "hr_teacher_qr_sessions",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "HR reads teacher QR sessions in own school",
+      "tabela": "hr_teacher_qr_sessions",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "HR updates teacher QR sessions in own school",
+      "tabela": "hr_teacher_qr_sessions",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school import audits",
+      "tabela": "import_audits",
+      "usando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_audits.import_job_id) AND is_school_member(j.school_id))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school import jobs",
+      "tabela": "import_jobs",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school import rows",
+      "tabela": "import_rows",
+      "usando": "(EXISTS ( SELECT 1\n   FROM import_jobs j\n  WHERE ((j.id = import_rows.import_job_id) AND is_school_member(j.school_id))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school import templates",
+      "tabela": "import_templates",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "issued_documents_insert",
+      "tabela": "issued_documents",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.issued.issue'::text) AND (issued_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "issued_documents_select",
+      "tabela": "issued_documents",
+      "usando": "private.has_permission(school_id, 'documents.issued.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "issued_documents_update",
+      "tabela": "issued_documents",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.issued.revoke'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'documents.issued.revoke'::text))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_mailboxes",
+      "tabela": "mailboxes",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read member_roles in own school",
+      "tabela": "member_roles",
+      "usando": "(EXISTS ( SELECT 1\n   FROM school_memberships sm\n  WHERE ((sm.id = member_roles.membership_id) AND ((sm.user_id = ( SELECT auth.uid() AS uid)) OR is_school_member(sm.school_id)))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "DELETE",
+      "papeis": "{authenticated}",
+      "politica": "member_roles_delete_authorized",
+      "tabela": "member_roles",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'rbac.memberships.manage'::text))",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "member_roles_insert_authorized",
+      "tabela": "member_roles",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'rbac.memberships.manage'::text))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "member_roles_select_member",
+      "tabela": "member_roles",
+      "usando": "private.is_active_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "module_catalog_select_member",
+      "tabela": "module_catalog",
+      "usando": "(EXISTS ( SELECT 1\n   FROM school_memberships m\n  WHERE ((m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "notifications_select",
+      "tabela": "notifications",
+      "usando": "((user_id = ( SELECT auth.uid() AS uid)) AND (private.has_permission(school_id, 'communication.inbox.read'::text) OR private.is_active_member(school_id)))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "notifications_update",
+      "tabela": "notifications",
+      "usando": "((user_id = ( SELECT auth.uid() AS uid)) AND private.is_active_member(school_id))",
+      "verificando": "((user_id = ( SELECT auth.uid() AS uid)) AND private.is_active_member(school_id))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create people in own school",
+      "tabela": "people",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Professor reads people for assigned students",
+      "tabela": "people",
+      "usando": "(is_school_member(school_id) AND (EXISTS ( SELECT 1\n   FROM (((students s\n     JOIN enrollments e ON (((e.school_id = s.school_id) AND (e.student_id = s.id))))\n     JOIN class_subjects cs ON (((cs.school_id = e.school_id) AND (cs.class_group_id = e.class_group_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((s.school_id = people.school_id) AND (s.person_id = people.id) AND (e.status = ANY (ARRAY['active'::text, 'pending'::text])) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read people in own school",
+      "tabela": "people",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update people in own school",
+      "tabela": "people",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "people_insert_authorized",
+      "tabela": "people",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'people.records.create'::text) AND (created_by = ( SELECT auth.uid() AS uid)) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "people_select_authorized",
+      "tabela": "people",
+      "usando": "private.has_permission(school_id, 'people.records.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "people_update_authorized",
+      "tabela": "people",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'people.records.update'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'people.records.update'::text) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read permissions authenticated",
+      "tabela": "permissions",
+      "usando": "true",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "permissions_select_member",
+      "tabela": "permissions",
+      "usando": "(EXISTS ( SELECT 1\n   FROM school_memberships m\n  WHERE ((m.user_id = ( SELECT auth.uid() AS uid)) AND (m.status = 'active'::text))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create person_documents in own school",
+      "tabela": "person_documents",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage school person documents",
+      "tabela": "person_documents",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read person_documents in own school",
+      "tabela": "person_documents",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school person documents",
+      "tabela": "person_documents",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update person_documents in own school",
+      "tabela": "person_documents",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read person roles in own school",
+      "tabela": "person_roles",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_plans",
+      "tabela": "plans",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_read_self",
+      "tabela": "platform_admins",
+      "usando": "((user_id = ( SELECT auth.uid() AS uid)) OR is_platform_admin())",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "profiles_select_membership_managers",
+      "tabela": "profiles",
+      "usando": "(EXISTS ( SELECT 1\n   FROM school_memberships membership\n  WHERE ((membership.user_id = profiles.id) AND private.has_permission(membership.school_id, 'rbac.memberships.read'::text))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "profiles_select_own",
+      "tabela": "profiles",
+      "usando": "(( SELECT auth.uid() AS uid) = id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "profiles_update_own",
+      "tabela": "profiles",
+      "usando": "(( SELECT auth.uid() AS uid) = id)",
+      "verificando": "(( SELECT auth.uid() AS uid) = id)"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create program subjects in own school",
+      "tabela": "program_subjects",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read program subjects in own school",
+      "tabela": "program_subjects",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update program subjects in own school",
+      "tabela": "program_subjects",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "programs_select_authorized",
+      "tabela": "programs",
+      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "report_cards_insert",
+      "tabela": "report_cards",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.homologate'::text) AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "report_cards_select",
+      "tabela": "report_cards",
+      "usando": "(private.has_permission(school_id, 'assessment.reports.read'::text) OR private.has_permission(school_id, 'assessment.grades.read'::text))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "report_cards_update",
+      "tabela": "report_cards",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.homologate'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'assessment.grades.homologate'::text))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_manage_reserved_subdomains",
+      "tabela": "reserved_subdomains",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{anon,authenticated}",
+      "politica": "public_read_reserved_subdomains",
+      "tabela": "reserved_subdomains",
+      "usando": "true",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "role_permissions_select_member",
+      "tabela": "role_permissions",
+      "usando": "private.is_active_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read roles authenticated",
+      "tabela": "roles",
+      "usando": "((school_id IS NULL) OR is_school_member(school_id))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "roles_select_member",
+      "tabela": "roles",
+      "usando": "private.is_active_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create rooms in own school",
+      "tabela": "rooms",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read rooms in own school",
+      "tabela": "rooms",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update rooms in own school",
+      "tabela": "rooms",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_saas_audit_logs",
+      "tabela": "saas_audit_logs",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school announcements",
+      "tabela": "school_announcements",
+      "usando": "(is_school_member(school_id) AND (deleted_at IS NULL))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Finance roles can read billing settings",
+      "tabela": "school_billing_settings",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Finance roles can update billing settings",
+      "tabela": "school_billing_settings",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (( SELECT current_profile_role() AS current_profile_role) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "school_admin_manage_branding",
+      "tabela": "school_branding",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{anon,authenticated}",
+      "politica": "school_members_view_branding",
+      "tabela": "school_branding",
+      "usando": "true",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_email_routes",
+      "tabela": "school_email_routes",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage school integrations in own school",
+      "tabela": "school_integrations",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage invitations in own school",
+      "tabela": "school_invitations",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Users can read own memberships",
+      "tabela": "school_memberships",
+      "usando": "((user_id = ( SELECT auth.uid() AS uid)) OR is_school_member(school_id))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "memberships_select_member",
+      "tabela": "school_memberships",
+      "usando": "private.is_active_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "school_modules_select_authorized",
+      "tabela": "school_modules",
+      "usando": "private.has_permission(school_id, 'modules.catalog.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "settings_insert_authorized",
+      "tabela": "school_settings",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'schools.settings.create'::text) AND (changed_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "settings_select_member",
+      "tabela": "school_settings",
+      "usando": "private.is_active_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create school_shift_slots in own school",
+      "tabela": "school_shift_slots",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school_shift_slots in own school",
+      "tabela": "school_shift_slots",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update school_shift_slots in own school",
+      "tabela": "school_shift_slots",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create school_shifts in own school",
+      "tabela": "school_shifts",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school_shifts in own school",
+      "tabela": "school_shifts",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update school_shifts in own school",
+      "tabela": "school_shifts",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_slug_history",
+      "tabela": "school_slug_history",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Administrators can update their own school",
+      "tabela": "schools",
+      "usando": "(is_school_member(id) AND (( SELECT current_profile_role() AS current_profile_role) = 'Administrador'::text))",
+      "verificando": "(is_school_member(id) AND (( SELECT current_profile_role() AS current_profile_role) = 'Administrador'::text))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "schools_select_member",
+      "tabela": "schools",
+      "usando": "private.is_active_member(id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Access cards in own school",
+      "tabela": "siga_access_cards",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Access logs in own school",
+      "tabela": "siga_access_logs",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage assessment items in own school",
+      "tabela": "siga_assessment_items",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage assigned assessment items",
+      "tabela": "siga_assessment_items",
+      "usando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)",
+      "verificando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage assessment scores in own school",
+      "tabela": "siga_assessment_scores",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage assigned assessment scores",
+      "tabela": "siga_assessment_scores",
+      "usando": "current_user_can_manage_assessment_score(school_id, item_id, enrollment_id)",
+      "verificando": "current_user_can_manage_assessment_score(school_id, item_id, enrollment_id)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read attendance audits in own school",
+      "tabela": "siga_attendance_audits",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage attendance justifications in own school",
+      "tabela": "siga_attendance_justifications",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage attendance records in own school",
+      "tabela": "siga_attendance_records",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage attendance sessions in own school",
+      "tabela": "siga_attendance_sessions",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school cash expenses",
+      "tabela": "siga_cash_expenses",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read own school direct messages",
+      "tabela": "siga_direct_messages",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Send school direct messages",
+      "tabela": "siga_direct_messages",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (sender_id = auth.uid()))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school file events",
+      "tabela": "siga_file_events",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Write school file events",
+      "tabela": "siga_file_events",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (actor_user_id = auth.uid()))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read school files",
+      "tabela": "siga_files",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Write school files",
+      "tabela": "siga_files",
+      "usando": "is_school_member(school_id)",
+      "verificando": "(is_school_member(school_id) AND (owner_user_id = auth.uid()))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Members read lesson meetings in own school",
+      "tabela": "siga_lesson_meetings",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id))",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Staff manage lesson meetings in own school",
+      "tabela": "siga_lesson_meetings",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage lesson plan components in own school",
+      "tabela": "siga_lesson_plan_components",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Manage lesson plans in own school",
+      "tabela": "siga_lesson_plans",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Turnstile devices in own school",
+      "tabela": "siga_turnstile_devices",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "Admins manage staff grants",
+      "tabela": "staff_module_grants",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read own or admin staff grants",
+      "tabela": "staff_module_grants",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "School members can access student academic history",
+      "tabela": "student_academic_history",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create student_guardians in own school",
+      "tabela": "student_guardians",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read student_guardians in own school",
+      "tabela": "student_guardians",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update student_guardians in own school",
+      "tabela": "student_guardians",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "student_guardians_select_authorized",
+      "tabela": "student_guardians",
+      "usando": "private.has_permission(school_id, 'students.records.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read own school student status events",
+      "tabela": "student_status_events",
+      "usando": "(school_id = ( SELECT current_school_id() AS current_school_id))",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Write own school student status events",
+      "tabela": "student_status_events",
+      "usando": "",
+      "verificando": "(school_id = ( SELECT current_school_id() AS current_school_id))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "School members can access student status history",
+      "tabela": "student_status_history",
+      "usando": "is_school_member(school_id)",
+      "verificando": "is_school_member(school_id)"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create students in own school",
+      "tabela": "students",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Professor reads students in assigned classes",
+      "tabela": "students",
+      "usando": "(is_school_member(school_id) AND (EXISTS ( SELECT 1\n   FROM ((enrollments e\n     JOIN class_subjects cs ON (((cs.school_id = e.school_id) AND (cs.class_group_id = e.class_group_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((e.school_id = students.school_id) AND (e.student_id = students.id) AND (e.status = ANY (ARRAY['active'::text, 'pending'::text])) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read students in own school",
+      "tabela": "students",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update students in own school",
+      "tabela": "students",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "students_select_authorized",
+      "tabela": "students",
+      "usando": "private.has_permission(school_id, 'students.records.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "students_update_authorized",
+      "tabela": "students",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'students.records.update'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'students.records.update'::text) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create subject_types in own school",
+      "tabela": "subject_types",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read subject_types in own school",
+      "tabela": "subject_types",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update subject_types in own school",
+      "tabela": "subject_types",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Professor reads assigned subjects",
+      "tabela": "subjects",
+      "usando": "(is_school_member(school_id) AND (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.school_id = subjects.school_id) AND (cs.subject_id = subjects.id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "subjects_insert_authorized",
+      "tabela": "subjects",
+      "usando": "",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'academic.subjects.manage'::text) AND (created_by = ( SELECT auth.uid() AS uid)) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "subjects_select_authorized",
+      "tabela": "subjects",
+      "usando": "private.has_permission(school_id, 'academic.subjects.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "subjects_update_authorized",
+      "tabela": "subjects",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'academic.subjects.manage'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'academic.subjects.manage'::text) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_addons",
+      "tabela": "subscription_addons",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_subscriptions",
+      "tabela": "subscriptions",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Create teacher_availability in own school",
+      "tabela": "teacher_availability",
+      "usando": "",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Read teacher_availability in own school",
+      "tabela": "teacher_availability",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND (deleted_at IS NULL) AND ( SELECT can_read_students() AS can_read_students))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Update teacher_availability in own school",
+      "tabela": "teacher_availability",
+      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "teacher_subjects_select_authorized",
+      "tabela": "teacher_subjects",
+      "usando": "private.has_permission(school_id, 'teachers.records.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Professor reads own teacher record",
+      "tabela": "teachers",
+      "usando": "(is_school_member(school_id) AND (user_id = ( SELECT auth.uid() AS uid)) AND (status = 'active'::text))",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "teachers_select_authorized",
+      "tabela": "teachers",
+      "usando": "private.has_permission(school_id, 'teachers.records.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "teachers_update_authorized",
+      "tabela": "teachers",
+      "usando": "(private.is_aal2() AND private.has_permission(school_id, 'teachers.records.update'::text))",
+      "verificando": "(private.is_aal2() AND private.has_permission(school_id, 'teachers.records.update'::text) AND (updated_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_tenant_domains",
+      "tabela": "tenant_domains",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_provisioning",
+      "tabela": "tenant_provisioning",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_tenant_usage",
+      "tabela": "tenant_usage",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{authenticated}",
+      "politica": "platform_admin_all_tenants",
+      "tabela": "tenants",
+      "usando": "is_platform_admin()",
+      "verificando": "is_platform_admin()"
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Academic create terms",
+      "tabela": "terms",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Academic read terms",
+      "tabela": "terms",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Academic update terms",
+      "tabela": "terms",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "terms_select_authorized",
+      "tabela": "terms",
+      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "Academic create timetable slots",
+      "tabela": "timetable_slots",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "Academic read timetable slots",
+      "tabela": "timetable_slots",
+      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.id = timetable_slots.class_subject_id) AND (cs.school_id = timetable_slots.school_id) AND (cs.status = 'active'::text) AND (t.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid))))) OR (NOT (EXISTS ( SELECT 1\n   FROM teachers self_teacher\n  WHERE ((self_teacher.school_id = timetable_slots.school_id) AND (self_teacher.status = 'active'::text) AND (self_teacher.user_id = ( SELECT auth.uid() AS uid))))))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "Academic update timetable slots",
+      "tabela": "timetable_slots",
+      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
+      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "timetable_slots_select_authorized",
+      "tabela": "timetable_slots",
+      "usando": "private.has_permission(school_id, 'academic.timetable.read'::text)",
+      "verificando": ""
+    }
+  ],
+  "funcoes": [
+    {
+      "args": "target_school_id uuid, target_signature_id uuid, next_status text, note text",
+      "funcao": "act_on_document_signature",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_case_id uuid, item_kind text, target_request_id uuid, target_issued_document_id uuid, note_text text",
+      "funcao": "add_student_case_item",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, title text, classification text, target_student_id uuid, target_issued_document_id uuid, target_case_id uuid, retention_until date, notes text",
+      "funcao": "archive_school_record",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_membership_id uuid, role_code text",
+      "funcao": "assign_school_role",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "audit_domain_change",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "audit_row_change",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "audit_school_change",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_template_id uuid, target_student_ids uuid[], requires_signature boolean, title text",
+      "funcao": "batch_issue_school_documents",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_class_group_id uuid, target_term_id uuid, sheet_kind text",
+      "funcao": "build_grade_sheet",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_student_id uuid",
+      "funcao": "can_access_portal_student",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_invoice_id uuid, target_reason text",
+      "funcao": "cancel_invoice",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "capture_attendance_session_roster",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_gradebook_id uuid",
+      "funcao": "close_gradebook",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_gradebook_id uuid, target_enrollment_id uuid",
+      "funcao": "compute_subject_averages",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, education_level_codes text[], program_code text, program_name text, grade_code text, grade_name text, academic_year_name text, year_starts_on date, year_ends_on date, period_model text, grade_minimum numeric, grade_maximum numeric, grade_passing numeric, grade_decimals smallint",
+      "funcao": "configure_academic_structure",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean",
+      "funcao": "configure_assessment_rules",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_class_group_id uuid, target_subject_id uuid, target_teacher_id uuid, target_weekly_periods integer",
+      "funcao": "configure_class_subject",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, requested_module_codes text[]",
+      "funcao": "configure_default_modules",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, enrollment_amount_value numeric, tuition_amount_value numeric, due_day_value smallint, penalty_kind_value text, penalty_value numeric, maximum_discount_value numeric, invoice_prefix_value text, receipt_prefix_value text",
+      "funcao": "configure_financial_plan",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, primary_color text, secondary_color text, contrast_color text, school_logo_path text, campus_code text, campus_name text, campus_province text, campus_municipality text, campus_address text, official_reference text",
+      "funcao": "configure_school_identity_campus",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, school_name text, school_nif text, school_email text, school_phone text, school_province text, school_municipality text, school_address text",
+      "funcao": "configure_school_owner",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_class_group_id uuid, target_academic_year_id uuid, minutes_title text, minutes_body text, target_term_id uuid, decided_on date",
+      "funcao": "create_council_minutes",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_student_id uuid, request_type text, purpose text, target_template_id uuid",
+      "funcao": "create_document_request",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_enrollment_id uuid, target_discount_percentage numeric",
+      "funcao": "create_financial_contract",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_enrollment_id uuid, complaint_reason text, deadline_on date, target_grade_score_id uuid, target_grade_sheet_id uuid",
+      "funcao": "create_grade_complaint",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_student_id uuid, case_type text, title text, summary text",
+      "funcao": "create_student_case",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "enforce_academic_calendar_manager_scope",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "enforce_academic_manager_structure_scope",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "enforce_assessment_delete_scope",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "enforce_pedagogy_term_lock_scope",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "enforce_teacher_assessment_item_scope",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "enforce_teacher_assessment_score_scope",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "enforce_teacher_class_subject_scope",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "enforce_teacher_grade_score_scope",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_student_id uuid, target_class_group_id uuid, target_enrolled_on date",
+      "funcao": "enroll_student",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_announcement_id uuid",
+      "funcao": "fanout_announcement_notifications",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, schedule_demo_seed boolean",
+      "funcao": "finalize_installation",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, permission_code text",
+      "funcao": "has_permission",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid",
+      "funcao": "installer_database_health",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "is_aal2",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid",
+      "funcao": "is_active_member",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_student_id uuid",
+      "funcao": "is_portal_guardian_of",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_student_id uuid",
+      "funcao": "is_portal_student_of",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_grade_sheet_id uuid",
+      "funcao": "issue_report_cards",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_student_id uuid, target_template_id uuid, rendered_body text, target_request_id uuid, title text",
+      "funcao": "issue_school_document",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_document_type text, default_prefix text",
+      "funcao": "next_document_number",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "normalize_class_group",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "normalize_subject",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, permission_code text, event_type text, title text, body text, payload jsonb, exclude_user_id uuid",
+      "funcao": "notify_permission_holders",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_timetable_slot_id uuid, target_session_date date",
+      "funcao": "open_attendance_session",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_class_subject_id uuid, target_term_id uuid",
+      "funcao": "open_gradebook",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "prevent_audit_mutation",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "protect_enrollment_identity",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "protect_installation_identity",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "protect_person_identity",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "protect_student_identity",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "protect_teacher_identity",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean",
+      "funcao": "publish_assessment_rule_version",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, template_code text, template_name text, template_type text, body_template text, allowed_fields jsonb",
+      "funcao": "publish_document_template",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_invoice_id uuid, target_amount numeric, target_payment_method text, target_paid_on date",
+      "funcao": "register_payment",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_person_id uuid, target_admission_date date, target_guardian_person_id uuid, target_relationship text, target_primary_guardian boolean, target_financial_responsibility boolean, target_pickup_authorization boolean",
+      "funcao": "register_student",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_person_id uuid, target_hired_on date, target_employment_type text, target_highest_qualification text, target_subject_ids uuid[]",
+      "funcao": "register_teacher",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "reject_immutable_column_changes",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_student_id uuid, body_template text",
+      "funcao": "render_document_placeholders",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_session_id uuid, target_reason text",
+      "funcao": "reopen_attendance",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_gradebook_id uuid, reason text",
+      "funcao": "reopen_gradebook",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_document_id uuid, signer_role text, note text",
+      "funcao": "request_document_signature",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_complaint_id uuid, next_status text, response_text text",
+      "funcao": "respond_grade_complaint",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_receipt_id uuid, target_reason text",
+      "funcao": "reverse_receipt",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_request_id uuid, next_status text, review_note text",
+      "funcao": "review_document_request",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_grade_score_id uuid, approve boolean, review_note text",
+      "funcao": "review_grade_change",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_document_id uuid, reason text",
+      "funcao": "revoke_school_document",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_membership_id uuid, role_code text",
+      "funcao": "revoke_school_role",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "raw_value numeric, rounding_method text, decimal_places smallint",
+      "funcao": "round_grade",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_class_subject_id uuid, target_weekday integer, target_starts_at time without time zone, target_ends_at time without time zone, target_room text",
+      "funcao": "schedule_lesson",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid",
+      "funcao": "seed_default_academic_catalogs",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_user_id uuid, p_school_id uuid, p_codes text[]",
+      "funcao": "sga_actor_has_role",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_user_id uuid, p_school_id uuid",
+      "funcao": "sga_actor_is_academic_manager",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_user_id uuid, p_school_id uuid",
+      "funcao": "sga_actor_is_teacher",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "sga_delete_actor_id",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "sga_request_is_service_role",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "object_name text",
+      "funcao": "storage_school_id",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_session_id uuid, target_submission_key text, target_records jsonb",
+      "funcao": "submit_attendance",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_gradebook_id uuid",
+      "funcao": "submit_gradebook",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_grade_sheet_id uuid, next_status text, reason text",
+      "funcao": "transition_grade_sheet",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "trg_notify_attendance_submitted",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "trg_notify_document_issued",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "trg_notify_document_request",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "trg_notify_grade_sheet",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "trg_notify_invoice_issued",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "trg_notify_signature_pending",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_enrollment_id uuid, next_status text, target_ended_on date, target_end_reason text",
+      "funcao": "update_enrollment_status",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_case_id uuid, next_status text",
+      "funcao": "update_student_case_status",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_gradebook_id uuid, item_code text, item_name text, item_kind text, item_weight numeric, item_max_score numeric, item_assessed_on date, item_sequence smallint",
+      "funcao": "upsert_grade_item",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "target_school_id uuid, target_grade_item_id uuid, target_enrollment_id uuid, new_score numeric, change_reason text, score_note text",
+      "funcao": "upsert_grade_score",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, signature_id uuid, status text, note text",
+      "funcao": "act_on_document_signature",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, guardian_person_id uuid",
+      "funcao": "activate_guardian_portal_link",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "school_id uuid, student_id uuid",
+      "funcao": "activate_student_portal_link",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "school_id uuid, case_id uuid, item_kind text, request_id uuid, issued_document_id uuid, note_text text",
+      "funcao": "add_student_case_item",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, announcement_id uuid",
+      "funcao": "archive_announcement",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, title text, classification text, student_id uuid, issued_document_id uuid, case_id uuid, retention_until date, notes text",
+      "funcao": "archive_school_record",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, membership_id uuid, role_code text",
+      "funcao": "assign_school_role",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "audit_alumni_self_service_claim",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "school_id uuid, template_id uuid, student_ids uuid[], requires_signature boolean, title text",
+      "funcao": "batch_issue_school_documents",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, class_group_id uuid, term_id uuid, kind text",
+      "funcao": "build_grade_sheet",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "can_manage_students",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "can_read_students",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "school_id uuid, invoice_id uuid, reason text",
+      "funcao": "cancel_invoice",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "claim_guardian_portal",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "claim_student_portal",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "school_id uuid, gradebook_id uuid",
+      "funcao": "close_gradebook",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, level_codes text[], program_code text, program_name text, grade_code text, grade_name text, year_name text, starts_on date, ends_on date, terms_model text, minimum_grade numeric, maximum_grade numeric, passing_grade numeric, decimal_places integer",
+      "funcao": "configure_academic_structure",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, continuous_weight numeric, exam_weight numeric, passing_grade numeric, maximum_absence_percentage numeric, rounding_method text, require_change_approval boolean, lock_after_publication boolean",
+      "funcao": "configure_assessment_rules",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, class_group_id uuid, subject_id uuid, teacher_id uuid, weekly_periods integer",
+      "funcao": "configure_class_subject",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, module_codes text[]",
+      "funcao": "configure_default_modules",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, enrollment_amount numeric, tuition_amount numeric, due_day integer, penalty_kind text, penalty_value numeric, maximum_discount_percentage numeric, invoice_prefix text, receipt_prefix text",
+      "funcao": "configure_financial_plan",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, primary_color text, secondary_color text, contrast_color text, logo_path text, campus_code text, campus_name text, campus_province text, campus_municipality text, campus_address text, official_reference text",
+      "funcao": "configure_school_identity_campus",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, name text, nif text, email text, phone text, province text, municipality text, address text",
+      "funcao": "configure_school_owner",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, class_group_id uuid, academic_year_id uuid, title text, body text, term_id uuid, decided_on date",
+      "funcao": "create_council_minutes",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, student_id uuid, request_type text, purpose text, template_id uuid",
+      "funcao": "create_document_request",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, enrollment_id uuid, discount_percentage numeric",
+      "funcao": "create_financial_contract",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, enrollment_id uuid, reason text, deadline_on date, grade_score_id uuid, grade_sheet_id uuid",
+      "funcao": "create_grade_complaint",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, student_id uuid, case_type text, title text, summary text",
+      "funcao": "create_student_case",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_class_group_id uuid, p_subject_id uuid, p_teacher_id uuid, p_room_id uuid, p_weekday smallint, p_starts_at time without time zone, p_ends_at time without time zone, p_room_label text, p_shift_id uuid, p_schedule_id uuid, p_day_period_number integer, p_notes text, p_actor uuid",
+      "funcao": "create_timetable_slot_guarded",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "current_profile_role",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "current_school_id",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_allowed_roles text[]",
+      "funcao": "current_school_role_is",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_class_group_id uuid, p_subject_id uuid",
+      "funcao": "current_teacher_can_manage_class_subject",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "current_teacher_id",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_class_group_id uuid, p_subject_id uuid",
+      "funcao": "current_user_can_manage_assessment_item",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_item_id uuid, p_enrollment_id uuid",
+      "funcao": "current_user_can_manage_assessment_score",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_item_id uuid, p_actor_id uuid, p_force boolean",
+      "funcao": "delete_sga_assessment_item",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "enforce_person_document_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, student_id uuid, class_group_id uuid, enrolled_on date",
+      "funcao": "enroll_student",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, schedule_demo_seed boolean",
+      "funcao": "finalize_installation",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "handle_new_user",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_permission text",
+      "funcao": "has_school_permission",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_payroll_run_id uuid",
+      "funcao": "hr_approve_payroll_run",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_assert_absence_same_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_assert_department_parent_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_assert_payment_destination_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_assert_payment_item_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_assert_remuneration_policy_same_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_assert_same_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_assert_teacher_employment_link_same_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_assert_teacher_lesson_same_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_assert_teacher_qr_same_school",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_occurrence_id uuid, p_substitute_teacher_id uuid, p_reason text",
+      "funcao": "hr_assign_teacher_substitute",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_batch_id uuid",
+      "funcao": "hr_authorize_payroll_payment_batch",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_block_locked_payroll_item_mutation",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_payroll_run_id uuid, p_employment_id uuid",
+      "funcao": "hr_calculate_payroll_item",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_payroll_run_id uuid",
+      "funcao": "hr_calculate_payroll_run",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_occurrence_id uuid, p_evidence_method text, p_evidence_ref text",
+      "funcao": "hr_confirm_teacher_lesson",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_class_subject_id uuid, p_lesson_date date, p_starts_at time without time zone, p_ends_at time without time zone, p_reason text",
+      "funcao": "hr_create_extra_teacher_lesson",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_payroll_run_id uuid",
+      "funcao": "hr_create_payroll_payment_batch",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_year integer, p_month integer, p_notes text",
+      "funcao": "hr_create_payroll_run",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_until date",
+      "funcao": "hr_detect_missed_teacher_lessons",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_occurrence_id uuid, p_purpose text, p_latitude double precision, p_longitude double precision, p_accuracy_m double precision",
+      "funcao": "hr_evaluate_teacher_attendance_assurance",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_occurrence_id uuid",
+      "funcao": "hr_evaluate_teacher_lesson_attendance",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_occurrence_id uuid",
+      "funcao": "hr_expire_teacher_qr_sessions",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "hr_gate_teacher_compensation_by_assurance",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_lat1 double precision, p_lon1 double precision, p_lat2 double precision, p_lon2 double precision",
+      "funcao": "hr_haversine_distance_m",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_from date, p_to date",
+      "funcao": "hr_materialize_teacher_lessons",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_payroll_run_id uuid",
+      "funcao": "hr_recompute_payroll_run_totals",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_token_hash text",
+      "funcao": "hr_redeem_teacher_qr",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_batch_id uuid",
+      "funcao": "hr_refresh_payroll_payment_batch",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid",
+      "funcao": "installer_database_health",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "is_platform_admin",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid",
+      "funcao": "is_school_member",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "school_id uuid, grade_sheet_id uuid",
+      "funcao": "issue_report_cards",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, student_id uuid, template_id uuid, rendered_body text, request_id uuid, title text",
+      "funcao": "issue_school_document",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid",
+      "funcao": "mark_all_notifications_read",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, notification_id uuid",
+      "funcao": "mark_notification_read",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, timetable_slot_id uuid, session_date date",
+      "funcao": "open_attendance_session",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, class_subject_id uuid, term_id uuid",
+      "funcao": "open_gradebook",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "portal_list_my_student_profiles",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "portal_list_wards",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "school_id uuid, student_id uuid",
+      "funcao": "portal_ward_overview",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "school_id uuid, title text, body text, audience text, class_group_id uuid, role_code text, priority text",
+      "funcao": "publish_announcement",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, continuous_weight numeric, exam_weight numeric, passing_grade numeric, maximum_absence_percentage numeric, rounding_method text, require_change_approval boolean, lock_after_publication boolean, key_subject_ids uuid[], key_subjects_cause_failure boolean",
+      "funcao": "publish_assessment_rule_version",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, code text, name text, document_type text, body_template text, allowed_fields jsonb",
+      "funcao": "publish_document_template",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, invoice_id uuid, amount numeric, payment_method text, paid_on date",
+      "funcao": "register_payment",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, person_id uuid, admission_date date, guardian_person_id uuid, relationship text, primary_guardian boolean, financial_responsibility boolean, pickup_authorization boolean",
+      "funcao": "register_student",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, person_id uuid, hired_on date, employment_type text, highest_qualification text, subject_ids uuid[]",
+      "funcao": "register_teacher",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, student_id uuid, body_template text",
+      "funcao": "render_document_placeholders",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, attendance_session_id uuid, reason text",
+      "funcao": "reopen_attendance",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, gradebook_id uuid, reason text",
+      "funcao": "reopen_gradebook",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_curriculum_id uuid, p_rows jsonb, p_actor uuid",
+      "funcao": "replace_curriculum_subjects",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_teacher_id uuid, p_academic_year_id uuid, p_max_weekly_hours smallint, p_rows jsonb, p_actor uuid",
+      "funcao": "replace_teacher_availability",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, document_id uuid, signer_role text, note text",
+      "funcao": "request_document_signature",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, complaint_id uuid, status text, response text",
+      "funcao": "respond_grade_complaint",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, receipt_id uuid, reason text",
+      "funcao": "reverse_receipt",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, request_id uuid, status text, review_note text",
+      "funcao": "review_document_request",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, grade_score_id uuid, approve boolean, review_note text",
+      "funcao": "review_grade_change",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, document_id uuid, reason text",
+      "funcao": "revoke_school_document",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, membership_id uuid, role_code text",
+      "funcao": "revoke_school_role",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "rls_auto_enable",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_actor_id uuid, p_academic_year_id uuid, p_year_name text, p_starts_on date, p_ends_on date, p_terms jsonb",
+      "funcao": "save_academic_calendar",
+      "schema": "public",
+      "security_definer": true
+    },
+    {
+      "args": "school_id uuid, class_subject_id uuid, weekday integer, starts_at time without time zone, ends_at time without time zone, room text",
+      "funcao": "schedule_lesson",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "set_updated_at_and_version",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "target alumni_profiles",
+      "funcao": "siga_alumni_profile_completion",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "siga_refresh_alumni_profile_completion",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "siga_touch_updated_at",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, attendance_session_id uuid, submission_key text, records jsonb",
+      "funcao": "submit_attendance",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, gradebook_id uuid",
+      "funcao": "submit_gradebook",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, grade_sheet_id uuid, status text, reason text",
+      "funcao": "transition_grade_sheet",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, enrollment_id uuid, status text, ended_on date, end_reason text",
+      "funcao": "update_enrollment_status",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, case_id uuid, status text",
+      "funcao": "update_student_case_status",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_slot_id uuid, p_subject_id uuid, p_teacher_id uuid, p_room_id uuid, p_weekday smallint, p_starts_at time without time zone, p_ends_at time without time zone, p_room_label text, p_shift_id uuid, p_schedule_id uuid, p_day_period_number integer, p_notes text, p_actor uuid",
+      "funcao": "update_timetable_slot_guarded",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, gradebook_id uuid, code text, name text, kind text, weight numeric, max_score numeric, assessed_on date, sequence smallint",
+      "funcao": "upsert_grade_item",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, grade_item_id uuid, enrollment_id uuid, score numeric, reason text, note text",
+      "funcao": "upsert_grade_score",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, in_app_enabled boolean, email_enabled boolean, sms_enabled boolean, whatsapp_enabled boolean",
+      "funcao": "upsert_notification_preferences",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "validation_code text",
+      "funcao": "validate_issued_document",
+      "schema": "public",
+      "security_definer": true
+    }
+  ],
+  "triggers": [
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "academic_levels",
+      "trigger": "audit_academic_levels_change"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "academic_schedules",
+      "trigger": "academic_schedules_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "academic_years",
+      "trigger": "audit_academic_years_change"
+    },
+    {
+      "funcao": "enforce_academic_calendar_manager_scope",
+      "funcao_schema": "private",
+      "tabela": "academic_years",
+      "trigger": "enforce_academic_calendar_manager_scope"
+    },
+    {
+      "funcao": "audit_alumni_self_service_claim",
+      "funcao_schema": "public",
+      "tabela": "alumni_profiles",
+      "trigger": "alumni_profiles_audit_self_service_claim"
+    },
+    {
+      "funcao": "siga_refresh_alumni_profile_completion",
+      "funcao_schema": "public",
+      "tabela": "alumni_profiles",
+      "trigger": "trg_alumni_profile_completion"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "announcements",
+      "trigger": "announcements_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "attendance_records",
+      "trigger": "audit_attendance_records_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "attendance_sessions",
+      "trigger": "audit_attendance_sessions_change"
+    },
+    {
+      "funcao": "capture_attendance_session_roster",
+      "funcao_schema": "private",
+      "tabela": "attendance_sessions",
+      "trigger": "capture_attendance_session_roster"
+    },
+    {
+      "funcao": "trg_notify_attendance_submitted",
+      "funcao_schema": "private",
+      "tabela": "attendance_sessions",
+      "trigger": "notify_attendance_submitted"
+    },
+    {
+      "funcao": "prevent_audit_mutation",
+      "funcao_schema": "private",
+      "tabela": "audit_logs",
+      "trigger": "audit_logs_immutable"
+    },
+    {
+      "funcao": "enforce_bucket_name_length",
+      "funcao_schema": "storage",
+      "tabela": "buckets",
+      "trigger": "enforce_bucket_name_length_trigger"
+    },
+    {
+      "funcao": "protect_delete",
+      "funcao_schema": "storage",
+      "tabela": "buckets",
+      "trigger": "protect_buckets_delete"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "campuses",
+      "trigger": "audit_campuses_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "class_groups",
+      "trigger": "audit_class_groups_change"
+    },
+    {
+      "funcao": "enforce_academic_manager_structure_scope",
+      "funcao_schema": "private",
+      "tabela": "class_groups",
+      "trigger": "enforce_academic_manager_structure_scope"
+    },
+    {
+      "funcao": "normalize_class_group",
+      "funcao_schema": "private",
+      "tabela": "class_groups",
+      "trigger": "normalize_class_group"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "class_subjects",
+      "trigger": "audit_class_subjects_change"
+    },
+    {
+      "funcao": "enforce_teacher_class_subject_scope",
+      "funcao_schema": "private",
+      "tabela": "class_subjects",
+      "trigger": "enforce_teacher_class_subject_scope"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "curricula",
+      "trigger": "curricula_set_updated_at"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "curriculum_areas",
+      "trigger": "curriculum_areas_set_updated_at"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "curriculum_subjects",
+      "trigger": "curriculum_subjects_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "document_requests",
+      "trigger": "audit_document_requests"
+    },
+    {
+      "funcao": "trg_notify_document_request",
+      "funcao_schema": "private",
+      "tabela": "document_requests",
+      "trigger": "notify_document_request"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "document_sequences",
+      "trigger": "audit_document_sequences_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "document_signatures",
+      "trigger": "audit_document_signatures"
+    },
+    {
+      "funcao": "trg_notify_signature_pending",
+      "funcao_schema": "private",
+      "tabela": "document_signatures",
+      "trigger": "notify_signature_pending"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "document_templates",
+      "trigger": "audit_document_templates"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "enrollment_applications",
+      "trigger": "enrollment_applications_set_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "enrollment_forms",
+      "trigger": "enrollment_forms_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "enrollments",
+      "trigger": "audit_enrollments_change"
+    },
+    {
+      "funcao": "protect_enrollment_identity",
+      "funcao_schema": "private",
+      "tabela": "enrollments",
+      "trigger": "protect_enrollment_identity"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "fee_items",
+      "trigger": "audit_fee_items_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "fee_plans",
+      "trigger": "audit_fee_plans_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "finance_contracts",
+      "trigger": "audit_finance_contracts_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "finance_invoices",
+      "trigger": "audit_finance_invoices_change"
+    },
+    {
+      "funcao": "trg_notify_invoice_issued",
+      "funcao_schema": "private",
+      "tabela": "finance_invoices",
+      "trigger": "notify_invoice_issued"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "finance_receipts",
+      "trigger": "audit_finance_receipts_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "financial_rule_sets",
+      "trigger": "audit_financial_rules_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "grade_levels",
+      "trigger": "audit_grade_levels_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "grade_scores",
+      "trigger": "audit_grade_scores"
+    },
+    {
+      "funcao": "enforce_teacher_grade_score_scope",
+      "funcao_schema": "private",
+      "tabela": "grade_scores",
+      "trigger": "enforce_teacher_grade_score_scope"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "grade_sheets",
+      "trigger": "audit_grade_sheets"
+    },
+    {
+      "funcao": "trg_notify_grade_sheet",
+      "funcao_schema": "private",
+      "tabela": "grade_sheets",
+      "trigger": "notify_grade_sheet"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "gradebooks",
+      "trigger": "audit_gradebooks"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "grading_scales",
+      "trigger": "audit_grading_scales_change"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_absence_events",
+      "trigger": "hr_absence_events_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_absence_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_absence_events",
+      "trigger": "hr_absence_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_attendance_assurance_policies",
+      "trigger": "hr_attendance_assurance_policies_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_compensation_events",
+      "trigger": "hr_compensation_events_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_compensation_events",
+      "trigger": "hr_compensation_events_set_updated_at"
+    },
+    {
+      "funcao": "hr_gate_teacher_compensation_by_assurance",
+      "funcao_schema": "public",
+      "tabela": "hr_compensation_events",
+      "trigger": "hr_gate_teacher_compensation_by_assurance"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_contract_remuneration_policies",
+      "trigger": "hr_contract_remuneration_policies_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_remuneration_policy_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_contract_remuneration_policies",
+      "trigger": "hr_contract_remuneration_policy_same_school"
+    },
+    {
+      "funcao": "hr_assert_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_contracts",
+      "trigger": "hr_contracts_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_contracts",
+      "trigger": "hr_contracts_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_department_parent_school",
+      "funcao_schema": "public",
+      "tabela": "hr_departments",
+      "trigger": "hr_departments_parent_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_departments",
+      "trigger": "hr_departments_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_employments",
+      "trigger": "hr_employments_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_employments",
+      "trigger": "hr_employments_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_payment_destination_school",
+      "funcao_schema": "public",
+      "tabela": "hr_payment_destinations",
+      "trigger": "hr_payment_destinations_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_payment_destinations",
+      "trigger": "hr_payment_destinations_set_updated_at"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_payment_settings",
+      "trigger": "hr_payment_settings_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_item_components",
+      "trigger": "hr_payroll_components_same_school"
+    },
+    {
+      "funcao": "hr_block_locked_payroll_item_mutation",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_items",
+      "trigger": "hr_payroll_items_lock_after_approval"
+    },
+    {
+      "funcao": "hr_assert_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_items",
+      "trigger": "hr_payroll_items_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_items",
+      "trigger": "hr_payroll_items_set_updated_at"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_payment_batches",
+      "trigger": "hr_payroll_payment_batches_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_payment_item_school",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_payment_items",
+      "trigger": "hr_payroll_payment_items_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_payment_items",
+      "trigger": "hr_payroll_payment_items_set_updated_at"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_runs",
+      "trigger": "hr_payroll_runs_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_positions",
+      "trigger": "hr_positions_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_positions",
+      "trigger": "hr_positions_set_updated_at"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_teacher_attendance_policies",
+      "trigger": "hr_teacher_attendance_policies_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_teacher_employment_link_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_teacher_employment_links",
+      "trigger": "hr_teacher_employment_link_same_school"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_teacher_employment_links",
+      "trigger": "hr_teacher_employment_links_set_updated_at"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "hr_teacher_lesson_occurrences",
+      "trigger": "hr_teacher_lesson_occurrences_set_updated_at"
+    },
+    {
+      "funcao": "hr_assert_teacher_lesson_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_teacher_lesson_occurrences",
+      "trigger": "hr_teacher_lesson_same_school"
+    },
+    {
+      "funcao": "hr_assert_teacher_qr_same_school",
+      "funcao_schema": "public",
+      "tabela": "hr_teacher_qr_sessions",
+      "trigger": "hr_teacher_qr_same_school"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "issued_documents",
+      "trigger": "audit_issued_documents"
+    },
+    {
+      "funcao": "trg_notify_document_issued",
+      "funcao_schema": "private",
+      "tabela": "issued_documents",
+      "trigger": "notify_document_issued"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "member_roles",
+      "trigger": "audit_member_roles_change"
+    },
+    {
+      "funcao": "protect_delete",
+      "funcao_schema": "storage",
+      "tabela": "objects",
+      "trigger": "protect_objects_delete"
+    },
+    {
+      "funcao": "update_updated_at_column",
+      "funcao_schema": "storage",
+      "tabela": "objects",
+      "trigger": "update_objects_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "people",
+      "trigger": "audit_people_change"
+    },
+    {
+      "funcao": "protect_person_identity",
+      "funcao_schema": "private",
+      "tabela": "people",
+      "trigger": "protect_person_identity"
+    },
+    {
+      "funcao": "enforce_person_document_school",
+      "funcao_schema": "public",
+      "tabela": "person_documents",
+      "trigger": "person_documents_enforce_school"
+    },
+    {
+      "funcao": "reject_immutable_column_changes",
+      "funcao_schema": "private",
+      "tabela": "program_subjects",
+      "trigger": "program_subjects_protect_identity"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "program_subjects",
+      "trigger": "program_subjects_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "programs",
+      "trigger": "audit_programs_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "report_cards",
+      "trigger": "audit_report_cards"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "role_permissions",
+      "trigger": "audit_role_permissions_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "roles",
+      "trigger": "audit_roles_change"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "rooms",
+      "trigger": "rooms_set_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "school_announcements",
+      "trigger": "school_announcements_set_updated_at"
+    },
+    {
+      "funcao": "audit_domain_change",
+      "funcao_schema": "private",
+      "tabela": "school_billing_settings",
+      "trigger": "school_billing_settings_audit"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "school_billing_settings",
+      "trigger": "school_billing_settings_set_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "school_invitations",
+      "trigger": "school_invitations_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "school_memberships",
+      "trigger": "audit_memberships_change"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "school_memberships",
+      "trigger": "school_memberships_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "school_modules",
+      "trigger": "audit_school_modules_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "school_settings",
+      "trigger": "audit_settings_change"
+    },
+    {
+      "funcao": "enforce_pedagogy_term_lock_scope",
+      "funcao_schema": "private",
+      "tabela": "school_settings",
+      "trigger": "enforce_pedagogy_term_lock_scope"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "school_shift_slots",
+      "trigger": "school_shift_slots_set_updated_at"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "school_shifts",
+      "trigger": "school_shifts_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "schools",
+      "trigger": "audit_schools_update"
+    },
+    {
+      "funcao": "audit_school_change",
+      "funcao_schema": "private",
+      "tabela": "schools",
+      "trigger": "schools_audit_change"
+    },
+    {
+      "funcao": "enforce_assessment_delete_scope",
+      "funcao_schema": "private",
+      "tabela": "siga_assessment_items",
+      "trigger": "enforce_assessment_item_delete_scope"
+    },
+    {
+      "funcao": "enforce_teacher_assessment_item_scope",
+      "funcao_schema": "private",
+      "tabela": "siga_assessment_items",
+      "trigger": "enforce_teacher_assessment_item_scope"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "siga_assessment_scores",
+      "trigger": "audit_siga_assessment_scores_change"
+    },
+    {
+      "funcao": "enforce_assessment_delete_scope",
+      "funcao_schema": "private",
+      "tabela": "siga_assessment_scores",
+      "trigger": "enforce_assessment_score_delete_scope"
+    },
+    {
+      "funcao": "enforce_teacher_assessment_score_scope",
+      "funcao_schema": "private",
+      "tabela": "siga_assessment_scores",
+      "trigger": "enforce_teacher_assessment_score_scope"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "siga_cash_expenses",
+      "trigger": "siga_cash_expenses_set_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "siga_lesson_plans",
+      "trigger": "siga_lesson_plans_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "student_guardians",
+      "trigger": "audit_student_guardians_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "students",
+      "trigger": "audit_students_change"
+    },
+    {
+      "funcao": "protect_student_identity",
+      "funcao_schema": "private",
+      "tabela": "students",
+      "trigger": "protect_student_identity"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "subject_types",
+      "trigger": "subject_types_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "subjects",
+      "trigger": "audit_subjects_change"
+    },
+    {
+      "funcao": "enforce_academic_manager_structure_scope",
+      "funcao_schema": "private",
+      "tabela": "subjects",
+      "trigger": "enforce_academic_manager_structure_scope"
+    },
+    {
+      "funcao": "normalize_subject",
+      "funcao_schema": "private",
+      "tabela": "subjects",
+      "trigger": "normalize_subject"
+    },
+    {
+      "funcao": "subscription_check_filters",
+      "funcao_schema": "realtime",
+      "tabela": "subscription",
+      "trigger": "tr_check_filters"
+    },
+    {
+      "funcao": "set_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "teacher_availability",
+      "trigger": "teacher_availability_set_updated_at"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "teacher_subjects",
+      "trigger": "audit_teacher_subjects_change"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "teachers",
+      "trigger": "audit_teachers_change"
+    },
+    {
+      "funcao": "protect_teacher_identity",
+      "funcao_schema": "private",
+      "tabela": "teachers",
+      "trigger": "protect_teacher_identity"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "terms",
+      "trigger": "audit_terms_change"
+    },
+    {
+      "funcao": "enforce_academic_calendar_manager_scope",
+      "funcao_schema": "private",
+      "tabela": "terms",
+      "trigger": "enforce_academic_calendar_manager_scope"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "timetable_slots",
+      "trigger": "audit_timetable_slots_change"
+    },
+    {
+      "funcao": "enforce_academic_manager_structure_scope",
+      "funcao_schema": "private",
+      "tabela": "timetable_slots",
+      "trigger": "enforce_academic_manager_structure_scope"
+    },
+    {
+      "funcao": "handle_new_user",
+      "funcao_schema": "public",
+      "tabela": "users",
+      "trigger": "on_auth_user_created"
+    }
+  ]
+}

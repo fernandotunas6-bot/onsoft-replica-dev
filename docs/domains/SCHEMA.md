@@ -90,9 +90,14 @@ CREATE TABLE IF NOT EXISTS public.school_branding (
 
 ALTER TABLE public.school_branding ENABLE ROW LEVEL SECURITY;
 
+-- O nome é herdado e enganador: a política é deliberadamente pública, não
+-- limitada a membros. A página de login tem de mostrar logótipo, cores e
+-- título da escola antes de existir sessão, por isso o `anon` precisa de ler.
+-- Só contém elementos visuais — nenhum dado pessoal ou operacional.
+-- Confirmado em produção a 2026-09-13.
 CREATE POLICY "school_members_view_branding"
-  ON public.school_branding FOR SELECT
-  USING (school_id = current_school_id());
+  ON public.school_branding FOR SELECT TO authenticated, anon
+  USING (true);
 
 CREATE POLICY "school_admin_manage_branding"
   ON public.school_branding FOR ALL
