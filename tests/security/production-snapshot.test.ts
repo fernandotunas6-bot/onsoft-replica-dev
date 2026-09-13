@@ -28,7 +28,13 @@ type Snapshot = {
     auth_select: boolean;
     politicas: number;
   }>;
-  politicas: Array<{ tabela: string; politica: string; cmd: string; usando: string }>;
+  politicas: Array<{
+    tabela: string;
+    politica: string;
+    cmd: string;
+    papeis: string;
+    usando: string;
+  }>;
   funcoes: Array<{ schema: string; funcao: string }>;
   triggers: Array<{ tabela: string; trigger: string; funcao: string }>;
 };
