@@ -1,5 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+// O `beforeEach` abaixo chama `vi.resetModules()` — necessário, porque estes
+// testes mexem em `process.env` e precisam do módulo recarregado. O efeito é que
+// cada teste reimporta o middleware e o `@supabase/supabase-js` de raiz, e sob
+// carga isso passa do limite de 5000 ms por omissão: o primeiro teste do ficheiro
+// já foi observado a levar 5943 ms e a falhar, enquanto isolado leva 4108 ms.
+//
+// Um teste de segurança intermitente é pior do que nenhum: fica vermelho ao
+// acaso, deixa de ser lido, e a falha a sério passa despercebida no meio do
+// ruído. O limite alargado reflecte o custo real do desenho do ficheiro.
+vi.setConfig({ testTimeout: 30_000 });
+
 /**
  * Testes do guarda de autenticação (`requireSupabaseAuth`).
  *
