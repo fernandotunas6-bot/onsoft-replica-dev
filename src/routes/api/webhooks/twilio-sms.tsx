@@ -36,7 +36,7 @@ export const Route = createFileRoute("/api/webhooks/twilio-sms")({
           }
 
           const url = new URL(request.url).href.split("?")[0];
-          const isValid = verifyTwilioWebhookSignature(url, rawParams, signature, authToken);
+          const isValid = await verifyTwilioWebhookSignature(url, rawParams, signature, authToken);
 
           if (!isValid) {
             console.warn("[Twilio Webhook] Invalid signature");

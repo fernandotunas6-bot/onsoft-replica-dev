@@ -54,7 +54,7 @@ export const Route = createFileRoute("/api/webhooks/whatsapp-status")({
             return json({ error: "Not configured" }, { status: 500 });
           }
 
-          if (!verifyMetaWebhookSignature(body, signature, appSecret)) {
+          if (!(await verifyMetaWebhookSignature(body, signature, appSecret))) {
             console.warn("[WhatsApp Webhook] Invalid signature");
             return json({ error: "Invalid signature" }, { status: 401 });
           }

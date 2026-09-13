@@ -1,3 +1,4 @@
+import { hmacBase64, signaturesMatch } from "./hmac";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
 /**
@@ -94,26 +95,19 @@ export async function handleTwilioSmsWebhook(payload: TwilioWebhookPayload): Pro
  * Verifica assinatura do webhook do Twilio.
  * Twilio envia um header X-Twilio-Signature com HMAC-SHA1 da request.
  */
-export function verifyTwilioWebhookSignature(
+export async function verifyTwilioWebhookSignature(
   url: string,
   body: Record<string, string>,
   signature: string,
   authToken: string,
-): boolean {
-  const crypto = require("crypto");
-
-  // Reconstruir a string assinada (ordem das chaves importa)
+): Promise<boolean> {
+  // A string assinada é o URL seguido dos pares chave+valor por ordem
+  // alfabética da chave — a ordem faz parte do contrato do Twilio.
   let data = url;
   for (const [key, value] of Object.entries(body).sort()) {
     data += key + value;
   }
 
-  // Computar HMAC-SHA1
-  const computed = crypto
-    .createHmac("sha1", authToken)
-    .update(data)
-    .digest("base64");
-
-  // Comparação segura (contra timing attacks)
-  return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(signature));
+  const computed = await hmacBase64("SHA-1", authToken, data);
+  return signaturesMatch(computed, signature);
 }

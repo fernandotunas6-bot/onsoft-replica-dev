@@ -1,5 +1,5 @@
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { createHmac } from "crypto";
+import { hmacHex, signaturesMatch } from "./hmac";
 
 /**
  * WhatsAppWebhookHandler — Processa webhooks de status de WhatsApp da Meta.
@@ -136,40 +136,23 @@ export async function handleWhatsAppWebhook(payload: MetaWebhookEvent): Promise<
  *
  * HMAC é computado com o raw request body e o app secret.
  */
-export function verifyMetaWebhookSignature(
+export async function verifyMetaWebhookSignature(
   body: string,
   signature: string,
   appSecret: string,
-): boolean {
-  // signature vem no formato: sha256=<hash>
+): Promise<boolean> {
+  // A Meta envia no formato `sha256=<hash>`.
   const [algorithm, hash] = signature.split("=");
 
-  if (algorithm !== "sha256") {
+  if (algorithm !== "sha256" || !hash) {
     console.warn("[WhatsAppWebhook] Invalid signature algorithm:", algorithm);
     return false;
   }
 
-  // Computar HMAC-SHA256
-  const computed = createHmac("sha256", appSecret)
-    .update(body)
-    .digest("hex");
-
-  // Comparação segura
-  return computedEquals(computed, hash);
+  const computed = await hmacHex("SHA-256", appSecret, body);
+  return signaturesMatch(computed, hash);
 }
 
 /**
  * Comparação segura contra timing attacks.
  */
-function computedEquals(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-
-  return result === 0;
-}
