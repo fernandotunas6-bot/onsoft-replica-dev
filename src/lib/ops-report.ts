@@ -36,6 +36,8 @@ const LOG_ALLOWLIST = new Set([
   "action",
   "entity",
   "entity_id",
+  // em que passo de um fluxo com vários passos — valores nossos, enumerados
+  "stage",
   // domínio financeiro
   "invoice_id",
   "payment_id",
@@ -71,6 +73,7 @@ const ALERT_ALLOWLIST = new Set([
   "action",
   "entity",
   "entity_id",
+  "stage",
   "invoice_id",
   "payment_id",
   "transaction_id",

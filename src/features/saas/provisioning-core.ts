@@ -9,6 +9,33 @@ import {
 } from "@/features/saas/provisioning-verify";
 import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
 import { createSchoolAdminAccount, type SchoolAdminAccount } from "@/features/saas/admin-account";
+import { reportSigaError, reportSigaEvent } from "@/lib/ops-report";
+
+type ProvisioningResult = {
+  success: true;
+  tenantId: string;
+  slug: string;
+  hostname: string;
+  bootstrapSeeded: string[];
+  adminInviteDelivered: boolean;
+  adminPasswordSet: boolean;
+  adminSetupUrl: string | null;
+};
+
+/**
+ * Onde o provisionamento ia quando parou.
+ *
+ * Existe por uma razão concreta: quando isto falha, o cliente vê «Falha ao
+ * criar a escola» e reverte-se tudo — não fica registo nenhum na base, porque
+ * o `saas_audit_logs` só é escrito no fim. Sem isto, uma escola que não
+ * consegue nascer é invisível para quem opera a plataforma, e o único sinal é
+ * o cliente desistir.
+ */
+type ProvisioningTrace = {
+  stage: string;
+  tenantId: string | null;
+  schoolId: string | null;
+};
 
 /**
  * Cria uma escola nova de ponta a ponta: tenant comercial, escola, o
@@ -33,16 +60,48 @@ import { createSchoolAdminAccount, type SchoolAdminAccount } from "@/features/sa
 export async function provisionTenantCore(
   data: CreateSchoolWizardInput,
   opts: { auditUserId: string | null; source: "platform_admin" | "public_signup" },
-): Promise<{
-  success: true;
-  tenantId: string;
-  slug: string;
-  hostname: string;
-  bootstrapSeeded: string[];
-  adminInviteDelivered: boolean;
-  adminPasswordSet: boolean;
-  adminSetupUrl: string | null;
-}> {
+): Promise<ProvisioningResult> {
+  const startedAt = Date.now();
+  const trace: ProvisioningTrace = { stage: "plan", tenantId: null, schoolId: null };
+  try {
+    const result = await runProvisioning(data, opts, trace);
+    reportSigaEvent("tenant.provisioning.completed", {
+      tenant_id: result.tenantId,
+      school_id: trace.schoolId,
+      source: opts.source,
+      count: result.bootstrapSeeded.length,
+      duration_ms: Date.now() - startedAt,
+    });
+    if (!result.adminPasswordSet && !result.adminInviteDelivered) {
+      // A escola existe e ninguém lhe consegue entrar: sem senha definida no
+      // registo e sem convite entregue, o administrador não tem caminho para
+      // dentro. É recuperável — "Recuperar senha" resolve — mas só se alguém
+      // souber que aconteceu.
+      reportSigaEvent("tenant.provisioning.invite.failed", {
+        tenant_id: result.tenantId,
+        school_id: trace.schoolId,
+        source: opts.source,
+        reason: "no_password_and_no_invite",
+      });
+    }
+    return result;
+  } catch (error) {
+    reportSigaError("tenant.provisioning.failed", error, {
+      tenant_id: trace.tenantId,
+      school_id: trace.schoolId,
+      stage: trace.stage,
+      source: opts.source,
+      duration_ms: Date.now() - startedAt,
+    });
+    throw error;
+  }
+}
+
+async function runProvisioning(
+  data: CreateSchoolWizardInput,
+  opts: { auditUserId: string | null; source: "platform_admin" | "public_signup" },
+  trace: ProvisioningTrace,
+): Promise<ProvisioningResult> {
   const db = await loadSgaAdminClient();
 
   const { data: plan } = await db
@@ -73,6 +132,8 @@ export async function provisionTenantCore(
     .single();
   if (tenantErr) throw publicDatabaseError(tenantErr, "Não foi possível criar o tenant.");
   const tenantId = tenant.id as string;
+  trace.tenantId = tenantId;
+  trace.stage = "subscription";
 
   if (plan?.id) {
     const subscriptionStatus = data.trial_days > 0 ? "trialing" : "active";
@@ -102,7 +163,14 @@ export async function provisionTenantCore(
     }
     const { error } = await db.from("tenants").delete().eq("id", tenantId);
     if (error) {
-      console.error("[provisioning] rollback do tenant %s falhou: %s", tenantId, error.message);
+      // Alertável de propósito: um tenant que não é apagado fica a ocupar o
+      // slug para sempre, e a escola que tentar o mesmo endereço a seguir
+      // recebe "já está em uso" sem ninguém perceber porquê.
+      reportSigaError("tenant.provisioning.rollback.failed", error, {
+        tenant_id: tenantId,
+        entity: "tenant",
+        entity_id: tenantId,
+      });
     }
   };
 
@@ -125,19 +193,25 @@ export async function provisionTenantCore(
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         await supabaseAdmin.auth.admin.deleteUser(adminUserId);
       } catch (deleteErr) {
-        console.error(
-          "[provisioning] rollback da conta auth %s falhou: %s",
-          adminUserId,
-          deleteErr instanceof Error ? deleteErr.message : deleteErr,
-        );
+        reportSigaError("tenant.provisioning.rollback.failed", deleteErr, {
+          school_id: schoolId,
+          user_id: adminUserId,
+          entity: "auth_user",
+          entity_id: adminUserId,
+        });
       }
     }
     const { error } = await db.from("schools").delete().eq("id", schoolId);
     if (error) {
-      console.error("[provisioning] rollback da escola %s falhou: %s", schoolId, error.message);
+      reportSigaError("tenant.provisioning.rollback.failed", error, {
+        school_id: schoolId,
+        entity: "school",
+        entity_id: schoolId,
+      });
     }
   };
 
+  trace.stage = "domain";
   const hostname = getPlatformSubdomain(data.slug);
   const { error: domainErr } = await db.from("tenant_domains").insert({
     tenant_id: tenantId,
@@ -151,6 +225,7 @@ export async function provisionTenantCore(
     throw publicDatabaseError(domainErr, "Subdomínio já em uso por outra escola.");
   }
 
+  trace.stage = "school";
   const generatedPublicCode = `SIGA-AO-${Math.floor(100000 + Math.random() * 900000)}`;
 
   const { data: school, error: schoolErr } = await db
@@ -174,6 +249,8 @@ export async function provisionTenantCore(
     throw publicDatabaseError(schoolErr, "Não foi possível criar o registo da escola.");
   }
   const schoolId = school.id as string;
+  trace.schoolId = schoolId;
+  trace.stage = "admin";
 
   let adminUserId: string | null = null;
   let adminAccount: SchoolAdminAccount | null = null;
@@ -258,6 +335,7 @@ export async function provisionTenantCore(
     throw err instanceof Error ? err : new Error("Falha ao provisionar o administrador da escola.");
   }
 
+  trace.stage = "usage";
   await syncTenantUsageForSchool(tenantId, schoolId);
 
   // Invariante: se chegámos aqui, o bloco try/catch acima já criou o
@@ -267,6 +345,7 @@ export async function provisionTenantCore(
     throw new Error("Administrador da escola não foi provisionado antes do bootstrap.");
   }
 
+  trace.stage = "bootstrap";
   const { seeded: bootstrapSeeded } = await bootstrapSchoolDefaults(db, {
     schoolId,
     schoolName: data.name,
@@ -278,6 +357,7 @@ export async function provisionTenantCore(
   // em caso de erro, mas nada afirmava o resultado — e uma escola meio-criada é
   // pior do que uma criação falhada: o cliente recebe confirmação, tenta entrar,
   // e encontra um produto partido sem ninguém saber porquê.
+  trace.stage = "verify";
   const gaps = await findProvisioningGaps(db, { tenantId, schoolId, adminUserId });
   if (gaps.length > 0) {
     await cleanupSchool(schoolId, adminUserId);
@@ -286,6 +366,7 @@ export async function provisionTenantCore(
     throw new Error(describeProvisioningGaps(gaps));
   }
 
+  trace.stage = "audit";
   await db.from("saas_audit_logs").insert({
     tenant_id: tenantId,
     user_id: opts.auditUserId,

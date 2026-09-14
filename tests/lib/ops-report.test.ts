@@ -57,6 +57,17 @@ describe("sanitizeLogFields", () => {
   it("aceita null como valor explícito", () => {
     expect(sanitizeLogFields({ reason: null })).toEqual({ reason: null });
   });
+
+  it("deixa passar o passo de um fluxo com vários passos", () => {
+    // `stage` entrou na lista para o provisionamento: quando a criação de uma
+    // escola falha, tudo é revertido e não fica registo nenhum na base — saber
+    // que parou em "domain" e não em "bootstrap" é a diferença entre
+    // diagnosticar e adivinhar.
+    expect(sanitizeLogFields({ stage: "domain", tenant_id: "ten-1" })).toEqual({
+      stage: "domain",
+      tenant_id: "ten-1",
+    });
+  });
 });
 
 describe("sanitizeAlertFields", () => {
@@ -70,6 +81,13 @@ describe("sanitizeAlertFields", () => {
     expect(sanitizeAlertFields(fields)).toEqual({
       school_id: "esc-1",
       code: "constraint_violation",
+    });
+  });
+
+  it("deixa sair o passo, que é valor nosso e não texto de utilizador", () => {
+    expect(sanitizeAlertFields({ stage: "verify", tenant_id: "ten-1" })).toEqual({
+      stage: "verify",
+      tenant_id: "ten-1",
     });
   });
 
@@ -96,6 +114,19 @@ describe("isAlertableEvent", () => {
   it("não alerta em eventos informativos", () => {
     expect(isAlertableEvent("finance.settlement.ok")).toBe(false);
     expect(isAlertableEvent("assessment.score.written")).toBe(false);
+  });
+
+  it("alerta em todos os modos de falha do provisionamento", () => {
+    // Os três merecem acordar alguém, por razões diferentes: a escola não
+    // nasceu, a reversão deixou lixo que ocupa o slug, ou a escola nasceu e o
+    // administrador não tem caminho para entrar.
+    expect(isAlertableEvent("tenant.provisioning.failed")).toBe(true);
+    expect(isAlertableEvent("tenant.provisioning.rollback.failed")).toBe(true);
+    expect(isAlertableEvent("tenant.provisioning.invite.failed")).toBe(true);
+  });
+
+  it("não alerta quando o provisionamento corre bem", () => {
+    expect(isAlertableEvent("tenant.provisioning.completed")).toBe(false);
   });
 });
 
