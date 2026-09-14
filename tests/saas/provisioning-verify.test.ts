@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   findProvisioningGaps,
   describeProvisioningGaps,
@@ -84,5 +86,38 @@ describe("findProvisioningGaps", () => {
     expect(msg).toContain("revertida");
     expect(msg).toContain("domínio");
     expect(msg).toContain("resolúvel por endereço");
+  });
+});
+
+/**
+ * As mesmas invariantes existem em dois sítios: `findProvisioningGaps`, que
+ * corre no momento da criação, e `scripts/siga/audit-provisioning.mjs`, que as
+ * aplica às escolas que já existem. Duas listas que se separam em silêncio
+ * dariam a resposta errada com ar de resposta certa — uma escola "completa" no
+ * script e incompleta na criação, ou o contrário.
+ *
+ * O script é lido como texto de propósito: importá-lo executaria a consulta à
+ * base.
+ */
+describe("o script de auditoria da frota não se separa da verificação em runtime", () => {
+  const raiz = resolve(__dirname, "../..");
+  const pecasDe = (ficheiro: string) =>
+    new Set(
+      [...readFileSync(resolve(raiz, ficheiro), "utf8").matchAll(/peca:\s*"([^"]+)"/g)].map(
+        (m) => m[1],
+      ),
+    );
+
+  it("o script cobre todas as peças verificadas na criação", () => {
+    const runtime = pecasDe("src/features/saas/provisioning-verify.ts");
+    const script = pecasDe("scripts/siga/audit-provisioning.mjs");
+
+    expect(runtime.size).toBeGreaterThanOrEqual(6);
+    const emFalta = [...runtime].filter((peca) => !script.has(peca));
+    expect(
+      emFalta,
+      `peças verificadas na criação e não auditadas na frota: ${emFalta.join(", ")}. ` +
+        `Uma escola pode ficar sem elas e o script diz que está bem.`,
+    ).toEqual([]);
   });
 });
