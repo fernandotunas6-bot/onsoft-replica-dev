@@ -39,6 +39,42 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
   return mapTenantRow(tenant as Record<string, unknown>);
 }
 
+/**
+ * Resolve o tenant a partir da escola do utilizador autenticado.
+ *
+ * Existe porque o hostname nem sempre chega para resolver a escola: o wildcard
+ * `*.PLATFORM_DOMAIN` é o que devia fazer `escola.portal-siga.com` funcionar, e
+ * enquanto não estiver configurado esses subdomínios não resolvem. Sem isto, um
+ * utilizador com escola atribuída entra por `app.PLATFORM_DOMAIN` e não vê
+ * instituição nenhuma — o hostname é reservado, não corresponde a nenhum
+ * `tenant_domains`, e a resolução devolve null.
+ *
+ * O isolamento não é afectado: a escola vem da membership resolvida no
+ * servidor, não de nada que o cliente possa influenciar. Devolve a mesma
+ * projecção pública, porque o resultado chega ao browser.
+ */
+export async function fetchTenantBySchoolId(schoolId: string): Promise<Tenant | null> {
+  if (!schoolId) return null;
+  const db = await loadSgaAdminClient();
+
+  const { data: school, error: schoolError } = await db
+    .from("schools")
+    .select("tenant_id")
+    .eq("id", schoolId)
+    .maybeSingle();
+  if (schoolError) throw publicDatabaseError(schoolError, "Não foi possível resolver a escola.");
+  if (!school?.tenant_id) return null;
+
+  const { data: tenant, error } = await db
+    .from("tenants")
+    .select(PUBLIC_TENANT_SELECT)
+    .eq("id", school.tenant_id)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
+  if (!tenant) return null;
+  return mapTenantRow(tenant as Record<string, unknown>);
+}
+
 export async function fetchTenantByHostname(hostname: string): Promise<Tenant | null> {
   const db = await loadSgaAdminClient();
   const host = hostname.trim().toLowerCase();

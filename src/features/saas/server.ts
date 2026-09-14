@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -13,6 +13,7 @@ import { provisionTenantCore } from "@/features/saas/provisioning-core";
 import {
   fetchTenantByHostname,
   fetchTenantBySlug,
+  fetchTenantBySchoolId,
   checkSlugAvailability,
 } from "@/features/saas/tenant-lookup";
 import { requirePlatformAdmin, requireTenantAccess } from "@/features/saas/platform-guard";
@@ -54,6 +55,28 @@ export const getTenantBySlug = createServerFn({ method: "GET" })
 export const getTenantByHostname = createServerFn({ method: "GET" })
   .validator((input: unknown) => tenantHostnameInputSchema.parse(input))
   .handler(async ({ data }): Promise<Tenant | null> => fetchTenantByHostname(data.hostname));
+
+/**
+ * Tenant da escola do utilizador autenticado, quando o hostname não chega.
+ *
+ * O desenho é resolver a escola pelo subdomínio, via wildcard
+ * `*.PLATFORM_DOMAIN`. Enquanto esse registo DNS não existir, os subdomínios
+ * das escolas não resolvem e o único host alcançável é `app.PLATFORM_DOMAIN` —
+ * que é reservado e não corresponde a nenhuma entrada em `tenant_domains`.
+ * Resultado: quem tem escola atribuída entra e não vê instituição nenhuma.
+ *
+ * Isto dá a essas contas um caminho que funciona sem depender de DNS. Não
+ * enfraquece o isolamento: a escola vem da membership resolvida no servidor a
+ * partir da sessão, exactamente como em todas as outras leituras.
+ */
+export const getTenantForCurrentUser = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<Tenant | null> => {
+    if (!context?.userId) return null;
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership?.schoolId) return null;
+    return fetchTenantBySchoolId(membership.schoolId);
+  });
 
 export const listPlans = createServerFn({ method: "GET" }).handler(async (): Promise<Plan[]> => {
   return fetchActivePlans();

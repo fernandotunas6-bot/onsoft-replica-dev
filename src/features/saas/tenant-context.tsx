@@ -5,7 +5,11 @@ import {
   resolveTenantLookup,
   isAdminSubdomain,
 } from "@/lib/saas/tenant-resolver";
-import { getTenantByHostname, getTenantBySlug } from "@/features/saas/server";
+import {
+  getTenantByHostname,
+  getTenantBySlug,
+  getTenantForCurrentUser,
+} from "@/features/saas/server";
 import { getTenantAccessBlock, type TenantAccessBlockReason } from "@/features/saas/tenant-access";
 import { DOC_PATHS, getDocUrl, getPricingUrl } from "@/lib/ecosystem-urls";
 
@@ -75,9 +79,17 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug });
         setActivePlan(null);
       } else {
-        // Fail closed in production: never fabricate a tenant when lookup fails.
-        setActiveTenant(null);
-        setActivePlan(null);
+        // O hostname não resolveu. Antes de desistir, tentar a escola da
+        // sessão: enquanto o wildcard `*.PLATFORM_DOMAIN` não existir, os
+        // subdomínios das escolas não resolvem e o único host alcançável é
+        // `app.PLATFORM_DOMAIN`, que é reservado. Sem isto, uma conta com
+        // escola atribuída entra e não vê instituição nenhuma.
+        //
+        // Continua a falhar fechado: a escola vem da membership resolvida no
+        // servidor, e se não houver membership activa fica null como antes.
+        const fromMembership = await getTenantForCurrentUser().catch(() => null);
+        setActiveTenant(fromMembership ?? null);
+        setActivePlan(fromMembership?.plans ?? null);
       }
     } catch (err) {
       console.warn("[TenantProvider] Error loading tenant:", err);
