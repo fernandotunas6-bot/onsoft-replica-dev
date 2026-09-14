@@ -1,7 +1,30 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+
+/**
+ * Terceira fatia do ARQ-01, e a que mais interessa: o dashboard lê alunos,
+ * matrículas, facturas, recibos e assiduidade — os dados que não podem
+ * atravessar escolas. Passa a ler com `context.supabase`, que leva o JWT e
+ * respeita RLS. Não escreve nada, o que torna esta fatia inteira e não parcial.
+ *
+ * Verificado antes de trocar, na produção a 2026-09-14, porque as políticas
+ * destas tabelas não são simples «mesma escola» — são sensíveis ao papel:
+ *
+ *   · `finance_invoices` só tem `private.has_permission(school_id,
+ *     'finance.invoices.read')`. Quem não tiver a permissão vê zero facturas.
+ *   · `students` tem três políticas somadas: a do professor (só as turmas
+ *     atribuídas), a de membro com `can_read_students()`, e a de permissão.
+ *
+ * A questão era se algum cartão passaria a aparecer vazio. Não passa: na base,
+ * `finance.invoices.read` pertence a admin, owner, treasury e guardian, e o
+ * gate desta função já era `["Administrador", "Tesouraria"]`; `students.records.read`
+ * pertence a seis papéis, mais do que os três que a função deixa entrar. Ou
+ * seja, para cada papel que chega aqui, a base concede pelo menos o que o
+ * TypeScript já concedia — o resultado é o mesmo e passa a haver duas barreiras
+ * em vez de uma.
+ */
 import { buildSchoolAlert, type SchoolAlert } from "./alerts";
 import { averagePercent } from "@/features/students/schemas";
 import { getPublicEnrollmentUrl } from "@/lib/ecosystem-urls";
@@ -133,7 +156,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) return emptyOverview();
-    const db = await loadSgaAdminClient();
+    const db = context.supabase;
 
     const role = membership.appRole;
     const schoolId = membership.schoolId;
@@ -509,7 +532,10 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         .limit(6);
       if (audits?.length) {
         overview.recentActivity = audits.map(
-          (row: { id: string; action: string; entity_type: string; occurred_at: string }) => {
+          // `audit_logs.id` é bigint na produção, não uuid. A anotação dizia
+          // `string` e ninguém reparou porque o cliente privilegiado não tem
+          // tipos; o `String(row.id)` abaixo já tratava o valor correctamente.
+          (row: { id: number; action: string; entity_type: string; occurred_at: string }) => {
             const op = String(row.action ?? "")
               .split(".")
               .at(-1)
@@ -558,7 +584,7 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
       return emptySchoolTodayOps(today);
     }
 
-    const db = await loadSgaAdminClient();
+    const db = context.supabase;
     const schoolId = membership.schoolId;
     const ops = emptySchoolTodayOps(today);
     const weekday = weekdayJsFromIso(today);
@@ -650,14 +676,20 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
 
     try {
       const mmDd = today.slice(5);
+      // A coluna é `date_of_birth`. O código pedia `birth_date`, que não existe
+      // em `people`: o PostgREST devolvia erro, o `catch` abaixo engolia-o, e o
+      // cartão «aniversários hoje» mostrava zero desde sempre. Só apareceu
+      // quando esta leitura passou a ser tipada — com o cliente privilegiado,
+      // que não tem tipos, um nome de coluna errado é indistinguível de um dia
+      // sem aniversários.
       const { data: people } = await db
         .from("people")
-        .select("id, birth_date")
+        .select("id, date_of_birth")
         .eq("school_id", schoolId)
-        .not("birth_date", "is", null)
+        .not("date_of_birth", "is", null)
         .limit(2000);
       ops.birthdaysToday = (people ?? []).filter(
-        (person) => String(person.birth_date ?? "").slice(5, 10) === mmDd,
+        (person) => String(person.date_of_birth ?? "").slice(5, 10) === mmDd,
       ).length;
     } catch {
       /* aniversários opcionais */
@@ -719,7 +751,7 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) return [] as SchoolAlert[];
-    const db = await loadSgaAdminClient();
+    const db = context.supabase;
     const role = membership.appRole;
     const schoolId = membership.schoolId;
     const canStudents = ["Administrador", "Secretaria"].includes(role);

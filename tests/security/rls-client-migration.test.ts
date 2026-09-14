@@ -28,6 +28,13 @@ const REPO = resolve(__dirname, "../..");
  */
 const MIGRADOS = [
   {
+    ficheiro: "src/features/dashboard/server.ts",
+    porque:
+      "só lê, e as três políticas somadas de students/enrollments/people mais a " +
+      "de finance_invoices concedem, a cada papel que a função deixa entrar, " +
+      "pelo menos o que o gate em TypeScript já concedia",
+  },
+  {
     ficheiro: "src/features/spotlight/server.ts",
     porque:
       "school_settings tem política SELECT para authenticated com " +
@@ -117,10 +124,11 @@ const privilegiados = ficheirosComClientePrivilegiado();
  * Desce quando um módulo migra; nunca sobe sem alguém decidir que sobe.
  *
  * Em 2026-09-14, antes da primeira fatia, eram 82 ficheiros a usar o service
- * role. Depois de migrar `access/grants.ts` e de justificar os sete de
- * privilégio-por-desenho, a dívida real é 74.
+ * role. Depois de migrar `access/grants.ts`, a leitura de `spotlight/server.ts`
+ * e `dashboard/server.ts`, e de justificar os sete de privilégio-por-desenho, a
+ * dívida real é 72.
  */
-const TECTO_FICHEIROS_PRIVILEGIADOS = 74;
+const TECTO_FICHEIROS_PRIVILEGIADOS = 72;
 
 describe("migração para o cliente que respeita RLS (ARQ-01)", () => {
   it("o conjunto inspeccionado é o que se diz", () => {
