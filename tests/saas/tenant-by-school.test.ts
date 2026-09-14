@@ -78,3 +78,26 @@ describe("fetchTenantBySchoolId", () => {
     }
   });
 });
+
+describe("quando a resolução por hostname não chega", () => {
+  it("os hosts da plataforma não resolvem para tenant nenhum", async () => {
+    // É esta a precondição que faz a resolução por membership ser necessária.
+    // `portal-siga.com` é o destino do wizard depois de criar a escola, e
+    // `app.portal-siga.com` é o único host alcançável enquanto o wildcard não
+    // existir. Ambos são da plataforma, não de uma escola: quem entrar por
+    // aqui não tem instituição resolvida pelo endereço.
+    const { resolveTenantLookup } = await import("@/lib/saas/tenant-resolver");
+
+    for (const host of ["portal-siga.com", "app.portal-siga.com", "admin.portal-siga.com"]) {
+      const lookup = resolveTenantLookup(host);
+      expect(lookup.mode, `${host} devia resolver como host de plataforma`).toBe("hostname");
+    }
+  });
+
+  it("um subdomínio de escola continua a resolver por slug", async () => {
+    // O caminho normal, para quando o wildcard estiver configurado.
+    const { resolveTenantLookup } = await import("@/lib/saas/tenant-resolver");
+    const lookup = resolveTenantLookup("ekovongo.portal-siga.com");
+    expect(lookup).toEqual({ mode: "slug", slug: "ekovongo" });
+  });
+});
