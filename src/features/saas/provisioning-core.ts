@@ -3,6 +3,10 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { CreateSchoolWizardInput } from "@/features/saas/schemas";
 import { syncTenantUsageForSchool } from "@/features/saas/usage-sync";
 import { bootstrapSchoolDefaults } from "@/features/saas/school-bootstrap";
+import {
+  describeProvisioningGaps,
+  findProvisioningGaps,
+} from "@/features/saas/provisioning-verify";
 import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
 import { createSchoolAdminAccount, type SchoolAdminAccount } from "@/features/saas/admin-account";
 
@@ -269,6 +273,18 @@ export async function provisionTenantCore(
     slug: data.slug,
     adminUserId,
   });
+
+  // Confirmar o conjunto antes de declarar sucesso. Cada passo acima já lança
+  // em caso de erro, mas nada afirmava o resultado — e uma escola meio-criada é
+  // pior do que uma criação falhada: o cliente recebe confirmação, tenta entrar,
+  // e encontra um produto partido sem ninguém saber porquê.
+  const gaps = await findProvisioningGaps(db, { tenantId, schoolId, adminUserId });
+  if (gaps.length > 0) {
+    await cleanupSchool(schoolId, adminUserId);
+    await db.auth.admin.deleteUser(adminUserId).catch(() => undefined);
+    await cleanupTenant();
+    throw new Error(describeProvisioningGaps(gaps));
+  }
 
   await db.from("saas_audit_logs").insert({
     tenant_id: tenantId,
