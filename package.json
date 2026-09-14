@@ -34,6 +34,7 @@
     "siga:db-snapshot": "node scripts/siga/capture-db-snapshot.mjs",
     "siga:check-dns": "node scripts/siga/check-platform-dns.mjs",
     "siga:audit-provisioning": "node scripts/siga/audit-provisioning.mjs",
+    "siga:rls-readiness": "node scripts/siga/rls-readiness.mjs",
     "siga:db-ddl": "node scripts/siga/capture-table-ddl.mjs",
     "siga:sql:verify": "node scripts/siga/print-apply-sql.mjs --verify",
     "siga:sql:patch": "node scripts/siga/print-missing-patch.mjs",
