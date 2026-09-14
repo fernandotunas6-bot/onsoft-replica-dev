@@ -637,10 +637,14 @@ export const createPerson = createServerFn({ method: "POST" })
         school_id: membership.schoolId,
         person_id: person.id,
         admission_date: new Date().toISOString().slice(0, 10),
-        guardian_person_id: firstRelationship?.related_person_id ?? null,
+        // `undefined` e não `null`: os parâmetros `guardian_person_id` e
+        // `relationship` de `register_student` têm `DEFAULT NULL` na base, pelo
+        // que omitir e passar NULL dão o mesmo resultado — e os tipos gerados da
+        // produção declaram-nos opcionais, não nulláveis.
+        guardian_person_id: firstRelationship?.related_person_id ?? undefined,
         relationship: firstRelationship
           ? mapSgaGuardianRelationship(firstRelationship.relationship_type)
-          : null,
+          : undefined,
         primary_guardian: Boolean(firstRelationship),
         financial_responsibility: firstRelationship?.relationship_type === "responsavel_financeiro",
         pickup_authorization: true,

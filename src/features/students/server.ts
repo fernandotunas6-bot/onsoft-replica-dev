@@ -651,8 +651,14 @@ export const createStudent = createServerFn({ method: "POST" })
         school_id: membership.schoolId,
         person_id: data.personId,
         admission_date: data.admittedOn ?? new Date().toISOString().slice(0, 10),
-        guardian_person_id: firstGuardian?.guardian_person_id ?? null,
-        relationship: firstGuardian ? mapSgaGuardianRelationship(firstGuardian.relationship) : null,
+        // `undefined` e não `null`: os parâmetros `guardian_person_id` e
+        // `relationship` de `register_student` têm `DEFAULT NULL` na base, pelo
+        // que omitir e passar NULL dão o mesmo resultado — e os tipos gerados da
+        // produção declaram-nos opcionais, não nulláveis.
+        guardian_person_id: firstGuardian?.guardian_person_id ?? undefined,
+        relationship: firstGuardian
+          ? mapSgaGuardianRelationship(firstGuardian.relationship)
+          : undefined,
         primary_guardian: firstGuardian?.is_primary ?? false,
         financial_responsibility: firstGuardian?.is_primary ?? false,
         pickup_authorization: firstGuardian?.authorized_pickup ?? true,
@@ -798,8 +804,14 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
         school_id: membership.schoolId,
         person_id: person.id,
         admission_date: data.admittedOn ?? new Date().toISOString().slice(0, 10),
-        guardian_person_id: firstGuardian?.guardian_person_id ?? null,
-        relationship: firstGuardian ? mapSgaGuardianRelationship(firstGuardian.relationship) : null,
+        // `undefined` e não `null`: os parâmetros `guardian_person_id` e
+        // `relationship` de `register_student` têm `DEFAULT NULL` na base, pelo
+        // que omitir e passar NULL dão o mesmo resultado — e os tipos gerados da
+        // produção declaram-nos opcionais, não nulláveis.
+        guardian_person_id: firstGuardian?.guardian_person_id ?? undefined,
+        relationship: firstGuardian
+          ? mapSgaGuardianRelationship(firstGuardian.relationship)
+          : undefined,
         primary_guardian: firstGuardian?.is_primary ?? false,
         financial_responsibility: firstGuardian?.is_primary ?? false,
         pickup_authorization: firstGuardian?.authorized_pickup ?? true,

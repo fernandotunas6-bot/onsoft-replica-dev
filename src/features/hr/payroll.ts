@@ -35,7 +35,8 @@ export const createPayrollRun = createServerFn({ method: "POST" })
     const { data: result, error } = await context.supabase.rpc("hr_create_payroll_run", {
       p_year: data.year,
       p_month: data.month,
-      p_notes: data.notes || null,
+      // `p_notes` tem DEFAULT NULL na base; omitir é o mesmo que passar NULL.
+      p_notes: data.notes || undefined,
     });
     if (error) throw publicDatabaseError(error, "Não foi possível criar a competência salarial.");
     return result;

@@ -385,10 +385,11 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           school_id: membership.schoolId,
           person_id: personRow.id,
           admission_date: new Date().toISOString().slice(0, 10),
-          guardian_person_id: guardianPersonId,
+          guardian_person_id: guardianPersonId ?? undefined,
+          // Ver nota em students/server.ts: DEFAULT NULL na base, opcional nos tipos.
           relationship: guardianPersonId
             ? mapSgaGuardianRelationship(payload.guardianRelationship || "encarregado")
-            : null,
+            : undefined,
           primary_guardian: Boolean(guardianPersonId),
           financial_responsibility: Boolean(guardianPersonId),
           pickup_authorization: true,
