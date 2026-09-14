@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="pt" className={`${inter.variable} antialiased`} suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <ThemeProvider defaultTheme="system" storageKey="nextjs-ui-theme">
+        <ThemeProvider defaultTheme="light" storageKey="nextjs-ui-theme">
           <LanguageProvider>
             <SidebarConfigProvider>
               {children}

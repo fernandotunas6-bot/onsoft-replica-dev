@@ -19,7 +19,7 @@ function App() {
   return (
     <div className="font-sans antialiased" style={{ fontFamily: 'var(--font-inter)' }}>
       <ErrorBoundary>
-        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
           <LanguageProvider>
             <SidebarConfigProvider>
               <Router basename={basename}>

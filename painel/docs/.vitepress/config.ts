@@ -16,6 +16,13 @@ export default defineConfig({
   description: 'Documentação Oficial da Plataforma SIGA Plus - Sistema Proprietário de Gestão Académica e Administrativa.',
   ignoreDeadLinks: true,
 
+  // Claro por omissão, como no resto do ecossistema (SIGA, WEB, ADMIN).
+  // O selector de tema continua disponível e a escolha do leitor persiste.
+  // O VitePress tipa `initialValue` como `'dark'` porque só prevê desviar do
+  // automático nesse sentido; 'light' é aceite em runtime tanto pelo script
+  // injectado no `<head>` como pelo `useDark` do cliente.
+  appearance: { initialValue: 'light' } as { initialValue: 'dark' },
+
   vite: {
     optimizeDeps: {
       include: ['vue'],
