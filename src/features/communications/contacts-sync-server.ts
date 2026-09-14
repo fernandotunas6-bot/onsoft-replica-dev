@@ -66,9 +66,12 @@ export const syncSchoolContactsToResendFn = createServerFn({ method: "POST" })
     }
 
     const { data: profiles } = await db
-      .from("profiles")
+      // `profiles` não tem coluna `email` — o e-mail vive em `people` (e em
+      // `auth.users`). Com `email` no select, o PostgREST recusava a consulta
+      // inteira e o resultado vinha vazio, indistinguível de «não há contactos».
+      .from("people")
       .select("email, full_name")
-      .in("id", userIds)
+      .in("user_id", userIds)
       .limit(200);
 
     let syncedCount = 0;

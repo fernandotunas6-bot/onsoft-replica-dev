@@ -81,10 +81,15 @@ function fail(label, json) {
  *      todos os planos, incluindo o Free, que é o desta zona.
  *   2. **Rota do Worker** `*.{{DOMAIN}}/*` → SIGA, criada mais abaixo.
  *
- * Usa-se `CNAME *.{{DOMAIN}} → {{DOMAIN}}`, proxied, em vez do prefixo de
- * descarte `AAAA 100::`: a própria Cloudflare desaconselha o segundo, e como
- * é proxied com Worker à frente a origem nunca é contactada. Um Custom Domain
- * não serve aqui — esses são hostnames exactos, e o que se quer é o wildcard.
+ * Usa `AAAA 100::` proxied, que é a convenção já em uso nesta zona — a raiz,
+ * `app`, `payflow` e (por resolução manual) `minha-escola` são todos assim. É
+ * o prefixo de descarte IPv6: como o pedido é proxied e há um Worker à frente,
+ * a origem nunca é contactada. A Cloudflare prefere Custom Domains a este
+ * padrão, mas Custom Domains são hostnames exactos e aqui é precisamente o
+ * wildcard que se quer.
+ *
+ * Criado em produção a 2026-09-14 e verificado de fora: `ekovongo.{{DOMAIN}}`
+ * responde 200 com o dashboard do SIGA.
  */
 async function ensureWildcardDns() {
   const name = `*.${PLATFORM}`;
@@ -119,9 +124,9 @@ async function ensureWildcardDns() {
   }
 
   const created = await cf("POST", `/zones/${ZONE}/dns_records`, {
-    type: "CNAME",
-    name,
-    content: PLATFORM,
+    type: "AAAA",
+    name: "*",
+    content: "100::",
     proxied: true,
     ttl: 1,
     comment: "Escolas SIGA: escola.{{DOMAIN}} → Worker. Ver PRD-01 da auditoria.".replace(
@@ -133,7 +138,7 @@ async function ensureWildcardDns() {
     fail(`criar ${name}`, created);
     return false;
   }
-  console.log(`✓ DNS: ${name} criado (CNAME → ${PLATFORM}, proxied)`);
+  console.log(`✓ DNS: ${name} criado (AAAA → 100::, proxied)`);
   return true;
 }
 

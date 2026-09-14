@@ -561,7 +561,8 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
 
     const { data: classRecords } = await db
       .from("siga_attendance_records")
-      .select("student_id, status, attendance_session_id")
+      // A coluna é `session_id`.
+      .select("student_id, status, session_id")
       .eq("school_id", membership.schoolId)
       .eq("date", todayStr);
 

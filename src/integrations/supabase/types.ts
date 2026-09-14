@@ -9330,33 +9330,42 @@ export type Database = {
       };
       tenant_domains: {
         Row: {
+          check_count: number;
           created_at: string;
           hostname: string;
           id: string;
+          last_checked_at: string | null;
           ssl_status: string | null;
           status: string;
           tenant_id: string;
           type: string;
+          updated_at: string;
           verified_at: string | null;
         };
         Insert: {
+          check_count?: number;
           created_at?: string;
           hostname: string;
           id?: string;
+          last_checked_at?: string | null;
           ssl_status?: string | null;
           status?: string;
           tenant_id: string;
           type: string;
+          updated_at?: string;
           verified_at?: string | null;
         };
         Update: {
+          check_count?: number;
           created_at?: string;
           hostname?: string;
           id?: string;
+          last_checked_at?: string | null;
           ssl_status?: string | null;
           status?: string;
           tenant_id?: string;
           type?: string;
+          updated_at?: string;
           verified_at?: string | null;
         };
         Relationships: [

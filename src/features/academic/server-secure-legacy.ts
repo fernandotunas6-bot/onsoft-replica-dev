@@ -578,7 +578,10 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
 
     const { data: years, error: yearsError } = await db
       .from("academic_years")
-      .select("id, name, code, starts_on")
+      // `academic_years` não tem `code` — com ela no select o PostgREST recusa
+      // a consulta, e o `throw` abaixo fazia este endpoint falhar sempre. O
+      // `code` devolvido já usava o nome como alternativa; passa a usá-lo só.
+      .select("id, name, starts_on")
       .eq("school_id", membership.schoolId)
       .order("starts_on", { ascending: false });
     if (yearsError) {
@@ -590,7 +593,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         academicYears: (years ?? []).map((row) => ({
           id: String(row.id),
           name: String(row.name ?? ""),
-          code: String(row.code ?? row.name ?? ""),
+          code: String(row.name ?? ""),
         })),
         courses: [],
         gradeLevels: [],
@@ -887,7 +890,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       .map((year) => ({
         id: String(year.id),
         name: String(year.name ?? ""),
-        code: String(year.code ?? year.name ?? ""),
+        code: String(year.name ?? ""),
       }));
 
     return {

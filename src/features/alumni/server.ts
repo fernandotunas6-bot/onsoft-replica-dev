@@ -158,7 +158,10 @@ export const getAlumniProfile = createServerFn({ method: "GET" })
     ] = await Promise.all([
       db
         .from("people")
-        .select("id, full_name, email, phone, photo_url, birth_date, gender")
+        // `date_of_birth`, não `birth_date`: a coluna de `people` chama-se assim.
+        // O nome errado faz o PostgREST recusar o select inteiro, e como o erro
+        // não é lido aqui, o perfil Alumni ficava sem dados pessoais nenhuns.
+        .select("id, full_name, email, phone, photo_url, date_of_birth, gender")
         .eq("school_id", membership.schoolId)
         .eq("id", profile.person_id)
         .maybeSingle(),
@@ -170,10 +173,11 @@ export const getAlumniProfile = createServerFn({ method: "GET" })
         .maybeSingle(),
       db
         .from("enrollments")
-        .select("id, academic_year_id, class_group_id, status, enrolled_at")
+        // `enrolled_on`, não `enrolled_at`.
+        .select("id, academic_year_id, class_group_id, status, enrolled_on")
         .eq("school_id", membership.schoolId)
         .eq("student_id", profile.student_id)
-        .order("enrolled_at", { ascending: false }),
+        .order("enrolled_on", { ascending: false }),
       db
         .from("alumni_experiences")
         .select("*")

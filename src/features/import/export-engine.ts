@@ -55,7 +55,7 @@ export async function exportSchoolData(
           people!inner(
             full_name,
             national_id,
-            gender,
+            sex,
             date_of_birth,
             phone,
             email,
@@ -105,7 +105,7 @@ export async function exportSchoolData(
           s.student_number || "",
           p?.full_name || "",
           p?.national_id || "",
-          p?.gender || "",
+          p?.sex || "",
           p?.date_of_birth || "",
           p?.phone || "",
           p?.email || "",
@@ -127,7 +127,7 @@ export async function exportSchoolData(
           people!inner(
             full_name,
             national_id,
-            gender,
+            sex,
             phone,
             email
           )
@@ -163,7 +163,7 @@ export async function exportSchoolData(
           p?.full_name || "",
           t.employee_number || "",
           p?.national_id || "",
-          p?.gender || "",
+          p?.sex || "",
           p?.phone || "",
           p?.email || "",
           t.specialty || "",
@@ -282,7 +282,7 @@ export async function exportSchoolData(
     if (mod === "pessoas") {
       const { data: people } = await db
         .from("people")
-        .select("id, full_name, national_id, gender, date_of_birth, phone, email, address")
+        .select("id, full_name, national_id, sex, date_of_birth, phone, email, address")
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -311,7 +311,7 @@ export async function exportSchoolData(
         sheet.addRow([
           p.full_name || "",
           p.national_id || "",
-          p.gender || "",
+          p.sex || "",
           p.date_of_birth || "",
           p.phone || "",
           p.email || "",
@@ -324,7 +324,8 @@ export async function exportSchoolData(
     if (mod === "disciplinas") {
       const { data: subjects } = await db
         .from("subjects")
-        .select("id, name, code, short_name, workload_hours")
+        // A coluna de carga horária é `annual_hours`.
+        .select("id, name, code, short_name, annual_hours")
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -351,7 +352,7 @@ export async function exportSchoolData(
           sub.name || "",
           sub.code || "",
           sub.short_name || "",
-          sub.workload_hours != null ? sub.workload_hours : "",
+          sub.annual_hours != null ? sub.annual_hours : "",
         ]);
       }
       autoFitColumns(sheet);

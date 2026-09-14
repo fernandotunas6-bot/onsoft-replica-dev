@@ -1226,13 +1226,16 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
     if (data.invoiceId) {
       const { data: invoiceRow } = await db
         .from("finance_invoices")
-        .select("total_amount, amount, discount_amount")
+        // `total_amount` não existe em `finance_invoices` (as colunas são
+        // `amount` e `discount_amount`). Com ela no select, o PostgREST recusava
+        // a consulta inteira: `invoiceRow` vinha null e o valor da referência
+        // ficava por resolver — a defesa do `||` abaixo nunca chegava a correr.
+        .select("amount, discount_amount")
         .eq("id", data.invoiceId)
         .eq("school_id", membership.schoolId)
         .maybeSingle();
       if (invoiceRow) {
         invoiceAmount =
-          Number(invoiceRow.total_amount ?? 0) ||
           Number(invoiceRow.amount ?? 0) - Number(invoiceRow.discount_amount ?? 0);
       }
     }

@@ -1450,9 +1450,22 @@ export const getStudentStatusHistory = createServerFn({ method: "GET" })
     ] as string[];
 
     const { data: profiles } = userIds.length
-      ? await db.from("profiles").select("id, full_name, email").in("id", userIds)
-      : { data: [] as Array<{ id: string; full_name: string | null; email: string | null }> };
-    const userMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name || p.email]));
+      ? // `profiles` não tem `email`: a coluna vive em `people`, ligada por
+        // `user_id`. Com `email` no select o PostgREST recusava tudo, e o mapa
+        // de nomes ficava vazio sem que nada o dissesse.
+        await db.from("people").select("user_id, full_name, email").in("user_id", userIds)
+      : {
+          data: [] as Array<{
+            user_id: string | null;
+            full_name: string | null;
+            email: string | null;
+          }>,
+        };
+    const userMap = new Map(
+      (profiles ?? [])
+        .filter((p) => p.user_id)
+        .map((p) => [String(p.user_id), p.full_name || p.email]),
+    );
 
     const events: Array<{
       id: string;

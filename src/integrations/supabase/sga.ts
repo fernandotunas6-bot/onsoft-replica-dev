@@ -97,16 +97,27 @@ export async function listUserSchoolMemberships(
   let schoolsMap = new Map<string, { name: string; slug: string | null }>();
   if (schoolIds.length) {
     try {
+      // O slug é do tenant, não da escola: `schools` não tem coluna `slug`. Com
+      // ela no select, o PostgREST recusava a consulta inteira — e o `catch`
+      // abaixo engolia o erro, deixando `schoolsMap` vazio. Consequência: nem o
+      // slug nem o **nome** da escola chegavam ao contexto da conta, e quem lê
+      // `schoolName`/`schoolSlug` recebia null desde sempre.
       const { data: schoolsData } = await db
         .from("schools")
-        .select("id, name, slug")
+        .select("id, name, tenants(slug)")
         .in("id", schoolIds);
       if (schoolsData) {
         schoolsMap = new Map(
-          schoolsData.map((s: { id: string; name: string; slug?: string | null }) => [
-            s.id,
-            { name: s.name, slug: s.slug ?? null },
-          ]),
+          schoolsData.map(
+            (s: {
+              id: string;
+              name: string;
+              tenants?: { slug?: string | null } | { slug?: string | null }[] | null;
+            }) => {
+              const tenant = Array.isArray(s.tenants) ? s.tenants[0] : s.tenants;
+              return [s.id, { name: s.name, slug: tenant?.slug ?? null }];
+            },
+          ),
         );
       }
     } catch {

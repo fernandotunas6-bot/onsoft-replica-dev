@@ -47,7 +47,17 @@ const QUERIES = {
   tabelas: `select c.relname as tabela, c.relrowsecurity as rls, c.relforcerowsecurity as rls_forcada,
       has_table_privilege('anon', c.oid, 'SELECT') as anon_select,
       has_table_privilege('authenticated', c.oid, 'SELECT') as auth_select,
-      (select count(*) from pg_policies p where p.schemaname='public' and p.tablename=c.relname) as politicas
+      (select count(*) from pg_policies p where p.schemaname='public' and p.tablename=c.relname) as politicas,
+      -- As colunas entram no retrato porque um nome de coluna errado não é
+      -- apanhado por nada: o caminho privilegiado não tem tipos e o PostgREST
+      -- recusa o select inteiro, erro que quase sempre é tratado como «não há
+      -- dados». Ver tests/security/colunas-inexistentes.test.ts.
+      -- to_jsonb e nao array_agg: o CLI devolveria o literal de array do
+      -- Postgres como string, e quem o lesse acabava com um conjunto de
+      -- caracteres em vez de colunas.
+      (select coalesce(to_jsonb(array_agg(a.attname order by a.attnum)), '[]'::jsonb)
+         from pg_attribute a
+        where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped) as colunas
     from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relkind='r' order by c.relname`,
 

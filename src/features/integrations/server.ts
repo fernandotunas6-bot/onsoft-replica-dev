@@ -485,9 +485,12 @@ async function listSchoolStaffEmails(
     const userIds = memberships.map((row) => row.user_id).filter(Boolean);
     if (!userIds.length) return [];
     const { data: profiles } = await db
-      .from("profiles")
+      // `profiles` não tem coluna `email` — o e-mail vive em `people` (e em
+      // `auth.users`). Com `email` no select, o PostgREST recusava a consulta
+      // inteira e o resultado vinha vazio, indistinguível de «não há contactos».
+      .from("people")
       .select("email")
-      .in("id", userIds)
+      .in("user_id", userIds)
       .limit(80);
     return normalizeResendRecipients((profiles ?? []).map((row) => String(row.email ?? "")));
   } catch {
