@@ -65,6 +65,78 @@ function fail(label, json) {
   console.error(`✗ ${label}`, JSON.stringify(json.errors || json, null, 2));
 }
 
+/**
+ * O wildcard `*.{{DOMAIN}}`, que é o que faz `escola.{{DOMAIN}}` existir.
+ *
+ * Este script assumia-o criado — só o lia, em `findSigaWorker` — e não estava.
+ * Consequência: a base marca todos os domínios de escola como `active`, o
+ * provisionamento dá a criação por boa, e nenhum subdomínio de escola resolve.
+ * Foi o achado mais consequente desta auditoria (PRD-01).
+ *
+ * São duas peças, e faltar uma não resolve nada:
+ *
+ *   1. **Registo DNS.** A Cloudflare exige um registo DNS para o nome ser
+ *      proxied e poder invocar um Worker — uma rota com wildcard não faz um
+ *      nome resolver por si. Registos wildcard proxied estão disponíveis em
+ *      todos os planos, incluindo o Free, que é o desta zona.
+ *   2. **Rota do Worker** `*.{{DOMAIN}}/*` → SIGA, criada mais abaixo.
+ *
+ * Usa-se `CNAME *.{{DOMAIN}} → {{DOMAIN}}`, proxied, em vez do prefixo de
+ * descarte `AAAA 100::`: a própria Cloudflare desaconselha o segundo, e como
+ * é proxied com Worker à frente a origem nunca é contactada. Um Custom Domain
+ * não serve aqui — esses são hostnames exactos, e o que se quer é o wildcard.
+ */
+async function ensureWildcardDns() {
+  const name = `*.${PLATFORM}`;
+  const list = await cf("GET", `/zones/${ZONE}/dns_records?name=${encodeURIComponent(name)}`);
+  if (!list.success) {
+    const motivo = (list.errors || []).map((e) => e.message).join("; ");
+    console.error(`✗ Não foi possível ler os registos DNS: ${motivo || "erro desconhecido"}`);
+    console.error(
+      "   O token precisa da permissão Zone → DNS → Edit nesta zona. " +
+        "Sem ela este passo não pode correr, e é ele que torna as escolas alcançáveis.",
+    );
+    return false;
+  }
+
+  const existente = (list.result || [])[0];
+  if (existente) {
+    if (existente.proxied) {
+      console.log(`· DNS: ${name} já existe (${existente.type} → ${existente.content}, proxied)`);
+      return true;
+    }
+    // Existe mas sem proxy: o Worker nunca vê o pedido, logo a escola continua
+    // inalcançável. Corrigir em vez de dar por feito.
+    const patch = await cf("PATCH", `/zones/${ZONE}/dns_records/${existente.id}`, {
+      proxied: true,
+    });
+    if (!patch.success) {
+      fail(`activar proxy em ${name}`, patch);
+      return false;
+    }
+    console.log(`✓ DNS: ${name} passou a proxied`);
+    return true;
+  }
+
+  const created = await cf("POST", `/zones/${ZONE}/dns_records`, {
+    type: "CNAME",
+    name,
+    content: PLATFORM,
+    proxied: true,
+    ttl: 1,
+    comment: "Escolas SIGA: escola.{{DOMAIN}} → Worker. Ver PRD-01 da auditoria.".replace(
+      "{{DOMAIN}}",
+      PLATFORM,
+    ),
+  });
+  if (!created.success) {
+    fail(`criar ${name}`, created);
+    return false;
+  }
+  console.log(`✓ DNS: ${name} criado (CNAME → ${PLATFORM}, proxied)`);
+  return true;
+}
+
 async function ensurePagesDomain(project, hostname) {
   const list = await cf("GET", `/accounts/${ACCOUNT}/pages/projects/${project}/domains`);
   if (!list.success) {
@@ -188,6 +260,11 @@ const sigaWorker = await findSigaWorker();
 console.log(`SIGA worker: ${sigaWorker}\n`);
 
 const results = [];
+
+// 0) O wildcard primeiro: é o que faz as escolas existirem. Os passos
+// seguintes criam excepções mais específicas por cima dele.
+results.push(await ensureWildcardDns());
+results.push(await ensureWorkerRoute(`*.${PLATFORM}/*`, sigaWorker));
 
 // 1) Bypass Worker nos hosts Pages (mais específico que o wildcard)
 for (const host of [`www.${PLATFORM}`, `admin.${PLATFORM}`, `docs.${PLATFORM}`]) {
