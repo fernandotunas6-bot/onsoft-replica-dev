@@ -15,6 +15,7 @@ describe("SaaS Control Center schemas", () => {
   it("validates a complete school wizard payload", () => {
     const parsed = createSchoolWizardInputSchema.parse({
       name: "Colégio Horizonte",
+      nif: "5417000000",
       contact_name: "Dr. Manuel K.",
       contact_email: "direcao@horizonte.co.ao",
       plan_code: "professional",
@@ -31,6 +32,7 @@ describe("SaaS Control Center schemas", () => {
     expect(() =>
       createSchoolWizardInputSchema.parse({
         name: "Colégio Horizonte",
+        nif: "5417000000",
         contact_name: "Dr. Manuel K.",
         contact_email: "direcao@horizonte.co.ao",
         plan_code: "professional",
@@ -46,6 +48,7 @@ describe("SaaS Control Center schemas", () => {
       expect(() =>
         createSchoolWizardInputSchema.parse({
           name: "Colégio Teste",
+          nif: "5417000000",
           contact_name: "Responsável",
           contact_email: "teste@escola.ao",
           plan_code: "start",
@@ -61,6 +64,7 @@ describe("SaaS Control Center schemas", () => {
     expect(() =>
       createSchoolWizardInputSchema.parse({
         name: "Colégio Horizonte",
+        nif: "5417000000",
         contact_name: "Dr. Manuel K.",
         contact_email: "direcao@horizonte.co.ao",
         plan_code: "professional",
@@ -137,6 +141,7 @@ describe("SaaS Control Center schemas", () => {
   it("accepts a public signup payload without trial_days", () => {
     const parsed = publicSchoolSignupInputSchema.parse({
       name: "Colégio Horizonte",
+      nif: "5417000000",
       contact_name: "Dr. Manuel K.",
       contact_email: "direcao@horizonte.co.ao",
       plan_code: "start",
@@ -152,6 +157,7 @@ describe("SaaS Control Center schemas", () => {
     expect(() =>
       publicSchoolSignupInputSchema.parse({
         name: "Colégio Horizonte",
+        nif: "5417000000",
         contact_name: "Dr. Manuel K.",
         contact_email: "direcao@horizonte.co.ao",
         plan_code: "start",
@@ -166,6 +172,7 @@ describe("SaaS Control Center schemas", () => {
     expect(() =>
       publicSchoolSignupInputSchema.parse({
         name: "Colégio Horizonte",
+        nif: "5417000000",
         contact_name: "Dr. Manuel K.",
         contact_email: "direcao@horizonte.co.ao",
         plan_code: "start",
@@ -181,6 +188,7 @@ describe("SaaS Control Center schemas", () => {
     expect(() =>
       publicSchoolSignupInputSchema.parse({
         name: "Colégio Horizonte",
+        nif: "5417000000",
         contact_name: "Dr. Manuel K.",
         contact_email: "direcao@horizonte.co.ao",
         plan_code: "start",

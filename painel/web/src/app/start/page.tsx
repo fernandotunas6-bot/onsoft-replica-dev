@@ -43,10 +43,25 @@ const SUPPORT_EMAIL = String(import.meta.env["VITE_SUPPORT_EMAIL"] ?? "").trim()
 
 const schema = z.object({
   name: z.string().trim().min(2, "Nome da escola obrigatório"),
-  nif: z.string().trim().optional(),
+  // Obrigatório e validado do mesmo modo que no servidor. Era opcional, e o
+  // resultado foi 85 das 87 escolas em produção sem NIF — sem o qual não
+  // conseguem exportar SAF-T para a AGT nem emitir documento fiscal válido.
+  // Melhor recusar aqui, com a mensagem certa, do que deixar a escola descobrir
+  // meses depois na altura de declarar.
+  nif: z
+    .string()
+    .trim()
+    .min(1, "NIF obrigatório — necessário para facturação e SAF-T (AGT)")
+    .regex(/^[0-9]{9,10}$/, "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos)"),
   city: z.string().trim().optional(),
   address: z.string().trim().optional(),
-  phone: z.string().trim().optional(),
+  phone: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^\+?(244)?9\d{8}$/.test(v.replace(/[\s-]/g, "")), {
+      message: "Telefone inválido. Use +244 9XX XXX XXX",
+    }),
   email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
   contact_name: z.string().trim().min(2, "Nome do responsável obrigatório"),
   contact_role: z.string().trim().optional(),
@@ -55,7 +70,24 @@ const schema = z.object({
   plan_code: z.enum(["start", "professional", "business", "enterprise"]),
   admin_name: z.string().trim().min(2, "Nome do administrador obrigatório"),
   admin_email: z.string().trim().email("E-mail do administrador inválido"),
-  admin_password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres"),
+  // Espelha adminPasswordSchema no servidor. Se o formulário aceitasse o que o
+  // servidor recusa, o cliente só via o erro depois de submeter tudo.
+  admin_password: z
+    .string()
+    .min(10, "A senha deve ter pelo menos 10 caracteres")
+    .refine((v) => /[a-zA-Z]/.test(v) && /[0-9]/.test(v), {
+      message: "A senha deve combinar letras e números",
+    })
+    .refine((v) => !/^(.)\1+$/.test(v), { message: "A senha não pode ser o mesmo caracter repetido" })
+    .refine((v) => !/^\d+$/.test(v.trim()), { message: "A senha não pode ser só dígitos" })
+    .refine(
+      (v) =>
+        ![
+          "password", "passw0rd", "senha", "senhasenha", "qwerty", "qwertyuiop",
+          "abc123", "abcd1234", "admin123", "escola123", "1234567890",
+        ].includes(v.trim().toLowerCase().replace(/[^a-z0-9]/g, "")),
+      { message: "Esta senha é demasiado comum. Escolha outra" },
+    ),
   admin_password_confirm: z.string().min(1, "Confirme a senha"),
   slug: z
     .string()
@@ -415,7 +447,7 @@ export function StartSchoolWizard() {
               <>
                 <Field form={form} name="name" label="Nome da instituição" />
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field form={form} name="nif" label="NIF (opcional)" />
+                  <Field form={form} name="nif" label="NIF da instituição" />
                   <Field form={form} name="city" label="Cidade" />
                 </div>
                 <Field form={form} name="address" label="Endereço (opcional)" />

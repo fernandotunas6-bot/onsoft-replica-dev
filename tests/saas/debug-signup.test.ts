@@ -5,6 +5,7 @@ test.skipIf(!process.env.SUPABASE_SECRET_KEY)("debug full signup final", async (
   const result = await provisionTenantCore(
     {
       name: "Bug Fix Final " + Date.now(),
+      nif: "5417000000",
       contact_name: "Valentino Final",
       contact_email: "valentino.final+" + Date.now() + "@gmail.com",
       plan_code: "start",

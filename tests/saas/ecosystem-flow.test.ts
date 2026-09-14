@@ -58,6 +58,7 @@ describe("ecossistema — contratos Fase 13", () => {
   it("valida payload mínimo do wizard WEB → API signup", () => {
     const payload = publicSchoolSignupInputSchema.parse({
       name: "Escola Nova",
+      nif: "5417000000",
       contact_name: "Director",
       contact_email: "dir@escola.ao",
       plan_code: "start",
@@ -87,6 +88,7 @@ describe("ecossistema — contratos Fase 13", () => {
   it("aceita slug da escola demo no contrato de signup", () => {
     const payload = publicSchoolSignupInputSchema.parse({
       name: "Complexo Dom Afonso I",
+      nif: "5417000000",
       contact_name: "Director",
       contact_email: "geral@siga-demo.ao",
       plan_code: "enterprise",

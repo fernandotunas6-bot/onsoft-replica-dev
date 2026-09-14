@@ -1,21 +1,100 @@
 import { z } from "zod";
 import { isReservedSubdomain } from "@/lib/saas/platform-domain";
+import { validateSchoolNif } from "@/lib/angola-identity";
+import { validateAngolaPhone } from "@/lib/angola-phone";
+
+/**
+ * Telefone angolano, quando preenchido.
+ *
+ * `validateAngolaPhone` já é usada na matrícula, na autenticação e no módulo de
+ * pessoas. O registo de escola aceitava `z.string().optional()` — qualquer
+ * texto passava. Aqui o campo continua opcional, mas deixa de aceitar lixo.
+ */
+const optionalAngolaPhone = z
+  .string()
+  .trim()
+  .optional()
+  .refine((value) => !value || validateAngolaPhone(value).ok, {
+    message: "Telefone inválido. Use +244 9XX XXX XXX.",
+  });
+
+/**
+ * Senha do administrador da escola.
+ *
+ * Esta conta manda numa instituição inteira — notas, moradas e telefones de
+ * menores, e o financeiro das famílias. O mínimo anterior eram 8 caracteres sem
+ * mais nenhuma regra, o que aceitava "12345678" e "password".
+ *
+ * As regras são deliberadamente poucas e verificáveis: comprimento a sério,
+ * mais de um tipo de caracter, e recusa dos padrões triviais. Não impõe
+ * símbolos obrigatórios — isso empurra as pessoas para "Password1!" e para o
+ * post-it — mas impede o que é indefensável.
+ */
+const adminPasswordSchema = z
+  .string()
+  .min(10, "A senha deve ter pelo menos 10 caracteres.")
+  .max(200, "A senha é demasiado longa.")
+  .refine((value) => /[a-zA-Z]/.test(value) && /[0-9]/.test(value), {
+    message: "A senha deve combinar letras e números.",
+  })
+  .refine((value) => !/^(.)\1+$/.test(value), {
+    message: "A senha não pode ser o mesmo caracter repetido.",
+  })
+  .refine((value) => !/^\d+$/.test(value.trim()), {
+    message: "A senha não pode ser só dígitos.",
+  })
+  .refine(
+    (value) => {
+      // Comparação pelo valor inteiro, não por prefixo: "senha-forte-123" é uma
+      // senha legítima que só por acaso começa pela palavra "senha". A primeira
+      // versão desta regra rejeitava-a — apanhada pelos testes que já existiam.
+      const normalized = value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+      const trivial = new Set([
+        "password",
+        "passw0rd",
+        "senha",
+        "senhasenha",
+        "qwerty",
+        "qwertyuiop",
+        "abc123",
+        "abcd1234",
+        "admin123",
+        "escola123",
+        "1234567890",
+      ]);
+      return !trivial.has(normalized);
+    },
+    { message: "Esta senha é demasiado comum. Escolha outra." },
+  );
 
 export const planCodeSchema = z.enum(["start", "professional", "business", "enterprise"]);
 
 export const createSchoolWizardInputSchema = z.object({
   name: z.string().trim().min(2, "Nome da escola obrigatório"),
   commercial_name: z.string().trim().optional(),
-  nif: z.string().trim().optional(),
+  // Obrigatório: sem NIF a escola não consegue exportar SAF-T para a AGT
+  // (`validateSaftSchoolReadiness` bloqueia), nem emitir documento fiscal
+  // válido. Era opcional, e 85 das 87 escolas em produção ficaram sem ele —
+  // só o descobririam na altura de declarar.
+  nif: z
+    .string()
+    .trim()
+    .min(1, "NIF da escola obrigatório — necessário para facturação e SAF-T (AGT).")
+    .refine((value) => validateSchoolNif(value).ok, {
+      message: "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos).",
+    }),
   address: z.string().trim().optional(),
   city: z.string().trim().optional(),
-  phone: z.string().trim().optional(),
+  phone: optionalAngolaPhone,
   email: z.string().trim().email("E-mail da escola inválido").optional().or(z.literal("")),
   logo_url: z.string().trim().optional(),
 
   contact_name: z.string().trim().min(2, "Nome do responsável obrigatório"),
   contact_role: z.string().trim().optional(),
-  contact_phone: z.string().trim().optional(),
+  contact_phone: optionalAngolaPhone,
   contact_email: z.string().trim().email("E-mail do responsável inválido"),
 
   plan_code: planCodeSchema,
@@ -42,7 +121,7 @@ export const createSchoolWizardInputSchema = z.object({
   // é obrigatório — ver publicSchoolSignupInputSchema — porque o e-mail de
   // convite depende de RESEND_API_KEY estar configurada, e sem senha própria
   // a escola fica sem forma nenhuma de entrar se esse envio falhar.
-  admin_password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres.").optional(),
+  admin_password: adminPasswordSchema.optional(),
 });
 
 export type CreateSchoolWizardInput = z.infer<typeof createSchoolWizardInputSchema>;
@@ -139,7 +218,7 @@ export const publicSchoolSignupInputSchema = createSchoolWizardInputSchema
   .omit({ trial_days: true, admin_password: true })
   .extend({
     website: z.string().max(0, "Pedido inválido.").optional().or(z.literal("")),
-    admin_password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres."),
+    admin_password: adminPasswordSchema,
   });
 
 export type PublicSchoolSignupInput = z.infer<typeof publicSchoolSignupInputSchema>;

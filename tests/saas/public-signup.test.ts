@@ -26,6 +26,7 @@ describe("runPublicSchoolSignup logic", () => {
   // teste passava a validar uma forma que a rota real rejeitaria.
   const baseData = {
     name: "Escola Nova",
+    nif: "5417000000",
     slug: "escola-nova",
     contact_name: "Admin",
     contact_email: "test@example.com",
@@ -57,6 +58,7 @@ describe("runPublicSchoolSignup logic", () => {
     expect(provisionTenantCore).toHaveBeenCalledWith(
       {
         name: "Escola Nova",
+        nif: "5417000000",
         slug: "escola-nova",
         contact_name: "Admin",
         contact_email: "test@example.com",

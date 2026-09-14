@@ -1,0 +1,144 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSchoolWizardInputSchema,
+  publicSchoolSignupInputSchema,
+} from "@/features/saas/schemas";
+
+/**
+ * O registo de escola aceitava `nif`, `phone` e `contact_phone` como
+ * `z.string().optional()` — qualquer texto passava — e a senha do administrador
+ * bastava ter 8 caracteres, o que deixava entrar "12345678".
+ *
+ * O projecto já tinha `validateSchoolNif` e `validateAngolaPhone`, usadas na
+ * matrícula, na autenticação e no módulo de pessoas. Só o registo de escola não
+ * as usava.
+ */
+
+const base = {
+  name: "Colégio Teste",
+  nif: "5417000000",
+  contact_name: "Ana Silva",
+  contact_email: "ana@colegio.ao",
+  admin_email: "admin@colegio.ao",
+  admin_name: "Ana Silva",
+  admin_password: "escola2026segura",
+  plan_code: "start" as const,
+  slug: "colegio-teste",
+};
+
+describe("NIF da escola", () => {
+  it("aceita um NIF de entidade da AGT", () => {
+    expect(createSchoolWizardInputSchema.parse(base).nif).toBe("5417000000");
+  });
+
+  it("recusa a criação sem NIF", () => {
+    // Sem NIF a escola não exporta SAF-T: `validateSaftSchoolReadiness`
+    // bloqueia. Era opcional, e 85 das 87 escolas em produção ficaram sem ele.
+    const { nif: _omitted, ...semNif } = base;
+    expect(() => createSchoolWizardInputSchema.parse(semNif)).toThrow(/NIF/i);
+    expect(() => createSchoolWizardInputSchema.parse({ ...base, nif: "  " })).toThrow(/NIF/i);
+  });
+
+  it("recusa um NIF com formato inválido", () => {
+    for (const nif of ["abc", "12", "não-sei"]) {
+      expect(() => createSchoolWizardInputSchema.parse({ ...base, nif })).toThrow(/NIF/i);
+    }
+  });
+});
+
+describe("telefones", () => {
+  it("aceita o formato angolano", () => {
+    const parsed = createSchoolWizardInputSchema.parse({ ...base, phone: "+244923456789" });
+    expect(parsed.phone).toBe("+244923456789");
+  });
+
+  it("continua opcional", () => {
+    expect(() => createSchoolWizardInputSchema.parse(base)).not.toThrow();
+  });
+
+  it("recusa texto que não é telefone", () => {
+    for (const field of ["phone", "contact_phone"]) {
+      expect(() => createSchoolWizardInputSchema.parse({ ...base, [field]: "não tenho" })).toThrow(
+        /Telefone/i,
+      );
+    }
+  });
+
+  it("recusa um número que não é móvel angolano", () => {
+    expect(() => createSchoolWizardInputSchema.parse({ ...base, phone: "+351912345678" })).toThrow(
+      /Telefone/i,
+    );
+  });
+});
+
+describe("senha do administrador", () => {
+  it("aceita uma senha razoável", () => {
+    expect(() =>
+      createSchoolWizardInputSchema.parse({ ...base, admin_password: "colegio2026ao" }),
+    ).not.toThrow();
+  });
+
+  it("recusa as senhas que o mínimo de 8 deixava passar", () => {
+    // Esta conta manda numa instituição inteira: notas, moradas e telefones de
+    // menores, e o financeiro das famílias.
+    for (const senha of ["12345678", "password", "senha1234", "abc123456"]) {
+      expect(
+        () => createSchoolWizardInputSchema.parse({ ...base, admin_password: senha }),
+        senha,
+      ).toThrow();
+    }
+  });
+
+  it("exige letras e números", () => {
+    expect(() =>
+      createSchoolWizardInputSchema.parse({ ...base, admin_password: "abcdefghijkl" }),
+    ).toThrow(/letras e números/i);
+  });
+
+  it("aceita senhas que apenas começam por uma palavra comum", () => {
+    // A primeira versão desta regra comparava por prefixo e rejeitava
+    // "senha-forte-123" — uma senha legítima. Apanhado pelos testes que já
+    // existiam no projecto. A regra passou a comparar o valor inteiro.
+    for (const senha of ["senha-forte-123", "senhaDaEscola2026", "passwordDoColegio1"]) {
+      expect(
+        () => createSchoolWizardInputSchema.parse({ ...base, admin_password: senha }),
+        senha,
+      ).not.toThrow();
+    }
+  });
+
+  it("recusa senhas só com dígitos", () => {
+    expect(() =>
+      createSchoolWizardInputSchema.parse({ ...base, admin_password: "9384726150" }),
+    ).toThrow(/dígitos/i);
+  });
+
+  it("recusa o mesmo caracter repetido", () => {
+    expect(() =>
+      createSchoolWizardInputSchema.parse({ ...base, admin_password: "aaaaaaaaaaaa" }),
+    ).toThrow();
+  });
+});
+
+describe("registo público", () => {
+  it("exige senha, ao contrário do wizard interno", () => {
+    const { admin_password: _omitted, ...semSenha } = base;
+    expect(() => publicSchoolSignupInputSchema.parse({ ...semSenha, website: "" })).toThrow();
+    expect(() => createSchoolWizardInputSchema.parse(semSenha)).not.toThrow();
+  });
+
+  it("rejeita o honeypot preenchido", () => {
+    expect(() =>
+      publicSchoolSignupInputSchema.parse({ ...base, website: "http://spam.example" }),
+    ).toThrow();
+  });
+
+  it("aplica as mesmas regras de NIF e senha do wizard", () => {
+    expect(() => publicSchoolSignupInputSchema.parse({ ...base, website: "", nif: "xx" })).toThrow(
+      /NIF/i,
+    );
+    expect(() =>
+      publicSchoolSignupInputSchema.parse({ ...base, website: "", admin_password: "12345678" }),
+    ).toThrow();
+  });
+});
