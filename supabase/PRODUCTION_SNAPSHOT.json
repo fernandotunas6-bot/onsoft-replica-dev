@@ -1,10 +1,10 @@
 {
-  "capturadoEm": "2026-09-13T22:29:59.079Z",
+  "capturadoEm": "2026-09-14T20:00:00.712Z",
   "resumo": {
-    "com_rls": 149,
+    "com_rls": 152,
     "funcoes_private": 95,
-    "politicas": 286,
-    "tabelas": 149,
+    "politicas": 290,
+    "tabelas": 152,
     "triggers": 132
   },
   "tabelas": [
@@ -223,6 +223,22 @@
       "rls": true,
       "rls_forcada": true,
       "tabela": "class_subjects"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "communication_dispatches"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "communication_events"
     },
     {
       "anon_select": true,
@@ -1199,6 +1215,14 @@
       "rls": true,
       "rls_forcada": true,
       "tabela": "timetable_slots"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "verification_otps"
     }
   ],
   "politicas": [
@@ -1441,6 +1465,30 @@
       "tabela": "class_subjects",
       "usando": "private.has_permission(school_id, 'academic.timetable.read'::text)",
       "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "auth_view_school_dispatches",
+      "tabela": "communication_dispatches",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{service_role}",
+      "politica": "service_role_full_dispatches",
+      "tabela": "communication_dispatches",
+      "usando": "true",
+      "verificando": "true"
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{service_role}",
+      "politica": "service_role_full_events",
+      "tabela": "communication_events",
+      "usando": "true",
+      "verificando": "true"
     },
     {
       "cmd": "INSERT",
@@ -3489,6 +3537,14 @@
       "tabela": "timetable_slots",
       "usando": "private.has_permission(school_id, 'academic.timetable.read'::text)",
       "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{service_role}",
+      "politica": "service_role_full_otps",
+      "tabela": "verification_otps",
+      "usando": "true",
+      "verificando": "true"
     }
   ],
   "funcoes": [

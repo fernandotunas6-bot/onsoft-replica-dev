@@ -74,6 +74,10 @@ CREATE TABLE IF NOT EXISTS public.communication_dispatches (
   recipient VARCHAR(255) NOT NULL,
   subject_or_template VARCHAR(255),
   status dispatch_status NOT NULL DEFAULT 'pending',
+  -- Os handlers de webhook (Twilio, Meta, Resend) registam aqui o momento da
+  -- entrega confirmada. Sem esta coluna, o caso «entregue» — o mais comum —
+  -- era o único que falhava, com PGRST204 engolido por um console.error.
+  delivered_at TIMESTAMPTZ,
   error_details TEXT,
   metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -126,15 +130,17 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
--- Utilizadores autenticados podem consultar os despachos da sua própria escola
+-- Utilizadores autenticados podem consultar os despachos da sua própria escola.
+--
+-- Usa `public.is_school_member`, que já existe na base e encapsula a regra
+-- («membership activa deste utilizador nesta escola»). A versão anterior desta
+-- política tinha a subconsulta escrita à mão com `is_active = true` — coluna
+-- que `school_memberships` não tem: a coluna é `status`. Como `undefined_column`
+-- não é `duplicate_object`, o guarda de excepção não o apanhava e a migração
+-- inteira abortava aqui. Foi por isso que nunca chegou a ser aplicada.
 DO $$ BEGIN
   CREATE POLICY "auth_view_school_dispatches" ON public.communication_dispatches
     FOR SELECT TO authenticated
-    USING (
-      school_id IN (
-        SELECT school_id FROM public.school_memberships 
-        WHERE user_id = auth.uid() AND is_active = true
-      )
-    );
+    USING (public.is_school_member(school_id));
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;

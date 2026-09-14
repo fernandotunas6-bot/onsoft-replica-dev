@@ -123,18 +123,34 @@ const ANON_POLICIES_ESPERADAS = [
  * A lista existe para encolher até zero. Aplicar a migração fecha o grupo 1;
  * os outros dois precisam de decisão, não só de SQL.
  */
+/**
+ * Cada entrada diz que funcionalidade fica partida enquanto a tabela não
+ * existir. Sem isso, a lista é trivia inerte: era uma lista de nomes, e
+ * ninguém tinha ligado `invoices` a «a importação de dívidas falha».
+ *
+ * As três da central de comunicação saíram desta lista a 2026-09-14, com a
+ * migração `20260911120000_central_communication_and_otp.sql` aplicada.
+ */
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
-  "assessment_rule_sets",
-  "class_schedule_slots",
-  "communication_dispatches",
-  "communication_events",
+  // Importação: cinco módulos escrevem para o modelo de dados antigo. A
+  // produção tem outro — `finance_invoices`, `programs`, `timetable_slots` — e
+  // com outra forma, não só outro nome: `finance_invoices` exige `contract_id`,
+  // `fee_item_id` e `issued_by`, e não tem `student_id`. Não é uma mudança de
+  // nome; é um importador escrito contra um modelo que foi substituído.
+  "courses", // importação de cursos
+  "invoices", // importação de dívidas e de histórico financeiro
+  "payments", // importação de pagamentos
+  "class_schedule_slots", // importação de horários
+
+  // Verificação de contactos (features/contacts).
   "contact_verification_profiles",
-  "courses",
-  "invoices",
-  "payments",
-  "tenant_mailboxes",
   "user_communication_preferences",
-  "verification_otps",
+
+  // Caixas de correio por tenant, no Control Center.
+  "tenant_mailboxes",
+
+  // Regras de avaliação do caminho legado de notas (sga-grades-legacy.ts).
+  "assessment_rule_sets",
 ]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

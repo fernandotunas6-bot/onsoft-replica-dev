@@ -28,16 +28,28 @@ export interface TwilioWebhookPayload {
 /**
  * Mapeia status do Twilio para status interno do SIGA.
  */
-function mapTwilioStatus(twilioStatus: string): string {
+/**
+ * Estado do Twilio → `dispatch_status`, o enum da coluna.
+ *
+ * Devolve `null` quando não há correspondência, e o chamador não escreve nada.
+ * Antes devolvia `"processing"` para `sending` e `"unknown"` para o resto —
+ * nenhum dos dois existe no enum (pending, queued, sent, delivered, opened,
+ * clicked, failed, bounced), pelo que o UPDATE falhava com «invalid input value
+ * for enum» e o erro morria num `console.error`. Não se notava porque a tabela
+ * também não existia; passa a notar-se, por isso tem de estar certo.
+ */
+export function mapTwilioStatus(twilioStatus: string): string | null {
   const map: Record<string, string> = {
     sent: "sent",
     delivered: "delivered",
     failed: "failed",
     undelivered: "failed",
-    queued: "pending",
-    sending: "processing",
+    queued: "queued",
+    sending: "queued",
+    accepted: "pending",
+    scheduled: "pending",
   };
-  return map[twilioStatus] || "unknown";
+  return map[twilioStatus] ?? null;
 }
 
 /**
@@ -61,6 +73,12 @@ export async function handleTwilioSmsWebhook(payload: TwilioWebhookPayload): Pro
 
   // Mapear status
   const newStatus = mapTwilioStatus(payload.MessageStatus);
+  if (!newStatus) {
+    // Estado que não sabemos traduzir: melhor deixar o registo como está do que
+    // gravar um valor que o enum recusa e perder também o que já lá estava.
+    console.warn(`[TwilioWebhook] Estado não mapeado: ${payload.MessageStatus}`);
+    return;
+  }
 
   // Atualizar dispatch com novo status
   const updatePayload: Record<string, unknown> = {

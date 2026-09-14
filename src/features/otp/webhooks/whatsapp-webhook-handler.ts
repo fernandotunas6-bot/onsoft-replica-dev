@@ -52,14 +52,22 @@ export interface MetaWebhookEvent {
 /**
  * Mapeia status do WhatsApp para status interno do SIGA.
  */
-function mapWhatsAppStatus(metaStatus: string): string {
+/**
+ * Estado da Meta → `dispatch_status`, o enum da coluna. `null` quando não há
+ * correspondência, e nesse caso não se escreve nada — ver `mapTwilioStatus`,
+ * onde o mesmo defeito está explicado por extenso.
+ *
+ * `read` vai para `opened`, não para `delivered`: o enum distingue os dois, e
+ * colapsá-los perderia a informação mais interessante das duas.
+ */
+export function mapWhatsAppStatus(metaStatus: string): string | null {
   const map: Record<string, string> = {
     sent: "sent",
     delivered: "delivered",
-    read: "delivered",
+    read: "opened",
     failed: "failed",
   };
-  return map[metaStatus] || "unknown";
+  return map[metaStatus] ?? null;
 }
 
 /**
@@ -94,6 +102,10 @@ export async function handleWhatsAppWebhook(payload: MetaWebhookEvent): Promise<
 
         // Mapear status
         const newStatus = mapWhatsAppStatus(statusUpdate.status);
+        if (!newStatus) {
+          console.warn(`[WhatsAppWebhook] Estado não mapeado: ${statusUpdate.status}`);
+          continue;
+        }
 
         // Preparar update
         const updatePayload: Record<string, unknown> = {
