@@ -22,8 +22,19 @@ const REPO = resolve(__dirname, "../..");
 /**
  * Migrados para `context.supabase`. Cada entrada diz porque foi seguro — a
  * política que o permite está no cabeçalho do próprio ficheiro.
+ *
+ * `aindaPrivilegiado` marca migração parcial: parte do ficheiro passou para o
+ * cliente do utilizador e parte ficou no service role, com razão escrita.
  */
 const MIGRADOS = [
+  {
+    ficheiro: "src/features/spotlight/server.ts",
+    porque:
+      "school_settings tem política SELECT para authenticated com " +
+      "USING private.is_active_member(school_id); só a leitura migrou, porque " +
+      "a tabela não tem política de UPDATE e a de INSERT exige is_aal2()",
+    aindaPrivilegiado: true,
+  },
   {
     ficheiro: "src/features/access/grants.ts",
     porque:
@@ -116,22 +127,31 @@ describe("migração para o cliente que respeita RLS (ARQ-01)", () => {
     expect(privilegiados.length).toBeGreaterThan(50);
   });
 
-  it.each(MIGRADOS)("$ficheiro não volta ao service role", ({ ficheiro, porque }) => {
-    const caminho = resolve(REPO, ficheiro);
-    expect(existsSync(caminho), `${ficheiro} desapareceu — actualize a lista`).toBe(true);
-    const código = readFileSync(caminho, "utf8");
+  it.each(MIGRADOS)(
+    "$ficheiro não volta ao service role",
+    ({ ficheiro, porque, aindaPrivilegiado }) => {
+      const caminho = resolve(REPO, ficheiro);
+      expect(existsSync(caminho), `${ficheiro} desapareceu — actualize a lista`).toBe(true);
+      const código = readFileSync(caminho, "utf8");
 
-    expect(
-      usaClientePrivilegiado(código),
-      `${ficheiro} voltou a usar o service role. Foi migrado porque ${porque}. ` +
-        `Se a política mudou, confirme com \`npm run siga:rls-readiness\` antes de reverter.`,
-    ).toBe(false);
+      // Uma migração pode ser parcial de propósito: no spotlight, a leitura passou
+      // para o cliente do utilizador e a escrita não, porque a tabela não tem
+      // política de UPDATE. Marcar isso é mais honesto do que fingir que o
+      // ficheiro inteiro migrou ou deixá-lo fora da lista.
+      if (!aindaPrivilegiado) {
+        expect(
+          usaClientePrivilegiado(código),
+          `${ficheiro} voltou a usar o service role. Foi migrado porque ${porque}. ` +
+            `Se a política mudou, confirme com \`npm run siga:rls-readiness\` antes de reverter.`,
+        ).toBe(false);
+      }
 
-    expect(
-      código.includes("context.supabase"),
-      `${ficheiro} deixou de usar o cliente do utilizador`,
-    ).toBe(true);
-  });
+      expect(
+        código.includes("context.supabase"),
+        `${ficheiro} deixou de usar o cliente do utilizador`,
+      ).toBe(true);
+    },
+  );
 
   it("a dívida não cresce", () => {
     const emDívida = privilegiados.filter((f) => !PRIVILEGIO_POR_DESENHO.has(f));

@@ -3,7 +3,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { accessModules } from "@/features/auth/access-policy";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSgaWriter } from "@/integrations/supabase/sga-admin";
 
 /**
@@ -21,12 +20,11 @@ import { requireSgaWriter } from "@/integrations/supabase/sga-admin";
  * restringe à escola, a aplicação restringe ao cargo. Uma protege da outra
  * falhar.
  *
- * O `sgaClient()` aqui é só tipos, não privilégio: devolve o **mesmo** cliente
- * com a tipagem relaxada. É necessário porque `src/integrations/supabase/types.ts`
- * descreve 40 tabelas e a produção tem 149 — `staff_module_grants` é uma das
- * que faltam, e `context.supabase` vem tipado com esses tipos gerados. É o
- * mesmo `sgaClient()` que `loadSgaAdminClient()` já usava pela mesma razão. O
- * OPS-01 (esquema sob controlo de versões) é o que dispensa este cast.
+ * Sem cast de tipos: esta fatia precisou de um durante algumas horas, porque os
+ * tipos gerados descreviam 40 das 149 tabelas e `staff_module_grants` era uma
+ * das que faltavam. Com os tipos repostos a partir da produção (OPS-01), o
+ * `context.supabase` está tipado para esta tabela e o cast saiu — o que também
+ * significa que as colunas passam a ser verificadas em compilação.
  */
 
 export const setStaffModuleGrantInputSchema = z.object({
@@ -40,8 +38,7 @@ export const listStaffModuleGrants = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
-    const db = sgaClient(context.supabase);
-    const { data, error } = await db
+    const { data, error } = await context.supabase
       .from("staff_module_grants")
       .select("user_id, module_key, level")
       .eq("school_id", membership.schoolId);
@@ -63,8 +60,7 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
-    const db = sgaClient(context.supabase);
-    const { error } = await db.from("staff_module_grants").upsert(
+    const { error } = await context.supabase.from("staff_module_grants").upsert(
       {
         school_id: membership.schoolId,
         user_id: data.userId,
@@ -91,8 +87,7 @@ export const clearStaffModuleGrant = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
-    const db = sgaClient(context.supabase);
-    const { error } = await db
+    const { error } = await context.supabase
       .from("staff_module_grants")
       .delete()
       .eq("school_id", membership.schoolId)
