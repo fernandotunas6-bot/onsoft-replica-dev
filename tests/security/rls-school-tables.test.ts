@@ -59,42 +59,28 @@ const RLS_PENDING = new Set<string>([
 
 /**
  * Tabelas que a aplicação consulta e que não têm `CREATE TABLE` em lado nenhum
- * do repositório: existem apenas na base de produção. O código altera-as, indexa-as
- * e consulta-as, mas não as sabe criar.
+ * do repositório.
  *
- * Catorze destas não têm sequer RLS declarado — incluindo a camada financeira
- * completa (`finance_invoices`, `finance_receipts`, `finance_contracts`,
- * `fee_plans`, `fee_items`) e `school_integration_secrets`. Não é possível
- * escrever-lhes políticas a partir daqui sem adivinhar o esquema, e adivinhar
- * políticas para a tabela do dinheiro é pior do que não ter nenhuma.
+ * Eram 23 e a razão era sempre a mesma: existiam só na base de produção, e o
+ * código alterava-as sem as saber criar. A 2026-09-14 foram capturadas 18
+ * delas — o DDL real, lido do catálogo do Postgres, está em
+ * `supabase/migrations/20260914151906_capture_undeclared_production_tables.sql`
+ * (ver `npm run siga:db-ddl`). Inclui a camada financeira completa
+ * (`finance_invoices`, `finance_receipts`, `finance_contracts`, `fee_plans`,
+ * `fee_items`) e `school_integration_secrets`, que antes não era possível
+ * proteger sem adivinhar o esquema.
  *
- * É esta a razão por que extrair o esquema de produção com `pg_dump --schema-only`
- * e commitá-lo é o passo que desbloqueia todos os outros. A lista existe para
- * encolher até zero.
+ * As cinco que sobram não estão aqui pela razão antiga — não existem na
+ * produção **nem** no repositório. São consultas a tabelas que não existem em
+ * lado nenhum, e a lista de `tests/security/production-snapshot.test.ts`
+ * (`TABELAS_AUSENTES_DA_PRODUCAO`) é que as conta e explica. `avatars` é o
+ * falso positivo do conjunto: é um bucket de storage, não uma tabela.
  */
 const SCHEMA_ONLY_IN_PRODUCTION = new Set([
-  "academic_levels",
   "assessment_rule_sets",
   "avatars",
-  "campuses",
-  "class_subjects",
   "contact_verification_profiles",
-  "document_sequences",
-  "fee_items",
-  "fee_plans",
-  "finance_contracts",
-  "finance_invoices",
-  "finance_receipts",
-  "grade_items",
-  "grade_scores",
-  "gradebooks",
-  "programs",
-  "school_integration_secrets",
-  "siga_lesson_meetings",
-  "teachers",
   "tenant_mailboxes",
-  "terms",
-  "timetable_slots",
   "user_communication_preferences",
 ]);
 

@@ -4,7 +4,109 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-09-13)
+## Estado (2026-09-14)
+
+### Ciclo 91 — Fim da divergência de esquema: as 35 tabelas que só existiam na base (2026-09-14)
+
+Continuação directa dos três commits de 2026-09-13 que o handoff ainda não
+registava — formatação prettier a destravar o gate de lint (`7587b89`), a
+verificação de assinatura de webhooks que falhava sempre no Worker (`0b622c5`)
+e o retrato verificável do esquema de produção (`856b19c`/`9cf7226`).
+
+O retrato media a divergência: **35 tabelas existiam na base ao vivo sem um
+único `CREATE TABLE` no repositório**. A produção não era reconstruível e
+nenhuma revisão de código via alterações a essas tabelas — entre elas a camada
+financeira completa (`finance_invoices`, `finance_receipts`,
+`finance_contracts`, `fee_plans`, `fee_items`) e `school_integration_secrets`.
+
+**1. Captura do DDL real (`scripts/siga/capture-table-ddl.mjs`, `npm run siga:db-ddl`):**
+
+- Lê do catálogo do Postgres em modo só leitura (`pg_attribute`,
+  `pg_constraint`, `pg_get_indexdef`, `pg_get_constraintdef`) e escreve uma
+  migração de captura. Sem Docker, sem `pg_dump`, sem passo manual.
+- Sem argumentos, descobre sozinho as tabelas em falta com o mesmo cálculo que
+  o teste faz. Aceita `--tables=` e `--out=`.
+- **Nada aqui é escrito à mão a partir do TypeScript.** Um esquema adivinhado
+  passa a valer como referência e mente na primeira divergência;
+  `src/integrations/supabase/types.ts` não cobria nenhuma das 35.
+
+**2. A migração (`supabase/migrations/20260914151906_capture_undeclared_production_tables.sql`):**
+
+- 35 tabelas, 398 colunas, 317 restrições (128 delas chaves estrangeiras) e 80
+  índices. 2016 linhas, todas geradas.
+- 100% idempotente: `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`,
+  chaves estrangeiras em blocos guardados por `pg_constraint` — e por isso
+  independentes da ordem das tabelas no ficheiro.
+- `ENABLE ROW LEVEL SECURITY` onde a produção o tem ligado (as 35).
+- **Validada com o parser real do Postgres** (libpg_query via `pglast`): 278
+  instruções de topo e os 163 `ALTER TABLE` interiores dos blocos guardados
+  parseiam sem erro. Não foi executada em lado nenhum — não é preciso, a
+  produção já tem as tabelas; serve para as tornar revisíveis e para
+  reconstruir um ambiente novo.
+
+**3. O que a captura destapou — 11 tabelas que o código consulta e que não existem em produção:**
+
+- **Camada de comunicação e OTP (Ciclos 85–86) nunca aplicada ao SGA.**
+  `verification_otps`, `communication_dispatches` e `communication_events`
+  estão declaradas em `20260911120000_central_communication_and_otp.sql`, que
+  nunca correu. `contact_verification_profiles` e
+  `user_communication_preferences` não estão declaradas em lado nenhum. Em
+  produção, OTP, verificação de contactos e preferências de comunicação
+  devolvem o erro de tabela inexistente do PostgREST — não um ecrã vazio.
+- **`tenant_mailboxes`** (`supabase/APPLY_MAILBOXES.sql`): script manual também
+  por aplicar.
+- **Importadores contra o esquema Lovable antigo**: `courses`, `invoices`,
+  `payments`, `class_schedule_slots`, `assessment_rule_sets` — nomes que o SGA
+  nunca teve. Os importadores respectivos escrevem para o vazio.
+- Confirmado por consulta directa ao catálogo, em **todos** os esquemas, não só
+  `public`.
+
+**4. Testes (`tests/security/production-snapshot.test.ts`, `rls-school-tables.test.ts`):**
+
+- `NAO_DECLARADAS_HOJE`: 35 → **0**. Deixa de ser um travão e passa a ser
+  invariante: uma tabela criada ao vivo sem passar pelo repositório reprova.
+- Novo: a captura cobre as 35 e não declara tabelas fantasma (que não existam
+  mesmo em produção).
+- Novo: nenhuma consulta nova aponta para uma tabela ausente da produção, com a
+  lista das 11 conhecidas — e um segundo teste que a obriga a encolher (uma
+  entrada que já não descreva uma falha real reprova).
+- `SCHEMA_ONLY_IN_PRODUCTION`: 23 → **5**, e as 5 que sobram já não estão lá
+  pela razão antiga (`avatars` é um bucket de storage, o falso positivo do
+  conjunto).
+
+**Resultados Oficiais (todos corridos e verificados):**
+
+- **`tsc --noEmit`**: **0 erros**.
+- **`npx eslint`** (ficheiros deste ciclo): 0 erros, 0 warnings.
+- **`vitest run tests/security/`**: **7 ficheiros / 125 testes** (+3), 1
+  skipped, 100% verde.
+- **Parser Postgres** sobre a migração gerada: 278 + 163 instruções, 0 erros.
+
+**Nota de coordenação:** durante este ciclo outra sessão esteve activa na mesma
+directoria (ficheiros de UI a mudar fora dos meus commits — `AppShell.tsx`,
+`PageHeader.tsx`, `alunos/*`, `styles.css`, `painel/web`, `painel/admin`, e
+componentes novos em `src/components/ui/`). Nada disso entrou nos commits deste
+ciclo.
+
+**Próxima fatia:**
+
+1. **Aplicar `20260911120000_central_communication_and_otp.sql` ao SGA**
+   (`npm run siga:sql`) — é o que devolve OTP e comunicação multicanal à
+   produção. Decisão do dono do projecto, não do agente: é escrita na base.
+2. **Declarar `contact_verification_profiles` e
+   `user_communication_preferences`**, que não existem nem no repositório nem
+   na base, e aplicar.
+3. **Decidir o destino dos importadores Lovable** (`courses`, `invoices`,
+   `payments`, `class_schedule_slots`, `assessment_rule_sets`): remapear para o
+   esquema do SGA ou retirar os importadores.
+4. **Recapturar o retrato depois de qualquer um dos passos acima**
+   (`npm run siga:db-snapshot`) — os testes medem contra ele.
+5. **`announcements`**: tabela legada com 2 linhas e uma restrição que
+   contradiz a outra (`audience = 'school'` versus a forma que admite
+   `class_group` e `role`). A aplicação usa `school_announcements` (0 linhas).
+   Candidata a `cleanup_unused_sga_tables.sql`.
+
+---
 
 ### Ciclo 90 — Otimização e Blindagem Determinística da Suite de Rotas (49 Ficheiros / 196 Testes 100% Verde) (2026-09-13)
 

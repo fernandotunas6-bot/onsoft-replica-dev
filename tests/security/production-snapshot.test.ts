@@ -66,10 +66,14 @@ const declaredTables = new Set(
 
 /**
  * Tabelas que existem em produção e não são declaradas no repositório.
- * Medida a 2026-09-13. A lista existe para encolher até zero — cada entrada
- * removida é uma tabela que passou a ser revisível.
+ * Eram 35 a 2026-09-13. Passaram a 0 a 2026-09-14, com a captura do DDL real de
+ * cada uma em `supabase/migrations/20260914151906_capture_undeclared_production_tables.sql`
+ * (gerado por `npm run siga:db-ddl`, lido do catálogo do Postgres).
+ *
+ * Agora que está a zero, deixa de ser um travão e passa a ser uma invariante:
+ * qualquer tabela criada ao vivo sem passar pelo repositório reprova aqui.
  */
-const NAO_DECLARADAS_HOJE = 35;
+const NAO_DECLARADAS_HOJE = 0;
 
 /**
  * As únicas políticas que concedem acesso ao papel anónimo, todas por desenho e
@@ -89,6 +93,69 @@ const ANON_POLICIES_ESPERADAS = [
   "reserved_subdomains.public_read_reserved_subdomains",
   "school_branding.school_members_view_branding",
 ];
+
+/**
+ * Tabelas que o código consulta e que **não existem na base de produção** —
+ * nem no esquema `public`, nem em nenhum outro. Medido a 2026-09-14 contra o
+ * retrato e confirmado por consulta directa ao catálogo.
+ *
+ * É uma classe diferente da divergência acima. Aqui não é o repositório que
+ * está atrasado em relação à produção: é a produção que nunca recebeu o que o
+ * repositório já assume existir. Cada uma destas consultas devolve o erro de
+ * tabela inexistente do PostgREST em tempo de execução.
+ *
+ * Três grupos, por ordem de gravidade:
+ *
+ *   1. Camada de comunicação e OTP (Ciclos 85–86) — `verification_otps`,
+ *      `communication_dispatches` e `communication_events` estão declaradas em
+ *      `supabase/migrations/20260911120000_central_communication_and_otp.sql`,
+ *      que nunca foi aplicada ao SGA. `contact_verification_profiles` e
+ *      `user_communication_preferences` não estão declaradas em lado nenhum.
+ *      Enquanto isto durar, OTP, verificação de contactos e preferências de
+ *      comunicação não funcionam em produção.
+ *   2. Caixas de correio de tenant — `tenant_mailboxes`, declarada em
+ *      `supabase/APPLY_MAILBOXES.sql`, script manual também por aplicar.
+ *   3. Importadores contra o esquema Lovable antigo — `courses`, `invoices`,
+ *      `payments`, `class_schedule_slots` e `assessment_rule_sets` são nomes do
+ *      esquema que o SGA nunca teve. Os importadores respectivos escrevem para
+ *      tabelas que não existem.
+ *
+ * A lista existe para encolher até zero. Aplicar a migração fecha o grupo 1;
+ * os outros dois precisam de decisão, não só de SQL.
+ */
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
+  "assessment_rule_sets",
+  "class_schedule_slots",
+  "communication_dispatches",
+  "communication_events",
+  "contact_verification_profiles",
+  "courses",
+  "invoices",
+  "payments",
+  "tenant_mailboxes",
+  "user_communication_preferences",
+  "verification_otps",
+]);
+
+/** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
+function tabelasUsadasPelaApp(): string[] {
+  const encontradas = new Set<string>();
+  const walk = (dir: string) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir)) {
+      const full = resolve(dir, entry);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (/\.tsx?$/.test(entry)) {
+        const code = readFileSync(full, "utf8");
+        for (const m of code.matchAll(/(\.storage)?\.from\(\s*["'`]([a-z_]+)["'`]\s*\)/g)) {
+          if (!m[1]) encontradas.add(m[2]);
+        }
+      }
+    }
+  };
+  walk(resolve(REPO, "src"));
+  return [...encontradas].sort();
+}
 
 describe("produção vs repositório", () => {
   it("o retrato existe e não está vazio", () => {
@@ -176,7 +243,7 @@ describe("produção vs repositório", () => {
     expect(auditada, "siga_assessment_scores deixou de ter trigger de auditoria").toBe(true);
   });
 
-  it("a divergência entre repositório e produção não cresce", () => {
+  it("nenhuma tabela de produção existe sem declaração no repositório", () => {
     const naoDeclaradas = snap.tabelas
       .map((t) => t.tabela)
       .filter((t) => !declaredTables.has(t))
@@ -185,9 +252,69 @@ describe("produção vs repositório", () => {
     expect(
       naoDeclaradas.length,
       `${naoDeclaradas.length} tabelas existem em produção sem CREATE TABLE no ` +
-        `repositório (eram ${NAO_DECLARADAS_HOJE}). A produção deixa de ser ` +
+        `repositório (o limite é ${NAO_DECLARADAS_HOJE}). A produção deixa de ser ` +
         `reconstruível e nenhuma revisão de código vê estas alterações. ` +
-        `Se o número desceu, actualize NAO_DECLARADAS_HOJE.\n\n${naoDeclaradas.join(", ")}`,
+        `Capturar o DDL real com \`npm run siga:db-ddl\` em vez de escrever o ` +
+        `CREATE TABLE à mão — um esquema adivinhado mente na primeira ` +
+        `divergência.\n\n${naoDeclaradas.join(", ")}`,
     ).toBeLessThanOrEqual(NAO_DECLARADAS_HOJE);
+  });
+
+  it("a captura de DDL cobre cada tabela que o retrato conhece", () => {
+    // O ficheiro de captura é gerado, não escrito. Se alguém o editar à mão e
+    // apagar uma tabela, a divergência real volta sem o teste acima dar por ela
+    // (a tabela continuaria declarada noutro ficheiro qualquer... ou não).
+    const captura = resolve(
+      REPO,
+      "supabase/migrations/20260914151906_capture_undeclared_production_tables.sql",
+    );
+    expect(existsSync(captura), "ficheiro de captura de DDL desapareceu").toBe(true);
+
+    const ddl = readFileSync(captura, "utf8");
+    const capturadas = new Set(
+      [...ddl.matchAll(/CREATE TABLE IF NOT EXISTS public\.(\w+)/gi)].map((m) =>
+        m[1].toLowerCase(),
+      ),
+    );
+    expect(capturadas.size).toBe(35);
+
+    // Tudo o que a captura declara tem de existir mesmo em produção — o
+    // contrário seria declarar tabelas fantasma.
+    const emProducao = new Set(snap.tabelas.map((t) => t.tabela));
+    const fantasmas = [...capturadas].filter((t) => !emProducao.has(t)).sort();
+    expect(
+      fantasmas,
+      `declaradas na captura mas ausentes da produção: ${fantasmas.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("nenhuma consulta nova aponta para uma tabela que não existe em produção", () => {
+    const emProducao = new Set(snap.tabelas.map((t) => t.tabela));
+    const ausentes = tabelasUsadasPelaApp().filter((t) => !emProducao.has(t));
+    const novas = ausentes.filter((t) => !TABELAS_AUSENTES_DA_PRODUCAO.has(t));
+
+    expect(
+      novas,
+      `A aplicação passou a consultar tabelas que não existem na base de ` +
+        `produção: ${novas.join(", ")}. Em tempo de execução isto é o erro de ` +
+        `tabela inexistente do PostgREST, não um ecrã vazio. Aplicar o SQL que ` +
+        `as cria (npm run siga:sql) antes de lançar o código que as usa.`,
+    ).toEqual([]);
+  });
+
+  it("a lista de tabelas ausentes da produção não tem entradas obsoletas", () => {
+    const emProducao = new Set(snap.tabelas.map((t) => t.tabela));
+    const usadas = new Set(tabelasUsadasPelaApp());
+    const resolvidas = [...TABELAS_AUSENTES_DA_PRODUCAO]
+      .filter((t) => emProducao.has(t) || !usadas.has(t))
+      .sort();
+
+    expect(
+      resolvidas,
+      `entradas que já não descrevem uma falha real e podem sair da lista: ` +
+        `${resolvidas.join(", ")} (ou a tabela passou a existir em produção, ou ` +
+        `o código deixou de a consultar). Voltar a capturar o retrato primeiro: ` +
+        `npm run siga:db-snapshot.`,
+    ).toEqual([]);
   });
 });
