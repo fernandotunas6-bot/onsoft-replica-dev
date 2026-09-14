@@ -10,6 +10,18 @@ import { validateAngolaPhone } from "@/lib/angola-phone";
  * pessoas. O registo de escola aceitava `z.string().optional()` — qualquer
  * texto passava. Aqui o campo continua opcional, mas deixa de aceitar lixo.
  */
+/**
+ * E-mail normalizado para minúsculas.
+ *
+ * O `.email()` do Zod é estrito o suficiente — recusa `a@b`, `x@y.z` e pontos
+ * duplos — mas aceita maiúsculas. `createSchoolAdminAccount` já faz
+ * `toLowerCase()` antes de criar a conta, portanto sem isto o que fica guardado
+ * em `schools.email` e `tenants.contact_email` podia divergir do que serve para
+ * entrar. Em produção ainda não divergiu (verificado: 0 casos); isto é para não
+ * começar.
+ */
+const normalizedEmail = (message: string) => z.string().trim().toLowerCase().email(message);
+
 const optionalAngolaPhone = z
   .string()
   .trim()
@@ -89,13 +101,13 @@ export const createSchoolWizardInputSchema = z.object({
   address: z.string().trim().optional(),
   city: z.string().trim().optional(),
   phone: optionalAngolaPhone,
-  email: z.string().trim().email("E-mail da escola inválido").optional().or(z.literal("")),
+  email: normalizedEmail("E-mail da escola inválido").optional().or(z.literal("")),
   logo_url: z.string().trim().optional(),
 
   contact_name: z.string().trim().min(2, "Nome do responsável obrigatório"),
   contact_role: z.string().trim().optional(),
   contact_phone: optionalAngolaPhone,
-  contact_email: z.string().trim().email("E-mail do responsável inválido"),
+  contact_email: normalizedEmail("E-mail do responsável inválido"),
 
   plan_code: planCodeSchema,
   trial_days: z.number().int().min(0).max(90).default(14),
@@ -114,7 +126,7 @@ export const createSchoolWizardInputSchema = z.object({
       message: "Este subdomínio está reservado pela plataforma.",
     }),
 
-  admin_email: z.string().trim().email("E-mail do administrador inválido"),
+  admin_email: normalizedEmail("E-mail do administrador inválido"),
   admin_name: z.string().trim().min(2, "Nome do administrador obrigatório"),
   // Opcional aqui: o wizard interno (platform_admin) pode continuar a criar a
   // conta sem senha e entregar o link de acesso por fora. No signup público

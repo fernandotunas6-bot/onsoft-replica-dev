@@ -120,6 +120,29 @@ describe("senha do administrador", () => {
   });
 });
 
+describe("e-mails", () => {
+  it("normaliza para minúsculas", () => {
+    // `createSchoolAdminAccount` já faz toLowerCase antes de criar a conta. Sem
+    // isto, o que ficava guardado podia divergir do que serve para entrar.
+    const parsed = createSchoolWizardInputSchema.parse({
+      ...base,
+      admin_email: "ADMIN@Colegio.AO",
+      contact_email: "  Ana@Colegio.AO  ",
+    });
+    expect(parsed.admin_email).toBe("admin@colegio.ao");
+    expect(parsed.contact_email).toBe("ana@colegio.ao");
+  });
+
+  it("recusa os formatos que o Zod já apanha", () => {
+    for (const email of ["a@b", "x@y.z", "admin@colegio..ao", "admin@localhost"]) {
+      expect(
+        () => createSchoolWizardInputSchema.parse({ ...base, admin_email: email }),
+        email,
+      ).toThrow();
+    }
+  });
+});
+
 describe("registo público", () => {
   it("exige senha, ao contrário do wizard interno", () => {
     const { admin_password: _omitted, ...semSenha } = base;
