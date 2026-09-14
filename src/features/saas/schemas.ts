@@ -91,12 +91,20 @@ export const createSchoolWizardInputSchema = z.object({
   // (`validateSaftSchoolReadiness` bloqueia), nem emitir documento fiscal
   // válido. Era opcional, e 85 das 87 escolas em produção ficaram sem ele —
   // só o descobririam na altura de declarar.
+  //
+  // A validação usada é `validateSchoolNif`, a mesma de que a exportação SAF-T
+  // depende — não uma regra nova só para aqui. Aceita o NIF de entidade da AGT
+  // (9–10 dígitos) e, por herança, o formato alfanumérico curto que escolas
+  // antigas têm gravado; a mensagem diz as duas coisas em vez de prometer só a
+  // primeira. O wizard do WEB é deliberadamente mais estrito, porque aí trata-se
+  // sempre de uma inscrição nova: pede os 9–10 dígitos e mais nada.
   nif: z
     .string()
     .trim()
     .min(1, "NIF da escola obrigatório — necessário para facturação e SAF-T (AGT).")
     .refine((value) => validateSchoolNif(value).ok, {
-      message: "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos).",
+      message:
+        "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos) — confirme o número na AGT.",
     }),
   address: z.string().trim().optional(),
   city: z.string().trim().optional(),

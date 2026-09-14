@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   createSchoolWizardInputSchema,
   publicSchoolSignupInputSchema,
@@ -163,5 +165,55 @@ describe("registo público", () => {
     expect(() =>
       publicSchoolSignupInputSchema.parse({ ...base, website: "", admin_password: "12345678" }),
     ).toThrow();
+  });
+});
+
+/**
+ * O wizard do WEB é mais estrito do que o servidor no NIF, e isso é
+ * deliberado: uma inscrição nova tem de trazer o NIF de entidade da AGT, mas o
+ * servidor também aceita o formato alfanumérico curto que escolas antigas têm
+ * gravado — é a mesma função de que a exportação SAF-T depende, e apertá-la
+ * aqui invalidaria dados que já existem.
+ *
+ * A assimetria fica fixada por teste para ser escolha e não descuido. Se um dia
+ * o servidor apertar, este teste falha e obriga a decidir em vez de deixar o
+ * wizard e a API divergirem em silêncio.
+ */
+describe("assimetria deliberada entre o wizard e o servidor no NIF", () => {
+  /**
+   * Lida do próprio wizard, não copiada para aqui. Uma constante duplicada
+   * fixaria a minha ideia da regra, não a regra — e o ponto deste teste é
+   * exactamente notar quando os dois lados divergem.
+   */
+  const WIZARD_NIF_REGEX = (() => {
+    const wizard = readFileSync(
+      resolve(__dirname, "../../painel/web/src/app/start/page.tsx"),
+      "utf8",
+    );
+    const bloco = wizard.slice(wizard.indexOf("nif: z"), wizard.indexOf("city: z"));
+    const found = bloco.match(/\.regex\(\s*(\/[^/]+\/)/);
+    if (!found) throw new Error("o wizard deixou de validar o nif por regex — reveja este teste");
+    return new RegExp(found[1].slice(1, -1));
+  })();
+
+  const nifOk = (nif: string) => createSchoolWizardInputSchema.safeParse({ ...base, nif }).success;
+
+  it("o servidor aceita o NIF de entidade da AGT, que é o que o wizard exige", () => {
+    expect(WIZARD_NIF_REGEX.test("5417000000")).toBe(true);
+    expect(nifOk("5417000000")).toBe(true);
+  });
+
+  it("o servidor aceita o formato antigo que o wizard recusa", () => {
+    // Uma escola gravada antes desta regra continua a poder ser actualizada
+    // pela API e continua a exportar SAF-T.
+    expect(WIZARD_NIF_REGEX.test("AO12345X")).toBe(false);
+    expect(nifOk("AO12345X")).toBe(true);
+  });
+
+  it("nenhum dos dois aceita lixo", () => {
+    for (const lixo of ["", "   ", "123", "abc", "NIF"]) {
+      expect(WIZARD_NIF_REGEX.test(lixo)).toBe(false);
+      expect(nifOk(lixo)).toBe(false);
+    }
   });
 });

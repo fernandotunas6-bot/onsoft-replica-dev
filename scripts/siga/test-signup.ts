@@ -6,6 +6,7 @@ async function run() {
     const res = await runPublicSchoolSignup(
       {
         name: "Test Bug " + Date.now(),
+        nif: "5417000000",
         contact_name: "Valentino",
         contact_email: "valentino.bug@example.com",
         plan_code: "start",
