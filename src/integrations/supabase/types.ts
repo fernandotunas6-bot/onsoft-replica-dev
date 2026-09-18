@@ -41,12 +41,131 @@ export type Database = {
         }
         Relationships: []
       }
+      attachments: {
+        Row: {
+          bucket: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_name: string
+          id: string
+          mime_type: string | null
+          owner_id: string
+          owner_type: string
+          path: string
+          school_id: string
+          size_bytes: number | null
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          bucket?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          owner_id: string
+          owner_type: string
+          path: string
+          school_id: string
+          size_bytes?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          bucket?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          owner_id?: string
+          owner_type?: string
+          path?: string
+          school_id?: string
+          size_bytes?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attachments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip: unknown
+          reason: string | null
+          school_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip?: unknown
+          reason?: string | null
+          school_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip?: unknown
+          reason?: string | null
+          school_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           cargo: string
           created_at: string
           full_name: string | null
           id: string
+          school_id: string | null
           updated_at: string
         }
         Insert: {
@@ -54,6 +173,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          school_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -61,7 +181,73 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          school_id?: string | null
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          academic_year: string | null
+          address: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          deleted_at: string | null
+          email: string | null
+          id: string
+          name: string
+          nif: string | null
+          phone: string | null
+          short_name: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          academic_year?: string | null
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          nif?: string | null
+          phone?: string | null
+          short_name?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          academic_year?: string | null
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          nif?: string | null
+          phone?: string | null
+          short_name?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
         }
         Relationships: []
       }
@@ -70,7 +256,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_profile_role: { Args: never; Returns: string }
+      current_school_id: { Args: never; Returns: string }
+      is_school_member: { Args: { p_school_id: string }; Returns: boolean }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
