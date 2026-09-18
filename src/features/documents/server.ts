@@ -62,25 +62,29 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     const [templatesResult, requestsResult, studentsResult] = await Promise.all([
       db
         .from("document_templates")
-        .select("id, code, name, document_type, version, status, created_at")
+        .select(
+          "id, code, name, fee_amount, turnaround_days, requires_payment, active, created_at",
+        )
         .eq("school_id", membership.schoolId)
-        .eq("status", "active")
+        .eq("active", true)
         .order("name"),
       db
         .from("document_requests")
         .select(
-          "id, student_id, template_id, request_type, status, purpose, requested_by, reviewed_by, created_at, updated_at",
+          "id, student_id, template_id, template_name, request_number, fee_amount, status, priority, requested_at, due_on, completed_at, assigned_to, notes, created_at, updated_at",
         )
         .eq("school_id", membership.schoolId)
-        .order("created_at", { ascending: false })
+        .order("requested_at", { ascending: false })
         .limit(data.limit),
       db
         .from("students")
-        .select("id, student_number, person_id")
+        .select("id, registration_number, person_id")
         .eq("school_id", membership.schoolId)
-        .order("student_number")
-        .limit(250),
+        .is("deleted_at", null)
+        .order("registration_number")
+        .limit(500),
     ]);
+
 
     if (templatesResult.error) {
       throw publicDatabaseError(templatesResult.error, "Não foi possível carregar os modelos.");
