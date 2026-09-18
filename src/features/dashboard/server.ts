@@ -549,6 +549,49 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       };
     }
 
+    if (capabilities.students || capabilities.finance) {
+      try {
+        const { data: jobs, error: jobsError } = await db
+          .from("import_jobs")
+          .select(
+            "id, module, file_name, status, total_rows, imported_rows, error_rows, created_at",
+          )
+          .eq("school_id", schoolId)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        if (!jobsError && jobs) {
+          const rows = jobs as Array<Record<string, unknown>>;
+          overview.imports.available = true;
+          overview.imports.totalJobs = rows.length;
+          overview.imports.completedJobs = rows.filter((row) => row.status === "completed").length;
+          overview.imports.failedJobs = rows.filter((row) =>
+            ["failed", "cancelled", "rolled_back"].includes(String(row.status)),
+          ).length;
+          overview.imports.pendingJobs = rows.filter((row) =>
+            ["uploaded", "analyzing", "mapping", "validating", "ready", "importing"].includes(
+              String(row.status),
+            ),
+          ).length;
+          overview.imports.importedRows = rows.reduce(
+            (total, row) => total + Number(row.imported_rows ?? 0),
+            0,
+          );
+          overview.imports.recent = rows.slice(0, 5).map((row) => ({
+            id: String(row.id),
+            module: String(row.module ?? "—"),
+            fileName: row.file_name ? String(row.file_name) : null,
+            status: String(row.status ?? "—"),
+            totalRows: Number(row.total_rows ?? 0),
+            importedRows: Number(row.imported_rows ?? 0),
+            errorRows: Number(row.error_rows ?? 0),
+            createdAt: row.created_at ? String(row.created_at) : null,
+          }));
+        }
+      } catch {
+        /* motor de importação indisponível: o painel continua */
+      }
+    }
+
     return overview;
   });
 
