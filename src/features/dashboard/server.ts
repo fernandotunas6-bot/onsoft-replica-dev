@@ -513,12 +513,14 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           ["approved", "ready", "delivered", "issued", "completed"].includes(String(row.status)),
         ).length;
         overview.totals.documentPending = rows.filter((row) =>
-          ["submitted", "in_review", "queued", "processing"].includes(String(row.status)),
+          ["submitted", "in_review", "queued", "processing", "pending_payment"].includes(
+            String(row.status),
+          ),
         ).length;
         overview.recentActivity = rows.slice(0, 6).map((row) => ({
           id: String(row.id),
-          title: String(row.request_type ?? "Documento"),
-          detail: String(row.purpose ?? row.status ?? "Pedido"),
+          title: String(row.template_name ?? "Documento"),
+          detail: String(row.notes ?? row.status ?? "Pedido"),
           time: new Date(String(row.created_at)).toLocaleDateString("pt-PT"),
           tone: ["approved", "ready", "delivered", "issued"].includes(String(row.status))
             ? "success"
