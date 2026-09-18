@@ -117,8 +117,10 @@ const statusLabels: Record<string, keyof typeof estadoTone> = {
 };
 
 const advanceActionLabel: Record<string, string> = {
-  in_review: "Rever",
-  approved: "Emitir",
+  queued: "Pôr em fila",
+  processing: "Processar",
+  ready: "Emitir",
+  delivered: "Entregar",
 };
 
 function DocumentosPage() {
@@ -274,7 +276,8 @@ function DocumentosPage() {
       await updateDocumentRequestStatus({
         data: {
           requestId: documento.id,
-          status: nextStatus as "submitted" | "in_review" | "approved" | "rejected" | "cancelled",
+          status: nextStatus as
+            "pending_payment" | "queued" | "processing" | "ready" | "delivered" | "cancelled",
         },
       });
       await Promise.all([
@@ -282,7 +285,7 @@ function DocumentosPage() {
         queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
       ]);
       toast.success("Estado do documento actualizado.");
-      if (nextStatus === "approved") await downloadDeclaration(documento);
+      if (nextStatus === "ready") await downloadDeclaration(documento);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível actualizar o pedido.");
     } finally {
@@ -647,12 +650,12 @@ function DocumentosPage() {
                         {d.nextStatus ? (
                           <>
                             <ConfirmActionModal
-                              title="Recusar pedido"
-                              description={`Recusa o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
-                              confirmLabel="Recusar"
+                              title="Cancelar pedido"
+                              description={`Cancela o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
+                              confirmLabel="Cancelar pedido"
                               onConfirm={async () => {
                                 await updateDocumentRequestStatus({
-                                  data: { requestId: d.id, status: "rejected" },
+                                  data: { requestId: d.id, status: "cancelled" },
                                 });
                                 await Promise.all([
                                   queryClient.invalidateQueries({

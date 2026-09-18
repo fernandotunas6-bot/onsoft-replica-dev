@@ -113,6 +113,13 @@
       "when": 1789718103219,
       "tag": "0015_sga_assessments_attendance_announcements_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789719288522,
+      "tag": "0016_people_contact_compat_columns",
+      "breakpoints": true
     }
   ]
 }

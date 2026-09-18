@@ -5,7 +5,7 @@ export const studentStatusOptions = ["active", "inactive", "transferred", "gradu
 
 export const searchStudentsInputSchema = z.object({
   query: z.string().trim().optional(),
-  limit: z.number().int().min(1).max(100).default(25),
+  limit: z.number().int().min(1).max(1000).default(25),
   offset: z.number().int().min(0).default(0),
 });
 export type SearchStudentsInput = z.infer<typeof searchStudentsInputSchema>;

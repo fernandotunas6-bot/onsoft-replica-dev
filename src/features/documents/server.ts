@@ -40,20 +40,13 @@ import {
 } from "./print-catalog";
 import { parsePrintSettings } from "./print-settings";
 
-/** SGA check constraint: submitted | in_review | approved | rejected | cancelled */
-const statusToUi: Record<string, string> = {
-  submitted: "queued",
-  in_review: "processing",
-  approved: "ready",
-  rejected: "rejected",
-  cancelled: "cancelled",
-};
-
+/** Estados reais: pending_payment | queued | processing | ready | delivered | cancelled */
 const nextSgaStatus: Record<string, string | null> = {
-  submitted: "in_review",
-  in_review: "approved",
-  approved: null,
-  rejected: null,
+  pending_payment: "queued",
+  queued: "processing",
+  processing: "ready",
+  ready: "delivered",
+  delivered: null,
   cancelled: null,
 };
 
@@ -68,24 +61,25 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     const [templatesResult, requestsResult, studentsResult] = await Promise.all([
       db
         .from("document_templates")
-        .select("id, code, name, document_type, version, status, created_at")
+        .select("id, code, name, fee_amount, turnaround_days, requires_payment, active, created_at")
         .eq("school_id", membership.schoolId)
-        .eq("status", "active")
+        .eq("active", true)
         .order("name"),
       db
         .from("document_requests")
         .select(
-          "id, student_id, template_id, request_type, status, purpose, requested_by, reviewed_by, created_at, updated_at",
+          "id, student_id, template_id, template_name, request_number, fee_amount, status, priority, requested_at, due_on, completed_at, assigned_to, notes, created_at, updated_at",
         )
         .eq("school_id", membership.schoolId)
-        .order("created_at", { ascending: false })
+        .order("requested_at", { ascending: false })
         .limit(data.limit),
       db
         .from("students")
-        .select("id, student_number, person_id")
+        .select("id, registration_number, person_id")
         .eq("school_id", membership.schoolId)
-        .order("student_number")
-        .limit(250),
+        .is("deleted_at", null)
+        .order("registration_number")
+        .limit(500),
     ]);
 
     if (templatesResult.error) {
@@ -104,12 +98,13 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     const peopleById = await loadPersonNamesById(db, membership.schoolId, personIds);
 
     const students = (studentsResult.data ?? []).map(
-      (student: { id: string; student_number: string; person_id: string }) => ({
+      (student: { id: string; registration_number: string | null; person_id: string }) => ({
         id: student.id,
         full_name: peopleById.get(student.person_id) ?? "Aluno",
-        registration_number: student.student_number,
+        registration_number: student.registration_number ?? "Sem processo",
       }),
     );
+
     const studentIds = students.map((student) => student.id);
     const { data: enrollments } = studentIds.length
       ? await db
@@ -145,21 +140,23 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     );
 
     return {
-      templates: (templatesResult.data ?? []).map((template: Record<string, unknown>) => ({
-        ...template,
-        active: template["status"] === "active",
-        fee_amount: 0,
-      })),
+      templates: templatesResult.data ?? [],
       students,
       requests: (requestsResult.data ?? []).map(
         (request: {
           id: string;
           student_id: string;
           template_id: string | null;
-          request_type: string | null;
+          template_name: string | null;
+          request_number: string | null;
+          fee_amount: number | null;
           status: string;
-          purpose: string | null;
-          requested_by: string | null;
+          priority: string | null;
+          requested_at: string;
+          due_on: string | null;
+          completed_at: string | null;
+          assigned_to: string | null;
+          notes: string | null;
           created_at: string;
         }) => {
           const student = studentById.get(request.student_id);
@@ -169,19 +166,22 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
             student_id: request.student_id,
             template_id: request.template_id,
             template_name:
+              request.template_name ||
               (template as { name?: string } | undefined)?.name ||
-              request.request_type ||
               "Documento",
             student_name: student?.full_name ?? "Aluno",
             registration_number: student?.registration_number ?? "Sem processo",
             class_name: classNameByStudentId.get(request.student_id) ?? null,
-            request_number: request.purpose || request.id.slice(0, 8),
-            status: statusToUi[request.status] ?? "queued",
+            request_number: request.request_number || request.id.slice(0, 8),
+            status: request.status,
             next_status: nextSgaStatus[request.status] ?? null,
-            requested_at: request.created_at,
-            assigned_to: request.requested_by,
-            priority: "normal",
-            notes: request.purpose,
+            requested_at: request.requested_at ?? request.created_at,
+            due_on: request.due_on,
+            completed_at: request.completed_at,
+            fee_amount: Number(request.fee_amount ?? 0),
+            assigned_to: request.assigned_to,
+            priority: request.priority ?? "normal",
+            notes: request.notes,
           };
         },
       ),
@@ -200,7 +200,7 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
 
     const { data: template, error: templateError } = await db
       .from("document_templates")
-      .select("id, name, document_type")
+      .select("id, name, fee_amount, turnaround_days, requires_payment")
       .eq("id", data.templateId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -209,23 +209,37 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
     }
     if (!template) throw new Error("Modelo de documento não encontrado.");
 
-    const purposeParts = [
-      data.requestNumber ? `Nº ${data.requestNumber}` : null,
-      data.priority === "urgent" ? "Urgente" : null,
-      data.dueOn ? `Prazo ${data.dueOn}` : null,
-      data.notes || null,
-    ].filter(Boolean);
+    const priority = data.priority === "urgent" ? "urgent" : "normal";
+    const turnaround = Number(template.turnaround_days ?? 3);
+    const dueOn =
+      data.dueOn ??
+      new Date(
+        Date.now() +
+          (priority === "urgent" ? Math.max(1, Math.ceil(turnaround / 2)) : turnaround) *
+            86_400_000,
+      )
+        .toISOString()
+        .slice(0, 10);
+    const requestNumber =
+      data.requestNumber?.trim() ||
+      `DOC${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+    const feeAmount = Number(template.fee_amount ?? 0);
 
     const { data: request, error } = await db
       .from("document_requests")
       .insert({
         school_id: membership.schoolId,
+        request_number: requestNumber,
         student_id: data.studentId,
         template_id: data.templateId,
-        request_type: template.document_type || template.name,
-        status: "submitted",
-        purpose: purposeParts.join(" · ") || null,
-        requested_by: context.userId,
+        template_name: template.name,
+        fee_amount: feeAmount,
+        status: template.requires_payment && feeAmount > 0 ? "pending_payment" : "queued",
+        priority,
+        due_on: dueOn,
+        assigned_to: context.userId,
+        notes: data.notes?.trim() || null,
+        created_by: context.userId,
       })
       .select("*")
       .single();
@@ -258,7 +272,10 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
       .from("document_requests")
       .update({
         status: data.status,
-        reviewed_by: context.userId,
+        assigned_to: context.userId,
+        completed_at:
+          data.status === "delivered" || data.status === "ready" ? new Date().toISOString() : null,
+        updated_by: context.userId,
         updated_at: new Date().toISOString(),
       })
       .eq("id", data.requestId)

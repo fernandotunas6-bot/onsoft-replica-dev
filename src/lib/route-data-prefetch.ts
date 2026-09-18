@@ -60,7 +60,7 @@ export function prefetchRouteData(queryClient: QueryClient, pathname: string) {
       const yearId = yearIdFromCache(queryClient);
       void queryClient.prefetchQuery({
         queryKey: ["students", "search"],
-        queryFn: () => searchStudents({ data: { limit: 100, offset: 0 } }),
+        queryFn: () => searchStudents({ data: { limit: 1000, offset: 0 } }),
       });
       void queryClient.prefetchQuery({
         queryKey: ["academic", "pedagogical-workspace", yearId],

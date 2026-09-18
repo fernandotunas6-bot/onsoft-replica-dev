@@ -276,7 +276,7 @@ function StudentsPage() {
 
   const studentsQuery = useQuery({
     queryKey: ["students", "search"],
-    queryFn: () => searchStudents({ data: { limit: 100, offset: 0 } }),
+    queryFn: () => searchStudents({ data: { limit: 1000, offset: 0 } }),
   });
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
