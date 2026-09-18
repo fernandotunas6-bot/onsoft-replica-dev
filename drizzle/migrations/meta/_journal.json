@@ -92,6 +92,13 @@
       "when": 1789715341332,
       "tag": "0012_academic_compat_layer",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789715397200,
+      "tag": "0013_restrict_permission_catalog_reads",
+      "breakpoints": true
     }
   ]
 }
