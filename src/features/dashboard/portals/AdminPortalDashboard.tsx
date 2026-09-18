@@ -324,6 +324,58 @@ export function AdminPortalDashboard({
 
       <InstalledModuleTools module="comunicacoes" />
 
+      {activeTab === "geral" && data?.imports?.available ? (
+        <section className="surface-card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <IconChip icon={Upload} tone="info" size="sm" />
+              Importações de dados
+            </div>
+            <Link
+              to="/importar"
+              className="text-xs font-bold text-primary underline-offset-2 hover:underline"
+            >
+              Abrir importação
+            </Link>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-4">
+            {[
+              { label: "Ficheiros", value: data.imports.totalJobs },
+              { label: "Concluídos", value: data.imports.completedJobs },
+              { label: "Em curso", value: data.imports.pendingJobs },
+              { label: "Registos importados", value: data.imports.importedRows },
+            ].map((item) => (
+              <div key={item.label} className="rounded-xl border border-border/60 p-3">
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="mt-1 text-xl font-bold">{item.value}</p>
+              </div>
+            ))}
+          </div>
+          {data.imports.recent.length > 0 ? (
+            <ul className="mt-4 divide-y divide-border/60">
+              {data.imports.recent.map((job) => (
+                <li key={job.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{job.fileName ?? job.module}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {job.module} · {job.importedRows}/{job.totalRows} linhas
+                      {job.errorRows > 0 ? ` · ${job.errorRows} com erro` : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs font-bold text-muted-foreground">
+                    {job.createdAt ? new Date(job.createdAt).toLocaleDateString("pt-PT") : "—"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Ainda não importou ficheiros. Envie Excel ou CSV de turmas, alunos ou pautas.
+            </p>
+          )}
+        </section>
+      ) : null}
+
       <section className="surface-card p-5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
