@@ -99,6 +99,13 @@
       "when": 1789715397200,
       "tag": "0013_restrict_permission_catalog_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789717909273,
+      "tag": "0014_sga_finance_core_and_rpcs",
+      "breakpoints": true
     }
   ]
 }
