@@ -509,6 +509,205 @@ export type Database = {
           },
         ]
       }
+      document_request_status_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          id: string
+          new_status: string
+          previous_status: string | null
+          reason: string | null
+          request_id: string
+          school_id: string
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          id?: string
+          new_status: string
+          previous_status?: string | null
+          reason?: string | null
+          request_id: string
+          school_id: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          id?: string
+          new_status?: string
+          previous_status?: string | null
+          reason?: string | null
+          request_id?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_request_history_request_fkey"
+            columns: ["school_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "document_requests"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "document_request_status_history_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_requests: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          due_on: string
+          fee_amount: number
+          id: string
+          notes: string | null
+          priority: string
+          request_number: string
+          requested_at: string
+          school_id: string
+          status: string
+          student_id: string
+          template_id: string
+          template_name: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          due_on: string
+          fee_amount: number
+          id?: string
+          notes?: string | null
+          priority?: string
+          request_number: string
+          requested_at?: string
+          school_id: string
+          status: string
+          student_id: string
+          template_id: string
+          template_name: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          due_on?: string
+          fee_amount?: number
+          id?: string
+          notes?: string | null
+          priority?: string
+          request_number?: string
+          requested_at?: string
+          school_id?: string
+          status?: string
+          student_id?: string
+          template_id?: string
+          template_name?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_requests_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_requests_student_fkey"
+            columns: ["school_id", "student_id"]
+            isOneToOne: false
+            referencedRelation: "student_directory"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "document_requests_student_fkey"
+            columns: ["school_id", "student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "document_requests_template_fkey"
+            columns: ["school_id", "template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
+      document_templates: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          created_by: string | null
+          fee_amount: number
+          id: string
+          name: string
+          requires_payment: boolean
+          school_id: string
+          turnaround_days: number
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          created_by?: string | null
+          fee_amount?: number
+          id?: string
+          name: string
+          requires_payment?: boolean
+          school_id: string
+          turnaround_days?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          fee_amount?: number
+          id?: string
+          name?: string
+          requires_payment?: boolean
+          school_id?: string
+          turnaround_days?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_templates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enrollments: {
         Row: {
           academic_year_id: string
@@ -1419,6 +1618,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           cargo: string
           created_at: string
           full_name: string | null
@@ -1427,6 +1627,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           cargo?: string
           created_at?: string
           full_name?: string | null
@@ -1435,6 +1636,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           cargo?: string
           created_at?: string
           full_name?: string | null
@@ -1995,6 +2197,7 @@ export type Database = {
       }
     }
     Functions: {
+      can_manage_documents: { Args: never; Returns: boolean }
       can_manage_finance: { Args: never; Returns: boolean }
       can_manage_students: { Args: never; Returns: boolean }
       can_read_students: { Args: never; Returns: boolean }
@@ -2017,6 +2220,43 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "students"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_document_request: {
+        Args: {
+          p_due_on?: string
+          p_notes?: string
+          p_priority?: string
+          p_request_number: string
+          p_student_id: string
+          p_template_id: string
+        }
+        Returns: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          due_on: string
+          fee_amount: number
+          id: string
+          notes: string | null
+          priority: string
+          request_number: string
+          requested_at: string
+          school_id: string
+          status: string
+          student_id: string
+          template_id: string
+          template_name: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "document_requests"
           isOneToOne: true
           isSetofReturn: false
         }
