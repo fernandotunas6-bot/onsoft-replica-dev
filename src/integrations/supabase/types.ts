@@ -970,6 +970,56 @@ export type Database = {
           },
         ]
       }
+      school_billing_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          due_day: number
+          grace_days: number
+          id: string
+          late_fee_percent: number
+          school_id: string
+          sibling_discount_percent: number
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          due_day?: number
+          grace_days?: number
+          id?: string
+          late_fee_percent?: number
+          school_id: string
+          sibling_discount_percent?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          due_day?: number
+          grace_days?: number
+          id?: string
+          late_fee_percent?: number
+          school_id?: string
+          sibling_discount_percent?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_billing_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schools: {
         Row: {
           academic_year: string | null
@@ -978,11 +1028,15 @@ export type Database = {
           created_by: string | null
           currency: string
           deleted_at: string | null
+          director_name: string | null
           email: string | null
+          evaluation_periods: number
           id: string
           name: string
           nif: string | null
+          passing_grade: number
           phone: string | null
+          preferences: Json
           short_name: string | null
           status: string
           updated_at: string
@@ -996,11 +1050,15 @@ export type Database = {
           created_by?: string | null
           currency?: string
           deleted_at?: string | null
+          director_name?: string | null
           email?: string | null
+          evaluation_periods?: number
           id?: string
           name: string
           nif?: string | null
+          passing_grade?: number
           phone?: string | null
+          preferences?: Json
           short_name?: string | null
           status?: string
           updated_at?: string
@@ -1014,11 +1072,15 @@ export type Database = {
           created_by?: string | null
           currency?: string
           deleted_at?: string | null
+          director_name?: string | null
           email?: string | null
+          evaluation_periods?: number
           id?: string
           name?: string
           nif?: string | null
+          passing_grade?: number
           phone?: string | null
+          preferences?: Json
           short_name?: string | null
           status?: string
           updated_at?: string

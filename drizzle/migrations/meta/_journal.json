@@ -22,6 +22,13 @@
       "when": 1789714280814,
       "tag": "0002_people_module_part2_academic_core",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789714373840,
+      "tag": "0003_school_settings_billing_and_indexes",
+      "breakpoints": true
     }
   ]
 }
