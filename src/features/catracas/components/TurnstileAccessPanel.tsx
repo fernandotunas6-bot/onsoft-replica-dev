@@ -55,10 +55,7 @@ import {
   loadDesktopHardwarePrefs,
   resolveTurnstilePulseIp,
 } from "@/features/catracas/hardware-pulse";
-import {
-  checkPythonHardwareBridgeHealth,
-  triggerTurnstileRelay,
-} from "@/lib/tauri-bridge";
+import { checkPythonHardwareBridgeHealth, triggerTurnstileRelay } from "@/lib/tauri-bridge";
 import {
   Select,
   SelectContent,
@@ -66,10 +63,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  SchemaMissingBanner,
-  isSchemaMissingError,
-} from "@/components/ui/schema-missing-banner";
+import { SchemaMissingBanner, isSchemaMissingError } from "@/components/ui/schema-missing-banner";
 
 type TurnstileDeviceRow = {
   id: string;

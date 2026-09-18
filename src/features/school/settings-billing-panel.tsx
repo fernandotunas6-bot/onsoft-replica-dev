@@ -12,10 +12,7 @@ import {
   type SchoolSettingsBundle,
 } from "@/features/school/server";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import {
-  listFeePlanSettings,
-  upsertFeePlanSettings,
-} from "@/features/finance/server";
+import { listFeePlanSettings, upsertFeePlanSettings } from "@/features/finance/server";
 import { DEFAULT_FEE_ITEMS, DEFAULT_FEE_PLAN_NAME } from "@/features/finance/fee-plan-defaults";
 import { kwanza } from "@/lib/currency";
 
@@ -212,7 +209,8 @@ export function FeePlanSettingsForm() {
   const stackNav = useOptionalStackNav();
   const queryClient = useQueryClient();
   const canManage = ["Administrador", "Tesouraria"].includes(currentUser.role);
-  const defaultTuition = DEFAULT_FEE_ITEMS.find((item) => item.kind === "tuition")?.amount ?? 45_000;
+  const defaultTuition =
+    DEFAULT_FEE_ITEMS.find((item) => item.kind === "tuition")?.amount ?? 45_000;
   const defaultEnrollment =
     DEFAULT_FEE_ITEMS.find((item) => item.kind === "enrollment")?.amount ?? 25_000;
   const [planName, setPlanName] = useState(DEFAULT_FEE_PLAN_NAME);
@@ -257,7 +255,12 @@ export function FeePlanSettingsForm() {
   const saveFeePlan = async () => {
     const tuition = Number(tuitionAmount.replace(/\s/g, "").replace(",", "."));
     const enrollment = Number(enrollmentAmount.replace(/\s/g, "").replace(",", "."));
-    if (!Number.isFinite(tuition) || tuition <= 0 || !Number.isFinite(enrollment) || enrollment <= 0) {
+    if (
+      !Number.isFinite(tuition) ||
+      tuition <= 0 ||
+      !Number.isFinite(enrollment) ||
+      enrollment <= 0
+    ) {
       toast.error("Indique valores válidos para propina e matrícula.");
       return;
     }
@@ -296,7 +299,9 @@ export function FeePlanSettingsForm() {
     <div className="space-y-4">
       {!ready ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm">
-          <p className="font-semibold text-amber-900 dark:text-amber-100">Plano financeiro em falta</p>
+          <p className="font-semibold text-amber-900 dark:text-amber-100">
+            Plano financeiro em falta
+          </p>
           <p className="mt-1 text-xs text-muted-foreground">
             Sem plano activo não é possível emitir faturas de propina ou matrícula. Configure abaixo
             ou aguarde o bootstrap automático ao criar a escola.

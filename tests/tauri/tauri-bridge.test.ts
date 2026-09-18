@@ -93,4 +93,3 @@ describe("Native Stronghold & Updater Guards", () => {
     expect(installed).toBe(false);
   });
 });
-

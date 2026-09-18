@@ -148,9 +148,7 @@ export function FileBrowserTable({
                     initials={initialsFromName(file.updatedByName ?? file.ownerName)}
                     className="size-6 bg-secondary text-[9px] font-bold"
                   />
-                  <span className="truncate">
-                    {file.updatedByName ?? file.ownerName ?? "—"}
-                  </span>
+                  <span className="truncate">{file.updatedByName ?? file.ownerName ?? "—"}</span>
                 </span>
               </td>
               <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">

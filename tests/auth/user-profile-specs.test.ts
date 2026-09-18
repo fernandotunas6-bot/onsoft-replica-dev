@@ -31,8 +31,8 @@ describe("User Profile & Multi-School Membership Specification", () => {
         "123456789",
         "+351912345678",
         "+244812345678", // Invalid prefix 8
-        "923456",        // Too short
-        "92345678901",    // Too long
+        "923456", // Too short
+        "92345678901", // Too long
         "short",
       ];
       for (const num of invalidNumbers) {
@@ -102,8 +102,14 @@ describe("User Profile & Multi-School Membership Specification", () => {
     });
 
     it("identifies managed profile avatar URLs correctly", () => {
-      expect(isManagedProfileAvatarUrl(`siga-avatar://${userUuid}/avatar-1786600000000.webp`)).toBe(true);
-      expect(isManagedProfileAvatarUrl(`https://xodgfmxiaunpamctfeea.supabase.co/storage/v1/object/public/avatars/${userUuid}/avatar-1786600000000.png`)).toBe(true);
+      expect(isManagedProfileAvatarUrl(`siga-avatar://${userUuid}/avatar-1786600000000.webp`)).toBe(
+        true,
+      );
+      expect(
+        isManagedProfileAvatarUrl(
+          `https://xodgfmxiaunpamctfeea.supabase.co/storage/v1/object/public/avatars/${userUuid}/avatar-1786600000000.png`,
+        ),
+      ).toBe(true);
       expect(isManagedProfileAvatarUrl("https://external-cdn.com/avatar.jpg")).toBe(false);
     });
   });

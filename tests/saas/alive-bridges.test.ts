@@ -46,7 +46,7 @@ describe("alive-bridges (ecossistema)", () => {
     expect(mw).toContain("assertPlatformAdmin");
     expect(mw).toContain("/api/saas/me");
     expect(mw).toContain("platformAdmin");
-    expect(mw).toContain('error');
+    expect(mw).toContain("error");
     expect(mw).toContain("platform");
   });
 

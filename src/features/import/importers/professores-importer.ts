@@ -105,7 +105,12 @@ export const professoresImporter: RowImporter = {
         .eq("id", existingTeacher.id)
         .eq("school_id", ctx.schoolId);
       if (error) {
-        return { status: "error", warnings: [], errors: [error.message], audits: personResult.audits };
+        return {
+          status: "error",
+          warnings: [],
+          errors: [error.message],
+          audits: personResult.audits,
+        };
       }
       return {
         status: "imported",
@@ -170,7 +175,9 @@ export const professoresImporter: RowImporter = {
       status: "imported",
       target_record_id: String(teacher.id),
       warnings: specialty
-        ? [`Especialidade "${specialty}" preservada no ficheiro; a atribuição à disciplina/turma é feita no módulo pedagógico.`]
+        ? [
+            `Especialidade "${specialty}" preservada no ficheiro; a atribuição à disciplina/turma é feita no módulo pedagógico.`,
+          ]
         : [],
       errors: [],
       audits: [
@@ -179,7 +186,10 @@ export const professoresImporter: RowImporter = {
           table_name: "teachers",
           target_id: String(teacher.id),
           action_type: "inserted",
-          after_data: { employee_number: teacher.employee_number, person_id: personResult.personId },
+          after_data: {
+            employee_number: teacher.employee_number,
+            person_id: personResult.personId,
+          },
         },
       ],
     };

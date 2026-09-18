@@ -32,10 +32,12 @@ function makeCard(overrides: Partial<GatePassCardRow> = {}): GatePassCardRow {
  * A cadeia para students é:           select().eq().eq().maybeSingle()
  * A cadeia para siga_access_logs é:   insert()
  */
-function makeDb(options: {
-  card?: GatePassCardRow | null;
-  studentStatus?: string | null;
-} = {}) {
+function makeDb(
+  options: {
+    card?: GatePassCardRow | null;
+    studentStatus?: string | null;
+  } = {},
+) {
   const { card = makeCard(), studentStatus = "active" } = options;
 
   // Builder fluente — cada método retorna `this` para encadeamento

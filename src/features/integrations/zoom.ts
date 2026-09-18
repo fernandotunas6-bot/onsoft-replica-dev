@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient, requireSgaWriter, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriter,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 
 const ZOOM_AUTHORIZE_URL = "https://zoom.us/oauth/authorize";
 const ZOOM_TOKEN_URL = "https://zoom.us/oauth/token";
@@ -19,7 +23,9 @@ function basicAuth() {
 }
 
 function redirectUri() {
-  return process.env.ZOOM_REDIRECT_URI?.trim() || "http://localhost:3000/api/integrations/zoom/callback";
+  return (
+    process.env.ZOOM_REDIRECT_URI?.trim() || "http://localhost:3000/api/integrations/zoom/callback"
+  );
 }
 
 function randomState() {
@@ -57,12 +63,19 @@ async function readSecret(schoolId: string, key: string) {
 
 async function deleteSecrets(schoolId: string) {
   const db = await loadSgaAdminClient();
-  await db.from("school_integration_secrets").delete().eq("school_id", schoolId).eq("provider", ZOOM_PROVIDER);
+  await db
+    .from("school_integration_secrets")
+    .delete()
+    .eq("school_id", schoolId)
+    .eq("provider", ZOOM_PROVIDER);
 }
 
 async function getAccessToken(schoolId: string) {
   const access = await readSecret(schoolId, "access_token");
-  if (access && (!access.expires_at || new Date(access.expires_at).getTime() > Date.now() + 60_000)) {
+  if (
+    access &&
+    (!access.expires_at || new Date(access.expires_at).getTime() > Date.now() + 60_000)
+  ) {
     return access.secret_value;
   }
 
@@ -134,43 +147,86 @@ export const startZoomOAuth = createServerFn({ method: "GET" })
       JSON.stringify({ userId: context.userId, createdAt: Date.now() }),
       new Date(Date.now() + 10 * 60_000).toISOString(),
     );
-    const params = new URLSearchParams({ response_type: "code", client_id: clientId, redirect_uri: uri, state });
+    const params = new URLSearchParams({
+      response_type: "code",
+      client_id: clientId,
+      redirect_uri: uri,
+      state,
+    });
     return { authorizeUrl: `${ZOOM_AUTHORIZE_URL}?${params.toString()}` };
   });
 
 export const completeZoomOAuth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ code: z.string().min(1), state: z.string().min(1) }).parse(input))
+  .validator((input: unknown) =>
+    z.object({ code: z.string().min(1), state: z.string().min(1) }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem escola activa.");
     const stateRow = await readSecret(membership.schoolId, `oauth_state:${data.state}`);
-    if (!stateRow || (stateRow.expires_at && new Date(stateRow.expires_at).getTime() <= Date.now())) {
+    if (
+      !stateRow ||
+      (stateRow.expires_at && new Date(stateRow.expires_at).getTime() <= Date.now())
+    ) {
       throw new Error("Estado OAuth Zoom inválido ou expirado.");
     }
     const state = JSON.parse(stateRow.secret_value) as { userId?: string };
-    if (state.userId !== context.userId) throw new Error("Estado OAuth Zoom não pertence ao utilizador actual.");
+    if (state.userId !== context.userId)
+      throw new Error("Estado OAuth Zoom não pertence ao utilizador actual.");
 
     const response = await fetch(ZOOM_TOKEN_URL, {
       method: "POST",
       headers: { Authorization: basicAuth(), "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ grant_type: "authorization_code", code: data.code, redirect_uri: redirectUri() }),
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code: data.code,
+        redirect_uri: redirectUri(),
+      }),
     });
     const payload = (await response.json()) as Record<string, unknown>;
-    if (!response.ok || typeof payload.access_token !== "string" || typeof payload.refresh_token !== "string") {
+    if (
+      !response.ok ||
+      typeof payload.access_token !== "string" ||
+      typeof payload.refresh_token !== "string"
+    ) {
       throw new Error("Não foi possível concluir a autorização Zoom.");
     }
     const expiresIn = typeof payload.expires_in === "number" ? payload.expires_in : 3600;
-    await saveSecret(membership.schoolId, "access_token", payload.access_token, new Date(Date.now() + expiresIn * 1000).toISOString());
+    await saveSecret(
+      membership.schoolId,
+      "access_token",
+      payload.access_token,
+      new Date(Date.now() + expiresIn * 1000).toISOString(),
+    );
     await saveSecret(membership.schoolId, "refresh_token", payload.refresh_token);
-    await saveSecret(membership.schoolId, "scope", typeof payload.scope === "string" ? payload.scope : "");
+    await saveSecret(
+      membership.schoolId,
+      "scope",
+      typeof payload.scope === "string" ? payload.scope : "",
+    );
     await loadSgaAdminClient();
     const db = await loadSgaAdminClient();
     const meResponse = await zoomRequest(membership.schoolId, "/users/me");
-    const me = (await meResponse.json()) as { id?: string; email?: string; first_name?: string; last_name?: string };
-    const existing = await db.from("school_integrations").select("config").eq("school_id", membership.schoolId).eq("provider", "zoom").maybeSingle();
-    const current = existing.data?.config && typeof existing.data.config === "object" && !Array.isArray(existing.data.config) ? existing.data.config : {};
+    const me = (await meResponse.json()) as {
+      id?: string;
+      email?: string;
+      first_name?: string;
+      last_name?: string;
+    };
+    const existing = await db
+      .from("school_integrations")
+      .select("config")
+      .eq("school_id", membership.schoolId)
+      .eq("provider", "zoom")
+      .maybeSingle();
+    const current =
+      existing.data?.config &&
+      typeof existing.data.config === "object" &&
+      !Array.isArray(existing.data.config)
+        ? existing.data.config
+        : {};
     const { error } = await db.from("school_integrations").upsert(
       {
         school_id: membership.schoolId,
@@ -189,7 +245,12 @@ export const completeZoomOAuth = createServerFn({ method: "GET" })
       { onConflict: "school_id,provider" },
     );
     if (error) throw error;
-    await db.from("school_integration_secrets").delete().eq("school_id", membership.schoolId).eq("provider", "zoom").like("secret_key", "oauth_state:%");
+    await db
+      .from("school_integration_secrets")
+      .delete()
+      .eq("school_id", membership.schoolId)
+      .eq("provider", "zoom")
+      .like("secret_key", "oauth_state:%");
     return { ok: true };
   });
 
@@ -200,10 +261,32 @@ export const disconnectZoom = createServerFn({ method: "POST" })
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     const db = await loadSgaAdminClient();
     await deleteSecrets(membership.schoolId);
-    const { data: existing } = await db.from("school_integrations").select("config").eq("school_id", membership.schoolId).eq("provider", "zoom").maybeSingle();
-    const current = existing?.config && typeof existing.config === "object" && !Array.isArray(existing.config) ? existing.config : {};
+    const { data: existing } = await db
+      .from("school_integrations")
+      .select("config")
+      .eq("school_id", membership.schoolId)
+      .eq("provider", "zoom")
+      .maybeSingle();
+    const current =
+      existing?.config && typeof existing.config === "object" && !Array.isArray(existing.config)
+        ? existing.config
+        : {};
     const { error } = await db.from("school_integrations").upsert(
-      { school_id: membership.schoolId, provider: "zoom", status: "disconnected", config: { ...current, accountId: "", accountEmail: "", accountName: "", connectedAt: null, grantedCapabilities: [] }, updated_by: context.userId, created_by: context.userId },
+      {
+        school_id: membership.schoolId,
+        provider: "zoom",
+        status: "disconnected",
+        config: {
+          ...current,
+          accountId: "",
+          accountEmail: "",
+          accountName: "",
+          connectedAt: null,
+          grantedCapabilities: [],
+        },
+        updated_by: context.userId,
+        created_by: context.userId,
+      },
       { onConflict: "school_id,provider" },
     );
     if (error) throw error;
@@ -215,7 +298,10 @@ export const createZoomLessonMeeting = createServerFn({ method: "POST" })
   .validator((input: unknown) => createMeetingSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Professor"]);
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Professor",
+    ]);
     const db = await loadSgaAdminClient();
     const { data: session, error: sessionError } = await db
       .from("siga_attendance_sessions")
@@ -226,14 +312,29 @@ export const createZoomLessonMeeting = createServerFn({ method: "POST" })
     if (sessionError || !session) throw new Error("Aula/sessão não encontrada na escola actual.");
 
     if (membership.appRole === "Professor") {
-      const { data: teacher } = await db.from("teachers").select("id").eq("school_id", membership.schoolId).eq("user_id", context.userId).maybeSingle();
-      if (!teacher || session.teacher_id !== teacher.id) throw new Error("O professor só pode criar reuniões para as suas próprias aulas.");
+      const { data: teacher } = await db
+        .from("teachers")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      if (!teacher || session.teacher_id !== teacher.id)
+        throw new Error("O professor só pode criar reuniões para as suas próprias aulas.");
     }
 
-    const { data: existing } = await db.from("siga_lesson_meetings").select("id, join_url, external_meeting_id, status").eq("attendance_session_id", session.id).eq("provider", "zoom").maybeSingle();
+    const { data: existing } = await db
+      .from("siga_lesson_meetings")
+      .select("id, join_url, external_meeting_id, status")
+      .eq("attendance_session_id", session.id)
+      .eq("provider", "zoom")
+      .maybeSingle();
     if (existing?.status === "active") return existing;
 
-    const startTime = data.startTime ?? (session.lesson_date && session.starts_at ? `${session.lesson_date}T${session.starts_at}:00` : undefined);
+    const startTime =
+      data.startTime ??
+      (session.lesson_date && session.starts_at
+        ? `${session.lesson_date}T${session.starts_at}:00`
+        : undefined);
     const topic = data.topic ?? "Aula";
     const response = await zoomRequest(membership.schoolId, "/users/me/meetings", {
       method: "POST",
@@ -246,24 +347,37 @@ export const createZoomLessonMeeting = createServerFn({ method: "POST" })
         settings: { waiting_room: true, join_before_host: false, mute_upon_entry: true },
       }),
     });
-    const meeting = (await response.json()) as { id?: number; join_url?: string; start_time?: string; duration?: number; topic?: string };
-    if (!meeting.id || !meeting.join_url) throw new Error("O Zoom não devolveu os dados da reunião.");
-    const { data: row, error } = await db.from("siga_lesson_meetings").upsert(
-      {
-        school_id: membership.schoolId,
-        attendance_session_id: session.id,
-        provider: "zoom",
-        external_meeting_id: String(meeting.id),
-        join_url: meeting.join_url,
-        topic: meeting.topic ?? topic,
-        starts_at: meeting.start_time ?? startTime ?? null,
-        duration_minutes: meeting.duration ?? data.durationMinutes ?? 60,
-        status: "active",
-        created_by: context.userId,
-        updated_by: context.userId,
-      },
-      { onConflict: "attendance_session_id,provider" },
-    ).select("id, attendance_session_id, provider, external_meeting_id, join_url, topic, starts_at, duration_minutes, status").single();
+    const meeting = (await response.json()) as {
+      id?: number;
+      join_url?: string;
+      start_time?: string;
+      duration?: number;
+      topic?: string;
+    };
+    if (!meeting.id || !meeting.join_url)
+      throw new Error("O Zoom não devolveu os dados da reunião.");
+    const { data: row, error } = await db
+      .from("siga_lesson_meetings")
+      .upsert(
+        {
+          school_id: membership.schoolId,
+          attendance_session_id: session.id,
+          provider: "zoom",
+          external_meeting_id: String(meeting.id),
+          join_url: meeting.join_url,
+          topic: meeting.topic ?? topic,
+          starts_at: meeting.start_time ?? startTime ?? null,
+          duration_minutes: meeting.duration ?? data.durationMinutes ?? 60,
+          status: "active",
+          created_by: context.userId,
+          updated_by: context.userId,
+        },
+        { onConflict: "attendance_session_id,provider" },
+      )
+      .select(
+        "id, attendance_session_id, provider, external_meeting_id, join_url, topic, starts_at, duration_minutes, status",
+      )
+      .single();
     if (error) throw error;
     return row;
   });
@@ -276,6 +390,14 @@ export const getZoomLessonMeeting = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) return null;
     const db = await loadSgaAdminClient();
-    const { data: row } = await db.from("siga_lesson_meetings").select("id, attendance_session_id, provider, external_meeting_id, join_url, topic, starts_at, duration_minutes, status").eq("school_id", membership.schoolId).eq("attendance_session_id", data.attendanceSessionId).eq("provider", "zoom").maybeSingle();
+    const { data: row } = await db
+      .from("siga_lesson_meetings")
+      .select(
+        "id, attendance_session_id, provider, external_meeting_id, join_url, topic, starts_at, duration_minutes, status",
+      )
+      .eq("school_id", membership.schoolId)
+      .eq("attendance_session_id", data.attendanceSessionId)
+      .eq("provider", "zoom")
+      .maybeSingle();
     return row ?? null;
   });

@@ -17,7 +17,11 @@ export const Route = createFileRoute("/api/saas/domains/verify")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "Corpo JSON inválido." }, { status: 400, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Corpo JSON inválido." },
+            { status: 400, apps: [...APPS] },
+          );
         }
         const parsed = verifyTenantDomainInputSchema.safeParse(body);
         if (!parsed.success) {
@@ -37,7 +41,8 @@ export const Route = createFileRoute("/api/saas/domains/verify")({
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Não foi possível verificar o domínio.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },

@@ -201,10 +201,7 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
         .maybeSingle();
 
       if (existingPerson?.id) {
-        await admin
-          .from("people")
-          .update({ user_id: userId })
-          .eq("id", existingPerson.id);
+        await admin.from("people").update({ user_id: userId }).eq("id", existingPerson.id);
       }
     } catch {
       // Falha não impeditiva na vinculação biográfica
@@ -509,10 +506,7 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
 
     // 3. Verificar expiração
     if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
-      await admin
-        .from("school_invitations")
-        .update({ status: "expired" })
-        .eq("id", invitation.id);
+      await admin.from("school_invitations").update({ status: "expired" }).eq("id", invitation.id);
       throw new Error("O convite expirou. Solicite um novo convite ao administrador da escola.");
     }
 

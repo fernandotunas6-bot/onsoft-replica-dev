@@ -63,7 +63,8 @@ export async function upsertTenantUsageRow(
     },
     { onConflict: "tenant_id" },
   );
-  if (error) throw publicDatabaseError(error, "Não foi possível actualizar a utilização do tenant.");
+  if (error)
+    throw publicDatabaseError(error, "Não foi possível actualizar a utilização do tenant.");
 }
 
 /** Sincroniza um tenant logo após provisionamento ou manualmente. */
@@ -101,7 +102,10 @@ export function queueTenantUsageSync(schoolId: string): void {
   });
 }
 
-export async function syncAllTenantUsage(): Promise<{ updated: number; rows: TenantUsageSyncRow[] }> {
+export async function syncAllTenantUsage(): Promise<{
+  updated: number;
+  rows: TenantUsageSyncRow[];
+}> {
   const db = await loadSgaAdminClient();
   const { data: schools, error: schoolsErr } = await db
     .from("schools")

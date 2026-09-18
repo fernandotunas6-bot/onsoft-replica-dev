@@ -15,7 +15,10 @@ import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { AcademicMonthCalendar, initialCalendarMonth } from "@/features/calendar/AcademicMonthCalendar";
+import {
+  AcademicMonthCalendar,
+  initialCalendarMonth,
+} from "@/features/calendar/AcademicMonthCalendar";
 import { angolaHolidaysBetween, holidayOn } from "@/features/calendar/angola-holidays";
 import {
   inclusiveDaysLeft,
@@ -154,7 +157,7 @@ function CalendarioPage() {
     retry: false,
   });
 
-  const events = eventsQuery.data ?? [];
+  const events = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
 
   const refreshCalendar = async () => {
     await Promise.all([
@@ -775,7 +778,10 @@ function CalendarioPage() {
                           ? new Date(`${event.ends_on}T00:00:00`).toLocaleDateString("pt-PT")
                           : "—"}
                       </TableCell>
-                      <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
+                      <TableCell
+                        className="text-right"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <div className="inline-flex items-center justify-end gap-1">
                           {whatsappOn ? (
                             <Button size="sm" variant="ghost" asChild>

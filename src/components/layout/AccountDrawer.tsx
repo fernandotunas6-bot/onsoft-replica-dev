@@ -13,7 +13,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,8 +50,22 @@ type Row = {
 // Lista vertical no estilo Minimals: ícone em chip suave + rótulo + contador.
 const rows: Row[] = [
   { label: "Início", to: "/", icon: Home, tone: "primary" },
-  { label: "Minha Conta / Perfil", to: "__profile__", icon: User, tone: "info", action: "profile_modal", tab: "perfil" },
-  { label: "Instituições", to: "__instituicoes__", icon: Building2, tone: "primary", action: "profile_modal", tab: "instituicoes" },
+  {
+    label: "Minha Conta / Perfil",
+    to: "__profile__",
+    icon: User,
+    tone: "info",
+    action: "profile_modal",
+    tab: "perfil",
+  },
+  {
+    label: "Instituições",
+    to: "__instituicoes__",
+    icon: Building2,
+    tone: "primary",
+    action: "profile_modal",
+    tab: "instituicoes",
+  },
   {
     label: "Estudantes",
     to: "/alunos",
@@ -61,7 +75,14 @@ const rows: Row[] = [
   { label: "Documentos", to: "/documentos", icon: FileText, tone: "muted" },
   { label: "Os meus arquivos", to: "/arquivos", icon: FolderOpen, tone: "info" },
   { label: "Comunicações", to: "/comunicacoes", icon: Megaphone, tone: "primary" },
-  { label: "Segurança & Senha", to: "__security__", icon: ShieldCheck, tone: "warning", action: "profile_modal", tab: "seguranca" },
+  {
+    label: "Segurança & Senha",
+    to: "__security__",
+    icon: ShieldCheck,
+    tone: "warning",
+    action: "profile_modal",
+    tab: "seguranca",
+  },
   { label: "Configurações de conta", to: "__settings__", icon: Settings, tone: "muted" },
 ];
 
@@ -82,14 +103,19 @@ export function AccountDrawer({
   const [peer, setPeer] = useState<SchoolColleague | null>(null);
   const [pendingPeerId, setPendingPeerId] = useState<string | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [profileModalTab, setProfileModalTab] = useState<"perfil" | "foto" | "seguranca" | "instituicoes">("perfil");
+  const [profileModalTab, setProfileModalTab] = useState<
+    "perfil" | "foto" | "seguranca" | "instituicoes"
+  >("perfil");
 
-  const openThread = (next: SchoolColleague) => {
-    touchRecentContact(currentUser.id, next.id);
-    setPeer(next);
-    setView("thread");
-    setPendingPeerId(null);
-  };
+  const openThread = useCallback(
+    (next: SchoolColleague) => {
+      touchRecentContact(currentUser.id, next.id);
+      setPeer(next);
+      setView("thread");
+      setPendingPeerId(null);
+    },
+    [currentUser.id],
+  );
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -101,14 +127,14 @@ export function AccountDrawer({
     };
     window.addEventListener(OPEN_DM_EVENT, handler);
     return () => window.removeEventListener(OPEN_DM_EVENT, handler);
-  }, [colleagues, currentUser.id]);
+  }, [colleagues, openThread]);
 
   useEffect(() => {
     if (!pendingPeerId) return;
     const person = colleagues.find((row) => row.id === pendingPeerId);
     if (!person) return;
     openThread(person);
-  }, [colleagues, pendingPeerId, currentUser.id]);
+  }, [colleagues, pendingPeerId, openThread]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -117,7 +143,9 @@ export function AccountDrawer({
     setPeer(null);
   };
 
-  const handleOpenProfileModal = (tab: "perfil" | "foto" | "seguranca" | "instituicoes" = "perfil") => {
+  const handleOpenProfileModal = (
+    tab: "perfil" | "foto" | "seguranca" | "instituicoes" = "perfil",
+  ) => {
     setProfileModalTab(tab);
     setProfileModalOpen(true);
     onOpenChange(false);
@@ -181,7 +209,10 @@ export function AccountDrawer({
                   <p className="text-xs text-muted-foreground mt-0.5">{currentUser.phone}</p>
                 ) : null}
                 {currentUser.activeSchool?.schoolName ? (
-                  <Badge variant="outline" className="mt-1.5 text-[10px] py-0 px-2 bg-background/50">
+                  <Badge
+                    variant="outline"
+                    className="mt-1.5 text-[10px] py-0 px-2 bg-background/50"
+                  >
                     {currentUser.activeSchool.schoolName}
                   </Badge>
                 ) : null}
@@ -229,7 +260,9 @@ export function AccountDrawer({
                       <li key={label}>
                         <button
                           type="button"
-                          onClick={() => onOpenSettings(label === "Configurações de conta" ? "conta" : undefined)}
+                          onClick={() =>
+                            onOpenSettings(label === "Configurações de conta" ? "conta" : undefined)
+                          }
                           aria-haspopup="dialog"
                           className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground/85 outline-none transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60"
                         >
@@ -293,4 +326,3 @@ export function AccountDrawer({
     </>
   );
 }
-

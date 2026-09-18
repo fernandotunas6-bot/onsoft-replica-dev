@@ -12,7 +12,10 @@ export const Route = createFileRoute("/convite/$token")({
   head: () => ({
     meta: [
       { title: "Aceitar Convite Institucional · SIGA" },
-      { name: "description", content: "Aceitar convite para aceder ao SIGA como membro da escola." },
+      {
+        name: "description",
+        content: "Aceitar convite para aceder ao SIGA como membro da escola.",
+      },
     ],
   }),
   component: AcceptInvitePage,
@@ -93,7 +96,7 @@ function AcceptInvitePage() {
             {status === "success"
               ? "Será redirecionado para o painel em breve…"
               : status === "error"
-                ? errorMsg ?? "O convite pode ter expirado ou já ter sido utilizado."
+                ? (errorMsg ?? "O convite pode ter expirado ou já ter sido utilizado.")
                 : isLoggedIn
                   ? "A processar o seu convite…"
                   : "Inicie sessão para aceitar este convite e aceder ao SIGA."}
@@ -122,7 +125,8 @@ function AcceptInvitePage() {
           {status === "error" && (
             <div className="flex flex-col gap-3 py-2">
               <p className="text-xs text-muted-foreground text-center">
-                Se acredita que o convite é válido, contacte o administrador da escola para solicitar um novo.
+                Se acredita que o convite é válido, contacte o administrador da escola para
+                solicitar um novo.
               </p>
               <Button variant="outline" className="w-full" onClick={() => window.location.reload()}>
                 Tentar novamente

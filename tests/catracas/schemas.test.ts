@@ -152,8 +152,8 @@ describe("Turnstiles & Access Control Schemas", () => {
       direction: "exit",
     });
     expect(parsed.direction).toBe("exit");
-    expect(validateGatePassDeviceInputSchema.safeParse({ apiKey: "short", token: "x" }).success).toBe(
-      false,
-    );
+    expect(
+      validateGatePassDeviceInputSchema.safeParse({ apiKey: "short", token: "x" }).success,
+    ).toBe(false);
   });
 });

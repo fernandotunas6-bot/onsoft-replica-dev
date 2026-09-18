@@ -80,10 +80,7 @@ export async function recordGatewayWebhookEvent(
       console.warn("[gateway-webhook] slack alert:", err instanceof Error ? err.message : err);
     });
     void checkGatewayFailureRateAlert(db).catch((err) => {
-      console.warn(
-        "[gateway-failure-rate-alert]",
-        err instanceof Error ? err.message : err,
-      );
+      console.warn("[gateway-failure-rate-alert]", err instanceof Error ? err.message : err);
     });
   }
 }

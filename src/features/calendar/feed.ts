@@ -72,7 +72,10 @@ export async function loadPublicCalendarFeed(token: string): Promise<PublicCalen
     event_date: String(term.starts_on ?? ""),
     ends_on: term.ends_on ? String(term.ends_on) : null,
   }));
-  const dates = termEvents.flatMap((event) => [event.event_date, event.ends_on ?? event.event_date]);
+  const dates = termEvents.flatMap((event) => [
+    event.event_date,
+    event.ends_on ?? event.event_date,
+  ]);
   const from = dates.reduce((min, day) => (day < min ? day : min), dates[0] ?? "");
   const to = dates.reduce((max, day) => (day > max ? day : max), dates[0] ?? "");
   const holidays =

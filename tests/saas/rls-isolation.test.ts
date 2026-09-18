@@ -35,7 +35,7 @@ import {
 const SCHOOL_A = "00000000-0000-0000-0000-000000000001";
 const SCHOOL_B = "00000000-0000-0000-0000-000000000002";
 const USER_ALICE = "11111111-1111-1111-1111-111111111001";
-const USER_BOB   = "11111111-1111-1111-1111-111111111002";
+const USER_BOB = "11111111-1111-1111-1111-111111111002";
 
 // ─── 1. Cobertura do catálogo de permissões ──────────────────────────────────
 
@@ -349,9 +349,7 @@ describe("revokeSchoolInvitationInputSchema", () => {
 
 describe("acceptSchoolInvitationInputSchema", () => {
   it("rejeita token vazio", () => {
-    expect(() =>
-      acceptSchoolInvitationInputSchema.parse({ token: "" }),
-    ).toThrow();
+    expect(() => acceptSchoolInvitationInputSchema.parse({ token: "" })).toThrow();
   });
 
   it("aceita token de 48 caracteres (hex SHA-256 de 24 bytes)", () => {
@@ -368,8 +366,8 @@ describe("Pessoa vs Conta — regras de negócio (unit)", () => {
 
   const persons: PersonRecord[] = [
     { id: "p-1", school_id: SCHOOL_A, user_id: USER_ALICE, name: "Alice" },
-    { id: "p-2", school_id: SCHOOL_A, user_id: null,       name: "Bob sem portal" },
-    { id: "p-3", school_id: SCHOOL_B, user_id: USER_BOB,   name: "Bob escola B" },
+    { id: "p-2", school_id: SCHOOL_A, user_id: null, name: "Bob sem portal" },
+    { id: "p-3", school_id: SCHOOL_B, user_id: USER_BOB, name: "Bob escola B" },
   ];
 
   it("filtra pessoas activas de escola A sem depender de user_id", () => {
@@ -402,7 +400,12 @@ describe("Pessoa vs Conta — regras de negócio (unit)", () => {
 // ─── 11. Multi-escola — resolução de contexto activo ─────────────────────────
 
 describe("Multi-escola — switching de contexto", () => {
-  type Membership = { membershipId: string; schoolId: string; schoolName: string; isActive: boolean };
+  type Membership = {
+    membershipId: string;
+    schoolId: string;
+    schoolName: string;
+    isActive: boolean;
+  };
 
   const memberships: Membership[] = [
     { membershipId: "m-1", schoolId: SCHOOL_A, schoolName: "Escola A", isActive: true },

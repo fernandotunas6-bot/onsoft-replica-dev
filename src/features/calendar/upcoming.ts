@@ -47,7 +47,9 @@ export function buildUpcomingCalendarItems(
   );
   const rest = [...termItems, ...holidayItems]
     .filter((item) => !current.some((open) => open.id === item.id))
-    .sort((a, b) => a.event_date.localeCompare(b.event_date) || a.title.localeCompare(b.title, "pt"));
+    .sort(
+      (a, b) => a.event_date.localeCompare(b.event_date) || a.title.localeCompare(b.title, "pt"),
+    );
   return [...current, ...rest].slice(0, limit);
 }
 

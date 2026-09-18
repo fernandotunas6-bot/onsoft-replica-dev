@@ -51,8 +51,8 @@ function FinanceGatewayPlaceholder() {
       <p className="mt-2 text-sm text-muted-foreground">
         Envie <span className="font-mono text-xs">POST</span> com{" "}
         <span className="font-mono text-xs">{`{ apiKey, reference, amount, invoiceId? }`}</span>{" "}
-        para confirmar pagamentos Multicaixa/Unitel. Configure a API key em Definições →
-        Integrações → Multicaixa Express.
+        para confirmar pagamentos Multicaixa/Unitel. Configure a API key em Definições → Integrações
+        → Multicaixa Express.
       </p>
     </main>
   );

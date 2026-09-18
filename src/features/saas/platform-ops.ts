@@ -134,7 +134,9 @@ export async function fetchAllTenants(): Promise<Tenant[]> {
     const usageRow = Array.isArray(usage) ? usage[0] : usage;
     return {
       ...tenant,
-      active_students_count: usageFromTenantRow(usage as { active_students_count?: number | null }[] | undefined),
+      active_students_count: usageFromTenantRow(
+        usage as { active_students_count?: number | null }[] | undefined,
+      ),
       usage_last_calculated_at: usageRow?.last_calculated_at,
     };
   });
@@ -315,7 +317,8 @@ export async function fetchPlatformAdmins(): Promise<PlatformAdminRow[]> {
     .from("platform_admins")
     .select("user_id, created_at")
     .order("created_at", { ascending: true });
-  if (error) throw publicDatabaseError(error, "Não foi possível listar administradores da plataforma.");
+  if (error)
+    throw publicDatabaseError(error, "Não foi possível listar administradores da plataforma.");
 
   const rows = await Promise.all(
     (data ?? []).map(async (row) => {
@@ -427,9 +430,10 @@ export async function fetchGatewayWebhookMetrics(limit = 200) {
 
   const events: GatewayWebhookEventRow[] = ((data as Array<Record<string, unknown>>) ?? []).map(
     (row) => {
-      const school = row.schools as
-        | { name?: string; tenants?: { name?: string; slug?: string } | null }
-        | null;
+      const school = row.schools as {
+        name?: string;
+        tenants?: { name?: string; slug?: string } | null;
+      } | null;
       const tenant = school?.tenants ?? null;
       return {
         id: row.id as string,
@@ -456,9 +460,7 @@ export async function fetchGatewayWebhookMetrics(limit = 200) {
   return { ...metrics, lastRateAlert };
 }
 
-async function fetchLastGatewayRateAlert(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-) {
+async function fetchLastGatewayRateAlert(db: Awaited<ReturnType<typeof loadSgaAdminClient>>) {
   const { data, error } = await db
     .from("saas_audit_logs")
     .select("created_at, metadata")

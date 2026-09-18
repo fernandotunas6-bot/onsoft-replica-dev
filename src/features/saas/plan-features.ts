@@ -23,10 +23,7 @@ function moduleKeyForPath(pathname: string): ModuleKey | null {
 }
 
 /** Sem plano carregado (modo escola única) → tudo permitido. */
-export function planIncludesModule(
-  plan: Plan | null | undefined,
-  moduleKey: ModuleKey,
-): boolean {
+export function planIncludesModule(plan: Plan | null | undefined, moduleKey: ModuleKey): boolean {
   const feature = MODULE_FEATURE[moduleKey];
   if (!feature) return true;
   if (!plan?.features) return true;
@@ -39,7 +36,10 @@ export function planIncludesPath(pathname: string, plan: Plan | null | undefined
   return planIncludesModule(plan, moduleKey);
 }
 
-export function trialDaysRemaining(trialEndsAt: string | null | undefined, now = new Date()): number | null {
+export function trialDaysRemaining(
+  trialEndsAt: string | null | undefined,
+  now = new Date(),
+): number | null {
   if (!trialEndsAt) return null;
   const end = new Date(trialEndsAt);
   if (Number.isNaN(end.getTime())) return null;
@@ -49,7 +49,9 @@ export function trialDaysRemaining(trialEndsAt: string | null | undefined, now =
 
 export function planIncludesCustomDomain(plan: Plan | null | undefined): boolean {
   if (!plan) return true; // Modo demo / dev
-  return Boolean(plan.features?.custom_domain || plan.code === "business" || plan.code === "enterprise");
+  return Boolean(
+    plan.features?.custom_domain || plan.code === "business" || plan.code === "enterprise",
+  );
 }
 
 export function planIncludesProfessionalEmail(plan: Plan | null | undefined): boolean {

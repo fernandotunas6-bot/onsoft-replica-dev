@@ -227,12 +227,7 @@ function StudentsPage() {
   const sigeOn = installed.hasCapability("sige.export_students");
 
   const studentCapacity = useMemo(
-    () =>
-      buildStudentCapacity(
-        activeTenant?.active_students_count ?? 0,
-        activeTenant,
-        activePlan,
-      ),
+    () => buildStudentCapacity(activeTenant?.active_students_count ?? 0, activeTenant, activePlan),
     [activeTenant, activePlan],
   );
   const capacityBlocked = studentCapacity.atLimit
@@ -256,21 +251,13 @@ function StudentsPage() {
   useEffect(() => {
     const channel = supabase
       .channel("alunos_realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "students" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "enrollments" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "students" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "enrollments" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["students", "search"] });
+      })
       .subscribe();
 
     return () => {
@@ -409,7 +396,15 @@ function StudentsPage() {
   const exportarAlunosCsv = () => exportCsv("alunos-filtrados", alunoExportColumns, filtered);
   const exportarAlunosSige = () => {
     const sigeData = buildEmisExportPayload(activeTenant?.id ?? "school", filtered);
-    exportCsv("alunos-sige-emis", Object.keys(sigeData[0] ?? {}).map((k) => ({ label: k, value: (r: any) => r[k] })), sigeData);
+    exportCsv(
+      "alunos-sige-emis",
+      Object.keys(sigeData[0] ?? {}).map((k) => ({
+        label: k,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- colunas EMIS geradas dinamicamente
+        value: (r: any) => r[k] as string | number | null,
+      })),
+      sigeData,
+    );
   };
   const exportarAlunosPdf = () =>
     exportPdfTable(

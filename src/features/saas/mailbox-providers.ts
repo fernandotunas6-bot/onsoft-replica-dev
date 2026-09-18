@@ -1,6 +1,6 @@
 /**
  * mailbox-providers.ts (server-side only)
- * 
+ *
  * Orquestrador de provisionamento de caixas de correio profissionais.
  * O SIGA chama APIs de providers (Zoho, Google Workspace) para criar contas
  * para as escolas. O provider é definido por MAILBOX_PROVIDER.
@@ -11,9 +11,9 @@ export type MailboxProvider = "zoho" | "google" | "simulated";
 export type MailboxConfig = {
   tenantId: string;
   tenantSlug: string;
-  email: string;       // ex: admin@colegio.ao
+  email: string; // ex: admin@colegio.ao
   displayName: string; // ex: Colégio Esperança
-  password?: string;   // se não for fornecida, o provider pode gerar ou enviar link
+  password?: string; // se não for fornecida, o provider pode gerar ou enviar link
 };
 
 export type MailboxProvisionResult =
@@ -49,7 +49,7 @@ export async function createMailbox(config: MailboxConfig): Promise<MailboxProvi
     if (provider === "google") {
       return await googleCreateMailbox(config);
     }
-    
+
     // Default: Simulated
     console.log(`[SIMULATED] A criar mailbox para ${config.email}`);
     return { ok: true, provider: "simulated", providerAccountId: `sim-${Date.now()}` };
@@ -59,8 +59,8 @@ export async function createMailbox(config: MailboxConfig): Promise<MailboxProvi
 }
 
 export async function suspendMailbox(
-  providerAccountId: string, 
-  provider: MailboxProvider
+  providerAccountId: string,
+  provider: MailboxProvider,
 ): Promise<{ ok: boolean; reason?: string }> {
   try {
     if (provider === "zoho") {
@@ -69,7 +69,7 @@ export async function suspendMailbox(
     if (provider === "google") {
       return await googleSuspendMailbox(providerAccountId);
     }
-    
+
     // Default: Simulated
     console.log(`[SIMULATED] A suspender mailbox ${providerAccountId}`);
     return { ok: true };
@@ -80,7 +80,7 @@ export async function suspendMailbox(
 
 export async function listMailboxes(
   domain: string,
-  provider: MailboxProvider
+  provider: MailboxProvider,
 ): Promise<MailboxItem[]> {
   try {
     if (provider === "zoho") {
@@ -89,7 +89,7 @@ export async function listMailboxes(
     if (provider === "google") {
       return await googleListMailboxes(domain);
     }
-    
+
     // Default: Simulated
     return [];
   } catch (error) {

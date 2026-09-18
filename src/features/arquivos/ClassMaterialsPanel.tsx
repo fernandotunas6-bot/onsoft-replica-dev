@@ -162,62 +162,13 @@ export function ClassMaterialsPanel({
           {files.map((file) => {
             const contentOpen = canAccessFileContent(file, account.id, account.role);
             return (
-            <li
-              key={file.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-card px-2.5 py-1.5 text-sm"
-            >
-              <button
-                type="button"
-                className="min-w-0 flex-1 truncate text-left font-medium hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={!contentOpen}
-                title={contentOpen ? undefined : SYSTEM_LOCKED_MSG}
-                onClick={() => {
-                  if (!contentOpen) {
-                    toast.error(SYSTEM_LOCKED_MSG);
-                    return;
-                  }
-                  void resolveFileUrl(file)
-                    .then((url) => window.open(url, "_blank", "noopener,noreferrer"))
-                    .catch((error: Error) => toast.error(error.message));
-                }}
+              <li
+                key={file.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-card px-2.5 py-1.5 text-sm"
               >
-                {file.name}
-                <span className="ml-2 text-[10px] font-normal text-muted-foreground">
-                  {formatFileSize(file.sizeBytes)}
-                  {file.isSystem && !contentOpen ? " · Protegido" : ""}
-                </span>
-              </button>
-              <div className="flex gap-1">
-                <Button
+                <button
                   type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2"
-                  title="Copiar referência"
-                  onClick={() =>
-                    void copyRef(file).catch((error: Error) => toast.error(error.message))
-                  }
-                >
-                  <Copy className="size-3.5" />
-                </Button>
-                {whatsappOn ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-[11px] font-semibold"
-                    onClick={() =>
-                      void shareWhatsApp(file).catch((error: Error) => toast.error(error.message))
-                    }
-                  >
-                    WA
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2"
+                  className="min-w-0 flex-1 truncate text-left font-medium hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={!contentOpen}
                   title={contentOpen ? undefined : SYSTEM_LOCKED_MSG}
                   onClick={() => {
@@ -225,24 +176,73 @@ export function ClassMaterialsPanel({
                       toast.error(SYSTEM_LOCKED_MSG);
                       return;
                     }
-                    void downloadRecord(file).catch((error: Error) => toast.error(error.message));
+                    void resolveFileUrl(file)
+                      .then((url) => window.open(url, "_blank", "noopener,noreferrer"))
+                      .catch((error: Error) => toast.error(error.message));
                   }}
                 >
-                  <Download className="size-3.5" />
-                </Button>
-                {canManage ? (
+                  {file.name}
+                  <span className="ml-2 text-[10px] font-normal text-muted-foreground">
+                    {formatFileSize(file.sizeBytes)}
+                    {file.isSystem && !contentOpen ? " · Protegido" : ""}
+                  </span>
+                </button>
+                <div className="flex gap-1">
                   <Button
                     type="button"
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2"
-                    onClick={() => void detach(file)}
+                    title="Copiar referência"
+                    onClick={() =>
+                      void copyRef(file).catch((error: Error) => toast.error(error.message))
+                    }
                   >
-                    <Link2Off className="size-3.5" />
+                    <Copy className="size-3.5" />
                   </Button>
-                ) : null}
-              </div>
-            </li>
+                  {whatsappOn ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-[11px] font-semibold"
+                      onClick={() =>
+                        void shareWhatsApp(file).catch((error: Error) => toast.error(error.message))
+                      }
+                    >
+                      WA
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2"
+                    disabled={!contentOpen}
+                    title={contentOpen ? undefined : SYSTEM_LOCKED_MSG}
+                    onClick={() => {
+                      if (!contentOpen) {
+                        toast.error(SYSTEM_LOCKED_MSG);
+                        return;
+                      }
+                      void downloadRecord(file).catch((error: Error) => toast.error(error.message));
+                    }}
+                  >
+                    <Download className="size-3.5" />
+                  </Button>
+                  {canManage ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      onClick={() => void detach(file)}
+                    >
+                      <Link2Off className="size-3.5" />
+                    </Button>
+                  ) : null}
+                </div>
+              </li>
             );
           })}
         </ul>

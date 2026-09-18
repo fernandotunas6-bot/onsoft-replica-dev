@@ -358,26 +358,29 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-color-scheme: dark)").matches === true);
 
-  const toggleDark = useCallback((event?: React.MouseEvent) => {
-    const nextMode = (state.mode === "dark" ? "light" : "dark") as ThemeMode;
+  const toggleDark = useCallback(
+    (event?: React.MouseEvent) => {
+      const nextMode = (state.mode === "dark" ? "light" : "dark") as ThemeMode;
 
-    if (event && "startViewTransition" in document) {
-      const x = (event.clientX / window.innerWidth) * 100;
-      const y = (event.clientY / window.innerHeight) * 100;
-      document.documentElement.style.setProperty("--x", `${x}%`);
-      document.documentElement.style.setProperty("--y", `${y}%`);
+      if (event && "startViewTransition" in document) {
+        const x = (event.clientX / window.innerWidth) * 100;
+        const y = (event.clientY / window.innerHeight) * 100;
+        document.documentElement.style.setProperty("--x", `${x}%`);
+        document.documentElement.style.setProperty("--y", `${y}%`);
 
-      (
-        document as Document & {
-          startViewTransition: (cb: () => void) => { finished: Promise<void> };
-        }
-      ).startViewTransition(() => {
+        (
+          document as Document & {
+            startViewTransition: (cb: () => void) => { finished: Promise<void> };
+          }
+        ).startViewTransition(() => {
+          setState((s) => ({ ...s, mode: nextMode }));
+        });
+      } else {
         setState((s) => ({ ...s, mode: nextMode }));
-      });
-    } else {
-      setState((s) => ({ ...s, mode: nextMode }));
-    }
-  }, [state.mode]);
+      }
+    },
+    [state.mode],
+  );
 
   const applyShadcnTheme = useCallback((themeKey: string) => {
     setState((s) => ({

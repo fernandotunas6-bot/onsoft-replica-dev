@@ -36,9 +36,7 @@ export function parseGatewayFailureRateAlertConfig(
   if (!slackUrl && !(resendApiKey && emailTo.length)) return null;
 
   const thresholdRaw = Number(env.SIGA_GATEWAY_FAILURE_RATE_THRESHOLD ?? "0.25");
-  const threshold = Number.isFinite(thresholdRaw)
-    ? Math.min(1, Math.max(0, thresholdRaw))
-    : 0.25;
+  const threshold = Number.isFinite(thresholdRaw) ? Math.min(1, Math.max(0, thresholdRaw)) : 0.25;
 
   const minEventsRaw = Number(env.SIGA_GATEWAY_FAILURE_RATE_MIN_EVENTS ?? "5");
   const minEvents = Number.isFinite(minEventsRaw) ? Math.max(1, Math.floor(minEventsRaw)) : 5;

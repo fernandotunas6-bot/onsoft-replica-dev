@@ -26,9 +26,9 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
       if (authorizeUrl) {
         window.location.href = authorizeUrl;
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Falha ao iniciar autenticação com Zoom", {
-        description: err?.message || "Verifique se ZOOM_CLIENT_ID está configurado.",
+        description: (err as Error)?.message || "Verifique se ZOOM_CLIENT_ID está configurado.",
       });
       setLoading(false);
     }
@@ -40,9 +40,9 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
       await disconnectZoom();
       toast.success("Zoom desconectado com sucesso.");
       await queryClient.invalidateQueries({ queryKey: ["school", "integrations"] });
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Falha ao desligar Zoom", {
-        description: err?.message || "Ocorreu um erro ao revogar os segredos.",
+        description: (err as Error)?.message || "Ocorreu um erro ao revogar os segredos.",
       });
     } finally {
       setLoading(false);
@@ -57,7 +57,8 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
             <Video className="size-3.5 text-primary" /> Integração com Zoom Video Communications
           </p>
           <p className="text-muted-foreground text-[11px]">
-            Permite aos professores gerar reuniões síncronas diretamente a partir do horário e sessões de aula.
+            Permite aos professores gerar reuniões síncronas diretamente a partir do horário e
+            sessões de aula.
           </p>
         </div>
 
@@ -81,7 +82,11 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
             disabled={loading}
             className="text-xs gap-1.5 self-start sm:self-auto font-semibold"
           >
-            {loading ? <Loader2 className="size-3 animate-spin" /> : <ExternalLink className="size-3" />}
+            {loading ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <ExternalLink className="size-3" />
+            )}
             Conectar com Zoom
           </Button>
         )}
@@ -91,12 +96,14 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
         <div className="flex items-center gap-2 p-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px]">
           <CheckCircle2 className="size-3.5 shrink-0" />
           <span>
-            Conta autorizada: <strong>{accountName || "Zoom User"}</strong> ({accountEmail || "Email não disponível"})
+            Conta autorizada: <strong>{accountName || "Zoom User"}</strong> (
+            {accountEmail || "Email não disponível"})
           </span>
         </div>
       ) : (
         <div className="p-2 rounded-md bg-secondary/50 text-[11px] text-muted-foreground">
-          Clique em &quot;Conectar com Zoom&quot; para autorizar o acesso da sua escola através da conta corporativa Zoom.
+          Clique em &quot;Conectar com Zoom&quot; para autorizar o acesso da sua escola através da
+          conta corporativa Zoom.
         </div>
       )}
     </div>

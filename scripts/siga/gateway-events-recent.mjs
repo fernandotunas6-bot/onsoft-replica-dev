@@ -61,7 +61,9 @@ const { data, error } = await query;
 
 if (error) {
   if (/does not exist|schema cache/i.test(error.message)) {
-    console.log("Tabela finance_gateway_webhook_events em falta — execute supabase/APPLY_IN_SQL_EDITOR.sql");
+    console.log(
+      "Tabela finance_gateway_webhook_events em falta — execute supabase/APPLY_IN_SQL_EDITOR.sql",
+    );
     process.exit(0);
   }
   console.error("❌", error.message);

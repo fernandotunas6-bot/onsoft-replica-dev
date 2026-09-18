@@ -46,9 +46,10 @@ export async function exportSchoolData(
   // ---------------------------------------------------------------------------
   for (const mod of options.modules) {
     if (mod === "alunos") {
-      let query = db
+      const query = db
         .from("students")
-        .select(`
+        .select(
+          `
           id,
           student_number,
           people!inner(
@@ -65,7 +66,8 @@ export async function exportSchoolData(
             status,
             class_groups(name)
           )
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -96,7 +98,8 @@ export async function exportSchoolData(
       for (const s of rows) {
         const p = Array.isArray(s.people) ? s.people[0] : s.people;
         const enr = s.enrollments && s.enrollments.length > 0 ? s.enrollments[0] : null;
-        const cg = enr?.class_groups;
+        const cg = enr?.class_groups as
+          { name?: string | null } | { name?: string | null }[] | null | undefined;
         const className = Array.isArray(cg) ? cg[0]?.name : cg?.name;
 
         sheet.addRow([
@@ -117,7 +120,8 @@ export async function exportSchoolData(
     if (mod === "professores") {
       const { data: teachers } = await db
         .from("teachers")
-        .select(`
+        .select(
+          `
           id,
           employee_number,
           specialty,
@@ -128,7 +132,8 @@ export async function exportSchoolData(
             phone,
             email
           )
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -171,7 +176,8 @@ export async function exportSchoolData(
     if (mod === "turmas") {
       let query = db
         .from("class_groups")
-        .select(`
+        .select(
+          `
           id,
           name,
           code,
@@ -179,7 +185,8 @@ export async function exportSchoolData(
           capacity,
           room,
           grade_levels(name)
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -225,7 +232,8 @@ export async function exportSchoolData(
     if (mod === "matriculas") {
       let query = db
         .from("enrollments")
-        .select(`
+        .select(
+          `
           id,
           status,
           created_at,
@@ -234,7 +242,8 @@ export async function exportSchoolData(
             people!inner(full_name)
           ),
           class_groups!inner(name)
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 
@@ -266,12 +275,7 @@ export async function exportSchoolData(
         const cg = Array.isArray(enr.class_groups) ? enr.class_groups[0] : enr.class_groups;
         const dateStr = enr.created_at ? enr.created_at.slice(0, 10) : "";
 
-        sheet.addRow([
-          std?.student_number || "",
-          cg?.name || "",
-          dateStr,
-          enr.status || "active",
-        ]);
+        sheet.addRow([std?.student_number || "", cg?.name || "", dateStr, enr.status || "active"]);
       }
       autoFitColumns(sheet);
     }
@@ -357,7 +361,8 @@ export async function exportSchoolData(
     if (mod === "pagamentos" || mod === "propinas") {
       const { data: invoices } = await db
         .from("finance_invoices")
-        .select(`
+        .select(
+          `
           id,
           invoice_number,
           amount,
@@ -370,7 +375,8 @@ export async function exportSchoolData(
             student_number,
             people(full_name)
           )
-        `)
+        `,
+        )
         .eq("school_id", options.schoolId)
         .is("deleted_at", null);
 

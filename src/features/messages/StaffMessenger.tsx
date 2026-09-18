@@ -52,7 +52,7 @@ export function useFrequentColleagues() {
     if (currentUser.id) setRecentIds(readRecentContactIds(currentUser.id));
   }, [currentUser.id]);
 
-  const colleagues = colleaguesQuery.data ?? [];
+  const colleagues = useMemo(() => colleaguesQuery.data ?? [], [colleaguesQuery.data]);
   const frequent = useMemo(() => {
     const byId = new Map(colleagues.map((row) => [row.id, row]));
     const picked: SchoolColleague[] = [];
@@ -400,8 +400,7 @@ export function ColleagueThread({ peer, onBack }: { peer: SchoolColleague; onBac
       };
       setLocalMessages(appendLocalThread(currentUser.id, peer.id, fallback));
       toast.message("Mensagem guardada neste dispositivo", {
-        description:
-          error instanceof Error ? error.message : sqlApplyHint("premium"),
+        description: error instanceof Error ? error.message : sqlApplyHint("premium"),
       });
     } finally {
       setSending(false);

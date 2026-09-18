@@ -33,10 +33,7 @@ export type PollResult =
  * - Nunca re-verifica um domínio já activo.
  * - Para após `maxAttempts` tentativas (default: 48 ≈ 24h a intervalos de 30min médio).
  */
-export function shouldRetryCheck(
-  state: DomainPollState,
-  maxAttempts = 48,
-): boolean {
+export function shouldRetryCheck(state: DomainPollState, maxAttempts = 48): boolean {
   if (state.status === "active") return false;
   if (state.checkCount >= maxAttempts) return false;
   return true;
@@ -49,9 +46,9 @@ export function shouldRetryCheck(
  * - Tentativas 13+:   10 minutos (modo background)
  */
 export function calculateNextCheckDelay(checkCount: number): number {
-  if (checkCount <= 5) return 30_000;    // 30s
-  if (checkCount <= 12) return 120_000;  // 2min
-  return 600_000;                        // 10min
+  if (checkCount <= 5) return 30_000; // 30s
+  if (checkCount <= 12) return 120_000; // 2min
+  return 600_000; // 10min
 }
 
 // ─── Verificação DNS ─────────────────────────────────────────────────────────
@@ -68,11 +65,7 @@ export async function pollCustomDomainDns(state: DomainPollState): Promise<PollR
   }
 
   try {
-    const result = await verifyCustomDomainDns(
-      state.hostname,
-      state.tenantSlug,
-      state.tenantId,
-    );
+    const result = await verifyCustomDomainDns(state.hostname, state.tenantSlug, state.tenantId);
 
     if (result.ok) {
       return { status: "active", method: result.method, checkedAt };
@@ -99,10 +92,7 @@ export async function pollCustomDomainDns(state: DomainPollState): Promise<PollR
  * Persiste o resultado de uma verificação DNS em `tenant_domains`
  * e actualiza `tenant_provisioning.dns_status` se a tabela existir.
  */
-export async function persistPollResult(
-  domainId: string,
-  result: PollResult,
-): Promise<void> {
+export async function persistPollResult(domainId: string, result: PollResult): Promise<void> {
   const db = await loadSgaAdminClient();
 
   const domainUpdate: Record<string, unknown> = {
@@ -128,11 +118,7 @@ export async function persistPollResult(
   // Actualizar tenant_provisioning.dns_status se existir
   if (domain?.tenant_id) {
     const dnsStatus =
-      result.status === "active"
-        ? "verified"
-        : result.status === "failed"
-          ? "failed"
-          : "pending";
+      result.status === "active" ? "verified" : result.status === "failed" ? "failed" : "pending";
 
     await db
       .from("tenant_provisioning")

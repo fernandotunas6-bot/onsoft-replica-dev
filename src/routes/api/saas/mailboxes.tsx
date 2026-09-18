@@ -24,7 +24,11 @@ export const Route = createFileRoute("/api/saas/mailboxes")({
         try {
           await requirePlatformAdminFromRequest(request);
         } catch {
-          return jsonWithCors(request, { error: "Não autorizado." }, { status: 401, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Não autorizado." },
+            { status: 401, apps: [...APPS] },
+          );
         }
 
         const db = await loadSgaAdminClient();
@@ -33,7 +37,9 @@ export const Route = createFileRoute("/api/saas/mailboxes")({
 
         let query = db
           .from("tenant_mailboxes")
-          .select("id, tenant_id, email, display_name, provider, status, created_at, tenants(name, slug)");
+          .select(
+            "id, tenant_id, email, display_name, provider, status, created_at, tenants(name, slug)",
+          );
 
         if (tenantId) {
           query = query.eq("tenant_id", tenantId);
@@ -53,7 +59,11 @@ export const Route = createFileRoute("/api/saas/mailboxes")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "JSON inválido." }, { status: 400, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "JSON inválido." },
+            { status: 400, apps: [...APPS] },
+          );
         }
 
         const parsed = provisionSchema.safeParse(body);
@@ -69,14 +79,26 @@ export const Route = createFileRoute("/api/saas/mailboxes")({
           // Apenas platform admins podem forçar via API (as escolas usam a server function directamente)
           await requirePlatformAdminFromRequest(request);
         } catch {
-          return jsonWithCors(request, { error: "Não autorizado." }, { status: 401, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Não autorizado." },
+            { status: 401, apps: [...APPS] },
+          );
         }
 
         const db = await loadSgaAdminClient();
-        const { data: tenant } = await db.from("tenants").select("slug").eq("id", parsed.data.tenantId).maybeSingle();
-        
+        const { data: tenant } = await db
+          .from("tenants")
+          .select("slug")
+          .eq("id", parsed.data.tenantId)
+          .maybeSingle();
+
         if (!tenant) {
-          return jsonWithCors(request, { error: "Tenant não encontrado." }, { status: 404, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Tenant não encontrado." },
+            { status: 404, apps: [...APPS] },
+          );
         }
 
         const result = await createMailbox({
@@ -105,6 +127,8 @@ export const Route = createFileRoute("/api/saas/mailboxes")({
     },
   },
   component: () => (
-    <main className="p-8 text-center"><h1 className="font-bold">Mailboxes API</h1></main>
+    <main className="p-8 text-center">
+      <h1 className="font-bold">Mailboxes API</h1>
+    </main>
   ),
 });

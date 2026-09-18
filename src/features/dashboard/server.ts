@@ -5,7 +5,11 @@ import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/su
 import { buildSchoolAlert, type SchoolAlert } from "./alerts";
 import { averagePercent } from "@/features/students/schemas";
 import { getPublicEnrollmentUrl } from "@/lib/ecosystem-urls";
-import { academicYearProgress, todayInLuanda, type AcademicYearPhase } from "@/features/calendar/dates";
+import {
+  academicYearProgress,
+  todayInLuanda,
+  type AcademicYearPhase,
+} from "@/features/calendar/dates";
 import { buildUpcomingCalendarItems } from "@/features/calendar/upcoming";
 
 function countMap(entries: Array<string | null | undefined>) {
@@ -162,11 +166,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         status: yearRow.status,
       };
       overview.academicYear = academicYear;
-      const progress = academicYearProgress(
-        yearRow.starts_on,
-        yearRow.ends_on,
-        todayInLuanda(),
-      );
+      const progress = academicYearProgress(yearRow.starts_on, yearRow.ends_on, todayInLuanda());
       overview.yearProgress = progress.percent;
       overview.yearPhase = progress.phase;
     }

@@ -243,32 +243,20 @@ function FaturasPage() {
   useEffect(() => {
     const channel = supabase
       .channel("faturas_realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "invoices" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-          void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "payments" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-          void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "invoices" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-          void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
-        },
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "invoices" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "payments" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "invoices" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+        void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
+      })
       .subscribe();
 
     return () => {

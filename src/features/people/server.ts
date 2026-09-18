@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -390,7 +391,7 @@ export const createPerson = createServerFn({ method: "POST" })
       // register_student gera o número de processo por sequência própria (nunca
       // duplica sob pedidos simultâneos, ao contrário do `EST-${Date.now()}` anterior,
       // que podia colidir em dois pedidos no mesmo milissegundo).
-      const { error: registerError } = await context.supabase.rpc("register_student", {
+      const { error: registerError } = await sgaClient(context.supabase).rpc("register_student", {
         school_id: membership.schoolId,
         person_id: person.id,
         admission_date: new Date().toISOString().slice(0, 10),

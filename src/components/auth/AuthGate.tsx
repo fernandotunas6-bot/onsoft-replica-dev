@@ -313,7 +313,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
       const result = await requestPasswordResetFn({ data: { email, hostname } });
       setInfo(result.message);
     } catch {
-      setInfo("Se existir uma conta associada a este endereço, enviámos as instruções de recuperação.");
+      setInfo(
+        "Se existir uma conta associada a este endereço, enviámos as instruções de recuperação.",
+      );
     } finally {
       setResetting(false);
     }
@@ -397,12 +399,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
             </p>
 
             {error ? (
-              <p role="alert" className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <p
+                role="alert"
+                className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
+              >
                 {error}
               </p>
             ) : null}
             {info ? (
-              <p role="status" className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
+              <p
+                role="status"
+                className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success"
+              >
                 {info}
               </p>
             ) : null}
@@ -416,7 +424,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
                     setSubmitting(true);
                     setError(null);
                     try {
-                      const challenge = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+                      const challenge = await supabase.auth.mfa.challenge({
+                        factorId: mfaFactorId,
+                      });
                       if (challenge.error) throw challenge.error;
                       const verified = await supabase.auth.mfa.verify({
                         factorId: mfaFactorId,
@@ -428,16 +438,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
                       if (assurance.error) throw assurance.error;
                       if (assurance.data?.currentLevel !== "aal2") {
-                        throw new Error("A verificação 2FA não elevou a sessão para AAL2. Tente novamente.");
+                        throw new Error(
+                          "A verificação 2FA não elevou a sessão para AAL2. Tente novamente.",
+                        );
                       }
 
-                      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                      const { data: sessionData, error: sessionError } =
+                        await supabase.auth.getSession();
                       if (sessionError) throw sessionError;
                       if (!sessionData.session) {
                         throw new Error("A sessão não ficou disponível após a verificação 2FA.");
                       }
 
-                      localStorage.setItem(activityKey(sessionData.session.user.id), String(Date.now()));
+                      localStorage.setItem(
+                        activityKey(sessionData.session.user.id),
+                        String(Date.now()),
+                      );
                       setSession(sessionData.session);
                       setMfaFactorId(null);
                       setMfaCode("");
@@ -463,7 +479,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   placeholder="000000"
                   required
                 />
-                <Button type="submit" className="w-full" disabled={submitting || mfaCode.length < 6}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={submitting || mfaCode.length < 6}
+                >
                   {submitting ? "A verificar…" : "Confirmar 2FA"}
                 </Button>
               </form>
@@ -539,8 +559,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 />
                 Lembrar email neste dispositivo
               </label>
-              <Button type="submit" className="w-full gap-2 h-10 text-sm font-semibold" disabled={submitting}>
-                {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <LockKeyhole className="size-4" />}
+              <Button
+                type="submit"
+                className="w-full gap-2 h-10 text-sm font-semibold"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <LockKeyhole className="size-4" />
+                )}
                 {submitting ? "A entrar…" : "Entrar no Portal"}
               </Button>
             </form>

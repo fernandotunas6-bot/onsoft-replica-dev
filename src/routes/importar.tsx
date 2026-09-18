@@ -85,9 +85,9 @@ export function ImportarDadosPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast.success("Modelo Excel descarregado com sucesso!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Falha ao gerar modelo Excel", {
-        description: err?.message || "Tente descarregar o formato CSV.",
+        description: (err as Error)?.message || "Tente descarregar o formato CSV.",
       });
     }
   };
@@ -160,7 +160,8 @@ export function ImportarDadosPage() {
                 <div>
                   <h3 className="text-base font-semibold">Modelos Oficiais de Importação</h3>
                   <p className="text-xs text-muted-foreground">
-                    Descarregue modelos oficiais pré-formatados com validações de lista suspensa, exemplos e orientações.
+                    Descarregue modelos oficiais pré-formatados com validações de lista suspensa,
+                    exemplos e orientações.
                   </p>
                 </div>
 

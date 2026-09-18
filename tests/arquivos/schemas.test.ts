@@ -207,9 +207,9 @@ describe("arquivos schemas", () => {
     };
     expect(canAccessFileContent(systemFile, systemFile.ownerUserId, "Professor")).toBe(true);
     expect(canAccessFileContent(systemFile, systemFile.relatedUserId!, "Professor")).toBe(true);
-    expect(canAccessFileContent(systemFile, "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "Professor")).toBe(
-      false,
-    );
+    expect(
+      canAccessFileContent(systemFile, "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "Professor"),
+    ).toBe(false);
     expect(
       canAccessFileContent(systemFile, "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "Tesouraria"),
     ).toBe(true);

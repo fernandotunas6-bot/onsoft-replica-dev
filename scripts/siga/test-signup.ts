@@ -13,7 +13,7 @@ async function run() {
         admin_email: "valentino.bug@example.com",
         admin_name: "Valentino C",
       },
-      "127.0.0.1"
+      "127.0.0.1",
     );
     console.log("Success:", res);
   } catch (err: any) {

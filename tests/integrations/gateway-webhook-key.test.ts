@@ -17,7 +17,10 @@ describe("generateWebhookApiKey", () => {
 describe("buildRotatedWebhookConfig", () => {
   it("preserva key anterior com expiração", () => {
     const now = Date.parse("2026-08-28T12:00:00.000Z");
-    const result = buildRotatedWebhookConfig({ webhookApiKey: "old-key-123456789012345678901234" }, now);
+    const result = buildRotatedWebhookConfig(
+      { webhookApiKey: "old-key-123456789012345678901234" },
+      now,
+    );
     expect(result.webhookApiKey).not.toBe("old-key-123456789012345678901234");
     expect(result.config.webhookApiKeyPrevious).toBe("old-key-123456789012345678901234");
     expect(result.previousKeyValidUntil).toBe(

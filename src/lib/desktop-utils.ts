@@ -62,11 +62,8 @@ export async function notifyNative(title: string, body?: string): Promise<boolea
   if (!isTauriDesktop()) return false;
 
   try {
-    const {
-      isPermissionGranted,
-      requestPermission,
-      sendNotification,
-    } = await import("@tauri-apps/plugin-notification");
+    const { isPermissionGranted, requestPermission, sendNotification } =
+      await import("@tauri-apps/plugin-notification");
 
     let permissionGranted = await isPermissionGranted();
     if (!permissionGranted) {

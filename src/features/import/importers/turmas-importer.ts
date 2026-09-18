@@ -36,15 +36,24 @@ export const turmasImporter: RowImporter = {
       })(),
     ]);
     if (grades.error) throw new Error(`Não foi possível carregar classes: ${grades.error.message}`);
-    if (campuses.error) throw new Error(`Não foi possível carregar campi/salas: ${campuses.error.message}`);
+    if (campuses.error)
+      throw new Error(`Não foi possível carregar campi/salas: ${campuses.error.message}`);
     if (groups.error) throw new Error(`Não foi possível carregar turmas: ${groups.error.message}`);
     return {
       existingPeople: [],
       classGroups: [],
       studentByPersonId: new Map(),
       academicYearId: ctx.academicYearId,
-      gradeLevels: (grades.data ?? []).map((row) => ({ id: String(row.id), code: String(row.code ?? ""), name: String(row.name ?? "") })),
-      campuses: (campuses.data ?? []).map((row) => ({ id: String(row.id), code: String(row.code ?? ""), name: String(row.name ?? "") })),
+      gradeLevels: (grades.data ?? []).map((row) => ({
+        id: String(row.id),
+        code: String(row.code ?? ""),
+        name: String(row.name ?? ""),
+      })),
+      campuses: (campuses.data ?? []).map((row) => ({
+        id: String(row.id),
+        code: String(row.code ?? ""),
+        name: String(row.name ?? ""),
+      })),
       existingGroups: (groups.data ?? []).map((row) => ({
         id: String(row.id),
         code: String(row.code ?? ""),
@@ -67,8 +76,10 @@ export const turmasImporter: RowImporter = {
     if (!name) errors.push("Nome da turma é obrigatório.");
     if (!gradeValue) errors.push("Classe/nível é obrigatório.");
     const grade = uniqueExactMatch(gradeValue, cache.gradeLevels, [(r) => r.code, (r) => r.name]);
-    if (grade.ambiguous) errors.push(`Classe "${normalizeText(gradeValue)}" é ambígua; use o código exacto.`);
-    else if (gradeValue && !grade.row) errors.push(`Classe "${normalizeText(gradeValue)}" não encontrada nesta escola.`);
+    if (grade.ambiguous)
+      errors.push(`Classe "${normalizeText(gradeValue)}" é ambígua; use o código exacto.`);
+    else if (gradeValue && !grade.row)
+      errors.push(`Classe "${normalizeText(gradeValue)}" não encontrada nesta escola.`);
     const shift = normalizeShift(shiftValue);
     if (!shift) errors.push("Turno inválido. Use Manhã, Tarde ou Noite.");
 
@@ -76,14 +87,30 @@ export const turmasImporter: RowImporter = {
     if (roomValue) {
       const room = uniqueExactMatch(roomValue, cache.campuses, [(r) => r.code, (r) => r.name]);
       if (room.ambiguous) errors.push(`Sala/campus "${normalizeText(roomValue)}" é ambíguo.`);
-      else if (!room.row) warnings.push(`Sala/campus "${normalizeText(roomValue)}" não encontrado; a turma será criada sem sala.`);
+      else if (!room.row)
+        warnings.push(
+          `Sala/campus "${normalizeText(roomValue)}" não encontrado; a turma será criada sem sala.`,
+        );
     }
 
     if (errors.length) return { status: "error", warnings, errors };
-    const existing = uniqueExactMatch(code || name, cache.existingGroups, [(r) => r.code, (r) => r.name]);
-    if (existing.ambiguous) return { status: "error", warnings, errors: ["Código/nome da turma corresponde a mais de uma turma no ano lectivo."] };
+    const existing = uniqueExactMatch(code || name, cache.existingGroups, [
+      (r) => r.code,
+      (r) => r.name,
+    ]);
+    if (existing.ambiguous)
+      return {
+        status: "error",
+        warnings,
+        errors: ["Código/nome da turma corresponde a mais de uma turma no ano lectivo."],
+      };
     if (existing.row) {
-      return { status: "duplicate", warnings: ["Turma já existe neste ano lectivo.", ...warnings], errors: [], duplicate_of: existing.row.id };
+      return {
+        status: "duplicate",
+        warnings: ["Turma já existe neste ano lectivo.", ...warnings],
+        errors: [],
+        duplicate_of: existing.row.id,
+      };
     }
     return { status: warnings.length ? "warning" : "valid", warnings, errors: [] };
   },
@@ -98,21 +125,39 @@ export const turmasImporter: RowImporter = {
     const name = normalizeText(valueOf(normalized, "name", "nome", "Turma"));
     const gradeValue = valueOf(normalized, "grade_level", "classe", "Classe");
     const shift = normalizeShift(valueOf(normalized, "shift", "turno", "Turno"))!;
-    const grade = uniqueExactMatch(gradeValue, cache.gradeLevels, [(r) => r.code, (r) => r.name]).row!;
+    const grade = uniqueExactMatch(gradeValue, cache.gradeLevels, [
+      (r) => r.code,
+      (r) => r.name,
+    ]).row!;
     const roomValue = valueOf(normalized, "room", "campus", "sala", "Sala");
     const campus = roomValue
       ? uniqueExactMatch(roomValue, cache.campuses, [(r) => r.code, (r) => r.name]).row
       : null;
     const capacityRaw = Number(valueOf(normalized, "capacity", "capacidade", "Capacidade"));
     const capacity = Number.isInteger(capacityRaw) && capacityRaw > 0 ? capacityRaw : 30;
-    const existing = uniqueExactMatch(code || name, cache.existingGroups, [(r) => r.code, (r) => r.name]).row;
+    const existing = uniqueExactMatch(code || name, cache.existingGroups, [
+      (r) => r.code,
+      (r) => r.name,
+    ]).row;
 
     if (existing) {
       if (ctx.duplicateStrategy === "ignore") {
-        return { status: "ignored", target_record_id: existing.id, warnings: ["Turma existente ignorada."], errors: [], audits: [] };
+        return {
+          status: "ignored",
+          target_record_id: existing.id,
+          warnings: ["Turma existente ignorada."],
+          errors: [],
+          audits: [],
+        };
       }
       if (ctx.dryRun) {
-        return { status: "will_update", target_record_id: existing.id, warnings: [], errors: [], audits: [] };
+        return {
+          status: "will_update",
+          target_record_id: existing.id,
+          warnings: [],
+          errors: [],
+          audits: [],
+        };
       }
       const before = { ...existing };
       const patch = {
@@ -136,7 +181,15 @@ export const turmasImporter: RowImporter = {
         target_record_id: existing.id,
         warnings: ["Turma existente actualizada."],
         errors: [],
-        audits: [{ table_name: "class_groups", target_id: existing.id, action_type: "updated", before_data: before, after_data: { ...before, ...patch } }],
+        audits: [
+          {
+            table_name: "class_groups",
+            target_id: existing.id,
+            action_type: "updated",
+            before_data: before,
+            after_data: { ...before, ...patch },
+          },
+        ],
       };
     }
 
@@ -158,15 +211,28 @@ export const turmasImporter: RowImporter = {
       })
       .select("id, code, name, academic_year_id")
       .single();
-    if (error || !created) return { status: "error", warnings: [], errors: [error?.message ?? "Não foi possível criar a turma."], audits: [] };
-    const ref = { id: String(created.id), code: String(created.code), name: String(created.name), academic_year_id: String(created.academic_year_id) };
+    if (error || !created)
+      return {
+        status: "error",
+        warnings: [],
+        errors: [error?.message ?? "Não foi possível criar a turma."],
+        audits: [],
+      };
+    const ref = {
+      id: String(created.id),
+      code: String(created.code),
+      name: String(created.name),
+      academic_year_id: String(created.academic_year_id),
+    };
     cache.existingGroups.push(ref);
     return {
       status: "imported",
       target_record_id: ref.id,
       warnings: [],
       errors: [],
-      audits: [{ table_name: "class_groups", target_id: ref.id, action_type: "inserted", after_data: ref }],
+      audits: [
+        { table_name: "class_groups", target_id: ref.id, action_type: "inserted", after_data: ref },
+      ],
     };
   },
 };

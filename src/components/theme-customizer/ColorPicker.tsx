@@ -31,7 +31,13 @@ export function ColorPicker({ label, cssVar, value, onChange }: ColorPickerProps
 
   // Get current computed color for display
   const displayColor = React.useMemo(() => {
-    if (localValue && (localValue.startsWith("#") || localValue.startsWith("rgb") || localValue.startsWith("hsl") || localValue.startsWith("oklch"))) {
+    if (
+      localValue &&
+      (localValue.startsWith("#") ||
+        localValue.startsWith("rgb") ||
+        localValue.startsWith("hsl") ||
+        localValue.startsWith("oklch"))
+    ) {
       return localValue;
     }
 

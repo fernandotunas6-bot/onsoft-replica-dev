@@ -31,7 +31,9 @@ export function uniqueExactMatch<T>(
 ): { row: T | null; ambiguous: boolean } {
   const key = normalizedKey(value);
   if (!key) return { row: null, ambiguous: false };
-  const matches = rows.filter((row) => selectors.some((selector) => normalizedKey(selector(row)) === key));
+  const matches = rows.filter((row) =>
+    selectors.some((selector) => normalizedKey(selector(row)) === key),
+  );
   return { row: matches.length === 1 ? matches[0]! : null, ambiguous: matches.length > 1 };
 }
 
@@ -42,7 +44,9 @@ export async function loadStudentRefs(db: SupabaseClient, schoolId: string): Pro
     .eq("school_id", schoolId);
   if (studentError) throw new Error(`Não foi possível carregar alunos: ${studentError.message}`);
 
-  const personIds = [...new Set((students ?? []).map((row) => String(row.person_id)).filter(Boolean))];
+  const personIds = [
+    ...new Set((students ?? []).map((row) => String(row.person_id)).filter(Boolean)),
+  ];
   const { data: people, error: peopleError } = personIds.length
     ? await db
         .from("people")
@@ -50,7 +54,8 @@ export async function loadStudentRefs(db: SupabaseClient, schoolId: string): Pro
         .eq("school_id", schoolId)
         .in("id", personIds)
     : { data: [], error: null };
-  if (peopleError) throw new Error(`Não foi possível carregar identificadores dos alunos: ${peopleError.message}`);
+  if (peopleError)
+    throw new Error(`Não foi possível carregar identificadores dos alunos: ${peopleError.message}`);
   const nationalIdByPerson = new Map(
     (people ?? []).map((row) => [String(row.id), row.national_id ? String(row.national_id) : null]),
   );

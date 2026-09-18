@@ -112,17 +112,12 @@ export async function upsertSgaTermGrade(params: {
   if (!enrollment?.id || !enrollment.class_group_id || !enrollment.academic_year_id) {
     throw new Error("A matrícula precisa de turma e ano lectivo para lançar notas.");
   }
-  if (!['active', 'pending'].includes(String(enrollment.status ?? ''))) {
+  if (!["active", "pending"].includes(String(enrollment.status ?? ""))) {
     throw new Error("Só é possível lançar notas numa matrícula activa ou pendente válida.");
   }
 
   await requireConfiguredTerm(db, schoolId, String(enrollment.academic_year_id), term);
-  await requireConfiguredClassSubject(
-    db,
-    schoolId,
-    String(enrollment.class_group_id),
-    subjectId,
-  );
+  await requireConfiguredClassSubject(db, schoolId, String(enrollment.class_group_id), subjectId);
 
   // A implementação histórica continua a tratar gradebook, itens MAC/NPP/NPT e
   // upsert dos scores. Como período e class_subject já existem, os antigos
@@ -158,7 +153,7 @@ export async function upsertSgaTermGradesBatch(params: {
     if (!enrollment.class_group_id || !enrollment.academic_year_id) {
       throw new Error("Todas as matrículas precisam de turma e ano lectivo para lançar notas.");
     }
-    if (!['active', 'pending'].includes(String(enrollment.status ?? ''))) {
+    if (!["active", "pending"].includes(String(enrollment.status ?? ""))) {
       throw new Error("O lote contém uma matrícula que já não permite lançamento de notas.");
     }
     const classGroupId = String(enrollment.class_group_id);

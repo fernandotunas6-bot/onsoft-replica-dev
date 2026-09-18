@@ -22,10 +22,7 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { QuickModal } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { AssessmentGrid, type GridColumn } from "@/features/academic/AssessmentGrid";
-import {
-  ClassCourseTable,
-  StudentDossierTable,
-} from "@/features/academic/AssessmentViewTables";
+import { ClassCourseTable, StudentDossierTable } from "@/features/academic/AssessmentViewTables";
 import { CreateAssessmentDialog } from "@/features/academic/CreateAssessmentDialog";
 import {
   AssessmentStat,
@@ -306,8 +303,8 @@ export function AssessmentCenter({
     retry: false,
   });
 
-  const items = assessmentsQuery.data?.items ?? [];
-  const scores = assessmentsQuery.data?.scores ?? [];
+  const items = useMemo(() => assessmentsQuery.data?.items ?? [], [assessmentsQuery.data]);
+  const scores = useMemo(() => assessmentsQuery.data?.scores ?? [], [assessmentsQuery.data]);
   const assessmentsAvailable = assessmentsQuery.data?.available !== false;
 
   useEffect(() => {

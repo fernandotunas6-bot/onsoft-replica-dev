@@ -20,8 +20,11 @@ export const Route = createFileRoute("/api/saas/gateway-webhooks")({
           return jsonWithCors(request, { metrics }, { apps: [...APPS] });
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : "Não foi possível carregar métricas de webhook.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
+            error instanceof Error
+              ? error.message
+              : "Não foi possível carregar métricas de webhook.";
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },

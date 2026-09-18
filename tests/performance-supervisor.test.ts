@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { getPerfSnapshot, markPerfTap, attachPerformanceSupervisor } from "@/lib/performance-supervisor";
+import {
+  getPerfSnapshot,
+  markPerfTap,
+  attachPerformanceSupervisor,
+} from "@/lib/performance-supervisor";
 import { QueryClient } from "@tanstack/react-query";
 
 describe("performance supervisor & sub-10ms touch optimization", () => {

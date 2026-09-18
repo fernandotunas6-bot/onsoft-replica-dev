@@ -466,7 +466,9 @@ export const commitImportBatch = createServerFn({ method: "POST" })
         .eq("id", job.id);
     }
 
-    const lastRow = (pendingRows ?? [])[pendingRows && pendingRows.length > 0 ? pendingRows.length - 1 : -1];
+    const lastRow = (pendingRows ?? [])[
+      pendingRows && pendingRows.length > 0 ? pendingRows.length - 1 : -1
+    ];
     return {
       processed: pendingRows?.length ?? 0,
       remaining: Math.max(remaining, 0),
@@ -564,7 +566,10 @@ export const rollbackImportJob = createServerFn({ method: "POST" })
             .eq("school_id", job.school_id);
           operationError = result.error;
         } else if (audit.action_type === "updated" && beforeData) {
-          const safeBefore = { ...beforeData, school_id: job.school_id };
+          const safeBefore: Record<string, unknown> = {
+            ...(beforeData as Record<string, unknown>),
+            school_id: job.school_id,
+          };
           delete safeBefore["id"];
           const result = await db
             .from(audit.table_name)
@@ -594,7 +599,10 @@ export const rollbackImportJob = createServerFn({ method: "POST" })
         .eq("id", job.id)
         .eq("school_id", job.school_id);
       if (statusError) {
-        throw publicDatabaseError(statusError, "Dados revertidos, mas falhou a actualização do processo.");
+        throw publicDatabaseError(
+          statusError,
+          "Dados revertidos, mas falhou a actualização do processo.",
+        );
       }
     }
 
@@ -669,7 +677,9 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       mimeType: result.mimeType,
       base64: result.buffer.toString("base64"),
       recordCount: result.recordCount,
-      manifest: result.manifest,
+      manifest: (result.manifest ?? null) as Record<
+        string,
+        string | number | boolean | null
+      > | null,
     };
   });
-

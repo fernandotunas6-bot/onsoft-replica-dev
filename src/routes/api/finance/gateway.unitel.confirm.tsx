@@ -54,8 +54,7 @@ function UnitelGatewayPlaceholder() {
       <p className="mt-2 text-sm text-muted-foreground">
         Envie <span className="font-mono text-xs">POST</span> com{" "}
         <span className="font-mono text-xs">{`{ apiKey, reference, amount, invoiceId? }`}</span>{" "}
-        para confirmar pagamentos Unitel. A API key está em Definições → Integrações → Unitel
-        Money.
+        para confirmar pagamentos Unitel. A API key está em Definições → Integrações → Unitel Money.
       </p>
     </main>
   );

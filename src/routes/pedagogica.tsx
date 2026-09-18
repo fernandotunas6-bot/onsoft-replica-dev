@@ -2,15 +2,7 @@ import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import {
-  Download,
-  FileDown,
-  Award,
-  Plus,
-  Sparkles,
-  ShieldAlert,
-  ChevronDown,
-} from "lucide-react";
+import { Download, FileDown, Award, Plus, Sparkles, ShieldAlert, ChevronDown } from "lucide-react";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -53,10 +45,7 @@ import {
 } from "@/features/academic/server";
 import { listTeachers } from "@/features/people/server";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import {
-  gradeMatchesTeachingLevels,
-  initialsFromName,
-} from "@/lib/angola-academic";
+import { gradeMatchesTeachingLevels, initialsFromName } from "@/lib/angola-academic";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canWriteModule } from "@/features/auth/access-policy";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -181,7 +170,10 @@ function PedagogicaPage() {
     account.role === "Administrador" ||
     account.role === "Secretaria" ||
     account.role === "Professor";
-  const teachingLevels = school?.pedagogy?.teachingLevels ?? [];
+  const teachingLevels = useMemo(
+    () => school?.pedagogy?.teachingLevels ?? [],
+    [school?.pedagogy?.teachingLevels],
+  );
 
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
@@ -230,13 +222,13 @@ function PedagogicaPage() {
   };
 
   const workspace = workspaceQuery.data;
-  const classGroups = workspace?.classGroups ?? [];
+  const classGroups = useMemo(() => workspace?.classGroups ?? [], [workspace]);
   const academicYears = workspace?.academicYears ?? [];
   const courses = workspace?.courses ?? [];
   const gradeLevels = workspace?.gradeLevels ?? [];
   const rooms = workspace?.rooms ?? [];
   const subjects = workspace?.subjects ?? [];
-  const termGrades = workspace?.termGrades ?? [];
+  const termGrades = useMemo(() => workspace?.termGrades ?? [], [workspace]);
   const enrollmentOptions = workspace?.enrollmentOptions ?? [];
   const classSubjects = workspace?.classSubjects ?? [];
   const scheduleSlots = workspace?.scheduleSlots ?? [];
@@ -580,7 +572,8 @@ function PedagogicaPage() {
                       setTab("notas");
                       setAssessmentOpen(true);
                       toast.message("Centro de Avaliação", {
-                        description: "Lance MAC/NPP/NPT na grelha digital. OCR de papel ainda não está ligado.",
+                        description:
+                          "Lance MAC/NPP/NPT na grelha digital. OCR de papel ainda não está ligado.",
                       });
                     }}
                     className="gap-2 text-xs cursor-pointer"
@@ -736,7 +729,9 @@ function PedagogicaPage() {
               canManageAcademic={canManageAcademic}
               isLoading={workspaceQuery.isLoading}
               isError={workspaceQuery.isError}
-              errorMessage={workspaceQuery.error instanceof Error ? workspaceQuery.error.message : undefined}
+              errorMessage={
+                workspaceQuery.error instanceof Error ? workspaceQuery.error.message : undefined
+              }
               structureReady={structureReady}
               bootstrapping={bootstrapping}
               bootstrapStructure={bootstrapStructure}
