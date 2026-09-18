@@ -8,6 +8,13 @@
       "when": 1789713986561,
       "tag": "0000_harden_profiles_and_foundation_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789714149721,
+      "tag": "0001_people_module_part1",
+      "breakpoints": true
     }
   ]
 }

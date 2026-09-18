@@ -159,6 +159,381 @@ export type Database = {
           },
         ]
       }
+      people: {
+        Row: {
+          address: string | null
+          birth_date: string | null
+          birth_place: string | null
+          commune: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          email: string | null
+          first_name: string | null
+          full_name: string
+          id: string
+          internal_code: string | null
+          last_name: string | null
+          marital_status: string | null
+          municipality: string | null
+          nationality: string | null
+          nif: string | null
+          notes: string | null
+          phone_alternative: string | null
+          phone_primary: string | null
+          photo_url: string | null
+          preferred_name: string | null
+          profession: string | null
+          province: string | null
+          religion: string | null
+          school_id: string
+          sex: string | null
+          special_needs: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          commune?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_name: string
+          id?: string
+          internal_code?: string | null
+          last_name?: string | null
+          marital_status?: string | null
+          municipality?: string | null
+          nationality?: string | null
+          nif?: string | null
+          notes?: string | null
+          phone_alternative?: string | null
+          phone_primary?: string | null
+          photo_url?: string | null
+          preferred_name?: string | null
+          profession?: string | null
+          province?: string | null
+          religion?: string | null
+          school_id: string
+          sex?: string | null
+          special_needs?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          commune?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_name?: string
+          id?: string
+          internal_code?: string | null
+          last_name?: string | null
+          marital_status?: string | null
+          municipality?: string | null
+          nationality?: string | null
+          nif?: string | null
+          notes?: string | null
+          phone_alternative?: string | null
+          phone_primary?: string | null
+          photo_url?: string | null
+          preferred_name?: string | null
+          profession?: string | null
+          province?: string | null
+          religion?: string | null
+          school_id?: string
+          sex?: string | null
+          special_needs?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          document_number: string
+          document_type: string
+          expires_at: string | null
+          id: string
+          issued_at: string | null
+          person_id: string
+          school_id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          document_number: string
+          document_type: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string | null
+          person_id: string
+          school_id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          document_number?: string
+          document_type?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string | null
+          person_id?: string
+          school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_documents_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_documents_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_relationships: {
+        Row: {
+          active: boolean
+          authorized: boolean
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          notes: string | null
+          person_id: string
+          priority: number | null
+          related_person_id: string
+          relationship_type: string
+          school_id: string
+          updated_at: string
+          updated_by: string | null
+          valid_from: string | null
+          valid_until: string | null
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          authorized?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          person_id: string
+          priority?: number | null
+          related_person_id: string
+          relationship_type: string
+          school_id: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          authorized?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          person_id?: string
+          priority?: number | null
+          related_person_id?: string
+          relationship_type?: string
+          school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_relationships_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_relationships_related_person_id_fkey"
+            columns: ["related_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_relationships_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_roles: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          person_id: string
+          role: string
+          school_id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          person_id: string
+          role: string
+          school_id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          person_id?: string
+          role?: string
+          school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_roles_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_roles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_school_links: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          link_type: string | null
+          person_id: string
+          school_id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          link_type?: string | null
+          person_id: string
+          school_id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          link_type?: string | null
+          person_id?: string
+          school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_school_links_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_school_links_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           cargo: string
@@ -256,9 +631,170 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_students: { Args: never; Returns: boolean }
+      can_read_students: { Args: never; Returns: boolean }
+      create_person: {
+        Args: {
+          p_documents?: Json
+          p_duplicate_decision?: string
+          p_person: Json
+          p_relationships?: Json
+          p_roles?: string[]
+        }
+        Returns: {
+          address: string | null
+          birth_date: string | null
+          birth_place: string | null
+          commune: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          email: string | null
+          first_name: string | null
+          full_name: string
+          id: string
+          internal_code: string | null
+          last_name: string | null
+          marital_status: string | null
+          municipality: string | null
+          nationality: string | null
+          nif: string | null
+          notes: string | null
+          phone_alternative: string | null
+          phone_primary: string | null
+          photo_url: string | null
+          preferred_name: string | null
+          profession: string | null
+          province: string | null
+          religion: string | null
+          school_id: string
+          sex: string | null
+          special_needs: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+          whatsapp: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "people"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_profile_role: { Args: never; Returns: string }
       current_school_id: { Args: never; Returns: string }
+      find_person_duplicates: {
+        Args: {
+          p_birth_date?: string
+          p_document_number?: string
+          p_email?: string
+          p_full_name: string
+          p_nif?: string
+          p_phone?: string
+        }
+        Returns: {
+          full_name: string
+          match_reason: string
+          person_id: string
+          score: number
+        }[]
+      }
+      immutable_unaccent: { Args: { "": string }; Returns: string }
       is_school_member: { Args: { p_school_id: string }; Returns: boolean }
+      merge_people: {
+        Args: {
+          p_duplicate_id: string
+          p_reason: string
+          p_survivor_id: string
+        }
+        Returns: {
+          address: string | null
+          birth_date: string | null
+          birth_place: string | null
+          commune: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          email: string | null
+          first_name: string | null
+          full_name: string
+          id: string
+          internal_code: string | null
+          last_name: string | null
+          marital_status: string | null
+          municipality: string | null
+          nationality: string | null
+          nif: string | null
+          notes: string | null
+          phone_alternative: string | null
+          phone_primary: string | null
+          photo_url: string | null
+          preferred_name: string | null
+          profession: string | null
+          province: string | null
+          religion: string | null
+          school_id: string
+          sex: string | null
+          special_needs: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+          whatsapp: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "people"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      search_people: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          address: string | null
+          birth_date: string | null
+          birth_place: string | null
+          commune: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          email: string | null
+          first_name: string | null
+          full_name: string
+          id: string
+          internal_code: string | null
+          last_name: string | null
+          marital_status: string | null
+          municipality: string | null
+          nationality: string | null
+          nif: string | null
+          notes: string | null
+          phone_alternative: string | null
+          phone_primary: string | null
+          photo_url: string | null
+          preferred_name: string | null
+          profession: string | null
+          province: string | null
+          religion: string | null
+          school_id: string
+          sex: string | null
+          special_needs: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+          whatsapp: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "people"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
