@@ -102,12 +102,13 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     const peopleById = await loadPersonNamesById(db, membership.schoolId, personIds);
 
     const students = (studentsResult.data ?? []).map(
-      (student: { id: string; student_number: string; person_id: string }) => ({
+      (student: { id: string; registration_number: string | null; person_id: string }) => ({
         id: student.id,
         full_name: peopleById.get(student.person_id) ?? "Aluno",
-        registration_number: student.student_number,
+        registration_number: student.registration_number ?? "Sem processo",
       }),
     );
+
     const studentIds = students.map((student) => student.id);
     const { data: enrollments } = studentIds.length
       ? await db
