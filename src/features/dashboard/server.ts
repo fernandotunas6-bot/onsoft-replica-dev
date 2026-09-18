@@ -118,6 +118,26 @@ function emptyOverview(role = "Utilizador") {
       url: string;
       isOpen: boolean;
     },
+    performanceHeatmap: {} as Record<
+      string,
+      Array<{
+        classId: string;
+        className: string;
+        courseName: string;
+        grades: Array<{ discipline: string; code: string; average: number }>;
+      }>
+    >,
+    cashFlowForecast: {
+      months: [] as Array<{
+        month: string;
+        expectedAmount: number;
+        actualAmount: number;
+        forecastAmount: number;
+      }>,
+      averageCollectionRate: null as number | null,
+      forecastDefaultRate: null as number | null,
+      mainPaymentChannel: null as string | null,
+    },
     imports: {
       available: false,
       totalJobs: 0,
