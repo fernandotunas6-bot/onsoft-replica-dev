@@ -191,7 +191,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
 
     if (capabilities.students) {
       try {
-        const [studentsResult, programsResult, groupsResult, campusesResult, enrollmentsResult] =
+        const [studentsResult, programsResult, groupsResult, roomsResult, enrollmentsResult] =
           await Promise.all([
             db.from("students").select("id, status, person_id").eq("school_id", schoolId),
             db
@@ -201,10 +201,10 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
               .eq("is_active", true),
             db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
             db
-              .from("campuses")
+              .from("rooms")
               .select("id", { count: "exact", head: true })
               .eq("school_id", schoolId)
-              .eq("is_active", true),
+              .neq("status", "inactive"),
             db
               .from("enrollments")
               .select("id, status, class_group_id, enrolled_on, student_id, attendance_rate")
@@ -301,7 +301,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           female,
           courses: programsResult.count ?? 0,
           classGroups: groups.length,
-          rooms: campusesResult.count ?? 0,
+          rooms: roomsResult.count ?? 0,
           documentIssued: 0,
           documentPending: 0,
           documentTotal: 0,

@@ -2575,6 +2575,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           full_name: string
+          gender: string | null
           id: string
           internal_code: string | null
           last_name: string | null
@@ -2584,6 +2585,7 @@ export type Database = {
           nationality: string | null
           nif: string | null
           notes: string | null
+          phone: string | null
           phone_alternative: string | null
           phone_primary: string | null
           photo_url: string | null
@@ -2613,6 +2615,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           full_name: string
+          gender?: string | null
           id?: string
           internal_code?: string | null
           last_name?: string | null
@@ -2622,6 +2625,7 @@ export type Database = {
           nationality?: string | null
           nif?: string | null
           notes?: string | null
+          phone?: string | null
           phone_alternative?: string | null
           phone_primary?: string | null
           photo_url?: string | null
@@ -2651,6 +2655,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           full_name?: string
+          gender?: string | null
           id?: string
           internal_code?: string | null
           last_name?: string | null
@@ -2660,6 +2665,7 @@ export type Database = {
           nationality?: string | null
           nif?: string | null
           notes?: string | null
+          phone?: string | null
           phone_alternative?: string | null
           phone_primary?: string | null
           photo_url?: string | null
@@ -4804,6 +4810,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           full_name: string
+          gender: string | null
           id: string
           internal_code: string | null
           last_name: string | null
@@ -4813,6 +4820,7 @@ export type Database = {
           nationality: string | null
           nif: string | null
           notes: string | null
+          phone: string | null
           phone_alternative: string | null
           phone_primary: string | null
           photo_url: string | null
@@ -5028,6 +5036,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           full_name: string
+          gender: string | null
           id: string
           internal_code: string | null
           last_name: string | null
@@ -5037,6 +5046,7 @@ export type Database = {
           nationality: string | null
           nif: string | null
           notes: string | null
+          phone: string | null
           phone_alternative: string | null
           phone_primary: string | null
           photo_url: string | null
@@ -5189,6 +5199,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           full_name: string
+          gender: string | null
           id: string
           internal_code: string | null
           last_name: string | null
@@ -5198,6 +5209,7 @@ export type Database = {
           nationality: string | null
           nif: string | null
           notes: string | null
+          phone: string | null
           phone_alternative: string | null
           phone_primary: string | null
           photo_url: string | null

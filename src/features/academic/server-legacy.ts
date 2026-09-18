@@ -395,7 +395,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         db,
         schoolId: membership.schoolId,
         enrollmentIds,
-        limit: 200,
+        limit: 4000,
       });
     } catch (error) {
       if (

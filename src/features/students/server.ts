@@ -117,7 +117,7 @@ export const searchStudents = createServerFn({ method: "GET" })
       studentIds.length
         ? db
             .from("enrollments")
-            .select("student_id, class_group_id, academic_year_id, status")
+            .select("student_id, class_group_id, academic_year_id, status, payment_status")
             .in("student_id", studentIds)
             .eq("school_id", membership.schoolId)
             .eq("status", "active")
@@ -127,6 +127,7 @@ export const searchStudents = createServerFn({ method: "GET" })
               class_group_id: string | null;
               academic_year_id: string | null;
               status: string;
+              payment_status: string | null;
             }>,
           }),
       studentIds.length
@@ -276,7 +277,7 @@ export const searchStudents = createServerFn({ method: "GET" })
           // Matrícula activa no SGA implica aluno activo na UI, mesmo se o
           // registo ainda estiver como "applicant" por seed/legado.
           student_status: effectiveStatus,
-          payment_status: null,
+          payment_status: (enrollment?.["payment_status"] as string | null) ?? null,
           grade_name: (grade?.["name"] as string | null) ?? null,
           class_name: (classGroup?.["name"] as string | null) ?? null,
           class_group_id: (classGroup?.["id"] as string | null) ?? null,
