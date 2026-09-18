@@ -381,13 +381,131 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       }
     }
 
+    if (capabilities.students) {
+      try {
+        // Heatmap de desempenho: médias por turma e disciplina, por trimestre.
+        const [{ data: heatmapGrades }, { data: heatmapGroups }, { data: heatmapSubjects }] =
+          await Promise.all([
+            db
+              .from("term_grades")
+              .select("enrollment_id, subject_id, term, mac, npp, npt")
+              .eq("school_id", schoolId)
+              .is("deleted_at", null)
+              .limit(5000),
+            db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
+            db.from("subjects").select("id, name, code").eq("school_id", schoolId),
+          ]);
+
+        const { data: heatmapEnrollments } = await db
+          .from("enrollments")
+          .select("id, class_group_id")
+          .eq("school_id", schoolId)
+          .limit(1000);
+        const groupByEnrollment = new Map(
+          (heatmapEnrollments ?? []).map((row) => [String(row.id), String(row.class_group_id)]),
+        );
+        const subjectInfo = new Map(
+          (heatmapSubjects ?? []).map((row) => [
+            String(row.id),
+            { name: String(row.name ?? "—"), code: String(row.code ?? "") },
+          ]),
+        );
+        const groupInfo = new Map(
+          (heatmapGroups ?? []).map((row) => [
+            String(row.id),
+            { name: String(row.name ?? "Turma"), gradeLevelId: row.grade_level_id },
+          ]),
+        );
+        const heatmapGradeLevelIds = [
+          ...new Set((heatmapGroups ?? []).map((row) => row.grade_level_id).filter(Boolean)),
+        ] as string[];
+        const { data: heatmapLevels } = heatmapGradeLevelIds.length
+          ? await db.from("grade_levels").select("id, program_id").in("id", heatmapGradeLevelIds)
+          : { data: [] as Array<{ id: string; program_id: string | null }> };
+        const heatmapProgramIds = [
+          ...new Set((heatmapLevels ?? []).map((row) => row.program_id).filter(Boolean)),
+        ] as string[];
+        const { data: heatmapPrograms } = heatmapProgramIds.length
+          ? await db.from("programs").select("id, name").in("id", heatmapProgramIds)
+          : { data: [] as Array<{ id: string; name: string }> };
+        const programNameByLevel = new Map(
+          (heatmapLevels ?? []).map((level) => [
+            String(level.id),
+            String(
+              (heatmapPrograms ?? []).find((program) => program.id === level.program_id)?.name ??
+                "—",
+            ),
+          ]),
+        );
+
+        const buckets = new Map<string, { sum: number; count: number }>();
+        for (const grade of heatmapGrades ?? []) {
+          const groupId = groupByEnrollment.get(String(grade.enrollment_id));
+          if (!groupId) continue;
+          const mac = Number(grade.mac ?? 0);
+          const npp = Number(grade.npp ?? 0);
+          const npt = Number(grade.npt ?? 0);
+          const average = (mac + npp + npt) / 3;
+          if (!Number.isFinite(average) || average <= 0) continue;
+          const key = `${Number(grade.term ?? 1)}|${groupId}|${String(grade.subject_id)}`;
+          const bucket = buckets.get(key) ?? { sum: 0, count: 0 };
+          bucket.sum += average;
+          bucket.count += 1;
+          buckets.set(key, bucket);
+        }
+
+        const heatmap: Record<
+          string,
+          Map<
+            string,
+            {
+              classId: string;
+              className: string;
+              courseName: string;
+              grades: Array<{ discipline: string; code: string; average: number }>;
+            }
+          >
+        > = {};
+        for (const [key, bucket] of buckets) {
+          const [termRaw, groupId, subjectId] = key.split("|");
+          const termKey = `t${termRaw}`;
+          const group = groupInfo.get(String(groupId));
+          const subject = subjectInfo.get(String(subjectId));
+          if (!group || !subject) continue;
+          heatmap[termKey] ??= new Map();
+          const row = heatmap[termKey]!.get(String(groupId)) ?? {
+            classId: String(groupId),
+            className: group.name,
+            courseName: group.gradeLevelId
+              ? (programNameByLevel.get(String(group.gradeLevelId)) ?? "—")
+              : "—",
+            grades: [],
+          };
+          row.grades.push({
+            discipline: subject.name,
+            code: subject.code,
+            average: Math.round((bucket.sum / bucket.count) * 10) / 10,
+          });
+          heatmap[termKey]!.set(String(groupId), row);
+        }
+        overview.performanceHeatmap = Object.fromEntries(
+          Object.entries(heatmap).map(([term, rows]) => [
+            term,
+            [...rows.values()].sort((a, b) => a.className.localeCompare(b.className, "pt")),
+          ]),
+        );
+      } catch {
+        /* degradação graciosa caso as notas não estejam disponíveis */
+      }
+    }
+
     if (capabilities.documents) {
       const { data: docs, error } = await db
         .from("document_requests")
-        .select("id, request_type, status, purpose, created_at")
+        .select("id, template_name, status, notes, created_at")
         .eq("school_id", schoolId)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(200);
       if (!error) {
         const rows = docs ?? [];
         overview.totals.documentTotal = rows.length;
