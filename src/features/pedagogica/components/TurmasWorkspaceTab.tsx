@@ -1,4 +1,5 @@
-import { Sparkles } from "lucide-react";
+import { useState } from "react";
+import { FolderOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { ClassMaterialsPanel } from "@/features/arquivos/ClassMaterialsPanel";
@@ -6,6 +7,30 @@ import { classroomCourseHref } from "@/features/integrations/actions";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import type { PedagogicalWorkspace } from "@/features/academic/server";
+
+// Materiais por turma só são carregados a pedido: com uma dezena de turmas na
+// grelha, montar o painel em todas disparava um pedido por cartão e atrasava a
+// primeira pintura da lista.
+function ClassMaterialsDisclosure({
+  classGroupId,
+  classLabel,
+}: {
+  classGroupId: string;
+  classLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  if (open) return <ClassMaterialsPanel classGroupId={classGroupId} classLabel={classLabel} />;
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+    >
+      <FolderOpen className="size-3.5" aria-hidden />
+      Materiais da turma
+    </button>
+  );
+}
 
 export interface TurmaViewItem {
   id: string;
