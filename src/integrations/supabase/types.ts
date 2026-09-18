@@ -651,6 +651,58 @@ export type Database = {
           },
         ]
       }
+      financial_reversals: {
+        Row: {
+          cash_entry_id: string
+          created_at: string
+          id: string
+          payment_id: string | null
+          reason: string
+          reversed_by: string
+          school_id: string
+        }
+        Insert: {
+          cash_entry_id: string
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          reason: string
+          reversed_by?: string
+          school_id: string
+        }
+        Update: {
+          cash_entry_id?: string
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          reason?: string
+          reversed_by?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_reversals_cash_entry_fkey"
+            columns: ["school_id", "cash_entry_id"]
+            isOneToOne: false
+            referencedRelation: "cash_entries"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "financial_reversals_payment_fkey"
+            columns: ["school_id", "payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "financial_reversals_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grade_levels: {
         Row: {
           code: string
@@ -2082,6 +2134,41 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      finance_category_summary: {
+        Args: never
+        Returns: {
+          amount: number
+          category: string
+          direction: string
+          entry_count: number
+        }[]
+      }
+      finance_monthly_summary: {
+        Args: { p_months?: number }
+        Returns: {
+          billed: number
+          cash_in: number
+          cash_out: number
+          month_start: string
+          received: number
+        }[]
+      }
+      finance_summary: {
+        Args: never
+        Returns: {
+          billed: number
+          billed_student_count: number
+          cash_balance: number
+          cash_in: number
+          cash_out: number
+          invoice_count: number
+          open_invoice_count: number
+          outstanding: number
+          overdue: number
+          overdue_invoice_count: number
+          received: number
+        }[]
+      }
       find_person_duplicates: {
         Args: {
           p_birth_date?: string
@@ -2188,6 +2275,42 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_cash_expense: {
+        Args: {
+          p_amount: number
+          p_category: string
+          p_description: string
+          p_document_number: string
+          p_method: string
+          p_occurred_at?: string
+          p_reference?: string
+        }
+        Returns: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string
+          description: string
+          direction: string
+          document_number: string
+          id: string
+          method: string
+          occurred_at: string
+          payment_id: string | null
+          reference: string | null
+          school_id: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_invoice_payment: {
         Args: {
           p_amount: number
@@ -2217,6 +2340,24 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reverse_cash_entry: {
+        Args: { p_cash_entry_id: string; p_reason: string }
+        Returns: {
+          cash_entry_id: string
+          created_at: string
+          id: string
+          payment_id: string | null
+          reason: string
+          reversed_by: string
+          school_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "financial_reversals"
           isOneToOne: true
           isSetofReturn: false
         }
