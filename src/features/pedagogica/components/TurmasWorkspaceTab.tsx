@@ -292,7 +292,7 @@ export function TurmasWorkspaceTab({
                     />
                   </div>
                 </div>
-                <ClassMaterialsPanel classGroupId={t.id} classLabel={t.nome} />
+                <ClassMaterialsDisclosure classGroupId={t.id} classLabel={t.nome} />
                 {canManageAcademic ? (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {t.whatsappInviteUrl ? (
