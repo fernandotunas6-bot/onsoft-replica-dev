@@ -278,7 +278,10 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
       .from("document_requests")
       .update({
         status: data.status,
-        reviewed_by: context.userId,
+        assigned_to: context.userId,
+        completed_at:
+          data.status === "delivered" || data.status === "ready" ? new Date().toISOString() : null,
+        updated_by: context.userId,
         updated_at: new Date().toISOString(),
       })
       .eq("id", data.requestId)
@@ -287,6 +290,7 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado do pedido.");
     return updated;
+
   });
 
 const PRINT_SETTINGS_DOMAIN = "print_templates";
