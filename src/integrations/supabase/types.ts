@@ -108,6 +108,71 @@ export type Database = {
           },
         ]
       }
+      announcements: {
+        Row: {
+          archived_at: string | null
+          audience: string
+          body: string
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          priority: string
+          published_at: string | null
+          role_code: string | null
+          scheduled_for: string | null
+          school_id: string
+          status: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          audience?: string
+          body: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          priority?: string
+          published_at?: string | null
+          role_code?: string | null
+          scheduled_for?: string | null
+          school_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          audience?: string
+          body?: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          priority?: string
+          published_at?: string | null
+          role_code?: string | null
+          scheduled_for?: string | null
+          school_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_user_connections: {
         Row: {
           connection_key_ciphertext: string
@@ -350,6 +415,38 @@ export type Database = {
           },
         ]
       }
+      calendar_feed_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          school_id: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          school_id: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          school_id?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_feed_tokens_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campuses: {
         Row: {
           address: string | null
@@ -486,6 +583,8 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           version: number
+          whatsapp_group_name: string | null
+          whatsapp_invite_url: string | null
         }
         Insert: {
           academic_year_id: string
@@ -506,6 +605,8 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version?: number
+          whatsapp_group_name?: string | null
+          whatsapp_invite_url?: string | null
         }
         Update: {
           academic_year_id?: string
@@ -526,6 +627,8 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version?: number
+          whatsapp_group_name?: string | null
+          whatsapp_invite_url?: string | null
         }
         Relationships: [
           {
@@ -3485,6 +3588,458 @@ export type Database = {
         }
         Relationships: []
       }
+      siga_assessment_items: {
+        Row: {
+          allow_recovery: boolean
+          assessed_on: string | null
+          class_group_id: string | null
+          component: string
+          counts_toward_pauta: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          kind: string
+          max_score: number
+          name: string
+          school_id: string
+          subject_id: string | null
+          term: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_recovery?: boolean
+          assessed_on?: string | null
+          class_group_id?: string | null
+          component?: string
+          counts_toward_pauta?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind?: string
+          max_score?: number
+          name: string
+          school_id: string
+          subject_id?: string | null
+          term: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_recovery?: boolean
+          assessed_on?: string | null
+          class_group_id?: string | null
+          component?: string
+          counts_toward_pauta?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          kind?: string
+          max_score?: number
+          name?: string
+          school_id?: string
+          subject_id?: string | null
+          term?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_assessment_items_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_assessment_scores: {
+        Row: {
+          enrollment_id: string
+          id: string
+          item_id: string
+          previous_score: number | null
+          recorded_by: string | null
+          school_id: string
+          score: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          enrollment_id: string
+          id?: string
+          item_id: string
+          previous_score?: number | null
+          recorded_by?: string | null
+          school_id: string
+          score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          enrollment_id?: string
+          id?: string
+          item_id?: string
+          previous_score?: number | null
+          recorded_by?: string | null
+          school_id?: string
+          score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_assessment_scores_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "siga_assessment_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_assessment_scores_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_attendance_audits: {
+        Row: {
+          attendance_record_id: string | null
+          changed_by: string
+          created_at: string
+          device_info: string | null
+          id: string
+          new_status: string
+          old_status: string
+          reason: string
+          school_id: string
+          session_id: string
+          student_id: string
+        }
+        Insert: {
+          attendance_record_id?: string | null
+          changed_by: string
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          new_status: string
+          old_status: string
+          reason: string
+          school_id: string
+          session_id: string
+          student_id: string
+        }
+        Update: {
+          attendance_record_id?: string | null
+          changed_by?: string
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          new_status?: string
+          old_status?: string
+          reason?: string
+          school_id?: string
+          session_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_attendance_audits_attendance_record_id_fkey"
+            columns: ["attendance_record_id"]
+            isOneToOne: false
+            referencedRelation: "siga_attendance_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_audits_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_audits_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "siga_attendance_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_audits_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_audits_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_attendance_justifications: {
+        Row: {
+          attendance_record_id: string | null
+          created_at: string
+          file_id: string | null
+          file_name: string | null
+          id: string
+          reason: string
+          review_notes: string | null
+          reviewed_by: string | null
+          school_id: string
+          session_id: string | null
+          status: string
+          student_id: string
+          submitted_by: string
+          updated_at: string
+        }
+        Insert: {
+          attendance_record_id?: string | null
+          created_at?: string
+          file_id?: string | null
+          file_name?: string | null
+          id?: string
+          reason: string
+          review_notes?: string | null
+          reviewed_by?: string | null
+          school_id: string
+          session_id?: string | null
+          status?: string
+          student_id: string
+          submitted_by: string
+          updated_at?: string
+        }
+        Update: {
+          attendance_record_id?: string | null
+          created_at?: string
+          file_id?: string | null
+          file_name?: string | null
+          id?: string
+          reason?: string
+          review_notes?: string | null
+          reviewed_by?: string | null
+          school_id?: string
+          session_id?: string | null
+          status?: string
+          student_id?: string
+          submitted_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_attendance_justifications_attendance_record_id_fkey"
+            columns: ["attendance_record_id"]
+            isOneToOne: false
+            referencedRelation: "siga_attendance_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_justifications_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_justifications_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "siga_attendance_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_justifications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_justifications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_attendance_records: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          recorded_by: string | null
+          school_id: string
+          session_id: string
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_by?: string | null
+          school_id: string
+          session_id: string
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_by?: string | null
+          school_id?: string
+          session_id?: string
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_attendance_records_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_records_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "siga_attendance_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_attendance_sessions: {
+        Row: {
+          academic_year_id: string | null
+          class_group_id: string
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          lesson_date: string
+          notes: string | null
+          period_number: number
+          school_id: string
+          starts_at: string | null
+          status: string
+          subject_id: string
+          teacher_id: string | null
+          timetable_slot_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          academic_year_id?: string | null
+          class_group_id: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          lesson_date?: string
+          notes?: string | null
+          period_number?: number
+          school_id: string
+          starts_at?: string | null
+          status?: string
+          subject_id: string
+          teacher_id?: string | null
+          timetable_slot_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          academic_year_id?: string | null
+          class_group_id?: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          lesson_date?: string
+          notes?: string | null
+          period_number?: number
+          school_id?: string
+          starts_at?: string | null
+          status?: string
+          subject_id?: string
+          teacher_id?: string | null
+          timetable_slot_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_attendance_sessions_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_sessions_class_group_id_fkey"
+            columns: ["class_group_id"]
+            isOneToOne: false
+            referencedRelation: "class_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_sessions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_sessions_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_sessions_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_attendance_sessions_timetable_slot_id_fkey"
+            columns: ["timetable_slot_id"]
+            isOneToOne: false
+            referencedRelation: "timetable_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siga_cash_expenses: {
         Row: {
           amount: number
@@ -3546,6 +4101,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "siga_cash_expenses_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_module_grants: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          level: string
+          module_key: string
+          school_id: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          level: string
+          module_key: string
+          school_id: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          level?: string
+          module_key?: string
+          school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_module_grants_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
@@ -4364,6 +4963,10 @@ export type Database = {
           person_id: string
           score: number
         }[]
+      }
+      has_school_permission: {
+        Args: { p_permission: string; p_school_id: string }
+        Returns: boolean
       }
       immutable_unaccent: { Args: { "": string }; Returns: string }
       is_school_member: { Args: { p_school_id: string }; Returns: boolean }
