@@ -609,6 +609,67 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           tone: "success",
         }));
       }
+
+      // Projeção de fluxo de caixa: histórico real + estimativa dos próximos 3 meses.
+      const collectionRate = billed > 0 ? Math.round((received / billed) * 1000) / 10 : null;
+      const monthLabel = (month: string) =>
+        new Date(`${month}-01T00:00:00`).toLocaleDateString("pt-PT", {
+          month: "short",
+          year: "2-digit",
+        });
+      const historyMonths = months.slice(-6);
+      const forecastBase =
+        historyMonths.length > 0
+          ? historyMonths.reduce((sum, month) => sum + (billedByMonth.get(month) ?? 0), 0) /
+            historyMonths.length
+          : 0;
+      const forecastFactor = collectionRate !== null ? collectionRate / 100 : 0.8;
+      const lastMonth = historyMonths.at(-1) ?? today.slice(0, 7);
+      const futureMonths: string[] = [];
+      for (let index = 1; index <= 3; index += 1) {
+        const reference = new Date(`${lastMonth}-01T00:00:00`);
+        reference.setMonth(reference.getMonth() + index);
+        futureMonths.push(reference.toISOString().slice(0, 7));
+      }
+
+      const channelTotals = new Map<string, number>();
+      for (const receipt of receipts ?? []) {
+        if (receipt.status === "reversed") continue;
+        const channel = String(receipt.payment_method ?? "").trim();
+        if (!channel) continue;
+        channelTotals.set(channel, (channelTotals.get(channel) ?? 0) + 1);
+      }
+      const channelLabels: Record<string, string> = {
+        cash: "Dinheiro",
+        transfer: "Transferência bancária",
+        bank_transfer: "Transferência bancária",
+        multicaixa: "Multicaixa",
+        express: "Multicaixa Express",
+        tpa: "TPA",
+        deposit: "Depósito bancário",
+        other: "Outro",
+      };
+      const topChannel = [...channelTotals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+      overview.cashFlowForecast = {
+        months: [
+          ...historyMonths.map((month) => ({
+            month: monthLabel(month),
+            expectedAmount: billedByMonth.get(month) ?? 0,
+            actualAmount: receivedByMonth.get(month) ?? 0,
+            forecastAmount: Math.round((billedByMonth.get(month) ?? 0) * forecastFactor),
+          })),
+          ...futureMonths.map((month) => ({
+            month: monthLabel(month),
+            expectedAmount: Math.round(forecastBase),
+            actualAmount: 0,
+            forecastAmount: Math.round(forecastBase * forecastFactor),
+          })),
+        ],
+        averageCollectionRate: collectionRate,
+        forecastDefaultRate: collectionRate !== null ? Math.round((100 - collectionRate) * 10) / 10 : null,
+        mainPaymentChannel: topChannel ? (channelLabels[topChannel] ?? topChannel) : null,
+      };
     }
 
     const fromDate = todayInLuanda();
