@@ -115,7 +115,7 @@ jobs:
         run: python scripts/a11y-sidebar.py
 
   lighthouse:
-    name: Lighthouse CI (FCP / LCP / INP)
+    name: Lighthouse CI (FCP / LCP / INP) + PWA
     runs-on: ubuntu-latest
     needs: quality
     steps:
@@ -128,12 +128,19 @@ jobs:
       - name: Instalar dependências
         run: bun install --frozen-lockfile
 
-      - name: Arrancar servidor de desenvolvimento
-        run: |
-          bun run dev &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+      # Medir o build de produção: o servidor de desenvolvimento não é minificado
+      # e produz métricas irreais (LCP > 20 s), tornando o gate inútil.
+      - name: Build de produção
+        run: bun run build
 
-      - name: Correr Lighthouse CI
+      - name: Prontidão PWA (manifesto, ícones, service worker, offline)
+        run: |
+          bun run preview &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/ && break; sleep 2; done
+          node scripts/pwa-check.mjs http://localhost:3000
+          kill %1 || true
+
+      - name: Correr Lighthouse CI (falha se o score descer)
         run: bunx --bun @lhci/cli@0.14.x autorun --config=lighthouserc.json
 
       - name: Publicar relatórios Lighthouse
