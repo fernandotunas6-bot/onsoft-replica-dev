@@ -205,7 +205,7 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
 
     const { data: template, error: templateError } = await db
       .from("document_templates")
-      .select("id, name, document_type")
+      .select("id, name, fee_amount, turnaround_days, requires_payment")
       .eq("id", data.templateId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -214,29 +214,44 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
     }
     if (!template) throw new Error("Modelo de documento não encontrado.");
 
-    const purposeParts = [
-      data.requestNumber ? `Nº ${data.requestNumber}` : null,
-      data.priority === "urgent" ? "Urgente" : null,
-      data.dueOn ? `Prazo ${data.dueOn}` : null,
-      data.notes || null,
-    ].filter(Boolean);
+    const priority = data.priority === "urgent" ? "urgent" : "normal";
+    const turnaround = Number(template.turnaround_days ?? 3);
+    const dueOn =
+      data.dueOn ??
+      new Date(
+        Date.now() +
+          (priority === "urgent" ? Math.max(1, Math.ceil(turnaround / 2)) : turnaround) *
+            86_400_000,
+      )
+        .toISOString()
+        .slice(0, 10);
+    const requestNumber =
+      data.requestNumber?.trim() ||
+      `DOC${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+    const feeAmount = Number(template.fee_amount ?? 0);
 
     const { data: request, error } = await db
       .from("document_requests")
       .insert({
         school_id: membership.schoolId,
+        request_number: requestNumber,
         student_id: data.studentId,
         template_id: data.templateId,
-        request_type: template.document_type || template.name,
-        status: "submitted",
-        purpose: purposeParts.join(" · ") || null,
-        requested_by: context.userId,
+        template_name: template.name,
+        fee_amount: feeAmount,
+        status: template.requires_payment && feeAmount > 0 ? "pending_payment" : "queued",
+        priority,
+        due_on: dueOn,
+        assigned_to: context.userId,
+        notes: data.notes?.trim() || null,
+        created_by: context.userId,
       })
       .select("*")
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível registrar o pedido.");
     return request;
   });
+
 
 export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
