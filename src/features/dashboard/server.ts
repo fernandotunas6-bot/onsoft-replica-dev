@@ -118,6 +118,24 @@ function emptyOverview(role = "Utilizador") {
       url: string;
       isOpen: boolean;
     },
+    imports: {
+      available: false,
+      totalJobs: 0,
+      completedJobs: 0,
+      failedJobs: 0,
+      pendingJobs: 0,
+      importedRows: 0,
+      recent: [] as Array<{
+        id: string;
+        module: string;
+        fileName: string | null;
+        status: string;
+        totalRows: number;
+        importedRows: number;
+        errorRows: number;
+        createdAt: string | null;
+      }>,
+    },
   };
 }
 
