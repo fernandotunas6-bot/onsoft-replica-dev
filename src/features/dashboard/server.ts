@@ -535,12 +535,12 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           .from("finance_invoices")
           .select("id, amount, discount_amount, competence_month, status, due_date")
           .eq("school_id", schoolId)
-          .limit(250),
+          .limit(3000),
         db
           .from("finance_receipts")
-          .select("invoice_id, amount, paid_on, status")
+          .select("invoice_id, amount, paid_on, status, payment_method")
           .eq("school_id", schoolId)
-          .limit(250),
+          .limit(3000),
       ]);
 
       const paidByInvoice = new Map<string, number>();
