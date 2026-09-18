@@ -22,6 +22,55 @@
       "when": 1789714280814,
       "tag": "0002_people_module_part2_academic_core",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789714373840,
+      "tag": "0003_school_settings_billing_and_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789714441153,
+      "tag": "0004_subjects_grades_schedule",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789714560520,
+      "tag": "0005_finance_core_and_invoice_issuance",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789714634591,
+      "tag": "0006_finance_reporting_expenses_reversals",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789714707401,
+      "tag": "0007_document_workflow_and_profile_avatar",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789714754051,
+      "tag": "0008_calendar_events_and_announcements",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789714788773,
+      "tag": "0009_assign_new_users_to_school",
+      "breakpoints": true
     }
   ]
 }
