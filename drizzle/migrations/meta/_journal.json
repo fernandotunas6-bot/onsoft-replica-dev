@@ -15,6 +15,13 @@
       "when": 1789714149721,
       "tag": "0001_people_module_part1",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789714280814,
+      "tag": "0002_people_module_part2_academic_core",
+      "breakpoints": true
     }
   ]
 }
