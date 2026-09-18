@@ -117,9 +117,12 @@ const statusLabels: Record<string, keyof typeof estadoTone> = {
 };
 
 const advanceActionLabel: Record<string, string> = {
-  in_review: "Rever",
-  approved: "Emitir",
+  queued: "Pôr em fila",
+  processing: "Processar",
+  ready: "Emitir",
+  delivered: "Entregar",
 };
+
 
 function DocumentosPage() {
   const installed = useInstalledIntegrations();
