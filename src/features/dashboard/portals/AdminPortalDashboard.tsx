@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { getDashboardOverview } from "@/features/dashboard/server";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -59,6 +60,8 @@ const dotTone: Record<string, string> = {
   primary: "bg-primary",
 };
 
+type DashboardOverview = Awaited<ReturnType<typeof getDashboardOverview>>;
+
 export function AdminPortalDashboard({
   data,
   isLoading,
@@ -67,7 +70,7 @@ export function AdminPortalDashboard({
   now,
   greeting,
 }: {
-  data: any;
+  data: DashboardOverview | undefined;
   isLoading: boolean;
   activeTab: "geral" | "pedagogico" | "financeiro" | "auditoria";
   setActiveTab: (tab: "geral" | "pedagogico" | "financeiro" | "auditoria") => void;
@@ -425,7 +428,7 @@ export function AdminPortalDashboard({
               ) : null}
             </div>
             <ul className="space-y-3">
-              {data?.announcements.map((item: any) => (
+              {data?.announcements.map((item) => (
                 <li key={item.id} className="rounded-xl bg-secondary p-3">
                   <p className="text-sm font-semibold">{item.title}</p>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
