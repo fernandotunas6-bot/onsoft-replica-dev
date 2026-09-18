@@ -123,7 +123,6 @@ const advanceActionLabel: Record<string, string> = {
   delivered: "Entregar",
 };
 
-
 function DocumentosPage() {
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.documents");
@@ -278,12 +277,7 @@ function DocumentosPage() {
         data: {
           requestId: documento.id,
           status: nextStatus as
-            | "pending_payment"
-            | "queued"
-            | "processing"
-            | "ready"
-            | "delivered"
-            | "cancelled",
+            "pending_payment" | "queued" | "processing" | "ready" | "delivered" | "cancelled",
         },
       });
       await Promise.all([

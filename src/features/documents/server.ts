@@ -50,7 +50,6 @@ const nextSgaStatus: Record<string, string | null> = {
   cancelled: null,
 };
 
-
 export const listDocumentWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listDocumentsInputSchema.parse(input))
@@ -62,9 +61,7 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     const [templatesResult, requestsResult, studentsResult] = await Promise.all([
       db
         .from("document_templates")
-        .select(
-          "id, code, name, fee_amount, turnaround_days, requires_payment, active, created_at",
-        )
+        .select("id, code, name, fee_amount, turnaround_days, requires_payment, active, created_at")
         .eq("school_id", membership.schoolId)
         .eq("active", true)
         .order("name"),
@@ -84,7 +81,6 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
         .order("registration_number")
         .limit(500),
     ]);
-
 
     if (templatesResult.error) {
       throw publicDatabaseError(templatesResult.error, "Não foi possível carregar os modelos.");
@@ -192,7 +188,6 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     };
   });
 
-
 export const createDocumentRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createDocumentRequestInputSchema.parse(input))
@@ -252,7 +247,6 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
     return request;
   });
 
-
 export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateDocumentRequestStatusInputSchema.parse(input))
@@ -290,7 +284,6 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado do pedido.");
     return updated;
-
   });
 
 const PRINT_SETTINGS_DOMAIN = "print_templates";

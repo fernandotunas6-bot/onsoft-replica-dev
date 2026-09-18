@@ -21,7 +21,6 @@ export const updateDocumentRequestStatusInputSchema = z.object({
   status: z.enum(["pending_payment", "queued", "processing", "ready", "delivered", "cancelled"]),
 });
 
-
 export type UpdateDocumentRequestStatusInput = z.infer<
   typeof updateDocumentRequestStatusInputSchema
 >;
