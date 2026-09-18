@@ -40,22 +40,16 @@ import {
 } from "./print-catalog";
 import { parsePrintSettings } from "./print-settings";
 
-/** SGA check constraint: submitted | in_review | approved | rejected | cancelled */
-const statusToUi: Record<string, string> = {
-  submitted: "queued",
-  in_review: "processing",
-  approved: "ready",
-  rejected: "rejected",
-  cancelled: "cancelled",
-};
-
+/** Estados reais: pending_payment | queued | processing | ready | delivered | cancelled */
 const nextSgaStatus: Record<string, string | null> = {
-  submitted: "in_review",
-  in_review: "approved",
-  approved: null,
-  rejected: null,
+  pending_payment: "queued",
+  queued: "processing",
+  processing: "ready",
+  ready: "delivered",
+  delivered: null,
   cancelled: null,
 };
+
 
 export const listDocumentWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
