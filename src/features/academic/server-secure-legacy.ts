@@ -799,7 +799,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         room_name: String(campus?.name ?? "—"),
         academic_year_name: String(year?.name ?? "—"),
         enrolled_count: stats?.count ?? 0,
-        average_score: null,
+        average_score: classAverage(String(group.id)),
         attendance_rate: averagePercent(stats?.rates ?? []),
       };
     });
