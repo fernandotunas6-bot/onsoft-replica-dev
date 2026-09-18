@@ -8,7 +8,7 @@ describe("buildTenantUsageRows", () => {
       { id: "s2", tenant_id: null },
       { id: "s3", tenant_id: "t2" },
     ];
-    
+
     const students = new Map([
       ["s1", 150],
       ["s3", 50],

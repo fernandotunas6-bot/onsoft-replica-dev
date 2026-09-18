@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { sgaClient } from "@/integrations/supabase/sga";
+import { generateSaftInputSchema } from "./saft-generator";
 import {
   loadSgaAdminClient,
   requireSgaWriter,
@@ -249,19 +250,23 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
       };
     }
     const db = await loadSgaAdminClient();
-    const [{ error: penaltyError }, { error: prefsError }, { error: cashExpensesError }, feePlanResult] =
-      await Promise.all([
-        db.from("finance_invoices").select("id, penalty_amount").limit(1),
-        db.from("notification_preferences").select("id").limit(1),
-        db.from("siga_cash_expenses").select("id").limit(1),
-        db
-          .from("fee_plans")
-          .select("id")
-          .eq("school_id", membership.schoolId)
-          .eq("status", "active")
-          .limit(1)
-          .maybeSingle(),
-      ]);
+    const [
+      { error: penaltyError },
+      { error: prefsError },
+      { error: cashExpensesError },
+      feePlanResult,
+    ] = await Promise.all([
+      db.from("finance_invoices").select("id, penalty_amount").limit(1),
+      db.from("notification_preferences").select("id").limit(1),
+      db.from("siga_cash_expenses").select("id").limit(1),
+      db
+        .from("fee_plans")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle(),
+    ]);
     const missingPenaltyAmount = Boolean(
       penaltyError && /penalty_amount/i.test(penaltyError.message),
     );
@@ -296,15 +301,13 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
     }
     const feePlanError = feePlanResult.error;
     const missingActiveFeePlan = Boolean(
-      !feePlanResult.data?.id &&
-      (!feePlanError || !isMissingSgaTable(feePlanError)),
+      !feePlanResult.data?.id && (!feePlanError || !isMissingSgaTable(feePlanError)),
     );
     if (feePlanError && !isMissingSgaTable(feePlanError)) {
       throw publicDatabaseError(feePlanError, "Não foi possível validar o plano financeiro.");
     }
     return {
-      ready:
-        !missingPenaltyAmount && !missingNotificationPreferences && !missingActiveFeePlan,
+      ready: !missingPenaltyAmount && !missingNotificationPreferences && !missingActiveFeePlan,
       missingPenaltyAmount,
       missingNotificationPreferences,
       missingCashExpenses: isMissingSgaTable(cashExpensesError),
@@ -746,7 +749,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
     // o número do recibo atomicamente — evita a corrida de dois pagamentos simultâneos
     // sobre a mesma fatura que o insert directo anterior não protegia.
     // Corre no client da SESSÃO (não no admin) para auth.uid()/aal2 resolverem.
-    const { data: outcome, error } = await context.supabase.rpc("register_payment", {
+    const { data: outcome, error } = await sgaClient(context.supabase).rpc("register_payment", {
       school_id: membership.schoolId,
       invoice_id: data.invoiceId,
       amount: data.amount,
@@ -1295,9 +1298,7 @@ export const listGatewayWebhookEvents = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
     let query = db
       .from("finance_gateway_webhook_events")
-      .select(
-        "id, created_at, ok, http_status, channel, message, reference, invoice_id, amount",
-      )
+      .select("id, created_at, ok, http_status, channel, message, reference, invoice_id, amount")
       .eq("school_id", membership.schoolId)
       .order("created_at", { ascending: false })
       .limit(data.limit ?? 5);
@@ -1493,7 +1494,6 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
 export const exportSaftAoXml = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => {
-    const { generateSaftInputSchema } = require("./saft-generator");
     return generateSaftInputSchema.parse(input);
   })
   .handler(async ({ data, context }) => {
@@ -1531,7 +1531,9 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
 
     const readiness = validateSaftSchoolReadiness(schoolInfo);
     if (saftExportBlocked(readiness)) {
-      throw new Error(readiness.find((issue) => issue.level === "error")?.message ?? "Exportação bloqueada.");
+      throw new Error(
+        readiness.find((issue) => issue.level === "error")?.message ?? "Exportação bloqueada.",
+      );
     }
 
     const period = saftPeriodBounds(data);

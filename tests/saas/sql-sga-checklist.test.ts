@@ -4,9 +4,7 @@ import { resolve } from "node:path";
 
 describe("SQL SGA checklist", () => {
   it("print-apply-sql lista os 3 ficheiros canónicos e existem no disco", () => {
-    const catalog = JSON.parse(
-      readFileSync(resolve("scripts/siga/modules.json"), "utf8"),
-    );
+    const catalog = JSON.parse(readFileSync(resolve("scripts/siga/modules.json"), "utf8"));
     expect(catalog.sqlApply).toEqual([
       "supabase/APPLY_IN_SQL_EDITOR.sql",
       "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",

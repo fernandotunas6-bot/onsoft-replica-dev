@@ -71,7 +71,9 @@ export function StatGrid({
       try {
         const stored = localStorage.getItem(lsKey);
         if (stored !== null) return stored === "true";
-      } catch {}
+      } catch {
+        /* localStorage indisponível (modo privado): usar o valor por omissão */
+      }
     }
     return false;
   });
@@ -82,7 +84,9 @@ export function StatGrid({
     if (lsKey) {
       try {
         localStorage.setItem(lsKey, String(next));
-      } catch {}
+      } catch {
+        /* localStorage indisponível: manter apenas o estado em memória */
+      }
     }
   };
 

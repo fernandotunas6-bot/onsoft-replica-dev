@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
@@ -329,7 +330,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       // register_student cria o aluno (+ encarregado) numa transação atómica: gera o
       // número de processo por sequência própria (nunca duplica sob candidaturas
       // aceites em simultâneo) e valida a pessoa/encarregado antes de gravar.
-      const { data: registered, error: registerError } = await context.supabase.rpc(
+      const { data: registered, error: registerError } = await sgaClient(context.supabase).rpc(
         "register_student",
         {
           school_id: membership.schoolId,
@@ -371,7 +372,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           throw new Error("Esta turma não tem ano lectivo associado.");
         }
         // enroll_student tranca a turma (FOR UPDATE) e valida capacidade atomicamente.
-        const { error: enrollError } = await context.supabase.rpc("enroll_student", {
+        const { error: enrollError } = await sgaClient(context.supabase).rpc("enroll_student", {
           school_id: membership.schoolId,
           student_id: studentOutcome.studentId,
           class_group_id: classGroup.id,

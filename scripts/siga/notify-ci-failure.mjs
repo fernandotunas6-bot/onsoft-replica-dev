@@ -68,8 +68,7 @@ async function notifyResend(apiKey, summary) {
     .filter(Boolean);
   if (!to.length) throw new Error("E2E_ALERT_EMAIL_TO em falta.");
 
-  const from =
-    process.env.E2E_ALERT_EMAIL_FROM?.trim() || "SIGA Plus CI <onboarding@resend.dev>";
+  const from = process.env.E2E_ALERT_EMAIL_FROM?.trim() || "SIGA Plus CI <onboarding@resend.dev>";
   const html = summary.textLines.map((line) => `<p>${line}</p>`).join("\n");
 
   const res = await fetch("https://api.resend.com/emails", {

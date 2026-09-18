@@ -15,8 +15,13 @@ export const Route = createFileRoute("/api/saas/plans")({
           const plans = await fetchActivePlans();
           return jsonWithCors(request, { plans }, { apps: [...APPS] });
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Não foi possível carregar os planos.";
-          return jsonWithCors(request, { error: message, plans: [] }, { status: 500, apps: [...APPS] });
+          const message =
+            error instanceof Error ? error.message : "Não foi possível carregar os planos.";
+          return jsonWithCors(
+            request,
+            { error: message, plans: [] },
+            { status: 500, apps: [...APPS] },
+          );
         }
       },
     },

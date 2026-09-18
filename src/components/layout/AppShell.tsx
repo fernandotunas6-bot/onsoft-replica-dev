@@ -331,7 +331,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                     )}
                     {isDark ? "Modo Claro" : "Modo Escuro"}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openSettings("sistema.cores")} className="gap-2 cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={() => openSettings("sistema.cores")}
+                    className="gap-2 cursor-pointer"
+                  >
                     <Palette className="size-4 text-primary" />
                     Personalizar Aparência…
                   </DropdownMenuItem>

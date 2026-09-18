@@ -137,7 +137,10 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
 
       if (linkError || !linkData?.properties?.action_link) {
         // Não revelar se o e-mail não existe na base (privacidade e proteção contra enumeração)
-        console.warn("[PasswordReset] Recovery link generation skipped or failed:", linkError?.message);
+        console.warn(
+          "[PasswordReset] Recovery link generation skipped or failed:",
+          linkError?.message,
+        );
         return {
           success: true,
           message: NEUTRAL_SUCCESS_MESSAGE,
@@ -176,7 +179,10 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
           });
           sentViaResend = true;
         } catch (resendError) {
-          console.warn("[PasswordReset] Resend delivery failed, falling back to Supabase:", resendError);
+          console.warn(
+            "[PasswordReset] Resend delivery failed, falling back to Supabase:",
+            resendError,
+          );
         }
       }
 

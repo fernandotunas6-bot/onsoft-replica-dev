@@ -33,4 +33,3 @@ describe("School Invitation Schemas", () => {
     ).toHaveLength(36);
   });
 });
-

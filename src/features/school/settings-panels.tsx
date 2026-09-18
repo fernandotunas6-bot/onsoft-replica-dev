@@ -12,10 +12,7 @@ export {
   FeePlanSettingsForm,
 } from "./settings-billing-panel";
 export { FinancePanel } from "./settings-finance-panel";
-export {
-  PedagogicalSettingsPanel,
-  ModuleShortcutsRow,
-} from "./settings-pedagogical-panel";
+export { PedagogicalSettingsPanel, ModuleShortcutsRow } from "./settings-pedagogical-panel";
 export { IntegrationsPanel } from "./settings-integrations-panel";
 export { SecurityPanel } from "./settings-security-panel";
 export { DigitalIdentityPanel } from "./settings-identity-panel";

@@ -53,10 +53,7 @@ describe("whatsapp-client", () => {
     });
 
     it("should resolve from apiKey or callback fallback and envToken", () => {
-      const creds = resolveWhatsAppCredentials(
-        { phoneNumberId: "987654321" },
-        "env-token-123",
-      );
+      const creds = resolveWhatsAppCredentials({ phoneNumberId: "987654321" }, "env-token-123");
       expect(creds).toEqual({
         phoneNumberId: "987654321",
         accessToken: "env-token-123",

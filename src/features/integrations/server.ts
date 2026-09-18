@@ -489,9 +489,7 @@ async function listSchoolStaffEmails(
       .select("email")
       .in("id", userIds)
       .limit(80);
-    return normalizeResendRecipients(
-      (profiles ?? []).map((row) => String(row.email ?? "")),
-    );
+    return normalizeResendRecipients((profiles ?? []).map((row) => String(row.email ?? "")));
   } catch {
     return [];
   }

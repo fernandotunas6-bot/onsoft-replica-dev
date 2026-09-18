@@ -63,7 +63,10 @@ describe("planIncludesPath", () => {
 
 describe("trialDaysRemaining", () => {
   it("returns rounded days until trial end", () => {
-    const days = trialDaysRemaining("2026-09-01T00:00:00.000Z", new Date("2026-08-28T12:00:00.000Z"));
+    const days = trialDaysRemaining(
+      "2026-09-01T00:00:00.000Z",
+      new Date("2026-08-28T12:00:00.000Z"),
+    );
     expect(days).toBe(4);
   });
 });
@@ -71,7 +74,12 @@ describe("trialDaysRemaining", () => {
 describe("Digital Identity plan features", () => {
   it("planIncludesCustomDomain respects plan tier and explicit flag", () => {
     expect(planIncludesCustomDomain(startPlan)).toBe(false);
-    expect(planIncludesCustomDomain({ ...startPlan, features: { ...startPlan.features, custom_domain: true } })).toBe(true);
+    expect(
+      planIncludesCustomDomain({
+        ...startPlan,
+        features: { ...startPlan.features, custom_domain: true },
+      }),
+    ).toBe(true);
     expect(planIncludesCustomDomain({ ...startPlan, code: "enterprise" })).toBe(true);
     expect(planIncludesCustomDomain(null)).toBe(true);
   });
@@ -85,6 +93,11 @@ describe("Digital Identity plan features", () => {
   it("planIncludesAdvancedBranding allows enterprise or custom_domain", () => {
     expect(planIncludesAdvancedBranding(startPlan)).toBe(false);
     expect(planIncludesAdvancedBranding({ ...startPlan, code: "enterprise" })).toBe(true);
-    expect(planIncludesAdvancedBranding({ ...startPlan, features: { ...startPlan.features, custom_domain: true } })).toBe(true);
+    expect(
+      planIncludesAdvancedBranding({
+        ...startPlan,
+        features: { ...startPlan.features, custom_domain: true },
+      }),
+    ).toBe(true);
   });
 });

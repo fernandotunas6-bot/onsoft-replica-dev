@@ -85,6 +85,6 @@ export function buildDashboardSuggestionRules(): SuggestionRule<DashboardOvervie
         route: "/relatorios/academicos",
         reason: "Monitorização proativa da saúde da escola.",
       }),
-    }
+    },
   ];
 }

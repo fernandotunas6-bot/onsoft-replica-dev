@@ -211,10 +211,16 @@ function TeacherProfilePage() {
                   onConfirm={async () => {
                     await deleteTeacher({ data: { teacherId: teacher.id } });
                     await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
-                    await queryClient.invalidateQueries({ queryKey: ["academic", "teacher-workspace"] });
+                    await queryClient.invalidateQueries({
+                      queryKey: ["academic", "teacher-workspace"],
+                    });
                   }}
                   trigger={(open: () => void) => (
-                    <Button variant="outline" className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={open}>
+                    <Button
+                      variant="outline"
+                      className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={open}
+                    >
                       <UserMinus className="size-4" /> Desligar
                     </Button>
                   )}

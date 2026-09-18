@@ -31,7 +31,7 @@ describe("Integração EMIS", () => {
           payment_status: "paid",
         },
       ]);
-      
+
       expect(payload).toHaveLength(1);
       expect(payload[0].gender).toBe("M");
       expect(payload[0].emis_grade).toBe("7ª Classe");

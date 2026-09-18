@@ -9,7 +9,11 @@ export type CalendarIcsEvent = {
 };
 
 function icsEscape(value: string) {
-  return value.replaceAll("\\", "\\\\").replaceAll(";", "\\;").replaceAll(",", "\\,").replaceAll("\n", "\\n");
+  return value
+    .replaceAll("\\", "\\\\")
+    .replaceAll(";", "\\;")
+    .replaceAll(",", "\\,")
+    .replaceAll("\n", "\\n");
 }
 
 function icsDate(value: string) {
@@ -61,7 +65,9 @@ export function calendarIcsFeedUrl(origin: string, token: string) {
 }
 
 export function calendarWebcalFeedUrl(origin: string, token: string) {
-  return calendarIcsFeedUrl(origin, token).replace(/^https:/, "webcal:").replace(/^http:/, "webcal:");
+  return calendarIcsFeedUrl(origin, token)
+    .replace(/^https:/, "webcal:")
+    .replace(/^http:/, "webcal:");
 }
 
 export function calendarIcsResponse(body: string) {

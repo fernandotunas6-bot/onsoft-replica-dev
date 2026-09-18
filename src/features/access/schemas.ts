@@ -47,4 +47,3 @@ export const acceptSchoolInvitationInputSchema = z.object({
   token: z.string().trim().min(10).max(256),
 });
 export type AcceptSchoolInvitationInput = z.infer<typeof acceptSchoolInvitationInputSchema>;
-

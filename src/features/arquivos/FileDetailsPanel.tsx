@@ -58,8 +58,8 @@ export function FileDetailsPanel({
     return (
       <aside className="flex min-h-0 flex-col bg-card p-4">
         <p className="text-sm text-muted-foreground">
-          Seleccione um ficheiro para ver o proprietário, o nível de acesso e a auditoria. Enter abre ·
-          Esc limpa a selecção · arraste ficheiros para carregar.
+          Seleccione um ficheiro para ver o proprietário, o nível de acesso e a auditoria. Enter
+          abre · Esc limpa a selecção · arraste ficheiros para carregar.
         </p>
       </aside>
     );
@@ -172,12 +172,7 @@ export function FileDetailsPanel({
               <p className="text-muted-foreground">{systemLockedMsg}</p>
             )}
             {fileNeedsOrganization(selected) && myAccess !== "view" && selectedCanManage ? (
-              <Button
-                type="button"
-                size="sm"
-                className="mt-1"
-                onClick={() => onOrganize(selected)}
-              >
+              <Button type="button" size="sm" className="mt-1" onClick={() => onOrganize(selected)}>
                 Completar inquérito
               </Button>
             ) : null}

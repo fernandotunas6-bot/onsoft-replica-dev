@@ -43,10 +43,7 @@ export function buildStudentCapacity(
   return { activeStudents, maxStudents, remaining, atLimit, nearLimit };
 }
 
-export function assertStudentCapacity(
-  snapshot: StudentCapacitySnapshot,
-  adding = 1,
-): void {
+export function assertStudentCapacity(snapshot: StudentCapacitySnapshot, adding = 1): void {
   if (snapshot.maxStudents == null) return;
   if (snapshot.activeStudents + adding > snapshot.maxStudents) {
     throw new Error(

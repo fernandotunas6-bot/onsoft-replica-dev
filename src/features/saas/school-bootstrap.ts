@@ -117,14 +117,14 @@ export async function bootstrapSchoolDefaults(
   // ── Papéis canónicos da escola ───────────────────────────────────────────
   // Seed apenas se a tabela existir; falha silenciosa caso contrário.
   const DEFAULT_ROLES = [
-    { code: "owner",    name: "Proprietário",  is_system: false },
-    { code: "admin",    name: "Administrador", is_system: false },
-    { code: "secretary",name: "Secretaria",    is_system: false },
-    { code: "treasury", name: "Tesouraria",    is_system: false },
-    { code: "teacher",  name: "Professor",     is_system: false },
-    { code: "student",  name: "Aluno",         is_system: false },
-    { code: "guardian", name: "Encarregado",   is_system: false },
-    { code: "user",     name: "Utilizador",    is_system: false },
+    { code: "owner", name: "Proprietário", is_system: false },
+    { code: "admin", name: "Administrador", is_system: false },
+    { code: "secretary", name: "Secretaria", is_system: false },
+    { code: "treasury", name: "Tesouraria", is_system: false },
+    { code: "teacher", name: "Professor", is_system: false },
+    { code: "student", name: "Aluno", is_system: false },
+    { code: "guardian", name: "Encarregado", is_system: false },
+    { code: "user", name: "Utilizador", is_system: false },
   ] as const;
 
   try {

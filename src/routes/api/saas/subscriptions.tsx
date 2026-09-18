@@ -19,7 +19,8 @@ export const Route = createFileRoute("/api/saas/subscriptions")({
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Não foi possível listar subscrições.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },

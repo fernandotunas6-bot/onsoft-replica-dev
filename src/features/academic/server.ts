@@ -2,10 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
-import {
-  deleteScheduleSlotInputSchema,
-  updateScheduleSlotInputSchema,
-} from "./schemas";
+import { deleteScheduleSlotInputSchema, updateScheduleSlotInputSchema } from "./schemas";
 
 // Preserva integralmente a fachada académica já validada e substitui apenas
 // as mutações de horário que precisam de transportar o actor humano para os

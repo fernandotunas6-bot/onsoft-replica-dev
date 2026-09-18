@@ -123,7 +123,5 @@ export function AppMark({ id, className }: { id: string; className?: string }) {
     return <PremiumIconMark {...siga} className={className} />;
   }
 
-  return (
-    <PremiumIconMark icon={LayoutGrid} tone="muted" label="SIGA" className={className} />
-  );
+  return <PremiumIconMark icon={LayoutGrid} tone="muted" label="SIGA" className={className} />;
 }

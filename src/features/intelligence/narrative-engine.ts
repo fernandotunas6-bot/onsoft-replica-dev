@@ -5,17 +5,23 @@ export function generateStudentNarrativeReport(
   studentName: string,
 ): string {
   const intro = `Olá! Resumo escolar de ${studentName}:\n`;
-  
+
   const lines: string[] = [];
 
   // Avaliação académica
   if (snapshot.academic.finalAverage !== null) {
     if (snapshot.academic.finalAverage >= 14) {
-      lines.push(`✅ Excelente desempenho! A média atual é de ${snapshot.academic.finalAverage} valores.`);
+      lines.push(
+        `✅ Excelente desempenho! A média atual é de ${snapshot.academic.finalAverage} valores.`,
+      );
     } else if (snapshot.academic.finalAverage >= 10) {
-      lines.push(`📚 Desempenho satisfatório (média: ${snapshot.academic.finalAverage}). Pode melhorar!`);
+      lines.push(
+        `📚 Desempenho satisfatório (média: ${snapshot.academic.finalAverage}). Pode melhorar!`,
+      );
     } else {
-      lines.push(`⚠️ Atenção: A média encontra-se abaixo do exigido (${snapshot.academic.finalAverage} valores). Sugerimos acompanhamento.`);
+      lines.push(
+        `⚠️ Atenção: A média encontra-se abaixo do exigido (${snapshot.academic.finalAverage} valores). Sugerimos acompanhamento.`,
+      );
     }
   } else {
     lines.push(`ℹ️ Ainda sem avaliações processadas no trimestre atual.`);
@@ -24,7 +30,9 @@ export function generateStudentNarrativeReport(
   // Comportamento / Assiduidade
   if (snapshot.academic.absences != null) {
     if (snapshot.academic.absences > 5) {
-      lines.push(`⚠️ Registo de ${snapshot.academic.absences} faltas não justificadas. Por favor, regularize a situação.`);
+      lines.push(
+        `⚠️ Registo de ${snapshot.academic.absences} faltas não justificadas. Por favor, regularize a situação.`,
+      );
     } else if (snapshot.academic.absences > 0) {
       lines.push(`ℹ️ Registo de ${snapshot.academic.absences} faltas.`);
     } else {

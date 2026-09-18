@@ -37,8 +37,9 @@ function CriarEscolaLanding() {
         </h1>
 
         <p className="text-slate-400 text-base leading-relaxed">
-          De acordo com a arquitetura do ecossistema SIGA Plus, o registo oficial de novas instituições
-          é realizado exclusivamente através do portal <strong>WEB</strong> (Landing Page & Portal Comercial).
+          De acordo com a arquitetura do ecossistema SIGA Plus, o registo oficial de novas
+          instituições é realizado exclusivamente através do portal <strong>WEB</strong> (Landing
+          Page & Portal Comercial).
         </p>
 
         <Card className="bg-slate-900/80 border-slate-800 text-slate-100 text-left p-6">
@@ -48,7 +49,8 @@ function CriarEscolaLanding() {
               <div>
                 <h3 className="font-semibold text-white">Registo Comercial Isolado</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Preencha os dados da sua instituição, escolha o plano SaaS e configure o seu subdomínio exclusivo com o design oficial do WEB.
+                  Preencha os dados da sua instituição, escolha o plano SaaS e configure o seu
+                  subdomínio exclusivo com o design oficial do WEB.
                 </p>
               </div>
             </div>

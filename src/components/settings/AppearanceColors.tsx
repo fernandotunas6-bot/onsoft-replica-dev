@@ -13,12 +13,7 @@ import {
   Upload,
   Sparkles,
 } from "lucide-react";
-import {
-  accentPresets,
-  sidebarPresets,
-  useAppearance,
-  type ThemeMode,
-} from "@/lib/appearance";
+import { accentPresets, sidebarPresets, useAppearance, type ThemeMode } from "@/lib/appearance";
 import { colorThemes, tweakcnThemes } from "@/config/theme-data";
 import { radiusOptions, baseColors } from "@/config/theme-customizer-constants";
 import { ColorPicker } from "@/components/theme-customizer/ColorPicker";
@@ -98,7 +93,10 @@ export function AppearanceColors() {
   return (
     <div className="space-y-4">
       {/* Controlo de Modo e Modo Rápido */}
-      <Section title="Modo de Exibição" hint="Aplica-se de imediato e fica guardado neste dispositivo.">
+      <Section
+        title="Modo de Exibição"
+        hint="Aplica-se de imediato e fica guardado neste dispositivo."
+      >
         <div className="grid grid-cols-3 gap-2">
           {modes.map((m) => (
             <button
@@ -129,7 +127,11 @@ export function AppearanceColors() {
       </Section>
 
       {/* Tabs organizadas para estilo e temas */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "siga" | "presets" | "custom")} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as "siga" | "presets" | "custom")}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-3 rounded-xl p-1 bg-muted/70">
           <TabsTrigger value="siga" className="text-xs font-semibold gap-1.5 rounded-lg">
             <Palette className="size-3.5" />
@@ -147,10 +149,17 @@ export function AppearanceColors() {
 
         {/* Tab 1: Paleta SIGA Nativa */}
         <TabsContent value="siga" className="space-y-4 pt-2">
-          <Section title="Cor de Destaque SIGA" hint="Botões, gráficos, ícones e estados activos em OKLCH com contraste AA.">
+          <Section
+            title="Cor de Destaque SIGA"
+            hint="Botões, gráficos, ícones e estados activos em OKLCH com contraste AA."
+          >
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
               {accentPresets.map((p) => {
-                const isSelected = !state.shadcnTheme && !state.tweakcnTheme && !state.importedTheme && state.accent === p.id;
+                const isSelected =
+                  !state.shadcnTheme &&
+                  !state.tweakcnTheme &&
+                  !state.importedTheme &&
+                  state.accent === p.id;
                 return (
                   <button
                     key={p.id}
@@ -180,7 +189,10 @@ export function AppearanceColors() {
             </div>
           </Section>
 
-          <Section title="Fundo da Barra Lateral (Sidebar)" hint="Escolha o tom de apresentação do menu principal.">
+          <Section
+            title="Fundo da Barra Lateral (Sidebar)"
+            hint="Escolha o tom de apresentação do menu principal."
+          >
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {sidebarPresets.map((p) => (
                 <button
@@ -209,11 +221,21 @@ export function AppearanceColors() {
         {/* Tab 2: Presets Shadcn & Tweakcn do Admin */}
         <TabsContent value="presets" className="space-y-4 pt-2">
           {/* Temas Shadcn UI */}
-          <Section title="Temas Shadcn UI" hint="Paletas de cores profissionais adaptadas para modo claro e escuro.">
+          <Section
+            title="Temas Shadcn UI"
+            hint="Paletas de cores profissionais adaptadas para modo claro e escuro."
+          >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Escolha um esquema de cor:</span>
-                <Button variant="outline" size="sm" onClick={handleRandomShadcn} className="h-7 gap-1.5 text-xs">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Escolha um esquema de cor:
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRandomShadcn}
+                  className="h-7 gap-1.5 text-xs"
+                >
                   <Dices className="size-3.5" />
                   Aleatório
                 </Button>
@@ -256,11 +278,21 @@ export function AppearanceColors() {
           </Section>
 
           {/* Temas Tweakcn */}
-          <Section title="Temas Estilizados Tweakcn" hint="Coleção de estilos modernos, minimalistas e dinâmicos.">
+          <Section
+            title="Temas Estilizados Tweakcn"
+            hint="Coleção de estilos modernos, minimalistas e dinâmicos."
+          >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Escolha um estilo:</span>
-                <Button variant="outline" size="sm" onClick={handleRandomTweakcn} className="h-7 gap-1.5 text-xs">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Escolha um estilo:
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRandomTweakcn}
+                  className="h-7 gap-1.5 text-xs"
+                >
                   <Dices className="size-3.5" />
                   Aleatório
                 </Button>
@@ -306,7 +338,10 @@ export function AppearanceColors() {
         {/* Tab 3: Avançado, Color Pickers & Importação */}
         <TabsContent value="custom" className="space-y-4 pt-2">
           {/* Importador de Tema CSS */}
-          <Section title="Importar Tema CSS" hint="Cole código CSS gerado no tweakcn.com ou em ferramentas de design.">
+          <Section
+            title="Importar Tema CSS"
+            hint="Cole código CSS gerado no tweakcn.com ou em ferramentas de design."
+          >
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="outline"
@@ -321,7 +356,10 @@ export function AppearanceColors() {
                 variant="secondary"
                 size="sm"
                 className="gap-2"
-                onClick={() => typeof window !== "undefined" && window.open("https://tweakcn.com/editor/theme", "_blank")}
+                onClick={() =>
+                  typeof window !== "undefined" &&
+                  window.open("https://tweakcn.com/editor/theme", "_blank")
+                }
               >
                 <ExternalLink className="size-3.5" />
                 Criador Tweakcn
@@ -335,7 +373,11 @@ export function AppearanceColors() {
           </Section>
 
           {/* Cores da Marca (Accordion) */}
-          <Accordion type="single" collapsible className="w-full rounded-2xl border border-border bg-card overflow-hidden">
+          <Accordion
+            type="single"
+            collapsible
+            className="w-full rounded-2xl border border-border bg-card overflow-hidden"
+          >
             <AccordionItem value="brand-colors" className="border-none">
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/40">
                 <div className="flex items-center gap-2">
@@ -365,7 +407,10 @@ export function AppearanceColors() {
       </Tabs>
 
       {/* Arredondamento dos Cantos (Radius) */}
-      <Section title="Arredondamento dos Cantos (Radius)" hint={`Raio actual da interface: ${state.radius.toFixed(3)}rem`}>
+      <Section
+        title="Arredondamento dos Cantos (Radius)"
+        hint={`Raio actual da interface: ${state.radius.toFixed(3)}rem`}
+      >
         <div className="space-y-3">
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {radiusOptions.map((opt) => {

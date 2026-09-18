@@ -3,7 +3,8 @@ import { parseImportFile } from "@/features/import/engine/parse";
 import { commitImportBatchSchema } from "@/features/import/schemas";
 
 function studentCsv(count: number) {
-  const header = "Nome Completo;Bilhete de Identidade / Cédula;Gênero;Data de Nascimento;Telefone;Encarregado;Turma";
+  const header =
+    "Nome Completo;Bilhete de Identidade / Cédula;Gênero;Data de Nascimento;Telefone;Encarregado;Turma";
   const rows = Array.from({ length: count }, (_, index) => {
     const n = String(index + 1).padStart(4, "0");
     return `Aluno Teste ${n};TESTE${n}LA000;M;2012-05-14;923${n.padStart(6, "0")};Encarregado ${n};7A`;
@@ -14,7 +15,10 @@ function studentCsv(count: number) {
 describe("importação CSV em volume", () => {
   for (const total of [150, 300, 500]) {
     it(`lê ${total} alunos sem truncar nem perder cabeçalhos`, async () => {
-      const parsed = await parseImportFile(Buffer.from(studentCsv(total), "utf-8"), `alunos-${total}.csv`);
+      const parsed = await parseImportFile(
+        Buffer.from(studentCsv(total), "utf-8"),
+        `alunos-${total}.csv`,
+      );
       expect(parsed.sheets).toHaveLength(1);
       expect(parsed.sheets[0]?.rows).toHaveLength(total);
       expect(parsed.sheets[0]?.headers).toContain("Nome Completo");

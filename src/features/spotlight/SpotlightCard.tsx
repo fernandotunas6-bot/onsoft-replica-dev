@@ -77,12 +77,7 @@ export function SpotlightCard({
   }
 
   const logoMark = item.logoUrl?.trim() ? (
-    <LogoChip
-      src={item.logoUrl.trim()}
-      tone={chipTone[item.tone]}
-      size="md"
-      label={item.title}
-    />
+    <LogoChip src={item.logoUrl.trim()} tone={chipTone[item.tone]} size="md" label={item.title} />
   ) : (
     <IconChip icon={Sparkles} tone={chipTone[item.tone]} size="md" label={item.title} />
   );

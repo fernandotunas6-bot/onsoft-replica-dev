@@ -178,4 +178,3 @@ describe("deriveElectronicStatusClass", () => {
     expect(deriveElectronicStatusClass("não transita")).toContain("destructive");
   });
 });
-

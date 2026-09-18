@@ -162,7 +162,10 @@ export async function resolveUserLinkedEntities(
         final_average: number | null;
       };
       const enrollmentMap = new Map<string, EnrollmentRow>(
-        (enrollments ?? []).map((e: any) => [e.student_id, e as EnrollmentRow]),
+        (enrollments ?? []).map((e) => [
+          (e as EnrollmentRow & { student_id: string }).student_id,
+          e as EnrollmentRow,
+        ]),
       );
 
       for (const st of studentRows ?? []) {
@@ -195,7 +198,10 @@ export async function resolveUserLinkedEntities(
   };
 }
 
-import { listUserSchoolMemberships, type UserSchoolMembershipItem } from "@/integrations/supabase/sga";
+import {
+  listUserSchoolMemberships,
+  type UserSchoolMembershipItem,
+} from "@/integrations/supabase/sga";
 
 export const getCurrentAccountContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

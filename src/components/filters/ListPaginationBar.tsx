@@ -36,7 +36,8 @@ export function ListPaginationBar({
     >
       <div className="flex items-center gap-4">
         <span>
-          Mostrando <strong className="font-semibold text-foreground">{`${startItem}–${endItem}`}</strong> de{" "}
+          Mostrando{" "}
+          <strong className="font-semibold text-foreground">{`${startItem}–${endItem}`}</strong> de{" "}
           <strong className="font-semibold text-foreground">{totalItems}</strong> registo
           {totalItems === 1 ? "" : "s"}
         </span>

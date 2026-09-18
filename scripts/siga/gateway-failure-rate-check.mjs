@@ -45,9 +45,7 @@ function parseConfig() {
   if (!slackUrl && !(resendApiKey && emailTo.length)) return null;
 
   const thresholdRaw = Number(process.env.SIGA_GATEWAY_FAILURE_RATE_THRESHOLD ?? "0.25");
-  const threshold = Number.isFinite(thresholdRaw)
-    ? Math.min(1, Math.max(0, thresholdRaw))
-    : 0.25;
+  const threshold = Number.isFinite(thresholdRaw) ? Math.min(1, Math.max(0, thresholdRaw)) : 0.25;
   const minEventsRaw = Number(process.env.SIGA_GATEWAY_FAILURE_RATE_MIN_EVENTS ?? "5");
   const minEvents = Number.isFinite(minEventsRaw) ? Math.max(1, Math.floor(minEventsRaw)) : 5;
   const cooldownHoursRaw = Number(process.env.SIGA_GATEWAY_FAILURE_RATE_COOLDOWN_HOURS ?? "6");
@@ -213,7 +211,9 @@ if (config.slackUrl) {
     console.log("gateway-failure-rate-check: Slack OK.");
   } catch (err) {
     failed = true;
-    console.error(`gateway-failure-rate-check: Slack — ${err instanceof Error ? err.message : err}`);
+    console.error(
+      `gateway-failure-rate-check: Slack — ${err instanceof Error ? err.message : err}`,
+    );
   }
 }
 
@@ -224,7 +224,9 @@ if (config.resendApiKey && config.emailTo.length) {
     console.log("gateway-failure-rate-check: e-mail OK.");
   } catch (err) {
     failed = true;
-    console.error(`gateway-failure-rate-check: Resend — ${err instanceof Error ? err.message : err}`);
+    console.error(
+      `gateway-failure-rate-check: Resend — ${err instanceof Error ? err.message : err}`,
+    );
   }
 }
 

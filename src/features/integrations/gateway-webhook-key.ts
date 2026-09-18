@@ -5,10 +5,7 @@ export function generateWebhookApiKey() {
   return crypto.randomUUID().replace(/-/g, "");
 }
 
-export function buildRotatedWebhookConfig(
-  existing: Record<string, unknown>,
-  nowMs = Date.now(),
-) {
+export function buildRotatedWebhookConfig(existing: Record<string, unknown>, nowMs = Date.now()) {
   const current = String(existing.webhookApiKey ?? "").trim();
   if (!current) {
     throw new Error("Integração sem API key — instale a integração primeiro.");

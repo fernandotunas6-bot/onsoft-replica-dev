@@ -25,8 +25,10 @@ export const Route = createFileRoute("/api/saas/domains")({
           const domains = await fetchAllTenantDomains();
           return jsonWithCors(request, { domains }, { apps: [...APPS] });
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Não foi possível listar domínios.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
+          const message =
+            error instanceof Error ? error.message : "Não foi possível listar domínios.";
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 500;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },
@@ -35,7 +37,11 @@ export const Route = createFileRoute("/api/saas/domains")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "Corpo JSON inválido." }, { status: 400, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Corpo JSON inválido." },
+            { status: 400, apps: [...APPS] },
+          );
         }
         const parsed = registerTenantDomainInputSchema.safeParse(body);
         if (!parsed.success) {
@@ -50,8 +56,10 @@ export const Route = createFileRoute("/api/saas/domains")({
           const result = await registerTenantDomain({ ...parsed.data, actorUserId });
           return jsonWithCors(request, result, { apps: [...APPS] });
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Não foi possível registar domínio.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
+          const message =
+            error instanceof Error ? error.message : "Não foi possível registar domínio.";
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },
@@ -64,7 +72,9 @@ function DomainsApiPlaceholder() {
   return (
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
       <h1 className="font-display text-lg font-extrabold">API de domínios SaaS</h1>
-      <p className="mt-2 text-sm text-muted-foreground">GET/POST autenticado. A UI vive no ADMIN.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        GET/POST autenticado. A UI vive no ADMIN.
+      </p>
     </main>
   );
 }

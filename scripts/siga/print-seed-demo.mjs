@@ -15,7 +15,9 @@ console.log("Escola Demo — SIGA Plus (Complexo Dom Afonso I)\n");
 console.log("Pré-requisito: scripts canónicos do SGA já aplicados (npm run siga:sql).\n");
 console.log("Ordem no SQL Editor do projecto xodgfmxiaunpamctfeea:\n");
 console.log("  1. supabase/SEED_ESCOLA_DEMO.sql");
-console.log("     → escola, anos lectivos, salas, cursos, formulário público /matricula/dom-afonso-demo");
+console.log(
+  "     → escola, anos lectivos, salas, cursos, formulário público /matricula/dom-afonso-demo",
+);
 if (existsSync(fullSeed)) {
   console.log("  2. supabase/SEED_ESCOLA_DEMO_FULL.sql");
   console.log("     → 36 turmas, ~1150 alunos, pautas, histórico (ficheiro grande)");
@@ -30,4 +32,6 @@ console.log("  ADMIN tenant:   http://localhost:3005/tenants (slug dom-afonso-de
 console.log("  Lookup API:     GET /api/saas/tenants/lookup?slug=dom-afonso-demo");
 console.log("\nApós SEED_ESCOLA_DEMO_FULL.sql:");
 console.log("  npm run siga:sync-demo-usage   # actualiza métricas no ADMIN /tenants");
-console.log("\nNota: o tenant demo liga-se automaticamente se APPLY_SAAS_PLATFORM.sql já foi aplicado.");
+console.log(
+  "\nNota: o tenant demo liga-se automaticamente se APPLY_SAAS_PLATFORM.sql já foi aplicado.",
+);

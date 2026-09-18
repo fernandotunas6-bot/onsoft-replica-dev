@@ -4,7 +4,7 @@
  * em `normalized_data` e é efectivamente gravado nas tabelas do SIGA.
  */
 
-const INVISIBLE_CHARS = /[​-‍﻿ ]/g;
+const INVISIBLE_CHARS = /[\u200b-\u200d\ufeff\u00a0]/g;
 
 /** Remove espaços duplicados, caracteres invisíveis e aparas nas pontas. */
 export function normalizeText(value: unknown): string {
@@ -60,7 +60,7 @@ function isoFrom(year: number, month: number, day: number): string | null {
 export function normalizeNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  let str = normalizeText(value).replace(/[^\d,.\-]/g, "");
+  let str = normalizeText(value).replace(/[^\d,.-]/g, "");
   if (!str) return null;
   // "1.234,56" (formato PT/AO) vs "1,234.56" (formato EN): decide pelo último separador.
   const lastComma = str.lastIndexOf(",");

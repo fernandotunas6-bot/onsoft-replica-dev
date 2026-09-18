@@ -30,10 +30,7 @@ import {
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
 import { ReviewAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { todayInLuanda } from "@/features/calendar/dates";
-import {
-  SchemaMissingBanner,
-  isSchemaMissingError,
-} from "@/components/ui/schema-missing-banner";
+import { SchemaMissingBanner, isSchemaMissingError } from "@/components/ui/schema-missing-banner";
 
 export function AttendanceWorkspaceModule() {
   const [selectedDate, setSelectedDate] = useState(todayInLuanda());

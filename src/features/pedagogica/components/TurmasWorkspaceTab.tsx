@@ -103,12 +103,8 @@ export function TurmasWorkspaceTab({
   if (isError) {
     return (
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-soft">
-        <p className="font-semibold text-destructive">
-          Não foi possível carregar as turmas
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {errorMessage || "Erro desconhecido"}
-        </p>
+        <p className="font-semibold text-destructive">Não foi possível carregar as turmas</p>
+        <p className="mt-2 text-sm text-muted-foreground">{errorMessage || "Erro desconhecido"}</p>
       </div>
     );
   }
@@ -119,8 +115,8 @@ export function TurmasWorkspaceTab({
         <Sparkles className="mx-auto size-8 text-primary" />
         <p className="mt-3 font-semibold">Estrutura académica em falta</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Ainda não existem anos lectivos, cursos ou classes. Prepare a base padrão para
-          começar a criar turmas.
+          Ainda não existem anos lectivos, cursos ou classes. Prepare a base padrão para começar a
+          criar turmas.
         </p>
         <Button
           className="mt-5 gap-2"
@@ -195,8 +191,8 @@ export function TurmasWorkspaceTab({
       />
       {!canManageAcademic ? (
         <p className="text-xs text-muted-foreground">
-          Perfil Professor: consulta e exportação activas. Criar/editar turmas exige
-          Secretaria ou Administração.
+          Perfil Professor: consulta e exportação activas. Criar/editar turmas exige Secretaria ou
+          Administração.
         </p>
       ) : null}
       {turmasComDados.length === 0 ? (
@@ -211,10 +207,7 @@ export function TurmasWorkspaceTab({
           {turmasComDados.map((t) => {
             const ocupacao = Math.round((t.alunosActuais / t.capacidadeReal) * 100);
             return (
-              <div
-                key={t.id}
-                className="rounded-xl border border-border bg-card p-5 shadow-soft"
-              >
+              <div key={t.id} className="rounded-xl border border-border bg-card p-5 shadow-soft">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <button
@@ -230,10 +223,7 @@ export function TurmasWorkspaceTab({
                     {(() => {
                       const assigned = (workspace?.classSubjects ?? [])
                         .filter((row) => row.class_group_id === t.id && row.teacher_id)
-                        .map(
-                          (row) =>
-                            teacherNameById.get(row.teacher_id!) ?? row.subject_name,
-                        );
+                        .map((row) => teacherNameById.get(row.teacher_id!) ?? row.subject_name);
                       return assigned.length > 0 ? (
                         <p className="mt-1 text-[11px] text-muted-foreground">
                           {assigned.join(" · ")}
@@ -322,11 +312,7 @@ export function TurmasWorkspaceTab({
                     ) : null}
                     {classroomWork ? (
                       <Button size="sm" variant="outline" asChild>
-                        <a
-                          href="https://classroom.google.com/"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
+                        <a href="https://classroom.google.com/" target="_blank" rel="noreferrer">
                           Trabalhos
                         </a>
                       </Button>
@@ -355,11 +341,7 @@ export function TurmasWorkspaceTab({
                     ) : null}
                     {teamsClasses ? (
                       <Button size="sm" variant="outline" asChild>
-                        <a
-                          href="https://teams.microsoft.com/"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
+                        <a href="https://teams.microsoft.com/" target="_blank" rel="noreferrer">
                           Equipa Teams
                         </a>
                       </Button>

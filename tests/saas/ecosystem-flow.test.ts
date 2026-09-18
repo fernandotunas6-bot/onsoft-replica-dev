@@ -3,7 +3,16 @@ import { buildTenantUsageRows } from "@/features/saas/usage-sync";
 import { isAllowedEcosystemOrigin } from "@/lib/ecosystem-cors";
 import { isPublicAppPath } from "@/lib/public-paths";
 import { publicSchoolSignupInputSchema } from "@/features/saas/schemas";
-import { DOC_PATHS, getCreateSchoolUrl, getFinanceGatewayConfirmUrl, getPricingUrl, getPublicEnrollmentUrl, getSaasAdminUrl, getSigaNavDocUrl, getUnitelGatewayConfirmUrl } from "@/lib/ecosystem-urls";
+import {
+  DOC_PATHS,
+  getCreateSchoolUrl,
+  getFinanceGatewayConfirmUrl,
+  getPricingUrl,
+  getPublicEnrollmentUrl,
+  getSaasAdminUrl,
+  getSigaNavDocUrl,
+  getUnitelGatewayConfirmUrl,
+} from "@/lib/ecosystem-urls";
 
 describe("buildTenantUsageRows", () => {
   it("maps student and staff counts per tenant school", () => {

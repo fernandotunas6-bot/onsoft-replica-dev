@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createMailbox, resolveMailboxProvider, suspendMailbox } from "@/features/saas/mailbox-providers";
+import {
+  createMailbox,
+  resolveMailboxProvider,
+  suspendMailbox,
+} from "@/features/saas/mailbox-providers";
 
 describe("Mailbox Providers", () => {
   beforeEach(() => {
@@ -8,13 +12,13 @@ describe("Mailbox Providers", () => {
 
   it("should resolve provider correctly", () => {
     expect(resolveMailboxProvider()).toBe("simulated");
-    
+
     vi.stubEnv("MAILBOX_PROVIDER", "zoho");
     expect(resolveMailboxProvider()).toBe("zoho");
-    
+
     vi.stubEnv("MAILBOX_PROVIDER", "google");
     expect(resolveMailboxProvider()).toBe("google");
-    
+
     vi.stubEnv("MAILBOX_PROVIDER", "unknown");
     expect(resolveMailboxProvider()).toBe("simulated"); // fallback
   });
@@ -26,7 +30,7 @@ describe("Mailbox Providers", () => {
       email: "admin@escola1.siga.ao",
       displayName: "Escola 1",
     });
-    
+
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.provider).toBe("simulated");

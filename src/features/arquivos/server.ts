@@ -4,7 +4,13 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import { loadPersonNamesById } from "@/features/people/lookup";
-import { canAccessFileContent, canManageSystemFile, canReadFileArea, canWriteFileArea, kindFromFile } from "./kinds";
+import {
+  canAccessFileContent,
+  canManageSystemFile,
+  canReadFileArea,
+  canWriteFileArea,
+  kindFromFile,
+} from "./kinds";
 import { insertFinanceArchive } from "./archive-finance-core";
 import { generateDocumentCode, normalizeDocumentCode, prefixForCategory } from "./document-code";
 import {

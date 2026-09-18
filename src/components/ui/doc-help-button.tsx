@@ -42,8 +42,5 @@ export function SqlDocHelpButton({
   label?: string;
   title?: string;
 } = {}) {
-  return (
-    <DocPathHelpButton path="/guide/sql-sga.html" label={label} title={title} />
-  );
+  return <DocPathHelpButton path="/guide/sql-sga.html" label={label} title={title} />;
 }
-

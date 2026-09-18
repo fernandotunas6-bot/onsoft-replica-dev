@@ -93,12 +93,8 @@ export function DisciplinasWorkspaceTab({
               submitLabel="Criar disciplina"
               onSubmit={async (values) => {
                 const weeklyHours = Number(values["carga"] || 4);
-                const gradeFrom = values["classeDe"]
-                  ? Number(values["classeDe"])
-                  : undefined;
-                const gradeTo = values["classeAte"]
-                  ? Number(values["classeAte"])
-                  : undefined;
+                const gradeFrom = values["classeDe"] ? Number(values["classeDe"]) : undefined;
+                const gradeTo = values["classeAte"] ? Number(values["classeAte"]) : undefined;
                 await createSubject({
                   data: {
                     code: values["codigo"] ?? "",
@@ -167,15 +163,12 @@ export function DisciplinasWorkspaceTab({
         </p>
       ) : subjects.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Ainda não há disciplinas. Crie a primeira no botão Nova ou use Configurações →
-          Pedagógico.
+          Ainda não há disciplinas. Crie a primeira no botão Nova ou use Configurações → Pedagógico.
         </p>
       ) : (
         <div className="space-y-6">
           {angolaTeachingLevels
-            .filter(
-              (level) => teachingLevels.length === 0 || teachingLevels.includes(level.id),
-            )
+            .filter((level) => teachingLevels.length === 0 || teachingLevels.includes(level.id))
             .map((level) => {
               const catalogCodes = new Set(
                 angolaCoreSubjects
@@ -189,9 +182,7 @@ export function DisciplinasWorkspaceTab({
                     item.code === code ||
                     item.name.toLowerCase() === String(subject.name).toLowerCase(),
                 );
-                return catalog
-                  ? catalog.levels.includes(level.id)
-                  : catalogCodes.size === 0;
+                return catalog ? catalog.levels.includes(level.id) : catalogCodes.size === 0;
               });
               if (rows.length === 0) return null;
               return (
@@ -223,13 +214,10 @@ export function DisciplinasWorkspaceTab({
                             <TableCell className="text-sm text-muted-foreground">
                               {(() => {
                                 const names = (workspace?.classSubjects ?? [])
-                                  .filter(
-                                    (row) => row.subject_id === d.id && row.teacher_id,
-                                  )
+                                  .filter((row) => row.subject_id === d.id && row.teacher_id)
                                   .map(
                                     (row) =>
-                                      teacherNameById.get(row.teacher_id!) ??
-                                      row.subject_name,
+                                      teacherNameById.get(row.teacher_id!) ?? row.subject_name,
                                   );
                                 return names.length
                                   ? [...new Set(names)].join(" · ")
@@ -240,9 +228,7 @@ export function DisciplinasWorkspaceTab({
                             <TableCell>{d.weekly_hours_label}</TableCell>
                             <TableCell className="text-right">
                               {d.approval_rate == null ? (
-                                <span className="text-sm text-muted-foreground">
-                                  Sem notas
-                                </span>
+                                <span className="text-sm text-muted-foreground">Sem notas</span>
                               ) : (
                                 <span
                                   className={cn(

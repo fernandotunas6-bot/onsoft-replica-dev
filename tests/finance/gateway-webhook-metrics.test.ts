@@ -45,7 +45,12 @@ describe("aggregateGatewayWebhookMetrics", () => {
     const events = [
       event({ ok: false, created_at: "2026-08-27T10:00:00.000Z", school_id: "s1" }),
       event({ ok: false, created_at: "2026-08-26T10:00:00.000Z", school_id: "s1" }),
-      event({ ok: false, created_at: "2026-08-26T09:00:00.000Z", school_id: "s2", school_name: "B" }),
+      event({
+        ok: false,
+        created_at: "2026-08-26T09:00:00.000Z",
+        school_id: "s2",
+        school_name: "B",
+      }),
     ];
 
     const metrics = aggregateGatewayWebhookMetrics(events, NOW);

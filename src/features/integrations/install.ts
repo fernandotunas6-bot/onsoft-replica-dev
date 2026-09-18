@@ -97,8 +97,7 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
     provider: "whatsapp_business",
     installUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api/get-started",
     docsUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api",
-    summary:
-      "Avisos via Cloud API (Phone Number ID + token). Sem credenciais → deep-link wa.me.",
+    summary: "Avisos via Cloud API (Phone Number ID + token). Sem credenciais → deep-link wa.me.",
     capabilities: [
       cap(
         "whatsapp.class_groups",

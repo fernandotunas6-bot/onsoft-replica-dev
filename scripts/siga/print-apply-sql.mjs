@@ -196,7 +196,9 @@ async function verifyAgainstSupabase() {
     console.log("\n(Em ambiente novo: ordem canónica 1→2→3, não só o patch.)");
     process.exit(1);
   }
-  console.log("\n✓ Smoke de tabelas OK. Confirme ainda current_school_id() e Storage no Dashboard.");
+  console.log(
+    "\n✓ Smoke de tabelas OK. Confirme ainda current_school_id() e Storage no Dashboard.",
+  );
 }
 
 const mode = process.argv.includes("--verify") ? "verify" : "print";

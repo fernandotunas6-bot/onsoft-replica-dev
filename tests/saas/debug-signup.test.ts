@@ -13,7 +13,7 @@ test.skipIf(!process.env.SUPABASE_SECRET_KEY)("debug full signup final", async (
       admin_name: "Valentino C",
       trial_days: 14,
     },
-    { auditUserId: null, source: "public_signup" }
+    { auditUserId: null, source: "public_signup" },
   );
   console.log("PROVISION RESULT:", result);
 });

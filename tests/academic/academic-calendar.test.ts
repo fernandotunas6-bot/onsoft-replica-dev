@@ -20,7 +20,11 @@ describe("academic calendar", () => {
   it("rejeita sequências duplicadas ou trimestre em falta", () => {
     const result = saveAcademicCalendarInputSchema.safeParse({
       ...validCalendar,
-      terms: [validCalendar.terms[0], validCalendar.terms[1], { ...validCalendar.terms[2], sequence: 2 }],
+      terms: [
+        validCalendar.terms[0],
+        validCalendar.terms[1],
+        { ...validCalendar.terms[2], sequence: 2 },
+      ],
     });
     expect(result.success).toBe(false);
   });

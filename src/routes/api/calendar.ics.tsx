@@ -20,7 +20,8 @@ function CalendarIcsApiPlaceholder() {
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
       <h1 className="font-display text-lg font-extrabold">Feed ICS</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        GET devolve o calendário lectivo em <span className="font-mono text-xs">text/calendar</span>.
+        GET devolve o calendário lectivo em <span className="font-mono text-xs">text/calendar</span>
+        .
       </p>
     </main>
   );

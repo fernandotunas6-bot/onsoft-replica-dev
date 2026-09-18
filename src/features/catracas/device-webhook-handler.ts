@@ -2,10 +2,7 @@ import type { z } from "zod";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { validateGatePassDeviceInputSchema } from "./schemas";
 import { gatePassLookupTokens } from "./gate-pass-token";
-import {
-  evaluateGatePassAccess,
-  resolveGatePassDeviceByApiKey,
-} from "./gate-pass-validation";
+import { evaluateGatePassAccess, resolveGatePassDeviceByApiKey } from "./gate-pass-validation";
 
 export type DeviceGatePassWebhookInput = z.infer<typeof validateGatePassDeviceInputSchema>;
 

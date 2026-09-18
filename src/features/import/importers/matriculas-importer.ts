@@ -75,23 +75,32 @@ export const matriculasImporter: RowImporter = {
   analyzeRow(normalized, rawCache) {
     const cache = rawCache as MatriculasCache;
     const errors: string[] = [];
-    if (!cache.academicYearId) errors.push("Seleccione o ano lectivo do job antes de importar matrículas.");
+    if (!cache.academicYearId)
+      errors.push("Seleccione o ano lectivo do job antes de importar matrículas.");
     const identifier = studentIdentifierOf(normalized);
     if (!identifier) errors.push("Processo ou BI do aluno é obrigatório.");
     const student = resolveStudent(identifier, cache.students);
-    if (student.ambiguous) errors.push(`Identificador "${identifier}" corresponde a mais de um aluno; use o nº de processo exacto.`);
-    else if (identifier && !student.row) errors.push(`Aluno "${identifier}" não encontrado nesta escola.`);
+    if (student.ambiguous)
+      errors.push(
+        `Identificador "${identifier}" corresponde a mais de um aluno; use o nº de processo exacto.`,
+      );
+    else if (identifier && !student.row)
+      errors.push(`Aluno "${identifier}" não encontrado nesta escola.`);
     const groupText = normalizeText(classValue(normalized));
     if (!groupText) errors.push("Turma é obrigatória.");
     const group = resolveClassGroup(groupText, cache.groups);
     if (group.ambiguous) errors.push(`Turma "${groupText}" é ambígua; use o código exacto.`);
-    else if (groupText && !group.row) errors.push(`Turma "${groupText}" não encontrada no ano lectivo seleccionado.`);
+    else if (groupText && !group.row)
+      errors.push(`Turma "${groupText}" não encontrada no ano lectivo seleccionado.`);
 
-    const rowYear = normalizeText(normalized["academic_year"] ?? normalized["ano_lectivo"] ?? normalized["Ano Lectivo"]);
+    const rowYear = normalizeText(
+      normalized["academic_year"] ?? normalized["ano_lectivo"] ?? normalized["Ano Lectivo"],
+    );
     if (rowYear && cache.academicYearId) {
       // O ID do job é a autoridade. O texto da folha nunca pode redireccionar para outro ano.
       const groupYear = group.row?.academic_year_id;
-      if (groupYear && groupYear !== cache.academicYearId) errors.push("A turma indicada não pertence ao ano lectivo do processo de importação.");
+      if (groupYear && groupYear !== cache.academicYearId)
+        errors.push("A turma indicada não pertence ao ano lectivo do processo de importação.");
     }
     if (errors.length) return { status: "error", warnings: [], errors };
     const existing = student.row ? cache.enrollmentByStudent.get(student.row.id) : null;
@@ -119,18 +128,41 @@ export const matriculasImporter: RowImporter = {
     const student = resolveStudent(studentIdentifierOf(normalized), cache.students).row!;
     const group = resolveClassGroup(classValue(normalized), cache.groups).row!;
     const enrolledOn = normalizedEnrollmentDate(
-      normalized["enrollment_date"] ?? normalized["data_matricula"] ?? normalized["Data da Matrícula"],
+      normalized["enrollment_date"] ??
+        normalized["data_matricula"] ??
+        normalized["Data da Matrícula"],
     );
     const existing = cache.enrollmentByStudent.get(student.id);
 
     if (existing) {
       if (ctx.duplicateStrategy === "ignore") {
-        return { status: "ignored", target_record_id: existing.id, warnings: ["Matrícula existente ignorada."], errors: [], audits: [] };
+        return {
+          status: "ignored",
+          target_record_id: existing.id,
+          warnings: ["Matrícula existente ignorada."],
+          errors: [],
+          audits: [],
+        };
       }
       if (ctx.duplicateStrategy === "create_new") {
-        return { status: "error", target_record_id: existing.id, warnings: [], errors: ["Não é permitido criar uma segunda matrícula do mesmo aluno no mesmo ano lectivo."], audits: [] };
+        return {
+          status: "error",
+          target_record_id: existing.id,
+          warnings: [],
+          errors: [
+            "Não é permitido criar uma segunda matrícula do mesmo aluno no mesmo ano lectivo.",
+          ],
+          audits: [],
+        };
       }
-      if (ctx.dryRun) return { status: "will_update", target_record_id: existing.id, warnings: [], errors: [], audits: [] };
+      if (ctx.dryRun)
+        return {
+          status: "will_update",
+          target_record_id: existing.id,
+          warnings: [],
+          errors: [],
+          audits: [],
+        };
       const before = { ...existing };
       const patch = {
         class_group_id: group.id,
@@ -152,7 +184,15 @@ export const matriculasImporter: RowImporter = {
         target_record_id: existing.id,
         warnings: ["Matrícula existente actualizada."],
         errors: [],
-        audits: [{ table_name: "enrollments", target_id: existing.id, action_type: "updated", before_data: before, after_data: { ...before, ...patch } }],
+        audits: [
+          {
+            table_name: "enrollments",
+            target_id: existing.id,
+            action_type: "updated",
+            before_data: before,
+            after_data: { ...before, ...patch },
+          },
+        ],
       };
     }
 
@@ -171,7 +211,13 @@ export const matriculasImporter: RowImporter = {
       })
       .select("id, student_id, academic_year_id, class_group_id, status, enrolled_on")
       .single();
-    if (error || !created) return { status: "error", warnings: [], errors: [error?.message ?? "Não foi possível criar a matrícula."], audits: [] };
+    if (error || !created)
+      return {
+        status: "error",
+        warnings: [],
+        errors: [error?.message ?? "Não foi possível criar a matrícula."],
+        audits: [],
+      };
     const ref: EnrollmentRef = {
       id: String(created.id),
       student_id: String(created.student_id),
@@ -186,7 +232,9 @@ export const matriculasImporter: RowImporter = {
       target_record_id: ref.id,
       warnings: [],
       errors: [],
-      audits: [{ table_name: "enrollments", target_id: ref.id, action_type: "inserted", after_data: ref }],
+      audits: [
+        { table_name: "enrollments", target_id: ref.id, action_type: "inserted", after_data: ref },
+      ],
     };
   },
 };

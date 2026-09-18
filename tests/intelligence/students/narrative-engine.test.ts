@@ -15,7 +15,7 @@ describe("generateStudentNarrativeReport", () => {
   it("gera relatório de aluno excelente", () => {
     const text = generateStudentNarrativeReport(
       { ...baseSnapshot, academic: { finalAverage: 15, absences: 0 } },
-      "João"
+      "João",
     );
     expect(text).toContain("Excelente desempenho");
     expect(text).toContain("15");
@@ -25,12 +25,12 @@ describe("generateStudentNarrativeReport", () => {
 
   it("gera relatório de aluno com dificuldades e dívidas", () => {
     const text = generateStudentNarrativeReport(
-      { 
-        ...baseSnapshot, 
+      {
+        ...baseSnapshot,
         academic: { finalAverage: 8, absences: 6 },
-        finance: { overdueCount: 2 } 
+        finance: { overdueCount: 2 },
       },
-      "Maria"
+      "Maria",
     );
     expect(text).toContain("abaixo do exigido");
     expect(text).toContain("8");

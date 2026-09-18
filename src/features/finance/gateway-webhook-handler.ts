@@ -26,7 +26,11 @@ const GATEWAY_PROVIDERS = ["multicaixa_express", "unitel_money"] as const;
 export async function resolveGatewaySchoolByApiKey(db: SupabaseClient, apiKey: string) {
   const devKey = process.env.SIGA_GATEWAY_DEV_API_KEY?.trim();
   if (devKey && devKey === apiKey) {
-    return { schoolId: null as string | null, provider: "multicaixa_express" as const, devMode: true };
+    return {
+      schoolId: null as string | null,
+      provider: "multicaixa_express" as const,
+      devMode: true,
+    };
   }
 
   const { data: rows, error } = await db
@@ -49,11 +53,7 @@ export async function resolveGatewaySchoolByApiKey(db: SupabaseClient, apiKey: s
   return null;
 }
 
-async function loadPaymentPlan(
-  db: SupabaseClient,
-  schoolId: string,
-  input: GatewayConfirmInput,
-) {
+async function loadPaymentPlan(db: SupabaseClient, schoolId: string, input: GatewayConfirmInput) {
   if (input.planId) {
     const { data, error } = await db
       .from("finance_payment_plans")
@@ -153,9 +153,7 @@ export async function settleGatewayPayment(
     if (invoicePlanError) {
       throw publicDatabaseError(invoicePlanError, "Não foi possível actualizar o plano.");
     }
-    planSettled = (updatedByInvoice ?? []).some((plan) =>
-      referencesMatch(plan.reference, normRef),
-    );
+    planSettled = (updatedByInvoice ?? []).some((plan) => referencesMatch(plan.reference, normRef));
     if (!planSettled) {
       const { data: updatedByRef, error: refPlanError } = await db
         .from("finance_payment_plans")
@@ -164,7 +162,8 @@ export async function settleGatewayPayment(
         .eq("reference", normRef)
         .in("status", ["pending_gateway", "scheduled"])
         .select("id");
-      if (refPlanError) throw publicDatabaseError(refPlanError, "Não foi possível actualizar o plano.");
+      if (refPlanError)
+        throw publicDatabaseError(refPlanError, "Não foi possível actualizar o plano.");
       planSettled = (updatedByRef ?? []).length > 0;
     }
   }

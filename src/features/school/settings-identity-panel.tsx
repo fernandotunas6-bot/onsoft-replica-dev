@@ -14,7 +14,9 @@ import {
   Sparkles,
   ArrowRight,
   Lock,
-Upload, Loader2} from "lucide-react";
+  Upload,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,16 +65,22 @@ export function DigitalIdentityPanel() {
   } | null>(null);
 
   // Estados de Caixa Profissional
-  const [mailboxState, setMailboxState] = useState<{email: string, status: string, provider: string} | null>(null);
+  const [mailboxState, setMailboxState] = useState<{
+    email: string;
+    status: string;
+    provider: string;
+  } | null>(null);
   const [isProvisioningMailbox, setIsProvisioningMailbox] = useState(false);
   const provisionMailboxFn = useServerFn(provisionMailbox);
   const saveBrandingFn = useServerFn(updateSchoolBranding);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
 
   // Estados de Encaminhamento de E-mail
-  const [institutionalEmail, setInstitutionalEmail] = useState(`${activeSlug || "escola"}@${platformDomain}`);
+  const [institutionalEmail, setInstitutionalEmail] = useState(
+    `${activeSlug || "escola"}@${platformDomain}`,
+  );
   const [forwardingEmail, setForwardingEmail] = useState(
-    activeTenant?.contact_email || "direcao@escola.ao"
+    activeTenant?.contact_email || "direcao@escola.ao",
   );
   const [isSavingEmail, setIsSavingEmail] = useState(false);
   const [emailRouteActive, setEmailRouteActive] = useState(false);
@@ -91,8 +99,10 @@ export function DigitalIdentityPanel() {
     if (!activeTenant || !activeSlug) return;
     try {
       setIsLoading(true);
-      const data = await fetchDomainStatus({ data: { tenantId: activeTenant.id, tenantSlug: activeSlug } });
-      
+      const data = await fetchDomainStatus({
+        data: { tenantId: activeTenant.id, tenantSlug: activeSlug },
+      });
+
       if (data.branding) {
         if (data.branding.primaryColor) setPrimaryColor(data.branding.primaryColor);
         if (data.branding.secondaryColor) setSecondaryColor(data.branding.secondaryColor);
@@ -131,22 +141,20 @@ export function DigitalIdentityPanel() {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeTenant) return;
-    
+
     setIsSavingBranding(true);
     try {
-      const ext = file.name.split('.').pop();
+      const ext = file.name.split(".").pop();
       const path = `${activeTenant.id}/logo-${Date.now()}.${ext}`;
-      
+
       const { error, data } = await supabase.storage
         .from("school-logos")
         .upload(path, file, { upsert: true });
-        
+
       if (error) throw error;
-      
-      const { data: publicData } = supabase.storage
-        .from("school-logos")
-        .getPublicUrl(path);
-        
+
+      const { data: publicData } = supabase.storage.from("school-logos").getPublicUrl(path);
+
       setLogoUrl(publicData.publicUrl);
       toast.success("Logótipo enviado. Clique em Guardar Branding para aplicar.");
     } catch (err) {
@@ -166,8 +174,8 @@ export function DigitalIdentityPanel() {
           primaryColor,
           secondaryColor,
           portalTitle,
-          logoUrl
-        }
+          logoUrl,
+        },
       });
       if (res.ok) {
         toast.success("Identidade visual guardada com sucesso!");
@@ -197,15 +205,15 @@ export function DigitalIdentityPanel() {
           tenantId: activeTenant.id,
           tenantSlug: activeSlug,
           email: `${activeSlug}@${platformDomain}`,
-          displayName: activeTenant.name || "Escola"
-        }
+          displayName: activeTenant.name || "Escola",
+        },
       });
       if (res.ok) {
         toast.success("Caixa profissional solicitada com sucesso!");
         setMailboxState({
           email: `${activeSlug}@${platformDomain}`,
           status: "active",
-          provider: res.provider
+          provider: res.provider,
         });
       }
     } catch (err) {
@@ -260,14 +268,14 @@ export function DigitalIdentityPanel() {
       setDnsInstructions(res.instructions);
       setDomainVerificationStatus("pending");
       toast.success("Domínio registado! Verifique as instruções de DNS abaixo.");
-      
+
       // Inicia o polling via endpoint
       const pollRes = await fetch("/api/saas/domains/poll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domainId: res.domainId }),
       });
-      
+
       if (pollRes.ok) {
         const pollData = await pollRes.json();
         if (pollData.status === "active") {
@@ -304,7 +312,8 @@ export function DigitalIdentityPanel() {
           Identidade Digital & Subdomínios
         </h3>
         <p className="text-xs text-muted-foreground">
-          Gestão do endereço web exclusivo, encaminhamento de e-mail institucional e domínio personalizado.
+          Gestão do endereço web exclusivo, encaminhamento de e-mail institucional e domínio
+          personalizado.
         </p>
       </div>
 
@@ -341,7 +350,8 @@ export function DigitalIdentityPanel() {
                   Endereço Oficial da Instituição
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Este é o link direto para acesso de alunos, encarregados, professores e secretaria.
+                  Este é o link direto para acesso de alunos, encarregados, professores e
+                  secretaria.
                 </p>
               </div>
             </div>
@@ -396,10 +406,15 @@ export function DigitalIdentityPanel() {
                   Domínio Personalizado (Ex.: portal.colegio.ao)
                 </h4>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1">
-                  Permita que a sua comunidade escolar aceda ao SIGA directamente através do domínio próprio da sua instituição.
+                  Permita que a sua comunidade escolar aceda ao SIGA directamente através do domínio
+                  próprio da sua instituição.
                 </p>
               </div>
-              <Button size="sm" asChild className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs">
+              <Button
+                size="sm"
+                asChild
+                className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
+              >
                 <a href={getPricingUrl()} target="_blank" rel="noreferrer">
                   <Sparkles className="size-3.5" />
                   Actualizar para Plano Premium
@@ -410,9 +425,7 @@ export function DigitalIdentityPanel() {
           ) : (
             <div className="rounded-xl border bg-card p-5 space-y-4">
               <div>
-                <h4 className="text-sm font-semibold text-foreground">
-                  Conectar Domínio Próprio
-                </h4>
+                <h4 className="text-sm font-semibold text-foreground">Conectar Domínio Próprio</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Introduza o domínio ou subdomínio que pretende apontar para o SIGA.
                 </p>
@@ -449,25 +462,37 @@ export function DigitalIdentityPanel() {
 
               {dnsInstructions && domainVerificationStatus !== "success" && (
                 <div className="rounded-lg bg-muted/50 p-3 space-y-3 border text-xs">
-                  <div className="font-semibold text-foreground">Instruções de Apontamento DNS:</div>
+                  <div className="font-semibold text-foreground">
+                    Instruções de Apontamento DNS:
+                  </div>
                   <div className="grid grid-cols-1 gap-2 font-mono text-[11px]">
                     <div className="grid grid-cols-[80px_1fr] items-center">
                       <span className="text-muted-foreground">CNAME (nome):</span>
                       <div className="flex items-center justify-between bg-background p-1.5 rounded border">
                         <span>{dnsInstructions.cnameHost}</span>
-                        <Copy className="size-3 cursor-pointer text-muted-foreground hover:text-foreground" onClick={() => copyToClipboard(dnsInstructions.cnameHost || "", "Nome")} />
+                        <Copy
+                          className="size-3 cursor-pointer text-muted-foreground hover:text-foreground"
+                          onClick={() => copyToClipboard(dnsInstructions.cnameHost || "", "Nome")}
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-[80px_1fr] items-center">
                       <span className="text-muted-foreground">Destino:</span>
                       <div className="flex items-center justify-between bg-background p-1.5 rounded border">
                         <span>{dnsInstructions.cnameTarget}</span>
-                        <Copy className="size-3 cursor-pointer text-muted-foreground hover:text-foreground" onClick={() => copyToClipboard(dnsInstructions.cnameTarget || "", "Destino")} />
+                        <Copy
+                          className="size-3 cursor-pointer text-muted-foreground hover:text-foreground"
+                          onClick={() =>
+                            copyToClipboard(dnsInstructions.cnameTarget || "", "Destino")
+                          }
+                        />
                       </div>
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
-                    Opcionalmente, pode configurar um TXT no host <strong>{dnsInstructions.txtHost}</strong> com o valor <strong>{dnsInstructions.txtValue}</strong>.
+                    Opcionalmente, pode configurar um TXT no host{" "}
+                    <strong>{dnsInstructions.txtHost}</strong> com o valor{" "}
+                    <strong>{dnsInstructions.txtValue}</strong>.
                   </p>
                 </div>
               )}
@@ -478,7 +503,7 @@ export function DigitalIdentityPanel() {
                   <span>Domínio validado com sucesso. Certificado SSL provisionado e activo.</span>
                 </div>
               )}
-              
+
               {domainVerificationStatus === "pending" && (
                 <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
                   <LoaderCircle className="size-4 shrink-0 animate-spin" />
@@ -489,7 +514,9 @@ export function DigitalIdentityPanel() {
               {domainVerificationStatus === "error" && (
                 <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20">
                   <AlertCircle className="size-4 shrink-0" />
-                  <span>Erro ao verificar os registos DNS. Verifique a configuração e tente novamente.</span>
+                  <span>
+                    Erro ao verificar os registos DNS. Verifique a configuração e tente novamente.
+                  </span>
                 </div>
               )}
             </div>
@@ -521,7 +548,12 @@ export function DigitalIdentityPanel() {
                   value={institutionalEmail}
                   className="font-mono text-xs bg-muted/40"
                 />
-                <Button variant="outline" size="icon" className="size-9 shrink-0" onClick={() => copyToClipboard(institutionalEmail, "E-mail")}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-9 shrink-0"
+                  onClick={() => copyToClipboard(institutionalEmail, "E-mail")}
+                >
                   <Copy className="size-3.5" />
                 </Button>
               </div>
@@ -540,7 +572,8 @@ export function DigitalIdentityPanel() {
                 className="text-xs"
               />
               <p className="text-[11px] text-muted-foreground">
-                Todas as mensagens enviadas para {institutionalEmail} serão entregues neste endereço.
+                Todas as mensagens enviadas para {institutionalEmail} serão entregues neste
+                endereço.
               </p>
             </div>
 
@@ -570,14 +603,17 @@ export function DigitalIdentityPanel() {
                 <Lock className="size-5" />
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-foreground">
-                  Branding Institucional
-                </h4>
+                <h4 className="text-sm font-semibold text-foreground">Branding Institucional</h4>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1">
-                  Personalize o portal com as cores e o logótipo da sua escola para oferecer uma experiência imersiva à comunidade escolar.
+                  Personalize o portal com as cores e o logótipo da sua escola para oferecer uma
+                  experiência imersiva à comunidade escolar.
                 </p>
               </div>
-              <Button size="sm" asChild className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs">
+              <Button
+                size="sm"
+                asChild
+                className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
+              >
                 <a href={getPricingUrl()} target="_blank" rel="noreferrer">
                   <Sparkles className="size-3.5" />
                   Actualizar para Plano Premium
@@ -586,104 +622,127 @@ export function DigitalIdentityPanel() {
               </Button>
             </div>
           ) : (
-          <div className="rounded-xl border bg-card p-5 space-y-4">
-            <div>
-              <h4 className="text-sm font-semibold text-foreground">
-                Personalização Visual do Portal
-              </h4>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Cores institucionais e identidade visual exibida aos alunos e famílias.
-              </p>
-            </div>
+            <div className="rounded-xl border bg-card p-5 space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-foreground">
+                  Personalização Visual do Portal
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Cores institucionais e identidade visual exibida aos alunos e famílias.
+                </p>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="portal-title" className="text-xs">
-                Título do Portal
-              </Label>
-              <Input
-                id="portal-title"
-                value={portalTitle}
-                onChange={(e) => setPortalTitle(e.target.value)}
-                className="text-xs"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="portal-title" className="text-xs">
+                  Título do Portal
+                </Label>
+                <Input
+                  id="portal-title"
+                  value={portalTitle}
+                  onChange={(e) => setPortalTitle(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs">Logótipo da Escola</Label>
-              <div className="flex items-center gap-4">
-                {logoUrl ? (
-                  <div className="size-12 rounded border flex items-center justify-center overflow-hidden bg-white">
-                    <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
+              <div className="space-y-2">
+                <Label className="text-xs">Logótipo da Escola</Label>
+                <div className="flex items-center gap-4">
+                  {logoUrl ? (
+                    <div className="size-12 rounded border flex items-center justify-center overflow-hidden bg-white">
+                      <img
+                        src={logoUrl}
+                        alt="Logo"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="size-12 rounded border border-dashed flex items-center justify-center bg-muted/30">
+                      <span className="text-[10px] text-muted-foreground text-center leading-tight">
+                        Sem Logo
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <Label
+                      htmlFor="logo-upload"
+                      className="cursor-pointer inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <Upload className="size-3.5" />
+                      Enviar Logótipo
+                    </Label>
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                      disabled={isSavingBranding}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      PNG, JPG ou SVG. Altura recomendada: 64px.
+                    </p>
                   </div>
-                ) : (
-                  <div className="size-12 rounded border border-dashed flex items-center justify-center bg-muted/30">
-                    <span className="text-[10px] text-muted-foreground text-center leading-tight">Sem Logo</span>
-                  </div>
-                )}
-                <div>
-                  <Label htmlFor="logo-upload" className="cursor-pointer inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground">
-                    <Upload className="size-3.5" />
-                    Enviar Logótipo
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="primary-color" className="text-xs">
+                    Cor Primária
                   </Label>
-                  <input id="logo-upload" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={isSavingBranding} />
-                  <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG ou SVG. Altura recomendada: 64px.</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      id="primary-color"
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="size-8 rounded border cursor-pointer bg-transparent"
+                    />
+                    <Input
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="secondary-color" className="text-xs">
+                    Cor Secundária
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      id="secondary-color"
+                      value={secondaryColor}
+                      onChange={(e) => setSecondaryColor(e.target.value)}
+                      className="size-8 rounded border cursor-pointer bg-transparent"
+                    />
+                    <Input
+                      value={secondaryColor}
+                      onChange={(e) => setSecondaryColor(e.target.value)}
+                      className="font-mono text-xs"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="primary-color" className="text-xs">
-                  Cor Primária
-                </Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    id="primary-color"
-                    value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="size-8 rounded border cursor-pointer bg-transparent"
-                  />
-                  <Input
-                    value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="font-mono text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="secondary-color" className="text-xs">
-                  Cor Secundária
-                </Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    id="secondary-color"
-                    value={secondaryColor}
-                    onChange={(e) => setSecondaryColor(e.target.value)}
-                    className="size-8 rounded border cursor-pointer bg-transparent"
-                  />
-                  <Input
-                    value={secondaryColor}
-                    onChange={(e) => setSecondaryColor(e.target.value)}
-                    className="font-mono text-xs"
-                  />
-                </div>
+              <div className="pt-2 flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleSaveBranding}
+                  disabled={isSavingBranding}
+                  className="text-xs gap-1.5"
+                >
+                  {isSavingBranding ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="size-3.5" />
+                  )}
+                  Guardar Branding
+                </Button>
               </div>
             </div>
-
-            <div className="pt-2 flex justify-end">
-              <Button
-                size="sm"
-                onClick={handleSaveBranding} disabled={isSavingBranding}
-                className="text-xs gap-1.5"
-              >
-                {isSavingBranding ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-                Guardar Branding
-              </Button>
-            </div>
-          </div>
           )}
         </TabsContent>
       </Tabs>

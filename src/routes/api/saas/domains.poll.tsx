@@ -107,7 +107,9 @@ function DomainPollApiPlaceholder() {
   return (
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
       <h1 className="font-display text-lg font-extrabold">API de Polling DNS</h1>
-      <p className="mt-2 text-sm text-muted-foreground">POST com domainId. A UI vive no painel da escola.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        POST com domainId. A UI vive no painel da escola.
+      </p>
     </main>
   );
 }

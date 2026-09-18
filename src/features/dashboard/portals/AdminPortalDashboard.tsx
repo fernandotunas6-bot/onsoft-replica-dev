@@ -155,13 +155,21 @@ export function AdminPortalDashboard({
   ];
 
   const miniStats = [
-    { label: "Cursos", icon: BookOpen, value: capabilities.students ? String(data?.totals.courses ?? 0) : "—" },
+    {
+      label: "Cursos",
+      icon: BookOpen,
+      value: capabilities.students ? String(data?.totals.courses ?? 0) : "—",
+    },
     {
       label: "Turmas activas",
       icon: Users,
       value: capabilities.students ? String(data?.totals.classGroups ?? 0) : "—",
     },
-    { label: "Salas", icon: DoorOpen, value: capabilities.students ? String(data?.totals.rooms ?? 0) : "—" },
+    {
+      label: "Salas",
+      icon: DoorOpen,
+      value: capabilities.students ? String(data?.totals.rooms ?? 0) : "—",
+    },
     {
       label: "Taxa de presença",
       icon: UserCheck,
@@ -256,7 +264,10 @@ export function AdminPortalDashboard({
           </p>
           <ol className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
             <li>
-              <Link to="/alunos" className="font-medium text-primary underline-offset-2 hover:underline">
+              <Link
+                to="/alunos"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
                 1. Matricular o primeiro aluno
               </Link>
             </li>
@@ -401,33 +412,33 @@ export function AdminPortalDashboard({
       <div className="grid gap-4 lg:grid-cols-2">
         <DashboardCalendarCard />
         {(data?.announcements?.length ?? 0) > 0 ? (
-        <section className="surface-card p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={Megaphone} size="sm" label="Comunicados" />
-              <h2 className="text-base font-semibold">Comunicados</h2>
+          <section className="surface-card p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <IconChip icon={Megaphone} size="sm" label="Comunicados" />
+                <h2 className="text-base font-semibold">Comunicados</h2>
+              </div>
+              {canAccessPath("/comunicacoes", currentUser.role) ? (
+                <Button asChild size="sm" variant="ghost">
+                  <Link to="/comunicacoes">Ver todos</Link>
+                </Button>
+              ) : null}
             </div>
-            {canAccessPath("/comunicacoes", currentUser.role) ? (
-              <Button asChild size="sm" variant="ghost">
-                <Link to="/comunicacoes">Ver todos</Link>
-              </Button>
-            ) : null}
-          </div>
-          <ul className="space-y-3">
-            {data?.announcements.map((item: any) => (
-              <li key={item.id} className="rounded-xl bg-secondary p-3">
-                <p className="text-sm font-semibold">{item.title}</p>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
-                {item.published_at ? (
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    {new Date(item.published_at).toLocaleDateString("pt-PT")}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+            <ul className="space-y-3">
+              {data?.announcements.map((item: any) => (
+                <li key={item.id} className="rounded-xl bg-secondary p-3">
+                  <p className="text-sm font-semibold">{item.title}</p>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
+                  {item.published_at ? (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {new Date(item.published_at).toLocaleDateString("pt-PT")}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </div>
 
       <div className="space-y-4">

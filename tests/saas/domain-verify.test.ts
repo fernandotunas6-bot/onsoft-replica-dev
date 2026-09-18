@@ -13,15 +13,11 @@ describe("domain-verify helpers", () => {
   });
 
   it("aceita CNAME equivalente sem ponto final", () => {
-    expect(
-      cnameMatchesTarget(["escola.portal-siga.com."], "escola.portal-siga.com"),
-    ).toBe(true);
+    expect(cnameMatchesTarget(["escola.portal-siga.com."], "escola.portal-siga.com")).toBe(true);
   });
 
   it("valida token TXT", () => {
-    expect(txtRecordsIncludeToken([["siga-verify=abc-123"]], "siga-verify=abc-123")).toBe(
-      true,
-    );
+    expect(txtRecordsIncludeToken([["siga-verify=abc-123"]], "siga-verify=abc-123")).toBe(true);
     expect(txtRecordsIncludeToken([["outro-valor"]], "siga-verify=abc-123")).toBe(false);
   });
 

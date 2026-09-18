@@ -25,7 +25,11 @@ export const Route = createFileRoute("/api/saas/signup")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "Corpo JSON inválido." }, { status: 400, apps: [...WEB_APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Corpo JSON inválido." },
+            { status: 400, apps: [...WEB_APPS] },
+          );
         }
         const parsed = publicSchoolSignupInputSchema.safeParse(body);
         if (!parsed.success) {
@@ -47,7 +51,8 @@ export const Route = createFileRoute("/api/saas/signup")({
             { apps: [...WEB_APPS] },
           );
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Não foi possível criar a escola.";
+          const message =
+            error instanceof Error ? error.message : "Não foi possível criar a escola.";
           const status = message.includes("Muitos pedidos") ? 429 : 400;
           return jsonWithCors(request, { error: message }, { status, apps: [...WEB_APPS] });
         }

@@ -34,7 +34,12 @@ export function ZoomMeetingButton({
     try {
       if (attendanceSessionId) {
         // Tentar obter reunião existente ou criar uma nova vinculada à sessão de aula
-        let meeting = await getZoomLessonMeeting({ data: { attendanceSessionId } });
+        let meeting: {
+          id?: string | null;
+          join_url: string;
+          status?: string | null;
+          external_meeting_id?: string | null;
+        } | null = await getZoomLessonMeeting({ data: { attendanceSessionId } });
         if (!meeting || meeting.status !== "active") {
           meeting = await createZoomLessonMeeting({
             data: {
@@ -64,12 +69,13 @@ export function ZoomMeetingButton({
       const fallbackUrl = meetingRoomLink("zoom");
       window.open(fallbackUrl, "_blank", "noopener,noreferrer");
       toast.success("A abrir sala Zoom", { description: fallbackUrl });
-    } catch (err: any) {
+    } catch (err) {
       // Se o Zoom corporativo ainda não estiver ligado via OAuth, orientar o utilizador
-      const msg = err?.message || "";
+      const msg = (err as Error)?.message || "";
       if (msg.includes("Zoom não está ligado") || msg.includes("Configuração Zoom em falta")) {
         toast.info("Conta Zoom não conectada", {
-          description: "Conecte o Zoom da escola em Definições → Integrações para gerar reuniões automáticas.",
+          description:
+            "Conecte o Zoom da escola em Definições → Integrações para gerar reuniões automáticas.",
         });
         const fallbackUrl = meetingRoomLink("zoom");
         window.open(fallbackUrl, "_blank", "noopener,noreferrer");

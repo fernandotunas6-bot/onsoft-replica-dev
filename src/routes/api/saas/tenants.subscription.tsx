@@ -17,7 +17,11 @@ export const Route = createFileRoute("/api/saas/tenants/subscription")({
         try {
           body = await request.json();
         } catch {
-          return jsonWithCors(request, { error: "Corpo JSON inválido." }, { status: 400, apps: [...APPS] });
+          return jsonWithCors(
+            request,
+            { error: "Corpo JSON inválido." },
+            { status: 400, apps: [...APPS] },
+          );
         }
         const parsed = updateTenantSubscriptionInputSchema.safeParse(body);
         if (!parsed.success) {
@@ -34,7 +38,8 @@ export const Route = createFileRoute("/api/saas/tenants/subscription")({
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Não foi possível actualizar a subscrição.";
-          const status = message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
+          const status =
+            message === "Unauthorized" || message.includes("Sem permissão") ? 401 : 400;
           return jsonWithCors(request, { error: message }, { status, apps: [...APPS] });
         }
       },

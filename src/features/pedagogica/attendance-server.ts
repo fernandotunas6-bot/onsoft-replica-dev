@@ -232,7 +232,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
 
       const existing = sessionBySlotMap.get(slot.id);
       let sessionId = existing?.id;
-      let status: "pending" | "completed" | "cancelled" = (existing?.status as any) || "pending";
+      let status: "pending" | "completed" | "cancelled" = (existing?.status as "pending" | "completed" | "cancelled" | undefined) ?? "pending";
 
       if (!existing) {
         try {

@@ -1,6 +1,6 @@
 /**
  * Design System de E-mails Transacionais do SIGA Plus
- * 
+ *
  * Regras:
  * - HTML inline, tabelas e tipografia segura (compatível com Gmail, Outlook, Apple Mail, Android/iOS)
  * - Nível 1: Identidade da Escola (Logo ou Iniciais)
@@ -21,7 +21,9 @@ export function getSchoolInitials(name: string): string {
   const words = name
     .trim()
     .split(/\s+/)
-    .filter((w) => w.length > 0 && !["de", "da", "do", "das", "dos", "e"].includes(w.toLowerCase()));
+    .filter(
+      (w) => w.length > 0 && !["de", "da", "do", "das", "dos", "e"].includes(w.toLowerCase()),
+    );
   if (words.length === 1) {
     return words[0].slice(0, 2).toUpperCase();
   }

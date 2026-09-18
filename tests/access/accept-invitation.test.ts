@@ -100,9 +100,7 @@ describe("membership idempotência — lógica de negócio", () => {
   ];
 
   function resolveOrCreateMembership(memberships: Membership[], schoolId: string, userId: string) {
-    const existing = memberships.find(
-      (m) => m.school_id === schoolId && m.user_id === userId,
-    );
+    const existing = memberships.find((m) => m.school_id === schoolId && m.user_id === userId);
     if (existing) {
       // Reactivar
       return { ...existing, status: "active", action: "reactivated" as const };
@@ -206,9 +204,7 @@ describe("acceptSchoolInvitationInputSchema — validação", () => {
   });
 
   it("rejeita token com mais de 256 caracteres", () => {
-    expect(() =>
-      acceptSchoolInvitationInputSchema.parse({ token: "c".repeat(257) }),
-    ).toThrow();
+    expect(() => acceptSchoolInvitationInputSchema.parse({ token: "c".repeat(257) })).toThrow();
   });
 });
 
@@ -216,14 +212,14 @@ describe("acceptSchoolInvitationInputSchema — validação", () => {
 
 describe("role_code em convite — mapeamento para ApplicationRole", () => {
   const roleMapping: Record<string, string> = {
-    owner:     "Administrador",
-    admin:     "Administrador",
+    owner: "Administrador",
+    admin: "Administrador",
     secretary: "Secretaria",
-    treasury:  "Tesouraria",
-    teacher:   "Professor",
-    student:   "Aluno",
-    guardian:  "Encarregado",
-    user:      "Utilizador",
+    treasury: "Tesouraria",
+    teacher: "Professor",
+    student: "Aluno",
+    guardian: "Encarregado",
+    user: "Utilizador",
   };
 
   for (const [code, expected] of Object.entries(roleMapping)) {

@@ -26,11 +26,9 @@ function run(command, args, env = process.env) {
   });
 }
 
-const live =
-  process.env.SIGA_E2E_LIVE === "1" || process.env.SIGA_E2E_LIVE === "true";
+const live = process.env.SIGA_E2E_LIVE === "1" || process.env.SIGA_E2E_LIVE === "true";
 const hasSecret = Boolean(process.env.SUPABASE_SECRET_KEY?.trim());
-const pyEnv =
-  live && hasSecret ? { ...process.env, SIGA_E2E_LIVE: "1" } : process.env;
+const pyEnv = live && hasSecret ? { ...process.env, SIGA_E2E_LIVE: "1" } : process.env;
 
 await run("node", ["scripts/siga/e2e-ecosystem-smoke.mjs"]);
 

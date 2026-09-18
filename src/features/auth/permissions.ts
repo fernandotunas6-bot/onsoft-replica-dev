@@ -157,10 +157,7 @@ export const roleDefaultPermissions: Record<ApplicationRole, readonly StandardPe
     "announcements.read",
     "messages.send",
   ],
-  Utilizador: [
-    "files.read",
-    "announcements.read",
-  ],
+  Utilizador: ["files.read", "announcements.read"],
 };
 
 /**
@@ -195,7 +192,11 @@ export function hasPermission(
     const grantLevel = grants[moduleMap[prefix]];
     if (grantLevel === "Nenhum") return false;
     if (grantLevel === "Total") return true;
-    if (grantLevel === "Escrita" && !permission.endsWith(".delete") && !permission.endsWith(".archive")) {
+    if (
+      grantLevel === "Escrita" &&
+      !permission.endsWith(".delete") &&
+      !permission.endsWith(".archive")
+    ) {
       return true;
     }
     if (grantLevel === "Leitura" && permission.endsWith(".read")) {

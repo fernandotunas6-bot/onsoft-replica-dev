@@ -18,11 +18,12 @@ if (!secret) {
 
 const url = process.env.SUPABASE_URL?.trim() || process.env.VITE_SUPABASE_URL?.trim();
 const publishable =
-  process.env.SUPABASE_PUBLISHABLE_KEY?.trim() ||
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+  process.env.SUPABASE_PUBLISHABLE_KEY?.trim() || process.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 
 if (!url || !publishable) {
-  console.error("prepare-ci-env: SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY são obrigatórios com o secret.");
+  console.error(
+    "prepare-ci-env: SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY são obrigatórios com o secret.",
+  );
   process.exit(1);
 }
 

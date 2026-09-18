@@ -167,7 +167,7 @@ function AcessosPage() {
     });
   };
 
-  const accounts = accountsQuery.data ?? [];
+  const accounts = useMemo(() => accountsQuery.data ?? [], [accountsQuery.data]);
   const staff = (staffQuery.data ?? []).filter(
     (person): person is NonNullable<typeof person> => person != null,
   );
@@ -967,7 +967,8 @@ function AcessosPage() {
             <p className="text-sm text-muted-foreground">A carregar convites…</p>
           ) : (invitationsQuery.data ?? []).length === 0 ? (
             <p className="py-4 text-sm text-muted-foreground">
-              Nenhum convite institucional registado. Pode convidar novos membros através do botão «Convidar utilizador».
+              Nenhum convite institucional registado. Pode convidar novos membros através do botão
+              «Convidar utilizador».
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -986,8 +987,20 @@ function AcessosPage() {
                   {(invitationsQuery.data ?? []).map((invitation) => {
                     const isPending = invitation.status === "pending";
                     const isExpired = new Date(invitation.expires_at).getTime() < Date.now();
-                    const displayStatus = isPending && isExpired ? "Expirado" : invitation.status === "pending" ? "Pendente" : invitation.status === "accepted" ? "Aceite" : "Revogado";
-                    const statusTone = displayStatus === "Aceite" ? toneClass.success : displayStatus === "Pendente" ? toneClass.warning : toneClass.danger;
+                    const displayStatus =
+                      isPending && isExpired
+                        ? "Expirado"
+                        : invitation.status === "pending"
+                          ? "Pendente"
+                          : invitation.status === "accepted"
+                            ? "Aceite"
+                            : "Revogado";
+                    const statusTone =
+                      displayStatus === "Aceite"
+                        ? toneClass.success
+                        : displayStatus === "Pendente"
+                          ? toneClass.warning
+                          : toneClass.danger;
 
                     return (
                       <TableRow key={invitation.id}>
@@ -1004,9 +1017,7 @@ function AcessosPage() {
                           {new Date(invitation.expires_at).toLocaleDateString("pt-PT")}
                         </TableCell>
                         <TableCell>
-                          <span className={cn(badgeBase, statusTone)}>
-                            {displayStatus}
-                          </span>
+                          <span className={cn(badgeBase, statusTone)}>{displayStatus}</span>
                         </TableCell>
                         <TableCell className="text-right">
                           {isPending && !isExpired ? (

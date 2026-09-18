@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Award,
   Printer,
@@ -135,10 +135,12 @@ export function PautasWorkspaceModule({
   const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
 
   const isRealClass = selectedClassId !== "demo" && Boolean(workspace);
-  const classGroups = workspace?.classGroups ?? [];
-  const enrollmentOptions = workspace?.enrollmentOptions ?? [];
-  const classSubjectNav = workspace?.classSubjects ?? [];
-  const allTermGrades = workspace?.termGrades ?? [];
+  // Referências estáveis: sem useMemo, cada render criava um array novo e invalidava
+  // todos os useMemo dependentes (pautas recalculadas em cada tecla escrita).
+  const classGroups = useMemo(() => workspace?.classGroups ?? [], [workspace]);
+  const enrollmentOptions = useMemo(() => workspace?.enrollmentOptions ?? [], [workspace]);
+  const classSubjectNav = useMemo(() => workspace?.classSubjects ?? [], [workspace]);
+  const allTermGrades = useMemo(() => workspace?.termGrades ?? [], [workspace]);
 
   const currentClass = useMemo(
     () => classGroups.find((cg) => cg.id === selectedClassId),
@@ -326,6 +328,7 @@ export function PautasWorkspaceModule({
     schoolSettings,
     currentClass,
     activeYearLabel,
+    genderByEnrollmentId,
   ]);
 
   // Trimester Pauta Document
@@ -399,6 +402,7 @@ export function PautasWorkspaceModule({
     schoolSettings,
     currentClass,
     activeYearLabel,
+    genderByEnrollmentId,
   ]);
 
   // Final Pauta Document
@@ -448,6 +452,7 @@ export function PautasWorkspaceModule({
     schoolSettings,
     currentClass,
     activeYearLabel,
+    genderByEnrollmentId,
   ]);
 
   // Exam Pauta Document — o SIGA ainda não regista notas de PAP/Estágio/Exame Nacional; para
@@ -475,54 +480,55 @@ export function PautasWorkspaceModule({
   }, [isRealClass, selectedCycle, schoolSettings, currentClass, activeYearLabel]);
 
   // Filtered Documents based on search query and status filter
-  const filterStudentList = <T extends { name: string; code?: string; status?: string }>(
-    list: T[],
-  ): T[] => {
-    return list.filter((item) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch =
-        !q ||
-        item.name.toLowerCase().includes(q) ||
-        (item.code && item.code.toLowerCase().includes(q));
+  const filterStudentList = useCallback(
+    <T extends { name: string; code?: string; status?: string }>(list: T[]): T[] => {
+      return list.filter((item) => {
+        const q = searchQuery.toLowerCase().trim();
+        const matchSearch =
+          !q ||
+          item.name.toLowerCase().includes(q) ||
+          (item.code && item.code.toLowerCase().includes(q));
 
-      if (!matchSearch) return false;
+        if (!matchSearch) return false;
 
-      if (statusFilter === "pass") {
-        return (
-          item.status === "TRANSITA" ||
-          item.status === "APROVADO" ||
-          item.status === "APTO" ||
-          item.status === "APTO (PAP)"
-        );
-      }
-      if (statusFilter === "fail") {
-        return (
-          item.status === "NÃO TRANSITA" ||
-          item.status === "REPROVADO" ||
-          item.status === "NÃO APTO" ||
-          item.status === "NÃO APTO (PAP)" ||
-          item.status === "RECURSO"
-        );
-      }
-      return true;
-    });
-  };
+        if (statusFilter === "pass") {
+          return (
+            item.status === "TRANSITA" ||
+            item.status === "APROVADO" ||
+            item.status === "APTO" ||
+            item.status === "APTO (PAP)"
+          );
+        }
+        if (statusFilter === "fail") {
+          return (
+            item.status === "NÃO TRANSITA" ||
+            item.status === "REPROVADO" ||
+            item.status === "NÃO APTO" ||
+            item.status === "NÃO APTO (PAP)" ||
+            item.status === "RECURSO"
+          );
+        }
+        return true;
+      });
+    },
+    [searchQuery, statusFilter],
+  );
 
   const filteredMiniDocument = useMemo(
     () => ({ ...rawMiniDocument, students: filterStudentList(rawMiniDocument.students) }),
-    [rawMiniDocument, searchQuery, statusFilter],
+    [rawMiniDocument, filterStudentList],
   );
   const filteredTrimesterDocument = useMemo(
     () => ({ ...rawTrimesterDocument, students: filterStudentList(rawTrimesterDocument.students) }),
-    [rawTrimesterDocument, searchQuery, statusFilter],
+    [rawTrimesterDocument, filterStudentList],
   );
   const filteredFinalDocument = useMemo(
     () => ({ ...rawFinalDocument, students: filterStudentList(rawFinalDocument.students) }),
-    [rawFinalDocument, searchQuery, statusFilter],
+    [rawFinalDocument, filterStudentList],
   );
   const filteredExamDocument = useMemo(
     () => ({ ...rawExamDocument, students: filterStudentList(rawExamDocument.students) }),
-    [rawExamDocument, searchQuery, statusFilter],
+    [rawExamDocument, filterStudentList],
   );
 
   // Active student list based on selected view mode
@@ -913,8 +919,7 @@ export function PautasWorkspaceModule({
                 </p>
                 <p className="text-xs text-muted-foreground max-w-md">
                   O SIGA ainda não regista notas de Exame Nacional, PAP ou Estágio para turmas
-                  reais. Use a grelha MAC/NPP/NPT, Planos de Aula, ou o demonstrativo de
-                  referência.
+                  reais. Use a grelha MAC/NPP/NPT, Planos de Aula, ou o demonstrativo de referência.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                   <Button type="button" size="sm" variant="outline" asChild>
@@ -925,9 +930,7 @@ export function PautasWorkspaceModule({
                     size="sm"
                     variant="ghost"
                     className="gap-1"
-                    onClick={() =>
-                      window.open(getSigaNavDocUrl(), "_blank", "noopener,noreferrer")
-                    }
+                    onClick={() => window.open(getSigaNavDocUrl(), "_blank", "noopener,noreferrer")}
                   >
                     Manual DOC
                   </Button>

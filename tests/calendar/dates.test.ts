@@ -6,7 +6,12 @@ import {
   termLifecycle,
   todayInLuanda,
 } from "@/features/calendar/dates";
-import { calendarIcsFeedUrl, calendarWebcalFeedUrl, icsExclusiveEnd, toIcsCalendar } from "@/features/calendar/ics";
+import {
+  calendarIcsFeedUrl,
+  calendarWebcalFeedUrl,
+  icsExclusiveEnd,
+  toIcsCalendar,
+} from "@/features/calendar/ics";
 
 describe("datas do calendário (Luanda)", () => {
   it("formata hoje como YYYY-MM-DD no fuso de Luanda", () => {

@@ -59,11 +59,7 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   titleRow.font = { bold: true, size: 14, color: { argb: "FF1E3A8A" } };
 
   sheetReadme.addRow([]);
-  const descRow = sheetReadme.addRow([
-    "",
-    "Descrição do Módulo:",
-    catalog.description,
-  ]);
+  const descRow = sheetReadme.addRow(["", "Descrição do Módulo:", catalog.description]);
   descRow.font = { italic: true, size: 11 };
 
   sheetReadme.addRow([]);
@@ -71,13 +67,34 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   sheetReadme.lastRow!.font = { bold: true, size: 12, color: { argb: "FFB91C1C" } };
 
   const instructions = [
-    ["1. Inserção de Dados", "Insira os seus dados exclusivamente na aba \"DADOS\". Não altere os nomes dos cabeçalhos na primeira linha."],
-    ["2. Campos Obrigatórios", "As colunas com o símbolo (*) no cabeçalho e destacadas a azul escuro são obrigatórias."],
-    ["3. Formato de Datas", "Insira datas no formato AAAA-MM-DD (exemplo: 2010-04-15) para evitar erros de leitura."],
-    ["4. Identificadores Humanos", "Não é necessário preencher UUIDs ou códigos técnicos. Use Nº de Processo, BI, ou Nome da Turma."],
-    ["5. Validações Automáticas", "Alguns campos possuem listas suspensas (ex: Sexo, Turno). Selecione a opção directamente na célula."],
-    ["6. Exemplos de Referência", "Consulte a aba \"EXEMPLOS\" para visualizar linhas modelo com preenchimento correto."],
-    ["7. Aba METADADOS", "A aba \"METADADOS\" contém assinaturas técnicas do SIGA. Não a remova nem a modifique."],
+    [
+      "1. Inserção de Dados",
+      'Insira os seus dados exclusivamente na aba "DADOS". Não altere os nomes dos cabeçalhos na primeira linha.',
+    ],
+    [
+      "2. Campos Obrigatórios",
+      "As colunas com o símbolo (*) no cabeçalho e destacadas a azul escuro são obrigatórias.",
+    ],
+    [
+      "3. Formato de Datas",
+      "Insira datas no formato AAAA-MM-DD (exemplo: 2010-04-15) para evitar erros de leitura.",
+    ],
+    [
+      "4. Identificadores Humanos",
+      "Não é necessário preencher UUIDs ou códigos técnicos. Use Nº de Processo, BI, ou Nome da Turma.",
+    ],
+    [
+      "5. Validações Automáticas",
+      "Alguns campos possuem listas suspensas (ex: Sexo, Turno). Selecione a opção directamente na célula.",
+    ],
+    [
+      "6. Exemplos de Referência",
+      'Consulte a aba "EXEMPLOS" para visualizar linhas modelo com preenchimento correto.',
+    ],
+    [
+      "7. Aba METADADOS",
+      'A aba "METADADOS" contém assinaturas técnicas do SIGA. Não a remova nem a modifique.',
+    ],
   ];
 
   for (const [topic, desc] of instructions) {
@@ -95,9 +112,7 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   sheetData.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
 
   // Cabeçalhos
-  const headerLabels = catalog.fields.map(
-    (f) => `${f.label}${f.required ? " *" : ""}`,
-  );
+  const headerLabels = catalog.fields.map((f) => `${f.label}${f.required ? " *" : ""}`);
   const headerRow = sheetData.addRow(headerLabels);
   headerRow.height = 30;
 
@@ -137,7 +152,13 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   catalog.fields.forEach((field, colIdx) => {
     if (field.options && field.options.length > 0) {
       const colLetter = sheetData.getColumn(colIdx + 1).letter;
-      sheetData.dataValidations.add(`${colLetter}2:${colLetter}100`, {
+      // exceljs expõe dataValidations em runtime, mas não o declara nos tipos da Worksheet
+      const validations = (
+        sheetData as unknown as {
+          dataValidations: { add: (ref: string, rule: Record<string, unknown>) => void };
+        }
+      ).dataValidations;
+      validations.add(`${colLetter}2:${colLetter}100`, {
         type: "list",
         allowBlank: !field.required,
         formulae: [`"${field.options.join(",")}"`],

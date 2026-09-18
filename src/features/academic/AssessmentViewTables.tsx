@@ -1,8 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  buildClassCourseMap,
-  buildStudentDossier,
-} from "@/features/academic/assessment-views";
+import { buildClassCourseMap, buildStudentDossier } from "@/features/academic/assessment-views";
 import { formatScore } from "@/lib/angola-academic";
 
 export function ClassCourseTable({
