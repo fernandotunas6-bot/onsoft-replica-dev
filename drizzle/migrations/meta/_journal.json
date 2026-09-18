@@ -85,6 +85,13 @@
       "when": 1789715185150,
       "tag": "0011_import_engine",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789715341332,
+      "tag": "0012_academic_compat_layer",
+      "breakpoints": true
     }
   ]
 }
