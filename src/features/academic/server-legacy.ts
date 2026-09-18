@@ -418,6 +418,24 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       enrollmentStats.set(classGroupId, current);
     }
 
+    // Média real por turma a partir das notas por período já carregadas.
+    const gradeAveragesByGroup = new Map<string, number[]>();
+    for (const row of termGradeRows) {
+      const groupId = row.class_group_id ? String(row.class_group_id) : null;
+      const average = Number(row.average);
+      if (!groupId || !Number.isFinite(average) || average <= 0) continue;
+      const bucket = gradeAveragesByGroup.get(groupId) ?? [];
+      bucket.push(average);
+      gradeAveragesByGroup.set(groupId, bucket);
+    }
+    const classAverage = (groupId: string) => {
+      const values = gradeAveragesByGroup.get(groupId);
+      if (!values?.length) return null;
+      const sum = values.reduce((total, value) => total + value, 0);
+      return Math.round((sum / values.length) * 10) / 10;
+    };
+
+
     const programById = new Map(
       (programs.data ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
     );
@@ -471,7 +489,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           room_name: (campus?.["name"] as string) ?? "—",
           academic_year_name: (year?.["name"] as string) ?? "—",
           enrolled_count: stats?.count ?? 0,
-          average_score: null,
+          average_score: classAverage(String(group["id"])),
           attendance_rate: averagePercent(stats?.rates ?? []),
         };
       },

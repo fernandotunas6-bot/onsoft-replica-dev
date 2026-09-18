@@ -118,6 +118,26 @@ function emptyOverview(role = "Utilizador") {
       url: string;
       isOpen: boolean;
     },
+    performanceHeatmap: {} as Record<
+      string,
+      Array<{
+        classId: string;
+        className: string;
+        courseName: string;
+        grades: Array<{ discipline: string; code: string; average: number }>;
+      }>
+    >,
+    cashFlowForecast: {
+      months: [] as Array<{
+        month: string;
+        expectedAmount: number;
+        actualAmount: number;
+        forecastAmount: number;
+      }>,
+      averageCollectionRate: null as number | null,
+      forecastDefaultRate: null as number | null,
+      mainPaymentChannel: null as string | null,
+    },
     imports: {
       available: false,
       totalJobs: 0,
@@ -361,13 +381,131 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       }
     }
 
+    if (capabilities.students) {
+      try {
+        // Heatmap de desempenho: médias por turma e disciplina, por trimestre.
+        const [{ data: heatmapGrades }, { data: heatmapGroups }, { data: heatmapSubjects }] =
+          await Promise.all([
+            db
+              .from("term_grades")
+              .select("enrollment_id, subject_id, term, mac, npp, npt")
+              .eq("school_id", schoolId)
+              .is("deleted_at", null)
+              .limit(5000),
+            db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
+            db.from("subjects").select("id, name, code").eq("school_id", schoolId),
+          ]);
+
+        const { data: heatmapEnrollments } = await db
+          .from("enrollments")
+          .select("id, class_group_id")
+          .eq("school_id", schoolId)
+          .limit(1000);
+        const groupByEnrollment = new Map(
+          (heatmapEnrollments ?? []).map((row) => [String(row.id), String(row.class_group_id)]),
+        );
+        const subjectInfo = new Map(
+          (heatmapSubjects ?? []).map((row) => [
+            String(row.id),
+            { name: String(row.name ?? "—"), code: String(row.code ?? "") },
+          ]),
+        );
+        const groupInfo = new Map(
+          (heatmapGroups ?? []).map((row) => [
+            String(row.id),
+            { name: String(row.name ?? "Turma"), gradeLevelId: row.grade_level_id },
+          ]),
+        );
+        const heatmapGradeLevelIds = [
+          ...new Set((heatmapGroups ?? []).map((row) => row.grade_level_id).filter(Boolean)),
+        ] as string[];
+        const { data: heatmapLevels } = heatmapGradeLevelIds.length
+          ? await db.from("grade_levels").select("id, program_id").in("id", heatmapGradeLevelIds)
+          : { data: [] as Array<{ id: string; program_id: string | null }> };
+        const heatmapProgramIds = [
+          ...new Set((heatmapLevels ?? []).map((row) => row.program_id).filter(Boolean)),
+        ] as string[];
+        const { data: heatmapPrograms } = heatmapProgramIds.length
+          ? await db.from("programs").select("id, name").in("id", heatmapProgramIds)
+          : { data: [] as Array<{ id: string; name: string }> };
+        const programNameByLevel = new Map(
+          (heatmapLevels ?? []).map((level) => [
+            String(level.id),
+            String(
+              (heatmapPrograms ?? []).find((program) => program.id === level.program_id)?.name ??
+                "—",
+            ),
+          ]),
+        );
+
+        const buckets = new Map<string, { sum: number; count: number }>();
+        for (const grade of heatmapGrades ?? []) {
+          const groupId = groupByEnrollment.get(String(grade.enrollment_id));
+          if (!groupId) continue;
+          const mac = Number(grade.mac ?? 0);
+          const npp = Number(grade.npp ?? 0);
+          const npt = Number(grade.npt ?? 0);
+          const average = (mac + npp + npt) / 3;
+          if (!Number.isFinite(average) || average <= 0) continue;
+          const key = `${Number(grade.term ?? 1)}|${groupId}|${String(grade.subject_id)}`;
+          const bucket = buckets.get(key) ?? { sum: 0, count: 0 };
+          bucket.sum += average;
+          bucket.count += 1;
+          buckets.set(key, bucket);
+        }
+
+        const heatmap: Record<
+          string,
+          Map<
+            string,
+            {
+              classId: string;
+              className: string;
+              courseName: string;
+              grades: Array<{ discipline: string; code: string; average: number }>;
+            }
+          >
+        > = {};
+        for (const [key, bucket] of buckets) {
+          const [termRaw, groupId, subjectId] = key.split("|");
+          const termKey = `t${termRaw}`;
+          const group = groupInfo.get(String(groupId));
+          const subject = subjectInfo.get(String(subjectId));
+          if (!group || !subject) continue;
+          heatmap[termKey] ??= new Map();
+          const row = heatmap[termKey]!.get(String(groupId)) ?? {
+            classId: String(groupId),
+            className: group.name,
+            courseName: group.gradeLevelId
+              ? (programNameByLevel.get(String(group.gradeLevelId)) ?? "—")
+              : "—",
+            grades: [],
+          };
+          row.grades.push({
+            discipline: subject.name,
+            code: subject.code,
+            average: Math.round((bucket.sum / bucket.count) * 10) / 10,
+          });
+          heatmap[termKey]!.set(String(groupId), row);
+        }
+        overview.performanceHeatmap = Object.fromEntries(
+          Object.entries(heatmap).map(([term, rows]) => [
+            term,
+            [...rows.values()].sort((a, b) => a.className.localeCompare(b.className, "pt")),
+          ]),
+        );
+      } catch {
+        /* degradação graciosa caso as notas não estejam disponíveis */
+      }
+    }
+
     if (capabilities.documents) {
       const { data: docs, error } = await db
         .from("document_requests")
-        .select("id, request_type, status, purpose, created_at")
+        .select("id, template_name, status, notes, created_at")
         .eq("school_id", schoolId)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(200);
       if (!error) {
         const rows = docs ?? [];
         overview.totals.documentTotal = rows.length;
@@ -375,12 +513,14 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           ["approved", "ready", "delivered", "issued", "completed"].includes(String(row.status)),
         ).length;
         overview.totals.documentPending = rows.filter((row) =>
-          ["submitted", "in_review", "queued", "processing"].includes(String(row.status)),
+          ["submitted", "in_review", "queued", "processing", "pending_payment"].includes(
+            String(row.status),
+          ),
         ).length;
         overview.recentActivity = rows.slice(0, 6).map((row) => ({
           id: String(row.id),
-          title: String(row.request_type ?? "Documento"),
-          detail: String(row.purpose ?? row.status ?? "Pedido"),
+          title: String(row.template_name ?? "Documento"),
+          detail: String(row.notes ?? row.status ?? "Pedido"),
           time: new Date(String(row.created_at)).toLocaleDateString("pt-PT"),
           tone: ["approved", "ready", "delivered", "issued"].includes(String(row.status))
             ? "success"
@@ -395,12 +535,12 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           .from("finance_invoices")
           .select("id, amount, discount_amount, competence_month, status, due_date")
           .eq("school_id", schoolId)
-          .limit(250),
+          .limit(3000),
         db
           .from("finance_receipts")
-          .select("invoice_id, amount, paid_on, status")
+          .select("invoice_id, amount, paid_on, status, payment_method")
           .eq("school_id", schoolId)
-          .limit(250),
+          .limit(3000),
       ]);
 
       const paidByInvoice = new Map<string, number>();
@@ -469,6 +609,67 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           tone: "success",
         }));
       }
+
+      // Projeção de fluxo de caixa: histórico real + estimativa dos próximos 3 meses.
+      const collectionRate = billed > 0 ? Math.round((received / billed) * 1000) / 10 : null;
+      const monthLabel = (month: string) =>
+        new Date(`${month}-01T00:00:00`).toLocaleDateString("pt-PT", {
+          month: "short",
+          year: "2-digit",
+        });
+      const historyMonths = months.slice(-6);
+      const forecastBase =
+        historyMonths.length > 0
+          ? historyMonths.reduce((sum, month) => sum + (billedByMonth.get(month) ?? 0), 0) /
+            historyMonths.length
+          : 0;
+      const forecastFactor = collectionRate !== null ? collectionRate / 100 : 0.8;
+      const lastMonth = historyMonths.at(-1) ?? today.slice(0, 7);
+      const futureMonths: string[] = [];
+      for (let index = 1; index <= 3; index += 1) {
+        const reference = new Date(`${lastMonth}-01T00:00:00`);
+        reference.setMonth(reference.getMonth() + index);
+        futureMonths.push(reference.toISOString().slice(0, 7));
+      }
+
+      const channelTotals = new Map<string, number>();
+      for (const receipt of receipts ?? []) {
+        if (receipt.status === "reversed") continue;
+        const channel = String(receipt.payment_method ?? "").trim();
+        if (!channel) continue;
+        channelTotals.set(channel, (channelTotals.get(channel) ?? 0) + 1);
+      }
+      const channelLabels: Record<string, string> = {
+        cash: "Dinheiro",
+        transfer: "Transferência bancária",
+        bank_transfer: "Transferência bancária",
+        multicaixa: "Multicaixa",
+        express: "Multicaixa Express",
+        tpa: "TPA",
+        deposit: "Depósito bancário",
+        other: "Outro",
+      };
+      const topChannel = [...channelTotals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+      overview.cashFlowForecast = {
+        months: [
+          ...historyMonths.map((month) => ({
+            month: monthLabel(month),
+            expectedAmount: billedByMonth.get(month) ?? 0,
+            actualAmount: receivedByMonth.get(month) ?? 0,
+            forecastAmount: Math.round((billedByMonth.get(month) ?? 0) * forecastFactor),
+          })),
+          ...futureMonths.map((month) => ({
+            month: monthLabel(month),
+            expectedAmount: Math.round(forecastBase),
+            actualAmount: 0,
+            forecastAmount: Math.round(forecastBase * forecastFactor),
+          })),
+        ],
+        averageCollectionRate: collectionRate,
+        forecastDefaultRate: collectionRate !== null ? Math.round((100 - collectionRate) * 10) / 10 : null,
+        mainPaymentChannel: topChannel ? (channelLabels[topChannel] ?? topChannel) : null,
+      };
     }
 
     const fromDate = todayInLuanda();

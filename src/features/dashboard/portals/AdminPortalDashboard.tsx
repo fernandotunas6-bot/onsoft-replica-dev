@@ -518,13 +518,18 @@ export function AdminPortalDashboard({
 
       {activeTab === "geral" || activeTab === "pedagogico" ? (
         <div className="space-y-6">
-          <DisciplinePerformanceHeatmap />
+          <DisciplinePerformanceHeatmap dataByTerm={data?.performanceHeatmap ?? {}} />
         </div>
       ) : null}
 
       {(activeTab === "geral" || activeTab === "financeiro") && capabilities.finance ? (
         <div className="space-y-6">
-          <CashFlowForecastChart />
+          <CashFlowForecastChart
+            data={data?.cashFlowForecast?.months ?? []}
+            averageCollectionRate={data?.cashFlowForecast?.averageCollectionRate ?? undefined}
+            forecastInadimplenciaRate={data?.cashFlowForecast?.forecastDefaultRate ?? undefined}
+            mainPaymentChannel={data?.cashFlowForecast?.mainPaymentChannel ?? undefined}
+          />
         </div>
       ) : null}
     </div>
