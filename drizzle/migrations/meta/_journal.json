@@ -71,6 +71,13 @@
       "when": 1789714788773,
       "tag": "0009_assign_new_users_to_school",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789715146139,
+      "tag": "0010_rbac_memberships_roles",
+      "breakpoints": true
     }
   ]
 }
