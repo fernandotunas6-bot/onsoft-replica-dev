@@ -1011,6 +1011,235 @@ export type Database = {
           },
         ]
       }
+      import_audits: {
+        Row: {
+          action_type: string
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          id: string
+          import_job_id: string
+          row_id: string | null
+          table_name: string
+          target_id: string
+        }
+        Insert: {
+          action_type: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+          import_job_id: string
+          row_id?: string | null
+          table_name: string
+          target_id: string
+        }
+        Update: {
+          action_type?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+          import_job_id?: string
+          row_id?: string | null
+          table_name?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_audits_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_audits_row_id_fkey"
+            columns: ["row_id"]
+            isOneToOne: false
+            referencedRelation: "import_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_jobs: {
+        Row: {
+          academic_year_id: string | null
+          completed_at: string | null
+          created_at: string
+          duplicate_rows: number
+          file_name: string
+          file_path: string | null
+          id: string
+          ignored_rows: number
+          inserted_rows: number
+          invalid_rows: number
+          job_metadata: Json | null
+          module: string
+          school_id: string
+          started_at: string | null
+          status: string
+          total_rows: number
+          updated_at: string
+          updated_rows: number
+          user_id: string | null
+          valid_rows: number
+        }
+        Insert: {
+          academic_year_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duplicate_rows?: number
+          file_name: string
+          file_path?: string | null
+          id?: string
+          ignored_rows?: number
+          inserted_rows?: number
+          invalid_rows?: number
+          job_metadata?: Json | null
+          module: string
+          school_id: string
+          started_at?: string | null
+          status?: string
+          total_rows?: number
+          updated_at?: string
+          updated_rows?: number
+          user_id?: string | null
+          valid_rows?: number
+        }
+        Update: {
+          academic_year_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duplicate_rows?: number
+          file_name?: string
+          file_path?: string | null
+          id?: string
+          ignored_rows?: number
+          inserted_rows?: number
+          invalid_rows?: number
+          job_metadata?: Json | null
+          module?: string
+          school_id?: string
+          started_at?: string | null
+          status?: string
+          total_rows?: number
+          updated_at?: string
+          updated_rows?: number
+          user_id?: string | null
+          valid_rows?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_jobs_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_jobs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_rows: {
+        Row: {
+          created_at: string
+          duplicate_of: string | null
+          errors: Json | null
+          id: string
+          import_job_id: string
+          normalized_data: Json
+          raw_data: Json
+          row_number: number
+          sheet_name: string
+          status: string
+          target_record_id: string | null
+          warnings: Json | null
+        }
+        Insert: {
+          created_at?: string
+          duplicate_of?: string | null
+          errors?: Json | null
+          id?: string
+          import_job_id: string
+          normalized_data?: Json
+          raw_data?: Json
+          row_number: number
+          sheet_name?: string
+          status?: string
+          target_record_id?: string | null
+          warnings?: Json | null
+        }
+        Update: {
+          created_at?: string
+          duplicate_of?: string | null
+          errors?: Json | null
+          id?: string
+          import_job_id?: string
+          normalized_data?: Json
+          raw_data?: Json
+          row_number?: number
+          sheet_name?: string
+          status?: string
+          target_record_id?: string | null
+          warnings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_rows_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_templates: {
+        Row: {
+          created_at: string
+          header_signature: Json
+          id: string
+          mappings: Json
+          module: string
+          name: string
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          header_signature?: Json
+          id?: string
+          mappings?: Json
+          module: string
+          name: string
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          header_signature?: Json
+          id?: string
+          mappings?: Json
+          module?: string
+          name?: string
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_templates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           category: string
