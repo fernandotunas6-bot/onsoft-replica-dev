@@ -311,6 +311,79 @@ export type Database = {
           },
         ]
       }
+      class_schedule_slots: {
+        Row: {
+          class_group_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          ends_at: string
+          id: string
+          label: string | null
+          school_id: string
+          starts_at: string
+          subject_id: string | null
+          updated_at: string
+          updated_by: string | null
+          version: number
+          weekday: number
+        }
+        Insert: {
+          class_group_id: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at: string
+          id?: string
+          label?: string | null
+          school_id: string
+          starts_at: string
+          subject_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          weekday: number
+        }
+        Update: {
+          class_group_id?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at?: string
+          id?: string
+          label?: string | null
+          school_id?: string
+          starts_at?: string
+          subject_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_schedule_slots_group_fkey"
+            columns: ["school_id", "class_group_id"]
+            isOneToOne: false
+            referencedRelation: "class_groups"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "class_schedule_slots_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_schedule_slots_subject_fkey"
+            columns: ["school_id", "subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           code: string
@@ -1271,6 +1344,141 @@ export type Database = {
             columns: ["school_id", "person_id"]
             isOneToOne: true
             referencedRelation: "people"
+            referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          grade_from: number | null
+          grade_to: number | null
+          id: string
+          name: string
+          school_id: string
+          status: string
+          teacher_name: string | null
+          updated_at: string
+          updated_by: string | null
+          version: number
+          weekly_hours: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          grade_from?: number | null
+          grade_to?: number | null
+          id?: string
+          name: string
+          school_id: string
+          status?: string
+          teacher_name?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          weekly_hours?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          grade_from?: number | null
+          grade_to?: number | null
+          id?: string
+          name?: string
+          school_id?: string
+          status?: string
+          teacher_name?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          weekly_hours?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subjects_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      term_grades: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          enrollment_id: string
+          id: string
+          mac: number
+          npp: number
+          npt: number
+          school_id: string
+          subject_id: string
+          term: number
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          enrollment_id: string
+          id?: string
+          mac: number
+          npp: number
+          npt: number
+          school_id: string
+          subject_id: string
+          term: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          enrollment_id?: string
+          id?: string
+          mac?: number
+          npp?: number
+          npt?: number
+          school_id?: string
+          subject_id?: string
+          term?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "term_grades_enrollment_fkey"
+            columns: ["school_id", "enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "term_grades_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "term_grades_subject_fkey"
+            columns: ["school_id", "subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["school_id", "id"]
           },
         ]

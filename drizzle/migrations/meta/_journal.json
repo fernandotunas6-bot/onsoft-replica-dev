@@ -29,6 +29,13 @@
       "when": 1789714373840,
       "tag": "0003_school_settings_billing_and_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789714441153,
+      "tag": "0004_subjects_grades_schedule",
+      "breakpoints": true
     }
   ]
 }
