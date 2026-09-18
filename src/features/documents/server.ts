@@ -144,21 +144,23 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     );
 
     return {
-      templates: (templatesResult.data ?? []).map((template: Record<string, unknown>) => ({
-        ...template,
-        active: template["status"] === "active",
-        fee_amount: 0,
-      })),
+      templates: templatesResult.data ?? [],
       students,
       requests: (requestsResult.data ?? []).map(
         (request: {
           id: string;
           student_id: string;
           template_id: string | null;
-          request_type: string | null;
+          template_name: string | null;
+          request_number: string | null;
+          fee_amount: number | null;
           status: string;
-          purpose: string | null;
-          requested_by: string | null;
+          priority: string | null;
+          requested_at: string;
+          due_on: string | null;
+          completed_at: string | null;
+          assigned_to: string | null;
+          notes: string | null;
           created_at: string;
         }) => {
           const student = studentById.get(request.student_id);
@@ -168,24 +170,28 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
             student_id: request.student_id,
             template_id: request.template_id,
             template_name:
+              request.template_name ||
               (template as { name?: string } | undefined)?.name ||
-              request.request_type ||
               "Documento",
             student_name: student?.full_name ?? "Aluno",
             registration_number: student?.registration_number ?? "Sem processo",
             class_name: classNameByStudentId.get(request.student_id) ?? null,
-            request_number: request.purpose || request.id.slice(0, 8),
-            status: statusToUi[request.status] ?? "queued",
+            request_number: request.request_number || request.id.slice(0, 8),
+            status: request.status,
             next_status: nextSgaStatus[request.status] ?? null,
-            requested_at: request.created_at,
-            assigned_to: request.requested_by,
-            priority: "normal",
-            notes: request.purpose,
+            requested_at: request.requested_at ?? request.created_at,
+            due_on: request.due_on,
+            completed_at: request.completed_at,
+            fee_amount: Number(request.fee_amount ?? 0),
+            assigned_to: request.assigned_to,
+            priority: request.priority ?? "normal",
+            notes: request.notes,
           };
         },
       ),
     };
   });
+
 
 export const createDocumentRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
