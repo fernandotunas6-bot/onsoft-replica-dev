@@ -36,6 +36,13 @@
       "when": 1789714441153,
       "tag": "0004_subjects_grades_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789714560520,
+      "tag": "0005_finance_core_and_invoice_issuance",
+      "breakpoints": true
     }
   ]
 }
