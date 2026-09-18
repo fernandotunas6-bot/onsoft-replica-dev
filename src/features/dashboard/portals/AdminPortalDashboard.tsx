@@ -13,6 +13,7 @@ import {
   Receipt,
   TrendingUp,
   UserCheck,
+  Upload,
   UserRound,
   Users,
 } from "lucide-react";
