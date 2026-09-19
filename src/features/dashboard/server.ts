@@ -861,12 +861,13 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
             .from("finance_invoices")
             .select("id, amount, discount_amount, status, due_date")
             .eq("school_id", schoolId)
-            .limit(250),
+            .neq("status", "cancelled")
+            .limit(5000),
           db
             .from("finance_receipts")
             .select("invoice_id, amount, status")
             .eq("school_id", schoolId)
-            .limit(250),
+            .limit(5000),
         ]);
         const paidByInvoice = new Map<string, number>();
         for (const receipt of receipts ?? []) {
