@@ -762,8 +762,10 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     // Média real por turma calculada a partir das notas por período.
     const gradeAveragesByGroup = new Map<string, number[]>();
     for (const row of termGradeRows) {
-      const groupId = row.class_group_id ? String(row.class_group_id) : null;
-      const average = Number(row.average);
+      const groupId =
+        enrollmentClassById.get(row.enrollment_id) ??
+        (row.class_group_id ? String(row.class_group_id) : null);
+      const average = scoreAverage(row.mac, row.npp, row.npt);
       if (!groupId || !Number.isFinite(average) || average <= 0) continue;
       const bucket = gradeAveragesByGroup.get(groupId) ?? [];
       bucket.push(average);
