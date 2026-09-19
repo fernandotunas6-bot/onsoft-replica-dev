@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileSettingsPanel } from "@/features/auth/ProfileSettingsPanel";
 import { PasswordChangeForm } from "@/features/auth/PasswordChangeForm";
+import { EmailChangeForm } from "@/features/auth/EmailChangeForm";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 
@@ -177,6 +178,15 @@ function PerfilPage() {
             >
               <div className="max-w-md">
                 <PasswordChangeForm compact={false} />
+              </div>
+            </Panel>
+
+            <Panel
+              title="Endereço de E-mail"
+              description="Alterar o e-mail associado à sua conta institucional"
+            >
+              <div className="max-w-md">
+                <EmailChangeForm compact={false} />
               </div>
             </Panel>
 

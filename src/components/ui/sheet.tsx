@@ -21,7 +21,13 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // `backdrop-blur` sai nos ecrãs pequenos de propósito. Um `backdrop-filter`
+      // obriga o compositor a promover o painel que desliza por cima a uma
+      // camada própria e a re-rasterizá-la durante a animação de entrada; em
+      // GPUs de telemóvel isso produz blocos de textura corrompida no lugar do
+      // texto da barra lateral. O véu escuro sozinho dá a mesma separação
+      // visual sem pedir nada ao compositor.
+      "fixed inset-0 z-50 bg-black/50 backdrop-blur-xs max-sm:bg-black/60 max-sm:backdrop-blur-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
@@ -90,7 +96,7 @@ const SheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold text-foreground", className)}
+    className={cn("font-display text-lg font-semibold tracking-tight text-foreground", className)}
     {...props}
   />
 ));

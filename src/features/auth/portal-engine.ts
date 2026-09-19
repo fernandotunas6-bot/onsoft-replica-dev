@@ -1,4 +1,6 @@
 import {
+  Banknote,
+  BriefcaseBusiness,
   BookOpen,
   Building2,
   CalendarDays,
@@ -13,6 +15,7 @@ import {
   LayoutGrid,
   Link2,
   Megaphone,
+  Network,
   NotebookPen,
   PieChart,
   Plug,
@@ -56,6 +59,44 @@ export type NavItem = {
 };
 
 export type NavGroup = { title: string; items: NavItem[] };
+
+/**
+ * Um sub-item da barra lateral só está activo quando o caminho **e** os
+ * parâmetros de pesquisa que ele fixa coincidem com a localização actual.
+ *
+ * Comparar apenas `to` marcava as quatro entradas de "Área Pedagógica" como
+ * activas ao mesmo tempo: todas apontam para `/pedagogica` e distinguem-se só
+ * pelo `?tab=` (turmas, notas, horarios, chamada). Ficavam as quatro com o
+ * fundo de item activo, sem dizer ao utilizador em que separador está.
+ */
+/**
+ * Funde os menus a abrir com os já abertos, devolvendo **a mesma referência**
+ * quando não há nada a acrescentar.
+ *
+ * Isto não é micro-optimização: a `AppSidebar` chama isto dentro de um
+ * `useEffect` cuja dependência é derivada do papel/grants do utilizador. Se
+ * devolvesse sempre um array novo, o `setState` mudava de identidade, o
+ * componente voltava a renderizar, a dependência voltava a mudar e a barra
+ * lateral entrava em ciclo infinito de render — a montar a barra num teste, o
+ * processo ficava pendurado sem nunca terminar. Devolver `prev` faz o React
+ * desistir da actualização e quebra o ciclo mesmo que a dependência acima seja
+ * instável.
+ */
+export function mergeOpenMenus(prev: string[], parents: string[]): string[] {
+  if (parents.every((label) => prev.includes(label))) return prev;
+  return Array.from(new Set([...prev, ...parents]));
+}
+
+export function isNavChildActive(
+  child: Pick<NavChild, "to" | "search">,
+  pathname: string,
+  search: Record<string, unknown> = {},
+): boolean {
+  if (child.to !== pathname) return false;
+  return Object.entries(child.search ?? {}).every(
+    ([key, value]) => value === undefined || search[key] === value,
+  );
+}
 
 function filterNavGroups(
   groups: NavGroup[],
@@ -116,9 +157,9 @@ export function getPortalNavigation(
                   to: "/pedagogica",
                   search: { tab: "notas" },
                 },
-                { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
               ],
             },
+            { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
             {
               label: "Frequência",
               icon: CheckSquare,
@@ -132,6 +173,7 @@ export function getPortalNavigation(
             },
             { label: "Documentos", icon: FileText, to: "/documentos" },
             { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
+            { label: "Meu Portal Alumni", icon: Network, to: "/alumni/portal" },
             { label: "Meu Perfil", icon: User, to: "/perfil" },
           ],
         },
@@ -171,9 +213,9 @@ export function getPortalNavigation(
                   to: "/pedagogica",
                   search: { tab: "horarios" },
                 },
-                { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
               ],
             },
+            { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
             {
               label: "Frequência",
               icon: CheckSquare,
@@ -223,6 +265,11 @@ export function getPortalNavigation(
                   to: "/pedagogica",
                   search: { tab: "presencas" },
                 },
+                {
+                  label: "Minha presença (QR)",
+                  icon: QrCode,
+                  to: "/professor/presenca",
+                },
               ],
             },
             {
@@ -248,9 +295,9 @@ export function getPortalNavigation(
                   search: { tab: "horarios" },
                 },
                 { label: "Planos de Aula", icon: NotebookPen, to: "/planos-aula" },
-                { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
               ],
             },
+            { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
             { label: "Biblioteca & Materiais", icon: FolderOpen, to: "/arquivos" },
             { label: "Comunicação", icon: Megaphone, to: "/comunicacoes" },
             { label: "Meu Perfil", icon: User, to: "/perfil" },
@@ -263,12 +310,17 @@ export function getPortalNavigation(
     );
   }
 
-  // Portal Administrativo (Direção, Secretaria, Tesouraria)
   const groups: NavGroup[] = [
+    {
+      title: "Principal",
+      items: [
+        { label: "Início", icon: LayoutGrid, to: "/" },
+        { label: "Calendário Lectivo", icon: CalendarDays, to: "/calendario" },
+      ],
+    },
     {
       title: "Académico",
       items: [
-        { label: "Dashboard", icon: LayoutGrid, to: "/" },
         {
           label: "Área Pedagógica",
           icon: BookOpen,
@@ -298,11 +350,6 @@ export function getPortalNavigation(
               search: { tab: "chamada" },
             },
             {
-              label: "Calendário Lectivo",
-              icon: CalendarDays,
-              to: "/calendario",
-            },
-            {
               label: "Planos de Aula",
               icon: NotebookPen,
               to: "/planos-aula",
@@ -319,12 +366,7 @@ export function getPortalNavigation(
           label: "Importação de Dados",
           icon: FileUp,
           children: [
-            {
-              label: "Nova Importação",
-              icon: FileUp,
-              to: "/importar",
-              search: { tab: "novo" },
-            },
+            { label: "Nova Importação", icon: FileUp, to: "/importar", search: { tab: "novo" } },
             {
               label: "Histórico & Auditoria",
               icon: History,
@@ -343,11 +385,7 @@ export function getPortalNavigation(
           label: "Gestão de Alunos",
           icon: Users,
           children: [
-            {
-              label: "Lista de Alunos",
-              icon: GraduationCap,
-              to: "/alunos",
-            },
+            { label: "Lista de Alunos", icon: GraduationCap, to: "/alunos" },
             {
               label: "Matricular Aluno",
               icon: UserPlus,
@@ -360,12 +398,8 @@ export function getPortalNavigation(
               to: "/alunos",
               search: { action: "confirmar" },
             },
-            {
-              label: "Estado do Aluno",
-              icon: Users,
-              to: "/alunos",
-              search: { action: "estado" },
-            },
+            { label: "Estado do Aluno", icon: Users, to: "/alunos", search: { action: "estado" } },
+            { label: "Alumni · Antigos Alunos", icon: Network, to: "/alumni" },
           ],
         },
         {
@@ -385,6 +419,11 @@ export function getPortalNavigation(
           children: [
             { label: "Movimentos de Caixa", icon: CreditCard, to: "/financeiro" },
             { label: "Faturas e Recibos", icon: Receipt, to: "/faturas" },
+            { label: "RH e Folha Salarial", icon: BriefcaseBusiness, to: "/financeiro/rh" },
+            { label: "Processar Folha", icon: BriefcaseBusiness, to: "/financeiro/rh/folha" },
+            { label: "Ordens de Pagamento RH", icon: Banknote, to: "/financeiro/rh/pagamentos" },
+            { label: "Faltas e Assiduidade", icon: History, to: "/financeiro/rh/faltas" },
+            { label: "Validação de Presença", icon: QrCode, to: "/financeiro/rh/presenca" },
           ],
         },
       ],
@@ -466,6 +505,7 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   if (mode === "student") {
     return [
+      { label: "Meu Portal Alumni", to: "/alumni/portal" },
       { label: "Notas e Boletim", to: "/pedagogica", search: { tab: "notas" } },
       { label: "Frequência", to: "/pedagogica", search: { tab: "presencas" } },
       { label: "Horário", to: "/pedagogica", search: { tab: "horarios" } },
@@ -486,6 +526,7 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   return [
     { label: "Gestão de Alunos", to: "/alunos" },
+    { label: "Rede Alumni", to: "/alumni" },
     { label: "Importar Dados", to: "/importar" },
     { label: "Biblioteca de Arquivos", to: "/arquivos" },
     { label: "Caixa e Pagamentos", to: "/financeiro" },

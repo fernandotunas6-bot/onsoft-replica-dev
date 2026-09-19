@@ -39,6 +39,15 @@ Adicionadas em `APPLY_ENROLLMENT_AND_PREMIUM.sql` como parte da arquitectura glo
 | `member_roles` | Papéis atribuídos por membership (N:M `membership_id ↔ role_id`) |
 | `school_invitations` | Convites institucionais com `token_hash` SHA-256, expiração e auditoria |
 
+## Tabelas novas (Ciclo 55 — Estados académicos)
+
+| Tabela | Propósito |
+| --- | --- |
+| `student_status_history` | Auditoria append-only de transições de estado do aluno (candidato → activo → transferido/etc.), com motivo e responsável |
+| `student_academic_history` | Histórico escolar anterior (ano, classe, escola de proveniência, média, desfecho) usado pelo importador `historico_academico` |
+
+---
+
 ### Funções de segurança (RLS helpers)
 
 | Função | Descrição |
@@ -66,7 +75,7 @@ Adicionadas em `APPLY_ENROLLMENT_AND_PREMIUM.sql` como parte da arquitectura glo
 | `school_memberships_user_status_idx` | `school_memberships` | `(user_id, status)` |
 | `member_roles_membership_role_idx` | `member_roles` | `(membership_id, role_id)` |
 | `school_invitations_school_created_desc_idx` | `school_invitations` | `(school_id, created_at DESC)` WHERE `status = 'pending'` |
-| `announcements_school_created_desc_idx` | `announcements` | `(school_id, created_at DESC)` |
+| `school_announcements_school_recent_idx` | `school_announcements` | `(school_id, created_at DESC)` WHERE `deleted_at IS NULL` |
 | `siga_files_school_created_desc_idx` | `siga_files` | `(school_id, created_at DESC)` WHERE `deleted_at IS NULL` |
 | `roles_school_code_idx` | `roles` | `(school_id, code)` |
 
@@ -127,6 +136,7 @@ em ambientes novos — só fecha buracos.
 | Mensagens só neste dispositivo | 2 |
 | Erro «school_memberships not found» em Acessos | 2 |
 | Painel de convites vazio / erro 42P01 | 2 (school_invitations) |
+| Histórico de estados do aluno vazio / erro 42P01 | 2 (`student_status_history`) |
 | Wizard WEB falha ao criar tenant | 3 |
 | ADMIN sem tenants / 401 em `/api/saas/me` | 3 + `platform_admins` |
 | Webhooks gateway sem histórico | 1 (`finance_gateway_webhook_events`) |

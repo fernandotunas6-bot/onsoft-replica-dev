@@ -890,7 +890,7 @@ export function FileBrowser({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft"
+      className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-card"
       onDragEnter={(event) => {
         if (!canUpload) return;
         event.preventDefault();

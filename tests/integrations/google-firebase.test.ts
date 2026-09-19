@@ -53,8 +53,8 @@ describe("Google Workspace & Firebase Integrations", () => {
   });
 
   it("initializes Firebase config matching firebase-applet-config.json", () => {
-    expect(defaultFirebaseConfig.projectId).toBe("gen-lang-client-0509105360");
-    expect(defaultFirebaseConfig.apiKey).toBeDefined();
+    expect(defaultFirebaseConfig.projectId).toBe("siga-plus-3ba9c");
+    expect(defaultFirebaseConfig.apiKey).toBe("AIzaSyCLOIqKSrOru6yTCf7uK-LI0OWZbG_QZws");
     expect(defaultFirebaseConfig.authDomain).toContain("firebaseapp.com");
 
     const app = getFirebaseApp();

@@ -87,7 +87,7 @@ export function LandingFooter() {
               </a>
             </div>
             <p className="text-muted-foreground mb-6 max-lg:text-center max-lg:flex max-lg:justify-center">
-              Plataforma de gestão escolar para Angola. WEB vende, ADMIN controla, SIGA trabalha, DOC explica.
+              Plataforma de gestão escolar para Angola. WEB vende, ADMIN controla, SIGA trabalha, PayFlow cobra, DOC explica.
             </p>
             <div className="flex space-x-4 max-lg:justify-center">
               {socialLinks.map((social) => (
@@ -185,13 +185,13 @@ export function LandingFooter() {
             <span>© {new Date().getFullYear()} para escolas em Angola</span>
           </div>
           <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-4 md:mt-0">
-            <a href="#privacy" className="hover:text-foreground transition-colors duration-100">
+            <a href="/privacidade" className="hover:text-foreground transition-colors duration-100">
               Privacidade
             </a>
-            <a href="#terms" className="hover:text-foreground transition-colors duration-100">
+            <a href="/termos" className="hover:text-foreground transition-colors duration-100">
               Termos de serviço
             </a>
-            <a href="#cookies" className="hover:text-foreground transition-colors duration-100">
+            <a href="/privacidade#cookies" className="hover:text-foreground transition-colors duration-100">
               Cookies
             </a>
           </div>

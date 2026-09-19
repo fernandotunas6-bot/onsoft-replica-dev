@@ -3,6 +3,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarConfigProvider } from '@/contexts/sidebar-context'
 import { LanguageProvider } from '@/contexts/language-context'
 import { AppRouter } from '@/components/router/app-router'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { useEffect } from 'react'
 import { initGTM } from '@/utils/analytics'
 
@@ -17,15 +18,17 @@ function App() {
 
   return (
     <div className="font-sans antialiased" style={{ fontFamily: 'var(--font-inter)' }}>
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-        <LanguageProvider>
-          <SidebarConfigProvider>
-            <Router basename={basename}>
-              <AppRouter />
-            </Router>
-          </SidebarConfigProvider>
-        </LanguageProvider>
-      </ThemeProvider>
+      <ErrorBoundary>
+        <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+          <LanguageProvider>
+            <SidebarConfigProvider>
+              <Router basename={basename}>
+                <AppRouter />
+              </Router>
+            </SidebarConfigProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
     </div>
   )
 }

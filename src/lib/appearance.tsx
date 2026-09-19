@@ -9,14 +9,23 @@ import {
 } from "react";
 import { colorThemes, tweakcnThemes } from "@/config/theme-data";
 import type { ImportedTheme, ThemePreset } from "@/types/theme-customizer";
+import { brandHexToCssVars, type SchoolBrandColors } from "@/lib/brand-tokens";
 
 /**
  * Aparência e personalização visual completa do SIGA.
  * Suporta modo, presets nativos SIGA, temas Shadcn, temas Tweakcn,
- * cores da marca customizadas e importação de CSS.
+ * cores da marca customizadas, branding institucional da escola e importação de CSS.
  */
 
 export type ThemeMode = "light" | "dark" | "system";
+
+export type UiDensity = "compact" | "comfortable" | "spacious";
+
+export const densityPresets: Array<{ id: UiDensity; label: string; hint: string }> = [
+  { id: "compact", label: "Compacta", hint: "Mais linhas nas tabelas e menos espaço" },
+  { id: "comfortable", label: "Confortável", hint: "Equilíbrio para uso diário" },
+  { id: "spacious", label: "Ampla", hint: "Mais espaço e toques maiores" },
+];
 
 export type AccentPreset = {
   id: string;
@@ -139,6 +148,7 @@ export type AppearanceState = {
   accent: string;
   sidebar: string;
   radius: number;
+  density: UiDensity;
   /** Tema Shadcn ativo (ex: 'blue', 'green', ou vazio se usa SIGA nativo) */
   shadcnTheme?: string;
   /** Tema Tweakcn ativo (ex: 'modern-minimal', 'neon', ou vazio) */
@@ -147,6 +157,15 @@ export type AppearanceState = {
   importedTheme?: ImportedTheme | null;
   /** Sobrescritas manuais de variáveis de cor da marca */
   customVars?: Record<string, string>;
+  /**
+   * Cores institucionais da escola (não persistidas em localStorage —
+   * injectadas a partir de `school_branding`).
+   */
+  schoolBrand?: SchoolBrandColors | null;
+  /**
+   * Quando true, os presets pessoais do dispositivo prevalecem sobre a marca da escola.
+   */
+  preferPersonalAccent?: boolean;
 };
 
 const STORAGE_KEY = "siga:appearance";
@@ -156,10 +175,13 @@ const defaults: AppearanceState = {
   accent: "violeta",
   sidebar: "tinta",
   radius: 0.875,
+  density: "comfortable",
   shadcnTheme: "",
   tweakcnTheme: "",
   importedTheme: null,
   customVars: {},
+  schoolBrand: null,
+  preferPersonalAccent: false,
 };
 
 function accentById(id: string) {
@@ -282,7 +304,17 @@ export function applyAppearance(state: AppearanceState) {
     });
   }
 
-  // 5. Sobrescrita de variáveis manuais (Custom Brand Colors)
+  // 5. Marca institucional da escola (se o utilizador não preferiu accent pessoal
+  //    e não há tema Shadcn/Tweakcn/importado activo).
+  const hasExternalTheme = Boolean(state.shadcnTheme || state.tweakcnTheme || state.importedTheme);
+  if (state.schoolBrand?.primary && !state.preferPersonalAccent && !hasExternalTheme) {
+    Object.assign(
+      vars,
+      brandHexToCssVars(state.schoolBrand.primary, state.schoolBrand.secondary, dark),
+    );
+  }
+
+  // 6. Sobrescrita de variáveis manuais (Custom Brand Colors)
   if (state.customVars && Object.keys(state.customVars).length > 0) {
     Object.entries(state.customVars).forEach(([k, v]) => {
       if (v) vars[k.startsWith("--") ? k : `--${k}`] = v;
@@ -296,8 +328,13 @@ export function applyAppearance(state: AppearanceState) {
     root.style.setProperty(key, value);
   }
 
-  root.dataset["accent"] = state.accent;
+  root.dataset["accent"] = state.preferPersonalAccent
+    ? state.accent
+    : state.schoolBrand?.primary
+      ? "school"
+      : state.accent;
   root.dataset["sidebarTheme"] = state.sidebar;
+  root.dataset["density"] = state.density ?? "comfortable";
 }
 
 type AppearanceContextValue = {
@@ -329,7 +366,8 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     applyAppearance(state);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const { schoolBrand: _schoolBrand, ...persistable } = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
     } catch {
       /* sem armazenamento disponível */
     }
@@ -389,6 +427,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       tweakcnTheme: "",
       importedTheme: null,
       customVars: {},
+      preferPersonalAccent: true,
     }));
   }, []);
 
@@ -399,6 +438,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       shadcnTheme: "",
       importedTheme: null,
       customVars: {},
+      preferPersonalAccent: true,
     }));
   }, []);
 
@@ -409,6 +449,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       shadcnTheme: "",
       tweakcnTheme: "",
       customVars: {},
+      preferPersonalAccent: true,
     }));
   }, []);
 

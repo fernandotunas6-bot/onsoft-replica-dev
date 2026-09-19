@@ -115,17 +115,29 @@ export async function persistPollResult(domainId: string, result: PollResult): P
     .select("tenant_id")
     .maybeSingle();
 
-  // Actualizar tenant_provisioning.dns_status se existir
+  // Reflectir o resultado em `tenant_provisioning`. Duas correcções a 2026-09-16: a coluna
+  // é `domain_status`, não `dns_status`, e a tabela é indexada por `school_id` — não tem
+  // `tenant_id`. O domínio conhece o tenant; a escola é que faz a ponte
+  // (`tenant_domains.tenant_id` → `schools.tenant_id` → `schools.id`). Enquanto isto esteve
+  // errado, o estado do domínio nunca chegou ao painel de aprovisionamento.
   if (domain?.tenant_id) {
-    const dnsStatus =
+    const domainStatus =
       result.status === "active" ? "verified" : result.status === "failed" ? "failed" : "pending";
 
-    await db
-      .from("tenant_provisioning")
-      .update({
-        dns_status: dnsStatus,
-        updated_at: result.checkedAt,
-      })
-      .eq("tenant_id", domain.tenant_id as string);
+    const { data: school } = await db
+      .from("schools")
+      .select("id")
+      .eq("tenant_id", domain.tenant_id as string)
+      .maybeSingle();
+
+    if (school?.id) {
+      await db
+        .from("tenant_provisioning")
+        .update({
+          domain_status: domainStatus,
+          updated_at: result.checkedAt,
+        })
+        .eq("school_id", school.id as string);
+    }
   }
 }

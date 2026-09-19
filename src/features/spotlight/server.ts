@@ -6,6 +6,8 @@ import {
   requireSgaWriter,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { spotlightCatalog } from "./catalog";
 import {
   applySpotlightOverrides,
@@ -15,8 +17,21 @@ import {
 
 const DOMAIN = "spotlight";
 
+/**
+ * Leitura com o cliente do utilizador — segunda fatia do ARQ-01.
+ *
+ * `school_settings` tem, para `authenticated`, a política `settings_select_member`
+ * com `USING private.is_active_member(school_id)`: cobre esta leitura, que já
+ * era filtrada pela escola da membership. Verificado na produção a 2026-09-14
+ * com `npm run siga:rls-readiness`.
+ *
+ * A **escrita** continua com o service role, e isso é deliberado: a tabela não
+ * tem política de UPDATE nenhuma, e a de INSERT exige `private.is_aal2()` — ou
+ * seja, sessão com segundo factor. Migrar a escrita sem resolver isso faria
+ * «Guardar destaques» falhar em silêncio, com zero linhas afectadas e sem erro.
+ */
 async function readOverrides(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  db: SupabaseClient<Database>,
   schoolId: string,
 ): Promise<SpotlightOverrides> {
   const { data, error } = await db
@@ -39,8 +54,7 @@ export const listSpotlightConfig = createServerFn({ method: "GET" })
     if (!context) throw new Error("Unauthorized");
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) return applySpotlightOverrides(spotlightCatalog, { items: {}, extras: [] });
-    const db = await loadSgaAdminClient();
-    const overrides = await readOverrides(db, membership.schoolId);
+    const overrides = await readOverrides(context.supabase, membership.schoolId);
     return applySpotlightOverrides(spotlightCatalog, overrides);
   });
 

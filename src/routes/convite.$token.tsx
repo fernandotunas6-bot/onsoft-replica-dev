@@ -8,6 +8,7 @@ import { acceptSchoolInvitation } from "@/features/access/server";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useAuthSession } from "@/components/auth/AuthGate";
 
+// style-check: route-exempt - formulário público de aceitação de convite institucional.
 export const Route = createFileRoute("/convite/$token")({
   head: () => ({
     meta: [
@@ -78,7 +79,7 @@ function AcceptInvitePage() {
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10">
             {status === "success" ? (
-              <CheckCircle2 className="size-7 text-emerald-600" />
+              <CheckCircle2 className="size-7 text-success" />
             ) : status === "error" ? (
               <AlertTriangle className="size-7 text-destructive" />
             ) : (

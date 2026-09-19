@@ -1,4 +1,5 @@
 import { getPrintTemplate, listPrintTemplates } from "@/features/documents/server";
+import { getSchoolSettings } from "@/features/school/server";
 import {
   buildIssuePayload,
   isPrintTemplateKey,
@@ -35,6 +36,36 @@ export function mergePrintPayload(
   return next;
 }
 
+/** Preenche a identidade da escola a partir das definições reais.
+ *
+ * Vários chamadores só passam `{ name, academicYear }`, e o resto caía nos valores
+ * de demonstração do payload — documentos oficiais saíam com "NIF 5000000000" e
+ * "Luanda, Angola" impressos. O que o chamador indica continua a mandar; as
+ * definições só tapam o que ficou por preencher.
+ */
+async function resolveIssuingSchool(school: PrintSchoolContext): Promise<PrintSchoolContext> {
+  try {
+    const settings = await getSchoolSettings();
+    const pick = (given: string | null | undefined, stored: string | null | undefined) =>
+      given?.toString().trim() || stored || undefined;
+    return {
+      ...school,
+      name: pick(school.name, settings.name) ?? school.name,
+      nif: pick(school.nif, settings.nif),
+      phone: pick(school.phone, settings.phone),
+      email: pick(school.email, settings.email),
+      address: pick(school.address, settings.address),
+      directorName: pick(school.directorName, settings.director_name),
+      academicYear: pick(school.academicYear, settings.academic_year),
+      logoUrl: pick(school.logoUrl, settings.branding?.logo_url),
+      schoolType: settings.institution?.school_type ?? null,
+    };
+  } catch {
+    // Sem definições acessíveis, imprime-se com o que o chamador deu.
+    return school;
+  }
+}
+
 export async function issuePrintDocument(input: {
   tipo: string;
   school: PrintSchoolContext;
@@ -43,19 +74,22 @@ export async function issuePrintDocument(input: {
   fallback?: () => void;
 }) {
   try {
-    const catalog = await listPrintTemplates();
+    const [catalog, school] = await Promise.all([
+      listPrintTemplates(),
+      resolveIssuingSchool(input.school),
+    ]);
     const key = matchPrintTemplateKey(input.tipo, {
       ...(catalog.issue ? { issue: catalog.issue } : {}),
       byType: catalog.byType,
     });
     const template = await getPrintTemplate({ data: { key } });
     const student = input.student ?? {
-      fullName: input.school.name || "Escola SIGA",
+      fullName: school.name || "Escola SIGA",
       academicNumber: "—",
       documentTitle: input.tipo,
     };
     const payload = mergePrintPayload(
-      buildIssuePayload(input.school, student, template.css),
+      buildIssuePayload(school, student, template.css),
       input.overlay ?? {},
     );
     printOfficialHtml(renderHandlebars(template.source, payload));

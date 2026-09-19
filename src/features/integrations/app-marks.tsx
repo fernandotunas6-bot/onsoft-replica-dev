@@ -1,5 +1,6 @@
 import type { ElementType } from "react";
 import {
+  Activity,
   BookOpen,
   CalendarDays,
   FileText,
@@ -7,8 +8,11 @@ import {
   FolderOpen,
   GraduationCap,
   KeyRound,
+  Landmark,
   LayoutGrid,
+  Mail,
   Megaphone,
+  Network,
   NotebookPen,
   PieChart,
   QrCode,
@@ -17,6 +21,7 @@ import {
   UserCog,
   UserPlus,
   Wallet,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MediaFrame } from "@/components/ui/media-frame";
@@ -37,33 +42,42 @@ const brandLogos: Record<string, { src: string; label: string; bleed?: boolean }
   canvas: { src: "/brands/canvas-color.svg", label: "Canvas LMS", bleed: true },
   multicaixa_express: { src: "/brands/multicaixa.svg", label: "Multicaixa Express", bleed: true },
   unitel_money: { src: "/brands/unitel.svg", label: "Unitel Money", bleed: true },
-  gmail_workspace: { src: "/brands/gmail.png", label: "Gmail Workspace" },
-  firebase_analytics: { src: "/brands/firebase.png", label: "Firebase & Crashlytics" },
-  sige: { src: "/brands/sige.png", label: "SIGE" },
   agt: { src: "/brands/agt.svg", label: "AGT", bleed: true },
 };
 
-export const brandedLauncherIds = Object.keys(brandLogos);
-
 type SigaMark = { icon: ElementType; tone: ChipTone; label: string };
 
-/** Ícones premium dos módulos internos SIGA (launcher e atalhos). */
+// Integrações sem ficheiro de logótipo próprio: ícone + chip de cor, no
+// mesmo padrão dos módulos internos do SIGA (sigaModuleMarks) em vez de
+// tentar carregar um ficheiro de marca que não existe em public/brands/.
+const genericIntegrationMarks: Record<string, SigaMark> = {
+  gmail_workspace: { icon: Mail, tone: "info", label: "Gmail Workspace" },
+  firebase_analytics: { icon: Activity, tone: "warning", label: "Firebase & Crashlytics" },
+  sige: { icon: Landmark, tone: "muted", label: "SIGE" },
+};
+
+// Toda a integração com algum mark configurado — logótipo próprio ou o
+// ícone/chip genérico acima. Usado só para garantir (em teste) que nenhuma
+// integração do catálogo fica sem representação visual.
+export const brandedLauncherIds = [
+  ...Object.keys(brandLogos),
+  ...Object.keys(genericIntegrationMarks),
+];
+
 export const sigaModuleMarks: Record<string, SigaMark> = {
   "siga-dashboard": { icon: LayoutGrid, tone: "primary", label: "Início" },
   "siga-alunos": { icon: GraduationCap, tone: "primary", label: "Alunos" },
+  "siga-alumni": { icon: Network, tone: "success", label: "Alumni" },
   "siga-pedagogica": { icon: BookOpen, tone: "info", label: "Pedagógica" },
   "siga-calendario": { icon: CalendarDays, tone: "info", label: "Calendário" },
   "siga-financeiro": { icon: Wallet, tone: "warning", label: "Tesouraria" },
+  "siga-rh": { icon: BriefcaseBusiness, tone: "info", label: "RH e Folha" },
   "siga-faturas": { icon: Receipt, tone: "warning", label: "Faturas" },
   "siga-documentos": { icon: FileText, tone: "primary", label: "Documentos" },
   "siga-arquivos": { icon: FolderOpen, tone: "muted", label: "Arquivos" },
   "siga-comunicacoes": { icon: Megaphone, tone: "info", label: "Comunicados" },
   "siga-pessoas": { icon: UserCog, tone: "primary", label: "Pessoas" },
-  "siga-relatorios-academicos": {
-    icon: PieChart,
-    tone: "success",
-    label: "Relatórios académicos",
-  },
+  "siga-relatorios-academicos": { icon: PieChart, tone: "success", label: "Relatórios académicos" },
   "siga-relatorios-financeiros": {
     icon: TrendingUp,
     tone: "success",
@@ -117,11 +131,7 @@ export function AppMark({ id, className }: { id: string; className?: string }) {
       />
     );
   }
-
-  const siga = sigaModuleMarks[id];
-  if (siga) {
-    return <PremiumIconMark {...siga} className={className} />;
-  }
-
+  const siga = sigaModuleMarks[id] ?? genericIntegrationMarks[id];
+  if (siga) return <PremiumIconMark {...siga} className={className} />;
   return <PremiumIconMark icon={LayoutGrid} tone="muted" label="SIGA" className={className} />;
 }

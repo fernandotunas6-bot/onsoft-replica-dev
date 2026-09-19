@@ -1,16 +1,53 @@
 import { z } from "zod";
 import { personCoreFieldsSchema } from "@/features/people/schemas";
 
-export const studentStatusOptions = ["active", "inactive", "transferred", "graduated"] as const;
+export const studentStatusOptions = [
+  "active",
+  "inactive",
+  "transferred",
+  "graduated",
+  "applicant",
+  "cancelled",
+  "suspended",
+  "locked",
+] as const;
 
 export const searchStudentsInputSchema = z.object({
   query: z.string().trim().optional(),
   limit: z.number().int().min(1).max(1000).default(25),
   offset: z.number().int().min(0).default(0),
+  academicYearId: z.string().uuid().optional(),
+  classGroupId: z.string().uuid().optional(),
+  status: z.string().trim().optional(),
+  paymentStatus: z.string().trim().optional(),
+  quickFilter: z.string().trim().optional(),
 });
 export type SearchStudentsInput = z.infer<typeof searchStudentsInputSchema>;
 
 export const getStudentInputSchema = z.object({ id: z.string().uuid() });
+
+export const getStudentStatusHistoryInputSchema = z.object({
+  studentId: z.string().uuid(),
+});
+export type GetStudentStatusHistoryInput = z.infer<typeof getStudentStatusHistoryInputSchema>;
+
+export const batchAssignClassInputSchema = z.object({
+  studentIds: z.array(z.string().uuid()).min(1).max(100),
+  classGroupId: z.string().uuid(),
+  academicYearId: z.string().uuid(),
+});
+export type BatchAssignClassInput = z.infer<typeof batchAssignClassInputSchema>;
+
+export const batchUpdateStudentStatusInputSchema = z.object({
+  studentIds: z.array(z.string().uuid()).min(1).max(100),
+  newStatus: z.enum(studentStatusOptions),
+  reason: z
+    .string()
+    .trim()
+    .transform((value) => (value.length === 0 ? undefined : value))
+    .optional(),
+});
+export type BatchUpdateStudentStatusInput = z.infer<typeof batchUpdateStudentStatusInputSchema>;
 
 const optionalText = z
   .string()
@@ -62,7 +99,9 @@ export type CreateStudentInput = z.infer<typeof createStudentInputSchema>;
 
 export const enrollNewStudentInputSchema = z.object({
   person: personCoreFieldsSchema,
-  registrationNumber: z.string().trim().min(1, "Número de processo é obrigatório"),
+  // Não persistido: o nº do aluno (EST-######) é gerado pela sequência própria
+  // do RPC `register_student`. Mantido opcional só por compatibilidade de tipos.
+  registrationNumber: optionalText,
   classGroupId: z.string().uuid().optional(),
   academicYearId: z.string().uuid().optional(),
   admittedOn: optionalText,
@@ -84,6 +123,9 @@ export const updateStudentProfileInputSchema = z.object({
   fullName: z.string().trim().min(2).max(160),
   email: z.union([z.literal(""), z.string().trim().email()]).optional(),
   phone: optionalText,
+  province: optionalText,
+  municipality: optionalText,
+  commune: optionalText,
   address: optionalText,
 });
 

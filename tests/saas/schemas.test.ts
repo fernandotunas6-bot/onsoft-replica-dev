@@ -15,6 +15,7 @@ describe("SaaS Control Center schemas", () => {
   it("validates a complete school wizard payload", () => {
     const parsed = createSchoolWizardInputSchema.parse({
       name: "Colégio Horizonte",
+      nif: "5417000000",
       contact_name: "Dr. Manuel K.",
       contact_email: "direcao@horizonte.co.ao",
       plan_code: "professional",
@@ -31,6 +32,7 @@ describe("SaaS Control Center schemas", () => {
     expect(() =>
       createSchoolWizardInputSchema.parse({
         name: "Colégio Horizonte",
+        nif: "5417000000",
         contact_name: "Dr. Manuel K.",
         contact_email: "direcao@horizonte.co.ao",
         plan_code: "professional",
@@ -46,6 +48,7 @@ describe("SaaS Control Center schemas", () => {
       expect(() =>
         createSchoolWizardInputSchema.parse({
           name: "Colégio Teste",
+          nif: "5417000000",
           contact_name: "Responsável",
           contact_email: "teste@escola.ao",
           plan_code: "start",
@@ -61,6 +64,7 @@ describe("SaaS Control Center schemas", () => {
     expect(() =>
       createSchoolWizardInputSchema.parse({
         name: "Colégio Horizonte",
+        nif: "5417000000",
         contact_name: "Dr. Manuel K.",
         contact_email: "direcao@horizonte.co.ao",
         plan_code: "professional",
@@ -137,26 +141,61 @@ describe("SaaS Control Center schemas", () => {
   it("accepts a public signup payload without trial_days", () => {
     const parsed = publicSchoolSignupInputSchema.parse({
       name: "Colégio Horizonte",
+      nif: "5417000000",
       contact_name: "Dr. Manuel K.",
       contact_email: "direcao@horizonte.co.ao",
       plan_code: "start",
       slug: "horizonte",
       admin_name: "Dr. Manuel K.",
       admin_email: "direcao@horizonte.co.ao",
+      admin_password: "senha-forte-123",
     });
     expect(parsed).not.toHaveProperty("trial_days");
   });
 
-  it("rejects a public signup payload with the honeypot field filled", () => {
+  it("rejects a public signup payload without admin_password", () => {
     expect(() =>
       publicSchoolSignupInputSchema.parse({
         name: "Colégio Horizonte",
+        nif: "5417000000",
         contact_name: "Dr. Manuel K.",
         contact_email: "direcao@horizonte.co.ao",
         plan_code: "start",
         slug: "horizonte",
         admin_name: "Dr. Manuel K.",
         admin_email: "direcao@horizonte.co.ao",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a public signup payload with a short admin_password", () => {
+    expect(() =>
+      publicSchoolSignupInputSchema.parse({
+        name: "Colégio Horizonte",
+        nif: "5417000000",
+        contact_name: "Dr. Manuel K.",
+        contact_email: "direcao@horizonte.co.ao",
+        plan_code: "start",
+        slug: "horizonte",
+        admin_name: "Dr. Manuel K.",
+        admin_email: "direcao@horizonte.co.ao",
+        admin_password: "curta",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a public signup payload with the honeypot field filled", () => {
+    expect(() =>
+      publicSchoolSignupInputSchema.parse({
+        name: "Colégio Horizonte",
+        nif: "5417000000",
+        contact_name: "Dr. Manuel K.",
+        contact_email: "direcao@horizonte.co.ao",
+        plan_code: "start",
+        slug: "horizonte",
+        admin_name: "Dr. Manuel K.",
+        admin_email: "direcao@horizonte.co.ao",
+        admin_password: "senha-forte-123",
         website: "http://bot-filled-this.example",
       }),
     ).toThrow();

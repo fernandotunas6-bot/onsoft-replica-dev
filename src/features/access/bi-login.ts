@@ -35,22 +35,14 @@ export async function resolveBiOrEmailToUserEmail(identifier: string): Promise<s
     return person.email;
   }
 
-  if (person?.user_id) {
-    const { data: profile } = await db
-      .from("profiles")
-      .select("email")
-      .eq("id", person.user_id)
-      .limit(1)
-      .maybeSingle();
+  // Havia aqui um segundo ramo que lia `profiles.email` quando a pessoa tinha
+  // `user_id`. `profiles` não tem coluna `email`, pelo que o PostgREST recusava
+  // a consulta e o ramo nunca devolvia nada — o e-mail já vinha de `people`,
+  // acima.
 
-    if (profile?.email && profile.email.includes("@")) {
-      return profile.email;
-    }
-  }
-
-  // Fallback: search profile phone
+  // Fallback por telefone, também em `people` e pela mesma razão.
   const { data: profileByPhone } = await db
-    .from("profiles")
+    .from("people")
     .select("email")
     .eq("phone", searchId)
     .limit(1)

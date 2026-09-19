@@ -3,13 +3,14 @@
  * Utiliza o ficheiro vetorial oficial do Estado Angolano (/brands/emblem-angola.svg).
  */
 
+import { MediaFrame } from "@/components/ui/media-frame";
+
 export function AngolaEmblem({ className = "size-16" }: { className?: string }) {
   return (
-    <img
+    <MediaFrame
       src="/brands/emblem-angola.svg"
       alt="Emblema da República de Angola"
       className={className}
-      loading="eager"
     />
   );
 }

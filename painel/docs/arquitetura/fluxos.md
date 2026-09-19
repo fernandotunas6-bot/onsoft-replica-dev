@@ -148,7 +148,7 @@ API: `GET /api/saas/subscriptions`, `POST /api/saas/subscriptions/backfill` (esc
 
 ```sh
 npm run dev:ecosystem    # SIGA :3006 · WEB :5174 · ADMIN :3005 · DOC :5173
-npm run siga:e2e-smoke   # smoke HTTP das 4 apps + lookup + domains/verify
+npm run siga:e2e-smoke   # smoke HTTP das 5 apps + lookup + domains/verify
 npm run siga:e2e-live    # provisionamento real (secrets Supabase)
 ```
 

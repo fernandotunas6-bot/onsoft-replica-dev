@@ -1,12 +1,22 @@
 name: CI
 
 on:
+  # Só push em main: em feature branches o mesmo trabalho já corre via pull_request
+  # (evita double-run e minutos duplicados no plano Free).
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
   schedule:
     # Scan de segurança semanal (segundas, 04:00 UTC)
     - cron: "0 4 * * 1"
+
+# Fonte única da porta do servidor de desenvolvimento no CI. `bun run dev` fixa
+# 3006 (package.json); a porta 8080 só existe dentro do sandbox do Lovable, que
+# a força quando `LOVABLE_SANDBOX` está definida — variável que o CI não define.
+# Enquanto as sondas inquiriam 8080, esperavam 120 s sem nunca confirmar nada e
+# seguiam na mesma. Os scripts Python já liam BASE_URL; agora é explícita.
+env:
+  BASE_URL: http://localhost:3006
 
 jobs:
   security:
@@ -54,10 +64,12 @@ jobs:
 
       - name: Checklist de estilo (IconChip / MediaFrame / paleta)
         env:
-          STYLE_CHECK_CHANGED_FROM: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+          STYLE_CHECK_CHANGED_FROM: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}
         run: bun run check:style
 
       - name: Verificação de acessibilidade (contraste, foco, labels)
+        env:
+          STYLE_CHECK_CHANGED_FROM: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}
         run: bun run check:a11y:report
 
       - name: Publicar relatório HTML de acessibilidade
@@ -67,6 +79,10 @@ jobs:
           name: a11y-report
           path: reports/a11y.html
 
+      # Sem `continue-on-error`: o lint voltou a ser um gate a sério. Estava
+      # desligado porque rebentava (`RangeError: Invalid string length`) com
+      # o volume de erros de formatação — agora corre a zero erros e só deixa
+      # avisos, por isso uma regressão real (ex.: rules-of-hooks) falha aqui.
       - name: Lint
         run: bun run lint
 
@@ -103,7 +119,12 @@ jobs:
       - name: Arrancar servidor de desenvolvimento
         run: |
           bun run dev &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null "$BASE_URL/" && echo "servidor pronto em $BASE_URL" && exit 0
+            sleep 2
+          done
+          echo "::error::servidor não respondeu em $BASE_URL após 120s"
+          exit 1
 
       - name: Resumo de cobertura de estilo por rota
         run: python scripts/style-coverage.py
@@ -175,7 +196,12 @@ jobs:
       - name: Arrancar servidor de desenvolvimento
         run: |
           bun run dev &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 2; done
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null "$BASE_URL/" && echo "servidor pronto em $BASE_URL" && exit 0
+            sleep 2
+          done
+          echo "::error::servidor não respondeu em $BASE_URL após 120s"
+          exit 1
 
       - name: Comparar screenshots com as baselines
         run: python scripts/visual-regression.py

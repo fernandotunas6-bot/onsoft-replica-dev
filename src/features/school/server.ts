@@ -6,7 +6,7 @@ import {
   requireSgaWriter,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
-import { schoolSettingDefaults } from "@/lib/school-config";
+import { isSchoolTypeId, schoolSettingDefaults } from "@/lib/school-config";
 import {
   pedagogySettingsSchema,
   setTermLockInputSchema,
@@ -76,7 +76,7 @@ async function upsertSettingDomain(
   return data;
 }
 
-async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
+export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
   const { data: school, error } = await db
     .from("schools")
     .select(
@@ -94,6 +94,7 @@ async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
     billingSettings,
     pedagogySettings,
     brandingSettings,
+    institutionSettings,
     bankingSettings,
     agtSettings,
   ] = await Promise.all([
@@ -109,16 +110,30 @@ async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
     readSettingDomain(db, schoolId, "billing"),
     readSettingDomain(db, schoolId, "pedagogy"),
     readSettingDomain(db, schoolId, "branding"),
+    readSettingDomain(db, schoolId, "institution"),
     readSettingDomain(db, schoolId, "banking"),
     readSettingDomain(db, schoolId, "agt"),
   ]);
+
+  const brandingTableResult = await db
+    .from("school_branding")
+    .select("primary_color, secondary_color, portal_title, logo_url")
+    .eq("school_id", schoolId)
+    .maybeSingle();
+  const schoolBrandingRow = brandingTableResult.error ? null : brandingTableResult.data;
 
   const academicValue = (academicSettings?.value ?? {}) as JsonMap;
   const preferencesValue = (preferenceSettings?.value ?? {}) as JsonMap;
   const billingValue = (billingSettings?.value ?? {}) as JsonMap;
   const brandingValue = (brandingSettings?.value ?? {}) as JsonMap;
+  const institutionValue = (institutionSettings?.value ?? {}) as JsonMap;
   const bankingValue = (bankingSettings?.value ?? {}) as JsonMap;
   const agtValue = (agtSettings?.value ?? {}) as JsonMap;
+
+  const brandingLogoFromSettings =
+    typeof brandingValue["logo_url"] === "string" ? brandingValue["logo_url"] : null;
+  const brandingLogoFromTable =
+    typeof schoolBrandingRow?.logo_url === "string" ? schoolBrandingRow.logo_url : null;
 
   return {
     id: school.id as string,
@@ -155,8 +170,26 @@ async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
       sibling_discount_percent: Number(billingValue["sibling_discount_percent"] ?? 10),
       version: Number(billingSettings?.version ?? 1),
     },
+    institution: {
+      school_type: isSchoolTypeId(institutionValue["school_type"])
+        ? institutionValue["school_type"]
+        : null,
+      philosophy:
+        typeof institutionValue["philosophy"] === "string" ? institutionValue["philosophy"] : null,
+    },
     branding: {
-      logo_url: typeof brandingValue["logo_url"] === "string" ? brandingValue["logo_url"] : null,
+      logo_url: brandingLogoFromSettings || brandingLogoFromTable,
+      motto: typeof brandingValue["motto"] === "string" ? brandingValue["motto"] : null,
+      primary_color:
+        typeof schoolBrandingRow?.primary_color === "string"
+          ? schoolBrandingRow.primary_color
+          : null,
+      secondary_color:
+        typeof schoolBrandingRow?.secondary_color === "string"
+          ? schoolBrandingRow.secondary_color
+          : null,
+      portal_title:
+        typeof schoolBrandingRow?.portal_title === "string" ? schoolBrandingRow.portal_title : null,
     },
     banking: {
       bank_name: typeof bankingValue["bank_name"] === "string" ? bankingValue["bank_name"] : "",
@@ -219,6 +252,40 @@ export const listAcademicYears = createServerFn({ method: "GET" })
     }));
   });
 
+export const listAcademicTerms = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) return [];
+    const db = await loadSgaAdminClient();
+    const { data, error } = await db
+      .from("terms")
+      .select("id, name, sequence, starts_on, ends_on, academic_year_id")
+      .eq("school_id", membership.schoolId)
+      .order("sequence", { ascending: true });
+    if (error) {
+      // Tabela em falta / RLS: o selector de período fica vazio sem quebrar o shell.
+      return [];
+    }
+    return (data ?? []).map(
+      (term: {
+        id: string;
+        name: string;
+        sequence: number | null;
+        starts_on: string;
+        ends_on: string;
+        academic_year_id: string;
+      }) => ({
+        id: String(term.id),
+        name: String(term.name),
+        sequence: Number(term.sequence ?? 0),
+        starts_on: String(term.starts_on),
+        ends_on: String(term.ends_on),
+        academic_year_id: String(term.academic_year_id),
+      }),
+    );
+  });
+
 export const updateSchoolSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateSchoolSettingsInputSchema.parse(input))
@@ -236,6 +303,11 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
         email: data.email,
         address: data.address,
         currency_code: data.currency,
+        // `evaluation_periods` NÃO é escrito aqui: a coluna só existe na
+        // migração 20260810130207, que nunca entrou nos APPLY_*.sql canónicos
+        // nem no SGA — o UPDATE falhava com PGRST204 e partia o guardar inteiro
+        // das definições da escola. O valor é persistido (e lido de volta por
+        // loadSchoolSettingsBundle) em school_settings/academic, logo abaixo.
       })
       .eq("id", membership.schoolId)
       .select("id")
@@ -266,7 +338,14 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
       db,
       membership.schoolId,
       "branding",
-      { logo_url: data.logoUrl?.trim() || null },
+      { logo_url: data.logoUrl?.trim() || null, motto: data.motto?.trim() || null },
+      context.userId,
+    );
+    await upsertSettingDomain(
+      db,
+      membership.schoolId,
+      "institution",
+      { school_type: data.schoolType ?? null, philosophy: data.philosophy?.trim() || null },
       context.userId,
     );
 

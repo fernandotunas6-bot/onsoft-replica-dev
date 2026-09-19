@@ -79,3 +79,46 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(staleWhileRevalidate(CACHES.fonts, request));
   }
 });
+
+/* Suporte a notificações Push para Android, Web e PWA */
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+
+  const title = data.notification?.title || data.title || "SIGA Plus";
+  const options = {
+    body: data.notification?.body || data.body || "Nova notificação da instituição de ensino",
+    icon: data.notification?.icon || "/favicon.png",
+    badge: "/favicon.png",
+    vibrate: [200, 100, 200],
+    tag: data.data?.tag || data.tag || "siga-alert",
+    data: {
+      url: data.data?.url || data.data?.click_action || data.url || "/",
+      ...data.data,
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(targetUrl) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    }),
+  );
+});

@@ -4,6 +4,7 @@
  */
 const targets = [
   { label: "SIGA", url: "http://localhost:3006/", ok: [200, 302] },
+  { label: "PAYFLOW", url: "http://localhost:3007/", ok: [200, 302, 307] },
   { label: "WEB", url: "http://localhost:5174/", ok: [200] },
   { label: "ADMIN", url: "http://localhost:3005/", ok: [200, 307] },
   { label: "DOC", url: "http://localhost:5173/", ok: [200] },

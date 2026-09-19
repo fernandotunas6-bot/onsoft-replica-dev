@@ -22,7 +22,7 @@ import {
   Mail,
   CircleHelp,
 } from "lucide-react"
-import { getCreateSchoolUrl, getDocsUrl, getSigaUrl, getWebUrl } from "@/lib/ecosystem-urls"
+import { getCreateSchoolUrl, getDocsUrl, getPayflowUrl, getSigaUrl, getWebUrl } from "@/lib/ecosystem-urls"
 import Link from "next/link"
 import { Logo } from "@/components/logo"
 import { SidebarNotification } from "@/components/sidebar-notification"
@@ -170,6 +170,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: CreditCard,
           },
           {
+            title: t("nav.payflow"),
+            url: getPayflowUrl("/"),
+            target: "_blank",
+            icon: Receipt,
+          },
+          {
             title: "Suporte (DOC)",
             url: getDocsUrl("/guide/support.html"),
             target: "_blank",
@@ -191,6 +197,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: getWebUrl("/"),
             target: "_blank",
             icon: LayoutTemplate,
+          },
+          {
+            title: t("nav.payflow"),
+            url: getPayflowUrl("/"),
+            target: "_blank",
+            icon: Receipt,
           },
           {
             title: t("nav.docs"),

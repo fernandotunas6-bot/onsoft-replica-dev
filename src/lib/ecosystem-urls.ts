@@ -5,8 +5,14 @@
  * - WEB (Landing, Preços, Criar Escola, Comercial): PORT 5174
  * - ADMIN (Control Center SaaS, Tenants, Billing): PORT 3005
  * - SIGA PLUS (Operação Escolar, Alunos, Pautas): PORT 3006
+ * - PAYFLOW (Pagamentos, Recibos, Reconciliação): PORT 3007
  * - DOC (Documentação, Manuais, APIs): PORT 5173
+ *
+ * Em produção, PayFlow usa `https://payflow.{{PLATFORM_DOMAIN}}` se
+ * `VITE_PAYFLOW_URL` não estiver definido.
  */
+
+import { getEcosystemPlatformOrigin, getPlatformDomain } from "@/lib/saas/platform-domain";
 
 const isBrowser = typeof window !== "undefined";
 const isLocalBrowser =
@@ -21,16 +27,19 @@ const isLocal = isBrowser ? isLocalBrowser : Boolean(import.meta.env.DEV);
 export const ECOSYSTEM_URLS = {
   web:
     import.meta.env.VITE_WEB_URL ||
-    (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
+    (isLocal ? "http://localhost:5174" : getEcosystemPlatformOrigin("web")),
   siga:
     import.meta.env.VITE_SIGA_URL ||
-    (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
+    (isLocal ? "http://localhost:3006" : `https://${getPlatformDomain()}`),
+  payflow:
+    import.meta.env.VITE_PAYFLOW_URL ||
+    (isLocal ? "http://localhost:3007" : getEcosystemPlatformOrigin("payflow")),
   admin:
     import.meta.env.VITE_ADMIN_URL ||
-    (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
+    (isLocal ? "http://localhost:3005" : getEcosystemPlatformOrigin("admin")),
   docs:
     import.meta.env.VITE_DOCS_URL ||
-    (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
+    (isLocal ? "http://localhost:5173" : getEcosystemPlatformOrigin("docs")),
 } as const;
 
 /** Caminhos DOC frequentes (suffix `.html` para links estáticos VitePress). */
@@ -42,6 +51,7 @@ export const DOC_PATHS = {
   guideSqlSga: "/guide/sql-sga.html",
   guideInstallation: "/guide/installation.html",
   financeSaft: "/financeiro/saft-agt-exportacao.html",
+  financePayflow: "/financeiro/payflow.html",
   integracoesEmis: "/integracoes/emis-multicaixa-unitel.html",
   integracoesProducao: "/integracoes/gateway-producao.html",
   integracoesPortalBanco: "/integracoes/gateway-portal-banco.html",
@@ -89,6 +99,11 @@ export function getFinanceGatewayConfirmUrl(): string {
   return `${ECOSYSTEM_URLS.siga}/api/finance/gateway/confirm`;
 }
 
+/** Acerto PayFlow → caixa SIGA (POST autenticado). */
+export function getPayflowSettlementUrl(): string {
+  return `${ECOSYSTEM_URLS.siga}/api/finance/payflow/settlement`;
+}
+
 /** URL dedicada Unitel Money (POST — canal fixo unitel_money). */
 export function getUnitelGatewayConfirmUrl(): string {
   return `${ECOSYSTEM_URLS.siga}/api/finance/gateway/unitel/confirm`;
@@ -109,4 +124,21 @@ export function getSigaLoginUrl(): string {
 export function getPublicEnrollmentUrl(slug: string): string {
   const clean = slug.replace(/^\/+|\/+$/g, "");
   return `${ECOSYSTEM_URLS.siga}/matricula/${clean}`;
+}
+
+/** URL PayFlow (`VITE_PAYFLOW_URL` ou `https://payflow.{{PLATFORM_DOMAIN}}`). */
+export function getPayflowUrl(path = "/"): string | null {
+  if (!ECOSYSTEM_URLS.payflow) return null;
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `${ECOSYSTEM_URLS.payflow}${clean}`;
+}
+
+/** Portal público do pagador no PayFlow. */
+export function getPayflowPayerUrl(): string | null {
+  return getPayflowUrl("/aluno/pagar");
+}
+
+/** Painel administrativo PayFlow (conciliação, transferências, RBAC financeiro). */
+export function getPayflowAdminUrl(): string | null {
+  return getPayflowUrl("/admin");
 }

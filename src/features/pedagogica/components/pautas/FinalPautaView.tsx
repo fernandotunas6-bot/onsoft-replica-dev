@@ -10,7 +10,7 @@ import { DocumentHeader } from "./DocumentHeader";
 import { GradeAuditModal } from "./GradeAuditModal";
 
 export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
-  const periodCount = getPeriodCountForCycle(data.context.cycle);
+  const periodCount = getPeriodCountForCycle(data.context.cycle, data.context.periodCount);
   const periods = periodCount === 2 ? ([1, 2] as const) : ([1, 2, 3] as const);
   const [auditOpen, setAuditOpen] = useState(false);
   const [auditState, setAuditState] = useState<{
@@ -31,7 +31,7 @@ export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
   };
 
   return (
-    <div className="bg-background text-foreground p-4 md:p-6 rounded-xl border border-border shadow-xs overflow-x-auto print:p-0 print:border-none print:shadow-none print:bg-white print:text-black">
+    <div className="siga-pauta-sheet bg-background text-foreground p-4 md:p-6 rounded-xl border border-border shadow-xs overflow-x-auto print:p-0 print:border-none print:shadow-none">
       <DocumentHeader
         school={data.school}
         context={data.context}
@@ -39,49 +39,49 @@ export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
       />
 
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-center text-xs border-collapse border border-border print:border-black">
+        <table className="w-full text-center text-xs border-collapse border border-border">
           <thead>
-            <tr className="bg-muted/50 print:bg-gray-100">
-              <th rowSpan={2} className="border border-border p-1.5 font-bold print:border-black">
+            <tr className="bg-muted/50 print:bg-muted/10">
+              <th rowSpan={2} className="border border-border p-1.5 font-bold">
                 N.º
               </th>
-              <th rowSpan={2} className="border border-border p-1.5 font-bold print:border-black">
+              <th rowSpan={2} className="border border-border p-1.5 font-bold">
                 Código
               </th>
               <th
                 rowSpan={2}
-                className="border border-border p-1.5 font-bold text-left min-w-[160px] print:border-black"
+                className="border border-border p-1.5 font-bold text-left min-w-[160px]"
               >
                 Nome Completo
               </th>
-              <th rowSpan={2} className="border border-border p-1.5 font-bold print:border-black">
+              <th rowSpan={2} className="border border-border p-1.5 font-bold">
                 Gén.
               </th>
               {data.subjects.map((s) => (
                 <th
                   key={s.id}
                   colSpan={periods.length + 1}
-                  className="border border-border p-1.5 font-bold print:border-black"
+                  className="border border-border p-1.5 font-bold"
                 >
                   {s.shortName ?? s.name}
                 </th>
               ))}
-              <th rowSpan={2} className="border border-border p-1.5 font-bold print:border-black">
+              <th rowSpan={2} className="border border-border p-1.5 font-bold">
                 Resultado
               </th>
               <th
                 rowSpan={2}
-                className="border border-border p-1.5 font-bold text-left min-w-[130px] print:border-black"
+                className="border border-border p-1.5 font-bold text-left min-w-[130px]"
               >
                 Observação
               </th>
             </tr>
-            <tr className="bg-muted/30 print:bg-gray-50">
+            <tr className="bg-muted/30 print:bg-muted/5">
               {data.subjects.flatMap((s) =>
                 [...periods.map((p) => `MT${p}`), "MFD"].map((x) => (
                   <th
                     key={`${s.id}-${x}`}
-                    className={`border border-border p-1 font-semibold print:border-black ${x === "MFD" ? "bg-muted/60 font-bold" : ""}`}
+                    className={`border border-border p-1 font-semibold ${x === "MFD" ? "bg-muted/60 font-bold" : ""}`}
                   >
                     {x}
                   </th>
@@ -92,14 +92,14 @@ export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
           <tbody>
             {data.students.map((student) => (
               <tr key={student.id} className="hover:bg-muted/30 transition-colors">
-                <td className="border border-border p-1 print:border-black">{student.number}</td>
-                <td className="border border-border p-1 print:border-black font-mono text-[11px]">
+                <td className="border border-border p-1">{student.number}</td>
+                <td className="border border-border p-1 font-mono text-[11px]">
                   {student.code}
                 </td>
-                <td className="border border-border p-1 text-left font-medium print:border-black">
+                <td className="border border-border p-1 text-left font-medium">
                   {student.name}
                 </td>
-                <td className="border border-border p-1 print:border-black">{student.gender}</td>
+                <td className="border border-border p-1">{student.gender}</td>
                 {data.subjects.flatMap((subject) => {
                   const r = student.subjects.find((x) => x.subjectId === subject.id);
                   const mfd =
@@ -113,7 +113,7 @@ export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
                     ...periods.map((p) => (
                       <td
                         key={`${student.id}-${subject.id}-${p}`}
-                        className="border border-border p-1 print:border-black cursor-pointer hover:bg-primary/20 underline decoration-dotted"
+                        className="border border-border p-1 cursor-pointer hover:bg-primary/20 underline decoration-dotted"
                         onClick={() =>
                           handleOpenAudit(student.name, subject.name, p, mtByPeriod[p])
                         }
@@ -124,18 +124,18 @@ export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
                     )),
                     <td
                       key={`${student.id}-${subject.id}-f`}
-                      className="border border-border p-1 font-bold bg-muted/30 print:border-black"
+                      className="border border-border p-1 font-bold bg-muted/30"
                     >
                       {formatGrade(mfd)}
                     </td>,
                   ];
                 })}
                 <td
-                  className={`border border-border p-1 font-bold print:border-black ${deriveElectronicStatusClass(student.status)}`}
+                  className={`border border-border p-1 font-bold ${deriveElectronicStatusClass(student.status)}`}
                 >
                   {student.status}
                 </td>
-                <td className="border border-border p-1 text-left text-[11px] print:border-black">
+                <td className="border border-border p-1 text-left text-[11px]">
                   {student.observation}
                 </td>
               </tr>

@@ -8,8 +8,11 @@ import {
   ArrowUpRight,
   Award,
   Banknote,
+  BriefcaseBusiness,
+  CreditCard,
   Download,
   FileDown,
+  FileUp,
   Plus,
   Undo2,
   Wallet,
@@ -21,6 +24,9 @@ import { archiveFinanceDocument } from "@/features/arquivos/server";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { warmFinanceCharts } from "@/lib/warm-charts";
 import { cn } from "@/lib/utils";
+import { getPayflowPayerUrl } from "@/lib/ecosystem-urls";
+import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
+import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 
 const FinanceiroCashChart = lazy(() =>
   import("@/features/finance/FinanceiroCashChart").then((module) => ({
@@ -34,6 +40,8 @@ import { DOC_PATHS } from "@/lib/ecosystem-urls";
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import {
@@ -432,8 +440,30 @@ function FinanceiroPage() {
                 <Award className="size-4" /> Oficial
               </Button>
               <Button variant="outline" className="gap-2" asChild>
+                <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
+                  <FileUp className="size-4 text-primary" /> Importar Pagamentos
+                </Link>
+              </Button>
+              <Button variant="outline" className="gap-2" asChild>
+                <a
+                  href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <PayflowBrandIcon size={16} /> Portal PayFlow
+                </a>
+              </Button>
+              <PayflowAdminLaunchButton variant="outline" className="gap-2">
+                Conciliação PayFlow
+              </PayflowAdminLaunchButton>
+              <Button variant="outline" className="gap-2" asChild>
                 <Link to="/relatorios/financeiros">
                   <Banknote className="size-4" /> Resumo do caixa
+                </Link>
+              </Button>
+              <Button variant="outline" className="gap-2" asChild>
+                <Link to="/financeiro/rh">
+                  <BriefcaseBusiness className="size-4" /> RH e Folha
                 </Link>
               </Button>
               {financeInvoiceBlocked ? (
@@ -448,6 +478,11 @@ function FinanceiroPage() {
                 </Button>
               )}
               <DocHelpButton title="Navegação e permissões — tesouraria" />
+              <DocPathHelpButton
+                path={DOC_PATHS.financePayflow}
+                label="PayFlow"
+                title="PayFlow — cobrança e conciliação"
+              />
               <DocPathHelpButton
                 path={DOC_PATHS.integracoesEmis}
                 label="Pagamentos"
@@ -813,14 +848,14 @@ function FinanceiroPage() {
         ) : null}
 
         {!schemaBlocked && missingActiveFeePlan ? (
-          <Alert className="border-amber-500/40 bg-amber-500/10">
-            <AlertCircle className="size-4 text-amber-700 dark:text-amber-300" />
+          <Alert variant="default" className="border-border bg-card">
+            <AlertCircle className="size-4 text-primary" />
             <AlertTitle>Plano de propinas em falta</AlertTitle>
             <AlertDescription className="space-y-2">
               <p>
                 Configure o plano financeiro (propina mensal e taxa de matrícula) antes de emitir
-                faturas. Escolas novas recebem valores por omissão no provisionamento — active ou
-                ajuste aqui.
+                faturas. O plano depende de um ano lectivo activo, por isso não é criado no
+                provisionamento — defina o ano lectivo e depois os valores aqui.
               </p>
               <Button
                 type="button"
@@ -942,7 +977,7 @@ function FinanceiroPage() {
                           {m.descricao}
                         </p>
                         {m.status === "reversed" ? (
-                          <span className={cn(badgeBase, toneClass.muted)}>Anulado</span>
+                          <StatusBadge status="cancelled" label="Anulado" size="sm" />
                         ) : null}
                       </div>
                     </TableCell>
@@ -951,20 +986,11 @@ function FinanceiroPage() {
                       <span className={cn(badgeBase, toneClass.muted)}>{m.metodo}</span>
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={cn(
-                          badgeBase,
-                          "gap-1",
-                          m.tipo === "Entrada" ? toneClass.success : toneClass.danger,
-                        )}
-                      >
-                        {m.tipo === "Entrada" ? (
-                          <ArrowUpRight className="size-3" />
-                        ) : (
-                          <ArrowDownRight className="size-3" />
-                        )}
-                        {m.tipo}
-                      </span>
+                      <StatusBadge
+                        status={m.tipo === "Entrada" ? "paid" : "overdue"}
+                        label={m.tipo}
+                        size="sm"
+                      />
                     </TableCell>
                     <TableCell
                       className={cn(
@@ -1016,11 +1042,13 @@ function FinanceiroPage() {
                   </TableRow>
                 ) : lista.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhum movimento encontrado para o filtro aplicado.
+                    <TableCell colSpan={7} className="p-4">
+                      <EmptyState
+                        icon={Wallet}
+                        title="Nenhum movimento neste filtro"
+                        description="Ajuste o período ou o tipo de movimento, ou registe uma entrada/saída de caixa."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}

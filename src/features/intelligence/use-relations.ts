@@ -9,6 +9,8 @@ import { buildClassRelationMap } from "./classes/class-relation-map";
 import type { ClassRelationsSnapshot } from "./classes/class-relations-adapter";
 import { buildFinanceOverviewRelationMap } from "./finance/finance-overview-relation-map";
 import type { FinanceOverviewSnapshot } from "./finance/finance-overview-adapter";
+import { buildDashboardOverviewRelationMap } from "./dashboard/dashboard-overview-relation-map";
+import type { DashboardOverviewSnapshot } from "./dashboard/dashboard-suggestion-rules";
 import { useAppContext } from "./use-app-context";
 import type { RelationEdge } from "./types";
 
@@ -32,6 +34,9 @@ export function useRelations(): RelationEdge[] {
     } else if (entity.type === "finance-overview") {
       const map = buildFinanceOverviewRelationMap();
       edges = applyRelationMap(map, entity.data as FinanceOverviewSnapshot);
+    } else if (entity.type === "dashboard-overview") {
+      const map = buildDashboardOverviewRelationMap();
+      edges = applyRelationMap(map, entity.data as DashboardOverviewSnapshot);
     }
 
     return edges.filter((edge) =>

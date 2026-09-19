@@ -51,16 +51,57 @@ export type OfficialPautaMeta = {
   validationCode?: string | undefined;
 };
 
-function drawOfficialHeader(
+let emblemDataUrlPromise: Promise<string | null> | undefined;
+
+/** Rasteriza o brasão oficial (SVG) para PNG uma única vez, em cache, para uso em jsPDF.addImage. */
+function loadEmblemDataUrl(): Promise<string | null> {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return Promise.resolve(null);
+  }
+  emblemDataUrlPromise ??= new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const size = 256;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/png"));
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = "/brands/emblem-angola.svg";
+  });
+  return emblemDataUrlPromise;
+}
+
+function drawFallbackEmblem(doc: InstanceType<typeof jsPDF>, pageWidth: number) {
+  doc.setFillColor(206, 17, 38);
+  doc.circle(pageWidth / 2, 18, 8, "F");
+  doc.setFillColor(255, 205, 0);
+  doc.circle(pageWidth / 2, 18, 4, "F");
+}
+
+async function drawOfficialHeader(
   doc: InstanceType<typeof jsPDF>,
   meta: OfficialPautaMeta,
   title: string,
 ) {
   const pageWidth = doc.internal.pageSize.getWidth();
-  doc.setFillColor(206, 17, 38);
-  doc.circle(pageWidth / 2, 18, 8, "F");
-  doc.setFillColor(255, 205, 0);
-  doc.circle(pageWidth / 2, 18, 4, "F");
+  const emblemDataUrl = await loadEmblemDataUrl();
+  if (emblemDataUrl) {
+    doc.addImage(emblemDataUrl, "PNG", pageWidth / 2 - 10, 6, 20, 20);
+  } else {
+    drawFallbackEmblem(doc, pageWidth);
+  }
   doc.setTextColor(0);
   doc.setFont("times", "bold");
   doc.setFontSize(11);
@@ -89,7 +130,7 @@ function drawOfficialHeader(
   return 68;
 }
 
-export function exportOfficialPautaPdf<Row extends object>(
+export async function exportOfficialPautaPdf<Row extends object>(
   filename: string,
   title: string,
   meta: OfficialPautaMeta,
@@ -97,7 +138,7 @@ export function exportOfficialPautaPdf<Row extends object>(
   rows: ReadonlyArray<Row>,
 ) {
   const doc = new jsPDF({ orientation: columns.length > 7 ? "landscape" : "portrait" });
-  const startY = drawOfficialHeader(doc, meta, title);
+  const startY = await drawOfficialHeader(doc, meta, title);
   autoTable(doc, {
     startY,
     head: [columns.map((column) => column.label)],
@@ -144,7 +185,7 @@ export function exportOfficialPautaPdf<Row extends object>(
   doc.save(filename.endsWith(".pdf") ? filename : `${filename}.pdf`);
 }
 
-export function exportOfficialDeclarationPdf(
+export async function exportOfficialDeclarationPdf(
   filename: string,
   title: string,
   meta: OfficialPautaMeta & {
@@ -154,7 +195,7 @@ export function exportOfficialDeclarationPdf(
   },
 ) {
   const doc = new jsPDF({ orientation: "portrait" });
-  const startY = drawOfficialHeader(doc, meta, title);
+  const startY = await drawOfficialHeader(doc, meta, title);
   const pageWidth = doc.internal.pageSize.getWidth();
   doc.setFont("times", "normal");
   doc.setFontSize(12);

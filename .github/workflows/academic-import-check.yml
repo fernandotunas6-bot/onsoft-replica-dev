@@ -13,8 +13,7 @@ on:
       - 'bun.lock'
       - '.github/workflows/academic-import-check.yml'
   push:
-    branches:
-      - fix/import-academic-rls-20260903
+    branches: [main]
     paths:
       - 'src/features/academic/**'
       - 'src/features/import/**'

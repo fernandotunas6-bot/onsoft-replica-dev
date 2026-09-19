@@ -16,8 +16,10 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,14 +54,20 @@ import {
   createSchoolInvitation,
   inviteSystemUser,
   listSchoolInvitations,
+  listSchoolRoles,
   listSystemAccounts,
   resendSystemInvite,
   resetStaffPasswordDirect,
   revokeSchoolInvitation,
+  sendSystemInviteEmail,
   setSystemAccountDisabled,
   updateSystemAccountCargo,
 } from "@/features/access/server";
-import { listStaffModuleGrants, setStaffModuleGrant } from "@/features/access/grants";
+import {
+  clearStaffModuleGrant,
+  listStaffModuleGrants,
+  setStaffModuleGrant,
+} from "@/features/access/grants";
 import type { AccessLevel } from "@/features/auth/access-policy";
 import { createPerson, listStaffDirectory, updatePersonStatus } from "@/features/people/server";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
@@ -139,6 +147,12 @@ function AcessosPage() {
     queryFn: () => listSchoolInvitations(),
     retry: false,
   });
+  const rolesQuery = useQuery({
+    queryKey: ["access", "roles"],
+    queryFn: () => listSchoolRoles(),
+    retry: false,
+  });
+  const schoolRoles = rolesQuery.data ?? [];
   const grantLevels = ["Nenhum", "Leitura", "Escrita", "Total"] as const;
   const printStaffCredentials = async (person: { full_name: string; email?: string | null }) => {
     const domain = school?.email?.split("@")[1] || person.email?.split("@")[1] || "escola.ao";
@@ -637,20 +651,24 @@ function AcessosPage() {
                 <TableBody>
                   {accounts.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="py-8 text-center text-sm text-muted-foreground"
-                      >
-                        Ainda não há contas nesta escola. Envie o primeiro convite.
+                      <TableCell colSpan={5} className="p-4">
+                        <EmptyState
+                          icon={UserPlus}
+                          title="Ainda não há contas nesta escola"
+                          description="Envie o primeiro convite para secretaria, professores ou tesouraria acederem ao SIGA."
+                          compact
+                        />
                       </TableCell>
                     </TableRow>
                   ) : filteredAccounts.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="py-8 text-center text-sm text-muted-foreground"
-                      >
-                        Nenhuma conta corresponde aos filtros.
+                      <TableCell colSpan={5} className="p-4">
+                        <EmptyState
+                          icon={ShieldCheck}
+                          title="Nenhuma conta corresponde aos filtros"
+                          description="Limpe a pesquisa ou altere o cargo para ver outras contas."
+                          compact
+                        />
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -713,18 +731,22 @@ function AcessosPage() {
                             : "Nunca"}
                         </TableCell>
                         <TableCell>
-                          <span
-                            className={cn(
-                              badgeBase,
-                              account.disabled ? toneClass.danger : toneClass.success,
-                            )}
-                          >
-                            {account.disabled
-                              ? "Suspenso"
-                              : account.email_confirmed
-                                ? "Activo"
-                                : "Convite pendente"}
-                          </span>
+                          <StatusBadge
+                            status={
+                              account.disabled
+                                ? "cancelled"
+                                : account.email_confirmed
+                                  ? "active"
+                                  : "pending"
+                            }
+                            label={
+                              account.disabled
+                                ? "Suspenso"
+                                : account.email_confirmed
+                                  ? "Activo"
+                                  : "Convite pendente"
+                            }
+                          />
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -737,7 +759,13 @@ function AcessosPage() {
                               onSubmit={async (values) => {
                                 for (const module of accessModules) {
                                   const selected = values[module.key];
-                                  if (!selected || selected === "Predefinição do cargo") continue;
+                                  if (!selected) continue;
+                                  if (selected === "Predefinição do cargo") {
+                                    await clearStaffModuleGrant({
+                                      data: { userId: account.id, moduleKey: module.key },
+                                    });
+                                    continue;
+                                  }
                                   await setStaffModuleGrant({
                                     data: {
                                       userId: account.id,
@@ -838,6 +866,29 @@ function AcessosPage() {
                                   }}
                                 >
                                   Reenviar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={async () => {
+                                    try {
+                                      const result = await sendSystemInviteEmail({
+                                        data: { userId: account.id },
+                                      });
+                                      toast.success("E-mail de acesso enviado", {
+                                        description: result.email,
+                                      });
+                                    } catch (error) {
+                                      toast.error("Não foi possível enviar o e-mail", {
+                                        description:
+                                          error instanceof Error
+                                            ? error.message
+                                            : "Tente novamente ou use Copiar/WhatsApp.",
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <MailPlus className="size-3 text-primary" /> Enviar E-mail
                                 </Button>
                                 <Button
                                   size="sm"
@@ -962,6 +1013,52 @@ function AcessosPage() {
         <Panel
           title="Convites institucionais"
           description="Convites formais de acesso e vinculação multi-tenant à escola"
+          action={
+            <QuickFormModal
+              eyebrow="Acessos"
+              title="Criar convite institucional"
+              description="Envia um convite formal com token próprio, sem criar já a conta de login."
+              icon={<ShieldCheck className="size-5" />}
+              submitLabel="Criar convite"
+              successDescription="Convite criado. O link foi copiado para a área de transferência."
+              fields={[
+                { name: "email", label: "Email", type: "text" },
+                { name: "nome", label: "Nome completo", required: false },
+                {
+                  name: "cargo",
+                  label: "Cargo",
+                  type: "select",
+                  options: schoolRoles.map((role) => ({ value: role.code, label: role.name })),
+                },
+              ]}
+              onSubmit={async (values) => {
+                const result = await createSchoolInvitation({
+                  data: {
+                    email: values["email"] ?? "",
+                    fullName: values["nome"] || undefined,
+                    roleCode: values["cargo"] ?? "",
+                  },
+                });
+                const link = `${window.location.origin}/convite/${result.rawToken}`;
+                const emailNote = result.emailDelivered
+                  ? "E-mail de convite enviado."
+                  : `E-mail não enviado (${result.emailDeliveryError ?? "motivo desconhecido"}) — use o link copiado.`;
+                try {
+                  await navigator.clipboard.writeText(link);
+                  toast.message("Link do convite copiado", { description: `${emailNote} ${link}` });
+                } catch {
+                  // Falha de clipboard (foco/permissões) não deve mascarar o convite criado.
+                  toast.message("Link do convite", { description: `${emailNote} ${link}` });
+                }
+                await queryClient.invalidateQueries({ queryKey: ["access", "invitations"] });
+              }}
+              trigger={(open) => (
+                <Button size="sm" onClick={open} disabled={!schoolRoles.length}>
+                  <ShieldCheck className="size-4" /> Criar convite
+                </Button>
+              )}
+            />
+          }
         >
           {invitationsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">A carregar convites…</p>
@@ -1017,7 +1114,18 @@ function AcessosPage() {
                           {new Date(invitation.expires_at).toLocaleDateString("pt-PT")}
                         </TableCell>
                         <TableCell>
-                          <span className={cn(badgeBase, statusTone)}>{displayStatus}</span>
+                          <StatusBadge
+                            status={
+                              displayStatus === "Aceite"
+                                ? "active"
+                                : displayStatus === "Pendente"
+                                  ? "pending"
+                                  : displayStatus === "Expirado"
+                                    ? "overdue"
+                                    : "cancelled"
+                            }
+                            label={displayStatus}
+                          />
                         </TableCell>
                         <TableCell className="text-right">
                           {isPending && !isExpired ? (
@@ -1079,23 +1187,29 @@ function AcessosPage() {
                   </TableRow>
                 ) : staff.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Ainda não há membros de equipa.{" "}
-                      <Link to="/pessoas" className="font-semibold text-primary underline">
-                        Abrir Pessoas
-                      </Link>
+                    <TableCell colSpan={5} className="p-4">
+                      <EmptyState
+                        icon={UserPlus}
+                        title="Ainda não há membros de equipa"
+                        description="Registe pessoas em Pessoas e associe-lhes contas de acesso."
+                        action={
+                          <Button asChild size="sm" variant="outline">
+                            <Link to="/pessoas">Abrir Pessoas</Link>
+                          </Button>
+                        }
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : filteredStaff.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhum membro corresponde à pesquisa.
+                    <TableCell colSpan={5} className="p-4">
+                      <EmptyState
+                        icon={ShieldCheck}
+                        title="Nenhum membro corresponde à pesquisa"
+                        description="Ajuste o nome ou o cargo para encontrar a pessoa na equipa."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -1138,14 +1252,7 @@ function AcessosPage() {
                         {new Date(member.updated_at).toLocaleString("pt-PT")}
                       </TableCell>
                       <TableCell>
-                        <span
-                          className={cn(
-                            badgeBase,
-                            member.status === "active" ? toneClass.success : toneClass.danger,
-                          )}
-                        >
-                          {member.status === "active" ? "Activo" : "Inactivo"}
-                        </span>
+                        <StatusBadge status={member.status === "active" ? "active" : "inactive"} />
                       </TableCell>
                       <TableCell className="text-right">
                         <Switch

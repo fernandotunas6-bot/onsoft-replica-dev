@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -13,15 +13,20 @@ import { provisionTenantCore } from "@/features/saas/provisioning-core";
 import {
   fetchTenantByHostname,
   fetchTenantBySlug,
+  fetchTenantBySchoolId,
   checkSlugAvailability,
 } from "@/features/saas/tenant-lookup";
-import { requirePlatformAdmin } from "@/features/saas/platform-guard";
+import { requirePlatformAdmin, requireTenantAccess } from "@/features/saas/platform-guard";
 import { fetchActivePlans } from "@/features/saas/catalog";
 import { fetchAllTenants, fetchSaaSStats, updateTenantStatus } from "@/features/saas/platform-ops";
 import { runPublicSchoolSignup } from "@/features/saas/public-signup";
 import type { Plan, SaaSStats, Tenant } from "@/features/saas/types";
 
-export { requirePlatformAdmin } from "@/features/saas/platform-guard";
+// Sem re-export de `requirePlatformAdmin`: um `export … from` é uma ligação de
+// topo que o plugin do Start não consegue eliminar do bundle do cliente, e
+// arrastava platform-guard → sga-admin (cliente service-role) para o grafo do
+// browser — o que fazia a app inteira falhar a hidratar por import-protection.
+// Quem precisa do guard importa-o directamente de "@/features/saas/platform-guard".
 
 /**
  * Verifica se um slug pretendido para subdomínio está disponível para registo.
@@ -50,6 +55,28 @@ export const getTenantBySlug = createServerFn({ method: "GET" })
 export const getTenantByHostname = createServerFn({ method: "GET" })
   .validator((input: unknown) => tenantHostnameInputSchema.parse(input))
   .handler(async ({ data }): Promise<Tenant | null> => fetchTenantByHostname(data.hostname));
+
+/**
+ * Tenant da escola do utilizador autenticado, quando o hostname não chega.
+ *
+ * O desenho é resolver a escola pelo subdomínio, via wildcard
+ * `*.PLATFORM_DOMAIN`. Enquanto esse registo DNS não existir, os subdomínios
+ * das escolas não resolvem e o único host alcançável é `app.PLATFORM_DOMAIN` —
+ * que é reservado e não corresponde a nenhuma entrada em `tenant_domains`.
+ * Resultado: quem tem escola atribuída entra e não vê instituição nenhuma.
+ *
+ * Isto dá a essas contas um caminho que funciona sem depender de DNS. Não
+ * enfraquece o isolamento: a escola vem da membership resolvida no servidor a
+ * partir da sessão, exactamente como em todas as outras leituras.
+ */
+export const getTenantForCurrentUser = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<Tenant | null> => {
+    if (!context?.userId) return null;
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership?.schoolId) return null;
+    return fetchTenantBySchoolId(membership.schoolId);
+  });
 
 export const listPlans = createServerFn({ method: "GET" }).handler(async (): Promise<Plan[]> => {
   return fetchActivePlans();
@@ -132,7 +159,11 @@ export const getSchoolDomain = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    return getSchoolDomainStatus(data.tenantId, data.tenantSlug);
+    const tenant = await requireTenantAccess(context.userId, data.tenantId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    return getSchoolDomainStatus(tenant.tenantId, tenant.tenantSlug);
   });
 
 /**
@@ -158,7 +189,12 @@ export const requestDomainVerification = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    return requestCustomDomainVerification(data);
+    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    return requestCustomDomainVerification({
+      ...data,
+      tenantId: tenant.tenantId,
+      tenantSlug: tenant.tenantSlug,
+    });
   });
 
 /**
@@ -177,10 +213,16 @@ export const updateEmailForwarding = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    return saveEmailForwardingRoute(data);
+    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    return saveEmailForwardingRoute({
+      ...data,
+      tenantId: tenant.tenantId,
+      tenantSlug: tenant.tenantSlug,
+    });
   });
 
 import { createMailbox } from "@/features/saas/mailbox-providers";
+import { buildInstitutionalAddress } from "@/features/saas/email-routing";
 import { saveSchoolBranding } from "@/features/saas/school-domain-ops";
 
 /**
@@ -202,7 +244,8 @@ export const updateSchoolBranding = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    return saveSchoolBranding(data);
+    const tenant = await requireTenantAccess(context.userId, data.tenantId);
+    return saveSchoolBranding({ ...data, tenantId: tenant.tenantId });
   });
 
 /**
@@ -223,29 +266,23 @@ export const provisionMailbox = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
+    const tenant = await requireTenantAccess(context.userId, data.tenantId);
 
-    const db = await loadSgaAdminClient();
-
-    // Verificar se a escola tem plano que permite mailbox
-    const { data: tenantRow } = await db
-      .from("tenants")
-      .select("plan_id")
-      .eq("id", data.tenantId)
-      .maybeSingle();
-    const { data: planRow } = await db
-      .from("plans")
-      .select("code, features")
-      .eq("id", tenantRow?.plan_id || "")
-      .maybeSingle();
-
-    // Se o user está autenticado no contexto do admin/owner da escola, e tem plano premium:
-    // Fazemos provisoning:
-    const result = await createMailbox(data);
+    // O endereço é derivado do slug do tenant, nunca aceite do cliente: caso
+    // contrário provisionava-se uma caixa no domínio de outra escola.
+    const email = buildInstitutionalAddress(tenant.tenantSlug);
+    const result = await createMailbox({
+      tenantId: tenant.tenantId,
+      tenantSlug: tenant.tenantSlug,
+      email,
+      displayName: data.displayName,
+    });
     if (!result.ok) throw new Error(result.reason);
 
+    const db = await loadSgaAdminClient();
     await db.from("tenant_mailboxes").insert({
-      tenant_id: data.tenantId,
-      email: data.email,
+      tenant_id: tenant.tenantId,
+      email,
       display_name: data.displayName,
       provider: result.provider,
       provider_account_id: result.providerAccountId,

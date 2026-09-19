@@ -6,7 +6,7 @@ import { getGoogleOAuthUrl, GOOGLE_OAUTH_SCOPES } from "@/lib/google-oauth";
 
 describe("Lib Services: Firebase, Google Calendar, Google Gmail, Google OAuth", () => {
   it("initializes firebase app and crashlytics from firebase-applet-config.json", () => {
-    expect(firebaseConfig.projectId).toBe("gen-lang-client-0509105360");
+    expect(firebaseConfig.projectId).toBe("siga-plus-3ba9c");
     const app = getFirebaseApp();
     expect(app).toBeDefined();
 

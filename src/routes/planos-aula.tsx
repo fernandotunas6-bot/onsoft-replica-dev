@@ -1,12 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { z } from "zod";
 import { BookOpenCheck, ClipboardCheck, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton, SqlDocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/academic/server";
@@ -23,8 +26,13 @@ import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 
 const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 
+const planosSearchSchema = z.object({
+  turma: z.string().uuid().optional().catch(undefined),
+  disciplina: z.string().uuid().optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/planos-aula")({
-  validateSearch: (search: Record<string, unknown>) => search,
+  validateSearch: (search) => planosSearchSchema.parse(search),
   head: () => ({ meta: [{ title: "Planos de Aula · SIGA" }] }),
   component: LessonPlansPage,
 });
@@ -51,6 +59,7 @@ const termLabels: Record<number, string> = {
 };
 
 function LessonPlansPage() {
+  const search = Route.useSearch();
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "planos-aula",
     filterDefaults,
@@ -58,6 +67,13 @@ function LessonPlansPage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<LessonPlanFormInitial | null>(null);
+
+  useEffect(() => {
+    if (search.turma) setFilter("turma", search.turma);
+    if (search.disciplina) setFilter("disciplina", search.disciplina);
+    // Seed once from deep-link (portal / presença / chamada).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount seed
+  }, []);
 
   const workspaceQuery = useQuery({
     queryKey: ["pedagogica", "workspace", "planos-aula"],
@@ -202,9 +218,12 @@ function LessonPlansPage() {
         ) : null}
 
         {grouped.length === 0 && plansQuery.data?.available !== false ? (
-          <div className="rounded-xl border border-dashed border-border bg-secondary/30 p-10 text-center text-sm text-muted-foreground">
-            Ainda não há planos de aula com estes filtros.
-          </div>
+          <EmptyState
+            icon={BookOpenCheck}
+            title="Ainda não há planos de aula"
+            description="Crie um plano com a estrutura de avaliações e provas para alimentar o Centro de Avaliação."
+            compact
+          />
         ) : null}
 
         {grouped.map(([term, termPlans]) => (
@@ -219,7 +238,7 @@ function LessonPlansPage() {
                 return (
                   <div
                     key={plan.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm"
+                    className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-subtle transition-all duration-200"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -228,15 +247,10 @@ function LessonPlansPage() {
                           {plan.class_group_name} · {plan.subject_name}
                         </p>
                       </div>
-                      <span
-                        className={
-                          plan.status === "published"
-                            ? "shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary"
-                            : "shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-                        }
-                      >
-                        {plan.status === "published" ? "Publicado" : "Rascunho"}
-                      </span>
+                      <StatusBadge
+                        status={plan.status === "published" ? "active" : "inactive"}
+                        label={plan.status === "published" ? "Publicado" : "Rascunho"}
+                      />
                     </div>
                     {plan.content ? (
                       <p className="line-clamp-2 text-xs text-muted-foreground">{plan.content}</p>

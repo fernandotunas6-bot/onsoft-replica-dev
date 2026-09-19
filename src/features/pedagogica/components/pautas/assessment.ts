@@ -102,8 +102,8 @@ export function deriveElectronicStatusClass(status?: string): string {
   if (!status) return "text-foreground";
   const u = status.toUpperCase();
   if (negative.has(u)) return "text-destructive font-bold";
-  if (positive.has(u)) return "text-emerald-600 dark:text-emerald-400 font-bold";
-  return "text-amber-600 dark:text-amber-400 font-bold";
+  if (positive.has(u)) return "text-success font-bold";
+  return "text-warning font-bold";
 }
 
 /**

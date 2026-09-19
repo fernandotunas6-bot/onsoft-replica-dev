@@ -135,8 +135,15 @@ async function run() {
     await executeSql(sql6, "6. supabase/APPLY_DIGITAL_IDENTITY.sql");
   }
 
-  // 7. Reload PostgREST schema cache
-  await executeSql("NOTIFY pgrst, 'reload schema';", "7. Reload PostgREST schema cache");
+  // 7. APPLY_ALUMNI_MODULE.sql
+  const file7 = resolve(root, "supabase/APPLY_ALUMNI_MODULE.sql");
+  if (existsSync(file7)) {
+    const sql7 = readFileSync(file7, "utf8");
+    await executeSql(sql7, "7. supabase/APPLY_ALUMNI_MODULE.sql");
+  }
+
+  // 8. Reload PostgREST schema cache
+  await executeSql("NOTIFY pgrst, 'reload schema';", "8. Reload PostgREST schema cache");
 
   console.log("\n=========================================================");
   console.log("   Execução concluída com sucesso!                      ");

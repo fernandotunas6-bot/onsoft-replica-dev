@@ -39,3 +39,13 @@ export function getAuthResetPasswordUrl(customOrigin?: string): string {
   const base = customOrigin ? customOrigin.replace(/\/+$/, "") : getAppUrl();
   return `${base}/auth/reset-password`;
 }
+
+export function getAuthMagicLinkUrl(customOrigin?: string): string {
+  const base = customOrigin ? customOrigin.replace(/\/+$/, "") : getAppUrl();
+  return `${base}/auth/magic-link`;
+}
+
+export function getAuthEmailChangeUrl(customOrigin?: string): string {
+  const base = customOrigin ? customOrigin.replace(/\/+$/, "") : getAppUrl();
+  return `${base}/auth/email-change`;
+}

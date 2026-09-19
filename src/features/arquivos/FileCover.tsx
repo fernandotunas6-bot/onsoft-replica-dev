@@ -48,7 +48,7 @@ export function FileCover({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border bg-card shadow-soft transition-colors",
+        "overflow-hidden rounded-2xl border bg-card shadow-card transition-colors",
         selected ? "border-primary ring-2 ring-primary/30" : "border-border",
         className,
       )}

@@ -30,7 +30,7 @@ const mainFeatures = [
   {
     icon: Layout,
     title: 'Tesouraria escolar',
-    description: 'Propinas, faturas, recibos e Multicaixa Express / Unitel Money.'
+    description: 'Propinas e faturas no SIGA; cobrança e recibos no PayFlow (Multicaixa / transferência).'
   },
   {
     icon: Zap,
@@ -73,7 +73,7 @@ export function FeaturesSection() {
           </h2>
           <p className="text-lg text-muted-foreground">
             O SIGA gere a operação da escola. O portal WEB vende e cria a escola.
-            O ADMIN controla a plataforma SaaS.
+            O ADMIN controla a plataforma SaaS. O PayFlow cobra.
           </p>
         </div>
 

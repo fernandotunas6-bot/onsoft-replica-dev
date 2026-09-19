@@ -20,9 +20,9 @@ const faqItems: FaqItem[] = [
   },
   {
     value: 'item-2',
-    question: 'Qual a diferença entre WEB, ADMIN e SIGA?',
+    question: 'Qual a diferença entre WEB, ADMIN, SIGA e PayFlow?',
     answer:
-      'O WEB vende e cria a escola. O ADMIN (porta 3005) controla tenants, planos e facturação SaaS. O SIGA é onde a escola trabalha: alunos, pautas e tesouraria. A documentação vive no DOC.',
+      'O WEB vende e cria a escola. O ADMIN (porta 3005) controla tenants, planos e facturação SaaS. O SIGA é onde a escola trabalha: alunos, pautas e tesouraria. O PayFlow (porta 3007) cobra e emite recibos. A documentação vive no DOC.',
   },
   {
     value: 'item-3',

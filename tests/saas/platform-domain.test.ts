@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   getPlatformDomain,
   getPlatformSubdomain,
+  getEcosystemPlatformHost,
+  getEcosystemPlatformOrigin,
   isReservedSubdomain,
   validateTenantSlug,
   slugifySchoolName,
   RESERVED_SUBDOMAINS,
+  ECOSYSTEM_PLATFORM_SUBDOMAINS,
 } from "@/lib/saas/platform-domain";
 
 describe("platform-domain module", () => {
@@ -32,6 +35,20 @@ describe("platform-domain module", () => {
     });
   });
 
+  describe("ecosystem hosts", () => {
+    it("mapeia apps do ecossistema para subdomínios fixos", () => {
+      expect(ECOSYSTEM_PLATFORM_SUBDOMAINS.payflow).toBe("payflow");
+      expect(ECOSYSTEM_PLATFORM_SUBDOMAINS.admin).toBe("admin");
+      expect(ECOSYSTEM_PLATFORM_SUBDOMAINS.siga).toBe("app");
+    });
+
+    it("constroi host e origin a partir de PLATFORM_DOMAIN", () => {
+      const domain = getPlatformDomain();
+      expect(getEcosystemPlatformHost("payflow")).toBe(`payflow.${domain}`);
+      expect(getEcosystemPlatformOrigin("payflow")).toBe(`https://payflow.${domain}`);
+    });
+  });
+
   describe("isReservedSubdomain", () => {
     it("identifica slugs reservados da infraestrutura", () => {
       expect(isReservedSubdomain("www")).toBe(true);
@@ -46,6 +63,9 @@ describe("platform-domain module", () => {
       expect(isReservedSubdomain("suporte")).toBe(true);
       expect(isReservedSubdomain("docs")).toBe(true);
       expect(isReservedSubdomain("noreply")).toBe(true);
+      expect(isReservedSubdomain("payflow")).toBe(true);
+      expect(isReservedSubdomain("pagamentos")).toBe(true);
+      expect(isReservedSubdomain("payments")).toBe(true);
     });
 
     it("permite slugs legítimos de escolas", () => {
@@ -53,6 +73,10 @@ describe("platform-domain module", () => {
       expect(isReservedSubdomain("horizonte-sul")).toBe(false);
       expect(isReservedSubdomain("escola-santa-maria")).toBe(false);
       expect(isReservedSubdomain("liceu-nacional")).toBe(false);
+    });
+
+    it("mantém payflow na lista exportada", () => {
+      expect(RESERVED_SUBDOMAINS.has("payflow")).toBe(true);
     });
   });
 
@@ -80,6 +104,10 @@ describe("platform-domain module", () => {
       const res = validateTenantSlug("admin");
       expect(res.valid).toBe(false);
       expect(res.reason).toContain("reservado");
+
+      const payflow = validateTenantSlug("payflow");
+      expect(payflow.valid).toBe(false);
+      expect(payflow.reason).toContain("reservado");
     });
   });
 

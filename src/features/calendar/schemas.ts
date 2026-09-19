@@ -25,6 +25,23 @@ export const createCalendarEventInputSchema = z.object({
 });
 export type CreateCalendarEventInput = z.infer<typeof createCalendarEventInputSchema>;
 
+const isoDate = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use uma data no formato AAAA-MM-DD.");
+
+export const createAcademicYearInputSchema = z
+  .object({
+    name: z.string().trim().min(4, "Indique o nome do ano lectivo.").max(40),
+    startsOn: isoDate,
+    endsOn: isoDate,
+  })
+  .refine((value) => value.endsOn > value.startsOn, {
+    message: "A data de fim tem de ser posterior ao início.",
+    path: ["endsOn"],
+  });
+export type CreateAcademicYearInput = z.infer<typeof createAcademicYearInputSchema>;
+
 export const listCalendarEventsInputSchema = z.object({
   limit: z.number().int().min(1).max(80).default(50),
   fromDate: optionalText,
@@ -32,6 +49,16 @@ export const listCalendarEventsInputSchema = z.object({
   includePast: z.boolean().optional(),
 });
 export type ListCalendarEventsInput = z.infer<typeof listCalendarEventsInputSchema>;
+
+export const listDayAgendaLessonsInputSchema = z.object({
+  date: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  limit: z.number().int().min(1).max(40).default(24),
+});
+export type ListDayAgendaLessonsInput = z.infer<typeof listDayAgendaLessonsInputSchema>;
 
 export const updateCalendarEventInputSchema = z.object({
   id: z.string().uuid(),

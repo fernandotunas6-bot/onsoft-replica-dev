@@ -8,7 +8,7 @@ Cenários capturados (por viewport):
 Uso:
   python3 scripts/visual-sidebar.py            # comparar com baseline
   python3 scripts/visual-sidebar.py --update   # (re)criar baselines
-  BASE_URL=http://localhost:8080 python3 scripts/visual-sidebar.py
+  BASE_URL=http://localhost:3006 python3 scripts/visual-sidebar.py
 """
 from __future__ import annotations
 
@@ -22,10 +22,19 @@ import numpy as np
 from PIL import Image, ImageChops
 from playwright.async_api import async_playwright
 
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:3006")
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "tests" / "visual-sidebar"
 BASELINE, CURRENT, DIFF = OUT / "baseline", OUT / "current", OUT / "diff"
+
+CHROME_APP = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+
+
+def get_browser_kwargs():
+    kwargs = {"headless": True}
+    if CHROME_APP.exists():
+        kwargs["executable_path"] = str(CHROME_APP)
+    return kwargs
 
 VIEWPORTS = [
     ("desktop-1440", 1440, 900),
@@ -140,7 +149,7 @@ async def scenarios(page, tag: str, mobile: bool, update: bool, failures: list[s
 async def main(update: bool) -> int:
     failures: list[str] = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(**get_browser_kwargs())
         for tag, w, h in VIEWPORTS:
             print(f"\n== {tag} ({w}x{h})")
             ctx = await browser.new_context(

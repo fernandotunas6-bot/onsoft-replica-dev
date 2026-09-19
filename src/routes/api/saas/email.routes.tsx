@@ -9,10 +9,27 @@ import {
 } from "@/features/saas/email-routing";
 import { getPlatformDomain } from "@/lib/saas/platform-domain";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { requireTenantAccess, resolveBearerUserId } from "@/features/saas/platform-guard";
 
 // style-check: route-exempt — gestão de rotas de e-mail institucional.
 
 const APPS = ["web", "admin"] as const;
+
+// Reencaminhar o e-mail institucional de uma escola desvia recuperações de
+// palavra-passe e correspondência oficial. Sem guarda, um `tenantId` no corpo do
+// pedido bastava para o fazer a qualquer escola: `requireTenantAccess` exige
+// sessão e confirma que ela manda mesmo nesse tenant (Administrador da escola ou
+// administrador da plataforma).
+async function authorizeTenant(request: Request, tenantId: string) {
+  const userId = await resolveBearerUserId(request.headers.get("Authorization"));
+  return requireTenantAccess(userId, tenantId);
+}
+
+function authErrorStatus(message: string): number {
+  if (message === "Unauthorized" || message.includes("Sem permissão")) return 401;
+  if (message.includes("não encontrada")) return 404;
+  return 500;
+}
 
 const createRouteBodySchema = z.object({
   tenantId: z.string().uuid(),
@@ -50,31 +67,28 @@ export const Route = createFileRoute("/api/saas/email/routes")({
           );
         }
 
-        // Carregar slug do tenant
-        const db = await loadSgaAdminClient();
-        const { data: tenant } = await db
-          .from("tenants")
-          .select("slug")
-          .eq("id", parsed.data.tenantId)
-          .maybeSingle();
-
-        if (!tenant?.slug) {
+        let tenant: { tenantSlug: string };
+        try {
+          tenant = await authorizeTenant(request, parsed.data.tenantId);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Sem permissão para gerir esta escola.";
           return jsonWithCors(
             request,
-            { error: "Escola não encontrada." },
-            { status: 404, apps: [...APPS] },
+            { error: message },
+            { status: authErrorStatus(message), apps: [...APPS] },
           );
         }
 
         const institutionalAddress = buildInstitutionalAddress(
-          String(tenant.slug),
+          tenant.tenantSlug,
           getPlatformDomain(),
         );
 
         const result = await createEmailRoute({
           institutionalAddress,
           forwardTo: parsed.data.forwardTo,
-          tenantSlug: String(tenant.slug),
+          tenantSlug: tenant.tenantSlug,
           tenantId: parsed.data.tenantId,
         });
 
@@ -103,18 +117,40 @@ export const Route = createFileRoute("/api/saas/email/routes")({
           );
         }
 
+        try {
+          await authorizeTenant(request, parsed.data.tenantId);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Sem permissão para gerir esta escola.";
+          return jsonWithCors(
+            request,
+            { error: message },
+            { status: authErrorStatus(message), apps: [...APPS] },
+          );
+        }
+
         const creds = resolveCloudflareCredentials();
         if (creds) {
           await deleteEmailRoute(parsed.data.routeId, creds.zoneId, creds.apiToken);
         }
 
-        // Desactivar na BD
+        // Desactivar na BD. A coluna de estado é `status` (não `active`) e a tabela é
+        // indexada por `school_id` — `tenant_id` não existe aqui, é da escola que se
+        // chega ao tenant.
         const db = await loadSgaAdminClient();
-        await db
-          .from("school_email_routes")
-          .update({ active: false, updated_at: new Date().toISOString() })
-          .eq("cloudflare_route_id", parsed.data.routeId)
-          .eq("tenant_id", parsed.data.tenantId);
+        const { data: school } = await db
+          .from("schools")
+          .select("id")
+          .eq("tenant_id", parsed.data.tenantId)
+          .maybeSingle();
+
+        if (school?.id) {
+          await db
+            .from("school_email_routes")
+            .update({ status: "suspended", updated_at: new Date().toISOString() })
+            .eq("cloudflare_route_id", parsed.data.routeId)
+            .eq("school_id", school.id as string);
+        }
 
         return jsonWithCors(request, { ok: true }, { apps: [...APPS] });
       },

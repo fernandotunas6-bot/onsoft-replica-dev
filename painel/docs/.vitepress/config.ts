@@ -1,15 +1,27 @@
 import { defineConfig } from 'vitepress'
 
 const isProd = process.env.NODE_ENV === 'production' || process.env.CF_PAGES === '1'
-const WEB_URL = process.env.VITE_WEB_URL || (isProd ? 'https://siga-web.pages.dev' : 'http://localhost:5174')
-const SIGA_URL = process.env.VITE_SIGA_URL || (isProd ? 'https://portal-siga.com' : 'http://localhost:3006')
-const ADMIN_URL = process.env.VITE_ADMIN_URL || (isProd ? 'https://siga-admin.pages.dev' : 'http://localhost:3005')
+const PLATFORM_DOMAIN = String(process.env.VITE_PLATFORM_DOMAIN || process.env.PLATFORM_DOMAIN || 'portal-siga.com')
+  .trim()
+  .toLowerCase()
+  .replace(/^\.+|\.+$/g, '')
+const WEB_URL = process.env.VITE_WEB_URL || (isProd ? `https://www.${PLATFORM_DOMAIN}` : 'http://localhost:5174')
+const SIGA_URL = process.env.VITE_SIGA_URL || (isProd ? `https://${PLATFORM_DOMAIN}` : 'http://localhost:3006')
+const ADMIN_URL = process.env.VITE_ADMIN_URL || (isProd ? `https://admin.${PLATFORM_DOMAIN}` : 'http://localhost:3005')
+const PAYFLOW_URL = process.env.VITE_PAYFLOW_URL || (isProd ? `https://payflow.${PLATFORM_DOMAIN}` : 'http://localhost:3007')
 
 export default defineConfig({
   lang: 'pt-PT',
   title: 'SIGA Plus',
   description: 'Documentação Oficial da Plataforma SIGA Plus - Sistema Proprietário de Gestão Académica e Administrativa.',
   ignoreDeadLinks: true,
+
+  // Claro por omissão, como no resto do ecossistema (SIGA, WEB, ADMIN).
+  // O selector de tema continua disponível e a escolha do leitor persiste.
+  // O VitePress tipa `initialValue` como `'dark'` porque só prevê desviar do
+  // automático nesse sentido; 'light' é aceite em runtime tanto pelo script
+  // injectado no `<head>` como pelo `useDark` do cliente.
+  appearance: { initialValue: 'light' } as { initialValue: 'dark' },
 
   vite: {
     optimizeDeps: {
@@ -39,6 +51,7 @@ export default defineConfig({
           { text: 'Portal WEB', link: WEB_URL },
           { text: 'Control Center', link: `${ADMIN_URL}/tenants` },
           { text: 'SIGA escolar', link: SIGA_URL },
+          { text: 'PayFlow', link: PAYFLOW_URL },
         ],
       },
     ],
@@ -105,6 +118,7 @@ export default defineConfig({
           text: 'Financeiro escolar',
           items: [
             { text: 'Exportação SAFT-AO / AGT', link: '/financeiro/saft-agt-exportacao' },
+            { text: 'PayFlow (cobrança)', link: '/financeiro/payflow' },
           ],
         },
       ],
@@ -192,7 +206,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'WEB vende · ADMIN controla · SIGA trabalha · DOC explica',
+      message: 'WEB vende · ADMIN controla · SIGA trabalha · PAYFLOW cobra · DOC explica',
       copyright: 'Copyright © 2024-presente SIGA Plus',
     },
 

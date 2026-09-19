@@ -54,7 +54,7 @@ export const SQL_CHECKLIST = {
       "siga_file_events",
       "siga_lesson_plans",
       "siga_lesson_plan_components",
-      "announcements",
+      "school_announcements",
       "import_jobs",
       "siga_attendance_sessions",
       "siga_access_cards",
@@ -64,10 +64,32 @@ export const SQL_CHECKLIST = {
       "roles",
       "permissions",
       "school_invitations",
+      "student_status_history",
+      "student_academic_history",
+      "hr_employments",
+      "hr_contracts",
+      "hr_payroll_runs",
+      "hr_payroll_items",
+      "hr_payroll_payment_batches",
+      "hr_teacher_lesson_occurrences",
+      "hr_attendance_assurance_evidence",
+      "hr_absence_events",
+      "subject_types",
+      "curriculum_areas",
+      "school_shifts",
+      "school_shift_slots",
+      "curricula",
+      "curriculum_subjects",
+      "teacher_availability",
+      "academic_schedules",
     ],
     notes: [
       "Função current_school_id() a partir de school_memberships — obrigatória",
       "Sem isto: arquivos, mensagens, planos de aula, catracas, importar falham ou degradam",
+      "Ciclo 56: RH/folha/assiduidade — migrations 20260906*_hr_* + hardening 190000",
+      "Ciclo 57: Núcleo académico avançado — migration 20260908180000_advanced_academic_core.sql",
+      "Ciclo 64: Backfill papéis Huambo (20260908200000) + captura 149 funções BD (20260908210000)",
+      "Ciclo 64: Auditoria RBAC-v2 confirmada: ambas escolas têm 8 papéis × permissões correctas (510 linhas total)",
     ],
   },
   "supabase/APPLY_SAAS_PLATFORM.sql": {
@@ -104,6 +126,49 @@ export const SQL_CHECKLIST = {
       "Wildcard *.PLATFORM_DOMAIN resolve para a aplicação sem DNS manual",
     ],
   },
+  "supabase/APPLY_ALUMNI_MODULE.sql": {
+    title: "Módulo Alumni & Antigos Alunos",
+    tables: [
+      "alumni_profiles",
+      "alumni_experiences",
+      "alumni_engagements",
+      "alumni_opportunities",
+      "alumni_opportunity_applications",
+      "alumni_mentorships",
+      "alumni_events",
+      "alumni_event_registrations",
+      "alumni_surveys",
+      "alumni_survey_responses",
+      "alumni_contributions",
+      "alumni_communication_preferences",
+      "alumni_privacy_audit",
+      "alumni_portfolio_items",
+      "alumni_education_stages",
+    ],
+    notes: [
+      "Ciclo pós-formação do SIGA sem duplicar pessoas ou matrículas",
+      "Perfis 360º, portfólio por nível de ensino, mentoria, tracer studies, eventos e privacidade",
+    ],
+  },
+  "supabase/APPLY_ASSESSMENT_SCORE_HISTORY.sql": {
+    title: "Auditoria de alterações de notas",
+    tables: ["audit_logs"],
+    notes: [
+      "Liga siga_assessment_scores ao private.audit_row_change() que 41 tabelas já usavam",
+      "As notas eram das poucas coisas importantes fora da auditoria central",
+      "APLICADO em produção a 2026-09-12 — 41 → 42 tabelas com auditoria",
+    ],
+  },
+  "supabase/HARDEN_TENANT_ISOLATION.sql": {
+    title: "Isolamento entre escolas",
+    tables: [],
+    notes: ["current_school_id(), current_school_role_is(), is_school_member() e políticas base"],
+  },
+  "supabase/HARDEN_TEACHER_ASSESSMENT_SCOPE.sql": {
+    title: "Âmbito docente sobre avaliações",
+    tables: [],
+    notes: ["Professor limitado às turmas e disciplinas activamente atribuídas"],
+  },
 };
 
 function printChecklist() {
@@ -125,6 +190,26 @@ function printChecklist() {
       for (const note of meta.notes) console.log(`       • ${note}`);
       console.log(`     Smoke tables (${meta.tables.length}):`);
       console.log(`       ${meta.tables.join(", ")}`);
+    }
+    console.log("");
+  }
+
+  // Os HARDEN_* não criam tabelas — apertam RLS, âmbito docente e privilégios
+  // sobre o que os APPLY_* já criaram. Não constavam de lista nenhuma, o que
+  // significava que nada dizia a um operador para os aplicar e o verify não os
+  // cobria: as garantias de isolamento do projecto viviam em ficheiros órfãos.
+  const harden = catalog.sqlHarden ?? [];
+  if (harden.length) {
+    console.log("DEPOIS DOS APPLY — endurecimento (aplicar por esta ordem):\n");
+    for (const [index, file] of harden.entries()) {
+      const abs = resolve(root, file);
+      const ok = existsSync(abs) ? "✓" : "✗ FICHEIRO EM FALTA";
+      console.log(`  ${index + 1}. ${file}  ${ok}`);
+      const meta = SQL_CHECKLIST[file];
+      if (meta) {
+        console.log(`     → ${meta.title}`);
+        for (const note of meta.notes) console.log(`       • ${note}`);
+      }
     }
     console.log("");
   }

@@ -26,3 +26,5 @@ description: >-
    outros módulos (nomeadamente `academic/sga-grades.ts`, que continua fixo a
    MAC/NPP/NPT na pauta oficial).
 7. Teste Zod em `tests/lesson-plans/schemas.test.ts`.
+8. Deep-link tutor: `/planos-aula?turma=&disciplina=` (Ciclo 56.7) — a página faz seed
+   dos filtros `usePersistedListFilters` e pré-preenche o modal de novo plano.

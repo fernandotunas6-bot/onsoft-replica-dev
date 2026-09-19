@@ -1,0 +1,181 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../vendor/shadcn-tailwind-4.13.0.css";
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility scrollbar-gutter-stable {
+  scrollbar-gutter: stable;
+}
+
+:root {
+  --background: #f7f9fa;
+  --foreground: #15221b;
+  --card: #ffffff;
+  --card-foreground: #15221b;
+  --popover: #ffffff;
+  --popover-foreground: #15221b;
+  --primary: #16a66a;
+  --primary-foreground: #ffffff;
+  --secondary: #edf7f1;
+  --secondary-foreground: #0c6f47;
+  --muted: #f0f4f2;
+  --muted-foreground: #65736b;
+  --accent: #eaf7f0;
+  --accent-foreground: #0c6f47;
+  --destructive: #c7374f;
+  --border: #e0e7e3;
+  --input: #d7e0db;
+  --ring: #16a66a;
+  --surface-subtle: #f3f6f4;
+  --success: #168454;
+  --warning: #a15c00;
+  --danger: #c7374f;
+  --info: #2f66b8;
+  --chart-1: #16a66a;
+  --chart-2: #7d8b83;
+  --chart-3: #62bd91;
+  --chart-4: #d89228;
+  --chart-5: #456f92;
+  --radius: 0.625rem;
+  --shadow-soft: 0 1px 2px rgba(16, 34, 24, 0.025), 0 8px 24px rgba(16, 34, 24, 0.035);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #34433a;
+  --sidebar-primary: #16a66a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #edf8f2;
+  --sidebar-accent-foreground: #0c6f47;
+  --sidebar-border: #e0e7e3;
+  --sidebar-ring: #16a66a;
+}
+
+.dark {
+  --background: #0d1117;
+  --foreground: #edf4f0;
+  --card: #141b17;
+  --card-foreground: #edf4f0;
+  --popover: #141b17;
+  --popover-foreground: #edf4f0;
+  --primary: #39bd80;
+  --primary-foreground: #07160f;
+  --secondary: #173226;
+  --secondary-foreground: #bfe8d2;
+  --muted: #1a231e;
+  --muted-foreground: #9aac9f;
+  --accent: #173226;
+  --accent-foreground: #c7ead7;
+  --destructive: #ef6a7c;
+  --border: #28352e;
+  --input: #34443b;
+  --ring: #39bd80;
+  --surface-subtle: #111713;
+  --success: #58cf92;
+  --warning: #f0b55b;
+  --danger: #ef6a7c;
+  --info: #77a7e8;
+  --sidebar: #101713;
+  --sidebar-foreground: #d9e6de;
+  --sidebar-primary: #39bd80;
+  --sidebar-primary-foreground: #07160f;
+  --sidebar-accent: #193426;
+  --sidebar-accent-foreground: #d8f3e4;
+  --sidebar-border: #26352c;
+  --sidebar-ring: #39bd80;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.financial-numeral {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+::selection {
+  background: #bce9d1;
+  color: #0c4d33;
+}
+
+.payflow-grid {
+  background-image:
+    linear-gradient(to right, rgba(22, 166, 106, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(22, 166, 106, 0.035) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.payflow-glow {
+  box-shadow: 0 0 0 4px rgba(22, 166, 106, 0.08);
+}

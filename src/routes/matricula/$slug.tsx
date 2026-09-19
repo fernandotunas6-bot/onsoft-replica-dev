@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, GraduationCap, LoaderCircle } from "lucide-react";
+import { CheckCircle2, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
@@ -13,6 +13,8 @@ import type { EnrollmentVisibleField } from "@/features/enrollment/schemas";
 import { overlayTalao } from "@/features/documents/print-overlays";
 import { printBundledTemplate } from "@/features/documents/print-issue-loader";
 import { whatsappHref } from "@/features/integrations/actions";
+import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
+import { angolaProvinces } from "@/lib/angola-territory";
 
 // style-check: route-exempt - formulário público com identidade própria da escola.
 
@@ -40,6 +42,7 @@ function PublicEnrollmentPage() {
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState<{
     fullName: string;
+    processNumber: string;
     guardianName?: string;
     guardianPhone?: string;
   } | null>(null);
@@ -69,7 +72,7 @@ function PublicEnrollmentPage() {
       const fullName = String(data.get("full_name") ?? "");
       const guardianName = String(data.get("guardian_name") || "") || undefined;
       const guardianPhone = String(data.get("guardian_phone") || "") || undefined;
-      await submitPublicEnrollment({
+      const submitted = await submitPublicEnrollment({
         data: {
           slug,
           person: {
@@ -78,6 +81,9 @@ function PublicEnrollmentPage() {
             sex: (String(data.get("sex") || "") || undefined) as "M" | "F" | "outro" | undefined,
             phone_primary: String(data.get("phone_primary") || "") || undefined,
             email: String(data.get("email") || "") || undefined,
+            province: String(data.get("province") || "") || undefined,
+            municipality: String(data.get("municipality") || "") || undefined,
+            commune: String(data.get("commune") || "") || undefined,
             address: String(data.get("address") || "") || undefined,
             nif: String(data.get("nif") || "") || undefined,
             notes: String(data.get("notes") || "") || undefined,
@@ -89,6 +95,7 @@ function PublicEnrollmentPage() {
       });
       setReceipt({
         fullName,
+        processNumber: submitted.processNumber,
         ...(guardianName ? { guardianName } : {}),
         ...(guardianPhone ? { guardianPhone } : {}),
       });
@@ -104,42 +111,36 @@ function PublicEnrollmentPage() {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,color-mix(in_oklab,var(--accent)_18%,transparent),transparent_42%),linear-gradient(180deg,var(--background),var(--secondary)/35%)]">
       <style>{`:root { --accent: ${accent}; }`}</style>
       <div className="mx-auto grid min-h-screen max-w-6xl gap-10 px-5 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-        <section className="space-y-6">
-          <div className="inline-flex items-center gap-3 rounded-2xl bg-primary px-3 py-2 text-primary-foreground shadow-lg">
-            <GraduationCap className="size-5" />
-            <span className="text-sm font-extrabold tracking-wide">
-              {form?.school_name ?? "SIGA"}
-            </span>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              Candidatura pública
-            </p>
-            <h1 className="mt-3 font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-              {form?.title ?? "Matrícula"}
-            </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-              {form?.hero_text ??
-                form?.subtitle ??
-                "Preencha os dados do aluno. A secretaria confirma a matrícula."}
-            </p>
-            {schoolWhatsapp || schoolMailto ? (
-              <div className="mt-5 flex flex-wrap gap-2">
-                {schoolWhatsapp ? (
-                  <Button variant="outline" asChild>
-                    <a href={schoolWhatsapp} target="_blank" rel="noreferrer">
-                      WhatsApp da secretaria
-                    </a>
-                  </Button>
-                ) : null}
-                {schoolMailto ? (
-                  <Button variant="outline" asChild>
-                    <a href={schoolMailto}>E-mail da secretaria</a>
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+        <section className="space-y-4">
+          <EducationWorkflowVisual
+            scene={sent ? "success" : "enrollment"}
+            eyebrow={form?.school_name ?? "SIGA Plus"}
+            title={sent ? "Candidatura enviada" : (form?.title ?? "Matrícula")}
+            description={
+              sent
+                ? "Os dados foram recebidos. A secretaria pode agora rever e continuar o processo."
+                : (form?.hero_text ??
+                  form?.subtitle ??
+                  "Preencha os dados do aluno. A secretaria confirma a matrícula.")
+            }
+            className="min-h-[380px] rounded-3xl border border-border lg:min-h-[620px]"
+          />
+          {schoolWhatsapp || schoolMailto ? (
+            <div className="flex flex-wrap gap-2">
+              {schoolWhatsapp ? (
+                <Button variant="outline" asChild>
+                  <a href={schoolWhatsapp} target="_blank" rel="noreferrer">
+                    WhatsApp da secretaria
+                  </a>
+                </Button>
+              ) : null}
+              {schoolMailto ? (
+                <Button variant="outline" asChild>
+                  <a href={schoolMailto}>E-mail da secretaria</a>
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur">
@@ -159,6 +160,11 @@ function PublicEnrollmentPage() {
                 A secretaria vai rever os dados e contactá-lo para confirmar a matrícula.
               </p>
               {receipt ? (
+                <p className="mt-3 text-sm font-semibold text-foreground">
+                  Nº de processo: {receipt.processNumber}
+                </p>
+              ) : null}
+              {receipt ? (
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
                   <Button
                     variant="outline"
@@ -168,11 +174,12 @@ function PublicEnrollmentPage() {
                         school: { name: form?.school_name ?? "Escola" },
                         student: {
                           fullName: receipt.fullName,
-                          academicNumber: "CAND",
+                          academicNumber: receipt.processNumber,
                         },
                         overlay: overlayTalao({
                           kind: "candidatura",
                           fullName: receipt.fullName,
+                          process: receipt.processNumber,
                           ...(receipt.guardianName ? { guardianName: receipt.guardianName } : {}),
                           ...(receipt.guardianPhone
                             ? { guardianPhone: receipt.guardianPhone }
@@ -261,10 +268,49 @@ function PublicEnrollmentPage() {
                   </div>
                 ) : null}
               </div>
+              {hasField(form?.visible_fields, "province") ||
+              hasField(form?.visible_fields, "municipality") ||
+              hasField(form?.visible_fields, "commune") ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {hasField(form?.visible_fields, "province") ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="province">Província</Label>
+                      <select
+                        id="province"
+                        name="province"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="">Seleccionar província</option>
+                        {angolaProvinces.map((province) => (
+                          <option key={province} value={province}>
+                            {province}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+                  {hasField(form?.visible_fields, "municipality") ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="municipality">Município</Label>
+                      <Input id="municipality" name="municipality" />
+                    </div>
+                  ) : null}
+                  {hasField(form?.visible_fields, "commune") ? (
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="commune">Comuna / localidade</Label>
+                      <Input id="commune" name="commune" />
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               {hasField(form?.visible_fields, "address") ? (
                 <div className="space-y-1.5">
-                  <Label htmlFor="address">Morada</Label>
-                  <Input id="address" name="address" />
+                  <Label htmlFor="address">Morada detalhada</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    placeholder="Bairro, rua, casa ou referência"
+                  />
                 </div>
               ) : null}
               {hasField(form?.visible_fields, "guardian_name") ||

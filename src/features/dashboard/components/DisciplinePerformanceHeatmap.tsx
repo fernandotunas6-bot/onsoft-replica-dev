@@ -131,7 +131,7 @@ export function DisciplinePerformanceHeatmap({
                       return (
                         <td
                           key={disc}
-                          className="p-3 text-center text-muted-foreground/40 font-mono"
+                          className="p-3 text-center text-muted-foreground font-mono"
                         >
                           —
                         </td>

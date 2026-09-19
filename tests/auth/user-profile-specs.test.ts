@@ -71,7 +71,7 @@ describe("User Profile & Multi-School Membership Specification", () => {
       expect(() =>
         updateCurrentProfileInputSchema.parse({
           fullName: "Maria Silva",
-        } as any),
+        } as unknown as Record<string, unknown>),
       ).toThrow();
     });
   });

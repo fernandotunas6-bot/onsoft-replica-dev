@@ -3,16 +3,9 @@ import { publicSchoolSignupInputSchema } from "@/features/saas/schemas";
 import { runPublicSchoolSignup } from "@/features/saas/public-signup";
 import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
 import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls";
+import { clientIpFromRequest } from "@/lib/request-ip";
 
 const WEB_APPS = ["web"] as const;
-
-function clientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
 
 // style-check: route-exempt — API pública de signup comercial (WEB → SIGA).
 
@@ -40,7 +33,7 @@ export const Route = createFileRoute("/api/saas/signup")({
           );
         }
         try {
-          const result = await runPublicSchoolSignup(parsed.data, clientIp(request));
+          const result = await runPublicSchoolSignup(parsed.data, clientIpFromRequest(request));
           return jsonWithCors(
             request,
             {

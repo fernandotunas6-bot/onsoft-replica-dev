@@ -24,8 +24,8 @@ const values = [
   },
   {
     icon: Crown,
-    title: 'Quatro apps, um produto',
-    description: 'WEB vende, ADMIN controla, SIGA trabalha, DOC explica — sem misturar papéis.'
+    title: 'Cinco apps, um produto',
+    description: 'WEB vende, ADMIN controla, SIGA trabalha, PayFlow cobra, DOC explica — sem misturar papéis.'
   }
 ]
 
@@ -43,7 +43,7 @@ export function AboutSection() {
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
             O SIGA Plus é a plataforma de gestão escolar do ecossistema: venda no WEB,
-            controlo SaaS no ADMIN, operação no SIGA e ajuda no DOC.
+            controlo SaaS no ADMIN, operação no SIGA, cobrança no PayFlow e ajuda no DOC.
           </p>
         </div>
 

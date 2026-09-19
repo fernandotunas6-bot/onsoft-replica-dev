@@ -51,6 +51,10 @@ export function FileCoverTile({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
+    // De propósito: os campos usados em vez do objecto `file`, cuja identidade
+    // muda a cada render e reexecutaria o efeito (revogando o blob) sem
+    // necessidade nenhuma.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batched, file.id, file.kind, file.storageBackend, file.storagePath, locked]);
 
   return (

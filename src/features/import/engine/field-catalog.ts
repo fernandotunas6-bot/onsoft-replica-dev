@@ -1673,6 +1673,17 @@ export const FIELD_CATALOG: Record<string, ModuleFieldCatalog> = {
         example: "Vencido",
         aliases: ["estado", "situacao divida", "status"],
       },
+      {
+        key: "payment_channel",
+        label: "Canal / Forma de Pagamento",
+        description:
+          "Forma de pagamento (Multicaixa, Transferência, Depósito, Dinheiro, Unitel Money)",
+        type: "select",
+        options: ["Multicaixa", "Transferência", "Depósito", "Dinheiro", "Unitel Money"],
+        required: false,
+        example: "Multicaixa",
+        aliases: ["canal", "forma de pagamento", "meio de pagamento", "payment channel"],
+      },
     ],
   },
   historico_academico: {

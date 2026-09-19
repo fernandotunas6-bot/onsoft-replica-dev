@@ -1,10 +1,25 @@
-import { useState, type ElementType, type ReactNode } from "react";
+import { Fragment, useState, type ElementType, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import type { ChipTone } from "@/components/ui/icon-chip";
 import { IconChip } from "@/components/ui/icon-chip";
 import { LazyVisible } from "@/components/ui/lazy-visible";
 import { LogoChip } from "@/components/ui/logo-chip";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
+
+export type PageCrumb = {
+  label: string;
+  to?: string;
+  search?: Record<string, string | undefined>;
+};
 
 export function PageHeader({
   group,
@@ -14,6 +29,8 @@ export function PageHeader({
   avatar,
   icon,
   logoUrl,
+  crumbs,
+  hideBreadcrumb = false,
 }: {
   group: string;
   title: string;
@@ -22,6 +39,8 @@ export function PageHeader({
   avatar?: ReactNode;
   icon?: ElementType;
   logoUrl?: string | null;
+  crumbs?: PageCrumb[];
+  hideBreadcrumb?: boolean;
 }) {
   const headerMark =
     avatar ??
@@ -31,35 +50,75 @@ export function PageHeader({
       <IconChip icon={icon} size="lg" label={title} />
     ) : null);
 
+  const trail: PageCrumb[] =
+    crumbs ??
+    ([{ label: "Início", to: "/" }, { label: group }, { label: title }] satisfies PageCrumb[]);
+
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div className="flex items-center gap-3">
-        {headerMark}
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            {group}
-          </p>
-          <h1 className="font-display text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
-          <p className="mt-0.5 max-w-2xl text-xs text-muted-foreground md:text-sm">{description}</p>
+    <div className="space-y-2.5">
+      {!hideBreadcrumb ? (
+        <Breadcrumb>
+          <BreadcrumbList className="text-[11px] sm:text-xs">
+            {trail.map((crumb, index) => {
+              const isLast = index === trail.length - 1;
+              // O separador é `<li>`: tem de ser irmão do item, não filho —
+              // `<li>` dentro de `<li>` é HTML inválido e rebentava a
+              // hidratação em todas as páginas com cabeçalho.
+              return (
+                <Fragment key={`${crumb.label}-${index}`}>
+                  {index > 0 ? <BreadcrumbSeparator className="[&>svg]:size-3" /> : null}
+                  <BreadcrumbItem className="gap-1.5">
+                    {isLast || !crumb.to ? (
+                      <BreadcrumbPage className={cn(!isLast && "text-muted-foreground")}>
+                        {crumb.label}
+                      </BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink asChild>
+                        <Link to={crumb.to} search={crumb.search}>
+                          {crumb.label}
+                        </Link>
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </Fragment>
+              );
+            })}
+          </BreadcrumbList>
+        </Breadcrumb>
+      ) : null}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {headerMark}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {group}
+            </p>
+            <h1 className="font-display text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
+            <p className="mt-0.5 max-w-2xl text-xs text-muted-foreground md:text-sm">
+              {description}
+            </p>
+          </div>
         </div>
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </div>
   );
 }
 
 export function StatGrid({
   items,
+  children,
   collapsible = false,
   storageKey,
 }: {
-  items: {
+  items?: {
     label: string;
     value: string;
     hint?: string;
     icon?: ElementType;
     tone?: ChipTone;
   }[];
+  children?: ReactNode;
   collapsible?: boolean;
   storageKey?: string;
 }) {
@@ -72,7 +131,7 @@ export function StatGrid({
         const stored = localStorage.getItem(lsKey);
         if (stored !== null) return stored === "true";
       } catch {
-        /* localStorage indisponível (modo privado): usar o valor por omissão */
+        /* localStorage indisponível (privado/desactivado) — ignorar. */
       }
     }
     return false;
@@ -85,19 +144,21 @@ export function StatGrid({
       try {
         localStorage.setItem(lsKey, String(next));
       } catch {
-        /* localStorage indisponível: manter apenas o estado em memória */
+        /* localStorage indisponível (privado/desactivado) — ignorar. */
       }
     }
   };
 
-  const grid = (
+  const grid = children ? (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{children}</div>
+  ) : items && items.length > 0 ? (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => {
         const tone = item.tone ?? "primary";
         return (
           <div
             key={item.label}
-            className="group relative overflow-hidden rounded-lg border border-border/80 bg-card p-3.5 shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-sm"
+            className="hover-lift group relative overflow-hidden rounded-xl border border-border/80 bg-card p-3.5 shadow-card hover:border-primary/30"
           >
             <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/70 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
             <div className="flex items-start justify-between gap-2.5">
@@ -124,8 +185,9 @@ export function StatGrid({
         );
       })}
     </div>
-  );
+  ) : null;
 
+  if (!grid) return null;
   if (!collapsible) return grid;
 
   return (
@@ -184,7 +246,7 @@ export function Panel({
   ) : null;
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card shadow-xs transition-shadow hover:shadow-sm">
+    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card transition-shadow hover:shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-muted/30 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
           {panelMark}

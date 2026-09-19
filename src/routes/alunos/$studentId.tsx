@@ -1,13 +1,18 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useRef, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  Award,
   CalendarDays,
+  Camera,
+  ChevronDown,
   FileDown,
   FilePlus2,
+  FileText,
   GraduationCap,
+  Loader2,
   Mail,
   Receipt,
   MapPin,
@@ -17,6 +22,7 @@ import {
   QrCode,
   Smartphone,
   Trash2,
+  Upload,
   User,
   UserCheck,
   UserPlus,
@@ -31,13 +37,26 @@ const paymentStatusLabels: Record<string, string> = {
 };
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { StatCard } from "@/components/ui/stat-card";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { StudentDigitalCardModal } from "@/features/students/components/StudentDigitalCardModal";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
-import { applyLibraryPhotoToPerson } from "@/features/arquivos/apply-person-photo";
+import {
+  applyLibraryPhotoToPerson,
+  uploadPersonPhotoToLibrary,
+} from "@/features/arquivos/apply-person-photo";
 import { StudentRelatedFilesPanel } from "@/features/arquivos/StudentRelatedFilesPanel";
 import { paymentReference, whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -73,6 +92,7 @@ import {
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { officialDeclarationBody } from "@/features/documents/schemas";
 import { issueInvoice, listInvoices, recordInvoicePayment } from "@/features/finance/server";
+import { PayflowStudentSyncButton } from "@/features/finance/components/PayflowStudentSyncButton";
 import { officialReceiptBody, paymentStatusFromInvoices } from "@/features/finance/schemas";
 import { kwanza } from "@/lib/currency";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
@@ -161,6 +181,12 @@ type StudentProfile = {
   gender: string | null;
   birth_date: string | null;
   photo_url: string | null;
+  national_id?: string | null;
+  admitted_on?: string | null;
+  province: string | null;
+  municipality: string | null;
+  commune: string | null;
+  address: string | null;
 };
 
 type StudentGuardian = {
@@ -285,6 +311,9 @@ function StudentDetail() {
   }, [profileData, relationsSnapshot]);
   useDeclareEntityFocus(focusedStudentEntity);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
   if (profileQuery.isLoading) {
     return (
       <AppShell>
@@ -302,13 +331,52 @@ function StudentDetail() {
   const { student, guardians } = profileData!;
   if (!student) return <NotFoundOrError title="Aluno não encontrado" />;
 
+  const handleDirectPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !student?.person_id) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor seleccione uma imagem válida (PNG, JPEG ou WebP).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem não pode ultrapassar 5 MB.");
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      await uploadPersonPhotoToLibrary({
+        file,
+        personId: student.person_id,
+        schoolId: String(student.school_id),
+        ownerUserId: account.id,
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["students", "profile", studentId] }),
+        queryClient.invalidateQueries({ queryKey: ["people", "get", student.person_id] }),
+        queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+      ]);
+
+      toast.success("Foto de perfil actualizada com sucesso!");
+    } catch (err) {
+      toast.error("Erro ao actualizar a foto de perfil", {
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const studentInvoices = (invoicesQuery.data ?? []).filter(
     (invoice) => invoice.student_id === studentId,
   );
   const paymentStatus = paymentStatusFromInvoices(studentInvoices) ?? student.payment_status;
   const templates = documentsQuery.data?.templates ?? [];
   const templateOptions = templates.map((template) => template.name);
-  const suggestedInvoiceNumber = `FT-${new Date().getFullYear()}-${student.registration_number.replace(/\W/g, "").slice(-6)}`;
   const suggestedDocumentNumber = `DOC-${student.registration_number.replace(/\W/g, "").slice(-8)}`;
   const receiptYear =
     selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "";
@@ -793,47 +861,86 @@ function StudentDetail() {
         <InstalledModuleTools module="documentos" />
 
         <div className="flex flex-wrap items-center gap-5 rounded-xl border border-border bg-card p-6 shadow-soft">
-          <div className="flex flex-col items-center gap-2">
-            <MediaAvatar
-              src={student.photo_url}
-              alt={student.full_name}
-              fallback={initials}
-              className="size-16 rounded-2xl text-xl"
-            />
-            <PickFileButton
-              label="Foto"
-              area="secretaria"
-              acceptKinds={["png", "jpeg"]}
-              variant="outline"
-              size="sm"
-              onPick={(file) => {
-                void (async () => {
-                  try {
-                    await applyLibraryPhotoToPerson({
-                      personId: student.person_id,
-                      schoolId: String(student.school_id),
-                      file,
-                    });
-                    await Promise.all([
-                      queryClient.invalidateQueries({
-                        queryKey: ["students", "profile", student.id],
-                      }),
-                      queryClient.invalidateQueries({
-                        queryKey: ["people", "get", student.person_id],
-                      }),
-                      queryClient.invalidateQueries({
-                        queryKey: ["arquivos", "student-related", student.person_id],
-                      }),
-                    ]);
-                    toast.success("Foto actualizada a partir da biblioteca");
-                  } catch (error) {
-                    toast.error("Não foi possível actualizar a foto", {
-                      description: error instanceof Error ? error.message : "Tente novamente.",
-                    });
-                  }
-                })();
-              }}
-            />
+          <div className="flex flex-col items-center gap-2.5">
+            <div className="relative group shrink-0">
+              <MediaAvatar
+                src={student.photo_url}
+                alt={student.full_name}
+                fallback={initials}
+                className="size-20 rounded-2xl text-xl object-cover ring-2 ring-primary/25 shadow-sm transition-transform duration-200 group-hover:scale-[1.02]"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+                title="Carregar nova foto de perfil"
+                className="absolute -bottom-1 -right-1 size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
+              >
+                {isUploadingPhoto ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Camera className="size-3.5" />
+                )}
+              </button>
+              <input
+                id="student-photo-upload"
+                aria-label="Carregar foto de perfil do aluno"
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleDirectPhotoUpload}
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1 px-2 font-medium"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+              >
+                <Camera className="size-3" /> Foto
+              </Button>
+              <PickFileButton
+                label="Biblioteca"
+                area="secretaria"
+                acceptKinds={["png", "jpeg"]}
+                variant="outline"
+                size="sm"
+                onPick={(file) => {
+                  void (async () => {
+                    try {
+                      await applyLibraryPhotoToPerson({
+                        personId: student.person_id,
+                        schoolId: String(student.school_id),
+                        file,
+                      });
+                      await Promise.all([
+                        queryClient.invalidateQueries({
+                          queryKey: ["students", "profile", student.id],
+                        }),
+                        queryClient.invalidateQueries({
+                          queryKey: ["people", "get", student.person_id],
+                        }),
+                        queryClient.invalidateQueries({
+                          queryKey: ["arquivos", "student-related", student.person_id],
+                        }),
+                        queryClient.invalidateQueries({
+                          queryKey: ["students", "search"],
+                        }),
+                      ]);
+                      toast.success("Foto actualizada a partir da biblioteca");
+                    } catch (error) {
+                      toast.error("Não foi possível actualizar a foto", {
+                        description: error instanceof Error ? error.message : "Tente novamente.",
+                      });
+                    }
+                  })();
+                }}
+              />
+            </div>
           </div>
 
           <div className="min-w-0">
@@ -845,39 +952,174 @@ function StudentDetail() {
               {student.grade_name ? ` · ${student.grade_name} Classe` : ""}
               {student.class_name ? ` · Turma ${student.class_name}` : ""}
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className={cn(badge, "bg-success/15 text-success")}>
-                {estadoLabels[student.student_status] ?? student.student_status}
-              </span>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StatusBadge
+                status={
+                  student.student_status === "active"
+                    ? "active"
+                    : student.student_status === "inactive"
+                      ? "inactive"
+                      : "neutral"
+                }
+                label={estadoLabels[student.student_status] ?? student.student_status}
+              />
               {student.course_name ? (
-                <span className={cn(badge, "bg-primary-soft text-primary-strong")}>
+                <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-secondary-foreground border border-border/50">
                   {student.course_name}
                 </span>
               ) : null}
               {paymentStatus ? (
-                <span
-                  className={cn(
-                    badge,
+                <StatusBadge
+                  status={
                     paymentStatus === "settled"
-                      ? "bg-success/15 text-success"
+                      ? "paid"
                       : paymentStatus === "overdue"
-                        ? "bg-destructive/15 text-destructive"
-                        : "bg-warning/20 text-warning-foreground",
-                  )}
-                >
-                  {paymentStatusLabels[paymentStatus] ?? paymentStatus}
-                </span>
+                        ? "overdue"
+                        : "pending"
+                  }
+                  label={paymentStatusLabels[paymentStatus] ?? paymentStatus}
+                />
               ) : null}
             </div>
           </div>
-          <div className="ml-auto flex flex-wrap gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               className="gap-2 text-primary border-primary/30 bg-primary/5 hover:bg-primary/10 shadow-2xs"
               onClick={() => setCardModalOpen(true)}
             >
-              <QrCode className="size-4 text-primary" /> Cartão Digital PWA
+              <QrCode className="size-4 text-primary" /> Cartão Digital
             </Button>
+
+            {student.enrollment_id ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2 shadow-2xs">
+                    <FileDown className="size-4 text-primary" />
+                    Documentos Oficiais
+                    <ChevronDown className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Emissão e Impressão
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      void downloadBoletim().catch((error) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível emitir o boletim.",
+                        ),
+                      );
+                    }}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <FileDown className="size-4 text-primary" /> Boletim Escolar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      void downloadHistorico().catch((error) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível emitir o histórico.",
+                        ),
+                      );
+                    }}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <FileDown className="size-4 text-primary" /> Histórico Académico
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      void downloadDeclaracao().catch((error) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível emitir a declaração.",
+                        ),
+                      );
+                    }}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <FileDown className="size-4 text-primary" /> Declaração de Notas
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      void downloadCertificado().catch((error) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível emitir o certificado.",
+                        ),
+                      );
+                    }}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <Award className="size-4 text-primary" /> Certificado de Habilitações
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      void downloadDossie().catch((error) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível emitir o dossiê.",
+                        ),
+                      );
+                    }}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <FileText className="size-4 text-primary" /> Dossiê Académico
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      void downloadCredenciais().catch((error) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível emitir as credenciais.",
+                        ),
+                      );
+                    }}
+                    className="gap-2 cursor-pointer text-xs"
+                  >
+                    <QrCode className="size-4 text-primary" /> Folha de Credenciais
+                  </DropdownMenuItem>
+                  {whatsappOn || resendDocuments ? <DropdownMenuSeparator /> : null}
+                  {whatsappOn ? (
+                    <DropdownMenuItem asChild className="gap-2 cursor-pointer text-xs">
+                      <a
+                        href={whatsappHref(
+                          guardians[0]?.guardian?.phone_primary ?? student.phone ?? "",
+                          `Documentos de ${student.full_name} (${student.registration_number}) estão prontos para levantamento.`,
+                        )}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Smartphone className="size-4 text-success" /> Avisar por WhatsApp
+                      </a>
+                    </DropdownMenuItem>
+                  ) : null}
+                  {resendDocuments ? (
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(
+                          `Documentos de ${student.full_name} (${student.registration_number}) emitidos no SIGA.`,
+                        );
+                        toast.success("Texto dos documentos copiado para e-mail Resend");
+                      }}
+                      className="gap-2 cursor-pointer text-xs"
+                    >
+                      <Mail className="size-4 text-primary" /> Copiar para E-mail Resend
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+
             {turmaOptions.length > 0 ? (
               <QuickFormModal
                 eyebrow={student.registration_number}
@@ -912,174 +1154,56 @@ function StudentDetail() {
                 </Link>
               </Button>
             )}
-            <Button variant="outline" className="gap-2" onClick={() => setCardModalOpen(true)}>
-              <Smartphone className="size-4" /> Cartão Digital
-            </Button>
-            {student.enrollment_id ? (
+
+            {canIssueInvoice && student.enrollment_id ? (
               <>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => {
-                    void downloadBoletim().catch((error) =>
-                      toast.error(
-                        error instanceof Error
-                          ? error.message
-                          : "Não foi possível emitir o boletim.",
-                      ),
-                    );
-                  }}
-                >
-                  <FileDown className="size-4" /> Boletim
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => {
-                    void downloadHistorico().catch((error) =>
-                      toast.error(
-                        error instanceof Error
-                          ? error.message
-                          : "Não foi possível emitir o histórico.",
-                      ),
-                    );
-                  }}
-                >
-                  <FileDown className="size-4" /> Histórico
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => {
-                    void downloadDeclaracao().catch((error) =>
-                      toast.error(
-                        error instanceof Error
-                          ? error.message
-                          : "Não foi possível emitir a declaração.",
-                      ),
-                    );
-                  }}
-                >
-                  <FileDown className="size-4" /> Declaração
-                </Button>
-                {resendDocuments ? (
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(
-                        `Documentos de ${student.full_name} (${student.registration_number}) emitidos no SIGA.`,
-                      );
-                      toast.success("Texto dos documentos copiado para e-mail Resend");
-                    }}
-                  >
-                    E-mail
-                  </Button>
-                ) : null}
-                {whatsappOn ? (
-                  <Button variant="outline" className="gap-2" asChild>
-                    <a
-                      href={whatsappHref(
-                        guardians[0]?.guardian?.phone_primary ?? student.phone ?? "",
-                        `Documentos de ${student.full_name} (${student.registration_number}) estão prontos para levantamento.`,
-                      )}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      WhatsApp
-                    </a>
-                  </Button>
-                ) : null}
                 <QuickFormModal
                   eyebrow={student.registration_number}
-                  title="Outros modelos oficiais"
-                  description="Dossiê, certificado e credenciais do portal com o modelo activo da escola."
-                  icon={<FileDown className="size-5" />}
-                  submitLabel="Imprimir"
-                  successDescription="Modelo aberto para impressão."
+                  title="Emitir fatura"
+                  description="Cria a fatura neste aluno. Precisa de plano financeiro activo e matrícula na turma."
+                  icon={<Receipt className="size-5" />}
+                  submitLabel="Emitir"
+                  successDescription="Fatura emitida."
+                  onSubmit={async (values) => {
+                    const nifNote = agtOn && school?.nif ? ` NIF ${school.nif} (AGT).` : "";
+                    await issueInvoice({
+                      data: {
+                        studentId,
+                        dueOn: values["vencimento"],
+                        category: values["categoria"],
+                        amount: Number(values["valor"]),
+                        description: `${values["descricao"] || ""}${nifNote}`.trim() || undefined,
+                      },
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
+                  }}
                   fields={[
                     {
-                      name: "modelo",
-                      label: "Modelo",
+                      name: "categoria",
+                      label: "Categoria",
                       type: "select",
-                      options: [
-                        "Dossiê académico",
-                        "Certificado de habilitações",
-                        "Folha de credenciais",
-                      ],
+                      options: ["Mensalidade", "Matrícula", "Documento", "Outro"],
+                    },
+                    { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "45000" },
+                    { name: "vencimento", label: "Vencimento", type: "date" },
+                    {
+                      name: "descricao",
+                      label: "Descrição",
+                      type: "textarea",
                       full: true,
+                      required: false,
                     },
                   ]}
-                  onSubmit={async (values) => {
-                    if (values["modelo"] === "Certificado de habilitações") {
-                      await downloadCertificado();
-                      return;
-                    }
-                    if (values["modelo"] === "Folha de credenciais") {
-                      await downloadCredenciais();
-                      return;
-                    }
-                    await downloadDossie();
-                  }}
                   trigger={(open) => (
                     <Button variant="outline" className="gap-2" onClick={open}>
-                      <FileDown className="size-4" /> Mais modelos
+                      <Receipt className="size-4" /> Fatura
                     </Button>
                   )}
                 />
+                <PayflowStudentSyncButton studentId={studentId} />
               </>
             ) : null}
-            {canIssueInvoice && student.enrollment_id ? (
-              <QuickFormModal
-                eyebrow={student.registration_number}
-                title="Emitir fatura"
-                description="Cria a fatura neste aluno. Precisa de plano financeiro activo e matrícula na turma."
-                icon={<Receipt className="size-5" />}
-                submitLabel="Emitir"
-                successDescription="Fatura emitida."
-                onSubmit={async (values) => {
-                  const nifNote = agtOn && school?.nif ? ` NIF ${school.nif} (AGT).` : "";
-                  await issueInvoice({
-                    data: {
-                      studentId,
-                      number: values["numero"],
-                      dueOn: values["vencimento"],
-                      category: values["categoria"],
-                      amount: Number(values["valor"]),
-                      description: `${values["descricao"] || ""}${nifNote}`.trim() || undefined,
-                    },
-                  });
-                  await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
-                }}
-                fields={[
-                  {
-                    name: "numero",
-                    label: "Número",
-                    defaultValue: suggestedInvoiceNumber,
-                  },
-                  {
-                    name: "categoria",
-                    label: "Categoria",
-                    type: "select",
-                    options: ["Mensalidade", "Matrícula", "Documento", "Outro"],
-                  },
-                  { name: "valor", label: "Valor (Kz)", type: "number", placeholder: "45000" },
-                  { name: "vencimento", label: "Vencimento", type: "date" },
-                  {
-                    name: "descricao",
-                    label: "Descrição",
-                    type: "textarea",
-                    full: true,
-                    required: false,
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button variant="outline" className="gap-2" onClick={open}>
-                    <Receipt className="size-4" /> Fatura
-                  </Button>
-                )}
-              />
-            ) : null}
+
             {canRequestDocument && templateOptions.length > 0 ? (
               <QuickFormModal
                 eyebrow={student.registration_number}
@@ -1138,29 +1262,12 @@ function StudentDetail() {
                 ]}
                 trigger={(open) => (
                   <Button variant="outline" className="gap-2" onClick={open}>
-                    <FilePlus2 className="size-4" /> Documento
+                    <FilePlus2 className="size-4" /> Pedir Documento
                   </Button>
                 )}
               />
             ) : null}
-            {student.enrollment_id ? (
-              <ConfirmActionModal
-                title="Anular matrícula"
-                description={`A matrícula activa de ${student.full_name} será anulada. O processo do aluno mantém-se.`}
-                confirmLabel="Anular matrícula"
-                onConfirm={async () => {
-                  await cancelEnrollment({
-                    data: { enrollmentId: student.enrollment_id!, reason: "Anulada na ficha" },
-                  });
-                  await invalidateStudent();
-                }}
-                trigger={(open) => (
-                  <Button variant="outline" className="gap-2 text-destructive" onClick={open}>
-                    <Trash2 className="size-4" /> Anular matrícula
-                  </Button>
-                )}
-              />
-            ) : null}
+
             <QuickFormModal
               eyebrow={student.registration_number}
               title="Alterar estado"
@@ -1187,10 +1294,35 @@ function StudentDetail() {
               ]}
               trigger={(open) => (
                 <Button variant="outline" className="gap-2" onClick={open}>
-                  <UserCheck className="size-4" /> Alterar estado
+                  <UserCheck className="size-4" /> Estado
                 </Button>
               )}
             />
+
+            {student.enrollment_id ? (
+              <ConfirmActionModal
+                title="Anular matrícula"
+                description={`A matrícula activa de ${student.full_name} será anulada. O processo do aluno mantém-se.`}
+                confirmLabel="Anular matrícula"
+                onConfirm={async () => {
+                  await cancelEnrollment({
+                    data: { enrollmentId: student.enrollment_id!, reason: "Anulada na ficha" },
+                  });
+                  await invalidateStudent();
+                }}
+                trigger={(open) => (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+                    onClick={open}
+                  >
+                    <Trash2 className="size-3.5" /> Anular
+                  </Button>
+                )}
+              />
+            ) : null}
+
             <QuickFormModal
               eyebrow={student.registration_number}
               title="Editar ficha"
@@ -1211,7 +1343,7 @@ function StudentDetail() {
                 { name: "telefone", label: "Telefone", defaultValue: student.phone ?? "" },
               ]}
               trigger={(open) => (
-                <Button className="gap-2" onClick={open}>
+                <Button className="gap-2 shadow-xs" onClick={open}>
                   <Pencil className="size-4" /> Editar ficha
                 </Button>
               )}
@@ -1226,83 +1358,91 @@ function StudentDetail() {
         />
 
         <div className="grid gap-4 sm:grid-cols-3">
-          {[
-            {
-              label: "Média final",
-              value: student.final_average != null ? student.final_average.toFixed(1) : "—",
-              hint: "Escala 0-20",
-              action: null as ReactNode,
-            },
-            {
-              label: "Taxa de presença",
-              value:
-                student.attendance_rate != null
-                  ? `${Math.round(Number(student.attendance_rate))}%`
-                  : "—",
-              hint: "Ano lectivo actual",
-              action:
-                canRequestDocument && student.enrollment_id ? (
-                  <QuickFormModal
-                    title="Taxa de presença"
-                    description="Percentagem de presenças no ano lectivo actual (0 a 100)."
-                    submitLabel="Guardar"
-                    successDescription="Presença actualizada na matrícula."
-                    fields={[
-                      {
-                        name: "presenca",
-                        label: "Presença (%)",
-                        type: "number",
-                        required: true,
-                        defaultValue: student.attendance_rate ?? "",
-                        placeholder: "96",
+          <StatCard
+            title="Média final"
+            value={student.final_average != null ? student.final_average.toFixed(1) : "—"}
+            subtitle="Escala curricular 0–20 valores"
+            icon={GraduationCap}
+            tone={
+              student.final_average != null
+                ? student.final_average >= 10
+                  ? "success"
+                  : "destructive"
+                : "neutral"
+            }
+          />
+          <StatCard
+            title="Taxa de presença"
+            value={
+              student.attendance_rate != null
+                ? `${Math.round(Number(student.attendance_rate))}%`
+                : "—"
+            }
+            subtitle="Frequência no ano lectivo actual"
+            icon={CalendarDays}
+            tone={
+              student.attendance_rate != null
+                ? student.attendance_rate >= 80
+                  ? "success"
+                  : "warning"
+                : "neutral"
+            }
+            action={
+              canRequestDocument && student.enrollment_id ? (
+                <QuickFormModal
+                  title="Taxa de presença"
+                  description="Percentagem de presenças no ano lectivo actual (0 a 100)."
+                  submitLabel="Guardar"
+                  successDescription="Presença actualizada na matrícula."
+                  fields={[
+                    {
+                      name: "presenca",
+                      label: "Presença (%)",
+                      type: "number",
+                      required: true,
+                      defaultValue: student.attendance_rate ?? "",
+                      placeholder: "96",
+                    },
+                  ]}
+                  trigger={(open) => (
+                    <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={open}>
+                      Registar
+                    </Button>
+                  )}
+                  onSubmit={async (values) => {
+                    await updateEnrollmentAttendance({
+                      data: {
+                        enrollmentId: student.enrollment_id as string,
+                        attendanceRate: Number(values["presenca"]),
                       },
-                    ]}
-                    trigger={(open) => (
-                      <Button variant="outline" size="sm" className="mt-3" onClick={open}>
-                        Registar
-                      </Button>
-                    )}
-                    onSubmit={async (values) => {
-                      await updateEnrollmentAttendance({
-                        data: {
-                          enrollmentId: student.enrollment_id as string,
-                          attendanceRate: Number(values["presenca"]),
-                        },
-                      });
-                      await queryClient.invalidateQueries({
-                        queryKey: ["students", "profile", studentId],
-                      });
-                      await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-                      await queryClient.invalidateQueries({
-                        queryKey: ["academic", "pedagogical-workspace"],
-                      });
-                    }}
-                  />
-                ) : null,
-            },
-            {
-              label: "Estado académico",
-              value: student.enrollment_status
+                    });
+                    await queryClient.invalidateQueries({
+                      queryKey: ["students", "profile", studentId],
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+                    await queryClient.invalidateQueries({
+                      queryKey: ["academic", "pedagogical-workspace"],
+                    });
+                  }}
+                />
+              ) : null
+            }
+          />
+          <StatCard
+            title="Estado académico"
+            value={
+              student.enrollment_status
                 ? (estadoLabels[student.enrollment_status] ?? student.enrollment_status)
-                : "Sem matrícula activa",
-              hint: student.enrolled_on
-                ? new Date(student.enrolled_on).toLocaleDateString("pt-PT")
-                : "Ainda sem turma atribuída",
-              action: null,
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-xl border border-border bg-card p-5 shadow-soft"
-            >
-              <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
-              <p className="mt-2 font-display text-3xl font-extrabold tracking-tight">
-                {item.value}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p>
-              {item.action}
-            </div>
-          ))}
+                : "Sem matrícula activa"
+            }
+            subtitle={
+              student.enrolled_on
+                ? `Matriculado a ${new Date(student.enrolled_on).toLocaleDateString("pt-PT")}`
+                : "Ainda sem turma atribuída"
+            }
+            icon={UserCheck}
+            tone={student.enrollment_status === "active" ? "success" : "neutral"}
+          />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -1498,8 +1638,13 @@ function StudentDetail() {
               ) : (
                 <p className="text-muted-foreground">Sem encarregados associados.</p>
               )}
-              <p className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="size-4" /> Morada não disponível no SGA
+              <p className="flex items-start gap-2 text-muted-foreground">
+                <MapPin className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  {[student.address, student.commune, student.municipality, student.province]
+                    .filter(Boolean)
+                    .join(" · ") || "Morada não registada"}
+                </span>
               </p>
             </div>
           </section>

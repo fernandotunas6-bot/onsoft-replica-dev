@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { getOrCreateVirtualCard } from "@/features/catracas/server";
@@ -102,15 +103,15 @@ export function VirtualCardModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-5" />
-              <DialogTitle className="text-base font-extrabold text-white">
+              <DialogTitle className="text-base font-extrabold text-primary-foreground">
                 Cartão Virtual de Estudante
               </DialogTitle>
             </div>
-            <Badge variant="outline" className="bg-white/20 text-white border-white/30 text-[10px]">
+            <Badge variant="outline" className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 text-[10px]">
               {selectedYearLabel}
             </Badge>
           </div>
-          <DialogDescription className="text-white/80 text-xs mt-0.5">
+          <DialogDescription className="text-primary-foreground/80 text-xs mt-0.5">
             Passe este QR Code na catraca de entrada ou leitor da portaria.
           </DialogDescription>
         </DialogHeader>
@@ -151,9 +152,9 @@ export function VirtualCardModal({
 
             {/* QR CODE REAL — codifica o segredo do cartão (qr_secret), validado pela catraca */}
             <div className="rounded-xl bg-background p-4 border border-border flex flex-col items-center justify-center space-y-2 text-center">
-              <div className="size-36 bg-white rounded-xl p-2 flex items-center justify-center border border-border">
+              <div className="size-36 bg-background rounded-xl p-2 flex items-center justify-center border border-border">
                 {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="QR code do cartão de acesso" className="size-full" />
+                  <MediaFrame src={qrDataUrl} alt="QR code do cartão de acesso" ratio="1/1" rounded="rounded-lg" className="size-full" priority />
                 ) : (
                   <div className="size-full animate-pulse rounded-lg bg-muted" />
                 )}

@@ -4,62 +4,21 @@ import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getCreateSchoolUrl } from '@/lib/ecosystem-urls'
+import { fetchSaasPlans, formatAoaPrice, planLimitFeatures, type SaasPlan } from '@/lib/saas-api'
 
-const plans = [
-  {
-    name: 'Essencial',
-    description: 'Para escolas a começar a digitalizar a secretaria',
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    features: [
-      'Trial de 14 dias',
-      'Alunos, turmas e pautas',
-      'Tesouraria básica',
-      'Documentos oficiais',
-      'Suporte por e-mail'
-    ],
-    cta: 'Começar',
-    popular: false
-  },
-  {
-    name: 'Profissional',
-    description: 'Para escolas que precisam de tesouraria e comunicações completas',
-    monthlyPrice: 19,
-    yearlyPrice: 15,
-    features: [
-      'Multicaixa Express e Unitel Money',
-      'Arquivos e materiais de turma',
-      'WhatsApp Business',
-      'Catracas e cartão virtual',
-      'Limite de alunos alargado',
-      'Suporte prioritário'
-    ],
-    cta: 'Escolher plano',
-    popular: true,
-    includesPrevious: 'Tudo do Essencial, mais'
-  },
-  {
-    name: 'Institucional',
-    description: 'Para grupos escolares e instituições maiores',
-    monthlyPrice: 299,
-    yearlyPrice: 299,
-    features: [
-      'Várias escolas no mesmo grupo',
-      'Limites de alunos superiores',
-      'Integrações avançadas',
-      'Acompanhamento dedicado',
-      'SLA de suporte'
-    ],
-    cta: 'Falar connosco',
-    popular: false,
-    includesPrevious: 'Tudo do Profissional, mais'
-  }
-]
+const POPULAR_PLAN_CODE = 'professional'
 
 export function PricingSection() {
   const [isYearly, setIsYearly] = useState(false)
+  const [plans, setPlans] = useState<SaasPlan[]>([])
+
+  useEffect(() => {
+    void fetchSaasPlans().then((list) => {
+      if (list.length) setPlans(list)
+    })
+  }, [])
 
   return (
     <section id="pricing" className="py-24 sm:py-32 bg-muted/40">
@@ -70,8 +29,7 @@ export function PricingSection() {
             Escolha o plano da sua escola
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Comece com o período de avaliação e evolua quando a escola crescer.
-            Os preços abaixo são ilustrativos até o catálogo SaaS estar ligado.
+            Comece com 14 dias de período experimental e evolua quando a escola crescer.
           </p>
 
           <div className="flex items-center justify-center mb-2">
@@ -95,75 +53,69 @@ export function PricingSection() {
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
-
-          <p className="text-sm text-muted-foreground">
-            <span className="text-primary font-semibold">Poupe 20%</span> na facturação anual
-          </p>
         </div>
 
         <div className="mx-auto max-w-6xl">
           <div className="rounded-xl border">
-            <div className="grid lg:grid-cols-3">
-              {plans.map((plan, index) => (
-                <div
-                  key={index}
-                  className={`p-8 grid grid-rows-subgrid row-span-4 gap-6 ${
-                    plan.popular
-                      ? 'my-2 mx-4 rounded-xl bg-card border-transparent shadow-xl ring-1 ring-foreground/10 backdrop-blur'
-                      : ''
-                  }`}
-                >
-                  <div>
-                    <div className="text-lg font-medium tracking-tight mb-2">{plan.name}</div>
-                    <div className="text-muted-foreground text-balance text-sm">{plan.description}</div>
-                  </div>
-
-                  <div>
-                    <div className="text-4xl font-bold mb-1">
-                      {plan.name === 'Institucional' ? (
-                        `$${plan.monthlyPrice}`
-                      ) : plan.name === 'Essencial' ? (
-                        '0 Kz'
-                      ) : (
-                        `$${isYearly ? plan.yearlyPrice : plan.monthlyPrice}`
-                      )}
+            <div className={`grid ${plans.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+              {plans.map((plan) => {
+                const popular = plan.code === POPULAR_PLAN_CODE
+                const priceValue = isYearly ? plan.price_aoa_yearly : plan.price_aoa_monthly
+                return (
+                  <div
+                    key={plan.code}
+                    className={`p-8 grid grid-rows-subgrid row-span-4 gap-6 ${
+                      popular
+                        ? 'my-2 mx-4 rounded-xl bg-card border-transparent shadow-xl ring-1 ring-foreground/10 backdrop-blur'
+                        : ''
+                    }`}
+                  >
+                    <div>
+                      <div className="text-lg font-medium tracking-tight mb-2">{plan.name}</div>
+                      <div className="text-muted-foreground text-balance text-sm">
+                        {plan.description}
+                      </div>
                     </div>
-                    <div className="text-muted-foreground text-sm">
-                      {plan.name === 'Institucional' ? 'A partir de' : 'Por mês'}
+
+                    <div>
+                      <div className="text-4xl font-bold mb-1">
+                        {formatAoaPrice(priceValue) ?? 'Sob consulta'}
+                      </div>
+                      <div className="text-muted-foreground text-sm">
+                        {isYearly ? 'Por ano' : 'Por mês'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Button
+                        className={`w-full cursor-pointer my-2 ${
+                          popular
+                            ? 'shadow-md border-[0.5px] border-white/25 shadow-black/20 bg-primary ring-1 ring-primary/15 text-primary-foreground hover:bg-primary/90'
+                            : 'shadow-sm shadow-black/15 border border-transparent bg-background ring-1 ring-foreground/10 hover:bg-muted/50'
+                        }`}
+                        variant={popular ? 'default' : 'secondary'}
+                        asChild
+                      >
+                        <a href={getCreateSchoolUrl(plan.code)}>Começar</a>
+                      </Button>
+                    </div>
+
+                    <div>
+                      <ul role="list" className="space-y-3 text-sm">
+                        {planLimitFeatures(plan).map((feature) => (
+                          <li key={feature} className="flex items-center gap-3">
+                            <Check
+                              className="text-muted-foreground size-4 flex-shrink-0"
+                              strokeWidth={2.5}
+                            />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
-
-                  <div>
-                    <Button
-                      className={`w-full cursor-pointer my-2 ${
-                        plan.popular
-                          ? 'shadow-md border-[0.5px] border-white/25 shadow-black/20 bg-primary ring-1 ring-primary/15 text-primary-foreground hover:bg-primary/90'
-                          : 'shadow-sm shadow-black/15 border border-transparent bg-background ring-1 ring-foreground/10 hover:bg-muted/50'
-                      }`}
-                      variant={plan.popular ? 'default' : 'secondary'}
-                      asChild
-                    >
-                      <a href={getCreateSchoolUrl()}>{plan.cta}</a>
-                    </Button>
-                  </div>
-
-                  <div>
-                    <ul role="list" className="space-y-3 text-sm">
-                      {plan.includesPrevious && (
-                        <li className="flex items-center gap-3 font-medium">
-                          {plan.includesPrevious}:
-                        </li>
-                      )}
-                      {plan.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="flex items-center gap-3">
-                          <Check className="text-muted-foreground size-4 flex-shrink-0" strokeWidth={2.5} />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

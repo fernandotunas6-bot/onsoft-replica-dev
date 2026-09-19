@@ -27,10 +27,9 @@ export type PersonContext = {
 
 /**
  * Deriva papéis, resumo académico e resumo financeiro reais de uma pessoa.
- * Não existe tabela `person_roles` na base real do SGA (confirmado por
- * consulta directa — é resíduo do schema Lovable em types.ts) — os papéis
- * são inferidos pela presença de registos em students/teachers/student_guardians,
- * o mesmo padrão já usado no motor de importação (alunos-importer.ts).
+ * Aluno/professor/encarregado continuam inferidos das tabelas de domínio.
+ * A tabela person_roles, quando instalada, acrescenta vínculos institucionais
+ * declarativos sem substituir essas fontes canónicas.
  */
 export async function resolvePersonContext(
   db: SupabaseClient,
@@ -38,7 +37,7 @@ export async function resolvePersonContext(
   personId: string,
   hasContactEmail: boolean,
 ): Promise<PersonContext> {
-  const [studentRow, teacherRow, guardianRow] = await Promise.all([
+  const [studentRow, teacherRow, guardianRow, declaredRoles] = await Promise.all([
     db
       .from("students")
       .select("id, status")
@@ -58,12 +57,22 @@ export async function resolvePersonContext(
       .eq("guardian_person_id", personId)
       .limit(1)
       .maybeSingle(),
+    db
+      .from("person_roles")
+      .select("role")
+      .eq("school_id", schoolId)
+      .eq("person_id", personId)
+      .eq("active", true),
   ]);
 
-  const roles: string[] = [];
-  if (studentRow.data) roles.push("aluno");
-  if (teacherRow.data) roles.push("professor");
-  if (guardianRow.data) roles.push("encarregado");
+  const roles = new Set<string>();
+  if (studentRow.data) roles.add("aluno");
+  if (teacherRow.data) roles.add("professor");
+  if (guardianRow.data) roles.add("encarregado");
+  for (const row of declaredRoles.data ?? []) {
+    const role = String(row.role ?? "").trim();
+    if (role) roles.add(role);
+  }
 
   let academic_summary: PersonAcademicSummary | undefined;
   let financial_summary: PersonFinancialSummary | undefined;
@@ -180,7 +189,7 @@ export async function resolvePersonContext(
   }
 
   return {
-    roles,
+    roles: [...roles],
     ...(academic_summary !== undefined ? { academic_summary } : {}),
     ...(financial_summary !== undefined ? { financial_summary } : {}),
     has_contact_email: hasContactEmail,

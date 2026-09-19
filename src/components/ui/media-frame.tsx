@@ -82,7 +82,7 @@ export function MediaAvatar({
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
 
-  const [resolvedSrc, setResolvedSrc] = useState<string | null>(src ?? null);
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;

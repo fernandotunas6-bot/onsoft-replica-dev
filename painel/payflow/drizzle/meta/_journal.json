@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788370176648,
+      "tag": "0000_yellow_lizard",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788372488678,
+      "tag": "0001_opposite_nitro",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788374034680,
+      "tag": "0002_groovy_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788435393258,
+      "tag": "0003_rich_patch",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788437790898,
+      "tag": "0004_majestic_triathlon",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788438794712,
+      "tag": "0005_late_gorgon",
+      "breakpoints": true
+    }
+  ]
+}

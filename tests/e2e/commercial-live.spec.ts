@@ -25,6 +25,7 @@ test.describe("Provisionamento comercial @live", () => {
         sigaUrl?: string;
         adminTenantsUrl?: string;
         bootstrapSeeded?: string[];
+        adminInviteDelivered?: boolean;
       };
       expect(body.slug).toBe(slug);
       expect(body.tenantId).toMatch(
@@ -33,6 +34,10 @@ test.describe("Provisionamento comercial @live", () => {
       expect(body.adminTenantsUrl).toMatch(/\/tenants$/);
       expect(body.sigaUrl).toMatch(/^https?:\/\//);
       expect(body.bootstrapSeeded?.length).toBeGreaterThan(0);
+      // O provisionamento não pode depender da entrega de e-mail, e o link de
+      // definição de senha nunca sai pela API pública.
+      expect(typeof body.adminInviteDelivered).toBe("boolean");
+      expect(body).not.toHaveProperty("adminSetupUrl");
 
       const lookup = await request.get(
         `${ECOSYSTEM_E2E_URLS.siga}/api/saas/tenants/lookup?slug=${encodeURIComponent(slug)}`,
@@ -70,11 +75,12 @@ test.describe("Provisionamento comercial @live", () => {
       await page.getByRole("button", { name: /Continuar/ }).click();
       await page.getByRole("button", { name: /Criar escola/ }).click();
 
-      await expect(page.getByRole("heading", { name: "Escola criada" })).toBeVisible({
-        timeout: 60_000,
-      });
-      await expect(page.getByRole("link", { name: "Abrir o SIGA Plus" })).toBeVisible();
-      await expect(page.getByRole("link", { name: "Ver no Control Center (ADMIN)" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Pedido da escola registado com sucesso" }),
+      ).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByRole("link", { name: /Entrar no SIGA Plus/ })).toBeVisible();
+      await expect(page.getByRole("link", { name: /Control Center \(ADMIN\)/ })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Acesso do administrador" })).toBeVisible();
       await expect(page.getByText(`${slug}.portal-siga.com`)).toBeVisible();
     } finally {
       await cleanupE2ETenantBySlug(slug, email).catch(() => undefined);

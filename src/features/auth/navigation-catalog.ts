@@ -1,21 +1,15 @@
 import type { LauncherApp, LauncherTarget } from "@/features/integrations/launcher-types";
 
-/** Especificação de um módulo SIGA no launcher (waffle) e na auditoria de navegação. */
 export type WorkspaceModuleSpec = {
   id: string;
   name: string;
   shortName: string;
   description: string;
   mark: string;
-  /** Rota principal para verificar presença na sidebar admin. */
   navPath: string;
   target: LauncherTarget;
 };
 
-/**
- * Módulos internos do SIGA — fonte única para o launcher e para auditoria de cobertura.
- * Integrações externas continuam em `launcherIntegrationApps`.
- */
 export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
   {
     id: "siga-dashboard",
@@ -34,6 +28,15 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     mark: "siga-alunos",
     navPath: "/alunos",
     target: { type: "route", to: "/alunos" },
+  },
+  {
+    id: "siga-alumni",
+    name: "Alumni",
+    shortName: "Alumni",
+    description: "Antigos alunos, carreira, mentoria e impacto.",
+    mark: "siga-alumni",
+    navPath: "/alumni",
+    target: { type: "route", to: "/alumni" },
   },
   {
     id: "siga-pedagogica",
@@ -63,64 +66,64 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     target: { type: "route", to: "/planos-aula" },
   },
   {
-    id: "siga-financeiro",
-    name: "Tesouraria",
-    shortName: "Tesouraria",
-    description: "Caixa, planos e pagamentos.",
-    mark: "siga-financeiro",
-    navPath: "/financeiro",
-    target: { type: "route", to: "/financeiro" },
-  },
-  {
-    id: "siga-faturas",
-    name: "Faturas",
-    shortName: "Faturas",
-    description: "Emissão e consulta de faturas.",
-    mark: "siga-faturas",
-    navPath: "/faturas",
-    target: { type: "route", to: "/faturas" },
-  },
-  {
-    id: "siga-documentos",
-    name: "Documentos",
-    shortName: "Documentos",
-    description: "Declarações e emissão.",
-    mark: "siga-documentos",
-    navPath: "/documentos",
-    target: { type: "route", to: "/documentos" },
-  },
-  {
-    id: "siga-arquivos",
-    name: "Arquivos",
-    shortName: "Arquivos",
-    description: "PDF, Word, Excel e fotos da escola.",
-    mark: "siga-arquivos",
-    navPath: "/arquivos",
-    target: { type: "route", to: "/arquivos" },
-  },
-  {
     id: "siga-comunicacoes",
-    name: "Comunicados",
-    shortName: "Comunicados",
-    description: "Avisos à comunidade escolar.",
+    name: "Comunicações",
+    shortName: "Comunicações",
+    description: "Mensagens, avisos e anúncios.",
     mark: "siga-comunicacoes",
     navPath: "/comunicacoes",
     target: { type: "route", to: "/comunicacoes" },
   },
   {
+    id: "siga-documentos",
+    name: "Documentos",
+    shortName: "Documentos",
+    description: "Declarações e emissão oficial.",
+    mark: "siga-documentos",
+    navPath: "/documentos",
+    target: { type: "route", to: "/documentos" },
+  },
+  {
     id: "siga-pessoas",
     name: "Pessoas",
     shortName: "Pessoas",
-    description: "Colaboradores e docentes.",
+    description: "Directório e utilizadores.",
     mark: "siga-pessoas",
     navPath: "/pessoas",
     target: { type: "route", to: "/pessoas" },
   },
   {
+    id: "siga-financeiro",
+    name: "Financeiro",
+    shortName: "Financeiro",
+    description: "Facturação e pagamentos.",
+    mark: "siga-financeiro",
+    navPath: "/financeiro",
+    target: { type: "route", to: "/financeiro" },
+  },
+  {
+    id: "siga-rh",
+    name: "Recursos Humanos",
+    shortName: "RH",
+    description: "Funcionários, contratos e presenças.",
+    mark: "siga-rh",
+    navPath: "/financeiro/rh",
+    target: { type: "route", to: "/financeiro/rh" },
+  },
+  {
+    id: "siga-arquivos",
+    name: "Arquivos",
+    shortName: "Arquivos",
+    description: "Biblioteca digital e anexos.",
+    mark: "siga-arquivos",
+    navPath: "/arquivos",
+    target: { type: "route", to: "/arquivos" },
+  },
+  {
     id: "siga-importar",
-    name: "Importação de Dados",
+    name: "Importar",
     shortName: "Importar",
-    description: "Excel/CSV para alunos, pessoas e pagamentos.",
+    description: "Carga de dados por folha de cálculo.",
     mark: "siga-importar",
     navPath: "/importar",
     target: { type: "route", to: "/importar" },
@@ -172,7 +175,6 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
   },
 ];
 
-/** Rotas que um administrador com plano completo deve conseguir alcançar pela sidebar. */
 export const ADMIN_NAV_PATH_COVERAGE = [
   ...WORKSPACE_MODULE_SPECS.map((spec) => spec.navPath),
   "/perfil",
@@ -190,20 +192,14 @@ export function buildWorkspaceLauncherApps(): LauncherApp[] {
   }));
 }
 
-type NavItemLike = {
-  to?: string;
-  children?: Array<{ to: string }>;
-};
+type NavItemLike = { to?: string; children?: Array<{ to: string }> };
 
-/** Extrai rotas de primeiro nível presentes na árvore de navegação. */
 export function collectNavPaths(groups: Array<{ items: NavItemLike[] }>): Set<string> {
   const paths = new Set<string>();
   for (const group of groups) {
     for (const item of group.items) {
       if (item.to) paths.add(item.to);
-      for (const child of item.children ?? []) {
-        if (child.to) paths.add(child.to);
-      }
+      for (const child of item.children ?? []) if (child.to) paths.add(child.to);
     }
   }
   return paths;
@@ -218,7 +214,6 @@ export function missingModuleNavPaths(moduleRoutes: string[], adminPaths: Set<st
   return moduleRoutes.filter((path) => !adminPaths.has(path));
 }
 
-/** Todas as rotas de sidebar declaradas no inventário (`modules.json`). */
 export function inventoryNavPaths(
   modules: Array<{ navPath?: string; secondaryNavPaths?: string[] }>,
 ): string[] {

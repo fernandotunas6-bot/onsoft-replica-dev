@@ -145,8 +145,16 @@ async function ensureGradebook(
   }
 
   if (!ruleSetId) {
+    // Numa escola nova este é um beco sem saída, não um passo de configuração em falta:
+    // `assessment_rule_sets` não existe em produção, e as funções que a preencheriam
+    // (`configure_assessment_rules`, `publish_assessment_rule_version`) falham com 42P01
+    // pela mesma razão. Sem `rule_set_id` não se abre o primeiro diário, logo não se
+    // lançam notas. A migração que cria as tabelas está escrita e por aplicar:
+    // `supabase/migrations/20260916140000_assessment_rule_sets.sql` (npm run siga:sql).
     throw new Error(
-      "Não há regras de avaliação (assessment_rule_sets / rule_set_id) nesta escola. Configure-as no SGA antes de lançar notas.",
+      ruleTableMissing
+        ? "As regras de avaliação ainda não existem nesta base de dados. É preciso aplicar a migração 20260916140000_assessment_rule_sets.sql antes de abrir o primeiro diário de notas."
+        : "Não há regras de avaliação activas nesta escola. Configure-as no SGA antes de lançar notas.",
     );
   }
 

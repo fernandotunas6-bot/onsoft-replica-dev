@@ -2,10 +2,53 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "onsoft-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "name": "siga",
+      "url": "http://localhost:3006",
       "port": 3006
+    },
+    {
+      "name": "web",
+      "url": "http://localhost:5174",
+      "port": 5174
+    },
+    {
+      "name": "admin",
+      "url": "http://localhost:3005",
+      "port": 3005
+    },
+    {
+      "name": "payflow",
+      "url": "http://localhost:3007",
+      "port": 3007
+    },
+    {
+      "name": "doc",
+      "url": "http://localhost:5173",
+      "port": 5173
+    },
+    {
+      "name": "siga-fresh",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "dev",
+        "--port",
+        "3016",
+        "--strictPort"
+      ],
+      "port": 3016
+    },
+    {
+      "name": "siga-audit",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "dev",
+        "--port",
+        "3026",
+        "--strictPort"
+      ],
+      "port": 3026
     }
   ]
 }

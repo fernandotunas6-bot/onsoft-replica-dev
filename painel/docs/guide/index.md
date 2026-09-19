@@ -1,20 +1,21 @@
 # Visão Geral do SIGA Plus
 
-Ecossistema proprietário de gestão escolar angolana: **WEB** vende, **ADMIN** controla SaaS, **SIGA** opera a escola, **DOC** explica (este site).
+Ecossistema proprietário de gestão escolar angolana: **WEB** vende, **ADMIN** controla SaaS, **SIGA** opera a escola, **PAYFLOW** cobra, **DOC** explica (este site).
 
 ```text
-WEB vende · ADMIN controla · SIGA trabalha · DOC explica
+WEB vende · ADMIN controla · SIGA trabalha · PAYFLOW cobra · DOC explica
 ```
 
 ---
 
-## As quatro aplicações
+## As cinco aplicações
 
 | App | Função |
 | --- | --- |
 | **WEB** | Landing, planos, wizard `/start` para criar escola |
 | **ADMIN** | Tenants, subscrições, domínios, operadores SaaS |
 | **SIGA** | Alunos, pedagógica, tesouraria, documentos, catracas |
+| **PAYFLOW** | Pagamentos, recibos e conciliação escolar |
 | **DOC** | Manuais e arquitectura |
 
 - [Arquitetura do ecossistema](/arquitetura/)

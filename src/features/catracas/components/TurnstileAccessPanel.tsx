@@ -22,6 +22,7 @@ import { WindowsDesktopSettingsModal } from "./WindowsDesktopSettingsModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Table,
   TableBody,
@@ -620,21 +621,10 @@ export function TurnstileAccessPanel() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{log.device_name}</TableCell>
                   <TableCell className="text-xs text-right">
-                    {log.status === "granted" ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-success/10 text-success border-success/30 text-[10px]"
-                      >
-                        Autorizado
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="bg-destructive/10 text-destructive border-destructive/30 text-[10px]"
-                      >
-                        Negado: {log.denial_reason}
-                      </Badge>
-                    )}
+                    <StatusBadge
+                      status={log.status === "granted" ? "active" : "cancelled"}
+                      label={log.status === "granted" ? "Autorizado" : `Negado: ${log.denial_reason}`}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

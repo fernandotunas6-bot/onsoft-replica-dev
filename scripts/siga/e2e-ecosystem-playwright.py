@@ -33,16 +33,30 @@ def unique_slug(prefix: str = "e2e") -> str:
     return f"{prefix}-{int(time.time() * 1000):x}"
 
 
+# Igual à do helper TypeScript (tests/e2e/helpers/sga-live-admin.ts). Nunca em produção.
+E2E_LIVE_ADMIN_PASSWORD = "E2eAdminPass2026!"
+
+
 def signup_payload(slug: str) -> dict:
+    """Payload para POST /api/saas/signup.
+
+    Tem de satisfazer `publicSchoolSignupInputSchema`. Faltavam-lhe dois campos
+    obrigatórios — `admin_password` e, desde que o registo apertou, `nif` — o
+    que fazia este teste receber 400 em todas as corridas live.
+    `tests/saas/signup-payload-contract.test.ts` compara as chaves daqui com as
+    que o schema exige, a cada corrida do vitest.
+    """
     email = f"e2e+{slug}@siga-plus.test"
     return {
         "name": f"Escola E2E {slug}",
+        "nif": "5417000000",
         "contact_name": "Director E2E",
         "contact_email": email,
         "plan_code": "start",
         "slug": slug,
         "admin_name": "Director E2E",
         "admin_email": email,
+        "admin_password": E2E_LIVE_ADMIN_PASSWORD,
         "website": "",
     }
 

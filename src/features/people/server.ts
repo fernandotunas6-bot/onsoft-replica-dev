@@ -19,11 +19,14 @@ import {
   listTeachersInputSchema,
   mergePeopleInputSchema,
   searchPeopleInputSchema,
+  setPersonInstitutionRolesInputSchema,
   setPersonPhotoUrlInputSchema,
   updatePersonInputSchema,
   updatePersonStatusInputSchema,
   updateTeacherInputSchema,
   normalizePersonPhone,
+  personInstitutionRoleOptions,
+  personRoleOptions,
 } from "./schemas";
 import { isAngolaBiNif, normalizePersonNif } from "@/lib/angola-identity";
 
@@ -124,6 +127,122 @@ function normalizePhone(value: string | null | undefined) {
   return (value ?? "").replace(/\D/g, "");
 }
 
+function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
+  return Boolean(
+    error &&
+    (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
+      error.code === "42703"),
+  );
+}
+
+function isMissingPersonRoles(error: { message?: string; code?: string } | null | undefined) {
+  return Boolean(
+    error &&
+    (/person_roles|42P01|42703|schema cache|PGRST/i.test(error.message ?? "") ||
+      error.code === "42P01"),
+  );
+}
+
+const institutionRoleSet = new Set<string>(personInstitutionRoleOptions);
+
+async function assertPersonRoleStoreAvailable(db: AdminDb) {
+  const probe = await db.from("person_roles").select("id").limit(1);
+  if (probe.error && isMissingPersonRoles(probe.error)) {
+    throw new Error(
+      "Os vínculos institucionais ainda não estão activos nesta base. Aplique a migration person_institution_roles.",
+    );
+  }
+  if (probe.error) {
+    throw publicDatabaseError(probe.error, "Não foi possível validar os vínculos da pessoa.");
+  }
+}
+
+async function syncPersonInstitutionRoles(
+  db: AdminDb,
+  input: {
+    schoolId: string;
+    personId: string;
+    roles: string[];
+    userId: string;
+  },
+) {
+  const selected = new Set(input.roles.filter((role) => institutionRoleSet.has(role)));
+  const { data: existing, error } = await db
+    .from("person_roles")
+    .select("id, role, active")
+    .eq("school_id", input.schoolId)
+    .eq("person_id", input.personId);
+
+  if (error && isMissingPersonRoles(error)) {
+    throw new Error(
+      "Os vínculos institucionais ainda não estão activos nesta base. Aplique a migration person_institution_roles.",
+    );
+  }
+  if (error) throw publicDatabaseError(error, "Não foi possível carregar os vínculos da pessoa.");
+
+  const rows = (existing ?? []) as Array<{ id: string; role: string; active: boolean }>;
+  const byRole = new Map(rows.map((row) => [row.role, row] as const));
+  const now = new Date().toISOString();
+
+  const toActivate = rows
+    .filter((row) => institutionRoleSet.has(row.role) && selected.has(row.role) && !row.active)
+    .map((row) => row.id);
+  const toDeactivate = rows
+    .filter((row) => institutionRoleSet.has(row.role) && !selected.has(row.role) && row.active)
+    .map((row) => row.id);
+  const toInsert = [...selected].filter((role) => !byRole.has(role));
+
+  if (toActivate.length) {
+    const { error: activateError } = await db
+      .from("person_roles")
+      .update({
+        active: true,
+        deleted_at: null,
+        updated_at: now,
+        updated_by: input.userId,
+      })
+      .in("id", toActivate);
+    if (activateError) {
+      throw publicDatabaseError(activateError, "Não foi possível activar os vínculos da pessoa.");
+    }
+  }
+
+  if (toDeactivate.length) {
+    const { error: deactivateError } = await db
+      .from("person_roles")
+      .update({
+        active: false,
+        updated_at: now,
+        updated_by: input.userId,
+      })
+      .in("id", toDeactivate);
+    if (deactivateError) {
+      throw publicDatabaseError(
+        deactivateError,
+        "Não foi possível desactivar os vínculos da pessoa.",
+      );
+    }
+  }
+
+  if (toInsert.length) {
+    const { error: insertError } = await db.from("person_roles").insert(
+      toInsert.map((role) => ({
+        school_id: input.schoolId,
+        person_id: input.personId,
+        role,
+        active: true,
+        created_by: input.userId,
+        updated_by: input.userId,
+      })),
+    );
+    if (insertError) {
+      throw publicDatabaseError(insertError, "Não foi possível criar os vínculos da pessoa.");
+    }
+  }
+
+  return [...selected];
+}
+
 export const searchPeople = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => searchPeopleInputSchema.parse(input))
@@ -133,14 +252,36 @@ export const searchPeople = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
 
-    const { data: people, error } = await db
+    const baseColumns =
+      "id, full_name, preferred_name, email, phone, national_id, status, date_of_birth, photo_url, updated_at";
+    const geographyColumns = `${baseColumns}, province, municipality, commune, address`;
+
+    let peopleQuery = db
       .from("people")
-      .select(
-        "id, full_name, preferred_name, email, phone, national_id, status, date_of_birth, photo_url, updated_at",
-      )
+      .select(geographyColumns)
       .eq("school_id", membership.schoolId)
       .order("full_name")
       .limit(Math.max(data.limit * 3, 50));
+    if (data.province) peopleQuery = peopleQuery.eq("province", data.province);
+    if (data.municipality) peopleQuery = peopleQuery.eq("municipality", data.municipality);
+    if (data.commune) peopleQuery = peopleQuery.eq("commune", data.commune);
+
+    let { data: people, error } = await peopleQuery;
+    if (error && isMissingPeopleGeography(error)) {
+      if (data.province || data.municipality || data.commune) {
+        throw new Error(
+          "Os filtros territoriais ainda não estão activos nesta base. Aplique a migration de localização de Pessoas.",
+        );
+      }
+      const fallback = await db
+        .from("people")
+        .select(baseColumns)
+        .eq("school_id", membership.schoolId)
+        .order("full_name")
+        .limit(Math.max(data.limit * 3, 50));
+      people = (fallback.data as typeof people) ?? null;
+      error = fallback.error;
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível pesquisar pessoas.");
 
     const query = (data.query ?? "").trim().toLowerCase();
@@ -153,24 +294,95 @@ export const searchPeople = createServerFn({ method: "GET" })
       birth_date: (person["date_of_birth"] as string | null) ?? null,
       nif: (person["national_id"] as string | null) ?? null,
       photo_url: (person["photo_url"] as string | null) ?? null,
+      province: (person["province"] as string | null) ?? null,
+      municipality: (person["municipality"] as string | null) ?? null,
+      commune: (person["commune"] as string | null) ?? null,
+      address: (person["address"] as string | null) ?? null,
       updated_at: person["updated_at"] as string,
       roles: [] as string[],
     }));
 
-    if (!query) return mapped.slice(0, data.limit);
-    return mapped
-      .filter((person) => {
+    const personIds = mapped.map((person) => person.id);
+    if (!personIds.length) return [];
+
+    const [studentRoles, teacherRoles, guardianRoles, declaredRoles] = await Promise.all([
+      db
+        .from("students")
+        .select("person_id")
+        .eq("school_id", membership.schoolId)
+        .in("person_id", personIds),
+      db
+        .from("teachers")
+        .select("person_id")
+        .eq("school_id", membership.schoolId)
+        .in("person_id", personIds),
+      db
+        .from("student_guardians")
+        .select("guardian_person_id")
+        .eq("school_id", membership.schoolId)
+        .in("guardian_person_id", personIds),
+      db
+        .from("person_roles")
+        .select("person_id, role")
+        .eq("school_id", membership.schoolId)
+        .eq("active", true)
+        .in("person_id", personIds),
+    ]);
+
+    if (
+      data.role &&
+      institutionRoleSet.has(data.role) &&
+      declaredRoles.error &&
+      isMissingPersonRoles(declaredRoles.error)
+    ) {
+      throw new Error(
+        "O filtro por vínculo institucional requer a migration person_institution_roles.",
+      );
+    }
+
+    const rolesByPerson = new Map<string, Set<string>>();
+    const addRole = (personId: unknown, role: string) => {
+      const id = String(personId ?? "");
+      if (!id) return;
+      const current = rolesByPerson.get(id) ?? new Set<string>();
+      current.add(role);
+      rolesByPerson.set(id, current);
+    };
+    for (const row of studentRoles.data ?? []) addRole(row.person_id, "aluno");
+    for (const row of teacherRoles.data ?? []) addRole(row.person_id, "professor");
+    for (const row of guardianRoles.data ?? []) addRole(row.guardian_person_id, "encarregado");
+    for (const row of declaredRoles.data ?? []) addRole(row.person_id, String(row.role ?? ""));
+
+    let filtered = mapped.map((person) => {
+      const personRoles = rolesByPerson.get(person.id) ?? new Set<string>();
+      return {
+        ...person,
+        roles: personRoleOptions.filter((role) => personRoles.has(role)),
+      };
+    });
+
+    if (query) {
+      filtered = filtered.filter((person) => {
         const haystack = [
           person.full_name,
           person.email ?? "",
           person.phone_primary ?? "",
           person.nif ?? "",
+          person.province ?? "",
+          person.municipality ?? "",
+          person.commune ?? "",
+          person.address ?? "",
+          person.roles.join(" "),
         ]
           .join(" ")
           .toLowerCase();
         return haystack.includes(query);
-      })
-      .slice(0, data.limit);
+      });
+    }
+    if (data.role) {
+      filtered = filtered.filter((person) => person.roles.includes(data.role!));
+    }
+    return filtered.slice(0, data.limit);
   });
 
 export const findPersonDuplicates = createServerFn({ method: "POST" })
@@ -316,27 +528,50 @@ export const createPerson = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
 
     const personInput = data.person;
+    const roles = data.roles ?? [];
+    const institutionRoles = roles.filter((role) => institutionRoleSet.has(role));
+    if (institutionRoles.length) await assertPersonRoleStoreAvailable(db);
+
     const normalizedNif = normalizePersonNif(personInput.nif);
+    const personPayload: Record<string, unknown> = {
+      school_id: membership.schoolId,
+      full_name: personInput.full_name,
+      preferred_name:
+        personInput.preferred_name ||
+        personInput.first_name ||
+        personInput.full_name.split(/\s+/)[0],
+      email: personInput.email || null,
+      phone: normalizePersonPhone(personInput.phone_primary),
+      national_id: normalizedNif,
+      date_of_birth: personInput.birth_date || null,
+      sex: mapSex(personInput.sex),
+      status: "active",
+      created_by: context.userId,
+      updated_by: context.userId,
+    };
+    const hasGeography = Boolean(
+      personInput.province ||
+      personInput.municipality ||
+      personInput.commune ||
+      personInput.address,
+    );
+    if (hasGeography) {
+      personPayload["province"] = personInput.province || null;
+      personPayload["municipality"] = personInput.municipality || null;
+      personPayload["commune"] = personInput.commune || null;
+      personPayload["address"] = personInput.address || null;
+    }
+
     const { data: person, error } = await db
       .from("people")
-      .insert({
-        school_id: membership.schoolId,
-        full_name: personInput.full_name,
-        preferred_name:
-          personInput.preferred_name ||
-          personInput.first_name ||
-          personInput.full_name.split(/\s+/)[0],
-        email: personInput.email || null,
-        phone: normalizePersonPhone(personInput.phone_primary),
-        national_id: normalizedNif,
-        date_of_birth: personInput.birth_date || null,
-        sex: mapSex(personInput.sex),
-        status: "active",
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
+      .insert(personPayload)
       .select("*")
       .single();
+    if (error && hasGeography && isMissingPeopleGeography(error)) {
+      throw new Error(
+        "A localização não pôde ser guardada porque a migration de Pessoas ainda não foi aplicada.",
+      );
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível criar a pessoa.");
 
     if (data.documents.length) {
@@ -358,7 +593,15 @@ export const createPerson = createServerFn({ method: "POST" })
     }
     await syncBiDocumentFromNif(db, membership.schoolId, person.id, normalizedNif, context.userId);
 
-    const roles = data.roles ?? [];
+    if (institutionRoles.length) {
+      await syncPersonInstitutionRoles(db, {
+        schoolId: membership.schoolId,
+        personId: person.id,
+        roles: institutionRoles,
+        userId: context.userId,
+      });
+    }
+
     if (roles.includes("professor")) {
       const { count } = await db
         .from("teachers")
@@ -395,10 +638,14 @@ export const createPerson = createServerFn({ method: "POST" })
         school_id: membership.schoolId,
         person_id: person.id,
         admission_date: new Date().toISOString().slice(0, 10),
-        guardian_person_id: firstRelationship?.related_person_id ?? null,
+        // `undefined` e não `null`: os parâmetros `guardian_person_id` e
+        // `relationship` de `register_student` têm `DEFAULT NULL` na base, pelo
+        // que omitir e passar NULL dão o mesmo resultado — e os tipos gerados da
+        // produção declaram-nos opcionais, não nulláveis.
+        guardian_person_id: firstRelationship?.related_person_id ?? undefined,
         relationship: firstRelationship
           ? mapSgaGuardianRelationship(firstRelationship.relationship_type)
-          : null,
+          : undefined,
         primary_guardian: Boolean(firstRelationship),
         financial_responsibility: firstRelationship?.relationship_type === "responsavel_financeiro",
         pickup_authorization: true,
@@ -816,19 +1063,35 @@ export const updatePerson = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
     const normalizedNif = normalizePersonNif(data.nif);
+    const personPatch: Record<string, unknown> = {
+      full_name: data.fullName,
+      email: data.email || null,
+      phone: normalizePersonPhone(data.phone),
+      national_id: normalizedNif,
+      updated_by: context.userId,
+    };
+    const hasGeography = Boolean(
+      data.province || data.municipality || data.commune || data.address,
+    );
+    if (hasGeography) {
+      personPatch["province"] = data.province || null;
+      personPatch["municipality"] = data.municipality || null;
+      personPatch["commune"] = data.commune || null;
+      personPatch["address"] = data.address || null;
+    }
+
     const { data: person, error } = await db
       .from("people")
-      .update({
-        full_name: data.fullName,
-        email: data.email || null,
-        phone: normalizePersonPhone(data.phone),
-        national_id: normalizedNif,
-        updated_by: context.userId,
-      })
+      .update(personPatch)
       .eq("id", data.personId)
       .eq("school_id", membership.schoolId)
       .select("id, full_name, email, phone, status")
       .maybeSingle();
+    if (error && hasGeography && isMissingPeopleGeography(error)) {
+      throw new Error(
+        "A localização não pôde ser actualizada porque a migration de Pessoas ainda não foi aplicada.",
+      );
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a ficha.");
     if (!person) throw new Error("Pessoa não encontrada.");
     await syncBiDocumentFromNif(
@@ -842,6 +1105,36 @@ export const updatePerson = createServerFn({ method: "POST" })
       ...person,
       phone_primary: person.phone,
     };
+  });
+
+export const setPersonInstitutionRoles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => setPersonInstitutionRolesInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: person, error: personError } = await db
+      .from("people")
+      .select("id")
+      .eq("id", data.personId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (personError) throw publicDatabaseError(personError, "Não foi possível validar a pessoa.");
+    if (!person) throw new Error("Pessoa não encontrada nesta escola.");
+
+    await assertPersonRoleStoreAvailable(db);
+    const roles = await syncPersonInstitutionRoles(db, {
+      schoolId: membership.schoolId,
+      personId: data.personId,
+      roles: data.roles,
+      userId: context.userId,
+    });
+    return { personId: data.personId, roles };
   });
 
 export const setPersonPhotoUrl = createServerFn({ method: "POST" })

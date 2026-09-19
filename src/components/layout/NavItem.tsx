@@ -6,26 +6,32 @@ import { prefetchRouteData } from "@/lib/route-data-prefetch";
 
 /**
  * Componente de navegação unificado (regras de layout do Minimals):
- *  - altura fixa por profundidade (44px raiz / 36px sub-item);
+ *  - altura fixa por profundidade (44px raiz / 32px sub-item);
  *  - ícone sempre 24px (raiz) ou ponto indicador (sub-item), alinhado ao centro;
  *  - estado activo: fundo suave da cor primária + texto/ícone primário, peso 600;
  *  - modo colapsado: coluna centrada com ícone + micro-legenda.
+ *
+ * Sub-itens usam rem (não px absoluto) para acompanhar o html 75% —
+ * `text-[12px]` ficava maior que o `text-xs` da raiz.
  */
 export type NavDepth = "root" | "sub";
 
 export const NAV_ROW_BASE =
-  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-[color,background-color,transform] duration-75 ease-out active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:active:scale-100 motion-reduce:transition-none";
+  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-[color,background-color,transform,box-shadow] duration-75 ease-out active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:active:scale-100 motion-reduce:transition-none";
 
 export const NAV_ROW_IDLE =
   "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 export const NAV_ROW_ACTIVE =
-  "bg-primary/16 font-semibold text-sidebar-active hover:bg-primary/20 hover:text-sidebar-active";
+  "bg-primary/16 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/20 hover:text-sidebar-active";
 
-const depthClass: Record<NavDepth, string> = {
+export const NAV_DEPTH_CLASS: Record<NavDepth, string> = {
   root: "min-h-9 px-2.5 py-1.5 text-xs font-medium",
-  sub: "min-h-8 px-2.5 py-1 text-[12px]",
+  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-[0.6875rem] leading-4 font-medium",
 };
+
+/** Lista aninhada: rail esquerdo (spec SidebarMenuSub) sem alterar os itens-pai. */
+export const NAV_SUB_LIST = "nav-sub-list mt-0.5 space-y-px";
 
 export function NavIcon({
   icon: Icon,
@@ -41,7 +47,10 @@ export function NavIcon({
       <span
         aria-hidden
         data-nav-icon=""
-        className="flex size-6 shrink-0 items-center justify-center"
+        className={cn(
+          "flex shrink-0 items-center justify-center",
+          depth === "sub" ? "size-4" : "size-6",
+        )}
       >
         <span
           className={cn(
@@ -101,7 +110,7 @@ function content({ label, icon, depth, collapsed, active, trailing }: BaseProps)
 const rowClass = (p: BaseProps) =>
   cn(
     NAV_ROW_BASE,
-    depthClass[p.depth ?? "root"],
+    NAV_DEPTH_CLASS[p.depth ?? "root"],
     p.collapsed && "flex-col justify-center gap-1 px-1 py-2",
     p.active ? NAV_ROW_ACTIVE : NAV_ROW_IDLE,
     p.className,
@@ -127,6 +136,7 @@ export function NavLinkRow(
       activeProps={{ className: NAV_ROW_ACTIVE, "aria-current": "page", "data-active": "true" }}
       inactiveProps={{ "data-active": "false" }}
       data-nav-row=""
+      data-nav-depth={props.depth ?? "root"}
       onMouseEnter={warmRoute}
       onFocus={warmRoute}
     >
@@ -145,6 +155,8 @@ export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded
       title={props.collapsed ? props.label : undefined}
       className={rowClass(rest)}
       data-nav-row=""
+      data-nav-depth={props.depth ?? "root"}
+      data-active={props.active ? "true" : "false"}
     >
       {content(rest)}
     </button>

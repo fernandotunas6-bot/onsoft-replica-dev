@@ -14,7 +14,7 @@ export type QuickField = {
   placeholder?: string | undefined;
   type?:
     "text" | "number" | "date" | "time" | "textarea" | "select" | "angola-identity" | "password";
-  options?: string[] | undefined;
+  options?: string[] | { value: string; label: string }[] | undefined;
   full?: boolean | undefined;
   required?: boolean | undefined;
   defaultValue?: string | number | undefined;
@@ -123,23 +123,30 @@ export function QuickFormModal({
                       className="mt-1"
                     />
                   ) : field.type === "select" ? (
-                    <select
-                      id={field.name}
-                      name={field.name}
-                      required={field.required ?? true}
-                      className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-xs md:text-sm"
-                      defaultValue={
-                        field.defaultValue ??
-                        (field.required === false ? "" : (field.options?.[0] ?? ""))
-                      }
-                    >
-                      {field.required === false ? <option value="">—</option> : null}
-                      {(field.options ?? []).map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
+                    (() => {
+                      const normalizedOptions = (field.options ?? []).map((option) =>
+                        typeof option === "string" ? { value: option, label: option } : option,
+                      );
+                      return (
+                        <select
+                          id={field.name}
+                          name={field.name}
+                          required={field.required ?? true}
+                          className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-xs md:text-sm"
+                          defaultValue={
+                            field.defaultValue ??
+                            (field.required === false ? "" : (normalizedOptions[0]?.value ?? ""))
+                          }
+                        >
+                          {field.required === false ? <option value="">—</option> : null}
+                          {normalizedOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    })()
                   ) : field.type === "angola-identity" ? (
                     <AngolaIdentityField
                       id={field.name}

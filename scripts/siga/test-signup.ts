@@ -6,12 +6,14 @@ async function run() {
     const res = await runPublicSchoolSignup(
       {
         name: "Test Bug " + Date.now(),
+        nif: "5417000000",
         contact_name: "Valentino",
         contact_email: "valentino.bug@example.com",
         plan_code: "start",
         slug: "bug-test-" + Date.now(),
         admin_email: "valentino.bug@example.com",
         admin_name: "Valentino C",
+        admin_password: "senha-forte-123",
       },
       "127.0.0.1",
     );

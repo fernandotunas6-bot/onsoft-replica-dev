@@ -57,3 +57,16 @@ export async function sendLocalPushNotification(
     return false;
   }
 }
+
+/**
+ * Obtém o token FCM para registo no servidor / Supabase e envio de Push para Android/PWA.
+ */
+export async function getFcmDevicePushToken(vapidKey?: string): Promise<string | null> {
+  try {
+    const { getFcmToken } = await import("@/integrations/firebase/messaging");
+    return await getFcmToken({ vapidKey });
+  } catch (error) {
+    console.warn("[Push] Não foi possível obter token FCM:", error);
+    return null;
+  }
+}

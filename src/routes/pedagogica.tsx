@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { Download, FileDown, Award, Plus, Sparkles, ShieldAlert, ChevronDown } from "lucide-react";
+import {
+  Download,
+  FileDown,
+  FileUp,
+  Award,
+  Plus,
+  Sparkles,
+  ShieldAlert,
+  ChevronDown,
+} from "lucide-react";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -35,11 +44,15 @@ import { documentValidationCode } from "@/features/academic/assessment-views";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import {
-  createScheduleSlot,
+  createAdvancedScheduleSlot,
   deleteScheduleSlot,
-  updateScheduleSlot,
+  updateAdvancedScheduleSlot,
+  publishAcademicSchedule,
   ensureAcademicDefaults,
   listPedagogicalWorkspace,
+  listRooms,
+  listSubjectTypes,
+  listCurriculumAreas,
   upsertTermGrade,
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
@@ -58,6 +71,9 @@ import { PautasWorkspaceModule } from "@/features/pedagogica/components/pautas/P
 import { AttendanceWorkspaceModule } from "@/features/pedagogica/components/AttendanceWorkspaceModule";
 import { TurmasWorkspaceTab } from "@/features/pedagogica/components/TurmasWorkspaceTab";
 import { DisciplinasWorkspaceTab } from "@/features/pedagogica/components/DisciplinasWorkspaceTab";
+import { SalasWorkspaceTab } from "@/features/pedagogica/components/SalasWorkspaceTab";
+import { CurriculoWorkspaceTab } from "@/features/pedagogica/components/CurriculoWorkspaceTab";
+import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget";
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "sonner";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
@@ -77,11 +93,25 @@ const AssessmentCenter = lazy(() =>
 const pedagogicaSearchSchema = z
   .object({
     tab: z
-      .enum(["turmas", "disciplinas", "notas", "horarios", "presencas", "chamada", "pautas"])
+      .enum([
+        "turmas",
+        "disciplinas",
+        "salas",
+        "curriculo",
+        "notas",
+        "horarios",
+        "presencas",
+        "chamada",
+        "pautas",
+      ])
       .optional(),
     turma: z.string().uuid().optional(),
     disciplina: z.string().uuid().optional(),
     pauta: z.enum(["1"]).optional(),
+    dia: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
   })
   .passthrough();
 
@@ -154,6 +184,7 @@ function PedagogicaPage() {
     turma: turmaFromSearch,
     disciplina: disciplinaFromSearch,
     pauta,
+    dia: diaFromSearch,
   } = Route.useSearch();
   const [tab, setTab] = useState<PedagogicaTab>(tabFromSearch ?? "turmas");
   const [bootstrapping, setBootstrapping] = useState(false);
@@ -189,6 +220,21 @@ function PedagogicaPage() {
     queryFn: () => listTeachers({ data: { status: "active", limit: 200 } }),
     enabled: canManageAcademic,
   });
+  const classroomsQuery = useQuery({
+    queryKey: ["academic", "rooms"],
+    queryFn: () => listRooms(),
+    enabled: canReadAcademic,
+  });
+  const subjectTypesQuery = useQuery({
+    queryKey: ["academic", "subject-types"],
+    queryFn: () => listSubjectTypes(),
+    enabled: canReadAcademic,
+  });
+  const curriculumAreasQuery = useQuery({
+    queryKey: ["academic", "curriculum-areas"],
+    queryFn: () => listCurriculumAreas(),
+    enabled: canReadAcademic,
+  });
 
   useEffect(() => {
     if (tabFromSearch) setTab(tabFromSearch);
@@ -205,7 +251,17 @@ function PedagogicaPage() {
   const onTabChange = (next: string) => {
     if (
       !(
-        ["turmas", "disciplinas", "notas", "horarios", "presencas", "chamada", "pautas"] as const
+        [
+          "turmas",
+          "disciplinas",
+          "salas",
+          "curriculo",
+          "notas",
+          "horarios",
+          "presencas",
+          "chamada",
+          "pautas",
+        ] as const
       ).includes(next as PedagogicaTab)
     ) {
       return;
@@ -222,13 +278,14 @@ function PedagogicaPage() {
   };
 
   const workspace = workspaceQuery.data;
-  const classGroups = useMemo(() => workspace?.classGroups ?? [], [workspace]);
+  const classGroups = useMemo(() => workspace?.classGroups ?? [], [workspace?.classGroups]);
   const academicYears = workspace?.academicYears ?? [];
   const courses = workspace?.courses ?? [];
   const gradeLevels = workspace?.gradeLevels ?? [];
   const rooms = workspace?.rooms ?? [];
+  const classrooms = classroomsQuery.data ?? [];
   const subjects = workspace?.subjects ?? [];
-  const termGrades = useMemo(() => workspace?.termGrades ?? [], [workspace]);
+  const termGrades = useMemo(() => workspace?.termGrades ?? [], [workspace?.termGrades]);
   const enrollmentOptions = workspace?.enrollmentOptions ?? [];
   const classSubjects = workspace?.classSubjects ?? [];
   const scheduleSlots = workspace?.scheduleSlots ?? [];
@@ -627,6 +684,27 @@ function PedagogicaPage() {
                   >
                     <Download className="size-3.5" /> Exportar Turmas CSV
                   </DropdownMenuItem>
+                  <div className="my-1 border-t border-border" />
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "turmas" }}>
+                      <FileUp className="size-3.5 text-primary" /> Importar Turmas (Excel)
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "disciplinas" }}>
+                      <FileUp className="size-3.5 text-primary" /> Importar Disciplinas (Excel)
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "salas" }}>
+                      <FileUp className="size-3.5 text-primary" /> Importar Salas (Excel)
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "notas" }}>
+                      <FileUp className="size-3.5 text-primary" /> Importar Notas (Excel)
+                    </Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <DocHelpButton title="Navegação e permissões — área pedagógica" />
@@ -698,11 +776,13 @@ function PedagogicaPage() {
         />
 
         <Tabs value={tab} onValueChange={onTabChange}>
-          <TabsList>
+          <TabsList className="flex flex-wrap gap-1">
             <TabsTrigger value="turmas">Turmas</TabsTrigger>
             <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
-            <TabsTrigger value="notas">Notas</TabsTrigger>
+            <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
+            <TabsTrigger value="curriculo">Currículo & Turnos</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
+            <TabsTrigger value="notas">Notas</TabsTrigger>
             <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
             <TabsTrigger value="pautas">Modelos de Pauta</TabsTrigger>
           </TabsList>
@@ -770,7 +850,8 @@ function PedagogicaPage() {
               teachingLevels={teachingLevels}
               classroomOn={classroomOn}
               moodleOn={moodleOn}
-              canvasOn={canvasOn}
+              subjectTypes={subjectTypesQuery.data ?? []}
+              curriculumAreas={curriculumAreasQuery.data ?? []}
               onRefresh={refreshAcademic}
             />
           </TabsContent>
@@ -885,6 +966,7 @@ function PedagogicaPage() {
                   canLaunch={canLaunchGrades}
                   canLockTerm={account.role === "Administrador"}
                   closedTerms={school?.pedagogy?.closedTerms ?? []}
+                  evaluationPeriods={school?.evaluation_periods}
                 />
               )}
             </Panel>
@@ -971,39 +1053,102 @@ function PedagogicaPage() {
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="horarios" className="mt-5 space-y-4">
+          <TabsContent value="salas" className="mt-5 space-y-6">
+            <SalasWorkspaceTab canManage={canManageAcademic} />
+          </TabsContent>
+
+          <TabsContent value="curriculo" className="mt-5 space-y-6">
+            <CurriculoWorkspaceTab
+              canManage={canManageAcademic}
+              activeYearId={selectedYearId ?? undefined}
+              courses={courses.map((c) => ({ id: c.id, name: c.name, code: c.code }))}
+              gradeLevels={visibleGradeLevels.map((g) => ({
+                id: g.id,
+                name: g.name,
+                code: g.code,
+              }))}
+              subjects={subjects.map((s) => ({
+                id: s.id,
+                name: s.name,
+                code: s.code,
+                subject_type_id: s.subject_type_id,
+              }))}
+              teachers={teachers.map((t) => ({ id: t.id, name: t.full_name || "Docente" }))}
+            />
+          </TabsContent>
+
+          <TabsContent value="horarios" className="mt-5 space-y-6">
+            <SchoolNowWidget />
             <ScheduleWorkspace
               activeYearLabel={activeYearLabel}
+              activeYearId={selectedYearId ?? undefined}
               canManage={canManageAcademic}
               scheduleAvailable={scheduleAvailable}
               classGroups={classGroups}
               subjects={subjects}
+              rooms={classrooms.map((r) => ({
+                id: r.id,
+                name: r.name,
+                code: r.code || r.name,
+                capacity: r.capacity,
+                room_type: r.room_type || "standard",
+              }))}
+              teachers={teachers.map((t) => ({
+                id: t.id,
+                name: t.full_name || "Docente",
+              }))}
               slots={scheduleSlots}
               virtualRooms={[
                 ...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink("zoom") }] : []),
                 ...(teamsOn ? [{ label: "Teams", url: meetingRoomLink("teams") }] : []),
               ]}
               onCreateSlot={async (data) => {
-                await createScheduleSlot({ data });
+                const { warnings } = await createAdvancedScheduleSlot({ data });
+                for (const warning of warnings) {
+                  toast.warning(warning.message);
+                }
                 await refreshAcademic();
               }}
               onUpdateSlot={async (data) => {
-                await updateScheduleSlot({ data });
+                const { warnings } = await updateAdvancedScheduleSlot({ data });
+                for (const warning of warnings) {
+                  toast.warning(warning.message);
+                }
                 await refreshAcademic();
               }}
               onDeleteSlot={async (slotId) => {
                 await deleteScheduleSlot({ data: { slotId } });
                 await refreshAcademic();
               }}
+              onPublishSchedule={async (classGroupId) => {
+                if (selectedYearId) {
+                  await publishAcademicSchedule({
+                    data: {
+                      classGroupId,
+                      academicYearId: selectedYearId,
+                      syncToCalendar: true,
+                    },
+                  });
+                  await refreshAcademic();
+                }
+              }}
             />
           </TabsContent>
 
           <TabsContent value="presencas" className="mt-5 space-y-6">
-            <AttendanceWorkspaceModule />
+            <AttendanceWorkspaceModule
+              initialClassGroupId={turmaFromSearch}
+              initialSubjectId={disciplinaFromSearch}
+              initialDate={diaFromSearch}
+            />
           </TabsContent>
 
           <TabsContent value="chamada" className="mt-5 space-y-6">
-            <AttendanceWorkspaceModule />
+            <AttendanceWorkspaceModule
+              initialClassGroupId={turmaFromSearch}
+              initialSubjectId={disciplinaFromSearch}
+              initialDate={diaFromSearch}
+            />
           </TabsContent>
 
           <TabsContent value="pautas" className="mt-5 space-y-6">
@@ -1029,6 +1174,7 @@ function PedagogicaPage() {
           canLaunch={canLaunchGrades}
           canLockTerm={account.role === "Administrador"}
           closedTerms={school?.pedagogy?.closedTerms ?? []}
+          evaluationPeriods={school?.evaluation_periods}
           initialTerm={filters.trimestre}
           initialClassGroupId={turmaFromSearch}
           initialSubjectId={disciplinaFromSearch}

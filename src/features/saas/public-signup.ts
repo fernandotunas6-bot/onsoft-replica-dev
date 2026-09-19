@@ -1,25 +1,16 @@
 import { provisionTenantCore } from "@/features/saas/provisioning-core";
 import type { PublicSchoolSignupInput } from "@/features/saas/schemas";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 
-const SIGNUP_RATE_WINDOW_MS = 60 * 60 * 1000;
-const SIGNUP_RATE_MAX_PER_KEY = 3;
-const signupAttempts = new Map<string, number[]>();
+const SIGNUP_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 3 };
 
 function checkSignupRateLimit(...keys: string[]): boolean {
-  const now = Date.now();
-  return keys.every((key) => {
-    const attempts = (signupAttempts.get(key) ?? []).filter((t) => now - t < SIGNUP_RATE_WINDOW_MS);
-    return attempts.length < SIGNUP_RATE_MAX_PER_KEY;
-  });
+  if (isRateLimitBypassed(...keys)) return true;
+  return checkRateLimit(keys, SIGNUP_RATE_LIMIT);
 }
 
 function recordSignupAttempt(...keys: string[]): void {
-  const now = Date.now();
-  for (const key of keys) {
-    const attempts = (signupAttempts.get(key) ?? []).filter((t) => now - t < SIGNUP_RATE_WINDOW_MS);
-    attempts.push(now);
-    signupAttempts.set(key, attempts);
-  }
+  recordRateLimitAttempt(keys, SIGNUP_RATE_LIMIT);
 }
 
 export async function runPublicSchoolSignup(
@@ -31,6 +22,8 @@ export async function runPublicSchoolSignup(
   slug: string;
   hostname: string;
   bootstrapSeeded: string[];
+  adminInviteDelivered: boolean;
+  adminPasswordSet: boolean;
 }> {
   const { website: _honeypot, ...wizardData } = data;
   const emailKey = wizardData.contact_email.trim().toLowerCase();
@@ -46,10 +39,8 @@ export async function runPublicSchoolSignup(
     { ...wizardData, trial_days: 14 },
     { auditUserId: null, source: "public_signup" },
   );
-  return {
-    ...result,
-    slug: wizardData.slug,
-    hostname: `${wizardData.slug}.portal-siga.com`,
-    bootstrapSeeded: result.bootstrapSeeded,
-  };
+  // `hostname` vem já resolvido por getPlatformSubdomain() — não repetir aqui
+  // o domínio da plataforma (regra do app-config: um único ponto de verdade).
+  const { adminSetupUrl: _setupUrl, ...publicResult } = result;
+  return publicResult;
 }

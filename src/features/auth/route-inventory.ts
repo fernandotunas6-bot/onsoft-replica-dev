@@ -5,6 +5,7 @@
 export const SIGA_AUTHENTICATED_ROUTE_PREFIXES = [
   "/",
   "/alunos",
+  "/alumni",
   "/pessoas",
   "/professores",
   "/pedagogica",
@@ -21,6 +22,7 @@ export const SIGA_AUTHENTICATED_ROUTE_PREFIXES = [
   "/planos-aula",
   "/importar",
   "/catracas",
+  "/professor/presenca",
   "/perfil",
 ] as const;
 
@@ -41,7 +43,6 @@ export type SigaRoutePrefix =
   | (typeof SIGA_PUBLIC_ROUTE_PREFIXES)[number]
   | (typeof SIGA_BYPASS_ROUTE_PREFIXES)[number];
 
-/** Verifica se um pathname pertence ao inventário conhecido de rotas SIGA. */
 export function isKnownSigaRoute(pathname: string): boolean {
   const all = [
     ...SIGA_AUTHENTICATED_ROUTE_PREFIXES,

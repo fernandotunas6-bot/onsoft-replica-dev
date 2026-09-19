@@ -19,10 +19,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { useOptionalStackNav } from "@/components/ui/stacked-modal";
-import { emptyInstitution, schoolSettingDefaults } from "@/lib/school-config";
+import { angolaSchoolTypes, emptyInstitution, schoolSettingDefaults } from "@/lib/school-config";
+import { normalizeEvaluationPeriods } from "@/lib/angola-academic";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -120,6 +122,16 @@ function readStoredPreference(value: unknown, id: string, fallback: boolean) {
   return fallback;
 }
 
+/**
+ * Escolas configuradas antes de o intervalo suportado ser fixado podem ter 4
+ * períodos gravados — um valor que o sistema nunca chegou a honrar (comportava-se
+ * sempre como 3). Mostra-se o valor real para o formulário não abrir em branco
+ * nem falhar na validação ao guardar.
+ */
+function supportedPeriods(stored: unknown): number {
+  return normalizeEvaluationPeriods(stored) ?? schoolSettingDefaults.evaluationPeriods;
+}
+
 const LOGO_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 
@@ -142,6 +154,9 @@ export function SchoolSettingsPanel() {
   );
   const [saving, setSaving] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
+  const [motto, setMotto] = useState("");
+  const [schoolType, setSchoolType] = useState("");
+  const [philosophy, setPhilosophy] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const schoolQuery = useQuery({
     queryKey: ["school", "settings"],
@@ -158,16 +173,22 @@ export function SchoolSettingsPanel() {
     retry: false,
   });
   const canEdit = currentUser.role === "Administrador";
-  const baselineInstitution: Institution = schoolQuery.data
-    ? {
-        nome: schoolQuery.data.name,
-        nif: schoolQuery.data.nif ?? "",
-        diretor: schoolQuery.data.director_name ?? "",
-        telefone: schoolQuery.data.phone ?? "",
-        email: schoolQuery.data.email ?? "",
-        endereco: schoolQuery.data.address ?? "",
-      }
-    : initialInstitution;
+  // Memoizado: o objecto era reconstruído a cada render, o que fazia o useMemo
+  // que o consome (detecção de alterações por guardar) recalcular sempre.
+  const baselineInstitution: Institution = useMemo(
+    () =>
+      schoolQuery.data
+        ? {
+            nome: schoolQuery.data.name,
+            nif: schoolQuery.data.nif ?? "",
+            diretor: schoolQuery.data.director_name ?? "",
+            telefone: schoolQuery.data.phone ?? "",
+            email: schoolQuery.data.email ?? "",
+            endereco: schoolQuery.data.address ?? "",
+          }
+        : initialInstitution,
+    [schoolQuery.data],
+  );
 
   useEffect(() => {
     const school = schoolQuery.data;
@@ -182,9 +203,12 @@ export function SchoolSettingsPanel() {
     });
     setAnoLectivo(school.academic_year ?? schoolSettingDefaults.academicYear);
     setMoeda(school.currency || schoolSettingDefaults.currency);
-    setTrimestres(String(school.evaluation_periods ?? schoolSettingDefaults.evaluationPeriods));
+    setTrimestres(String(supportedPeriods(school.evaluation_periods)));
     setMediaMinima([school.passing_grade ?? schoolSettingDefaults.passingGrade]);
     setLogoUrl(school.branding?.logo_url ?? "");
+    setMotto(school.branding?.motto ?? "");
+    setSchoolType(school.institution?.school_type ?? "");
+    setPhilosophy(school.institution?.philosophy ?? "");
     if (
       school.preferences &&
       typeof school.preferences === "object" &&
@@ -206,10 +230,12 @@ export function SchoolSettingsPanel() {
       JSON.stringify(institution) !== JSON.stringify(baselineInstitution) ||
       anoLectivo !== (schoolQuery.data?.academic_year ?? schoolSettingDefaults.academicYear) ||
       moeda !== (schoolQuery.data?.currency ?? schoolSettingDefaults.currency) ||
-      trimestres !==
-        String(schoolQuery.data?.evaluation_periods ?? schoolSettingDefaults.evaluationPeriods) ||
+      trimestres !== String(supportedPeriods(schoolQuery.data?.evaluation_periods)) ||
       mediaMinima[0] !== (schoolQuery.data?.passing_grade ?? schoolSettingDefaults.passingGrade) ||
-      logoUrl !== (schoolQuery.data?.branding?.logo_url ?? "");
+      logoUrl !== (schoolQuery.data?.branding?.logo_url ?? "") ||
+      motto !== (schoolQuery.data?.branding?.motto ?? "") ||
+      schoolType !== (schoolQuery.data?.institution?.school_type ?? "") ||
+      philosophy !== (schoolQuery.data?.institution?.philosophy ?? "");
     const storedPreferences = schoolQuery.data?.preferences;
     const prefsChanged = preferences.some((preference) => {
       const stored = readStoredPreference(storedPreferences, preference.id, preference.on);
@@ -226,6 +252,9 @@ export function SchoolSettingsPanel() {
     mediaMinima,
     toggles,
     logoUrl,
+    motto,
+    schoolType,
+    philosophy,
   ]);
 
   useEffect(() => {
@@ -242,10 +271,12 @@ export function SchoolSettingsPanel() {
     setErrors({});
     setAnoLectivo(schoolQuery.data?.academic_year ?? schoolSettingDefaults.academicYear);
     setMoeda(schoolQuery.data?.currency ?? schoolSettingDefaults.currency);
-    setTrimestres(
-      String(schoolQuery.data?.evaluation_periods ?? schoolSettingDefaults.evaluationPeriods),
-    );
+    setTrimestres(String(supportedPeriods(schoolQuery.data?.evaluation_periods)));
     setMediaMinima([schoolQuery.data?.passing_grade ?? schoolSettingDefaults.passingGrade]);
+    setLogoUrl(schoolQuery.data?.branding?.logo_url ?? "");
+    setMotto(schoolQuery.data?.branding?.motto ?? "");
+    setSchoolType(schoolQuery.data?.institution?.school_type ?? "");
+    setPhilosophy(schoolQuery.data?.institution?.philosophy ?? "");
     const storedPreferences = schoolQuery.data?.preferences;
     setToggles(
       Object.fromEntries(
@@ -294,6 +325,9 @@ export function SchoolSettingsPanel() {
           passingGrade: mediaMinima[0] ?? schoolSettingDefaults.passingGrade,
           preferences: toggles,
           logoUrl: logoUrl.trim() || "",
+          motto: motto.trim() || "",
+          schoolType: schoolType || undefined,
+          philosophy: philosophy.trim() || "",
         },
       });
       if (!data) {
@@ -386,6 +420,50 @@ export function SchoolSettingsPanel() {
               Usado em facturas, certificados e modelos oficiais. Pode reutilizar o URL da matrícula
               pública ou carregar um ficheiro.
             </p>
+            <div className="space-y-1.5 pt-2">
+              <Label htmlFor="school-motto">Lema da Escola</Label>
+              <Input
+                id="school-motto"
+                value={motto}
+                onChange={(event) => setMotto(event.target.value)}
+                disabled={!canEdit}
+                maxLength={160}
+                placeholder="Ex.: Educar para transformar"
+              />
+              <p className="text-xs text-muted-foreground">
+                Mostrado na barra lateral, abaixo do nome da escola.
+              </p>
+            </div>
+            <div className="space-y-1.5 pt-2">
+              <Label htmlFor="school-type">Natureza da instituição</Label>
+              <Select value={schoolType} onValueChange={setSchoolType} disabled={!canEdit}>
+                <SelectTrigger id="school-type">
+                  <SelectValue placeholder="Por definir" />
+                </SelectTrigger>
+                <SelectContent>
+                  {angolaSchoolTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 pt-2">
+              <Label htmlFor="school-philosophy">Filosofia educativa</Label>
+              <Textarea
+                id="school-philosophy"
+                value={philosophy}
+                onChange={(event) => setPhilosophy(event.target.value)}
+                disabled={!canEdit}
+                maxLength={600}
+                rows={4}
+                placeholder="Princípios e projecto educativo que orientam a escola."
+              />
+              <p className="text-xs text-muted-foreground">
+                Guardado na ficha da instituição. Ainda não é impresso em nenhum documento.
+              </p>
+            </div>
             {canEdit ? (
               <div className="flex flex-wrap items-center gap-2">
                 <Label htmlFor="school-logo-file" className="cursor-pointer">
@@ -544,13 +622,17 @@ export function SchoolSettingsPanel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {["2", "3", "4"].map((v) => (
+                {["2", "3"].map((v) => (
                   <SelectItem key={v} value={v}>
                     {v} períodos
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Aplica-se às pautas e ao lançamento de notas. O Ensino Superior mantém o seu regime
+              semestral próprio.
+            </p>
           </div>
           <div className="space-y-3 sm:col-span-2">
             <div className="flex items-center justify-between">

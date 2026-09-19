@@ -42,7 +42,24 @@ export const RESERVED_SUBDOMAINS: ReadonlySet<string> = new Set([
   "notificacoes",
   "portal",
   "web",
+  "payflow",
+  "pagamentos",
+  "payments",
 ]);
+
+/**
+ * Subdomínios fixos do ecossistema sob PLATFORM_DOMAIN.
+ * Nunca atribuíveis a escolas; DNS wildcard cobre o resto.
+ */
+export const ECOSYSTEM_PLATFORM_SUBDOMAINS = {
+  web: "www",
+  siga: "app",
+  admin: "admin",
+  docs: "docs",
+  payflow: "payflow",
+} as const;
+
+export type EcosystemPlatformApp = keyof typeof ECOSYSTEM_PLATFORM_SUBDOMAINS;
 
 /**
  * Retorna o domínio principal da plataforma configurado nas variáveis de ambiente.
@@ -61,6 +78,21 @@ export function getPlatformDomain(): string {
   }
 
   return "portal-siga.com";
+}
+
+/**
+ * Hostname canónico de uma app do ecossistema: `payflow.{{PLATFORM_DOMAIN}}`.
+ */
+export function getEcosystemPlatformHost(app: EcosystemPlatformApp): string {
+  return `${ECOSYSTEM_PLATFORM_SUBDOMAINS[app]}.${getPlatformDomain()}`;
+}
+
+/**
+ * Origin HTTPS canónica: `https://payflow.{{PLATFORM_DOMAIN}}`.
+ * Em produção, preferir VITE_* / NEXT_PUBLIC_* quando o deploy usa Pages/Workers distintos.
+ */
+export function getEcosystemPlatformOrigin(app: EcosystemPlatformApp): string {
+  return `https://${getEcosystemPlatformHost(app)}`;
 }
 
 /**

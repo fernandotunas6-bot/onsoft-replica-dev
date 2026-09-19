@@ -1,10 +1,23 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestIP } from "@tanstack/react-start/server";
 import { getAppUrl, getAppName, getAuthResetPasswordUrl } from "@/lib/app-config";
+import { getPlatformDomain } from "@/lib/saas/platform-domain";
 import { resolveTenantLookup } from "@/lib/saas/tenant-resolver";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { renderResetPasswordEmail } from "./email-templates/reset-password.html";
-import { sendResendEmail, resolveResendFromAddress } from "@/features/integrations/resend-client";
+import {
+  sendResendEmail,
+  resolveResendFromAddress,
+  resolveSystemSender,
+} from "@/features/integrations/resend-client";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { ContactVerificationService } from "@/features/contacts/contact-verification-service";
+
+// Mesma razão do magic-link-server.ts: sem limite, chamadas ilimitadas ao
+// Auth Admin + Resend só a variar o email (custo + assédio).
+const PASSWORD_RESET_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 5 };
 
 export const requestPasswordResetInputSchema = z.object({
   email: z.string().trim().email("Indique um endereço de e-mail válido."),
@@ -18,6 +31,47 @@ export interface PasswordResetResponse {
   message: string;
 }
 
+/**
+ * Branding tem duas fontes reais (ver src/features/school/server.ts, a mesma
+ * lógica usada pelo painel de Definições → Escola): `school_settings` (domain
+ * "branding", JSON, só logo_url) e a tabela dedicada `school_branding`
+ * (logo_url + primary_color + secondary_color). `school_settings.logo_url`
+ * tem prioridade sobre `school_branding.logo_url`; primary_color só existe em
+ * `school_branding`.
+ */
+export async function fetchSchoolBranding(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+): Promise<{ logoUrl: string | null; primaryColor: string | null }> {
+  const [{ data: settings }, { data: brandingRow }] = await Promise.all([
+    db
+      .from("school_settings")
+      .select("value")
+      .eq("school_id", schoolId)
+      .eq("domain", "branding")
+      .maybeSingle(),
+    db
+      .from("school_branding")
+      .select("logo_url, primary_color")
+      .eq("school_id", schoolId)
+      .maybeSingle(),
+  ]);
+
+  let logoUrlFromSettings: string | null = null;
+  if (settings?.value && typeof settings.value === "object") {
+    const val = settings.value as Record<string, unknown>;
+    if (typeof val["logo_url"] === "string") logoUrlFromSettings = val["logo_url"];
+  }
+
+  const logoUrl =
+    logoUrlFromSettings ||
+    (typeof brandingRow?.logo_url === "string" ? brandingRow.logo_url : null);
+  const primaryColor =
+    typeof brandingRow?.primary_color === "string" ? brandingRow.primary_color : null;
+
+  return { logoUrl, primaryColor };
+}
+
 const NEUTRAL_SUCCESS_MESSAGE =
   "Se existir uma conta associada a este endereço, enviámos as instruções de recuperação.";
 
@@ -27,6 +81,17 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
     const email = data.email.toLowerCase().trim();
     const hostname = data.hostname?.toLowerCase().trim() || "";
 
+    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const rateLimitKeys = [`ip:${ip}`, `email:${email}`];
+    if (
+      !isRateLimitBypassed(...rateLimitKeys) &&
+      !checkRateLimit(rateLimitKeys, PASSWORD_RESET_RATE_LIMIT)
+    ) {
+      // Resposta neutra igual à de sucesso — não revelar que houve limite.
+      return { success: true, message: NEUTRAL_SUCCESS_MESSAGE };
+    }
+    recordRateLimitAttempt(rateLimitKeys, PASSWORD_RESET_RATE_LIMIT);
+
     try {
       const db = await loadSgaAdminClient();
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -34,6 +99,7 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
       // 1. Identificar Escola / Tenant a partir do contexto seguro do hostname
       let schoolName = getAppName();
       let schoolLogoUrl: string | null = null;
+      let schoolPrimaryColor: string | null = null;
       let targetOrigin = getAppUrl();
 
       const lookup = resolveTenantLookup(hostname);
@@ -57,20 +123,9 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
 
             if (school?.id) {
               schoolName = school.name || schoolName;
-              // Buscar branding (logo)
-              const { data: branding } = await db
-                .from("school_settings")
-                .select("value")
-                .eq("school_id", school.id)
-                .eq("domain", "branding")
-                .maybeSingle();
-
-              if (branding?.value && typeof branding.value === "object") {
-                const val = branding.value as Record<string, unknown>;
-                if (typeof val["logo_url"] === "string") {
-                  schoolLogoUrl = val["logo_url"];
-                }
-              }
+              const branding = await fetchSchoolBranding(db, school.id);
+              schoolLogoUrl = branding.logoUrl;
+              schoolPrimaryColor = branding.primaryColor;
             }
           }
         } catch {
@@ -81,7 +136,7 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
           const { data: domainRow } = await db
             .from("tenant_domains")
             .select("tenant_id")
-            .eq("domain", lookup.hostname)
+            .eq("hostname", lookup.hostname)
             .eq("status", "verified")
             .maybeSingle();
 
@@ -103,19 +158,9 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
 
               if (school?.id) {
                 schoolName = school.name || schoolName;
-                const { data: branding } = await db
-                  .from("school_settings")
-                  .select("value")
-                  .eq("school_id", school.id)
-                  .eq("domain", "branding")
-                  .maybeSingle();
-
-                if (branding?.value && typeof branding.value === "object") {
-                  const val = branding.value as Record<string, unknown>;
-                  if (typeof val["logo_url"] === "string") {
-                    schoolLogoUrl = val["logo_url"];
-                  }
-                }
+                const branding = await fetchSchoolBranding(db, school.id);
+                schoolLogoUrl = branding.logoUrl;
+                schoolPrimaryColor = branding.primaryColor;
               }
             }
           }
@@ -153,20 +198,24 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
       const emailContent = renderResetPasswordEmail({
         schoolName,
         logoUrl: schoolLogoUrl,
+        primaryColor: schoolPrimaryColor,
         resetUrl,
         platformName: getAppName(),
         platformUrl: getAppUrl(),
         recipientEmail: email,
       });
 
-      // 4. Enviar e-mail via Resend (se disponível) ou fallback para Supabase Auth nativo
+      // 4. Enviar e-mail via Resend — ver nota abaixo sobre não haver fallback nativo
       const resendApiKey = process.env["RESEND_API_KEY"]?.trim();
       const resendFrom =
-        process.env["RESEND_FROM_EMAIL"]?.trim() ||
-        process.env["E2E_ALERT_EMAIL_FROM"]?.trim() ||
-        resolveResendFromAddress("seguranca@portal-siga.com");
+        process.env["E2E_ALERT_EMAIL_FROM"]?.trim() || resolveSystemSender("auth", { schoolName });
 
+      // Envio exclusivo via Resend: o template nativo do Supabase não tem branding
+      // institucional e exporia "Supabase Auth" ao utilizador, o que é proibido.
+      // Se o Resend falhar ou não estiver configurado, o pedido falha de forma
+      // fechada (nenhum e-mail genérico é enviado) e o incidente é auditado.
       let sentViaResend = false;
+      let deliveryError: string | null = null;
       if (resendApiKey) {
         try {
           await sendResendEmail({
@@ -179,31 +228,26 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
           });
           sentViaResend = true;
         } catch (resendError) {
-          console.warn(
-            "[PasswordReset] Resend delivery failed, falling back to Supabase:",
-            resendError,
-          );
+          deliveryError = resendError instanceof Error ? resendError.message : "unknown_error";
+          console.error("[PasswordReset] Resend delivery failed:", resendError);
         }
-      }
-
-      if (!sentViaResend) {
-        // Fallback nativo: Supabase Auth envia o e-mail diretamente com o redirectTo correto
-        try {
-          await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo });
-        } catch (nativeError) {
-          console.warn("[PasswordReset] Native Supabase fallback error:", nativeError);
-        }
+      } else {
+        deliveryError = "resend_not_configured";
+        console.error(
+          "[PasswordReset] RESEND_API_KEY not configured; institutional email not sent.",
+        );
       }
 
       // 5. Auditoria de segurança (SEM guardar tokens, senhas ou dados sensíveis)
       try {
         await db.from("saas_audit_logs").insert({
-          action: "password_reset_requested",
-          entity_type: "auth",
+          action: sentViaResend ? "password_reset_requested" : "password_reset_failed",
+          entity: "auth",
           entity_id: linkData.user?.id || null,
           metadata: {
             school_name: schoolName,
             via_resend: sentViaResend,
+            delivery_error: deliveryError,
             timestamp: new Date().toISOString(),
           },
         });
@@ -222,5 +266,23 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
         success: true,
         message: NEUTRAL_SUCCESS_MESSAGE,
       };
+    }
+  });
+
+/**
+ * Marca o e-mail como verificado após reset de password bem-sucedido.
+ * Chamado pelo frontend após a sessão ser estabelecida.
+ */
+export const syncPasswordResetVerificationFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
+
+    try {
+      await ContactVerificationService.markEmailAsVerified(context.userId);
+      return { success: true };
+    } catch (err) {
+      console.error("[PasswordReset] Failed to sync verification:", err);
+      return { success: false };
     }
   });

@@ -21,6 +21,7 @@ import { upsertTermGradesBatch } from "@/features/academic/server";
 import { overlayPauta, overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { setTermLock } from "@/features/school/server";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import {
   angolaGradeScale,
@@ -107,6 +108,7 @@ export function GradePautaSheet({
   canLaunch,
   canLockTerm = false,
   closedTerms = [],
+  evaluationPeriods,
 }: {
   schoolName: string;
   academicYear: string;
@@ -118,8 +120,10 @@ export function GradePautaSheet({
   canLaunch: boolean;
   canLockTerm?: boolean;
   closedTerms?: Array<1 | 2 | 3>;
+  evaluationPeriods?: number | undefined;
 }) {
   const queryClient = useQueryClient();
+  const { selectedTerm: globalTerm, terms: academicTerms, setSelectedTermId } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const turnitinOn = installed.hasCapability("turnitin.originality");
   const moodleGrades = installed.hasCapability("moodle.grades");
@@ -130,7 +134,11 @@ export function GradePautaSheet({
   const [view, setView] = useState<PautaView>("disciplina");
   const [classGroupId, setClassGroupId] = useState(classGroups[0]?.id ?? "");
   const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? "");
-  const [term, setTerm] = useState<1 | 2 | 3>(1);
+  const initialTerm =
+    globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3
+      ? (globalTerm.sequence as 1 | 2 | 3)
+      : 1;
+  const [term, setTerm] = useState<1 | 2 | 3>(initialTerm);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [saving, setSaving] = useState(false);
   const [locking, setLocking] = useState(false);
@@ -146,12 +154,26 @@ export function GradePautaSheet({
   const selectedGroup = classGroups.find((group) => group.id === classGroupId);
   const selectedSubject = subjects.find((subject) => subject.id === subjectId);
   const selectedCycle = inferTeachingCycle(selectedGroup?.grade_name, selectedGroup?.course_name);
-  const periodOptions = getPeriodsForCycle(selectedCycle);
+  const periodOptions = getPeriodsForCycle(selectedCycle, evaluationPeriods);
   const periodNoun = getPeriodNoun(selectedCycle);
 
   useEffect(() => {
     if (!periodOptions.includes(term)) setTerm(periodOptions[0] ?? 1);
   }, [periodOptions, term]);
+
+  useEffect(() => {
+    const sequence = globalTerm?.sequence;
+    if (!sequence || !periodOptions.includes(sequence as 1 | 2 | 3)) return;
+    if (sequence !== term) setTerm(sequence as 1 | 2 | 3);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage ao período global
+  }, [globalTerm?.id, globalTerm?.sequence, periodOptions]);
+
+  const applyTermSelection = (next: 1 | 2 | 3) => {
+    setTerm(next);
+    const match = academicTerms.find((item) => item.sequence === next);
+    if (match) setSelectedTermId(match.id);
+  };
+
   const termClosed = closedTerms.includes(term);
   const canEdit = canLaunch && !termClosed;
 
@@ -594,7 +616,8 @@ export function GradePautaSheet({
           {view === "disciplina" ? ` · ${selectedSubject?.name ?? "Disciplina"}` : null}
         </p>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Escala 0–20 · MAC + NPP + NPT / 3 · Transita com média ≥ {passingGrade}
+          Escala 0–20 · (MAC + NPT) / 2 · NPP exibida sem entrar na média · Transita com média ≥{" "}
+          {passingGrade}
           {termClosed ? ` · ${periodNoun} fechado` : ""}
         </p>
       </div>
@@ -661,7 +684,7 @@ export function GradePautaSheet({
               aria-label={periodNoun}
               className="flex h-9 min-w-[100px] rounded-lg border border-input bg-background px-3 text-sm text-foreground"
               value={term}
-              onChange={(event) => setTerm(Number(event.target.value) as 1 | 2 | 3)}
+              onChange={(event) => applyTermSelection(Number(event.target.value) as 1 | 2 | 3)}
             >
               {periodOptions.map((p) => (
                 <option key={p} value={p}>

@@ -7,47 +7,37 @@
   </head>
   <body>
     <main class="document document-pauta-turma">
-      <header
-        class="angola-official-header"
-        style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #009a5a;"
-      >
+      <section class="official-topline angola-official">
         {{#if school.emblemUrl}}
-          <img
-            src="{{school.emblemUrl}}"
-            alt="Emblema de Angola"
-            style="width:64px;height:64px;object-fit:contain;"
-          />
-        {{/if}}
-        <div style="flex:1;text-align:center;">
-          <div
-            style="font-size:11px;letter-spacing:0.18em;font-weight:700;"
-          >{{school.ministry}}</div>
-          <div
-            style="font-size:12px;letter-spacing:0.08em;font-weight:700;margin-top:4px;"
-          >{{school.ministryLine}}</div>
-          <div style="font-size:14px;font-weight:700;margin-top:8px;">{{school.name}}</div>
-          <div style="font-size:11px;margin-top:4px;color:#444;">{{school.address}}</div>
-        </div>
-        {{#if school.logoUrl}}
-          <img
-            src="{{school.logoUrl}}"
-            alt="Logotipo da escola"
-            style="width:64px;height:64px;object-fit:contain;"
-          />
+          <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
         {{else}}
-          {{#if school.flagUrl}}
-            <img
-              src="{{school.flagUrl}}"
-              alt="Bandeira de Angola"
-              style="width:72px;height:48px;object-fit:contain;"
-            />
-          {{/if}}
+          <img class="logo" src="{{school.logoUrl}}" alt="" />
         {{/if}}
-      </header>
+        <div class="school-title">
+          <p class="republic">{{school.ministry}}</p>
+          <p class="republic">{{school.ministryLine}}</p>
+          <h1>{{school.name}}</h1>
+          {{#if school.typeLabel}}<p class="school-type">{{school.typeLabel}}</p>{{/if}}
+          <p>{{school.address}} | NIF {{school.nif}}</p>
+        </div>
+        <div class="official-right">
+          {{#if school.logoUrl}}
+            <img class="logo school-mark" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+          {{else}}
+            {{#if school.flagUrl}}
+              <img class="logo flag" src="{{school.flagUrl}}" alt="Bandeira de Angola" />
+            {{/if}}
+          {{/if}}
+        </div>
+      </section>
 
       <section class="official-sheet">
         <aside class="sheet-sidebar">
-          <img class="logo" src="{{school.logoUrl}}" />
+          {{#if school.logoUrl}}
+            <img class="logo" src="{{school.logoUrl}}" alt="Logotipo da escola" />
+          {{else}}
+            <img class="logo emblem" src="{{school.emblemUrl}}" alt="Emblema de Angola" />
+          {{/if}}
           <p><b>{{school.name}}</b></p>
           <p>{{school.address}}</p>
           <p><b>Telefone:</b><br />{{school.phone}}</p>
