@@ -182,7 +182,7 @@ describe("/alumni/portal/portfolio", () => {
     renderRoute(Page);
 
     await screen.findByText("Plataforma de gestão escolar");
-    const deleteButton = screen.getByRole("button", { name: "" });
+    const deleteButton = screen.getByRole("button", { name: "Remover item do portfólio" });
     fireEvent.click(deleteButton);
 
     await waitFor(() => {

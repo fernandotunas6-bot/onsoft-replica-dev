@@ -6,6 +6,77 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-19)
 
+### Ciclo 99 — O seed da escola demo, medido em vez de lido (2026-09-19)
+
+O Ciclo 97 deixou o `scripts/siga/seed-to-supabase.mjs` a falhar honestamente: as
+dezasseis escritas passaram a lançar em vez de engolir o erro. Faltava a parte de baixo —
+**o que ele tentava gravar não existia.**
+
+**Medido por instrumentação, não por leitura.** Um cliente-espelho no lugar do Supabase
+regista cada escrita, e o resultado compara-se com `PRODUCTION_SNAPSHOT.json`. O varredor
+por expressão regular que o Ciclo 94 usa não serve aqui: as escritas passam pelo helper
+`gravar(tabela, payload)`, que esconde tabela e colunas de qualquer regex. Medida inicial:
+
+| | antes | depois |
+|---|---|---|
+| tabelas inexistentes | 2 (`courses`, `term_grades`) | **0** |
+| colunas inexistentes | 13 | **0** |
+| linhas com UUID inválido | ~5 500 | **0** |
+
+**Os UUIDs eram o achado maior, e não estava na lista do Ciclo 97.** `p0000000-…`,
+`st000000-…`, `g0000000-…`, `r0000000-…`, `sub00000-…`, `en000000-…` e `t3b07384-…` usam
+`p`, `s`, `t`, `g`, `r`, `u` e `n` — nenhum é dígito hexadecimal. O Postgres recusa cada um
+com 22P02. Desde que o `gravar()` deixou de mentir, **o seed parava na primeira sala**: não
+era uma escola demo meia vazia, era uma que não arrancava.
+
+**O que faltava, para além dos nomes.** `campuses`, `academic_levels` e `grade_levels`
+nunca eram criados e são obrigatórios (`class_groups.campus_id` e `.grade_level_id` são
+NOT NULL, `programs.academic_level_id` também). As classes passam a ser **derivadas da
+lista de turmas** em vez de uma segunda lista que divergiria à primeira turma nova.
+
+**A cadeia financeira, que era código morto.** `invoicesBatch` era construído e nunca
+gravado — a mensagem final prometia "propinas … 100% carregados" com zero facturas. Não
+bastava gravá-lo: `finance_invoices` exige `contract_id` e `fee_item_id` e não tem
+`student_id`, `description` nem o estado `overdue`. O seed cria agora
+`fee_plans → fee_items → finance_contracts → finance_invoices` (1056 contratos, 105
+facturas em aberto).
+
+**As notas.** `term_grades` não existe; uma nota é uma linha de `siga_assessment_scores`
+ligada ao item que lhe dá disciplina, trimestre e componente, e pende da **matrícula**, não
+do aluno. 297 itens (33 turmas × 3 disciplinas × MAC/NPP/NPT) e 9504 notas.
+
+**Valores, não inventados:** `class_groups.shift` é `morning|afternoon|evening`
+(`classShiftOptions`), `room_type` não tem `lab` (é `computer_lab`/`biology_lab`,
+`roomTypeSchema`), `enrollments` não tem `dropped` (é `withdrawn`), e `academic_years`
+aceita `closed` — confirmado em `calendar/server.ts:248`, que o escreve.
+
+**`created_by`/`updated_by` não se adivinham.** São NOT NULL sem omissão em sete tabelas e
+na produção nunca estão vazios. A app preenche-os com `context.userId`; um seed não tem
+sessão. Passa a exigir `SEED_ACTOR_USER_ID` ou `SEED_ACTOR_EMAIL` e **pára com mensagem
+clara** se faltarem, em vez de inventar o autor de milhares de linhas de auditoria.
+
+**A mensagem final deixou de afirmar o que não verificou:** conta os lotes que foram mesmo
+gravados, e as contagens fixas ("36 Turmas", "1152 Alunos") saíram — eram 33 e 1056.
+
+**O teste, e porque é comportamental.** `tests/security/seed-demo-vs-producao.test.ts`
+corre o seed com o cliente-espelho e confere tabelas, colunas, UUIDs e **ordem das
+escritas** contra as chaves estrangeiras. Não lê o ficheiro, executa-o: é imune à
+indirecção do helper e continua válido se o seed mudar de forma. Para isso o seed passou a
+exportar `runSeed` e só corre sozinho quando invocado directamente. Verificado por mutação:
+as quatro classes de erro (tabela, coluna, UUID, ordem) foram reintroduzidas uma a uma e o
+teste apanhou as quatro.
+
+**Duas notas de facto:**
+- `scripts/` **não é varrido por nenhum teste de segurança** — as sete varreduras de
+  `colunas-inexistentes` e `production-snapshot` percorrem só `src/`. Foi nessa sombra que
+  o seed apodreceu. Alargar a varredura não resolveria (o helper esconde tudo de um regex);
+  o teste comportamental acima é que fecha a lacuna, mas **só para o seed**. Os restantes
+  scripts continuam sem rede — varridos à mão a 19/09 contra o retrato, estão limpos
+  (só tocam em tabelas que existem), mas nada impede que apodreçam da mesma maneira.
+- Dois testes de alumni procuravam `getByRole("button", { name: "" })` — um botão sem nome
+  acessível, que deixou de existir quando o botão de remover ganhou `aria-label`. Passaram
+  a procurar pelo rótulo real, o que também é melhor teste.
+
 ### Ciclo 98 — Conciliação com a linha Lovable: 62 conflitos e as 30 colunas que o git não vê (2026-09-19)
 
 A integração Lovable (`gpt-engineer-app[bot]`) sincroniza o directório de trabalho com
@@ -55,11 +126,14 @@ não `active`/`fee_amount`/`turnaround_days`/`requires_payment`.
 `students/schemas.ts` (`max(1000)`, que o próprio `alunos/index.tsx` pede), o cartão de
 importações do dashboard e os `ignores` do eslint (unidos, não escolhidos).
 
-**Resultados:** `vitest run`: 198 ficheiros, **1456/1460 testes verdes**, 3 skipped. A única
-falha é `rls-live-probe` — timeout de 5 s numa sonda ao vivo contra a produção, 14/16
-passam; é rede, não código. `tsc --noEmit`: **0 erros reais** (os TS2307/TS7006 restantes
-são todos de `@testing-library/react`, declarado no `package.json` e não instalado —
-`node_modules/@testing-library/` está vazio no repositório inteiro).
+**Resultados** (revistos no Ciclo 99 — o número abaixo esteve errado): a primeira medição
+deu "198 ficheiros, 1456/1460", mas nessa corrida os **49 ficheiros de `tests/routes/`
+não estavam a ser recolhidos** e eu li mal um `ls` a `node_modules/@testing-library/`,
+concluindo que o pacote não estava instalado. Está. Com a suite inteira a correr:
+**249 ficheiros, 1669 testes**, e `tsc --noEmit` sem um único erro. A única falha que
+sobra é `rls-live-probe` — timeout de 5 s numa sonda ao vivo contra a produção, 14/16
+passam; é rede, não código. (Os dois testes de alumni que também falhavam eram anteriores
+à fusão e foram corrigidos no Ciclo 99.)
 
 ## Estado (2026-09-16)
 

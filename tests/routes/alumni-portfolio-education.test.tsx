@@ -117,7 +117,7 @@ describe("/alumni/portal/portfolio/education", () => {
     renderRoute(Page);
 
     await screen.findByText("Universidade Agostinho Neto");
-    const deleteButton = screen.getByRole("button", { name: "" });
+    const deleteButton = screen.getByRole("button", { name: "Remover instituição" });
     fireEvent.click(deleteButton);
 
     await waitFor(() => {
