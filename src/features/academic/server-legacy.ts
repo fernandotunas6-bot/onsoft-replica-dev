@@ -418,6 +418,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       enrollmentStats.set(classGroupId, current);
     }
 
+    console.log("[DBG] termGradeRows", termGradeRows.length, "gradesMissing", gradesMissing, "enrollments", (enrollments.data ?? []).length);
     // Média real por turma a partir das notas por período já carregadas.
     const enrollmentClassMap = new Map<string, string>();
     for (const enrollment of enrollments.data ?? []) {
