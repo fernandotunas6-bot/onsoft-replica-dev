@@ -77,7 +77,7 @@ export const requestEmailChangeFn = createServerFn({ method: "POST" })
           const { data: domainRow } = await db
             .from("tenant_domains")
             .select("tenant_id")
-            .eq("domain", lookup.hostname)
+            .eq("hostname", lookup.hostname)
             .eq("status", "verified")
             .maybeSingle();
           if (domainRow?.tenant_id === school.tenant_id) {
@@ -123,7 +123,7 @@ export const requestEmailChangeFn = createServerFn({ method: "POST" })
     try {
       await db.from("saas_audit_logs").insert({
         action: "email_change_requested",
-        entity_type: "auth",
+        entity: "auth",
         entity_id: context.userId,
         metadata: { school_name: schoolName, timestamp: new Date().toISOString() },
       });

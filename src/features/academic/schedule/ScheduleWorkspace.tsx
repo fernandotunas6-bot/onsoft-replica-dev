@@ -481,14 +481,14 @@ export function ScheduleWorkspace({
 
       {/* Alertas de Conflito em Tempo Real */}
       {selectedConflicts.length > 0 && (
-        <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-950 dark:text-rose-200">
-          <div className="flex items-center gap-2 font-bold text-rose-700 dark:text-rose-400">
+        <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive">
+          <div className="flex items-center gap-2 font-bold text-destructive">
             <AlertTriangle className="size-4 shrink-0" />
             <span>
               Motor de Conflitos: Foram detectadas {selectedConflicts.length} colisões de horário
             </span>
           </div>
-          <ul className="mt-2 list-inside list-disc space-y-1 text-muted-foreground dark:text-rose-200/90 pl-1">
+          <ul className="mt-2 list-inside list-disc space-y-1 text-muted-foreground pl-1">
             {selectedConflicts.map((c) => (
               <li key={c.id}>{c.message}</li>
             ))}
@@ -497,7 +497,7 @@ export function ScheduleWorkspace({
       )}
 
       {/* Grade Semanal de Horário */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40">
@@ -531,7 +531,7 @@ export function ScheduleWorkspace({
                         <div
                           className={`group relative rounded-xl border p-2.5 shadow-sm transition-all hover:shadow-md ${
                             selectedConflicts.some((c) => c.slotIds.includes(slot.id))
-                              ? "border-rose-500/60 bg-rose-500/10 dark:bg-rose-950/30"
+                              ? "border-destructive/60 bg-destructive/10"
                               : "border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:border-primary/40"
                           }`}
                         >

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileDown, GraduationCap, Pencil, UserPlus, UserMinus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -344,7 +345,9 @@ function TeacherProfilePage() {
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">Estado</dt>
-                <dd className="capitalize">{teacher?.status ?? "—"}</dd>
+                <dd className="mt-1">
+                  <StatusBadge status={teacher?.status === "active" ? "active" : "inactive"} />
+                </dd>
               </div>
             </dl>
             <Button asChild variant="outline" className="mt-4 gap-2">

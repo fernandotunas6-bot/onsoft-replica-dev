@@ -401,7 +401,7 @@ export function ImportWorkflowWizard({
                   isActive
                     ? "font-bold text-primary"
                     : isDone
-                      ? "text-emerald-600"
+                      ? "text-success"
                       : "text-muted-foreground opacity-60"
                 }`}
               >
@@ -410,7 +410,7 @@ export function ImportWorkflowWizard({
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : isDone
-                        ? "bg-emerald-500/20 text-emerald-600"
+                        ? "bg-success/20 text-success"
                         : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -481,7 +481,7 @@ export function ImportWorkflowWizard({
                     }`}
                   >
                     <span className="flex items-center gap-2 font-medium">
-                      <FileSpreadsheet className="size-4 text-emerald-600" />
+                      <FileSpreadsheet className="size-4 text-success" />
                       {sheet.name}
                     </span>
                     <span className="text-muted-foreground">{sheet.row_count} linhas</span>
@@ -500,11 +500,14 @@ export function ImportWorkflowWizard({
 
       {step === 2 && selectedSheet ? (
         <div className="space-y-4">
-          <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+          <div className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-card">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-foreground">
-                Tipo de Dados a Importar:
-              </label>
+              <div>
+                <h4 className="text-sm font-semibold">Tipo de Dados a Importar</h4>
+                <p className="text-xs text-muted-foreground">
+                  Selecione o módulo de destino no SIGA correspondente a esta folha de dados.
+                </p>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -514,29 +517,26 @@ export function ImportWorkflowWizard({
                 <Download className="size-3.5" /> Baixar Modelo Oficial
               </Button>
             </div>
-
             <Select
               value={selectedModule}
               onValueChange={(val) => setSelectedModule(val as ImportModule)}
             >
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Selecione o módulo" />
+              <SelectTrigger className="w-full sm:w-80">
+                <SelectValue placeholder="Selecione o tipo de dados" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectLabel className="text-[11px] font-semibold text-primary">
-                    Secretaria &amp; Alunos
-                  </SelectLabel>
-                  {(["alunos", "encarregados", "matriculas", "pessoas"] as const).map((mod) => (
-                    <SelectItem key={mod} value={mod} className="text-xs font-medium">
-                      {MODULE_DISPLAY_LABELS[mod] || mod}
-                    </SelectItem>
-                  ))}
+                  <SelectLabel>Secretaria &amp; Alunos</SelectLabel>
+                  {(["alunos", "encarregados", "matriculas", "pessoas"] as ImportModule[])
+                    .filter((m) => IMPLEMENTED_MODULES.has(m))
+                    .map((mod) => (
+                      <SelectItem key={mod} value={mod}>
+                        {MODULE_DISPLAY_LABELS[mod] || mod}
+                      </SelectItem>
+                    ))}
                 </SelectGroup>
                 <SelectGroup>
-                  <SelectLabel className="text-[11px] font-semibold text-primary">
-                    Estrutura Pedagógica &amp; Docência
-                  </SelectLabel>
+                  <SelectLabel>Estrutura Pedagógica &amp; Docência</SelectLabel>
                   {(
                     [
                       "professores",
@@ -546,37 +546,22 @@ export function ImportWorkflowWizard({
                       "disciplinas",
                       "salas",
                       "notas",
-                    ] as const
-                  ).map((mod) => (
-                    <SelectItem key={mod} value={mod} className="text-xs font-medium">
-                      {MODULE_DISPLAY_LABELS[mod] || mod}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="text-[11px] font-semibold text-primary">
-                    Tesouraria &amp; Finanças
-                  </SelectLabel>
-                  {(["pagamentos"] as const).map((mod) => (
-                    <SelectItem key={mod} value={mod} className="text-xs font-medium">
-                      {MODULE_DISPLAY_LABELS[mod] || mod}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="text-[11px] font-semibold text-muted-foreground">
-                    Em Breve
-                  </SelectLabel>
-                  {importModuleOptions
-                    .filter((mod) => !IMPLEMENTED_MODULES.has(mod))
+                    ] as ImportModule[]
+                  )
+                    .filter((m) => IMPLEMENTED_MODULES.has(m))
                     .map((mod) => (
-                      <SelectItem
-                        key={mod}
-                        value={mod}
-                        disabled
-                        className="text-xs text-muted-foreground capitalize"
-                      >
-                        {mod.replace(/_/g, " ")} (em breve)
+                      <SelectItem key={mod} value={mod}>
+                        {MODULE_DISPLAY_LABELS[mod] || mod}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel>Tesouraria &amp; Finanças</SelectLabel>
+                  {(["pagamentos"] as ImportModule[])
+                    .filter((m) => IMPLEMENTED_MODULES.has(m))
+                    .map((mod) => (
+                      <SelectItem key={mod} value={mod}>
+                        {MODULE_DISPLAY_LABELS[mod] || mod}
                       </SelectItem>
                     ))}
                 </SelectGroup>
@@ -587,7 +572,7 @@ export function ImportWorkflowWizard({
             (selectedModule === "matriculas" ||
               selectedModule === "turmas" ||
               selectedModule === "notas") ? (
-              <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+              <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 p-2.5 text-xs text-warning">
                 <AlertTriangle className="size-4 shrink-0" />
                 <span>
                   Atenção: Nenhum ano lectivo activo seleccionado no cabeçalho. O módulo{" "}
@@ -689,21 +674,21 @@ export function ImportWorkflowWizard({
       {(step === 4 || step === 5) && job ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-lg border border-border bg-card p-3 text-center">
+            <div className="rounded-xl border border-border bg-card p-3 text-center shadow-card">
               <p className="text-[11px] text-muted-foreground">Total de Linhas</p>
               <p className="text-lg font-bold">{stagingTotal}</p>
             </div>
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-center">
-              <p className="text-[11px] font-medium text-emerald-600">Válidos</p>
-              <p className="text-lg font-bold text-emerald-600">{stageCounts.valid}</p>
+            <div className="rounded-xl border border-success/30 bg-success/5 p-3 text-center shadow-card">
+              <p className="text-[11px] font-medium text-success">Válidos</p>
+              <p className="text-lg font-bold text-success">{stageCounts.valid}</p>
             </div>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-center">
-              <p className="text-[11px] font-medium text-amber-600">Duplicados</p>
-              <p className="text-lg font-bold text-amber-600">{stageCounts.duplicate}</p>
+            <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-center shadow-card">
+              <p className="text-[11px] font-medium text-warning">Duplicados</p>
+              <p className="text-lg font-bold text-warning">{stageCounts.duplicate}</p>
             </div>
-            <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3 text-center">
-              <p className="text-[11px] font-medium text-rose-600">Erros</p>
-              <p className="text-lg font-bold text-rose-600">{stageCounts.invalid}</p>
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-center shadow-card">
+              <p className="text-[11px] font-medium text-destructive">Erros</p>
+              <p className="text-lg font-bold text-destructive">{stageCounts.invalid}</p>
             </div>
           </div>
 
@@ -787,29 +772,29 @@ export function ImportWorkflowWizard({
                           ))}
                         </div>
                         {row.warnings.length ? (
-                          <p className="mt-1 text-[11px] text-amber-600">
+                          <p className="mt-1 text-[11px] text-warning">
                             {row.warnings.join(" · ")}
                           </p>
                         ) : null}
                         {row.errors.length ? (
-                          <p className="mt-1 text-[11px] text-rose-600">{row.errors.join(" · ")}</p>
+                          <p className="mt-1 text-[11px] text-destructive">{row.errors.join(" · ")}</p>
                         ) : null}
                       </td>
                       <td className="px-3 py-2">
                         {row.status === "valid" ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
                             <CheckCircle className="size-3.5" /> Pronto
                           </span>
                         ) : row.status === "warning" ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-warning">
                             <AlertTriangle className="size-3.5" /> Aviso
                           </span>
                         ) : row.status === "duplicate" ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-warning">
                             <Copy className="size-3.5" /> Duplicado
                           </span>
                         ) : row.status === "error" ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-destructive">
                             <XCircle className="size-3.5" /> Erro
                           </span>
                         ) : (
@@ -955,17 +940,17 @@ export function ImportWorkflowWizard({
       ) : null}
 
       {step === 7 && result ? (
-        <div className="space-y-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
-          <CheckCircle className="mx-auto size-12 text-emerald-600" />
+        <div className="space-y-4 rounded-xl border border-success/30 bg-success/5 p-6 text-center shadow-card">
+          <CheckCircle className="mx-auto size-12 text-success" />
           <h4 className="text-lg font-bold text-foreground">Importação Concluída</h4>
           <div className="mx-auto flex max-w-sm flex-wrap justify-center gap-4 text-xs font-medium text-muted-foreground">
-            <span className="font-bold text-emerald-600">{result.inserted} inseridos</span>
-            <span className="font-bold text-blue-600">{result.updated} associados</span>
+            <span className="font-bold text-success">{result.inserted} inseridos</span>
+            <span className="font-bold text-primary">{result.updated} associados</span>
             {result.ignored ? (
               <span className="font-bold text-muted-foreground">{result.ignored} ignorados</span>
             ) : null}
             {result.failed ? (
-              <span className="font-bold text-rose-600">{result.failed} com erro</span>
+              <span className="font-bold text-destructive">{result.failed} com erro</span>
             ) : null}
           </div>
 

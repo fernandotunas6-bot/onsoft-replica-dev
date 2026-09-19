@@ -202,7 +202,7 @@ export function DisciplinasWorkspaceTab({
           </div>
           <div className="rounded-xl border bg-card p-3 shadow-2xs">
             <span className="text-xs text-muted-foreground">Práticas / Lab</span>
-            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+            <p className="text-xl font-black text-success">
               {subjects.filter((s) => s.is_practical).length}
             </p>
           </div>
@@ -302,7 +302,7 @@ export function DisciplinasWorkspaceTab({
                                           </span>
                                         ) : null}
                                         {d.is_practical ? (
-                                          <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-medium text-emerald-600 dark:text-emerald-400">
+                                          <span className="rounded bg-success/10 px-1.5 py-0.5 font-medium text-success">
                                             Prática
                                           </span>
                                         ) : null}

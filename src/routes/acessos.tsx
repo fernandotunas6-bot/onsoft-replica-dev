@@ -16,6 +16,7 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -730,18 +731,22 @@ function AcessosPage() {
                             : "Nunca"}
                         </TableCell>
                         <TableCell>
-                          <span
-                            className={cn(
-                              badgeBase,
-                              account.disabled ? toneClass.danger : toneClass.success,
-                            )}
-                          >
-                            {account.disabled
-                              ? "Suspenso"
-                              : account.email_confirmed
-                                ? "Activo"
-                                : "Convite pendente"}
-                          </span>
+                          <StatusBadge
+                            status={
+                              account.disabled
+                                ? "cancelled"
+                                : account.email_confirmed
+                                  ? "active"
+                                  : "pending"
+                            }
+                            label={
+                              account.disabled
+                                ? "Suspenso"
+                                : account.email_confirmed
+                                  ? "Activo"
+                                  : "Convite pendente"
+                            }
+                          />
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -1109,7 +1114,18 @@ function AcessosPage() {
                           {new Date(invitation.expires_at).toLocaleDateString("pt-PT")}
                         </TableCell>
                         <TableCell>
-                          <span className={cn(badgeBase, statusTone)}>{displayStatus}</span>
+                          <StatusBadge
+                            status={
+                              displayStatus === "Aceite"
+                                ? "active"
+                                : displayStatus === "Pendente"
+                                  ? "pending"
+                                  : displayStatus === "Expirado"
+                                    ? "overdue"
+                                    : "cancelled"
+                            }
+                            label={displayStatus}
+                          />
                         </TableCell>
                         <TableCell className="text-right">
                           {isPending && !isExpired ? (
@@ -1236,14 +1252,7 @@ function AcessosPage() {
                         {new Date(member.updated_at).toLocaleString("pt-PT")}
                       </TableCell>
                       <TableCell>
-                        <span
-                          className={cn(
-                            badgeBase,
-                            member.status === "active" ? toneClass.success : toneClass.danger,
-                          )}
-                        >
-                          {member.status === "active" ? "Activo" : "Inactivo"}
-                        </span>
+                        <StatusBadge status={member.status === "active" ? "active" : "inactive"} />
                       </TableCell>
                       <TableCell className="text-right">
                         <Switch

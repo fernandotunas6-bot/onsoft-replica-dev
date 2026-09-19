@@ -11,6 +11,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -81,54 +82,46 @@ function AlumniInsightsPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                <ShieldCheck className="size-3.5" /> Dados com consentimento
-              </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight">
-                Insights & Operações Alumni
-              </h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                Distribuição geográfica, empregabilidade, públicos segmentados e exportação
-                institucional com regras de privacidade.
-              </p>
-            </div>
+        <PageHeader
+          group="Comunidade & Alumni"
+          title="Insights & Operações Alumni"
+          description="Distribuição geográfica, empregabilidade, públicos segmentados e exportação institucional com regras de privacidade."
+          actions={
             <div className="flex flex-wrap gap-2">
               <Link
                 to="/alumni"
-                className="inline-flex h-10 items-center rounded-xl border border-input bg-background px-4 text-sm font-medium"
+                className="inline-flex h-9 items-center rounded-xl border border-input bg-background px-3.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
               >
-                <Network className="mr-2 size-4" />
+                <Network className="mr-2 size-3.5" />
                 Rede
               </Link>
               <Link
                 to="/alumni/operations"
-                className="inline-flex h-10 items-center rounded-xl border border-input bg-background px-4 text-sm font-medium"
+                className="inline-flex h-9 items-center rounded-xl border border-input bg-background px-3.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
               >
-                <Settings2 className="mr-2 size-4" />
+                <Settings2 className="mr-2 size-3.5" />
                 Operações
               </Link>
               <Link
                 to="/alumni/communications"
-                className="inline-flex h-10 items-center rounded-xl border border-input bg-background px-4 text-sm font-medium"
+                className="inline-flex h-9 items-center rounded-xl border border-input bg-background px-3.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
               >
-                <Megaphone className="mr-2 size-4" />
+                <Megaphone className="mr-2 size-3.5" />
                 Comunicação
               </Link>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={downloadCsv}
                 disabled={exportQuery.isFetching}
-                className="rounded-xl"
+                className="rounded-xl text-xs h-9"
               >
-                <Download className="mr-2 size-4" />
-                {exportQuery.isFetching ? "A preparar…" : "Exportar CSV"}
+                <Download className="mr-2 size-3.5" />
+                {exportQuery.isFetching ? "A exportar…" : "Exportar CSV"}
               </Button>
             </div>
-          </div>
-        </section>
+          }
+        />
 
         <section className="grid gap-4 md:grid-cols-3">
           <Card>

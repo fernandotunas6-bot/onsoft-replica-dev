@@ -71,6 +71,16 @@ export const propinasImporter: RowImporter = {
       valueOf(normalized, "sibling_discount_percent", "desconto_irmao") ?? 0,
     );
 
+    if (ctx.dryRun) {
+      return {
+        status: cache.existingSettingsId ? "will_update" : "will_insert",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: [],
+        target_record_id: cache.existingSettingsId,
+      };
+    }
+
     if (cache.existingSettingsId) {
       const { error } = await ctx.db
         .from("school_billing_settings")

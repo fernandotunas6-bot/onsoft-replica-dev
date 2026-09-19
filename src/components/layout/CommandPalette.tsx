@@ -226,7 +226,7 @@ export function CommandPalette() {
                 value={`favorito ${item.label} ${item.path}`}
                 onSelect={() => runAndClose(() => goToMemory(item.path, item.search))}
               >
-                <Star className="mr-2 size-4 fill-current text-amber-500 opacity-90" />
+                <Star className="mr-2 size-4 fill-current text-warning opacity-90" />
                 <span>{item.label}</span>
               </CommandItem>
             ))}

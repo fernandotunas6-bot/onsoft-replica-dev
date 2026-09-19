@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, FileText, FolderKanban, Star } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -80,20 +81,38 @@ function AlumniPortfolio360Page() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1450px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button variant="ghost" asChild>
-            <Link to="/alumni/$alumniId" params={{ alumniId }}>
-              <ArrowLeft className="mr-2 size-4" />
-              Ficha Alumni 360º
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to="/alumni/documents">
-              <FileText className="mr-2 size-4" />
-              Documentos Alumni
-            </Link>
-          </Button>
-        </div>
+        <PageHeader
+          group="Alumni"
+          title={`Portfólio 360º · ${person?.full_name ?? "Alumni"}`}
+          description={
+            profile.headline ||
+            profile.current_role ||
+            "Identidade profissional, evidências e projectos pós-formação."
+          }
+          icon={FolderKanban}
+          crumbs={[
+            { label: "Início", to: "/" },
+            { label: "Alumni", to: "/alumni" },
+            { label: "Ficha Alumni", to: `/alumni/${alumniId}` },
+            { label: "Portfólio 360º" },
+          ]}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/$alumniId" params={{ alumniId }}>
+                  <ArrowLeft className="mr-1.5 size-3.5" />
+                  Ficha 360º
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/documents">
+                  <FileText className="mr-1.5 size-3.5" />
+                  Documentos
+                </Link>
+              </Button>
+            </div>
+          }
+        />
 
         <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-center">
@@ -211,6 +230,7 @@ function PortfolioAdminCard({
           <Button
             variant={item.featured ? "default" : "outline"}
             size="icon"
+            aria-label={item.featured ? "Remover destaque" : "Destacar"}
             onClick={onToggleFeatured}
             title={item.featured ? "Remover destaque" : "Destacar"}
           >

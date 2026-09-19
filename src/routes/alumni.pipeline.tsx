@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -143,35 +144,32 @@ function AlumniPipelinePage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1500px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                <UserRoundCheck className="size-3.5" /> Operação pós-formação
-              </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight">Pipeline Alumni</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                Gerencie candidaturas, inscrições/presenças e relações de mentoria a partir das
-                tabelas oficiais do módulo Alumni.
-              </p>
+        <PageHeader
+          group="Alumni"
+          title="Pipeline Alumni"
+          description="Gestão integrada de candidaturas, presenças em eventos e relações de mentoria da rede pós-formação."
+          icon={UserRoundCheck}
+          crumbs={[
+            { label: "Início", to: "/" },
+            { label: "Alumni", to: "/alumni" },
+            { label: "Pipeline" },
+          ]}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni">
+                  <Network className="mr-1.5 size-3.5" />
+                  Rede
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/operations">
+                  Centro Operacional
+                </Link>
+              </Button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/alumni"
-                className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
-              >
-                <Network className="mr-2 size-4" />
-                Rede
-              </Link>
-              <Link
-                to="/alumni/operations"
-                className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
-              >
-                Centro Operacional
-              </Link>
-            </div>
-          </div>
-        </section>
+          }
+        />
 
         <section className="grid gap-4 sm:grid-cols-3">
           <Card>
@@ -239,6 +237,8 @@ function AlumniPipelinePage() {
                           </p>
                         </div>
                         <select
+                          id={`opp-status-${row.opportunity_id}-${row.alumni_id}`}
+                          aria-label="Estado da candidatura"
                           value={row.status}
                           onChange={(e) =>
                             applicationMutation.mutate({
@@ -300,6 +300,8 @@ function AlumniPipelinePage() {
                           </p>
                         </div>
                         <select
+                          id={`event-status-${row.event_id}-${row.alumni_id}`}
+                          aria-label="Estado da inscrição"
                           value={row.status}
                           onChange={(e) =>
                             registrationMutation.mutate({
@@ -335,6 +337,8 @@ function AlumniPipelinePage() {
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <select
+                  id="mentoring-mentor"
+                  aria-label="Seleccionar mentor"
                   value={mentorId}
                   onChange={(e) => setMentorId(e.target.value)}
                   className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
@@ -349,6 +353,8 @@ function AlumniPipelinePage() {
                     ))}
                 </select>
                 <select
+                  id="mentoring-mentee"
+                  aria-label="Seleccionar mentorado"
                   value={menteeId}
                   onChange={(e) => setMenteeId(e.target.value)}
                   className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
@@ -363,6 +369,8 @@ function AlumniPipelinePage() {
                     ))}
                 </select>
                 <Input
+                  id="mentoring-focus-area"
+                  aria-label="Área de foco"
                   value={focusArea}
                   onChange={(e) => setFocusArea(e.target.value)}
                   placeholder="Área de foco: carreira, liderança, tecnologia…"
@@ -415,6 +423,8 @@ function AlumniPipelinePage() {
                         <p className="text-sm font-semibold">{row.focus_area}</p>
                       </div>
                       <select
+                        id={`mentorship-status-${row.id}`}
+                        aria-label="Estado da mentoria"
                         value={row.status}
                         onChange={(e) =>
                           mentorshipStatusMutation.mutate({

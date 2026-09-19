@@ -648,7 +648,7 @@ export function PautasWorkspaceModule({
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
                 <Award className="size-3.5" /> Decreto Executivo n.º 424/25
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-semibold text-success">
                 <CheckCircle2 className="size-3.5" /> Sistema Escolar Angolano
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-mono font-medium text-muted-foreground">
@@ -674,7 +674,7 @@ export function PautasWorkspaceModule({
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+              className="gap-1.5 text-success border-success/30"
               onClick={handleShareWhatsapp}
             >
               <MessageSquare className="size-4" /> Partilhar WhatsApp
@@ -693,7 +693,7 @@ export function PautasWorkspaceModule({
           </div>
           <div className="rounded-lg border border-border bg-card p-2.5">
             <p className="text-[11px] font-medium text-muted-foreground">Taxa de Transição</p>
-            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{passRate}%</p>
+            <p className="text-lg font-bold text-success">{passRate}%</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-2.5">
             <p className="text-[11px] font-medium text-muted-foreground">Aprovados / Transitam</p>
@@ -739,7 +739,7 @@ export function PautasWorkspaceModule({
                 type="button"
                 className={`px-2.5 py-1 rounded font-medium text-[11px] transition-all ${
                   statusFilter === "pass"
-                    ? "bg-background text-emerald-600 font-bold shadow-xs"
+                    ? "bg-background text-success font-bold shadow-xs"
                     : "text-muted-foreground"
                 }`}
                 onClick={() => setStatusFilter("pass")}
@@ -903,18 +903,18 @@ export function PautasWorkspaceModule({
 
       {/* Consistency Check Panel — só para turmas reais */}
       {isRealClass && consistencyReport && consistencyReport.issues.length > 0 && (
-        <div className="rounded-xl border border-border bg-card shadow-xs p-4 space-y-2 border-l-4 border-l-amber-500 print:hidden">
+        <div className="rounded-xl border border-border bg-card shadow-xs p-4 space-y-2 border-l-4 border-l-warning print:hidden">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <AlertTriangle className="size-4 text-amber-500" />
+              <AlertTriangle className="size-4 text-warning" />
               Verificação de consistência — {consistencyReport.totalStudents} aluno(s),{" "}
               {consistencyReport.totalSubjects} disciplina(s)
             </div>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                 consistencyReport.isReadyToLock
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  ? "bg-success/10 text-success"
+                  : "bg-warning/10 text-warning"
               }`}
             >
               {consistencyReport.isReadyToLock ? "Pronta para fechar" : "Pendências por resolver"}
@@ -923,7 +923,7 @@ export function PautasWorkspaceModule({
           <ul className="space-y-1 text-xs text-muted-foreground">
             {consistencyReport.issues.slice(0, 8).map((issue, index) => (
               <li key={`${issue.code}-${index}`} className="flex items-start gap-1.5">
-                <span className="mt-0.5 size-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span className="mt-0.5 size-1.5 rounded-full bg-warning shrink-0" />
                 {issue.message}
               </li>
             ))}

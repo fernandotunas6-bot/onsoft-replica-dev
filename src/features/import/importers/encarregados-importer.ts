@@ -172,7 +172,11 @@ export const encarregadosImporter: RowImporter = {
       guardian_person_id: person.personId,
       relationship,
       is_primary: isFinancial,
-      authorized_pickup: true,
+      // A coluna é `is_pickup_authorized`; `authorized_pickup` não existe e fazia o
+      // PostgREST recusar a associação inteira. E o "Responsável Financeiro" da folha
+      // tem coluna própria — estava só a alimentar `is_primary`.
+      is_financially_responsible: isFinancial,
+      is_pickup_authorized: true,
     });
 
     if (relError) {

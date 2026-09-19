@@ -21,7 +21,7 @@ export function TrimesterPautaView({ data }: { data: TrimesterPautaDocument }) {
   };
 
   return (
-    <div className="bg-background text-foreground p-4 md:p-6 rounded-xl border border-border shadow-xs overflow-x-auto print:p-0 print:border-none print:shadow-none print:bg-white print:text-black">
+    <div className="siga-pauta-sheet bg-background text-foreground p-4 md:p-6 rounded-xl border border-border shadow-xs overflow-x-auto print:p-0 print:border-none print:shadow-none">
       <DocumentHeader
         school={data.school}
         context={data.context}
@@ -29,28 +29,28 @@ export function TrimesterPautaView({ data }: { data: TrimesterPautaDocument }) {
       />
 
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-center text-xs border-collapse border border-border print:border-black">
+        <table className="w-full text-center text-xs border-collapse border border-border">
           <thead>
-            <tr className="bg-muted/50 print:bg-gray-100">
-              <th className="border border-border p-2 font-bold print:border-black">N.º</th>
-              <th className="border border-border p-2 font-bold print:border-black">Código</th>
-              <th className="border border-border p-2 font-bold text-left min-w-[170px] print:border-black">
+            <tr className="bg-muted/50 print:bg-muted/10">
+              <th className="border border-border p-2 font-bold">N.º</th>
+              <th className="border border-border p-2 font-bold">Código</th>
+              <th className="border border-border p-2 font-bold text-left min-w-[170px]">
                 Nome Completo
               </th>
-              <th className="border border-border p-2 font-bold print:border-black">Gén.</th>
+              <th className="border border-border p-2 font-bold">Gén.</th>
               {data.subjects.map((sub) => (
                 <th
                   key={sub.id}
-                  className="border border-border p-2 font-bold min-w-[85px] print:border-black"
+                  className="border border-border p-2 font-bold min-w-[85px]"
                 >
                   {sub.shortName ?? sub.name}
                 </th>
               ))}
-              <th className="border border-border p-2 font-bold bg-muted/60 print:border-black">
+              <th className="border border-border p-2 font-bold bg-muted/60">
                 {periodNoun === "Semestre" ? "Média Sem." : "Média Trim."}
               </th>
-              <th className="border border-border p-2 font-bold print:border-black">Resultado</th>
-              <th className="border border-border p-2 font-bold text-left min-w-[130px] print:border-black">
+              <th className="border border-border p-2 font-bold">Resultado</th>
+              <th className="border border-border p-2 font-bold text-left min-w-[130px]">
                 Observação
               </th>
             </tr>
@@ -58,21 +58,21 @@ export function TrimesterPautaView({ data }: { data: TrimesterPautaDocument }) {
           <tbody>
             {data.students.map((student) => (
               <tr key={student.id} className="hover:bg-muted/30 transition-colors">
-                <td className="border border-border p-1.5 print:border-black">{student.number}</td>
-                <td className="border border-border p-1.5 font-mono text-[11px] print:border-black">
+                <td className="border border-border p-1.5">{student.number}</td>
+                <td className="border border-border p-1.5 font-mono text-[11px]">
                   {student.code}
                 </td>
-                <td className="border border-border p-1.5 text-left font-medium print:border-black">
+                <td className="border border-border p-1.5 text-left font-medium">
                   {student.name}
                 </td>
-                <td className="border border-border p-1.5 print:border-black">{student.gender}</td>
+                <td className="border border-border p-1.5">{student.gender}</td>
                 {data.subjects.map((sub) => {
                   const grade = student.subjectGrades[sub.id];
                   const isFail = grade !== null && grade !== undefined && grade < 10;
                   return (
                     <td
                       key={sub.id}
-                      className={`border border-border p-1.5 print:border-black cursor-pointer hover:bg-primary/20 underline decoration-dotted ${
+                      className={`border border-border p-1.5 cursor-pointer hover:bg-primary/20 underline decoration-dotted ${
                         isFail ? "text-destructive font-bold" : ""
                       }`}
                       onClick={() => handleOpenAudit(student.name, sub.name, grade)}
@@ -82,15 +82,15 @@ export function TrimesterPautaView({ data }: { data: TrimesterPautaDocument }) {
                     </td>
                   );
                 })}
-                <td className="border border-border p-1.5 font-bold bg-muted/30 print:border-black">
+                <td className="border border-border p-1.5 font-bold bg-muted/30">
                   {formatGrade(student.average)}
                 </td>
                 <td
-                  className={`border border-border p-1.5 font-bold print:border-black ${deriveElectronicStatusClass(student.status)}`}
+                  className={`border border-border p-1.5 font-bold ${deriveElectronicStatusClass(student.status)}`}
                 >
                   {student.status}
                 </td>
-                <td className="border border-border p-1.5 text-left text-[11px] print:border-black">
+                <td className="border border-border p-1.5 text-left text-[11px]">
                   {student.observation}
                 </td>
               </tr>

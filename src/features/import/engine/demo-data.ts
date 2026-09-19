@@ -278,6 +278,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
     {
       code: "CFB",
       name: "Ciências Físicas e Biológicas",
+      academic_level: "Ensino Secundário",
       area: "Ciências Exactas e da Natureza",
       duration_years: 3,
       degree: "Ensino Secundário Geral",
@@ -285,6 +286,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
     {
       code: "CCH",
       name: "Ciências Económicas e Jurídicas",
+      academic_level: "Ensino Secundário",
       area: "Ciências Sociais e Humanas",
       duration_years: 3,
       degree: "Ensino Secundário Geral",
@@ -292,6 +294,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
     {
       code: "INFO",
       name: "Informática de Gestão",
+      academic_level: "Ensino Secundário",
       area: "Tecnologias de Informação",
       duration_years: 4,
       degree: "Técnico Médio",
@@ -299,6 +302,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
     {
       code: "CONT",
       name: "Contabilidade e Gestão",
+      academic_level: "Ensino Secundário",
       area: "Gestão e Administração",
       duration_years: 4,
       degree: "Técnico Médio",

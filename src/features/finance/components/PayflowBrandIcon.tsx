@@ -8,12 +8,10 @@ export function PayflowBrandIcon({ size = 16, className }: { size?: number; clas
     <img
       src={PAYFLOW_BRAND_ICON}
       alt=""
-      width={size}
-      height={size}
-      decoding="async"
       className={cn("shrink-0 rounded object-contain", className)}
       style={{ width: size, height: size }}
       aria-hidden
+      loading="eager"
     />
   );
 }

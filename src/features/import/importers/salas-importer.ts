@@ -86,6 +86,16 @@ export const salasImporter: RowImporter = {
       };
     }
 
+    if (ctx.dryRun) {
+      return {
+        status: "will_insert",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: [],
+        target_record_id: null,
+      };
+    }
+
     const { data, error } = await ctx.db
       .from("rooms")
       .insert({

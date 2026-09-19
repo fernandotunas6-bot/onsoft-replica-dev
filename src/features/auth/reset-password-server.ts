@@ -136,7 +136,7 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
           const { data: domainRow } = await db
             .from("tenant_domains")
             .select("tenant_id")
-            .eq("domain", lookup.hostname)
+            .eq("hostname", lookup.hostname)
             .eq("status", "verified")
             .maybeSingle();
 
@@ -242,7 +242,7 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
       try {
         await db.from("saas_audit_logs").insert({
           action: sentViaResend ? "password_reset_requested" : "password_reset_failed",
-          entity_type: "auth",
+          entity: "auth",
           entity_id: linkData.user?.id || null,
           metadata: {
             school_name: schoolName,

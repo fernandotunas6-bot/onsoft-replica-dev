@@ -35,7 +35,7 @@ export function StudentStatusHistoryTimeline({
   if (!events || events.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border p-6 text-center">
-        <History className="mx-auto size-8 text-muted-foreground/50" />
+        <History className="mx-auto size-8 text-muted-foreground" />
         <p className="mt-2 text-sm font-medium text-foreground">
           Sem alterações de estado registadas
         </p>

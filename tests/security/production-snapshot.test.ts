@@ -110,9 +110,10 @@ const ANON_POLICIES_ESPERADAS = [
  *      `communication_dispatches` e `communication_events` estão declaradas em
  *      `supabase/migrations/20260911120000_central_communication_and_otp.sql`,
  *      que nunca foi aplicada ao SGA. `contact_verification_profiles` e
- *      `user_communication_preferences` não estão declaradas em lado nenhum.
- *      Enquanto isto durar, OTP, verificação de contactos e preferências de
- *      comunicação não funcionam em produção.
+ *      `user_communication_preferences` não estavam declaradas em lado nenhum
+ *      até 2026-09-16, e nessa data foram declaradas **e** aplicadas
+ *      (`20260916130000_contact_verification_and_communication_preferences.sql`).
+ *      O grupo 1 está fechado.
  *   2. Caixas de correio de tenant — `tenant_mailboxes`, declarada em
  *      `supabase/APPLY_MAILBOXES.sql`, script manual também por aplicar.
  *   3. Importadores contra o esquema Lovable antigo — `courses`, `invoices`,
@@ -130,22 +131,16 @@ const ANON_POLICIES_ESPERADAS = [
  *
  * As três da central de comunicação saíram desta lista a 2026-09-14, com a
  * migração `20260911120000_central_communication_and_otp.sql` aplicada.
+ *
+ * `courses`, `invoices`, `payments` e `class_schedule_slots` saíram a
+ * 2026-09-15: os cinco importadores (`cursos`, `horarios`, `dividas`,
+ * `pagamentos`, `historico_financeiro`) foram remapeados para o modelo real —
+ * `programs`, `timetable_slots` (via `class_subjects`), `finance_invoices` e
+ * `finance_receipts` (via `finance_contracts`) — em vez do esquema Lovable que
+ * a produção nunca teve. `assessment_rule_sets` continua nesta lista: é do
+ * caminho legado de notas (`sga-grades-legacy.ts`), fora destes cinco.
  */
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
-  // Importação: cinco módulos escrevem para o modelo de dados antigo. A
-  // produção tem outro — `finance_invoices`, `programs`, `timetable_slots` — e
-  // com outra forma, não só outro nome: `finance_invoices` exige `contract_id`,
-  // `fee_item_id` e `issued_by`, e não tem `student_id`. Não é uma mudança de
-  // nome; é um importador escrito contra um modelo que foi substituído.
-  "courses", // importação de cursos
-  "invoices", // importação de dívidas e de histórico financeiro
-  "payments", // importação de pagamentos
-  "class_schedule_slots", // importação de horários
-
-  // Verificação de contactos (features/contacts).
-  "contact_verification_profiles",
-  "user_communication_preferences",
-
   // Caixas de correio por tenant, no Control Center.
   "tenant_mailboxes",
 

@@ -76,7 +76,7 @@ export function PayflowAdminLaunchButton({
       <button
         type="button"
         className={cn(
-          "relative flex w-full cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-none",
+          "relative flex w-full cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "hover:bg-accent hover:text-accent-foreground",
           className,
         )}

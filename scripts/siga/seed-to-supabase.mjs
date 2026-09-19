@@ -33,6 +33,25 @@ const supabase = createClient(url, key, {
   auth: { persistSession: false },
 });
 
+/**
+ * Toda a escrita passa por aqui.
+ *
+ * Antes, quinze das dezasseis escritas deste script descartavam o erro: `await
+ * supabase.from(x).upsert(y)` sem ler `error`. O script escrevia para `courses` e
+ * `term_grades` — que não existem em produção —, o PostgREST recusava, e no fim imprimia
+ * "🎉 Sucesso Total! … 100% carregados". Um seed que mente sobre o que gravou é pior do
+ * que um seed que falha: deixa uma escola demo meia vazia com ar de completa.
+ */
+async function gravar(tabela, payload, opcoes) {
+  const { error } = opcoes?.insert
+    ? await supabase.from(tabela).insert(payload)
+    : await supabase.from(tabela).upsert(payload, opcoes?.upsert);
+  if (error) {
+    const detalhe = error.details ? ` (${error.details})` : "";
+    throw new Error(`Falha ao gravar em "${tabela}": ${error.message}${detalhe}`);
+  }
+}
+
 console.log("🚀 A carregar dados da Escola Demo diretamente na base de dados do Supabase...");
 
 const SCHOOL_ID = "d3b07384-d113-4603-9c8e-a2f0714b2201";
@@ -249,7 +268,7 @@ async function linkDemoTenant() {
     return;
   }
 
-  const { error: tenantErr } = await supabase.from("tenants").upsert(
+  await gravar("tenants", 
     {
       id: DEMO_TENANT_ID,
       name: "Complexo Escolar Polivalente Dom Afonso I — SIGA Demo",
@@ -262,12 +281,8 @@ async function linkDemoTenant() {
       max_storage_gb: planRow.max_storage_gb ?? 200,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "slug" },
+    { upsert: { onConflict: "slug" } },
   );
-  if (tenantErr) {
-    console.warn("⚠️  Tenant demo:", tenantErr.message);
-    return;
-  }
 
   const { data: tenant } = await supabase
     .from("tenants")
@@ -285,7 +300,7 @@ async function linkDemoTenant() {
     })
     .eq("id", SCHOOL_ID);
 
-  await supabase.from("tenant_domains").upsert(
+  await gravar("tenant_domains", 
     {
       tenant_id: tenantId,
       hostname: `${DEMO_TENANT_SLUG}.portal-siga.com`,
@@ -293,7 +308,7 @@ async function linkDemoTenant() {
       status: "active",
       ssl_status: "active",
     },
-    { onConflict: "hostname" },
+    { upsert: { onConflict: "hostname" } },
   );
 
   const { count } = await supabase
@@ -301,7 +316,7 @@ async function linkDemoTenant() {
     .select("id", { count: "exact", head: true })
     .eq("tenant_id", tenantId);
   if (!count) {
-    await supabase.from("subscriptions").insert({
+    await gravar("subscriptions", {
       tenant_id: tenantId,
       plan_id: planRow.id,
       status: "active",
@@ -310,19 +325,18 @@ async function linkDemoTenant() {
     });
   }
 
-  await supabase
-    .from("tenant_usage")
-    .upsert(
-      { tenant_id: tenantId, active_students_count: 0, active_staff_count: 0 },
-      { onConflict: "tenant_id" },
-    );
+  await gravar(
+    "tenant_usage",
+    { tenant_id: tenantId, active_students_count: 0, active_staff_count: 0 },
+    { upsert: { onConflict: "tenant_id" } },
+  );
 
   console.log(`✅ Tenant SaaS «${DEMO_TENANT_SLUG}» ligado à escola demo (ADMIN /tenants).`);
 }
 
 async function runSeed() {
   console.log("1. A registar a Escola Demo e Definições...");
-  await supabase.from("schools").upsert({
+  await gravar("schools", {
     id: SCHOOL_ID,
     name: "Complexo Escolar Polivalente Dom Afonso I — SIGA Demo",
     code: "CEPDAI-DEMO",
@@ -333,7 +347,7 @@ async function runSeed() {
     updated_at: new Date().toISOString(),
   });
 
-  await supabase.from("school_settings").upsert({
+  await gravar("school_settings", {
     school_id: SCHOOL_ID,
     academic_year: "Ano Lectivo 2026",
     currency: "AOA",
@@ -342,7 +356,7 @@ async function runSeed() {
 
   await linkDemoTenant();
 
-  await supabase.from("enrollment_forms").upsert({
+  await gravar("enrollment_forms", {
     id: "e1111111-2222-3333-4444-555555555555",
     school_id: SCHOOL_ID,
     slug: "dom-afonso-demo",
@@ -354,7 +368,7 @@ async function runSeed() {
   });
 
   console.log("2. A registar Anos Lectivos (2024, 2025, 2026)...");
-  await supabase.from("academic_years").upsert([
+  await gravar("academic_years", [
     {
       id: YEAR_2024_ID,
       school_id: SCHOOL_ID,
@@ -413,7 +427,7 @@ async function runSeed() {
       room_type: "lab",
     },
   );
-  await supabase.from("rooms").upsert(rooms);
+  await gravar("rooms", rooms);
 
   console.log("4. A registar Cursos da Escola...");
   const courses = [
@@ -460,7 +474,7 @@ async function runSeed() {
       duration_years: 4,
     },
   ];
-  await supabase.from("courses").upsert(courses);
+  await gravar("courses", courses);
 
   console.log("5. A criar 36 Turmas da Escola Demo...");
   const turmasList = [
@@ -711,7 +725,7 @@ async function runSeed() {
     room_id: t.room,
     max_students: 40,
   }));
-  await supabase.from("class_groups").upsert(classGroups);
+  await gravar("class_groups", classGroups);
 
   console.log("6. A criar Disciplinas da Escola...");
   const subjects = [
@@ -776,7 +790,7 @@ async function runSeed() {
       name: "Educação Física",
     },
   ];
-  await supabase.from("subjects").upsert(subjects);
+  await gravar("subjects", subjects);
 
   console.log(
     "7. A registar Perfis Especiais (Direção, Secretaria, Tesouraria, Professores e Encarregados)...",
@@ -833,7 +847,7 @@ async function runSeed() {
       address: "Kilamba Kiaxi, Palanca",
     },
   ];
-  await supabase.from("people").upsert(staffPeople);
+  await gravar("people", staffPeople);
 
   console.log(
     "8. A gerar 1152 Alunos Matriculados + Encarregados de Educação (Total 1380+ Registos)...",
@@ -955,16 +969,16 @@ async function runSeed() {
   // Inserção em Lotes para Desempenho Máximo
   const chunkSize = 250;
   for (let i = 0; i < peopleBatch.length; i += chunkSize) {
-    await supabase.from("people").upsert(peopleBatch.slice(i, i + chunkSize));
+    await gravar("people", peopleBatch.slice(i, i + chunkSize));
   }
   for (let i = 0; i < studentsBatch.length; i += chunkSize) {
-    await supabase.from("students").upsert(studentsBatch.slice(i, i + chunkSize));
+    await gravar("students", studentsBatch.slice(i, i + chunkSize));
   }
   for (let i = 0; i < enrollmentsBatch.length; i += chunkSize) {
-    await supabase.from("enrollments").upsert(enrollmentsBatch.slice(i, i + chunkSize));
+    await gravar("enrollments", enrollmentsBatch.slice(i, i + chunkSize));
   }
   for (let i = 0; i < gradesBatch.length; i += chunkSize) {
-    await supabase.from("term_grades").upsert(gradesBatch.slice(i, i + chunkSize));
+    await gravar("term_grades", gradesBatch.slice(i, i + chunkSize));
   }
 
   console.log(

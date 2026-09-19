@@ -557,25 +557,31 @@ function TurmaEditSubModal({
       onSubmit={handleSubmit}
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="space-y-1 text-xs">
+        <label htmlFor="turma-edit-name" className="space-y-1 text-xs">
           <span className="font-semibold text-muted-foreground">Designação</span>
           <input
+            id="turma-edit-name"
+            aria-label="Designação da turma"
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </label>
-        <label className="space-y-1 text-xs">
+        <label htmlFor="turma-edit-code" className="space-y-1 text-xs">
           <span className="font-semibold text-muted-foreground">Código</span>
           <input
+            id="turma-edit-code"
+            aria-label="Código da turma"
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
         </label>
-        <label className="space-y-1 text-xs">
+        <label htmlFor="turma-edit-shift" className="space-y-1 text-xs">
           <span className="font-semibold text-muted-foreground">Turno</span>
           <select
+            id="turma-edit-shift"
+            aria-label="Turno da turma"
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={shift}
             onChange={(e) => setShift(e.target.value)}
@@ -585,9 +591,11 @@ function TurmaEditSubModal({
             <option>Noite</option>
           </select>
         </label>
-        <label className="space-y-1 text-xs">
+        <label htmlFor="turma-edit-capacity" className="space-y-1 text-xs">
           <span className="font-semibold text-muted-foreground">Capacidade</span>
           <input
+            id="turma-edit-capacity"
+            aria-label="Capacidade da turma"
             type="number"
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={capacity}
@@ -596,18 +604,22 @@ function TurmaEditSubModal({
         </label>
         {whatsappOn ? (
           <>
-            <label className="space-y-1 text-xs">
+            <label htmlFor="turma-whatsapp-group" className="space-y-1 text-xs">
               <span className="font-semibold text-muted-foreground">Sala WhatsApp</span>
               <input
+                id="turma-whatsapp-group"
+                aria-label="Sala WhatsApp"
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 value={whatsappGroupName}
                 onChange={(e) => setWhatsappGroupName(e.target.value)}
                 placeholder={`Turma ${turma.name}`}
               />
             </label>
-            <label className="space-y-1 text-xs sm:col-span-2">
+            <label htmlFor="turma-whatsapp-invite" className="space-y-1 text-xs sm:col-span-2">
               <span className="font-semibold text-muted-foreground">Link do grupo WhatsApp</span>
               <input
+                id="turma-whatsapp-invite"
+                aria-label="Link do grupo WhatsApp"
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 value={whatsappInviteUrl}
                 onChange={(e) => setWhatsappInviteUrl(e.target.value)}
@@ -721,9 +733,11 @@ function TurmaAssignTeacherSubModal({
     >
       <div className="space-y-3">
         {!monodocente ? (
-          <label className="block space-y-1 text-xs">
+          <label htmlFor="turma-assign-subject" className="block space-y-1 text-xs">
             <span className="font-semibold text-muted-foreground">Disciplina</span>
             <select
+              id="turma-assign-subject"
+              aria-label="Disciplina"
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
@@ -742,9 +756,11 @@ function TurmaAssignTeacherSubModal({
             disciplina(s) do catálogo da escola nesta turma.
           </p>
         )}
-        <label className="block space-y-1 text-xs">
+        <label htmlFor="turma-assign-teacher" className="block space-y-1 text-xs">
           <span className="font-semibold text-muted-foreground">Professor</span>
           <select
+            id="turma-assign-teacher"
+            aria-label="Professor"
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={teacher}
             onChange={(e) => setTeacher(e.target.value)}

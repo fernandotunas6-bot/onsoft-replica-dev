@@ -99,7 +99,7 @@ export const requestMagicLinkFn = createServerFn({ method: "POST" })
           const { data: domainRow } = await db
             .from("tenant_domains")
             .select("tenant_id")
-            .eq("domain", lookup.hostname)
+            .eq("hostname", lookup.hostname)
             .eq("status", "verified")
             .maybeSingle();
           if (domainRow?.tenant_id) {
@@ -189,7 +189,7 @@ export const requestMagicLinkFn = createServerFn({ method: "POST" })
       try {
         await db.from("saas_audit_logs").insert({
           action: sentViaResend ? "magic_link_requested" : "magic_link_failed",
-          entity_type: "auth",
+          entity: "auth",
           entity_id: linkData.user?.id || null,
           metadata: {
             school_name: schoolName,

@@ -175,29 +175,58 @@ export async function settleGatewayPayment(
         receivedBy = anyMember?.user_id ?? null;
       }
 
-      let receiptNumber = `REC-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
-      const { data: docNum } = await db.rpc("next_document_number", {
-        school_id: input.schoolId,
-        doc_type: "receipt",
-      });
-      if (docNum) receiptNumber = String(docNum);
-
-      const { data: newReceipt, error: recError } = await db
+      // A numeração oficial vem de `private.next_document_number`, que não tem wrapper
+      // público — e, mesmo que tivesse, exige `auth.uid()`, que num webhook
+      // server-to-server é null. A chamada que aqui estava falhava sempre com PGRST202 e
+      // o erro era ignorado, pelo que o recibo ficava com um número baseado no relógio.
+      //
+      // Sem sessão, a sequência conta-se aqui, como `issueInvoice` faz para as faturas:
+      // REC-AAAA/NNNN, avançando em colisão (23505) — `(school_id, receipt_number)` é
+      // único e dois webhooks podem chegar ao mesmo tempo.
+      const year = new Date().getFullYear();
+      const { count: receiptsThisYear } = await db
         .from("finance_receipts")
-        .insert({
-          school_id: input.schoolId,
-          invoice_id: input.invoiceId,
-          receipt_number: receiptNumber,
-          amount: input.amount,
-          paid_on: today,
-          payment_method: mapPaymentMethodForLedger(input.method),
-          status: "issued",
-          received_by: receivedBy,
-        })
-        .select("id")
-        .single();
-      if (recError)
-        throw publicDatabaseError(recError, "Não foi possível emitir recibo do gateway.");
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", input.schoolId)
+        .like("receipt_number", `REC-${year}/%`);
+
+      let sequence = (receiptsThisYear ?? 0) + 1;
+      let receiptNumber = "";
+      let newReceipt: { id: string } | null = null;
+      let recError: { code?: string; message: string } | null = null;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        receiptNumber = `REC-${year}/${String(sequence).padStart(4, "0")}`;
+        const result = await db
+          .from("finance_receipts")
+          .insert({
+            school_id: input.schoolId,
+            invoice_id: input.invoiceId,
+            receipt_number: receiptNumber,
+            amount: input.amount,
+            paid_on: today,
+            payment_method: mapPaymentMethodForLedger(input.method),
+            status: "issued",
+            received_by: receivedBy,
+          })
+          .select("id")
+          .single();
+        if (!result.error) {
+          newReceipt = result.data;
+          recError = null;
+          break;
+        }
+        recError = result.error;
+        if (result.error.code === "23505") {
+          sequence += 1;
+          continue;
+        }
+        break;
+      }
+      if (recError || !newReceipt)
+        throw publicDatabaseError(
+          recError ?? { message: "número de recibo esgotado" },
+          "Não foi possível emitir recibo do gateway.",
+        );
 
       const newStatus =
         alreadyPaid + input.amount >= Number(invoice.amount) ? "paid" : "partially_paid";

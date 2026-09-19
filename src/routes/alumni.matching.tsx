@@ -3,6 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Handshake, Network, ShieldCheck, Sparkles, UserRoundSearch } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAlumni } from "@/features/alumni/server";
 import { getAlumniMentorRecommendations } from "@/features/alumni/recommendations";
@@ -27,29 +29,25 @@ function AlumniMatchingPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                <Sparkles className="size-3.5" /> Matching transparente
-              </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight">
-                Mentoria Inteligente Alumni
-              </h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                Encontre mentores usando competências, interesses, sector, localização,
-                disponibilidade e diferença de coorte. Cada recomendação mostra os motivos do score.
-              </p>
-            </div>
-            <Link
-              to="/alumni"
-              className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
-            >
-              <Network className="mr-2 size-4" />
-              Rede Alumni
-            </Link>
-          </div>
-        </section>
+        <PageHeader
+          group="Alumni"
+          title="Mentoria Inteligente Alumni"
+          description="Encontre mentores usando competências, interesses, sector, localização e disponibilidade com score transparente."
+          icon={Sparkles}
+          crumbs={[
+            { label: "Início", to: "/" },
+            { label: "Alumni", to: "/alumni" },
+            { label: "Matching & Mentoria" },
+          ]}
+          actions={
+            <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+              <Link to="/alumni">
+                <Network className="mr-1.5 size-3.5" />
+                Rede Alumni
+              </Link>
+            </Button>
+          }
+        />
 
         <Card className="border-border/70 shadow-sm">
           <CardHeader>
@@ -59,6 +57,8 @@ function AlumniMatchingPage() {
           </CardHeader>
           <CardContent>
             <select
+              id="select-alumni-mentee"
+              aria-label="Escolha quem procura mentor"
               value={alumniId}
               onChange={(event) => setAlumniId(event.target.value)}
               className="h-11 w-full max-w-xl rounded-xl border border-input bg-background px-3 text-sm"

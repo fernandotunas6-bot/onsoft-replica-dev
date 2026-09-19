@@ -134,13 +134,23 @@ export const Route = createFileRoute("/api/saas/email/routes")({
           await deleteEmailRoute(parsed.data.routeId, creds.zoneId, creds.apiToken);
         }
 
-        // Desactivar na BD
+        // Desactivar na BD. A coluna de estado é `status` (não `active`) e a tabela é
+        // indexada por `school_id` — `tenant_id` não existe aqui, é da escola que se
+        // chega ao tenant.
         const db = await loadSgaAdminClient();
-        await db
-          .from("school_email_routes")
-          .update({ active: false, updated_at: new Date().toISOString() })
-          .eq("cloudflare_route_id", parsed.data.routeId)
-          .eq("tenant_id", parsed.data.tenantId);
+        const { data: school } = await db
+          .from("schools")
+          .select("id")
+          .eq("tenant_id", parsed.data.tenantId)
+          .maybeSingle();
+
+        if (school?.id) {
+          await db
+            .from("school_email_routes")
+            .update({ status: "suspended", updated_at: new Date().toISOString() })
+            .eq("cloudflare_route_id", parsed.data.routeId)
+            .eq("school_id", school.id as string);
+        }
 
         return jsonWithCors(request, { ok: true }, { apps: [...APPS] });
       },

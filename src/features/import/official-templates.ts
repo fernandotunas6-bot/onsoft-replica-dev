@@ -504,6 +504,15 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         example: "Ciências Físicas e Biológicas",
       },
       {
+        header: "Nível Académico",
+        key: "academic_level",
+        required: false,
+        type: "text",
+        description:
+          "Nível já configurado na escola. Deixe vazio se a escola só tiver um nível activo",
+        example: "Ensino Secundário",
+      },
+      {
         header: "Área de Formação",
         key: "area",
         required: false,
@@ -569,12 +578,12 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         example: "10ª Classe",
       },
       {
-        header: "Carga Horária Semanal (Tempos)",
-        key: "workload_hours",
+        header: "Carga Horária Anual (Horas)",
+        key: "annual_hours",
         required: false,
         type: "number",
-        description: "Número de tempos ou horas lectivas por semana",
-        example: "4",
+        description: "Horas lectivas no ano inteiro — é o que a ficha da disciplina guarda",
+        example: "132",
       },
       {
         header: "Área Curricular",

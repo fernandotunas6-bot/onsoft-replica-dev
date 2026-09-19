@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/layout/PageHeader";
 import { VerificationStatus } from "@/components/account/VerificationStatus";
 
 /**
@@ -13,29 +14,27 @@ import { VerificationStatus } from "@/components/account/VerificationStatus";
 export function Route() {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Comunicação e Privacidade</h1>
-        <p className="text-gray-600 mt-2">
-          Gerencie como quer receber notificações e mantenha seus contactos verificados
-        </p>
-      </div>
+      <PageHeader
+        group="Conta"
+        title="Comunicação e Privacidade"
+        description="Gerencie como quer receber notificações e mantenha seus contactos verificados."
+      />
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sidebar Info */}
         <div className="space-y-4">
-          <div className="border rounded-lg p-4 bg-blue-50">
-            <h3 className="font-semibold text-sm mb-2">💡 Dica</h3>
-            <p className="text-xs text-gray-700">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 shadow-xs">
+            <h3 className="font-semibold text-sm mb-2 text-foreground">💡 Dica</h3>
+            <p className="text-xs text-muted-foreground">
               Verificar múltiplos contactos garante que você receba notificações importantes, mesmo
               se um canal estiver indisponível.
             </p>
           </div>
 
-          <div className="border rounded-lg p-4 bg-green-50">
-            <h3 className="font-semibold text-sm mb-2">🔒 Sua Privacidade</h3>
-            <p className="text-xs text-gray-700">
+          <div className="rounded-xl border border-success/20 bg-success/5 p-4 shadow-xs">
+            <h3 className="font-semibold text-sm mb-2 text-foreground">🔒 Sua Privacidade</h3>
+            <p className="text-xs text-muted-foreground">
               Mensagens de segurança (como login) são sempre enviadas. Você controla apenas
               notificações de categorias específicas.
             </p>
@@ -49,8 +48,8 @@ export function Route() {
       </div>
 
       {/* Footer */}
-      <div className="border-t pt-6">
-        <p className="text-xs text-gray-500">
+      <div className="border-t border-border pt-6">
+        <p className="text-xs text-muted-foreground">
           Última atualização: {new Date().toLocaleDateString("pt-PT")}
         </p>
       </div>

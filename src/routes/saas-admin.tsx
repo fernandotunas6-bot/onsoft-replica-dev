@@ -20,6 +20,7 @@ import {
   getSaasAdminUrl,
 } from "@/lib/ecosystem-urls";
 
+// style-check: route-exempt - ponte de redirecionamento para o portal ADMIN.
 export const Route = createFileRoute("/saas-admin")({
   component: SaasAdminBridge,
 });
@@ -40,44 +41,44 @@ function SaasAdminBridge() {
   const adminDocUrl = getDocUrl(DOC_PATHS.adminControlCenter);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between font-sans">
-      <header className="border-b border-slate-800/80 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 font-bold text-white">
-          <Shield className="h-6 w-6 text-indigo-400" /> SIGA Plus
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between font-sans">
+      <header className="border-b border-border/80 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 font-bold text-foreground">
+          <Shield className="h-6 w-6 text-primary" /> SIGA Plus
         </div>
-        <Link to="/" className="text-sm text-slate-400 hover:text-white">
+        <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
           Voltar à escola
         </Link>
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-16 space-y-8">
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5" /> Administração SaaS · ADMIN
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
             Gestão de escolas clientes
           </h1>
 
-          <p className="text-slate-400 text-base leading-relaxed max-w-xl mx-auto">
+          <p className="text-muted-foreground text-base leading-relaxed max-w-xl mx-auto">
             Tenants, assinaturas, billing da plataforma e domínios pertencem ao{" "}
             <strong>ADMIN</strong> (SaaS Control Center), não ao produto escolar.
           </p>
         </div>
 
-        <Card className="bg-slate-900/80 border-slate-800 text-slate-100 text-left p-6">
+        <Card className="bg-card border-border shadow-card text-card-foreground text-left p-6">
           <CardContent className="p-0 space-y-4">
             <div className="flex flex-col sm:flex-row gap-2">
               <a
                 href={adminUrl}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-bold text-white hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-600/30"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-card"
               >
                 Abrir ADMIN <ExternalLink className="h-4 w-4" />
               </a>
               <a
                 href={createUrl}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-700 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-muted"
               >
                 Criar escola no WEB <ExternalLink className="h-4 w-4" />
               </a>
@@ -90,19 +91,19 @@ function SaasAdminBridge() {
             <a
               key={path}
               href={getAdminUrl(path)}
-              className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-sm text-slate-200 hover:border-indigo-500/40 hover:bg-slate-900 transition-colors"
+              className="flex items-center gap-3 rounded-xl border border-border bg-card/60 px-4 py-3 text-sm text-foreground hover:border-primary/40 hover:bg-muted transition-colors shadow-xs"
             >
-              <Icon className="h-4 w-4 text-indigo-400 shrink-0" />
+              <Icon className="h-4 w-4 text-primary shrink-0" />
               {label}
-              <ExternalLink className="h-3.5 w-3.5 ml-auto text-slate-500" />
+              <ExternalLink className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
             </a>
           ))}
         </div>
 
-        <p className="text-center text-xs text-slate-500">
+        <p className="text-center text-xs text-muted-foreground">
           <a
             href={adminDocUrl}
-            className="inline-flex items-center gap-1.5 hover:text-slate-300"
+            className="inline-flex items-center gap-1.5 hover:text-foreground"
             target="_blank"
             rel="noreferrer"
           >
@@ -112,7 +113,7 @@ function SaasAdminBridge() {
         </p>
       </main>
 
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+      <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
         Ecossistema SIGA Plus · WEB (Vendas) · ADMIN (SaaS) · SIGA (Operação) · DOC (Ajuda)
       </footer>
     </div>

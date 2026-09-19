@@ -70,19 +70,26 @@ const RLS_PENDING = new Set<string>([
  * `fee_items`) e `school_integration_secrets`, que antes não era possível
  * proteger sem adivinhar o esquema.
  *
- * As cinco que sobram não estão aqui pela razão antiga — não existem na
- * produção **nem** no repositório. São consultas a tabelas que não existem em
- * lado nenhum, e a lista de `tests/security/production-snapshot.test.ts`
+ * As que sobram não estão aqui pela razão antiga — não existem na produção
+ * **nem** no repositório. São consultas a tabelas que não existem em lado
+ * nenhum, e a lista de `tests/security/production-snapshot.test.ts`
  * (`TABELAS_AUSENTES_DA_PRODUCAO`) é que as conta e explica. `avatars` é o
  * falso positivo do conjunto: é um bucket de storage, não uma tabela.
+ *
+ * Eram cinco até 2026-09-16. `contact_verification_profiles` e
+ * `user_communication_preferences` saíram com
+ * `20260916130000_contact_verification_and_communication_preferences.sql`, que
+ * foi declarada **e aplicada** nesse dia: deixaram de faltar em qualquer dos
+ * lados, e saíram também da lista de `production-snapshot.test.ts`.
+ *
+ * `assessment_rule_sets` saiu no mesmo dia, com
+ * `20260916140000_assessment_rule_sets.sql`. A forma não foi adivinhada: é a que
+ * `private.publish_assessment_rule_version` — função que existe em produção —
+ * insere, coluna a coluna. Enquanto a migração não for aplicada, essa função e
+ * `configure_assessment_rules` falham com 42P01, e uma escola nova não consegue
+ * abrir o primeiro diário de notas (`gradebooks.rule_set_id` é NOT NULL).
  */
-const SCHEMA_ONLY_IN_PRODUCTION = new Set([
-  "assessment_rule_sets",
-  "avatars",
-  "contact_verification_profiles",
-  "tenant_mailboxes",
-  "user_communication_preferences",
-]);
+const SCHEMA_ONLY_IN_PRODUCTION = new Set(["avatars", "tenant_mailboxes"]);
 
 function collectSqlFiles(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;

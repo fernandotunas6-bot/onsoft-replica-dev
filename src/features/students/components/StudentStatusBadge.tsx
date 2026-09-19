@@ -9,25 +9,25 @@ export interface StudentStatusBadgeProps extends HTMLAttributes<HTMLSpanElement>
 }
 
 const statusTones: Record<AcademicStatus, string> = {
-  active: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25",
-  applicant: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/25",
-  inactive: "bg-zinc-500/15 text-zinc-700 dark:text-zinc-400 border border-zinc-500/25",
-  transferred: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25",
-  graduated: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/25",
-  cancelled: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/25",
-  suspended: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/25",
-  locked: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border border-slate-500/25",
+  active: "bg-success/15 text-success border border-success/25",
+  applicant: "bg-primary/15 text-primary border border-primary/25",
+  inactive: "bg-muted text-muted-foreground border border-border",
+  transferred: "bg-warning/15 text-warning border border-warning/25",
+  graduated: "bg-primary/15 text-primary border border-primary/25",
+  cancelled: "bg-destructive/15 text-destructive border border-destructive/25",
+  suspended: "bg-warning/15 text-warning border border-warning/25",
+  locked: "bg-muted text-muted-foreground border border-border",
 };
 
 const statusDotTones: Record<AcademicStatus, string> = {
-  active: "bg-emerald-500",
-  applicant: "bg-blue-500",
-  inactive: "bg-zinc-500",
-  transferred: "bg-amber-500",
-  graduated: "bg-purple-500",
-  cancelled: "bg-rose-500",
-  suspended: "bg-orange-500",
-  locked: "bg-slate-500",
+  active: "bg-success",
+  applicant: "bg-primary",
+  inactive: "bg-muted-foreground",
+  transferred: "bg-warning",
+  graduated: "bg-primary",
+  cancelled: "bg-destructive",
+  suspended: "bg-warning",
+  locked: "bg-muted-foreground",
 };
 
 export function StudentStatusBadge({

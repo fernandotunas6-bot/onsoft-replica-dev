@@ -97,7 +97,8 @@ function isMissingSgaTable(error: { code?: string; message?: string } | null) {
   );
 }
 
-function categoryToFeeKind(category: string) {
+/** Também usada pelos importadores (dividas/historico_financeiro) para escolher o item de taxa. */
+export function categoryToFeeKind(category: string) {
   const value = category.trim().toLowerCase();
   if (value.includes("matr")) return "enrollment";
   if (value.includes("mens") || value.includes("prop")) return "tuition";
@@ -1235,8 +1236,7 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
         .eq("school_id", membership.schoolId)
         .maybeSingle();
       if (invoiceRow) {
-        invoiceAmount =
-          Number(invoiceRow.amount ?? 0) - Number(invoiceRow.discount_amount ?? 0);
+        invoiceAmount = Number(invoiceRow.amount ?? 0) - Number(invoiceRow.discount_amount ?? 0);
       }
     }
     if (!reference && data.invoiceId && isGatewayPaymentChannel(data.channel) && invoiceAmount) {

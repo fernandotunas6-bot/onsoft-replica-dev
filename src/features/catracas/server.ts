@@ -559,12 +559,24 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
       .eq("status", "granted")
       .gte("created_at", `${todayStr}T00:00:00.000Z`);
 
-    const { data: classRecords } = await db
-      .from("siga_attendance_records")
-      // A coluna é `session_id`.
-      .select("student_id, status, session_id")
+    // A data da aula vive na sessão (`siga_attendance_sessions.lesson_date`), não no
+    // registo: `siga_attendance_records` não tem coluna `date`, e filtrar por ela fazia o
+    // PostgREST recusar a consulta — o painel das catracas mostrava sempre a presença em
+    // aula por resolver. Resolve-se em dois passos, sem depender do nome da relação.
+    const { data: todaySessions } = await db
+      .from("siga_attendance_sessions")
+      .select("id")
       .eq("school_id", membership.schoolId)
-      .eq("date", todayStr);
+      .eq("lesson_date", todayStr);
+
+    const todaySessionIds = (todaySessions ?? []).map((s) => s.id as string);
+    const { data: classRecords } = todaySessionIds.length
+      ? await db
+          .from("siga_attendance_records")
+          .select("student_id, status, session_id")
+          .eq("school_id", membership.schoolId)
+          .in("session_id", todaySessionIds)
+      : { data: [] };
 
     const { loadPeopleLite } = await import("@/features/people/lookup");
     const personIds = (gateEntries ?? []).filter((g) => g.person_id).map((g) => g.person_id!);

@@ -3,6 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { FileCheck2, GraduationCap, Network, ShieldCheck } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAlumni } from "@/features/alumni/server";
 import { getAlumniDocumentWorkspace } from "@/features/alumni/documents";
@@ -35,38 +37,33 @@ function AlumniDocumentsPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                <ShieldCheck className="size-3.5" /> Fonte académica oficial
-              </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight">
-                Documentos & Certificados Alumni
-              </h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                Consulta os pedidos do antigo aluno directamente no módulo central de Documentos.
-                Nenhum certificado ou histórico é duplicado no domínio Alumni.
-              </p>
+        <PageHeader
+          group="Alumni"
+          title="Documentos & Certificados Alumni"
+          description="Consulte os pedidos e declarações dos antigos alunos directamente a partir do módulo central de Documentos."
+          icon={FileCheck2}
+          crumbs={[
+            { label: "Início", to: "/" },
+            { label: "Alumni", to: "/alumni" },
+            { label: "Documentos" },
+          ]}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni">
+                  <Network className="mr-1.5 size-3.5" />
+                  Rede Alumni
+                </Link>
+              </Button>
+              <Button size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/documentos">
+                  <FileCheck2 className="mr-1.5 size-3.5" />
+                  Abrir Documentos
+                </Link>
+              </Button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/alumni"
-                className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
-              >
-                <Network className="mr-2 size-4" />
-                Rede Alumni
-              </Link>
-              <Link
-                to="/documentos"
-                className="inline-flex h-10 items-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground"
-              >
-                <FileCheck2 className="mr-2 size-4" />
-                Abrir Documentos
-              </Link>
-            </div>
-          </div>
-        </section>
+          }
+        />
 
         <Card>
           <CardHeader>
@@ -74,6 +71,8 @@ function AlumniDocumentsPage() {
           </CardHeader>
           <CardContent>
             <select
+              id="select-alumni-document"
+              aria-label="Seleccionar antigo aluno"
               value={alumniId}
               onChange={(event) => setAlumniId(event.target.value)}
               className="h-11 w-full max-w-xl rounded-xl border border-input bg-background px-3 text-sm"

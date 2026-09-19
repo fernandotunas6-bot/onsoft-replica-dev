@@ -16,10 +16,10 @@ export interface StudentFinanceBadgeProps extends HTMLAttributes<HTMLSpanElement
 }
 
 const financeTones: Record<FinancialStatus, string> = {
-  settled: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25",
-  pending: "bg-amber-500/12 text-amber-700 dark:text-amber-400 border border-amber-500/25",
-  overdue: "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30",
-  partial: "bg-sky-500/12 text-sky-700 dark:text-sky-400 border border-sky-500/25",
+  settled: "bg-success/15 text-success border border-success/25",
+  pending: "bg-warning/15 text-warning border border-warning/25",
+  overdue: "bg-destructive/15 text-destructive border border-destructive/25",
+  partial: "bg-primary/15 text-primary border border-primary/25",
 };
 
 export function StudentFinanceBadge({
@@ -68,16 +68,16 @@ export function StudentFinanceBadge({
       {...props}
     >
       {normStatus === "overdue" ? (
-        <AlertCircle className="size-3 text-rose-600 dark:text-rose-400 shrink-0" />
+        <AlertCircle className="size-3 text-destructive shrink-0" />
       ) : (
         <span
           className={cn(
             "size-1.5 rounded-full shrink-0",
             normStatus === "settled"
-              ? "bg-emerald-500"
+              ? "bg-success"
               : normStatus === "partial"
-                ? "bg-sky-500"
-                : "bg-amber-500",
+                ? "bg-primary"
+                : "bg-warning",
           )}
           aria-hidden="true"
         />

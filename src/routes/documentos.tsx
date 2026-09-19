@@ -10,6 +10,7 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -626,7 +627,18 @@ function DocumentosPage() {
                     <TableCell>{new Date(d.pedidoEm).toLocaleDateString("pt-PT")}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{d.responsavel}</TableCell>
                     <TableCell>
-                      <span className={cn(badgeBase, estadoTone[d.estado])}>{d.estado}</span>
+                      <StatusBadge
+                        status={
+                          d.estado === "Emitido"
+                            ? "paid"
+                            : d.estado === "Em processamento"
+                              ? "info"
+                              : d.estado === "Pendente de pagamento"
+                                ? "warning"
+                                : "cancelled"
+                        }
+                        label={d.estado}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

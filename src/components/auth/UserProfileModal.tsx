@@ -437,14 +437,14 @@ export function UserProfileModal({
                 <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
                   <div className="space-y-0.5">
                     <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Shield className="size-4 text-emerald-600" />
+                      <Shield className="size-4 text-success" />
                       Autenticação de Dois Fatores (2FA / MFA)
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Proteja a sua conta com um código temporário de verificação TOTP.
                     </p>
                   </div>
-                  <Badge variant="outline" className="text-emerald-600 border-emerald-500/30">
+                  <Badge variant="outline" className="text-success border-success/30">
                     Disponível no Portal
                   </Badge>
                 </div>
@@ -464,7 +464,7 @@ export function UserProfileModal({
                   </div>
                   <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs">
                     <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
-                      <PlusCircle className="size-3.5 text-emerald-600" />
+                      <PlusCircle className="size-3.5 text-primary" />
                       Nova Escola (WEB)
                     </a>
                   </Button>
@@ -506,7 +506,7 @@ export function UserProfileModal({
                                   {school.roleName || school.appRole}
                                 </span>
                                 <span>•</span>
-                                <span className="text-emerald-600 dark:text-emerald-400">
+                                <span className="text-success">
                                   {school.isActive ? "Ativo" : "Pendente"}
                                 </span>
                               </p>

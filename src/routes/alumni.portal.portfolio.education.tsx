@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, GraduationCap, Plus, School, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -90,25 +91,26 @@ function AlumniPortfolioEducationPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button variant="ghost" asChild>
-            <Link to="/alumni/portal/portfolio">
-              <ArrowLeft className="mr-2 size-4" />
-              Voltar ao portfólio
-            </Link>
-          </Button>
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Percurso educacional
-          </span>
-        </div>
-
-        <section className="border-b border-border/60 pb-8">
-          <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Onde estudou</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Registe cada instituição frequentada. Se estudou em duas escolas diferentes no Ensino
-            Médio, adicione as duas; o portfólio poderá filtrar cada uma separadamente.
-          </p>
-        </section>
+        <PageHeader
+          group="Portfólio"
+          title="Onde estudou"
+          description="Registe cada instituição frequentada para organizar o seu percurso por escola e nível de ensino."
+          icon={School}
+          crumbs={[
+            { label: "Início", to: "/" },
+            { label: "Portal Alumni", to: "/alumni/portal" },
+            { label: "Portfólio", to: "/alumni/portal/portfolio" },
+            { label: "Percurso Educacional" },
+          ]}
+          actions={
+            <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+              <Link to="/alumni/portal/portfolio">
+                <ArrowLeft className="mr-1.5 size-3.5" />
+                Voltar ao portfólio
+              </Link>
+            </Button>
+          }
+        />
 
         <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
           <Card className="h-fit">
@@ -120,6 +122,8 @@ function AlumniPortfolioEducationPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <select
+                id="education-level"
+                aria-label="Nível de ensino"
                 value={educationLevel}
                 onChange={(e) => setEducationLevel(e.target.value as typeof educationLevel)}
                 className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
@@ -131,28 +135,38 @@ function AlumniPortfolioEducationPage() {
                 ))}
               </select>
               <Input
+                id="education-institution-name"
+                aria-label="Nome da escola ou universidade"
                 value={institutionName}
                 onChange={(e) => setInstitutionName(e.target.value)}
                 placeholder="Nome da escola / universidade"
               />
               <Input
+                id="education-course-name"
+                aria-label="Curso ou área"
                 value={courseName}
                 onChange={(e) => setCourseName(e.target.value)}
                 placeholder="Curso / área (opcional)"
               />
               <Input
+                id="education-degree-name"
+                aria-label="Grau alcançado"
                 value={degreeName}
                 onChange={(e) => setDegreeName(e.target.value)}
                 placeholder="Grau alcançado (opcional)"
               />
               <div className="grid grid-cols-2 gap-3">
                 <Input
+                  id="education-started-year"
+                  aria-label="Ano inicial"
                   inputMode="numeric"
                   value={startedYear}
                   onChange={(e) => setStartedYear(e.target.value)}
                   placeholder="Ano inicial"
                 />
                 <Input
+                  id="education-ended-year"
+                  aria-label="Ano final"
                   inputMode="numeric"
                   value={endedYear}
                   onChange={(e) => setEndedYear(e.target.value)}
@@ -161,11 +175,15 @@ function AlumniPortfolioEducationPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Input
+                  id="education-city"
+                  aria-label="Município ou cidade"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="Município / cidade"
                 />
                 <Input
+                  id="education-province"
+                  aria-label="Província"
                   value={province}
                   onChange={(e) => setProvince(e.target.value)}
                   placeholder="Província"
@@ -217,6 +235,7 @@ function AlumniPortfolioEducationPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Remover instituição"
                             onClick={() => deleteMutation.mutate(stage.id)}
                           >
                             <Trash2 className="size-4" />

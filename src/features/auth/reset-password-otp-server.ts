@@ -53,12 +53,18 @@ export const resetPasswordWithOtpFn = createServerFn({ method: "POST" })
     let userId: string | null = null;
 
     if (isEmail) {
-      const { data: profile } = await db
-        .from("profiles")
-        .select("id")
+      // `profiles` não tem coluna de e-mail — o e-mail vive em `people`, e é
+      // `people.user_id` que aponta para a conta. Com `.eq("email", …)` sobre `profiles`
+      // o PostgREST recusava a consulta, e esta via caía sempre no varrimento completo
+      // de utilizadores mais abaixo.
+      const { data: person } = await db
+        .from("people")
+        .select("user_id")
         .eq("email", normalized)
+        .not("user_id", "is", null)
+        .limit(1)
         .maybeSingle();
-      userId = profile?.id ?? null;
+      userId = (person?.user_id as string | null) ?? null;
     } else {
       const { data: profile } = await db
         .from("profiles")
@@ -100,12 +106,13 @@ export const resetPasswordWithOtpFn = createServerFn({ method: "POST" })
     try {
       await db.from("saas_audit_logs").insert({
         action: "password_reset_otp_completed",
-        actor_id: userId,
-        actor_email: isEmail ? normalized : null,
+        user_id: userId,
         ip_address: ip,
         metadata: {
           channel_verified: isEmail ? "email" : "phone",
           identifier: normalized,
+          // `saas_audit_logs` não tem coluna de e-mail do actor: vive no metadata.
+          actor_email: isEmail ? normalized : null,
         },
       });
     } catch {

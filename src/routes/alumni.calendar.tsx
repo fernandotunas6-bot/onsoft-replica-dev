@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Download, Network } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAlumniEvents } from "@/features/alumni/server";
@@ -45,33 +46,26 @@ function AlumniCalendarPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                <CalendarDays className="size-3.5" /> Calendário SIGA
-              </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight">Agenda Alumni</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                Eventos publicados da rede Alumni com data, hora e local preservados na exportação
-                ICS do motor central do SIGA.
-              </p>
-            </div>
+        <PageHeader
+          group="Comunidade & Eventos"
+          title="Agenda Alumni"
+          description="Eventos publicados da rede Alumni com data, hora e local preservados na exportação ICS do motor central do SIGA."
+          actions={
             <div className="flex flex-wrap gap-2">
               <Link
                 to="/alumni"
-                className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
+                className="inline-flex h-9 items-center rounded-xl border border-input px-3.5 text-xs font-medium hover:bg-accent"
               >
-                <Network className="mr-2 size-4" />
+                <Network className="mr-2 size-3.5" />
                 Rede Alumni
               </Link>
-              <Button onClick={downloadIcs} disabled={!events.length}>
-                <Download className="mr-2 size-4" />
+              <Button size="sm" onClick={downloadIcs} disabled={!events.length} className="rounded-xl text-xs h-9">
+                <Download className="mr-2 size-3.5" />
                 Exportar ICS
               </Button>
             </div>
-          </div>
-        </section>
+          }
+        />
 
         <Card>
           <CardHeader>

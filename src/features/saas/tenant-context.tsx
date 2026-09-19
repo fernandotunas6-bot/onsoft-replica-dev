@@ -150,9 +150,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }}
     >
       {isSuspended && !isAdminArea ? (
-        <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4 text-white">
+        <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
           <div className="max-w-md text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20 text-amber-400">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-warning/20 text-warning">
               <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
@@ -163,10 +163,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               </svg>
             </div>
             <h1 className="text-2xl font-bold">{copy.title}</h1>
-            <p className="mt-2 text-sm text-slate-400">
-              {copy.body} Instituição <strong className="text-white">{activeTenant?.name}</strong>.
+            <p className="mt-2 text-sm text-muted-foreground">
+              {copy.body} Instituição <strong className="text-foreground">{activeTenant?.name}</strong>.
             </p>
-            <p className="mt-4 text-xs text-slate-500">
+            <p className="mt-4 text-xs text-muted-foreground">
               Regularize a assinatura no portal comercial ou contacte o suporte da plataforma.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -174,7 +174,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 href={getPricingUrl()}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+                className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-card"
               >
                 Ver planos e renovar
               </a>
@@ -182,7 +182,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 href={getDocUrl(DOC_PATHS.guideSupport)}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+                className="inline-flex items-center rounded-xl border border-border px-4 py-2 text-sm text-foreground hover:bg-muted"
               >
                 Suporte institucional
               </a>

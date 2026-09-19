@@ -1,3 +1,4 @@
+// style-check: route-exempt - despacha para os painéis de portal (AdminPortalDashboard, TeacherPortalDashboard, etc.)
 import { lazy, Suspense, useEffect, useId, useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

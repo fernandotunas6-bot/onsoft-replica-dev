@@ -100,8 +100,12 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
           (state.step === "error" && !state.channelUsed) ? (
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Novo Número de Telefone</label>
+                <label htmlFor="new-phone-input" className="text-sm font-medium">
+                  Novo Número de Telefone
+                </label>
                 <Input
+                  id="new-phone-input"
+                  aria-label="Novo Número de Telefone"
                   placeholder="923 456 789"
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
@@ -127,9 +131,9 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
               </div>
 
               {state.message && state.step === "error" && (
-                <div className="flex gap-2 p-3 bg-red-50 border border-red-200 rounded">
-                  <AlertCircle className="size-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-800">{state.message}</p>
+                <div className="flex gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                  <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-destructive">{state.message}</p>
                 </div>
               )}
             </div>
@@ -138,16 +142,20 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
           {/* Etapa 2: Confirmar Código */}
           {state.step === "confirming" || (state.step === "error" && Boolean(state.channelUsed)) ? (
             <div className="space-y-4">
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                <p className="text-sm text-blue-800">
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                <p className="text-sm text-foreground">
                   ✓ Código enviado via{" "}
                   <strong>{state.channelUsed?.toUpperCase() || "mensagem"}</strong>
                 </p>
               </div>
 
               <div>
-                <label className="text-sm font-medium">Código de Verificação (6 dígitos)</label>
+                <label htmlFor="otp-verification-code" className="text-sm font-medium">
+                  Código de Verificação (6 dígitos)
+                </label>
                 <Input
+                  id="otp-verification-code"
+                  aria-label="Código de Verificação de 6 dígitos"
                   placeholder="000000"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -158,12 +166,12 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
               </div>
 
               {state.message && state.step === "error" && (
-                <div className="flex gap-2 p-3 bg-red-50 border border-red-200 rounded">
-                  <AlertCircle className="size-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                  <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-red-800">{state.message}</p>
+                    <p className="text-sm font-medium text-destructive">{state.message}</p>
                     {state.attemptsLeft !== undefined && (
-                      <p className="text-xs text-red-700 mt-1">
+                      <p className="text-xs text-destructive/80 mt-1">
                         Tentativas restantes: {state.attemptsLeft}
                       </p>
                     )}
@@ -172,7 +180,7 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
               )}
 
               <button
-                className="text-xs text-blue-600 hover:underline"
+                className="text-xs text-primary hover:underline"
                 disabled={cooldown > 0 || isLoading}
                 onClick={handleRequestCode}
               >
@@ -184,7 +192,7 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
           {/* Etapa 3: Sucesso */}
           {state.step === "success" ? (
             <div className="flex flex-col items-center justify-center py-6 space-y-4">
-              <CheckCircle2 className="size-12 text-green-600" />
+              <CheckCircle2 className="size-12 text-success" />
               <div className="text-center">
                 <p className="font-medium text-foreground">{state.message}</p>
                 <p className="text-sm text-muted-foreground mt-1">Número actualizado com sucesso</p>

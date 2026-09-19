@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { MediaAvatar } from "@/components/ui/media-frame";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -140,15 +141,11 @@ export function AppSidebar({
                   title={school?.name ? `${school.name} • ${currentUser.name}` : currentUser.name}
                 >
                   {schoolLogoUrl ? (
-                    <span className="inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 ring-primary/20">
-                      <img
-                        src={schoolLogoUrl}
-                        alt={school?.name ?? "Logótipo da escola"}
-                        className="size-full object-contain p-1 mix-blend-multiply"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </span>
+                    <MediaAvatar
+                      src={schoolLogoUrl}
+                      alt={school?.name ?? "Logótipo da escola"}
+                      className="size-9 shrink-0 ring-2 ring-primary/20 bg-background object-contain p-0.5"
+                    />
                   ) : (
                     <span
                       aria-hidden
@@ -242,7 +239,7 @@ export function AppSidebar({
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
-                    <PlusCircle className="size-4 text-emerald-600 dark:text-emerald-400" /> Criar
+                    <PlusCircle className="size-4 text-primary" /> Criar
                     escola (WEB)
                   </a>
                 </DropdownMenuItem>

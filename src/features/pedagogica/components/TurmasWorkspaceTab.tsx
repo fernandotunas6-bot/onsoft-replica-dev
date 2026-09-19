@@ -4,6 +4,7 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { ClassMaterialsPanel } from "@/features/arquivos/ClassMaterialsPanel";
 import { classroomCourseHref } from "@/features/integrations/actions";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 import type { PedagogicalWorkspace } from "@/features/academic/server";
 
@@ -207,13 +208,13 @@ export function TurmasWorkspaceTab({
           {turmasComDados.map((t) => {
             const ocupacao = Math.round((t.alunosActuais / t.capacidadeReal) * 100);
             return (
-              <div key={t.id} className="rounded-xl border border-border bg-card p-5 shadow-soft">
+              <div key={t.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-subtle transition-all duration-200">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <button
                       type="button"
                       onClick={() => onOpenTurma(t.id)}
-                      className="font-display text-lg font-extrabold tracking-tight hover:text-primary hover:underline"
+                      className="font-display text-lg font-extrabold tracking-tight hover:text-primary hover:underline cursor-pointer"
                     >
                       Turma {t.nome}
                     </button>
@@ -236,7 +237,9 @@ export function TurmasWorkspaceTab({
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <dt className="text-xs text-muted-foreground">Estado</dt>
-                    <dd className="font-medium capitalize">{t.status}</dd>
+                    <dd className="mt-1">
+                      <StatusBadge status={t.status === "active" ? "active" : "inactive"} />
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-xs text-muted-foreground">Campus</dt>
@@ -262,7 +265,10 @@ export function TurmasWorkspaceTab({
                   </div>
                   <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
                     <div
-                      className="h-full rounded-full bg-primary"
+                      className={cn(
+                        "h-full rounded-full transition-all duration-300",
+                        ocupacao > 90 ? "bg-warning" : "bg-primary"
+                      )}
                       style={{ width: `${Math.min(ocupacao, 100)}%` }}
                     />
                   </div>

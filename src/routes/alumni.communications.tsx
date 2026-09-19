@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -91,35 +92,32 @@ function AlumniCommunicationsPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1350px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                <ShieldCheck className="size-3.5" /> Consent-aware
-              </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight">Comunicação Alumni</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                Use o mesmo motor central de comunicados do SIGA, mas resolvendo a audiência Alumni
-                pelas preferências de contacto e finalidade.
-              </p>
+        <PageHeader
+          group="Alumni"
+          title="Comunicação Alumni"
+          description="Envio centralizado de comunicados segmentados por consentimento e preferências de contacto dos antigos alunos."
+          icon={Megaphone}
+          crumbs={[
+            { label: "Início", to: "/" },
+            { label: "Alumni", to: "/alumni" },
+            { label: "Comunicação" },
+          ]}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni">
+                  <Network className="mr-1.5 size-3.5" />
+                  Rede
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/operations">
+                  Operações
+                </Link>
+              </Button>
             </div>
-            <div className="flex gap-2">
-              <Link
-                to="/alumni"
-                className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
-              >
-                <Network className="mr-2 size-4" />
-                Rede
-              </Link>
-              <Link
-                to="/alumni/operations"
-                className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
-              >
-                Operações
-              </Link>
-            </div>
-          </div>
-        </section>
+          }
+        />
 
         <section className="grid gap-4 md:grid-cols-3">
           <Card>
@@ -157,6 +155,8 @@ function AlumniCommunicationsPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
                 <select
+                  id="comm-purpose"
+                  aria-label="Finalidade do comunicado"
                   value={purpose}
                   onChange={(event) => setPurpose(event.target.value as Purpose)}
                   className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
@@ -169,6 +169,8 @@ function AlumniCommunicationsPage() {
                   <option value="fundraising">Fundraising</option>
                 </select>
                 <select
+                  id="comm-channel"
+                  aria-label="Canal de comunicação"
                   value={channel}
                   onChange={(event) => setChannel(event.target.value as Channel)}
                   className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
@@ -179,6 +181,8 @@ function AlumniCommunicationsPage() {
                 </select>
               </div>
               <Input
+                id="comm-title"
+                aria-label="Título do comunicado"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Título do comunicado"

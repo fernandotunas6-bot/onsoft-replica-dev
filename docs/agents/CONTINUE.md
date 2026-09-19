@@ -4,7 +4,360 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
-## Estado (2026-09-14)
+## Estado (2026-09-16)
+
+### Ciclo 97 — Filtros, embeds e RPC: as superfícies que o teste de colunas não via (2026-09-16)
+
+> Nota de numeração: este ciclo esteve escrito como "95" e foi sobreposto por outra sessão
+> que usou o mesmo número às 06:19. O conteúdo é este; o número mudou, o trabalho não.
+
+O Ciclo 94 fechou as **escritas**. Faltavam três superfícies que nenhum teste via — e as
+três escondiam falhas reais, encontradas por varrimento e não por sintoma reportado.
+
+**Filtros (`.eq`, `.is`, `.in`, `.order`) — 12 achados.** Um filtro sobre coluna inexistente
+não devolve zero linhas: faz o PostgREST recusar a consulta inteira.
+
+- **`tenant_domains.domain`** (é `hostname`) em três ficheiros de autenticação. A resolução
+  do domínio personalizado falhava sempre, e os e-mails de autenticação apontavam para a
+  origem por omissão em vez do domínio da escola.
+- **`profiles.email`** em `reset-password-otp-server.ts` — o e-mail vive em `people`. É a
+  mesma correcção que o Ciclo 91 fez nas leituras e que aqui ficou; a via caía sempre no
+  varrimento completo de `auth.admin.listUsers()`.
+- **`siga_attendance_records.date`** — a data da aula está na sessão (`lesson_date`). Tinha
+  um comentário de um ciclo anterior duas linhas acima, a corrigir o `select`; o filtro ao
+  lado ficou. Resolvido em dois passos, sem depender do nome da relação, que não está
+  declarada em migração nenhuma.
+- **Seis `.is("deleted_at", null)`** sobre `enrollments`, `class_groups`, `teachers` e
+  `finance_invoices` — nenhuma tem soft delete. `people`, `subjects`, `students` e `rooms`
+  têm, e daí a suposição de que era uniforme.
+
+**Selects com embed — 8 achados, todos no motor de exportação.** O leitor de `select`
+saltava qualquer lista com `(`, e cinco exportações viviam nessa sombra:
+`finance_invoices.amount_paid`/`paid_at`/`payment_channel` não existem (o pagamento são
+linhas de `finance_receipts`), o embed `students(…)` não existe como relação (a ligação é
+`finance_contracts → enrollments → students`), `teachers.specialty` é
+`highest_qualification` e `class_groups.room` não existe (a sala vive no horário). As
+exportações de pagamentos, propinas e histórico financeiro saíam **sempre vazias**.
+
+**Chamadas `.rpc(…)` — 1 achado.** O PostgREST só alcança `public`, e o padrão desta base é
+ter o trabalho em `private` com um wrapper fino em `public`, o que torna fácil chamar a
+privada por engano. Era o caso de `next_document_number` no webhook do gateway: existe só
+em `private`. A chamada falhava sempre com PGRST202, o erro era ignorado, e o recibo saía
+com um número do relógio em vez da sequência oficial — numa base que exporta SAF-T, isso
+não é cosmético. Nem um wrapper resolveria: a função exige `auth.uid()`, null num webhook
+server-to-server. A sequência passa a contar-se no handler (`REC-AAAA/NNNN`), com avanço em
+colisão 23505 — que o insert anterior não tinha de todo: dois webhooks simultâneos
+rebentavam.
+
+**O teste cobre agora cinco superfícies** — `select` directo, `select` com embed, escritas,
+filtros e RPC. A verificação de *argumentos* de RPC foi tentada e descartada: com extracção
+equilibrada de chavetas dá zero achados, e sem ela só dá falsos positivos.
+
+**Sexta superfície, verificada e não automatizada: nomes de relação nos embeds.** Construí o
+grafo de chaves estrangeiras a partir de todo o SQL do repositório (467 arestas) e varri os
+embeds: zero achados além do que já tinha corrigido. Não virou teste de propósito — o grafo
+vem do repositório e é parcial por natureza (deu 3 falsos positivos antes de o alargar), e
+um teste que bloqueia consultas legítimas é pior do que nenhum.
+
+**`assessment_rule_sets`: a produção tem funções que escrevem em tabelas que não existem.**
+Era a última entrada da lista de ausentes que é código e não decisão de base — e não é só o
+caminho legado de notas, como a lista dizia. `private.publish_assessment_rule_version` e
+`private.configure_assessment_rules` existem em produção e inserem em
+`public.assessment_rule_sets` / `assessment_key_subjects`, que não existem: falham com 42P01
+na primeira instrução que lá toca, e a segunda é o passo 8 da instalação de uma escola. A
+aplicação não chama nenhuma das duas, mas há uma consequência indirecta e séria:
+`gradebooks.rule_set_id` é NOT NULL e `sga-grades-legacy.ts` só abre um diário com um
+`rule_set_id` desta tabela ou emprestado de outro diário da escola — **numa escola nova não
+há nenhum dos dois, logo não se abre o primeiro diário nem se lançam notas**, e a função que
+resolveria isso depende da mesma tabela em falta.
+
+Migração escrita — `20260916140000_assessment_rule_sets.sql` — e **por aplicar**. A forma
+não foi adivinhada: é a do `insert` da própria função capturada da produção, coluna a
+coluna, e as restrições são as validações que a função já faz. Validada com o parser real do
+Postgres (pglast): 10 instruções, 0 erros. Com ela declarada, `assessment_rule_sets` saiu de
+`SCHEMA_ONLY_IN_PRODUCTION` — essa lista mede declaração no repositório, não aplicação. A
+mensagem do caminho legado passa a distinguir tabela inexistente (diz qual a migração) de
+regras por configurar.
+
+**Resultados:** `vitest run tests/security/`: 12 ficheiros / **156 testes**, 1 skipped,
+100% verde. `tsc`/`eslint` limpos nos ficheiros deste ciclo.
+
+### Ciclo 96 — Harmonização Visual Stripe-Grade, Refinamento Global e 100% de Testes de Rotas Verdes (2026-09-16)
+
+Refinamento profundo e sistemático de todo o frontend do **SIGA Plus** segundo os princípios de produto e interface do Stripe Dashboard (clareza máxima, hierarquia visual forte, cantos calculados, tabelas ultra-legíveis, chips semânticos, ⌘K e acções rápidas) sem violar a identidade e paleta institucional do SIGA:
+
+1. **Checklist de Estilo a 100% Zero Violações:**
+   - Execução de `node scripts/style-checklist.mjs`: 576 ficheiros analisados, 39/39 rotas em conformidade estrita com `IconChip`, `MediaAvatar`/`MediaFrame` e paleta semântica (`bg-primary`, `bg-destructive`, `text-success`, `text-warning`, etc.).
+   - Remoção de cores cruas nos componentes de conta, perfil, modal de telefone, layout, cabeçalhos de tabela e templates de pauta.
+   - Pautas de avaliação (`ExamPautaView`, `FinalPautaView`, `MiniPautaView`, `TrimesterPautaView`) migradas para a classe de folha de papel `.siga-pauta-sheet` em `src/styles.css` para impressões e exportações PDF nítidas.
+
+2. **Unificação e Robustez de Componentes:**
+   - `StatGrid` em `src/components/layout/PageHeader.tsx` flexibilizado para suportar tanto `items={[...]}` estruturados quanto `children` arbitrários (`<MetricCard />`, `<Card />`), prevenindo erros de tipagem e runtime em páginas de Alumni, RH e Finanças.
+   - Corrigidos imports quebrados em `alumni.operations.tsx` e `alumni.portal.tsx`.
+   - Ajustada duplicação de nome nas breadcrumbs das rotas Alumni (`alumni.$alumniId` e `alumni.$alumniId.portfolio`) para garantir acessibilidade e evitar colisão de seletores em testes.
+   - Harmonizada a mensagem de sucesso de redefinição de palavra-passe em `auth.reset-password.tsx`.
+
+3. **Verificação de Integridade Integral:**
+   - `npm run test:routes`: **49/49 suítes de teste de rotas passaram** (196/196 testes verdes).
+   - `npm run siga:check`: 18 módulos registados e 13 testes de catálogo de navegação aprovados.
+   - `npm run build`: Compilação de produção (Nitro + Vite SSR) completada com sucesso em ~10.5s sem avisos críticos ou falhas de empacotamento.
+
+### Ciclo 95 — As duas tabelas que não existiam, aplicadas — e o trigger que as partia (2026-09-16)
+
+Passo 2 da "Próxima fatia" do Ciclo 91, e desta vez com a migração **aplicada à produção**
+(`xodgfmxiaunpamctfeea`), por instrução expressa do dono.
+
+`contact_verification_profiles` e `user_communication_preferences` eram as duas últimas
+entradas de `SCHEMA_ONLY_IN_PRODUCTION` que não existiam **nem na produção nem no
+repositório** — o `features/contacts` inteiro (verificação de e-mail/telemóvel/WhatsApp,
+canal preferido, preferências por categoria) consultava tabelas inexistentes.
+
+**O caso invertido da captura do Ciclo 91.** Lá, as 35 tabelas existiam na base e o DDL foi
+lido do catálogo do Postgres precisamente para não ser adivinhado. Aqui não há catálogo de
+onde ler. O esquema saiu de `ContactVerificationProfileRow` /
+`UserCommunicationPreferencesRow`, campo a campo —
+[`20260916130000_…`](../../supabase/migrations/20260916130000_contact_verification_and_communication_preferences.sql).
+O que a leitura do serviço ditou, e não foi escolha de estilo:
+
+- **`UNIQUE (user_id)`** — lê-se sempre com `.eq("user_id", …).maybeSingle()`, que rebenta
+  com mais do que uma linha. Sem a restrição, duas linhas partem a leitura, não a escrita.
+- **Default em tudo o resto** — o `insert` de `getOrCreateProfile` fornece só `user_id` e
+  `school_id`. Uma coluna NOT NULL sem DEFAULT rebentava com 23502 à primeira utilização, e
+  o serviço traduz isso para «Falha ao criar perfil», sem dizer qual.
+- **`CHECK (security_enabled)`** — `updateCommunicationCategories` aceita oito categorias e
+  deixa a de segurança de fora de propósito. A regra estava só no TypeScript, que qualquer
+  cliente com `service_role` contorna.
+- **Escrita só por `service_role`; `authenticated` só lê a própria linha.** Dar UPDATE a
+  `authenticated` deixava um utilizador marcar-se a si próprio como verificado do browser.
+
+**O trigger que parecia óbvio e partia as duas tabelas.** A escolha natural era
+`set_updated_at_and_version()` — o que `subjects`, `term_grades` e a família `hr_*` usam.
+Aplicou-se, e o SQL passou sem uma queixa. Só uma sonda funcional contra a base (INSERT +
+UPDATE dentro de um bloco que rebenta no fim, para nada ficar gravado) mostrou o que
+faltava: a função faz `NEW.created_by = OLD.created_by` e `NEW.updated_by = …`, e nenhuma
+das duas tabelas tem essas colunas. **Todos** os UPDATE rebentavam com 42703 —
+`markEmailAsVerified`, `setPreferredChannel`, `updateCommunicationCategories`. O INSERT
+passava, que é o que torna esta falha invisível: a tabela parece funcionar até alguém
+tentar alterar uma linha.
+
+Corrigido com `siga_touch_updated_at_and_version()`, a variante sem autoria (só `updated_at`
+e `version`). Acrescentar `created_by`/`updated_by` só para alimentar a função seria declarar
+duas colunas que ninguém escreve nem lê — estas tabelas correm com `service_role` e não
+registam quem alterou. Os triggers passaram a `DROP … IF EXISTS` + `CREATE`, não ao bloco
+guardado por `duplicate_object`: o guarda deixaria em pé o trigger antigo a apontar para a
+função errada, que é o estado que a correcção remove.
+
+**A mesma sonda encontrou duas tabelas já partidas há meses.**
+`hr_attendance_assurance_policies` e `hr_payment_settings` têm
+`set_updated_at_and_version()` e não têm `created_by`: cada UPDATE nelas falha com 42703.
+Ambas vazias, que é porque ninguém deu por isso. **Não lhes toquei** — é escrita na base em
+tabelas de RH, decisão do dono. A correcção é uma linha cada (apontar o trigger a
+`siga_touch_updated_at_and_version`, que já existe em produção desde este ciclo). Registadas
+em `TRIGGER_PARTIDO_CONHECIDO`, com um teste que obriga a lista a encolher.
+
+**O teste que apanha a classe**
+([`triggers-vs-colunas.test.ts`](../../tests/security/triggers-vs-colunas.test.ts)): para cada
+trigger do retrato cuja função escreve colunas, verifica que a tabela as tem. Nenhum teste do
+repositório via isto — o SQL parseia e a produção aceita o `CREATE TRIGGER` sem queixa.
+Confirmei que não é vazio: tiradas as duas HR da lista, falha a nomeá-las.
+
+**E o teste que prende o esquema ao código**
+([`contactos-esquema-vs-codigo.test.ts`](../../tests/security/contactos-esquema-vs-codigo.test.ts)):
+um esquema escrito a partir de TypeScript apodrece em silêncio. Compara nos dois sentidos e
+verifica a regra do DEFAULT. Também confirmado não-vazio.
+
+**Aplicado à produção, por esta ordem:**
+
+1. `20260916120000_school_email_routes_cloudflare_route_id.sql` (Ciclo 94) — aditiva.
+2. `20260916130000_contact_verification_and_communication_preferences.sql`, depois
+   reaplicada com o trigger corrigido (é idempotente).
+3. `npm run siga:db-snapshot` — 154 tabelas, 154 com RLS, 294 políticas, 134 triggers.
+4. `npx supabase gen types typescript --linked` — a regeneração **só acrescentou** as duas
+   tabelas, nenhuma saiu. O cabeçalho «gerados — não editar à mão» foi reposto (a
+   regeneração apaga-o, e há um teste que o exige).
+
+Verificado na base depois de aplicar, não só «não deu erro»: colunas, tipos e omissões
+iguais aos declarados (20 e 16 colunas), RLS activo, 2 políticas e 1 trigger em cada, e a
+sonda funcional a passar — defaults certos (`email`/`pt`/`marketing=false`/`{}`), UPDATE a
+funcionar, `version` 1→2, CHECK e UNIQUE a morder. Zero linhas ficaram gravadas.
+
+**Três listas de dívida encolheram:** `SCHEMA_ONLY_IN_PRODUCTION` 5 → 3;
+`TABELAS_AUSENTES_DA_PRODUCAO` perdeu as duas (o grupo 1, a central de comunicação, está
+fechado); `ESPERA_MIGRACAO` ficou **vazia**.
+
+**Resultados:** `vitest run tests/security/ tests/import/`: **28 ficheiros / 274 testes**, 1
+skipped (sonda de rede sem credenciais), 100% verde. `eslint` 0 erros nos ficheiros deste
+ciclo. A migração parseia com o parser real do Postgres (libpg_query via `pglast`).
+
+**Fica por fazer:** os dois triggers `hr_*` acima — uma linha cada, à espera de decisão.
+
+**Nota de coordenação:** a outra sessão nesta directoria continua na UI e em
+`src/features/import/export-engine.ts`. Não lhe toquei.
+
+### Ciclo 94 — 14 escritas contra colunas que não existem, e o dry run fechado (2026-09-16)
+
+Comecei pelo que o Ciclo 93 deixou marcado (`dryRun` nos 7 importadores restantes) e, ao
+abrir o primeiro, dei com algo maior: **o teste de colunas só verificava `select(…)`**. O
+lado da escrita nunca foi verificado, e tinha 14 chamadas contra colunas inventadas.
+
+**O teste primeiro** ([`colunas-inexistentes.test.ts`](../../tests/security/colunas-inexistentes.test.ts)):
+passa a ler também `insert`/`update`/`upsert`, comparando as chaves de topo do objecto
+literal com o retrato. Só chaves de topo — um `metadata: {…}` são dados dentro de uma
+coluna jsonb, não nomes de coluna. Mediu 14 e depois levou-as a zero.
+
+**As 14, por família:**
+
+- **`saas_audit_logs` em seis ficheiros de autenticação** — `entity_type` (é `entity`),
+  `actor_id` (é `user_id`), `actor_email` (não existe; foi para `metadata`). Todas dentro
+  de `catch` silenciosos: o registo de auditoria de autenticação **nunca gravou uma linha**.
+- **`audit_logs` em `students/server.ts`** — `actor_id`, `reason`, `before_data`,
+  `after_data`. São `actor_user_id` e um `metadata` jsonb. Também com `catch` vazio: a
+  mudança de estado de um aluno nunca deixou rasto.
+- **`people.gender`** em `reference-resolver.ts` — é `sex`. O mesmo nome que o Ciclo 91
+  corrigiu nas leituras; a escrita passou despercebida porque nada a verificava.
+- **`subjects.weekly_hours`** — é `annual_hours`. Nenhuma disciplina alguma vez foi
+  importada. A folha pedia horas SEMANAIS: mudei a coluna para anual em vez de converter
+  por um multiplicador inventado, e o importador avisa quando o valor parece semanal.
+- **`grade_levels.sort_order`/`status`** — são `sequence`/`is_active`, e falta `program_id`:
+  em produção uma classe pertence a um curso (chave natural `school_id, program_id, code`).
+  O importador foi reescrito contra esse modelo, usando a coluna "Curso / Especialidade"
+  que a folha já tinha. Estava escrito contra a migração de Agosto — o modelo substituído.
+- **`student_guardians.authorized_pickup`** — é `is_pickup_authorized`. De passagem: o
+  "Responsável Financeiro" da folha só alimentava `is_primary`, havendo
+  `is_financially_responsible`.
+- **`tenant_provisioning.dns_status`** — é `domain_status`, e a tabela é indexada por
+  `school_id`, não `tenant_id` (o `.eq()` estava errado além do payload). O estado do
+  domínio nunca chegou ao painel de aprovisionamento.
+- **`school_email_routes`** — cinco nomes em cinco, uma tabela escrita com uma forma que
+  nunca teve. Remapeada (`school_id`, `source_address`, `destination_address`, `status`),
+  com a ponte tenant→escola que faltava. **Falta-lhe mesmo uma coluna**:
+  `cloudflare_route_id`, sem a qual a remoção de uma rota não encontra a linha. Migração
+  aditiva escrita — `20260916120000_school_email_routes_cloudflare_route_id.sql` — e **por
+  aplicar**: é escrita na base, decisão do dono. Registada em `ESPERA_MIGRACAO`, com um
+  teste que obriga a lista a encolher quando a migração passar.
+
+**`avaliacoes` estava partido de quatro formas**, todas encontradas ao abri-lo para o
+`dryRun`: faltavam `kind` e `created_by` (ambas NOT NULL — recusa 23502); o código não era
+validado contra o CHECK `^[A-Z0-9_-]{2,30}$`; escolhia `gradebooks[0]`, **um diário
+qualquer da escola** — uma avaliação de Matemática da 10ªA podia aterrar no diário de
+Física da 7ªB; e quando não havia diário nenhum devolvia `status: "imported"` com um aviso
+inventado, sem gravar nada. Reescrito: resolve o diário por turma+disciplina+período, mapeia
+os rótulos da folha para `kind`, e recusa com mensagem accionável em vez de mentir.
+
+**`dryRun` fechado nos 22 importadores.** Novo teste de regressão percorre o registo
+inteiro e reprova um importador novo que não verifique `ctx.dryRun`.
+
+**Resultados:** `vitest run tests/import/ tests/security/`: **26 ficheiros / 259 testes**,
+1 skipped, 100% verde. `eslint` 0 erros nos ficheiros deste ciclo.
+
+**Nota:** `tsc --noEmit` acusa 2 erros em `src/routes/financeiro.rh.tsx` (comparações com
+`"completed"` num union que não o contém). **Não são deste ciclo** — o ficheiro foi alterado
+às 05:11 pela outra sessão activa nesta directoria, que continua a trabalhar na UI. Deixado
+intacto para não colidir.
+
+## Estado (2026-09-15)
+
+### Ciclo 92 — Os cinco importadores Lovable remapeados para o modelo real (2026-09-15)
+
+Passo 3 da "Próxima fatia" do Ciclo 91: `cursos`, `horarios`, `dividas`, `pagamentos` e
+`historico_financeiro` escreviam para `courses`, `class_schedule_slots`, `invoices` e
+`payments` — nomes do esquema Lovable que a produção nunca teve. Remapeados para o
+modelo real, sem inventar tabelas novas:
+
+- **`cursos` → `programs`**: `academic_level_id` é obrigatório e a folha de importação
+  não tem coluna de nível. Tenta casar "Habilitação/Grau" com um nível académico
+  configurado; se a escola só tiver um nível activo, usa-o sem exigir nada da folha.
+- **`horarios` → `timetable_slots` via `class_subjects`**: uma aula pertence a uma
+  associação turma+disciplina (`class_subjects`), não a `class_group_id`/`subject_id`
+  directos. Se a turma ainda não tiver a disciplina atribuída, cria a associação (4
+  tempos semanais por omissão, mesmo padrão de `applyCurriculumToClassGroup`).
+- **`dividas`/`historico_financeiro` → `finance_invoices`**: uma fatura pertence a
+  `finance_contracts` (matrícula + plano), não a um aluno directamente. Resolve
+  matrícula → plano financeiro do ano lectivo → contrato (cria se não existir) → item
+  de taxa, replicando a lógica de `issueInvoice` em `finance/server.ts`.
+- **`pagamentos` → `finance_receipts`**: paga uma fatura já em aberto (a mais antiga
+  com saldo, ou a indicada por número), nunca cria um pagamento solto. A RPC
+  `register_payment` exige sessão interactiva com AAL2 — inaplicável a um lote —, por
+  isso o pagamento é gravado directamente, o mesmo fallback que
+  `gateway-webhook-handler.ts` já usa para pagamentos server-to-server.
+- **`historico_financeiro`** cria a fatura do ano histórico e, se `total_paid > 0`,
+  liquida-a de imediato pelo mesmo caminho de `pagamentos` — não há coluna
+  `amount_paid` na fatura.
+
+Helpers novos e partilhados em
+[`src/features/import/importers/finance-core.ts`](../../src/features/import/importers/finance-core.ts)
+e ampliações em `academic-core.ts` (níveis académicos, anos lectivos, professores,
+`class_subjects`). `categoryToFeeKind` passou a exportada de `finance/server.ts` para
+os importadores a reutilizarem em vez de duplicar.
+
+`TABELAS_AUSENTES_DA_PRODUCAO` (`tests/security/production-snapshot.test.ts`) perdeu
+`courses`, `invoices`, `payments` e `class_schedule_slots` — as quatro que estes cinco
+importadores causavam. `assessment_rule_sets` fica: é do caminho legado de notas
+(`sga-grades-legacy.ts`), fora deste ciclo.
+
+**Resultados:** `tsc --noEmit` 0 erros. `eslint` nos ficheiros do ciclo 0 erros/0
+warnings novos. `vitest run tests/import/ tests/security/`: 223 testes, 1 skipped
+(sonda de rede sem credenciais), 100% verde — incluía 6 testes com fixtures
+desactualizadas (cache sem os campos novos, ou chaves de coluna que nunca
+corresponderam ao modelo real) que foram corrigidos para o novo formato, não
+contornados.
+
+**As três lacunas que este ciclo deixou em aberto foram fechadas no Ciclo 93.**
+
+### Ciclo 93 — As três lacunas do Ciclo 92, e um dry run que escrevia mesmo (2026-09-16)
+
+**1. `dryRun` — e um erro do ciclo anterior.** O Ciclo 92 dizia ter implementado a
+guarda nos três importadores financeiros. Tinha-a em `pagamentos` e
+`historico_financeiro`; **`dividas` ficou sem ela** — uma pré-visualização de dívidas
+criava contratos financeiros e faturas a sério. Guarda acrescentada aos três que
+faltavam (`dividas`, `cursos`, `horarios`).
+
+O motor (`import/server.ts`) chama `commitRow` na mesma em dry run e passa
+`dryRun: true`; é cada importador que tem de recusar escrever. Em `horarios` a guarda
+tem de vir **antes** da criação da associação turma/disciplina, não só antes do
+`timetable_slots` — senão a pré-visualização já criava `class_subjects`.
+
+Novo [`tests/import/dry-run.test.ts`](../../tests/import/dry-run.test.ts): dá a cada
+importador um cliente de base de dados que rebenta em `insert`/`update`/`upsert`/
+`delete`/`rpc` e verifica que nenhum é chamado. Confirmei que o teste não é vazio —
+removida a guarda do `cursos`, falha com `ESCRITA PROIBIDA EM DRY RUN: insert em
+programs`. Era o primeiro teste a exercitar `commitRow` de todo.
+
+**2. Catálogo de `pagamentos` alinhado, e o `month_ref` que ninguém lia.**
+`field-catalog.ts` usava `student_number`, `amount_paid`, `due_date` e
+`payment_channel`; o modelo oficial descarregável usa `student_identifier`,
+`month_ref`, `amount`, `payment_date`, `payment_method`, `receipt_number`. Catálogo
+reescrito para o modelo real: sem `amount_paid` nem `due_date` (um pagamento é um
+recibo contra uma fatura — o vencimento pertence à fatura, módulo `dividas`), com
+`invoice_number` acrescentado por ser lido pelo importador.
+
+`month_ref` era coluna **obrigatória** no modelo oficial que nenhum importador lia: um
+pagamento de Janeiro liquidava a fatura mais antiga em aberto, fosse de que mês fosse.
+Agora `parseCompetenceMonth` lê "Fevereiro 2026", "02/2026" e "2026-02", e a fatura
+escolhe-se por: nº de fatura indicado → mês declarado → mais antiga em aberto. Mês
+indicado sem fatura nesse mês é **erro**, não liquidação da fatura errada.
+
+De passagem: `dividas` derivava `competence_month` da data de vencimento. Uma propina
+de Janeiro que vence em Fevereiro ficava com competência de Fevereiro e o pagamento de
+Janeiro não casava. Passa a respeitar o mês declarado, com o vencimento como recurso.
+
+**3. Coluna "Nível Académico" em cursos.** `programs.academic_level_id` é NOT NULL e a
+folha não tinha como o exprimir — escolas com mais de um nível não conseguiam importar
+cursos de todo. Coluna `academic_level` acrescentada ao modelo oficial, ao catálogo e
+aos dados de demonstração. Opcional de propósito (não força validação no Excel):
+resolve-se por coluna dedicada → "Habilitação/Grau" (folhas antigas) → nível único da
+escola. Um nível indicado mas desconhecido reprova com a lista dos níveis configurados,
+em vez de cair na heurística e escolher outro.
+
+**Resultados:** `tsc --noEmit` 0 erros, `eslint` 0 erros.
+`vitest run tests/import/ tests/security/ tests/routes/importar.test.tsx`: **27
+ficheiros / 248 testes**, 1 skipped (sonda de rede sem credenciais), 100% verde. Três
+ficheiros de teste novos (`dry-run`, `competence-month`, `cursos-academic-level`), 20
+testes acrescentados.
+
+**~~Fica por fazer~~ — feito no Ciclo 94:** `dryRun` nos 7 importadores restantes
+(`avaliacoes`, `classes`, `disciplinas`, `pautas`, `presencas`, `propinas`, `salas`), com
+teste de regressão sobre o registo inteiro.
 
 ### Ciclo 91 — Fim da divergência de esquema: as 35 tabelas que só existiam na base (2026-09-14)
 
@@ -96,9 +449,10 @@ ciclo.
 2. **Declarar `contact_verification_profiles` e
    `user_communication_preferences`**, que não existem nem no repositório nem
    na base, e aplicar.
-3. **Decidir o destino dos importadores Lovable** (`courses`, `invoices`,
-   `payments`, `class_schedule_slots`, `assessment_rule_sets`): remapear para o
-   esquema do SGA ou retirar os importadores.
+3. ~~Decidir o destino dos importadores Lovable~~ — feito no Ciclo 92: `cursos`,
+   `horarios`, `dividas`, `pagamentos` e `historico_financeiro` remapeados para o
+   esquema real. `assessment_rule_sets` (caminho legado de notas) continua por
+   decidir — não é um destes cinco.
 4. **Recapturar o retrato depois de qualquer um dos passos acima**
    (`npm run siga:db-snapshot`) — os testes medem contra ele.
 5. **`announcements`**: tabela legada com 2 linhas e uma restrição que

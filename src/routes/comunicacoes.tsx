@@ -21,6 +21,7 @@ import { TemplatesCatalogModal } from "@/features/communications/TemplatesCatalo
 import type { CommunicationTemplate } from "@/features/communications/templates";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -671,7 +672,7 @@ function ComunicacoesPage() {
                       const audience = c.audience as Audience;
                       const Icon = canalIcon[channel] ?? Monitor;
                       return (
-                        <li key={c.id} className="rounded-xl border border-border p-4">
+                        <li key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-subtle transition-all duration-200">
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div className="flex items-start gap-3">
                               <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong">
@@ -897,9 +898,18 @@ function ComunicacoesPage() {
                                 ) : null}
                               </div>
                             </div>
-                            <span className={cn(badgeBase, estadoTone[status] ?? toneClass.muted)}>
-                              {estadoLabel[status] ?? c.status}
-                            </span>
+                            <StatusBadge
+                              status={
+                                status === "sent"
+                                  ? "paid"
+                                  : status === "scheduled"
+                                    ? "pending"
+                                    : status === "cancelled"
+                                      ? "cancelled"
+                                      : "inactive"
+                              }
+                              label={estadoLabel[status] ?? c.status}
+                            />
                           </div>
                         </li>
                       );

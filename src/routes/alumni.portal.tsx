@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader, StatGrid } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -184,74 +185,67 @@ function AlumniPortalPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <section className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="absolute -right-12 -top-16 size-56 rounded-full bg-primary/10 blur-3xl" />
-          <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
-              <MediaAvatar
-                src={portal.person?.photo_url ?? null}
-                alt={portal.person?.full_name ?? "Alumni"}
-                className="size-16 rounded-3xl object-cover"
-              />
-              <div>
-                <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-bold text-primary">
-                  <Sparkles className="size-3.5" /> Meu Portal Alumni
+        <PageHeader
+          group="Alumni"
+          title={portal.person?.full_name ?? "Meu Portal Alumni"}
+          description={
+            portal.profile.headline ||
+            portal.profile.current_role ||
+            "Actualize a sua trajectória profissional, oportunidades, eventos e rede de mentoria."
+          }
+          icon={GraduationCap}
+          crumbs={[
+            { label: "Início", to: "/" },
+            { label: "Meu Portal Alumni" },
+          ]}
+          actions={
+            <div className="flex items-center gap-3">
+              <div className="min-w-44 rounded-xl border border-border/70 bg-card p-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-muted-foreground">Perfil completo</span>
+                  <span className="font-black text-primary">{profileCompletion}%</span>
                 </div>
-                <h1 className="text-2xl font-black tracking-tight md:text-3xl">
-                  {portal.person?.full_name ?? "Alumni"}
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {portal.profile.headline ||
-                    portal.profile.current_role ||
-                    "Actualize a sua trajectória profissional"}
-                </p>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${profileCompletion}%` }}
+                  />
+                </div>
               </div>
             </div>
-            <div className="min-w-56 rounded-2xl border border-border/70 bg-background/70 p-4">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold">Perfil completo</span>
-                <span className="font-black text-primary">{profileCompletion}%</span>
-              </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${profileCompletion}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
+          }
+        />
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card>
+        <StatGrid>
+          <Card className="border-border/70 shadow-xs">
             <CardContent className="p-5">
               <BriefcaseBusiness className="size-5 text-primary" />
               <p className="mt-3 text-2xl font-black">{portal.opportunities.length}</p>
               <p className="text-xs text-muted-foreground">Oportunidades disponíveis</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-border/70 shadow-xs">
             <CardContent className="p-5">
               <CalendarDays className="size-5 text-primary" />
               <p className="mt-3 text-2xl font-black">{portal.events.length}</p>
               <p className="text-xs text-muted-foreground">Próximos eventos</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-border/70 shadow-xs">
             <CardContent className="p-5">
               <Handshake className="size-5 text-primary" />
               <p className="mt-3 text-2xl font-black">{portal.mentorships.length}</p>
               <p className="text-xs text-muted-foreground">Relações de mentoria</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-border/70 shadow-xs">
             <CardContent className="p-5">
               <CheckCircle2 className="size-5 text-primary" />
               <p className="mt-3 text-2xl font-black">{portal.surveys.length}</p>
               <p className="text-xs text-muted-foreground">Pesquisas activas</p>
             </CardContent>
           </Card>
-        </section>
+        </StatGrid>
 
         <Tabs defaultValue="profile" className="space-y-4">
           <TabsList className="h-auto flex-wrap rounded-2xl bg-muted/60 p-1">
@@ -280,24 +274,32 @@ function AlumniPortalPage() {
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <Input
+                  id="alumni-headline"
+                  aria-label="Título profissional ou headline"
                   defaultValue={portal.profile.headline ?? ""}
                   onChange={(event) => setHeadline(event.target.value)}
                   placeholder="Título profissional / headline"
                   className="rounded-xl"
                 />
                 <Input
+                  id="alumni-company"
+                  aria-label="Empresa ou organização"
                   defaultValue={portal.profile.current_company ?? ""}
                   onChange={(event) => setCompany(event.target.value)}
                   placeholder="Empresa / organização"
                   className="rounded-xl"
                 />
                 <Input
+                  id="alumni-role"
+                  aria-label="Função actual"
                   defaultValue={portal.profile.current_role ?? ""}
                   onChange={(event) => setRole(event.target.value)}
                   placeholder="Função actual"
                   className="rounded-xl"
                 />
                 <Input
+                  id="alumni-province"
+                  aria-label="Província"
                   defaultValue={portal.profile.province ?? ""}
                   onChange={(event) => setProvince(event.target.value)}
                   placeholder="Província"

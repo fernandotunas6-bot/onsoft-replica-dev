@@ -40,6 +40,7 @@ import { DOC_PATHS } from "@/lib/ecosystem-urls";
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
@@ -976,7 +977,7 @@ function FinanceiroPage() {
                           {m.descricao}
                         </p>
                         {m.status === "reversed" ? (
-                          <span className={cn(badgeBase, toneClass.muted)}>Anulado</span>
+                          <StatusBadge status="cancelled" label="Anulado" size="sm" />
                         ) : null}
                       </div>
                     </TableCell>
@@ -985,20 +986,11 @@ function FinanceiroPage() {
                       <span className={cn(badgeBase, toneClass.muted)}>{m.metodo}</span>
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={cn(
-                          badgeBase,
-                          "gap-1",
-                          m.tipo === "Entrada" ? toneClass.success : toneClass.danger,
-                        )}
-                      >
-                        {m.tipo === "Entrada" ? (
-                          <ArrowUpRight className="size-3" />
-                        ) : (
-                          <ArrowDownRight className="size-3" />
-                        )}
-                        {m.tipo}
-                      </span>
+                      <StatusBadge
+                        status={m.tipo === "Entrada" ? "paid" : "overdue"}
+                        label={m.tipo}
+                        size="sm"
+                      />
                     </TableCell>
                     <TableCell
                       className={cn(

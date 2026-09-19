@@ -107,16 +107,18 @@ export function PageHeader({
 
 export function StatGrid({
   items,
+  children,
   collapsible = false,
   storageKey,
 }: {
-  items: {
+  items?: {
     label: string;
     value: string;
     hint?: string;
     icon?: ElementType;
     tone?: ChipTone;
   }[];
+  children?: ReactNode;
   collapsible?: boolean;
   storageKey?: string;
 }) {
@@ -147,14 +149,16 @@ export function StatGrid({
     }
   };
 
-  const grid = (
+  const grid = children ? (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{children}</div>
+  ) : items && items.length > 0 ? (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => {
         const tone = item.tone ?? "primary";
         return (
           <div
             key={item.label}
-            className="hover-lift group relative overflow-hidden rounded-lg border border-border/80 bg-card p-3.5 shadow-card hover:border-primary/30"
+            className="hover-lift group relative overflow-hidden rounded-xl border border-border/80 bg-card p-3.5 shadow-card hover:border-primary/30"
           >
             <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/70 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
             <div className="flex items-start justify-between gap-2.5">
@@ -181,8 +185,9 @@ export function StatGrid({
         );
       })}
     </div>
-  );
+  ) : null;
 
+  if (!grid) return null;
   if (!collapsible) return grid;
 
   return (
@@ -241,7 +246,7 @@ export function Panel({
   ) : null;
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card shadow-card transition-shadow hover:shadow-soft">
+    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card transition-shadow hover:shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-muted/30 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
           {panelMark}

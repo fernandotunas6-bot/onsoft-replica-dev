@@ -21,11 +21,26 @@ import { resolve, relative } from "node:path";
  * Este teste lê os `select("…")` do código e compara as colunas com o retrato
  * da produção. Não cobre tudo — `select("*")`, embeds e colunas em `.eq()`
  * ficam de fora — mas cobre a forma exacta que já falhou duas vezes.
+ *
+ * A 2026-09-16 passou a cobrir também o caminho de ESCRITA — `insert`, `update` e
+ * `upsert`. Só os selects estavam a ser verificados, e o lado da escrita tinha 14
+ * chamadas com colunas inventadas: `people.gender` (é `sex` — o mesmo nome que já
+ * tinha sido corrigido nas leituras, e que ninguém corrigiu aqui),
+ * `subjects.weekly_hours` (é `annual_hours`), `grade_levels.sort_order`/`status`
+ * (são `sequence`/`is_active`), `saas_audit_logs.entity_type`/`actor_id` em seis
+ * ficheiros de autenticação, e uma tabela inteira — `school_email_routes` — escrita
+ * com uma forma que a produção nunca teve.
+ *
+ * Uma escrita recusada é pior do que uma leitura recusada: a leitura devolve um ecrã
+ * vazio, a escrita faz o utilizador acreditar que gravou.
  */
 
 const REPO = resolve(__dirname, "../..");
 
-type Retrato = { tabelas: { tabela: string; colunas?: string[] }[] };
+type Retrato = {
+  tabelas: { tabela: string; colunas?: string[] }[];
+  funcoes?: { schema: string; funcao: string }[];
+};
 
 const retrato = JSON.parse(
   readFileSync(resolve(REPO, "supabase/PRODUCTION_SNAPSHOT.json"), "utf8"),
@@ -65,7 +80,229 @@ function leiturasDoCodigo(): { ficheiro: string; tabela: string; colunas: string
   return achados;
 }
 
+/**
+ * `.from("x").insert({ a: …, b: … })`, e o mesmo para `update`/`upsert`.
+ *
+ * Só conta as chaves de topo do objecto literal: um valor aninhado (`metadata: {…}`)
+ * são dados dentro de uma coluna jsonb, não nomes de coluna. Escritas cujo payload é
+ * uma variável (`insert(linha)`) ficam de fora — não há literal para ler.
+ */
+function escritasDoCodigo(): {
+  ficheiro: string;
+  tabela: string;
+  operacao: string;
+  colunas: string[];
+}[] {
+  const achados: {
+    ficheiro: string;
+    tabela: string;
+    operacao: string;
+    colunas: string[];
+  }[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = resolve(dir, entry);
+      if (statSync(full).isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.tsx?$/.test(entry)) continue;
+      const código = readFileSync(full, "utf8");
+      const padrão = /\.from\(\s*["'`]([a-z_]+)["'`]\s*\)\s*\n?\s*\.(insert|update|upsert)\(\s*\{/g;
+      for (const m of código.matchAll(padrão)) {
+        const [, tabela, operacao] = m;
+        const início = (m.index ?? 0) + m[0].length - 1;
+
+        // Equilibra chavetas para delimitar o objecto literal.
+        let profundidade = 0;
+        let fim = início;
+        for (; fim < código.length; fim++) {
+          if (código[fim] === "{") profundidade++;
+          else if (código[fim] === "}") {
+            profundidade--;
+            if (profundidade === 0) break;
+          }
+        }
+        const corpo = código.slice(início + 1, fim);
+
+        const colunas: string[] = [];
+        let nível = 0;
+        for (const linha of corpo.split("\n")) {
+          const chave = linha.match(/^\s*([a-z_][a-z0-9_]*)\s*:/i);
+          if (nível === 0 && chave) colunas.push(chave[1]);
+          nível += (linha.match(/[{[(]/g) || []).length - (linha.match(/[}\])]/g) || []).length;
+        }
+
+        achados.push({ ficheiro: relative(REPO, full), tabela, operacao, colunas });
+      }
+    }
+  };
+  walk(resolve(REPO, "src"));
+  return achados;
+}
+
+/**
+ * Colunas de topo de um `select` que TEM embeds — `finance_invoices` com `students(…)`,
+ * por exemplo. O leitor acima salta estas listas inteiras porque contêm `(`, e foi nessa
+ * sombra que sobreviveram `finance_invoices.amount_paid`/`paid_at`/`payment_channel`,
+ * `teachers.specialty` e `class_groups.room`: cinco exportações que devolviam sempre um
+ * ficheiro vazio.
+ *
+ * Só as colunas de topo. O que está dentro de parêntesis pertence à tabela embebida, e o
+ * nome antes do parêntesis é uma relação, não uma coluna.
+ */
+function colunasDeTopo(lista: string): string[] {
+  const out: string[] = [];
+  let profundidade = 0;
+  let actual = "";
+  for (const ch of lista) {
+    if (ch === "(") {
+      profundidade++;
+      actual = ""; // "students(" — o que veio antes é o nome do embed
+      continue;
+    }
+    if (ch === ")") {
+      profundidade--;
+      actual = "";
+      continue;
+    }
+    if (ch === "," && profundidade === 0) {
+      out.push(actual);
+      actual = "";
+      continue;
+    }
+    if (profundidade === 0) actual += ch;
+  }
+  out.push(actual);
+  return out
+    .map((c) => c.trim().split(":").pop()!.trim())
+    .filter((c) => c && !c.includes("*") && /^[a-z_][a-z0-9_]*$/.test(c));
+}
+
+function leiturasComEmbed(): { ficheiro: string; tabela: string; colunas: string[] }[] {
+  const achados: { ficheiro: string; tabela: string; colunas: string[] }[] = [];
+  const padrão =
+    /\.from\(\s*["'`]([a-z_]+)["'`]\s*\)\s*\n?\s*\.select\(\s*(?:\n\s*)?["'`]([\s\S]*?)["'`]\s*[,)]/g;
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = resolve(dir, entry);
+      if (statSync(full).isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.tsx?$/.test(entry)) continue;
+      const código = readFileSync(full, "utf8");
+      for (const m of código.matchAll(padrão)) {
+        const [, tabela, lista] = m;
+        if (!lista.includes("(")) continue; // sem embed: coberto pelo leitor directo
+        achados.push({ ficheiro: relative(REPO, full), tabela, colunas: colunasDeTopo(lista) });
+      }
+    }
+  };
+  walk(resolve(REPO, "src"));
+  return achados;
+}
+
+/**
+ * Colunas usadas em filtros — `.eq("coluna", …)` e companhia. Terceira superfície que
+ * ninguém verificava, e onde estavam `tenant_domains.domain` (é `hostname`, no caminho de
+ * autenticação), `profiles.email` (vive em `people` — a mesma correcção que as leituras já
+ * tinham levado), `siga_attendance_records.date` (a data está na sessão) e seis
+ * `.is("deleted_at", null)` sobre tabelas sem soft delete.
+ *
+ * A cadeia de um `.from(…)` vai até ao `.from(` seguinte. Filtros com "." no nome são
+ * sobre recursos embebidos e ficam de fora.
+ */
+function filtrosDoCodigo(): {
+  ficheiro: string;
+  tabela: string;
+  operacao: string;
+  coluna: string;
+}[] {
+  const achados: { ficheiro: string; tabela: string; operacao: string; coluna: string }[] = [];
+  const FROM = /\.from\(\s*["'`]([a-z_]+)["'`]\s*\)/g;
+  const FILTRO =
+    /\.(eq|neq|gt|gte|lt|lte|like|ilike|is|in|contains|order)\(\s*["'`]([^"'`]+)["'`]/g;
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = resolve(dir, entry);
+      if (statSync(full).isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.tsx?$/.test(entry)) continue;
+      const código = readFileSync(full, "utf8");
+      for (const m of código.matchAll(FROM)) {
+        const tabela = m[1];
+        const início = (m.index ?? 0) + m[0].length;
+        const próximo = código.indexOf(".from(", início);
+        const cadeia = código.slice(
+          início,
+          Math.min(próximo === -1 ? código.length : próximo, início + 1200),
+        );
+        for (const f of cadeia.matchAll(FILTRO)) {
+          const [, operacao, coluna] = f;
+          if (coluna.includes(".") || coluna.includes("(")) continue;
+          if (!/^[a-z_][a-z0-9_]*$/.test(coluna)) continue;
+          achados.push({ ficheiro: relative(REPO, full), tabela, operacao, coluna });
+        }
+      }
+    }
+  };
+  walk(resolve(REPO, "src"));
+  return achados;
+}
+
+/**
+ * Funções chamadas por `.rpc("nome")` que o esquema `public` não expõe.
+ *
+ * O PostgREST só chama o que está em `public`. Uma função que vive apenas em `private`
+ * devolve PGRST202 — e o padrão desta base é precisamente ter o trabalho em `private` com
+ * um wrapper fino em `public` (`register_payment`, `reverse_receipt`, …), por isso é fácil
+ * chamar a privada por engano. Foi o que aconteceu com `next_document_number` no webhook
+ * do gateway: a chamada falhava sempre, o erro era ignorado, e o recibo saía com um número
+ * baseado no relógio em vez da sequência oficial da escola.
+ */
+function rpcsDoCodigo(): { ficheiro: string; funcao: string }[] {
+  const achados: { ficheiro: string; funcao: string }[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = resolve(dir, entry);
+      if (statSync(full).isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.tsx?$/.test(entry)) continue;
+      const código = readFileSync(full, "utf8");
+      for (const m of código.matchAll(/\.rpc\(\s*["'`]([a-z0-9_]+)["'`]/g)) {
+        achados.push({ ficheiro: relative(REPO, full), funcao: m[1] });
+      }
+    }
+  };
+  walk(resolve(REPO, "src"));
+  return achados;
+}
+
+const funcoesPublicas = new Set(
+  (retrato.funcoes ?? []).filter((f) => f.schema === "public").map((f) => f.funcao),
+);
+
+/**
+ * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e
+ * por aplicar. Aplicar SQL à base é decisão do dono do projecto, não do agente — esta
+ * lista é o registo explícito dessa espera, e o teste seguinte obriga-a a encolher.
+ *
+ * Está vazia desde 2026-09-16: `school_email_routes.cloudflare_route_id` era a única
+ * entrada e a migração `20260916120000_…` foi aplicada nessa data, com o retrato
+ * recapturado a seguir. Vazia é o estado correcto — uma entrada aqui é uma escrita que a
+ * produção recusa.
+ */
+const ESPERA_MIGRACAO = new Set<string>([]);
+
 const leituras = leiturasDoCodigo();
+const escritas = escritasDoCodigo();
+const comEmbed = leiturasComEmbed();
+const filtros = filtrosDoCodigo();
 
 describe("colunas pedidas vs colunas que existem", () => {
   it("o retrato traz colunas para comparar", () => {
@@ -95,6 +332,105 @@ describe("colunas pedidas vs colunas que existem", () => {
       `Estes selects pedem colunas que não existem: ${erradas.join("; ")}. ` +
         `O PostgREST recusa o select inteiro, e quase sempre o erro é tratado ` +
         `como "não há dados" — é assim que um cartão fica a zero para sempre.`,
+    ).toEqual([]);
+  });
+
+  it("encontra escritas suficientes para a verificação valer", () => {
+    expect(escritas.length).toBeGreaterThan(50);
+  });
+
+  it("nenhum insert/update grava coluna que a tabela não tem", () => {
+    const erradas: string[] = [];
+    for (const escrita of escritas) {
+      const colunas = colunasPorTabela.get(escrita.tabela);
+      if (!colunas) continue; // tabela fora do retrato: outro teste trata disso
+      for (const coluna of escrita.colunas) {
+        if (!colunas.has(coluna) && !ESPERA_MIGRACAO.has(`${escrita.tabela}.${coluna}`)) {
+          erradas.push(`${escrita.ficheiro}: ${escrita.operacao} ${escrita.tabela}.${coluna}`);
+        }
+      }
+    }
+    expect(
+      erradas,
+      `Estas escritas gravam colunas que não existem: ${erradas.join("; ")}. ` +
+        `O PostgREST recusa a escrita inteira — e ao contrário de uma leitura ` +
+        `recusada, que dá um ecrã vazio, uma escrita recusada deixa o utilizador ` +
+        `convencido de que gravou.`,
+    ).toEqual([]);
+  });
+
+  it("nenhum select com embed pede coluna de topo que a tabela não tem", () => {
+    const erradas: string[] = [];
+    for (const leitura of comEmbed) {
+      const colunas = colunasPorTabela.get(leitura.tabela);
+      if (!colunas) continue;
+      for (const coluna of leitura.colunas) {
+        if (!colunas.has(coluna)) {
+          erradas.push(`${leitura.ficheiro}: ${leitura.tabela}.${coluna}`);
+        }
+      }
+    }
+    expect(
+      erradas,
+      `Estes selects com embed pedem colunas que não existem: ${erradas.join("; ")}. ` +
+        `O embed não protege nada: o PostgREST recusa a consulta na mesma, e a ` +
+        `exportação sai vazia sem dizer porquê.`,
+    ).toEqual([]);
+  });
+
+  it("encontra filtros suficientes para a verificação valer", () => {
+    expect(filtros.length).toBeGreaterThan(100);
+  });
+
+  it("nenhum filtro aponta para coluna que a tabela não tem", () => {
+    const erradas: string[] = [];
+    for (const filtro of filtros) {
+      const colunas = colunasPorTabela.get(filtro.tabela);
+      if (!colunas) continue;
+      if (colunas.has(filtro.coluna)) continue;
+      if (ESPERA_MIGRACAO.has(`${filtro.tabela}.${filtro.coluna}`)) continue;
+      erradas.push(
+        `${filtro.ficheiro}: .${filtro.operacao}("${filtro.coluna}") em ${filtro.tabela}`,
+      );
+    }
+    expect(
+      erradas,
+      `Estes filtros usam colunas que não existem: ${erradas.join("; ")}. ` +
+        `Um filtro inválido não devolve zero linhas — faz o PostgREST recusar a ` +
+        `consulta inteira, e o chamador lê isso como "não há dados".`,
+    ).toEqual([]);
+  });
+
+  it("nenhuma chamada rpc aponta para função fora do esquema public", () => {
+    const rpcs = rpcsDoCodigo();
+    expect(rpcs.length, "não encontrou chamadas rpc para verificar").toBeGreaterThan(10);
+
+    const invisiveis = [
+      ...new Set(
+        rpcs.filter((r) => !funcoesPublicas.has(r.funcao)).map((r) => `${r.ficheiro}: ${r.funcao}`),
+      ),
+    ].sort();
+
+    expect(
+      invisiveis,
+      `Estas funções não estão em public e o PostgREST não as alcança: ` +
+        `${invisiveis.join("; ")}. Devolvem PGRST202, e o chamador quase sempre ` +
+        `ignora o erro — o trabalho simplesmente não acontece.`,
+    ).toEqual([]);
+  });
+
+  it("a lista de colunas à espera de migração não tem entradas obsoletas", () => {
+    const jaExistem = [...ESPERA_MIGRACAO]
+      .filter((entrada) => {
+        const [tabela, coluna] = entrada.split(".");
+        return colunasPorTabela.get(tabela)?.has(coluna);
+      })
+      .sort();
+
+    expect(
+      jaExistem,
+      `A migração destas colunas já foi aplicada: ${jaExistem.join(", ")}. ` +
+        `Retire-as de ESPERA_MIGRACAO — a lista existe para encolher até ficar vazia.`,
     ).toEqual([]);
   });
 });

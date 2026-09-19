@@ -29,6 +29,7 @@ import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
@@ -942,7 +943,16 @@ function FaturasPage() {
                     <TableCell>{new Date(f.vencimento).toLocaleDateString("pt-PT")}</TableCell>
                     <TableCell className="text-right font-bold">{kwanza(f.valor)}</TableCell>
                     <TableCell className="text-right">
-                      <span className={cn(badgeBase, estadoTone[f.estado])}>{f.estado}</span>
+                      <StatusBadge
+                        status={
+                          f.estado === "Paga"
+                            ? "paid"
+                            : f.estado === "Vencida"
+                              ? "overdue"
+                              : "pending"
+                        }
+                        label={f.estado}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

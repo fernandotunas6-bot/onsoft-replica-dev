@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, FolderKanban, Plus, School, Sparkles, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -130,41 +131,37 @@ function AlumniPortfolioPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <section className="rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                <Sparkles className="size-3.5" /> Identidade profissional
-              </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight">Meu Portfólio Alumni</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                Organize projectos, prémios, certificados e publicações por nível e por cada
-                instituição onde estudou.
-              </p>
+        <PageHeader
+          group="Alumni"
+          title="Meu Portfólio Alumni"
+          description="Organize projectos, prémios, certificados e publicações por nível e por cada instituição onde estudou."
+          icon={FolderKanban}
+          crumbs={[
+            { label: "Início", to: "/" },
+            { label: "Portal Alumni", to: "/alumni/portal" },
+            { label: "Portfólio" },
+          ]}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/portal/portfolio/education">
+                  <School className="mr-1.5 size-3.5" />
+                  Minhas instituições
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/portal/portfolio/showcase">
+                  Ver apresentação
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/portal">
+                  Voltar ao Portal
+                </Link>
+              </Button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/alumni/portal/portfolio/education"
-                className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
-              >
-                <School className="mr-2 size-4" />
-                Minhas instituições
-              </Link>
-              <Link
-                to="/alumni/portal/portfolio/showcase"
-                className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
-              >
-                Ver apresentação
-              </Link>
-              <Link
-                to="/alumni/portal"
-                className="inline-flex h-10 items-center rounded-xl border border-input px-4 text-sm font-medium"
-              >
-                Voltar ao Portal Alumni
-              </Link>
-            </div>
-          </div>
-        </section>
+          }
+        />
 
         <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
           <Card className="h-fit border-border/70 shadow-sm">
@@ -176,6 +173,8 @@ function AlumniPortfolioPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <select
+                id="portfolio-education-level"
+                aria-label="Nível de ensino"
                 value={educationLevel}
                 onChange={(e) => {
                   setEducationLevel(e.target.value as typeof educationLevel);
@@ -190,6 +189,8 @@ function AlumniPortfolioPage() {
                 ))}
               </select>
               <select
+                id="portfolio-education-stage"
+                aria-label="Instituição de ensino associada"
                 value={educationStageId}
                 onChange={(e) => setEducationStageId(e.target.value)}
                 className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
@@ -214,6 +215,8 @@ function AlumniPortfolioPage() {
                 </p>
               ) : null}
               <select
+                id="portfolio-item-type"
+                aria-label="Tipo de evidência"
                 value={itemType}
                 onChange={(e) => setItemType(e.target.value as typeof itemType)}
                 className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
@@ -225,11 +228,15 @@ function AlumniPortfolioPage() {
                 ))}
               </select>
               <Input
+                id="portfolio-title"
+                aria-label="Título do projecto ou evidência"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Título do projecto / evidência"
               />
               <textarea
+                id="portfolio-summary"
+                aria-label="Descrição breve, impacto ou resultado"
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
                 placeholder="Descrição breve, impacto ou resultado"
@@ -237,37 +244,51 @@ function AlumniPortfolioPage() {
               />
               <div className="grid gap-3 sm:grid-cols-2">
                 <Input
+                  id="portfolio-organization"
+                  aria-label="Organização"
                   value={organization}
                   onChange={(e) => setOrganization(e.target.value)}
                   placeholder="Organização"
                 />
                 <Input
+                  id="portfolio-role"
+                  aria-label="Seu papel"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                   placeholder="Seu papel"
                 />
               </div>
               <Input
+                id="portfolio-external-url"
+                aria-label="Link do projecto ou evidência"
                 value={externalUrl}
                 onChange={(e) => setExternalUrl(e.target.value)}
                 placeholder="https:// projecto, artigo, GitHub, vídeo…"
               />
               <Input
+                id="portfolio-image-url"
+                aria-label="URL de capa ou imagem"
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
                 placeholder="URL de capa / imagem"
               />
               <Input
+                id="portfolio-skills"
+                aria-label="Competências, separadas por vírgula"
                 value={skills}
                 onChange={(e) => setSkills(e.target.value)}
                 placeholder="Competências, separadas por vírgula"
               />
               <Input
+                id="portfolio-tags"
+                aria-label="Tags, separadas por vírgula"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="Tags, separadas por vírgula"
               />
               <select
+                id="portfolio-document-request"
+                aria-label="Documento oficial associado"
                 value={officialDocumentRequestId}
                 onChange={(e) => setOfficialDocumentRequestId(e.target.value)}
                 className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
@@ -281,6 +302,8 @@ function AlumniPortfolioPage() {
               </select>
               <div className="grid gap-3 sm:grid-cols-2">
                 <select
+                  id="portfolio-visibility"
+                  aria-label="Visibilidade do item"
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value as typeof visibility)}
                   className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
@@ -291,6 +314,8 @@ function AlumniPortfolioPage() {
                 </select>
                 <label className="flex h-10 items-center gap-2 rounded-xl border border-input px-3 text-sm">
                   <input
+                    id="portfolio-featured"
+                    aria-label="Destacar item no portfólio"
                     type="checkbox"
                     checked={featured}
                     onChange={(e) => setFeatured(e.target.checked)}
@@ -365,6 +390,7 @@ function AlumniPortfolioPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Remover item do portfólio"
                           onClick={() => deleteMutation.mutate(item.id)}
                         >
                           <Trash2 className="size-4" />

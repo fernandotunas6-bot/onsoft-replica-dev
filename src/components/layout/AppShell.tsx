@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   Bell,
   ChevronDown,
+  CircleHelp,
   FileText,
   Maximize2,
   Menu,
@@ -51,7 +52,7 @@ import { canAccessPath } from "@/features/auth/access-policy";
 import { useTenant } from "@/features/saas/tenant-context";
 import { planIncludesPath, trialDaysRemaining } from "@/features/saas/plan-features";
 import { buildStudentCapacity } from "@/features/saas/tenant-limits";
-import { getPricingUrl } from "@/lib/ecosystem-urls";
+import { getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { consumeSettingsOpen, OPEN_SETTINGS_EVENT } from "@/lib/settings-deep-link";
 import { scheduleIdleRouteWarmup } from "@/lib/idle-route-warmup";
 import { useInboxUnread } from "@/features/messages/use-inbox-unread";
@@ -251,7 +252,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </Sheet>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="glass-panel sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/50 px-3.5 md:px-5">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:px-5">
             <Button
               variant="ghost"
               size="icon"
@@ -276,12 +277,12 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-w-0 max-w-[min(100%,18rem)] items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
+                  className="flex min-w-0 max-w-[min(100%,18rem)] items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
                 >
                   <span className="hidden truncate text-muted-foreground sm:inline">
                     {school?.name ? `${school.name} · ` : ""}
                   </span>
-                  <span className="truncate whitespace-nowrap">
+                  <span className="truncate whitespace-nowrap font-semibold">
                     {selectedYearLabel}
                     {selectedYearId && selectedYearId === activeYear?.id ? " (Atual)" : ""}
                   </span>
@@ -307,7 +308,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="hidden min-w-0 items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex"
+                    className="hidden min-w-0 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex"
                   >
                     <span className="truncate whitespace-nowrap">{selectedTermLabel}</span>
                     <ChevronDown className="size-3.5 shrink-0 opacity-60" />
@@ -329,18 +330,40 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => requestOpenCommandPalette()}
-              className="hidden md:flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="hidden sm:flex items-center gap-2.5 rounded-lg border border-border/80 bg-secondary/40 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary/70 hover:text-foreground md:w-56 lg:w-72"
               title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
             >
-              <Search className="size-3.5 opacity-60" />
-              <span>Pesquisar no SIGA…</span>
-              <kbd className="pointer-events-none ml-1.5 inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/60 px-1 font-mono text-[10px] font-medium text-muted-foreground">
+              <Search className="size-3.5 opacity-60 shrink-0" />
+              <span className="truncate flex-1 text-left">Pesquisar no SIGA…</span>
+              <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[10px] font-medium text-muted-foreground shrink-0">
                 <span className="text-[9px]">⌘</span>K
               </kbd>
             </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="header-icon-btn sm:hidden"
+              onClick={() => requestOpenCommandPalette()}
+              aria-label="Pesquisar"
+              title="Pesquisar (Ctrl/⌘ K)"
+            >
+              <Search className="size-5" />
+            </Button>
 
             <div className="ml-auto flex items-center gap-1">
               <TopbarCalendar />
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="header-icon-btn hidden sm:inline-flex"
+                aria-label="Documentação e Ajuda"
+                title="Documentação e Ajuda"
+              >
+                <a href={getSigaNavDocUrl()} target="_blank" rel="noreferrer">
+                  <CircleHelp className="size-5 text-muted-foreground hover:text-foreground" />
+                </a>
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -359,7 +382,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 <Star
                   className={cn(
                     "size-5",
-                    favorited ? "fill-amber-400 text-amber-500" : "text-muted-foreground",
+                    favorited ? "fill-warning text-warning" : "text-muted-foreground",
                   )}
                 />
               </Button>
@@ -558,7 +581,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   "mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-2.5 text-sm",
                   studentCapacity.atLimit
                     ? "border-destructive/40 bg-destructive/10 text-destructive"
-                    : "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100",
+                    : "border-warning/30 bg-warning/10 text-warning",
                 )}
               >
                 <span>
@@ -577,7 +600,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               </div>
             ) : null}
             {activeTenant?.status === "trial" && trialDaysLeft !== null ? (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-950 dark:text-amber-100">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warning/30 bg-warning/10 px-4 py-2.5 text-sm text-warning">
                 <span>
                   Período experimental — <strong>{trialDaysLeft}</strong> dia(s) restantes.
                 </span>

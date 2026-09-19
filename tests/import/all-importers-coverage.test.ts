@@ -40,8 +40,19 @@ describe("All 22 Importers Completeness & Coverage", () => {
   });
 
   describe("avaliacoesImporter", () => {
+    // Uma avaliação pertence ao diário (`gradebooks`) de uma turma+disciplina+período.
+    // Até 2026-09-16 o importador usava `gradebooks[0]` — um diário qualquer da escola.
+    const cacheComDiario = {
+      subjects: [{ id: "sub1", code: "MAT", name: "Matemática" }],
+      classGroupRefs: [{ id: "g1", code: "10A", name: "10ª Classe A" }],
+      classSubjects: [{ id: "cs1", class_group_id: "g1", subject_id: "sub1", teacher_id: null }],
+      terms: [{ id: "t1", sequence: 1 }],
+      gradebooks: [{ id: "gb1", class_subject_id: "cs1", term_id: "t1" }],
+      existingItemCodes: new Set<string>(),
+    };
+
     it("valida obrigatoriedade de nome e código", () => {
-      const res = avaliacoesImporter.analyzeRow({}, {} as any);
+      const res = avaliacoesImporter.analyzeRow({}, cacheComDiario as any);
       expect(res.status).toBe("error");
       expect(res.errors).toContain("Designação ou nome da avaliação é obrigatório.");
       expect(res.errors).toContain(
@@ -51,10 +62,49 @@ describe("All 22 Importers Completeness & Coverage", () => {
 
     it("valida avaliação correcta", () => {
       const res = avaliacoesImporter.analyzeRow(
-        { assessment_name: "Prova do 1º Trimestre", code: "P1", max_score: 20 },
-        {} as any,
+        {
+          assessment_name: "Prova do 1º Trimestre",
+          code: "P1",
+          max_score: 20,
+          class_group: "10A",
+          subject: "MAT",
+          term: "1º Trimestre",
+        },
+        cacheComDiario as any,
       );
       expect(res.status).toBe("valid");
+    });
+
+    it("recusa quando o diário da turma/disciplina/período não existe", () => {
+      const res = avaliacoesImporter.analyzeRow(
+        {
+          assessment_name: "Prova do 3º Trimestre",
+          code: "P3",
+          max_score: 20,
+          class_group: "10A",
+          subject: "MAT",
+          term: "3º Trimestre",
+        },
+        cacheComDiario as any,
+      );
+      expect(res.status).toBe("error");
+      expect(res.errors[0]).toMatch(/3º período não está configurado/);
+    });
+
+    it("recusa um código que viola o CHECK da base", () => {
+      const res = avaliacoesImporter.analyzeRow(
+        {
+          assessment_name: "Prova",
+          code: "P 1!",
+          max_score: 20,
+          class_group: "10A",
+          subject: "MAT",
+          term: "1º Trimestre",
+        },
+        cacheComDiario as any,
+      );
+      expect(res.status).toBe("error");
+      expect(res.errors[0]).toMatch(/inválido/);
     });
   });
 
@@ -113,10 +163,23 @@ describe("All 22 Importers Completeness & Coverage", () => {
             person_id: "p1",
           },
         ],
-        existingInvoices: new Set(),
+        academicYears: [
+          { id: "ay1", name: "2023/2024", starts_on: "2023-09-01", ends_on: "2024-07-15" },
+        ],
+        enrollments: [{ id: "e1", student_id: "s1", academic_year_id: "ay1", status: "completed" }],
+        feePlans: [{ id: "fp1", academic_year_id: "ay1", status: "active" }],
+        feeItems: [
+          { id: "fi1", fee_plan_id: "fp1", kind: "tuition", name: "Propina", is_active: true },
+        ],
+        existingInvoiceNumbers: new Set(),
       };
       const res = historicoFinanceiroImporter.analyzeRow(
-        { student_identifier: "PROC-1", amount: 45000, invoice_number: "FT-2023-001" },
+        {
+          student_identifier: "PROC-1",
+          academic_year: "2023/2024",
+          total_billed: 45000,
+          total_paid: 45000,
+        },
         cache as any,
       );
       expect(res.status).toBe("valid");

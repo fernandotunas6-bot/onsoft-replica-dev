@@ -28,6 +28,7 @@ import { signSchoolFile } from "@/features/arquivos/server";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -621,7 +622,13 @@ function PeoplePage() {
                           ) : null}
                         </span>
                       </TableCell>
-                      <TableCell>{statusLabels[teacher.status] ?? teacher.status}</TableCell>
+                      <TableCell>
+                        <StatusBadge
+                          status={teacher.status === "active" ? "active" : "inactive"}
+                          label={statusLabels[teacher.status] ?? teacher.status}
+                          size="sm"
+                        />
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button asChild size="sm" variant="ghost">
@@ -864,7 +871,11 @@ function PeoplePage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {statusLabels[row.status] ?? row.status}
+                        <StatusBadge
+                          status={row.status === "active" ? "active" : "inactive"}
+                          label={statusLabels[row.status] ?? row.status}
+                          size="sm"
+                        />
                       </TableCell>
                     </TableRow>
                   ))

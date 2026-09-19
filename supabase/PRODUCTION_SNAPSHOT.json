@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-09-14T21:36:32.995Z",
+  "capturadoEm": "2026-09-16T05:02:46.325Z",
   "resumo": {
-    "com_rls": 152,
+    "com_rls": 154,
     "funcoes_private": 95,
-    "politicas": 290,
-    "tabelas": 152,
-    "triggers": 132
+    "politicas": 294,
+    "tabelas": 154,
+    "triggers": 134
   },
   "tabelas": [
     {
@@ -660,6 +660,36 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "communication_events"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "colunas": [
+        "id",
+        "user_id",
+        "school_id",
+        "email_address",
+        "email_verified",
+        "email_verified_at",
+        "phone_number",
+        "phone_verified",
+        "phone_verified_at",
+        "whatsapp_number",
+        "whatsapp_verified",
+        "whatsapp_verified_at",
+        "preferred_communication_channel",
+        "preferred_language",
+        "last_email_sent_at",
+        "last_sms_sent_at",
+        "last_whatsapp_sent_at",
+        "created_at",
+        "updated_at",
+        "version"
+      ],
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "contact_verification_profiles"
     },
     {
       "anon_select": true,
@@ -2435,7 +2465,8 @@
         "status",
         "verified",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "cloudflare_route_id"
       ],
       "politicas": 1,
       "rls": true,
@@ -3476,6 +3507,32 @@
       "auth_select": true,
       "colunas": [
         "id",
+        "user_id",
+        "school_id",
+        "security_enabled",
+        "academic_enabled",
+        "financial_enabled",
+        "attendance_enabled",
+        "calendar_enabled",
+        "announcements_enabled",
+        "events_enabled",
+        "documents_enabled",
+        "marketing_enabled",
+        "channel_preferences",
+        "created_at",
+        "updated_at",
+        "version"
+      ],
+      "politicas": 2,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "user_communication_preferences"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "colunas": [
+        "id",
         "school_id",
         "user_id",
         "target_identifier",
@@ -3757,6 +3814,22 @@
       "papeis": "{service_role}",
       "politica": "service_role_full_events",
       "tabela": "communication_events",
+      "usando": "true",
+      "verificando": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "auth_view_own_contact_profile",
+      "tabela": "contact_verification_profiles",
+      "usando": "(user_id = auth.uid())",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{service_role}",
+      "politica": "service_role_full_contact_profiles",
+      "tabela": "contact_verification_profiles",
       "usando": "true",
       "verificando": "true"
     },
@@ -5809,6 +5882,22 @@
       "verificando": ""
     },
     {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "auth_view_own_communication_prefs",
+      "tabela": "user_communication_preferences",
+      "usando": "(user_id = auth.uid())",
+      "verificando": ""
+    },
+    {
+      "cmd": "ALL",
+      "papeis": "{service_role}",
+      "politica": "service_role_full_communication_prefs",
+      "tabela": "user_communication_preferences",
+      "usando": "true",
+      "verificando": "true"
+    },
+    {
       "cmd": "ALL",
       "papeis": "{service_role}",
       "politica": "service_role_full_otps",
@@ -7037,6 +7126,12 @@
       "security_definer": false
     },
     {
+      "args": "",
+      "funcao": "siga_touch_updated_at_and_version",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "school_id uuid, attendance_session_id uuid, submission_key text, records jsonb",
       "funcao": "submit_attendance",
       "schema": "public",
@@ -7217,6 +7312,12 @@
       "funcao_schema": "private",
       "tabela": "class_subjects",
       "trigger": "enforce_teacher_class_subject_scope"
+    },
+    {
+      "funcao": "siga_touch_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "contact_verification_profiles",
+      "trigger": "contact_verification_profiles_set_updated_at"
     },
     {
       "funcao": "set_updated_at_and_version",
@@ -7883,6 +7984,12 @@
       "funcao_schema": "private",
       "tabela": "timetable_slots",
       "trigger": "enforce_academic_manager_structure_scope"
+    },
+    {
+      "funcao": "siga_touch_updated_at_and_version",
+      "funcao_schema": "public",
+      "tabela": "user_communication_preferences",
+      "trigger": "user_communication_preferences_set_updated_at"
     },
     {
       "funcao": "handle_new_user",

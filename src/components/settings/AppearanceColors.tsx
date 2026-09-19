@@ -243,7 +243,7 @@ export function AppearanceColors() {
                   {schoolBrandActive ? "A usar cores da escola" : "Usar cores da escola"}
                 </Button>
                 {!isReadableBrandColor(schoolPrimary) ? (
-                  <p className="w-full text-xs text-amber-700 dark:text-amber-300">
+                  <p className="w-full text-xs text-warning font-medium">
                     A cor primária da escola tem contraste baixo — ajuste em Identidade Digital.
                   </p>
                 ) : null}
@@ -286,7 +286,7 @@ export function AppearanceColors() {
                     )}
                     style={{ backgroundColor: p.swatch }}
                   >
-                    {isSelected ? <Check className="size-4 text-white" /> : null}
+                    {isSelected ? <Check className="size-4 text-primary-foreground" /> : null}
                   </button>
                 );
               })}

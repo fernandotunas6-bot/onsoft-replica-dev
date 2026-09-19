@@ -298,8 +298,8 @@ export function FeePlanSettingsForm() {
   return (
     <div className="space-y-4">
       {!ready ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm">
-          <p className="font-semibold text-amber-900 dark:text-amber-100">
+        <div className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-3 text-sm">
+          <p className="font-semibold text-warning">
             Plano financeiro em falta
           </p>
           <p className="mt-1 text-xs text-muted-foreground">

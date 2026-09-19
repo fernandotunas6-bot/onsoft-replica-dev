@@ -6,6 +6,7 @@ import { z } from "zod";
 import { BookOpenCheck, ClipboardCheck, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton, SqlDocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -237,7 +238,7 @@ function LessonPlansPage() {
                 return (
                   <div
                     key={plan.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm"
+                    className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-subtle transition-all duration-200"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -246,15 +247,10 @@ function LessonPlansPage() {
                           {plan.class_group_name} · {plan.subject_name}
                         </p>
                       </div>
-                      <span
-                        className={
-                          plan.status === "published"
-                            ? "shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary"
-                            : "shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-                        }
-                      >
-                        {plan.status === "published" ? "Publicado" : "Rascunho"}
-                      </span>
+                      <StatusBadge
+                        status={plan.status === "published" ? "active" : "inactive"}
+                        label={plan.status === "published" ? "Publicado" : "Rascunho"}
+                      />
                     </div>
                     {plan.content ? (
                       <p className="line-clamp-2 text-xs text-muted-foreground">{plan.content}</p>

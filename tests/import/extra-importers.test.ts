@@ -36,6 +36,11 @@ describe("Extra Importers (dividas, funcionarios, horarios)", () => {
             status: "active",
           },
         ],
+        enrollments: [{ id: "e1", student_id: "s1", academic_year_id: "ay1", status: "active" }],
+        feePlans: [{ id: "fp1", academic_year_id: "ay1", status: "active" }],
+        feeItems: [
+          { id: "fi1", fee_plan_id: "fp1", kind: "tuition", name: "Propina", is_active: true },
+        ],
         existingInvoiceNumbers: new Set(),
       };
       const analysis = dividasImporter.analyzeRow(
@@ -94,6 +99,8 @@ describe("Extra Importers (dividas, funcionarios, horarios)", () => {
       const cache = {
         classGroups: [{ id: "g1", code: "10A-M", name: "10ª Classe A" }],
         subjects: [{ id: "sub1", code: "MAT", name: "Matemática" }],
+        teachers: [],
+        classSubjects: [],
         existingSlots: new Set(),
       };
       const analysis = horariosImporter.analyzeRow(

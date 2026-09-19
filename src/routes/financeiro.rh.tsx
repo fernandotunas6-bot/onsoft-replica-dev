@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { Banknote, BriefcaseBusiness, FileCheck2, QrCode, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getHrDashboard, listHrPayrollRuns } from "@/features/hr/server";
@@ -214,7 +215,26 @@ function HrPayrollPage() {
                               {lesson.scheduled_starts_at.slice(0, 5)}–
                               {lesson.scheduled_ends_at.slice(0, 5)}
                             </td>
-                            <td className="py-3 pr-4 capitalize">{lesson.status}</td>
+                            <td className="py-3 pr-4">
+                              <StatusBadge
+                                status={
+                                  lesson.status === "confirmed"
+                                    ? "paid"
+                                    : lesson.status === "scheduled"
+                                      ? "pending"
+                                      : "cancelled"
+                                }
+                                label={
+                                  lesson.status === "confirmed"
+                                    ? "Confirmada"
+                                    : lesson.status === "scheduled"
+                                      ? "Agendada"
+                                      : lesson.status === "rejected"
+                                        ? "Rejeitada"
+                                        : "Cancelada"
+                                }
+                              />
+                            </td>
                             <td className="py-3 pr-4 text-muted-foreground">
                               {checkedOut
                                 ? "Check-in e check-out concluídos"
@@ -319,7 +339,30 @@ function HrPayrollPage() {
                             {monthNames[Number(run.competence_month) - 1]}{" "}
                             {String(run.competence_year)}
                           </td>
-                          <td className="py-3 pr-4 capitalize">{String(run.status)}</td>
+                          <td className="py-3 pr-4">
+                            <StatusBadge
+                              status={
+                                run.status === "paid" || run.status === "approved"
+                                  ? "paid"
+                                  : run.status === "processed"
+                                    ? "pending"
+                                    : run.status === "draft"
+                                      ? "inactive"
+                                      : "cancelled"
+                              }
+                              label={
+                                run.status === "draft"
+                                  ? "Rascunho"
+                                  : run.status === "processed"
+                                    ? "Processada"
+                                    : run.status === "approved"
+                                      ? "Aprovada"
+                                      : run.status === "paid"
+                                        ? "Paga"
+                                        : String(run.status)
+                              }
+                            />
+                          </td>
                           <td className="py-3 pr-4 text-right">
                             {kwanza(Number(run.total_gross_kz ?? 0))}
                           </td>

@@ -1620,7 +1620,7 @@ export function AssessmentCenter({
                 </li>
               </ul>
               {!termReadiness.allReady && termReadiness.notReady.length > 0 ? (
-                <ul className="space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+                <ul className="space-y-1 rounded-xl border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
                   {termReadiness.notReady.slice(0, 6).map((report) => (
                     <li key={report.classGroupId}>
                       <b className="text-foreground">{report.classGroupName}:</b>{" "}

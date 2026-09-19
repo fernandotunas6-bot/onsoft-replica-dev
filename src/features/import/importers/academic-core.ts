@@ -19,6 +19,15 @@ export type ClassGroupRef = {
 };
 
 export type SubjectRef = { id: string; code: string; name: string };
+export type AcademicLevelRef = { id: string; code: string; name: string };
+export type AcademicYearRef = { id: string; name: string; starts_on: string; ends_on: string };
+export type TeacherRef = { id: string; employee_number: string; national_id: string | null };
+export type ClassSubjectRef = {
+  id: string;
+  class_group_id: string;
+  subject_id: string;
+  teacher_id: string | null;
+};
 
 export function normalizedKey(value: unknown) {
   return canonicalEntityKey(normalizeText(value));
@@ -100,6 +109,89 @@ export async function loadSubjectRefs(db: SupabaseClient, schoolId: string): Pro
     id: String(row.id),
     code: String(row.code ?? ""),
     name: String(row.name ?? ""),
+  }));
+}
+
+export async function loadAcademicLevelRefs(
+  db: SupabaseClient,
+  schoolId: string,
+): Promise<AcademicLevelRef[]> {
+  const { data, error } = await db
+    .from("academic_levels")
+    .select("id, code, name")
+    .eq("school_id", schoolId)
+    .eq("is_active", true);
+  if (error) throw new Error(`Não foi possível carregar níveis académicos: ${error.message}`);
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    code: String(row.code ?? ""),
+    name: String(row.name ?? ""),
+  }));
+}
+
+export async function loadAcademicYearRefs(
+  db: SupabaseClient,
+  schoolId: string,
+): Promise<AcademicYearRef[]> {
+  const { data, error } = await db
+    .from("academic_years")
+    .select("id, name, starts_on, ends_on")
+    .eq("school_id", schoolId);
+  if (error) throw new Error(`Não foi possível carregar anos lectivos: ${error.message}`);
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    name: String(row.name ?? ""),
+    starts_on: String(row.starts_on ?? ""),
+    ends_on: String(row.ends_on ?? ""),
+  }));
+}
+
+export async function loadTeacherRefs(db: SupabaseClient, schoolId: string): Promise<TeacherRef[]> {
+  const { data: teachers, error } = await db
+    .from("teachers")
+    .select("id, person_id, employee_number")
+    .eq("school_id", schoolId);
+  if (error) throw new Error(`Não foi possível carregar professores: ${error.message}`);
+  const personIds = [
+    ...new Set((teachers ?? []).map((row) => String(row.person_id)).filter(Boolean)),
+  ];
+  const { data: people, error: peopleError } = personIds.length
+    ? await db
+        .from("people")
+        .select("id, national_id")
+        .eq("school_id", schoolId)
+        .in("id", personIds)
+    : { data: [], error: null };
+  if (peopleError)
+    throw new Error(
+      `Não foi possível carregar identificadores dos professores: ${peopleError.message}`,
+    );
+  const nationalIdByPerson = new Map(
+    (people ?? []).map((row) => [String(row.id), row.national_id ? String(row.national_id) : null]),
+  );
+  return (teachers ?? []).map((row) => ({
+    id: String(row.id),
+    employee_number: String(row.employee_number ?? ""),
+    national_id: nationalIdByPerson.get(String(row.person_id)) ?? null,
+  }));
+}
+
+export async function loadClassSubjectRefs(
+  db: SupabaseClient,
+  schoolId: string,
+): Promise<ClassSubjectRef[]> {
+  const { data, error } = await db
+    .from("class_subjects")
+    .select("id, class_group_id, subject_id, teacher_id")
+    .eq("school_id", schoolId)
+    .eq("status", "active");
+  if (error)
+    throw new Error(`Não foi possível carregar disciplinas atribuídas à turma: ${error.message}`);
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    class_group_id: String(row.class_group_id),
+    subject_id: String(row.subject_id),
+    teacher_id: row.teacher_id ? String(row.teacher_id) : null,
   }));
 }
 

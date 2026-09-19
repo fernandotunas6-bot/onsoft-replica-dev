@@ -27,6 +27,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/ui/stat-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -732,39 +733,41 @@ function StudentsPage() {
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { label: "Total de estudantes", value: allStudents.length, hint: "Nesta escola" },
-            {
-              label: "Activos",
-              value: allStudents.filter(
+          <StatCard
+            title="Total de estudantes"
+            value={allStudents.length}
+            subtitle="Registados nesta escola"
+            icon={Users}
+            tone="primary"
+          />
+          <StatCard
+            title="Estudantes Activos"
+            value={
+              allStudents.filter(
                 (s) => ["active", "applicant"].includes(s.student_status) || Boolean(s.class_name),
-              ).length,
-              hint: "Matrícula em curso",
-            },
-            {
-              label: "Pagamentos em dívida",
-              value: allStudents.filter((s) => s.payment_status === "overdue").length,
-              hint: "A regularizar",
-            },
-            {
-              label: "Transferidos/Concluídos",
-              value: allStudents.filter((s) =>
-                ["transferred", "graduated"].includes(s.student_status),
-              ).length,
-              hint: "Fora do activo",
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-xl border border-border bg-card p-5 shadow-soft"
-            >
-              <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
-              <p className="mt-2 font-display text-3xl font-extrabold tracking-tight">
-                {item.value}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p>
-            </div>
-          ))}
+              ).length
+            }
+            subtitle="Matrícula em curso"
+            icon={GraduationCap}
+            tone="success"
+          />
+          <StatCard
+            title="Pagamentos em dívida"
+            value={allStudents.filter((s) => s.payment_status === "overdue").length}
+            subtitle="Requer regularização"
+            icon={ArrowDown}
+            tone="destructive"
+          />
+          <StatCard
+            title="Transferidos / Concluídos"
+            value={
+              allStudents.filter((s) => ["transferred", "graduated"].includes(s.student_status))
+                .length
+            }
+            subtitle="Histórico e arquivo escolar"
+            icon={ArrowRightLeft}
+            tone="neutral"
+          />
         </div>
 
         <ListFilterBar
@@ -857,6 +860,8 @@ function StudentsPage() {
             <div className="relative flex-1 min-w-[240px] max-w-md">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                id="search-alunos"
+                aria-label="Pesquisar aluno em tempo real"
                 type="search"
                 placeholder="Pesquisar aluno em tempo real..."
                 value={query}
@@ -1108,8 +1113,8 @@ function StudentsPage() {
                   className={cn(
                     "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
                     subCandidatos === "waiting_class"
-                      ? "bg-blue-600 text-white"
-                      : "bg-blue-500/10 text-blue-700 dark:text-blue-400 hover:bg-blue-500/20",
+                      ? "bg-info text-info-foreground"
+                      : "bg-info/10 text-info hover:bg-info/20",
                   )}
                 >
                   Aguardando turma

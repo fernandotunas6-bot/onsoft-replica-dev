@@ -137,7 +137,7 @@ export function ImportarDadosPage() {
           actions={<DocHelpButton title="Navegação — Importar no mapa de módulos" />}
         />
 
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-xs shadow-card">
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-primary" />
             <span>
@@ -206,6 +206,8 @@ export function ImportarDadosPage() {
                   <div className="relative w-full sm:w-64">
                     <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
                     <Input
+                      id="search-import-templates"
+                      aria-label="Buscar modelo ou coluna"
                       placeholder="Buscar modelo ou coluna..."
                       value={templateSearch}
                       onChange={(e) => setTemplateSearch(e.target.value)}
@@ -262,7 +264,7 @@ export function ImportarDadosPage() {
                   {filteredTemplates.map(([key, spec]) => (
                     <div
                       key={key}
-                      className="flex flex-col justify-between rounded-lg border border-border bg-card p-4 space-y-3 shadow-xs"
+                      className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 space-y-3 shadow-card hover:shadow-subtle transition-all"
                     >
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-start gap-2.5">

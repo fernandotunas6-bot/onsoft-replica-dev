@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { DialogExpandButton, useExpandableDialog } from "./dialog-expand";
 import { documentCodeSearchHint, generateDocumentCode, prefixForCategory } from "./document-code";
@@ -290,7 +291,7 @@ export function FileUploadInquiryModal({
             </DialogDescription>
           </div>
           {previewUrl && (
-            <img
+            <MediaFrame
               src={previewUrl}
               alt="Pré-visualização"
               className="size-24 shrink-0 rounded-lg border border-border object-cover shadow-sm sm:size-30"

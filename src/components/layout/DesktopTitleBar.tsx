@@ -31,17 +31,17 @@ export function DesktopTitleBar() {
   return (
     <div
       data-tauri-drag-region
-      className="h-9 bg-neutral-900 text-neutral-200 flex items-center justify-between px-3 select-none text-xs border-b border-neutral-800 z-50 shrink-0 font-sans"
+      className="h-9 bg-neutral-900 text-foreground flex items-center justify-between px-3 select-none text-xs border-b border-neutral-800 z-50 shrink-0 font-sans"
     >
       {/* NOME DA APLICAÇÃO E ESCOLA */}
       <div className="flex items-center gap-2 pointer-events-none">
         <div className="size-5 rounded bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px]">
           <Shield className="size-3 text-primary" />
         </div>
-        <span className="font-extrabold text-white tracking-tight">SIGA Desktop</span>
-        <span className="text-neutral-500 font-mono text-[10px]">v1.0 ({osName})</span>
+        <span className="font-extrabold text-foreground tracking-tight">SIGA Desktop</span>
+        <span className="text-muted-foreground font-mono text-[10px]">v1.0 ({osName})</span>
         {school?.name ? (
-          <span className="text-neutral-400 font-semibold text-[11px] ml-2 border-l border-neutral-700 pl-2">
+          <span className="text-muted-foreground font-semibold text-[11px] ml-2 border-l border-neutral-700 pl-2">
             {school.name}
           </span>
         ) : null}
@@ -53,7 +53,7 @@ export function DesktopTitleBar() {
           type="button"
           onClick={() => void minimizeWindow()}
           title="Minimizar"
-          className="h-full px-3.5 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors flex items-center justify-center"
+          className="h-full px-3.5 hover:bg-neutral-800 text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
         >
           <Minus className="size-3.5" />
         </button>
@@ -62,7 +62,7 @@ export function DesktopTitleBar() {
           type="button"
           onClick={() => void toggleMaximizeWindow()}
           title="Maximizar / Restaurar"
-          className="h-full px-3.5 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors flex items-center justify-center"
+          className="h-full px-3.5 hover:bg-neutral-800 text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
         >
           <Square className="size-3" />
         </button>
@@ -71,7 +71,7 @@ export function DesktopTitleBar() {
           type="button"
           onClick={() => void closeWindow()}
           title="Fechar"
-          className="h-full px-4 hover:bg-red-600 text-neutral-400 hover:text-white transition-colors flex items-center justify-center"
+          className="h-full px-4 hover:bg-destructive text-muted-foreground hover:text-destructive-foreground transition-colors flex items-center justify-center"
         >
           <X className="size-3.5" />
         </button>

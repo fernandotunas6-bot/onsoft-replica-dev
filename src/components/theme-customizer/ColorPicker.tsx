@@ -67,6 +67,7 @@ export function ColorPicker({ label, cssVar, value, onChange }: ColorPickerProps
             <input
               type="color"
               id={`color-${cssVar}`}
+              aria-label={`Seletor de cor para ${label}`}
               value={displayColor.startsWith("#") ? displayColor : "#6366f1"}
               onChange={handleColorChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -74,6 +75,8 @@ export function ColorPicker({ label, cssVar, value, onChange }: ColorPickerProps
           </Button>
         </div>
         <Input
+          id={`color-value-${cssVar}`}
+          aria-label={`Valor da cor para ${label}`}
           type="text"
           placeholder={`${cssVar} valor (ex: #3b82f6 ou oklch(...))`}
           value={localValue}

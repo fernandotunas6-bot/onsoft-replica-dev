@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader, StatGrid, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -181,47 +182,42 @@ function AlumniPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1500px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-        <section className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-          <div className="absolute -right-16 -top-20 size-64 rounded-full bg-primary/10 blur-3xl" />
-          <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-            <div className="max-w-3xl">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-bold text-primary">
-                <Sparkles className="size-3.5" /> Alumni Intelligence Network
-              </div>
-              <h1 className="text-3xl font-black tracking-tight text-foreground md:text-4xl">
-                Alumni
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                Acompanhe antigos alunos depois da conclusão: carreira, empregabilidade, mentoria,
-                oportunidades, eventos, contribuição social e impacto da instituição.
-              </p>
-            </div>
+        <PageHeader
+          group="Comunidade & Carreira"
+          title="Rede de Antigos Alunos (Alumni)"
+          description="Acompanhe antigos alunos depois da conclusão: carreira, empregabilidade, mentoria, oportunidades, eventos, contribuição social e impacto da instituição."
+          actions={
             <div className="flex flex-wrap gap-2">
               <Link
                 to="/alumni/insights"
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-input bg-background px-3.5 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
               >
-                <MapPinned className="mr-2 size-4" />
+                <MapPinned className="mr-2 size-3.5" />
                 Insights & Operações
               </Link>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => bootstrapMutation.mutate()}
                 disabled={bootstrapMutation.isPending}
-                className="rounded-xl"
+                className="rounded-xl text-xs h-9"
               >
-                <GraduationCap className="mr-2 size-4" />
+                <GraduationCap className="mr-2 size-3.5" />
                 {bootstrapMutation.isPending ? "A sincronizar…" : "Sincronizar concluídos"}
               </Button>
-              <Button className="rounded-xl" onClick={() => setMentoringOnly((value) => !value)}>
-                <Handshake className="mr-2 size-4" />
+              <Button
+                size="sm"
+                className="rounded-xl text-xs h-9"
+                onClick={() => setMentoringOnly((value) => !value)}
+              >
+                <Handshake className="mr-2 size-3.5" />
                 {mentoringOnly ? "Ver toda a rede" : "Encontrar mentores"}
               </Button>
             </div>
-          </div>
-        </section>
+          }
+        />
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatGrid>
           <MetricCard
             label="Rede Alumni"
             value={overview?.total ?? "—"}
@@ -246,7 +242,7 @@ function AlumniPage() {
             helper={`${overview?.upcomingEvents ?? 0} eventos futuros`}
             icon={BriefcaseBusiness}
           />
-        </section>
+        </StatGrid>
 
         <Tabs defaultValue="directory" className="space-y-4">
           <TabsList className="h-auto flex-wrap rounded-2xl bg-muted/60 p-1">
@@ -277,6 +273,8 @@ function AlumniPage() {
                   <label className="relative block">
                     <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
+                      id="search-alumni"
+                      aria-label="Pesquisar rede Alumni"
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       placeholder="Nome, processo, empresa, função, área, curso ou localização…"
@@ -284,6 +282,8 @@ function AlumniPage() {
                     />
                   </label>
                   <select
+                    id="filter-alumni-employment"
+                    aria-label="Filtrar por estado profissional"
                     value={employment}
                     onChange={(event) => setEmployment(event.target.value)}
                     className="h-10 rounded-xl border border-input bg-background px-3 text-sm"

@@ -39,7 +39,7 @@ export function StudentRelatedFilesPanel({
   ).length;
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5 shadow-soft">
+    <section className="rounded-xl border border-border bg-card p-5 shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-lg font-bold tracking-tight">Arquivos do aluno</h2>

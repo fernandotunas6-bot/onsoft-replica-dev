@@ -83,7 +83,7 @@ export function ModalShell({
         <DialogPrimitive.Root open={showUnsavedWarning} onOpenChange={setShowUnsavedWarning}>
           <DialogPrimitive.Portal>
             <DialogPrimitive.Overlay className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs" />
-            <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-60 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card p-5 shadow-2xl space-y-4">
+            <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-60 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-2xl space-y-4">
               <div className="space-y-1.5 text-left">
                 <h3 className="font-semibold text-sm text-foreground">Alterações não guardadas</h3>
                 <p className="text-xs text-muted-foreground">

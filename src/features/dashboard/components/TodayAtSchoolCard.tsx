@@ -150,8 +150,8 @@ export function TodayAtSchoolCard() {
                 className={cn(
                   "mt-1.5 block text-2xl font-bold tabular-nums",
                   loading && "animate-pulse text-muted-foreground",
-                  stat.tone === "warning" && "text-amber-700 dark:text-amber-300",
-                  stat.tone === "success" && "text-primary",
+                  stat.tone === "warning" && "text-warning",
+                  stat.tone === "success" && "text-success",
                 )}
               >
                 {loading ? "…" : stat.value}

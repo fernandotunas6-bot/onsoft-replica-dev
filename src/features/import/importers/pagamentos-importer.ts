@@ -1,10 +1,19 @@
-import { normalizeText } from "../engine/normalize";
+import { normalizeDate, normalizeNumber, normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
+import {
+  loadExistingReceiptNumbers,
+  loadOpenInvoiceRefs,
+  mapPaymentMethod,
+  parseCompetenceMonth,
+  registerReceiptDirect,
+  type OpenInvoiceRef,
+} from "./finance-core";
 
 type PagamentosCache = ImportRefCache & {
   students: StudentRef[];
-  existingReceipts: Set<string>;
+  openInvoices: OpenInvoiceRef[];
+  existingReceiptNumbers: Set<string>;
 };
 
 function valueOf(row: Record<string, unknown>, ...keys: string[]) {
@@ -15,31 +24,55 @@ function valueOf(row: Record<string, unknown>, ...keys: string[]) {
   return null;
 }
 
+/**
+ * Que fatura este pagamento liquida, por ordem de especificidade:
+ *
+ *   1. o nº de fatura indicado na folha — se não bater, é erro, não se adivinha outra;
+ *   2. o mês de referência ("Fevereiro 2026") contra a competência da fatura;
+ *   3. na falta dos dois, a mais antiga em aberto com saldo — a prática corrente de tesouraria.
+ */
+function resolveTargetInvoice(
+  studentId: string,
+  invoiceNumberHint: string | null,
+  competenceMonthHint: string | null,
+  invoices: OpenInvoiceRef[],
+): { invoice: OpenInvoiceRef | null; wrongNumber: boolean; wrongMonth: boolean } {
+  const forStudent = invoices.filter((row) => row.student_id === studentId && row.remaining > 0);
+
+  if (invoiceNumberHint) {
+    const match = forStudent.find((row) => row.invoice_number === invoiceNumberHint);
+    return { invoice: match ?? null, wrongNumber: !match, wrongMonth: false };
+  }
+
+  if (competenceMonthHint) {
+    const match = forStudent.find(
+      (row) => row.competence_month?.slice(0, 7) === competenceMonthHint,
+    );
+    if (match) return { invoice: match, wrongNumber: false, wrongMonth: false };
+    // Mês indicado mas sem fatura em aberto nesse mês: não liquidar outra por engano.
+    return { invoice: null, wrongNumber: false, wrongMonth: true };
+  }
+
+  return { invoice: forStudent[0] ?? null, wrongNumber: false, wrongMonth: false };
+}
+
 export const pagamentosImporter: RowImporter = {
   module: "pagamentos",
 
   async loadRefCache(ctx) {
-    const [students, paymentRows] = await Promise.all([
+    const [students, openInvoices, existingReceiptNumbers] = await Promise.all([
       loadStudentRefs(ctx.db, ctx.schoolId),
-      ctx.db.from("payments").select("receipt_number").eq("school_id", ctx.schoolId),
+      loadOpenInvoiceRefs(ctx.db, ctx.schoolId),
+      loadExistingReceiptNumbers(ctx.db, ctx.schoolId),
     ]);
-
-    if (paymentRows.error) {
-      throw new Error(
-        `Não foi possível carregar pagamentos existentes: ${paymentRows.error.message}`,
-      );
-    }
-
-    const existingReceipts = new Set(
-      (paymentRows.data ?? []).map((r) => normalizeText(r.receipt_number)).filter(Boolean),
-    );
 
     return {
       existingPeople: [],
       classGroups: [],
       studentByPersonId: new Map(),
       students,
-      existingReceipts,
+      openInvoices,
+      existingReceiptNumbers,
     } as PagamentosCache;
   },
 
@@ -49,19 +82,29 @@ export const pagamentosImporter: RowImporter = {
     const warnings: string[] = [];
 
     const studentIdent = normalizeText(
-      valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
+      valueOf(normalized, "student_identifier", "student_number", "aluno", "processo", "bi_aluno"),
     );
-    const amountVal = Number(valueOf(normalized, "amount", "valor", "montante"));
-    const receiptNum = normalizeText(
-      valueOf(normalized, "receipt_number", "recibo", "comprovativo"),
-    );
+    const amountVal = normalizeNumber(valueOf(normalized, "amount", "valor", "montante"));
+    const invoiceNum =
+      normalizeText(valueOf(normalized, "invoice_number", "fatura", "guia")) || null;
+    const receiptNum =
+      normalizeText(valueOf(normalized, "receipt_number", "recibo", "comprovativo")) || null;
 
     if (!studentIdent) errors.push("Identificador do aluno (Nº Processo ou BI) é obrigatório.");
-    if (!amountVal || isNaN(amountVal) || amountVal <= 0) {
+    if (!amountVal || amountVal <= 0) {
       errors.push("Valor do pagamento deve ser um número positivo em Kwanzas.");
     }
 
     if (errors.length) return { status: "error", warnings, errors };
+
+    if (receiptNum && cache.existingReceiptNumbers.has(receiptNum)) {
+      return {
+        status: "duplicate",
+        warnings: [`Recibo nº "${receiptNum}" já existe no sistema.`],
+        errors: [],
+        duplicate_of: receiptNum,
+      };
+    }
 
     const studentMatch = uniqueExactMatch(studentIdent, cache.students, [
       (s) => s.student_number,
@@ -74,13 +117,34 @@ export const pagamentosImporter: RowImporter = {
       errors.push(`Aluno "${studentIdent}" não encontrado nesta escola.`);
     }
 
-    if (receiptNum && cache.existingReceipts.has(receiptNum)) {
-      return {
-        status: "duplicate",
-        warnings: [`Recibo nº "${receiptNum}" já existe no sistema.`],
-        errors: [],
-        duplicate_of: receiptNum,
-      };
+    if (errors.length) return { status: "error", warnings, errors };
+
+    const monthRef = valueOf(normalized, "month_ref", "mes", "referencia");
+    const { invoice, wrongNumber, wrongMonth } = resolveTargetInvoice(
+      studentMatch.row!.id,
+      invoiceNum,
+      parseCompetenceMonth(monthRef),
+      cache.openInvoices,
+    );
+    if (!invoice) {
+      if (wrongNumber) {
+        errors.push(`Fatura nº "${invoiceNum}" não encontrada em aberto para este aluno.`);
+      } else if (wrongMonth) {
+        errors.push(
+          `Este aluno não tem fatura em aberto para "${normalizeText(monthRef)}". Importe a dívida desse mês primeiro, ou indique o nº da fatura a liquidar.`,
+        );
+      } else {
+        errors.push(
+          "Este aluno não tem nenhuma fatura em aberto para aplicar este pagamento. Importe a dívida primeiro.",
+        );
+      }
+      return { status: "error", warnings, errors };
+    }
+    if (amountVal! > invoice.remaining + 0.01) {
+      errors.push(
+        `Valor do pagamento (${amountVal}) excede o saldo em aberto da fatura ${invoice.invoice_number} (${invoice.remaining.toFixed(2)} Kz).`,
+      );
+      return { status: "error", warnings, errors };
     }
 
     return { status: warnings.length ? "warning" : "valid", warnings, errors: [] };
@@ -92,38 +156,48 @@ export const pagamentosImporter: RowImporter = {
     if (analysis.status === "error") {
       return { status: "error", warnings: analysis.warnings, errors: analysis.errors, audits: [] };
     }
-
-    const studentIdent = normalizeText(
-      valueOf(normalized, "student_identifier", "aluno", "processo", "bi_aluno"),
-    )!;
-    const amount = Number(valueOf(normalized, "amount", "valor", "montante"))!;
-    const method =
-      normalizeText(valueOf(normalized, "payment_method", "forma_pagamento", "canal")) ||
-      "Multicaixa";
-    const dateVal =
-      normalizeText(valueOf(normalized, "payment_date", "data_pagamento", "data")) ||
-      new Date().toISOString();
-    const reference = normalizeText(valueOf(normalized, "month_ref", "mes", "referencia"));
-
-    const studentMatch = uniqueExactMatch(studentIdent, cache.students, [
-      (s) => s.student_number,
-      (s) => s.national_id,
-    ]);
-    const student = studentMatch.row!;
-
-    const receiptNum =
-      normalizeText(valueOf(normalized, "receipt_number", "recibo", "comprovativo")) ||
-      `REC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-    if (cache.existingReceipts.has(receiptNum)) {
+    if (analysis.status === "duplicate") {
       return {
-        status: "ignored",
-        warnings: analysis.warnings.length
-          ? analysis.warnings
-          : [`Recibo "${receiptNum}" já existe. Linha ignorada.`],
+        status: "duplicate",
+        warnings: analysis.warnings,
         errors: [],
         audits: [],
-        target_record_id: receiptNum,
+        target_record_id: analysis.duplicate_of,
+      };
+    }
+
+    const studentIdent = normalizeText(
+      valueOf(normalized, "student_identifier", "student_number", "aluno", "processo", "bi_aluno"),
+    )!;
+    const amount = normalizeNumber(valueOf(normalized, "amount", "valor", "montante"))!;
+    const method = mapPaymentMethod(
+      valueOf(normalized, "payment_method", "payment_channel", "forma_pagamento", "canal"),
+    );
+    const paidOn =
+      normalizeDate(valueOf(normalized, "payment_date", "data_pagamento", "data")) ||
+      new Date().toISOString().slice(0, 10);
+    const invoiceNum =
+      normalizeText(valueOf(normalized, "invoice_number", "fatura", "guia")) || null;
+    const receiptHint = normalizeText(
+      valueOf(normalized, "receipt_number", "recibo", "comprovativo"),
+    );
+
+    const student = uniqueExactMatch(studentIdent, cache.students, [
+      (s) => s.student_number,
+      (s) => s.national_id,
+    ]).row!;
+    const { invoice } = resolveTargetInvoice(
+      student.id,
+      invoiceNum,
+      parseCompetenceMonth(valueOf(normalized, "month_ref", "mes", "referencia")),
+      cache.openInvoices,
+    );
+    if (!invoice) {
+      return {
+        status: "error",
+        warnings: analysis.warnings,
+        errors: ["Este aluno não tem nenhuma fatura em aberto para aplicar este pagamento."],
+        audits: [],
       };
     }
 
@@ -133,55 +207,53 @@ export const pagamentosImporter: RowImporter = {
         warnings: analysis.warnings,
         errors: [],
         audits: [],
-        target_record_id: receiptNum,
+        target_record_id: invoice.id,
       };
     }
 
-    const { data, error } = await ctx.db
-      .from("payments")
-      .insert({
-        school_id: ctx.schoolId,
-        student_id: student.id,
-        receipt_number: receiptNum,
-        paid_at: dateVal,
+    let result;
+    try {
+      result = await registerReceiptDirect(ctx.db, {
+        schoolId: ctx.schoolId,
+        invoiceId: invoice.id,
+        invoiceAmount: invoice.amount,
         amount,
-        currency: "AOA",
-        method,
-        reference,
-        status: "completed",
-      })
-      .select("id")
-      .single();
-
-    if (error || !data) {
+        paymentMethod: method,
+        paidOn,
+        receivedBy: ctx.userId,
+        receiptNumberHint: receiptHint,
+      });
+    } catch (err) {
       return {
         status: "error",
         warnings: analysis.warnings,
-        errors: [`Erro ao registar pagamento: ${error?.message ?? "falha no banco"}`],
+        errors: [err instanceof Error ? err.message : "Erro ao registar pagamento."],
         audits: [],
       };
     }
 
-    cache.existingReceipts.add(receiptNum);
+    invoice.remaining = Math.max(0, invoice.remaining - amount);
+    cache.existingReceiptNumbers.add(result.receiptNumber);
+
     return {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
       audits: [
         {
-          table_name: "payments",
-          target_id: String(data.id),
+          table_name: "finance_receipts",
+          target_id: result.receiptId,
           action_type: "inserted",
           after_data: {
             school_id: ctx.schoolId,
-            student_id: student.id,
-            receipt_number: receiptNum,
+            invoice_id: invoice.id,
+            receipt_number: result.receiptNumber,
             amount,
-            method,
+            payment_method: method,
           },
         },
       ],
-      target_record_id: String(data.id),
+      target_record_id: result.receiptId,
     };
   },
 };

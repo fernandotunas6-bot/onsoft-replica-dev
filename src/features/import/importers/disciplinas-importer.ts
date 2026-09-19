@@ -1,4 +1,4 @@
-import { normalizeText } from "../engine/normalize";
+import { normalizeNumber, normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { uniqueExactMatch } from "./academic-core";
 
@@ -62,7 +62,18 @@ export const disciplinasImporter: RowImporter = {
       };
     }
 
-    return { status: "valid", warnings, errors: [] };
+    // `subjects` guarda a carga ANUAL (`annual_hours`); a folha já pediu horas semanais.
+    // Não se converte por um multiplicador inventado — avisa-se, e grava-se o que veio.
+    const horas = normalizeNumber(
+      valueOf(normalized, "annual_hours", "workload_hours", "carga_horaria", "horas", "tempos"),
+    );
+    if (horas !== null && horas > 0 && horas < 30) {
+      warnings.push(
+        `Carga horária de ${horas}h parece semanal, mas é gravada como carga ANUAL. Confirme o valor.`,
+      );
+    }
+
+    return { status: warnings.length ? "warning" : "valid", warnings, errors: [] };
   },
 
   async commitRow(normalized, ctx, rawCache) {
@@ -74,7 +85,10 @@ export const disciplinasImporter: RowImporter = {
 
     const code = normalizeText(valueOf(normalized, "code", "codigo", "sigla"))!;
     const name = normalizeText(valueOf(normalized, "name", "nome", "disciplina"))!;
-    const weeklyHours = Number(valueOf(normalized, "workload_hours", "horas", "tempos")) || 3;
+    const annualHours =
+      normalizeNumber(
+        valueOf(normalized, "annual_hours", "workload_hours", "carga_horaria", "horas", "tempos"),
+      ) ?? null;
 
     if (analysis.status === "duplicate") {
       return {
@@ -86,14 +100,26 @@ export const disciplinasImporter: RowImporter = {
       };
     }
 
+    if (ctx.dryRun) {
+      return {
+        status: "will_insert",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: [],
+        target_record_id: null,
+      };
+    }
+
     const { data, error } = await ctx.db
       .from("subjects")
       .insert({
         school_id: ctx.schoolId,
         code,
         name,
-        weekly_hours: weeklyHours,
+        annual_hours: annualHours,
         status: "active",
+        created_by: ctx.userId,
+        updated_by: ctx.userId,
       })
       .select("id")
       .single();

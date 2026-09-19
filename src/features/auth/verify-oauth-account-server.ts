@@ -45,7 +45,7 @@ export const verifyOAuthAccountFn = createServerFn({ method: "POST" })
       try {
         await db.from("saas_audit_logs").insert({
           action: "oauth_account_rejected_and_deleted",
-          entity_type: "auth",
+          entity: "auth",
           entity_id: context.userId,
           metadata: { timestamp: new Date().toISOString() },
         });

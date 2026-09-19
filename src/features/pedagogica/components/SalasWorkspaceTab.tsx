@@ -137,12 +137,12 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           <p className="mt-1 text-xs text-muted-foreground">Espaços físicos cadastrados</p>
         </div>
 
-        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-soft">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Capacidade Total
             </span>
-            <Building2 className="size-5 text-emerald-500" />
+            <Building2 className="size-5 text-success" />
           </div>
           <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
             {totalCapacidade}
@@ -150,12 +150,12 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           <p className="mt-1 text-xs text-muted-foreground">Lugares para estudantes</p>
         </div>
 
-        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-soft">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Laboratórios & Oficinas
             </span>
-            <Monitor className="size-5 text-blue-500" />
+            <Monitor className="size-5 text-primary" />
           </div>
           <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
             {laboratoriosCount}
@@ -163,12 +163,12 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           <p className="mt-1 text-xs text-muted-foreground">Ambientes especializados</p>
         </div>
 
-        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-soft">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Regra de Capacidade
             </span>
-            <CheckCircle2 className="size-5 text-amber-500" />
+            <CheckCircle2 className="size-5 text-warning" />
           </div>
           <p className="mt-2 text-base font-bold tracking-tight text-foreground">
             Anti-Superlotação
@@ -316,7 +316,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
                           room.status === "active"
-                            ? "bg-emerald-500/10 text-emerald-600"
+                            ? "bg-success/15 text-success"
                             : "bg-muted text-muted-foreground"
                         }`}
                       >

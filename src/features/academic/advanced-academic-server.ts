@@ -547,8 +547,8 @@ export async function assertScheduleSlotConflictsDetailed({
       .from("enrollments")
       .select("id", { count: "exact", head: true })
       .eq("class_group_id", classGroupId)
-      .eq("school_id", schoolId)
-      .is("deleted_at", null);
+      .eq("school_id", schoolId);
+    // `enrollments` não tem `deleted_at`: filtrar por ela recusava a consulta inteira.
 
     const actualStudents = enrolledCount ?? groupData?.capacity ?? 0;
     if (roomData?.capacity && actualStudents > roomData.capacity) {

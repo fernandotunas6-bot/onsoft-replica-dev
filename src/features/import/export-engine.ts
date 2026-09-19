@@ -24,6 +24,53 @@ export interface ExportResult {
   recordCount: number;
 }
 
+/** O PostgREST devolve um embed como objecto ou como array de um, conforme a cardinalidade. */
+function first<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+type PersonEmbed = { full_name?: string | null; national_id?: string | null };
+type StudentEmbed = { student_number?: string | null; people?: PersonEmbed | PersonEmbed[] | null };
+type EnrollmentEmbed = { students?: StudentEmbed | StudentEmbed[] | null };
+type ContractEmbed = { enrollments?: EnrollmentEmbed | EnrollmentEmbed[] | null };
+
+/**
+ * O aluno de uma fatura. `finance_invoices` não tem `student_id` nem relação directa com
+ * `students`: a ligação é `finance_contracts → enrollments → students`. O embed
+ * `students(…)` que aqui estava não existe como relação, pelo que o PostgREST recusava a
+ * consulta inteira e a exportação saía vazia.
+ */
+function studentOfInvoice(invoice: {
+  finance_contracts?: ContractEmbed | ContractEmbed[] | null;
+}): StudentEmbed | null {
+  const contract = first(invoice.finance_contracts);
+  const enrollment = first(contract?.enrollments);
+  return first(enrollment?.students);
+}
+
+/**
+ * Quanto foi liquidado, quando e por que via. Não há `amount_paid`/`paid_at`/
+ * `payment_channel` em `finance_invoices` — o pagamento são linhas de `finance_receipts`,
+ * e uma fatura pode ter mais do que uma.
+ */
+function settlementOfInvoice(invoice: { finance_receipts?: unknown }) {
+  const raw = invoice.finance_receipts;
+  const receipts = (Array.isArray(raw) ? raw : raw ? [raw] : []) as Array<{
+    amount?: number | string;
+    paid_on?: string;
+    payment_method?: string;
+  }>;
+  const emitidos = receipts.filter((r) => r.paid_on);
+  const paid = receipts.reduce((total, r) => total + Number(r.amount || 0), 0);
+  const ultimo = emitidos.sort((a, b) => String(a.paid_on).localeCompare(String(b.paid_on))).at(-1);
+  return {
+    paid: paid > 0 ? paid : "",
+    lastPaidOn: ultimo?.paid_on ? String(ultimo.paid_on).slice(0, 10) : "",
+    method: ultimo?.payment_method || "",
+  };
+}
+
 /**
  * Motor oficial de exportação de dados escolares do SIGA.
  * Suporta modo Humano (formatado para leitura) e SIGA Exchange (reimportável com 00_MANIFESTO).
@@ -123,7 +170,7 @@ export async function exportSchoolData(
           `
           id,
           employee_number,
-          specialty,
+          highest_qualification,
           people!inner(
             full_name,
             national_id,
@@ -133,8 +180,8 @@ export async function exportSchoolData(
           )
         `,
         )
-        .eq("school_id", options.schoolId)
-        .is("deleted_at", null);
+        .eq("school_id", options.schoolId);
+      // `teachers` não tem `deleted_at`: filtrar por ela recusava a consulta inteira.
 
       const rows = teachers || [];
       counts["professores"] = rows.length;
@@ -166,7 +213,7 @@ export async function exportSchoolData(
           p?.sex || "",
           p?.phone || "",
           p?.email || "",
-          t.specialty || "",
+          t.highest_qualification || "",
         ]);
       }
       autoFitColumns(sheet);
@@ -182,12 +229,11 @@ export async function exportSchoolData(
           code,
           shift,
           capacity,
-          room,
           grade_levels(name)
         `,
         )
-        .eq("school_id", options.schoolId)
-        .is("deleted_at", null);
+        .eq("school_id", options.schoolId);
+      // `class_groups` não tem `deleted_at`: filtrar por ela recusava a consulta inteira.
 
       if (options.academicYearId) {
         query = query.eq("academic_year_id", options.academicYearId);
@@ -208,7 +254,6 @@ export async function exportSchoolData(
         "Código da Turma",
         "Classe / Grau",
         "Turno / Período",
-        "Sala de Aula",
         "Lotação / Capacidade",
       ];
       const hRow = sheet.addRow(headers);
@@ -221,7 +266,6 @@ export async function exportSchoolData(
           c.code || "",
           gl?.name || "",
           c.shift || "",
-          c.room || "",
           c.capacity != null ? c.capacity : "",
         ]);
       }
@@ -243,8 +287,8 @@ export async function exportSchoolData(
           class_groups!inner(name)
         `,
         )
-        .eq("school_id", options.schoolId)
-        .is("deleted_at", null);
+        .eq("school_id", options.schoolId);
+      // `enrollments` não tem `deleted_at`: filtrar por ela recusava a consulta inteira.
 
       if (options.academicYearId) {
         query = query.eq("academic_year_id", options.academicYearId);
@@ -366,19 +410,22 @@ export async function exportSchoolData(
           id,
           invoice_number,
           amount,
-          amount_paid,
+          discount_amount,
           status,
           due_date,
-          paid_at,
-          payment_channel,
-          students(
-            student_number,
-            people(full_name)
-          )
+          finance_contracts!inner(
+            enrollments!inner(
+              students!inner(
+                student_number,
+                people(full_name)
+              )
+            )
+          ),
+          finance_receipts(amount, paid_on, payment_method)
         `,
         )
-        .eq("school_id", options.schoolId)
-        .is("deleted_at", null);
+        .eq("school_id", options.schoolId);
+      // `finance_invoices` não tem `deleted_at`: filtrar por ela recusava a consulta inteira.
 
       const rows = invoices || [];
       counts[mod] = rows.length;
@@ -404,18 +451,19 @@ export async function exportSchoolData(
       styleHeaderRow(hRow, options.mode);
 
       for (const inv of rows) {
-        const std = Array.isArray(inv.students) ? inv.students[0] : inv.students;
-        const p = std?.people ? (Array.isArray(std.people) ? std.people[0] : std.people) : null;
+        const std = studentOfInvoice(inv);
+        const p = first(std?.people);
+        const liquidacao = settlementOfInvoice(inv);
         sheet.addRow([
           inv.invoice_number || "",
           std?.student_number || "",
           p?.full_name || "",
           inv.amount != null ? inv.amount : "",
-          inv.amount_paid != null ? inv.amount_paid : "",
+          liquidacao.paid,
           inv.status || "",
           inv.due_date || "",
-          inv.paid_at ? inv.paid_at.slice(0, 10) : "",
-          inv.payment_channel || "",
+          liquidacao.lastPaidOn,
+          liquidacao.method,
         ]);
       }
       autoFitColumns(sheet);
@@ -647,19 +695,22 @@ export async function exportSchoolData(
           id,
           invoice_number,
           amount,
-          amount_paid,
+          discount_amount,
           status,
           due_date,
-          paid_at,
-          payment_channel,
-          students(
-            student_number,
-            people(full_name, national_id)
-          )
+          finance_contracts!inner(
+            enrollments!inner(
+              students!inner(
+                student_number,
+                people(full_name, national_id)
+              )
+            )
+          ),
+          finance_receipts(amount, paid_on, payment_method)
         `,
         )
         .eq("school_id", options.schoolId)
-        .is("deleted_at", null)
+        // `finance_invoices` não tem `deleted_at`: filtrar por ela recusava a consulta inteira.
         .order("due_date", { ascending: false });
 
       const rows = invoices || [];
@@ -687,23 +738,20 @@ export async function exportSchoolData(
       styleHeaderRow(hRow, options.mode);
 
       for (const inv of rows) {
-        const std = Array.isArray(inv.students) ? inv.students[0] : inv.students;
-        const person = std?.people
-          ? Array.isArray(std.people)
-            ? std.people[0]
-            : std.people
-          : null;
+        const std = studentOfInvoice(inv);
+        const person = first(std?.people);
+        const liquidacao = settlementOfInvoice(inv);
         sheet.addRow([
           inv.invoice_number || "",
           std?.student_number || "",
           person?.full_name || "",
           person?.national_id || "",
           inv.amount != null ? inv.amount : "",
-          inv.amount_paid != null ? inv.amount_paid : "",
+          liquidacao.paid,
           inv.status || "",
           inv.due_date || "",
-          inv.paid_at ? String(inv.paid_at).slice(0, 10) : "",
-          inv.payment_channel || "",
+          liquidacao.lastPaidOn,
+          liquidacao.method,
         ]);
       }
       autoFitColumns(sheet);

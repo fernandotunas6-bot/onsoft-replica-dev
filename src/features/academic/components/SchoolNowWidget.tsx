@@ -22,8 +22,8 @@ export function SchoolNowWidget() {
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/40 pb-3">
         <div className="flex items-center gap-2.5">
           <div className="relative flex size-3">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex size-3 rounded-full bg-emerald-500" />
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-success/60 opacity-75" />
+            <span className="relative inline-flex size-3 rounded-full bg-success" />
           </div>
           <div>
             <h4 className="text-sm font-semibold tracking-tight">Agora na Escola</h4>
@@ -42,7 +42,7 @@ export function SchoolNowWidget() {
         <div className="rounded-xl border border-border/50 bg-background/60 p-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Turmas em Aula</span>
-            <School className="size-4 text-blue-500" />
+            <School className="size-4 text-primary" />
           </div>
           <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
             {data.classesActiveNow}
@@ -52,7 +52,7 @@ export function SchoolNowWidget() {
         <div className="rounded-xl border border-border/50 bg-background/60 p-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Professores em Aula</span>
-            <Users className="size-4 text-purple-500" />
+            <Users className="size-4 text-primary" />
           </div>
           <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
             {data.teachersActiveNow}
@@ -62,7 +62,7 @@ export function SchoolNowWidget() {
         <div className="rounded-xl border border-border/50 bg-background/60 p-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Salas Ocupadas</span>
-            <DoorOpen className="size-4 text-amber-500" />
+            <DoorOpen className="size-4 text-warning" />
           </div>
           <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
             {data.roomsOccupiedNow}
@@ -72,7 +72,7 @@ export function SchoolNowWidget() {
         <div className="rounded-xl border border-border/50 bg-background/60 p-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Salas Livres</span>
-            <DoorOpen className="size-4 text-emerald-500" />
+            <DoorOpen className="size-4 text-success" />
           </div>
           <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
             {data.roomsFreeNow}{" "}
@@ -82,12 +82,12 @@ export function SchoolNowWidget() {
       </div>
 
       {data.recommendations && data.recommendations.length > 0 && (
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
-          <Sparkles className="size-4 shrink-0 text-amber-600 mt-0.5" />
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+          <Sparkles className="size-4 shrink-0 text-warning mt-0.5" />
           <div className="space-y-1">
-            <span className="font-semibold">Recomendação Pedagógica:</span>
+            <span className="font-semibold text-foreground">Recomendação Pedagógica:</span>
             {data.recommendations.map((rec, i) => (
-              <p key={i} className="text-muted-foreground dark:text-amber-300/80">
+              <p key={i} className="text-muted-foreground">
                 {rec}
               </p>
             ))}

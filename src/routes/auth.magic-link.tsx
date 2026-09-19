@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { getAppName } from "@/lib/app-config";
 
+// style-check: route-exempt - fluxo de autenticação por magic link.
 export const Route = createFileRoute("/auth/magic-link")({
   head: () => ({
     meta: [{ title: `Entrar · ${getAppName()}` }],
@@ -120,8 +121,8 @@ function MagicLinkCallbackPage() {
               </div>
             )}
             {status === "success" && (
-              <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900 p-4 text-sm text-emerald-800 dark:text-emerald-300">
-                <ShieldCheck className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+              <div className="flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 p-4 text-sm text-success">
+                <ShieldCheck className="size-5 shrink-0 text-success mt-0.5" />
                 <p>A redireccionar para o portal…</p>
               </div>
             )}

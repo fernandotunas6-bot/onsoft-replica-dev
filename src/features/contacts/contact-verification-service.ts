@@ -148,173 +148,172 @@ export class ContactVerificationService {
   }
 
   /**
-   * Atualiza o endereço de email e marca como não verificado.
+   * As oito operações abaixo eram oito cópias do mesmo bloco de catorze linhas: pedir o
+   * cliente, `update(…)` com `.eq("user_id", …)`, e traduzir o erro. A forma repetida
+   * escondia duas coisas — que os três canais são o mesmo caso parametrizado, e que o
+   * `updated_at` que cada uma enviava deixou de ter efeito.
    */
-  public static async updateEmailAddress(userId: string, newEmail: string): Promise<void> {
+  private static readonly COLUNAS_POR_CANAL: Record<
+    ContactChannel,
+    { contacto: string; verificado: string; verificadoEm: string; ultimoEnvio: string }
+  > = {
+    email: {
+      contacto: "email_address",
+      verificado: "email_verified",
+      verificadoEm: "email_verified_at",
+      ultimoEnvio: "last_email_sent_at",
+    },
+    sms: {
+      contacto: "phone_number",
+      verificado: "phone_verified",
+      verificadoEm: "phone_verified_at",
+      ultimoEnvio: "last_sms_sent_at",
+    },
+    whatsapp: {
+      contacto: "whatsapp_number",
+      verificado: "whatsapp_verified",
+      verificadoEm: "whatsapp_verified_at",
+      ultimoEnvio: "last_whatsapp_sent_at",
+    },
+  };
+
+  /**
+   * Aplica um patch ao perfil do utilizador.
+   *
+   * Não envia `updated_at`: o trigger `siga_touch_updated_at_and_version` da tabela
+   * escreve-o (e incrementa `version`) em cada UPDATE, pelo que o valor que o cliente
+   * mandasse era substituído antes de chegar ao disco. Mandá-lo dava a impressão de que
+   * era o serviço a controlar o carimbo, que não é.
+   */
+  private static async patchProfile(
+    userId: string,
+    patch: Record<string, unknown>,
+    falha: string,
+  ): Promise<void> {
     const db = await loadSgaAdminClient();
 
     const { error } = await db
       .from("contact_verification_profiles")
-      .update({
-        email_address: newEmail.toLowerCase().trim(),
-        email_verified: false,
-        email_verified_at: null,
-        updated_at: new Date().toISOString(),
-      })
+      .update(patch)
       .eq("user_id", userId);
 
     if (error) {
-      throw new Error(`Falha ao atualizar email: ${error.message}`);
+      throw new Error(`${falha}: ${error.message}`);
     }
+  }
+
+  /** Grava o contacto de um canal e volta a pô-lo por verificar. */
+  private static async setContacto(
+    userId: string,
+    canal: ContactChannel,
+    valor: string,
+    falha: string,
+  ): Promise<void> {
+    const colunas = this.COLUNAS_POR_CANAL[canal];
+    await this.patchProfile(
+      userId,
+      {
+        [colunas.contacto]: valor,
+        [colunas.verificado]: false,
+        [colunas.verificadoEm]: null,
+      },
+      falha,
+    );
+  }
+
+  /** Marca o canal como verificado, com o momento em que o foi. */
+  private static async marcarVerificado(
+    userId: string,
+    canal: ContactChannel,
+    falha: string,
+  ): Promise<void> {
+    const colunas = this.COLUNAS_POR_CANAL[canal];
+    await this.patchProfile(
+      userId,
+      {
+        [colunas.verificado]: true,
+        [colunas.verificadoEm]: new Date().toISOString(),
+      },
+      falha,
+    );
+  }
+
+  /**
+   * Atualiza o endereço de email e marca como não verificado.
+   */
+  public static async updateEmailAddress(userId: string, newEmail: string): Promise<void> {
+    await this.setContacto(
+      userId,
+      "email",
+      newEmail.toLowerCase().trim(),
+      "Falha ao atualizar email",
+    );
   }
 
   /**
    * Marca o email como verificado.
    */
   public static async markEmailAsVerified(userId: string): Promise<void> {
-    const db = await loadSgaAdminClient();
-
-    const { error } = await db
-      .from("contact_verification_profiles")
-      .update({
-        email_verified: true,
-        email_verified_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(`Falha ao marcar email como verificado: ${error.message}`);
-    }
+    await this.marcarVerificado(userId, "email", "Falha ao marcar email como verificado");
   }
 
   /**
    * Atualiza o número de telefone e marca como não verificado.
    */
   public static async updatePhoneNumber(userId: string, phoneNumber: string): Promise<void> {
-    const db = await loadSgaAdminClient();
-
-    const { error } = await db
-      .from("contact_verification_profiles")
-      .update({
-        phone_number: phoneNumber,
-        phone_verified: false,
-        phone_verified_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(`Falha ao atualizar telefone: ${error.message}`);
-    }
+    await this.setContacto(userId, "sms", phoneNumber, "Falha ao atualizar telefone");
   }
 
   /**
    * Marca o telefone como verificado.
    */
   public static async markPhoneAsVerified(userId: string): Promise<void> {
-    const db = await loadSgaAdminClient();
-
-    const { error } = await db
-      .from("contact_verification_profiles")
-      .update({
-        phone_verified: true,
-        phone_verified_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(`Falha ao marcar telefone como verificado: ${error.message}`);
-    }
+    await this.marcarVerificado(userId, "sms", "Falha ao marcar telefone como verificado");
   }
 
   /**
    * Atualiza o número do WhatsApp e marca como não verificado.
    */
   public static async updateWhatsappNumber(userId: string, whatsappNumber: string): Promise<void> {
-    const db = await loadSgaAdminClient();
-
-    const { error } = await db
-      .from("contact_verification_profiles")
-      .update({
-        whatsapp_number: whatsappNumber,
-        whatsapp_verified: false,
-        whatsapp_verified_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(`Falha ao atualizar WhatsApp: ${error.message}`);
-    }
+    await this.setContacto(userId, "whatsapp", whatsappNumber, "Falha ao atualizar WhatsApp");
   }
 
   /**
    * Marca o WhatsApp como verificado.
    */
   public static async markWhatsappAsVerified(userId: string): Promise<void> {
-    const db = await loadSgaAdminClient();
-
-    const { error } = await db
-      .from("contact_verification_profiles")
-      .update({
-        whatsapp_verified: true,
-        whatsapp_verified_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(`Falha ao marcar WhatsApp como verificado: ${error.message}`);
-    }
+    await this.marcarVerificado(userId, "whatsapp", "Falha ao marcar WhatsApp como verificado");
   }
 
   /**
    * Atualiza o canal de comunicação preferido.
    */
   public static async setPreferredChannel(userId: string, channel: ContactChannel): Promise<void> {
-    const db = await loadSgaAdminClient();
-
-    const { error } = await db
-      .from("contact_verification_profiles")
-      .update({
-        preferred_communication_channel: channel,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(`Falha ao atualizar canal preferido: ${error.message}`);
-    }
+    await this.patchProfile(
+      userId,
+      { preferred_communication_channel: channel },
+      "Falha ao atualizar canal preferido",
+    );
   }
 
   /**
    * Registra o horário do último envio para um canal específico.
+   *
+   * Best-effort: um carimbo de auditoria perdido não deve fazer falhar o envio que o
+   * originou, por isso regista o erro e não o lança.
    */
   public static async recordLastMessageSent(
     userId: string,
     channel: ContactChannel,
   ): Promise<void> {
-    const db = await loadSgaAdminClient();
-
-    const columnMap: Record<ContactChannel, string> = {
-      email: "last_email_sent_at",
-      sms: "last_sms_sent_at",
-      whatsapp: "last_whatsapp_sent_at",
-    };
-
-    const { error } = await db
-      .from("contact_verification_profiles")
-      .update({
-        [columnMap[channel]]: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    if (error) {
-      console.error(`Falha ao registar envio: ${error.message}`);
-      // Não lança erro — esta é uma operação de audit best-effort
+    try {
+      await this.patchProfile(
+        userId,
+        { [this.COLUNAS_POR_CANAL[channel].ultimoEnvio]: new Date().toISOString() },
+        "Falha ao registar envio",
+      );
+    } catch (erro) {
+      console.error(erro instanceof Error ? erro.message : String(erro));
     }
   }
 

@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -379,8 +380,8 @@ export function DigitalIdentityPanel() {
           <div className="rounded-xl border bg-card p-5 shadow-sm space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">
+                  <span className="size-1.5 rounded-full bg-success animate-pulse" />
                   Portal Activo
                 </span>
                 <h4 className="mt-2 text-sm font-semibold text-foreground">
@@ -434,8 +435,8 @@ export function DigitalIdentityPanel() {
         {/* 2. ABA DOMÍNIO PERSONALIZADO */}
         <TabsContent value="dominio" className="space-y-4 pt-4">
           {!hasCustomDomainAccess ? (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3">
-              <div className="mx-auto size-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+            <div className="rounded-xl border border-warning/30 bg-warning/5 p-5 text-center space-y-3">
+              <div className="mx-auto size-10 rounded-full bg-warning/10 flex items-center justify-center text-warning">
                 <Lock className="size-5" />
               </div>
               <div>
@@ -450,7 +451,7 @@ export function DigitalIdentityPanel() {
               <Button
                 size="sm"
                 asChild
-                className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
+                className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
               >
                 <a href={getPricingUrl()} target="_blank" rel="noreferrer">
                   <Sparkles className="size-3.5" />
@@ -535,14 +536,14 @@ export function DigitalIdentityPanel() {
               )}
 
               {domainVerificationStatus === "success" && (
-                <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                <div className="flex items-center gap-2 text-xs text-success bg-success/10 p-2.5 rounded-lg border border-success/20">
                   <CheckCircle2 className="size-4 shrink-0" />
                   <span>Domínio validado com sucesso. Certificado SSL provisionado e activo.</span>
                 </div>
               )}
 
               {domainVerificationStatus === "pending" && (
-                <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 p-2.5 rounded-lg border border-warning/20">
                   <LoaderCircle className="size-4 shrink-0 animate-spin" />
                   <span>A aguardar propagação DNS. Pode levar até 24 horas.</span>
                 </div>
@@ -567,7 +568,7 @@ export function DigitalIdentityPanel() {
               <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 E-mail Institucional da Escola
                 {emailRouteActive && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-success/15 text-success">
                     Activo
                   </span>
                 )}
@@ -635,8 +636,8 @@ export function DigitalIdentityPanel() {
         {/* 4. ABA BRANDING */}
         <TabsContent value="branding" className="space-y-4 pt-4">
           {!hasAdvancedBrandingAccess ? (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3">
-              <div className="mx-auto size-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+            <div className="rounded-xl border border-warning/30 bg-warning/5 p-5 text-center space-y-3">
+              <div className="mx-auto size-10 rounded-full bg-warning/10 flex items-center justify-center text-warning">
                 <Lock className="size-5" />
               </div>
               <div>
@@ -649,7 +650,7 @@ export function DigitalIdentityPanel() {
               <Button
                 size="sm"
                 asChild
-                className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
+                className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
               >
                 <a href={getPricingUrl()} target="_blank" rel="noreferrer">
                   <Sparkles className="size-3.5" />
@@ -685,11 +686,14 @@ export function DigitalIdentityPanel() {
                 <Label className="text-xs">Logótipo da Escola</Label>
                 <div className="flex items-center gap-4">
                   {logoUrl ? (
-                    <div className="size-12 rounded border flex items-center justify-center overflow-hidden bg-white">
-                      <img
+                    <div className="size-12 rounded border flex items-center justify-center overflow-hidden bg-background">
+                      <MediaFrame
                         src={logoUrl}
                         alt="Logo"
-                        className="max-h-full max-w-full object-contain"
+                        ratio="1/1"
+                        rounded="rounded"
+                        className="size-full"
+                        imgClassName="object-contain"
                       />
                     </div>
                   ) : (
@@ -742,7 +746,7 @@ export function DigitalIdentityPanel() {
                     />
                   </div>
                   {isValidBrandHex(primaryColor) && !isReadableBrandColor(primaryColor) ? (
-                    <p className="text-[10px] text-amber-700 dark:text-amber-300">
+                    <p className="text-[10px] text-warning">
                       Contraste baixo para botões — o SIGA bloqueará o guardar.
                     </p>
                   ) : null}
@@ -793,7 +797,7 @@ export function DigitalIdentityPanel() {
                     Link
                   </span>
                   <span
-                    className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium text-white"
+                    className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium text-primary-foreground"
                     style={{
                       backgroundColor: isValidBrandHex(secondaryColor) ? secondaryColor : "#1E293B",
                     }}

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -95,29 +96,53 @@ function AlumniProfilePage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1500px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button variant="ghost" asChild className="rounded-xl">
-            <Link to="/alumni">
-              <ArrowLeft className="mr-2 size-4" />
-              Voltar à rede Alumni
-            </Link>
-          </Button>
-          {!profile.verified_at ? (
-            <Button
-              onClick={() => verifyMutation.mutate()}
-              disabled={verifyMutation.isPending}
-              className="rounded-xl"
-            >
-              <ShieldCheck className="mr-2 size-4" />
-              Verificar identidade
-            </Button>
-          ) : (
-            <span className="inline-flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-xs font-bold text-success">
-              <BadgeCheck className="size-4" />
-              Identidade verificada
-            </span>
-          )}
-        </div>
+        <PageHeader
+          group="Alumni"
+          title="Ficha Alumni 360º"
+          description={
+            profile.headline ||
+            profile.current_role ||
+            "Acompanhamento profissional, competências e histórico de pós-formação."
+          }
+          icon={UserRound}
+          crumbs={[
+            { label: "Início", to: "/" },
+            { label: "Alumni", to: "/alumni" },
+            { label: "Perfil" },
+          ]}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni">
+                  <ArrowLeft className="mr-1.5 size-3.5" />
+                  Voltar à rede
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/$alumniId/portfolio" params={{ alumniId }}>
+                  <BriefcaseBusiness className="mr-1.5 size-3.5" />
+                  Portfólio 360º
+                </Link>
+              </Button>
+              {!profile.verified_at ? (
+                <Button
+                  size="sm"
+                  onClick={() => verifyMutation.mutate()}
+                  disabled={verifyMutation.isPending}
+                  className="rounded-xl h-9 text-xs"
+                >
+                  <ShieldCheck className="mr-1.5 size-3.5" />
+                  Verificar identidade
+                </Button>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-bold text-success border border-success/20">
+                  <BadgeCheck className="size-3.5" />
+                  Identidade verificada
+                </span>
+              )}
+            </div>
+          }
+        />
 
         <section className="overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-sm">
           <div className="relative bg-gradient-to-br from-primary/15 via-background to-success/10 p-6 md:p-8">

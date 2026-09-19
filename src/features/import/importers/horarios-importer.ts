@@ -1,12 +1,20 @@
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
-import { uniqueExactMatch } from "./academic-core";
+import {
+  loadClassSubjectRefs,
+  loadTeacherRefs,
+  uniqueExactMatch,
+  type ClassSubjectRef,
+  type TeacherRef,
+} from "./academic-core";
 
 type Ref = { id: string; code: string; name: string };
 type HorariosCache = ImportRefCache & {
   classGroups: Ref[];
   subjects: Ref[];
-  existingSlots: Set<string>; // key: `${class_group_id}:${weekday}:${starts_at}`
+  teachers: TeacherRef[];
+  classSubjects: ClassSubjectRef[];
+  existingSlots: Set<string>; // key: `${class_subject_id}:${weekday}:${starts_at}`
 };
 
 function valueOf(row: Record<string, unknown>, ...keys: string[]) {
@@ -29,16 +37,34 @@ function parseWeekday(val: unknown): number | null {
   return null;
 }
 
+function classSubjectKey(classGroupId: string, subjectId: string) {
+  return `${classGroupId}:${subjectId}`;
+}
+
+function resolveClassSubject(
+  classGroupId: string,
+  subjectId: string,
+  classSubjects: ClassSubjectRef[],
+): ClassSubjectRef | null {
+  return (
+    classSubjects.find(
+      (row) => row.class_group_id === classGroupId && row.subject_id === subjectId,
+    ) ?? null
+  );
+}
+
 export const horariosImporter: RowImporter = {
   module: "horarios",
 
   async loadRefCache(ctx) {
-    const [groups, subjects, slotRows] = await Promise.all([
+    const [groups, subjects, teachers, classSubjects, slotRows] = await Promise.all([
       ctx.db.from("class_groups").select("id, code, name").eq("school_id", ctx.schoolId),
       ctx.db.from("subjects").select("id, code, name").eq("school_id", ctx.schoolId),
+      loadTeacherRefs(ctx.db, ctx.schoolId),
+      loadClassSubjectRefs(ctx.db, ctx.schoolId),
       ctx.db
-        .from("class_schedule_slots")
-        .select("class_group_id, weekday, starts_at")
+        .from("timetable_slots")
+        .select("class_subject_id, weekday, starts_at")
         .eq("school_id", ctx.schoolId),
     ]);
 
@@ -50,7 +76,7 @@ export const horariosImporter: RowImporter = {
 
     const existingSlots = new Set(
       (slotRows.data ?? []).map(
-        (r) => `${r.class_group_id}:${r.weekday}:${normalizeText(r.starts_at)}`,
+        (r) => `${r.class_subject_id}:${r.weekday}:${normalizeText(r.starts_at)}`,
       ),
     );
 
@@ -67,6 +93,8 @@ export const horariosImporter: RowImporter = {
         code: String(r.code ?? ""),
         name: String(r.name ?? ""),
       })),
+      teachers,
+      classSubjects,
       existingSlots,
     } as HorariosCache;
   },
@@ -78,6 +106,7 @@ export const horariosImporter: RowImporter = {
 
     const groupVal = valueOf(normalized, "class_group", "turma", "codigo_turma");
     const subjectVal = valueOf(normalized, "subject", "disciplina", "materia");
+    const teacherVal = valueOf(normalized, "teacher_identifier", "professor", "docente", "agente");
     const weekday = parseWeekday(valueOf(normalized, "weekday", "dia", "dia_semana"));
     const startTime = normalizeText(valueOf(normalized, "start_time", "inicio", "hora_inicio"));
     const endTime = normalizeText(valueOf(normalized, "end_time", "fim", "hora_fim"));
@@ -103,10 +132,27 @@ export const horariosImporter: RowImporter = {
     else if (!subjMatch.row)
       errors.push(`Disciplina "${normalizeText(subjectVal)}" não encontrada nesta escola.`);
 
+    if (teacherVal) {
+      const teacherMatch = uniqueExactMatch(teacherVal, cache.teachers, [
+        (t) => t.employee_number,
+        (t) => t.national_id,
+      ]);
+      if (teacherMatch.ambiguous) {
+        errors.push(`Professor "${normalizeText(teacherVal)}" é ambíguo; use o nº de agente.`);
+      } else if (!teacherMatch.row) {
+        errors.push(`Professor "${normalizeText(teacherVal)}" não encontrado nesta escola.`);
+      }
+    }
+
     if (errors.length) return { status: "error", warnings, errors };
 
-    const slotKey = `${groupMatch.row!.id}:${weekday}:${startTime}`;
-    if (cache.existingSlots.has(slotKey)) {
+    const slotKey = `${classSubjectKey(groupMatch.row!.id, subjMatch.row!.id)}:${weekday}:${startTime}`;
+    const classSubject = resolveClassSubject(
+      groupMatch.row!.id,
+      subjMatch.row!.id,
+      cache.classSubjects,
+    );
+    if (classSubject && cache.existingSlots.has(`${classSubject.id}:${weekday}:${startTime}`)) {
       return {
         status: "duplicate",
         warnings: ["Já existe uma aula agendada para esta turma neste dia e horário."],
@@ -127,17 +173,93 @@ export const horariosImporter: RowImporter = {
 
     const groupVal = valueOf(normalized, "class_group", "turma", "codigo_turma")!;
     const subjectVal = valueOf(normalized, "subject", "disciplina", "materia")!;
+    const teacherVal = valueOf(normalized, "teacher_identifier", "professor", "docente", "agente");
     const weekday = parseWeekday(valueOf(normalized, "weekday", "dia", "dia_semana"))!;
     const startTime = normalizeText(valueOf(normalized, "start_time", "inicio", "hora_inicio"))!;
     const endTime = normalizeText(valueOf(normalized, "end_time", "fim", "hora_fim"))!;
+    const room = normalizeText(valueOf(normalized, "room", "sala")) || "A definir";
 
     const group = uniqueExactMatch(groupVal, cache.classGroups, [
       (r) => r.code,
       (r) => r.name,
     ]).row!;
     const subj = uniqueExactMatch(subjectVal, cache.subjects, [(r) => r.code, (r) => r.name]).row!;
+    const teacher = teacherVal
+      ? uniqueExactMatch(teacherVal, cache.teachers, [
+          (t) => t.employee_number,
+          (t) => t.national_id,
+        ]).row
+      : null;
 
-    const slotKey = `${group.id}:${weekday}:${startTime}`;
+    const existingClassSubject = resolveClassSubject(group.id, subj.id, cache.classSubjects);
+
+    if (ctx.dryRun) {
+      if (
+        existingClassSubject &&
+        cache.existingSlots.has(`${existingClassSubject.id}:${weekday}:${startTime}`)
+      ) {
+        return {
+          status: "duplicate",
+          warnings: analysis.warnings,
+          errors: [],
+          audits: [],
+          target_record_id: `${existingClassSubject.id}:${weekday}:${startTime}`,
+        };
+      }
+      return {
+        status: "will_insert",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: [],
+        target_record_id: null,
+      };
+    }
+
+    let classSubject = existingClassSubject;
+    if (!classSubject) {
+      // Turma ainda não tem esta disciplina atribuída: cria a associação sem professor definido
+      // (4 tempos semanais por omissão), o mesmo que `applyCurriculumToClassGroup` faz quando o
+      // currículo é aplicado à turma pela interface. O horário é que está a fazer essa atribuição
+      // aqui — o professor pode entrar já, se a linha o indicar.
+      const { data, error } = await ctx.db
+        .from("class_subjects")
+        .insert({
+          school_id: ctx.schoolId,
+          class_group_id: group.id,
+          subject_id: subj.id,
+          teacher_id: teacher?.id ?? null,
+          weekly_periods: 4,
+          status: "active",
+          created_by: ctx.userId,
+          updated_by: ctx.userId,
+        })
+        .select("id, class_group_id, subject_id, teacher_id")
+        .single();
+      if (error) {
+        return {
+          status: "error",
+          warnings: analysis.warnings,
+          errors: [`Erro ao atribuir disciplina à turma: ${error.message}`],
+          audits: [],
+        };
+      }
+      classSubject = {
+        id: String(data.id),
+        class_group_id: String(data.class_group_id),
+        subject_id: String(data.subject_id),
+        teacher_id: data.teacher_id ? String(data.teacher_id) : null,
+      };
+      cache.classSubjects.push(classSubject);
+    } else if (teacher && !classSubject.teacher_id) {
+      await ctx.db
+        .from("class_subjects")
+        .update({ teacher_id: teacher.id, updated_by: ctx.userId })
+        .eq("id", classSubject.id)
+        .eq("school_id", ctx.schoolId);
+      classSubject.teacher_id = teacher.id;
+    }
+
+    const slotKey = `${classSubject.id}:${weekday}:${startTime}`;
     if (cache.existingSlots.has(slotKey)) {
       return {
         status: "duplicate",
@@ -149,15 +271,16 @@ export const horariosImporter: RowImporter = {
     }
 
     const { data, error } = await ctx.db
-      .from("class_schedule_slots")
+      .from("timetable_slots")
       .insert({
         school_id: ctx.schoolId,
-        class_group_id: group.id,
-        subject_id: subj.id,
+        class_subject_id: classSubject.id,
         weekday,
         starts_at: startTime,
         ends_at: endTime,
-        label: subj.name,
+        room,
+        status: "active",
+        created_by: ctx.userId,
       })
       .select("id")
       .single();

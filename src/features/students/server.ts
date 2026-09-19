@@ -933,15 +933,21 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
     });
 
     try {
+      // `audit_logs` tem `actor_user_id` e um `metadata` jsonb — não `actor_id`,
+      // `reason`, `before_data` nem `after_data`. Com esses nomes o PostgREST recusava
+      // a linha inteira, e o `catch` vazio engolia o erro: a mudança de estado do aluno
+      // nunca deixou rasto de auditoria.
       await db.from("audit_logs").insert({
         school_id: membership.schoolId,
-        actor_id: context.userId,
+        actor_user_id: context.userId,
         action: "student.status_change",
         entity_type: "student",
         entity_id: data.studentId,
-        reason: data.reason || null,
-        before_data: { status: previousStatus },
-        after_data: { status: nextStatus },
+        metadata: {
+          reason: data.reason || null,
+          before: { status: previousStatus },
+          after: { status: nextStatus },
+        },
       });
     } catch {
       // Fallback

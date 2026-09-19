@@ -37,6 +37,7 @@ import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { calendarIcsFeedUrl, calendarWebcalFeedUrl } from "@/features/calendar/ics";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -616,7 +617,7 @@ function CalendarioPage() {
               onYearMonthChange={setMonthOverride}
               onSelectDay={jumpToDay}
             />
-            <aside className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+            <aside className="space-y-3 rounded-xl border border-border bg-muted/20 p-4 shadow-card">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {selectedDay
                   ? new Date(`${selectedDay}T12:00:00`).toLocaleDateString("pt-PT", {
@@ -943,9 +944,16 @@ function CalendarioPage() {
                         {(() => {
                           const life = termLifecycle(event.event_date, event.ends_on, today);
                           return (
-                            <span className={cn(badgeBase, lifecycleTone(life))}>
-                              {termLifecycleLabels[life]}
-                            </span>
+                            <StatusBadge
+                              status={
+                                life === "em_curso"
+                                  ? "active"
+                                  : life === "futuro"
+                                    ? "pending"
+                                    : "inactive"
+                              }
+                              label={termLifecycleLabels[life]}
+                            />
                           );
                         })()}
                       </TableCell>

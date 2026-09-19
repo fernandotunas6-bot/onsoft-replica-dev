@@ -373,7 +373,7 @@ export function StudentExtensiveModal({
                       href={whatsappHref(student?.phone || initialData?.phone || "")}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                      className="text-xs font-semibold text-success hover:underline"
                     >
                       WhatsApp
                     </a>

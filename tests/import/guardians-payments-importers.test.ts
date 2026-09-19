@@ -79,7 +79,17 @@ describe("Guardians & Payments Importers", () => {
             status: "active",
           },
         ],
-        existingReceipts: new Set(),
+        openInvoices: [
+          {
+            id: "inv1",
+            invoice_number: "FT-2026/0001",
+            student_id: "s1",
+            amount: 35000,
+            due_date: "2026-02-10",
+            remaining: 35000,
+          },
+        ],
+        existingReceiptNumbers: new Set(),
       };
       const analysis = pagamentosImporter.analyzeRow(
         {
@@ -104,7 +114,17 @@ describe("Guardians & Payments Importers", () => {
             status: "active",
           },
         ],
-        existingReceipts: new Set(["REC-12345"]),
+        openInvoices: [
+          {
+            id: "inv1",
+            invoice_number: "FT-2026/0001",
+            student_id: "s1",
+            amount: 35000,
+            due_date: "2026-02-10",
+            remaining: 35000,
+          },
+        ],
+        existingReceiptNumbers: new Set(["REC-12345"]),
       };
       const analysis = pagamentosImporter.analyzeRow(
         {

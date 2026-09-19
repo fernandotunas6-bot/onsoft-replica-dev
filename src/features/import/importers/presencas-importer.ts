@@ -125,6 +125,16 @@ export const presencasImporter: RowImporter = {
     const student = studentMatch.row!;
     const enrollment = cache.enrollmentByStudentId.get(student.id)!;
 
+    if (ctx.dryRun) {
+      return {
+        status: "will_update",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: [],
+        target_record_id: enrollment.id,
+      };
+    }
+
     const { error } = await ctx.db
       .from("enrollments")
       .update({ attendance_rate: rateNum })

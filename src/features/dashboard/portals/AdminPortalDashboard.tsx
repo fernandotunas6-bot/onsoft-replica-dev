@@ -214,43 +214,82 @@ export function AdminPortalDashboard({
 
   return (
     <div className="space-y-6">
+      {/* HEADER EXECUTIVO — RESUMO DE HOJE */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex size-2 rounded-full bg-success" aria-hidden="true" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {school?.name ?? "Escola"} · Resumo de Hoje
+            </span>
+          </div>
+          <h1 className="mt-1 font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+            {greeting}, {currentUser.name.split(" ")[0]}
+          </h1>
+          <p className="mt-0.5 text-xs text-muted-foreground capitalize">
+            {now
+              ? now.toLocaleDateString("pt-PT", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })
+              : "Visão consolidada da operação escolar."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {canAccessPath("/alunos", currentUser.role) ? (
+            <Button asChild size="sm" className="rounded-lg shadow-xs">
+              <Link to="/alunos" search={{ action: "matricular" }}>
+                + Nova Matrícula
+              </Link>
+            </Button>
+          ) : null}
+          {canAccessPath("/financeiro", currentUser.role) ? (
+            <Button asChild size="sm" variant="outline" className="rounded-lg shadow-xs">
+              <Link to="/financeiro">Caixa & Pagamentos</Link>
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
       {/* BARRA DE SUBOPÇÕES CLICÁVEIS DO DASHBOARD */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
         <Button
           type="button"
-          variant={activeTab === "geral" ? "default" : "outline"}
+          variant={activeTab === "geral" ? "default" : "secondary"}
           size="sm"
           onClick={() => setActiveTab("geral")}
-          className="rounded-full text-xs font-bold"
+          className="rounded-full text-xs font-semibold px-3.5"
         >
           Visão Geral
         </Button>
         <Button
           type="button"
-          variant={activeTab === "pedagogico" ? "default" : "outline"}
+          variant={activeTab === "pedagogico" ? "default" : "secondary"}
           size="sm"
           onClick={() => setActiveTab("pedagogico")}
-          className="rounded-full text-xs font-bold"
+          className="rounded-full text-xs font-semibold px-3.5"
         >
           Desempenho & Pautas
         </Button>
         {capabilities.finance ? (
           <Button
             type="button"
-            variant={activeTab === "financeiro" ? "default" : "outline"}
+            variant={activeTab === "financeiro" ? "default" : "secondary"}
             size="sm"
             onClick={() => setActiveTab("financeiro")}
-            className="rounded-full text-xs font-bold"
+            className="rounded-full text-xs font-semibold px-3.5"
           >
             Projeção Financeira
           </Button>
         ) : null}
         <Button
           type="button"
-          variant={activeTab === "auditoria" ? "default" : "outline"}
+          variant={activeTab === "auditoria" ? "default" : "secondary"}
           size="sm"
           onClick={() => setActiveTab("auditoria")}
-          className="rounded-full text-xs font-bold"
+          className="rounded-full text-xs font-semibold px-3.5"
         >
           Auditoria de Produtividade
         </Button>

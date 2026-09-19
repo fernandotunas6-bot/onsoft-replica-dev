@@ -1,3 +1,4 @@
+// style-check: route-exempt - student showcase portfolio presentation landing page
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
