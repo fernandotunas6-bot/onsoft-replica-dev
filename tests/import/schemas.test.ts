@@ -26,9 +26,9 @@ describe("Motor de Importação SIGA — Schemas & Templates", () => {
   it("rejeita módulos inválidos no schema de jobs", () => {
     expect(() =>
       createImportJobSchema.parse({
-        module: "modulo_inexistente" as any,
+        module: "modulo_inexistente",
         file_name: "teste.xlsx",
-      }),
+      } as unknown as Record<string, unknown>),
     ).toThrow();
   });
 
@@ -54,19 +54,50 @@ describe("Motor de Importação SIGA — Schemas & Templates", () => {
     expect(csv).toContain("João Manuel António");
   });
 
-  it("possuir especificação para todos os modelos oficiais principais", () => {
-    expect(OFFICIAL_TEMPLATES.pessoas).toBeDefined();
-    expect(OFFICIAL_TEMPLATES.alunos).toBeDefined();
-    expect(OFFICIAL_TEMPLATES.professores).toBeDefined();
-    expect(OFFICIAL_TEMPLATES.matriculas).toBeDefined();
-    expect(OFFICIAL_TEMPLATES.notas).toBeDefined();
-    expect(OFFICIAL_TEMPLATES.pagamentos).toBeDefined();
+  it("possuir especificação para todos os 22 modelos oficiais do SIGA", () => {
+    for (const mod of importModuleOptions) {
+      expect(
+        OFFICIAL_TEMPLATES[mod],
+        `Modelo oficial para "${mod}" deve estar definido`,
+      ).toBeDefined();
+      expect(OFFICIAL_TEMPLATES[mod].columns.length).toBeGreaterThan(0);
+      expect(OFFICIAL_TEMPLATES[mod].label).toBeTruthy();
+      expect(OFFICIAL_TEMPLATES[mod].category).toBeTruthy();
+
+      const csv = generateOfficialCsvTemplate(mod);
+      expect(csv).toBeTruthy();
+      // Não pode cair no fallback genérico
+      expect(csv).not.toContain("Exemplo Silva;000000000LA000;923112233");
+
+      // Deve possuir cabeçalho + pelo menos 3 linhas de demonstração práticas
+      const lines = csv.trim().split("\n");
+      expect(lines.length).toBeGreaterThanOrEqual(4);
+    }
   });
 
-  it("importModuleOptions inclui todos os módulos do plano de importação", () => {
+  it("importModuleOptions inclui todos os 22 módulos do plano de importação", () => {
+    expect(importModuleOptions).toHaveLength(22);
     expect(importModuleOptions).toContain("pessoas");
     expect(importModuleOptions).toContain("alunos");
+    expect(importModuleOptions).toContain("encarregados");
+    expect(importModuleOptions).toContain("professores");
+    expect(importModuleOptions).toContain("funcionarios");
+    expect(importModuleOptions).toContain("turmas");
+    expect(importModuleOptions).toContain("classes");
+    expect(importModuleOptions).toContain("cursos");
+    expect(importModuleOptions).toContain("disciplinas");
+    expect(importModuleOptions).toContain("salas");
     expect(importModuleOptions).toContain("matriculas");
-    expect(importModuleOptions.length).toBeGreaterThanOrEqual(20);
+    expect(importModuleOptions).toContain("inscricoes");
+    expect(importModuleOptions).toContain("horarios");
+    expect(importModuleOptions).toContain("notas");
+    expect(importModuleOptions).toContain("avaliacoes");
+    expect(importModuleOptions).toContain("pautas");
+    expect(importModuleOptions).toContain("presencas");
+    expect(importModuleOptions).toContain("propinas");
+    expect(importModuleOptions).toContain("pagamentos");
+    expect(importModuleOptions).toContain("dividas");
+    expect(importModuleOptions).toContain("historico_academico");
+    expect(importModuleOptions).toContain("historico_financeiro");
   });
 });

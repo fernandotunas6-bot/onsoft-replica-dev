@@ -31,6 +31,11 @@ describe("SIGA Data Import Engine — Official Excel Template Builder", () => {
     expect(firstHeader).toContain("Nome Completo");
     expect(firstHeader).toContain("*");
 
+    // Verificar que a aba DADOS já inclui registos de demonstração práticos
+    expect(sheetData!.rowCount).toBeGreaterThanOrEqual(4);
+    const firstDataRow = sheetData!.getRow(2);
+    expect(String(firstDataRow.getCell(1).value)).toBe("João Manuel António");
+
     // Verificar a aba METADADOS
     const sheetMeta = workbook.getWorksheet("METADADOS");
     expect(sheetMeta).toBeDefined();

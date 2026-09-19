@@ -82,6 +82,12 @@ export const analyzeImportFile = createServerFn({ method: "POST" })
   .validator((input: unknown) => analyzeImportFileInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    // Só membros com papel de importação podem analisar ficheiros (evita abuso anónimo autenticado).
+    await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Tesouraria",
+    ]);
     const { parseImportFile } = await import("./engine/parse");
     const buffer = base64ToBuffer(data.file_base64);
     if (buffer.byteLength > 25 * 1024 * 1024) {
@@ -566,10 +572,7 @@ export const rollbackImportJob = createServerFn({ method: "POST" })
             .eq("school_id", job.school_id);
           operationError = result.error;
         } else if (audit.action_type === "updated" && beforeData) {
-          const safeBefore: Record<string, unknown> = {
-            ...(beforeData as Record<string, unknown>),
-            school_id: job.school_id,
-          };
+          const safeBefore: Record<string, unknown> = { ...beforeData, school_id: job.school_id };
           delete safeBefore["id"];
           const result = await db
             .from(audit.table_name)
@@ -632,6 +635,11 @@ export const downloadOfficialExcelTemplateFn = createServerFn({ method: "POST" }
   .validator((input: unknown) => downloadOfficialTemplateSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Tesouraria",
+    ]);
     const { buildOfficialExcelTemplate } = await import("./engine/excel-template-builder");
     const buffer = await buildOfficialExcelTemplate(data.module);
     const fileName = `Modelo_${data.module.toUpperCase()}_SIGA.xlsx`;
@@ -677,9 +685,6 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       mimeType: result.mimeType,
       base64: result.buffer.toString("base64"),
       recordCount: result.recordCount,
-      manifest: (result.manifest ?? null) as Record<
-        string,
-        string | number | boolean | null
-      > | null,
+      manifest: result.manifest as Record<string, any> | undefined,
     };
   });

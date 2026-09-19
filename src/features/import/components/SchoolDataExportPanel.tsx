@@ -49,6 +49,12 @@ const AVAILABLE_EXPORT_MODULES: Array<{
     badge: "Académico",
   },
   {
+    id: "inscricoes",
+    label: "Inscrições & Candidaturas",
+    desc: "Candidaturas do portal público e ingressos pendentes",
+    badge: "Admissão",
+  },
+  {
     id: "pessoas",
     label: "Pessoas & Comunidade Escolar",
     desc: "Cadastros gerais com BI, gênero, data de nascimento e contactos",
@@ -61,10 +67,28 @@ const AVAILABLE_EXPORT_MODULES: Array<{
     badge: "Curricular",
   },
   {
+    id: "avaliacoes",
+    label: "Instrumentos de Avaliação",
+    desc: "Provas, testes e componentes do centro de avaliação",
+    badge: "Pedagógico",
+  },
+  {
     id: "pagamentos",
     label: "Faturas, Propinas & Pagamentos",
     desc: "Mensalidades emitidas, pagas, canais de cobrança e datas de vencimento",
     badge: "Financeiro",
+  },
+  {
+    id: "historico_academico",
+    label: "Histórico Escolar Anterior",
+    desc: "Anos, classes e escolas de proveniência por aluno",
+    badge: "Histórico",
+  },
+  {
+    id: "historico_financeiro",
+    label: "Histórico Financeiro",
+    desc: "Balanço de faturas e liquidações por estudante",
+    badge: "Tesouraria",
   },
 ];
 
@@ -128,9 +152,9 @@ export function SchoolDataExportPanel({
       toast.success("Exportação concluída com sucesso!", {
         description: `${result.recordCount} registos exportados em ${result.fileName}`,
       });
-    } catch (err) {
+    } catch (err: any) {
       toast.error("Falha ao exportar dados", {
-        description: (err as Error)?.message || "Ocorreu um erro ao processar os dados escolares.",
+        description: err?.message || "Ocorreu um erro ao processar os dados escolares.",
       });
     } finally {
       setIsExporting(false);
@@ -142,7 +166,7 @@ export function SchoolDataExportPanel({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
         <div>
           <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <FileSpreadsheet className="size-4 text-emerald-600" /> Exportação de Dados Escolares
+            <FileSpreadsheet className="size-4 text-success" /> Exportação de Dados Escolares
           </h3>
           <p className="text-xs text-muted-foreground">
             Exporte os dados da instituição em folhas de cálculo Excel (.xlsx) profissionais e
@@ -223,14 +247,24 @@ export function SchoolDataExportPanel({
             return (
               <div
                 key={item.id}
+                role="checkbox"
+                tabIndex={0}
+                aria-checked={isChecked}
+                aria-label={item.label}
                 onClick={() => toggleModule(item.id)}
-                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer select-none transition-all ${
+                onKeyDown={(e) => {
+                  if (e.key === " " || e.key === "Enter") {
+                    e.preventDefault();
+                    toggleModule(item.id);
+                  }
+                }}
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer select-none transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
                   isChecked
-                    ? "border-emerald-600/40 bg-emerald-500/5"
+                    ? "border-success/40 bg-success/5 shadow-xs"
                     : "border-border bg-card hover:bg-muted/30 opacity-70"
                 }`}
               >
-                <div className="mt-0.5 text-emerald-600">
+                <div className="mt-0.5 text-success">
                   {isChecked ? (
                     <CheckSquare className="size-4" />
                   ) : (

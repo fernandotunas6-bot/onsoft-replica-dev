@@ -4,7 +4,7 @@
  * em `normalized_data` e é efectivamente gravado nas tabelas do SIGA.
  */
 
-const INVISIBLE_CHARS = /[\u200b-\u200d\ufeff\u00a0]/g;
+const INVISIBLE_CHARS = /[\u200B-\u200D\uFEFF\u00A0]/g;
 
 /** Remove espaços duplicados, caracteres invisíveis e aparas nas pontas. */
 export function normalizeText(value: unknown): string {

@@ -6,6 +6,22 @@ import { professoresImporter } from "../importers/professores-importer";
 import { turmasImporter } from "../importers/turmas-importer";
 import { matriculasImporter } from "../importers/matriculas-importer";
 import { notasImporter } from "../importers/notas-importer";
+import { cursosImporter } from "../importers/cursos-importer";
+import { classesImporter } from "../importers/classes-importer";
+import { disciplinasImporter } from "../importers/disciplinas-importer";
+import { salasImporter } from "../importers/salas-importer";
+import { encarregadosImporter } from "../importers/encarregados-importer";
+import { pagamentosImporter } from "../importers/pagamentos-importer";
+import { dividasImporter } from "../importers/dividas-importer";
+import { funcionariosImporter } from "../importers/funcionarios-importer";
+import { horariosImporter } from "../importers/horarios-importer";
+import { presencasImporter } from "../importers/presencas-importer";
+import { pautasImporter } from "../importers/pautas-importer";
+import { propinasImporter } from "../importers/propinas-importer";
+import { inscricoesImporter } from "../importers/inscricoes-importer";
+import { avaliacoesImporter } from "../importers/avaliacoes-importer";
+import { historicoAcademicoImporter } from "../importers/historico-academico-importer";
+import { historicoFinanceiroImporter } from "../importers/historico-financeiro-importer";
 
 /**
  * Registo central do motor de importação. Apenas módulos com RowImporter real
@@ -19,6 +35,22 @@ export const IMPORTER_REGISTRY: Partial<Record<ImportModule, RowImporter>> = {
   turmas: turmasImporter,
   matriculas: matriculasImporter,
   notas: notasImporter,
+  cursos: cursosImporter,
+  classes: classesImporter,
+  disciplinas: disciplinasImporter,
+  salas: salasImporter,
+  encarregados: encarregadosImporter,
+  pagamentos: pagamentosImporter,
+  dividas: dividasImporter,
+  funcionarios: funcionariosImporter,
+  horarios: horariosImporter,
+  presencas: presencasImporter,
+  pautas: pautasImporter,
+  propinas: propinasImporter,
+  inscricoes: inscricoesImporter,
+  avaliacoes: avaliacoesImporter,
+  historico_academico: historicoAcademicoImporter,
+  historico_financeiro: historicoFinanceiroImporter,
 };
 
 export function getImporter(module: ImportModule): RowImporter {

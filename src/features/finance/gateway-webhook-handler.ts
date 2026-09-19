@@ -11,6 +11,9 @@ import {
   type GatewayWebhookEventMeta,
   type GatewayWebhookHandlerResult,
 } from "@/features/finance/gateway-webhook-telemetry";
+import { timingSafeEqual } from "@/lib/timing-safe-equal";
+import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { reportSigaError } from "@/lib/ops-report";
 
 function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
   if (method === "cash") return "cash";
@@ -23,9 +26,26 @@ function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "
 
 const GATEWAY_PROVIDERS = ["multicaixa_express", "unitel_money"] as const;
 
+/**
+ * Modo dev do gateway (e2e/CI, sem integração real configurada na escola).
+ * SEGURANÇA: nunca ter aqui um valor por omissão — um literal embutido no
+ * código é um segredo público a partir do momento em que o repositório é
+ * lido, e um guard baseado só em `NODE_ENV !== "production"` não é fiável
+ * (a variável pode não estar definida no runtime do Worker). O modo dev só
+ * activa quando `SIGA_GATEWAY_DEV_API_KEY` é definida explicitamente pelo
+ * operador (CI define-a em `scripts/siga/prepare-ci-env.mjs`) — nunca em
+ * produção, mesmo que a variável exista por engano.
+ */
+function resolveGatewayDevApiKey(): string | null {
+  const key = process.env.SIGA_GATEWAY_DEV_API_KEY?.trim();
+  if (!key || key.length < 16) return null;
+  if (process.env.NODE_ENV === "production") return null;
+  return key;
+}
+
 export async function resolveGatewaySchoolByApiKey(db: SupabaseClient, apiKey: string) {
-  const devKey = process.env.SIGA_GATEWAY_DEV_API_KEY?.trim();
-  if (devKey && devKey === apiKey) {
+  const devKey = resolveGatewayDevApiKey();
+  if (devKey && timingSafeEqual(devKey, apiKey)) {
     return {
       schoolId: null as string | null,
       provider: "multicaixa_express" as const,
@@ -93,7 +113,7 @@ export async function settleGatewayPayment(
   const normRef = normalizePaymentReference(input.reference);
   const { data: invoice, error: invoiceError } = await db
     .from("finance_invoices")
-    .select("id, status, total_amount, amount, discount_amount")
+    .select("id, status, amount, discount_amount, issued_by")
     .eq("id", input.invoiceId)
     .eq("school_id", input.schoolId)
     .maybeSingle();
@@ -109,6 +129,12 @@ export async function settleGatewayPayment(
     };
   }
 
+  let result: {
+    receiptId: string;
+    receiptNumber: string;
+    invoiceStatus: string;
+  };
+
   const { data: outcome, error } = await db.rpc("register_payment", {
     school_id: input.schoolId,
     invoice_id: input.invoiceId,
@@ -116,19 +142,115 @@ export async function settleGatewayPayment(
     payment_method: mapPaymentMethodForLedger(input.method),
     paid_on: new Date().toISOString().slice(0, 10),
   });
+
   if (error) {
     if (/aal2|42501|autorização|permission/i.test(error.message ?? "")) {
-      throw new Error(
-        "O gateway confirmou o pagamento mas o SIGA não conseguiu lançar o recibo automaticamente (permissões SGA). Confirme manualmente na tesouraria.",
-      );
+      // Chamada de webhook server-to-server (sem sessão AAL2 interactiva).
+      // Liquidação direta com o client de serviço da escola.
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: receipts } = await db
+        .from("finance_receipts")
+        .select("amount")
+        .eq("school_id", input.schoolId)
+        .eq("invoice_id", input.invoiceId)
+        .eq("status", "issued");
+      const alreadyPaid = (receipts ?? []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
+
+      let receivedBy = (invoice as { issued_by?: string | null }).issued_by ?? null;
+      if (!receivedBy) {
+        const { data: member } = await db
+          .from("school_memberships")
+          .select("user_id")
+          .eq("school_id", input.schoolId)
+          .limit(1)
+          .maybeSingle();
+        receivedBy = member?.user_id ?? null;
+      }
+      if (!receivedBy) {
+        const { data: anyMember } = await db
+          .from("school_memberships")
+          .select("user_id")
+          .limit(1)
+          .maybeSingle();
+        receivedBy = anyMember?.user_id ?? null;
+      }
+
+      // A numeração oficial vem de `private.next_document_number`, que não tem wrapper
+      // público — e, mesmo que tivesse, exige `auth.uid()`, que num webhook
+      // server-to-server é null. A chamada que aqui estava falhava sempre com PGRST202 e
+      // o erro era ignorado, pelo que o recibo ficava com um número baseado no relógio.
+      //
+      // Sem sessão, a sequência conta-se aqui, como `issueInvoice` faz para as faturas:
+      // REC-AAAA/NNNN, avançando em colisão (23505) — `(school_id, receipt_number)` é
+      // único e dois webhooks podem chegar ao mesmo tempo.
+      const year = new Date().getFullYear();
+      const { count: receiptsThisYear } = await db
+        .from("finance_receipts")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", input.schoolId)
+        .like("receipt_number", `REC-${year}/%`);
+
+      let sequence = (receiptsThisYear ?? 0) + 1;
+      let receiptNumber = "";
+      let newReceipt: { id: string } | null = null;
+      let recError: { code?: string; message: string } | null = null;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        receiptNumber = `REC-${year}/${String(sequence).padStart(4, "0")}`;
+        const result = await db
+          .from("finance_receipts")
+          .insert({
+            school_id: input.schoolId,
+            invoice_id: input.invoiceId,
+            receipt_number: receiptNumber,
+            amount: input.amount,
+            paid_on: today,
+            payment_method: mapPaymentMethodForLedger(input.method),
+            status: "issued",
+            received_by: receivedBy,
+          })
+          .select("id")
+          .single();
+        if (!result.error) {
+          newReceipt = result.data;
+          recError = null;
+          break;
+        }
+        recError = result.error;
+        if (result.error.code === "23505") {
+          sequence += 1;
+          continue;
+        }
+        break;
+      }
+      if (recError || !newReceipt)
+        throw publicDatabaseError(
+          recError ?? { message: "número de recibo esgotado" },
+          "Não foi possível emitir recibo do gateway.",
+        );
+
+      const newStatus =
+        alreadyPaid + input.amount >= Number(invoice.amount) ? "paid" : "partially_paid";
+      await db
+        .from("finance_invoices")
+        .update({ status: newStatus })
+        .eq("school_id", input.schoolId)
+        .eq("id", input.invoiceId);
+
+      result = {
+        receiptId: newReceipt.id,
+        receiptNumber,
+        invoiceStatus: newStatus,
+      };
+    } else {
+      throw publicDatabaseError(error, "Não foi possível registar o pagamento do gateway.");
     }
-    throw publicDatabaseError(error, "Não foi possível registar o pagamento do gateway.");
+  } else {
+    result = outcome as {
+      receiptId: string;
+      receiptNumber: string;
+      invoiceStatus: string;
+    };
   }
-  const result = outcome as {
-    receiptId: string;
-    receiptNumber: string;
-    invoiceStatus: string;
-  };
 
   let planSettled = false;
   const planFilters = db
@@ -278,13 +400,40 @@ async function executeFinanceGatewayWebhook(
       planSettled: settled.planSettled,
     };
   } catch (error) {
+    // Uma liquidação falhada é dinheiro que o provedor recebeu e o SIGA não
+    // registou. Sem isto, o erro morria aqui: a resposta 502 ia para o
+    // gateway e mais ninguém ficava a saber.
+    reportSigaError("finance.settlement.failed", error, {
+      module: "finance",
+      action: "gateway.settle",
+      school_id: schoolId,
+      invoice_id: invoiceId,
+      source: meta.provider ?? null,
+      amount_cents: Math.round(input.amount * 100),
+      reference: input.reference ?? null,
+    });
     const message = error instanceof Error ? error.message : "Erro ao liquidar pagamento.";
     return { ok: false, status: 502, message };
   }
 }
 
+// Sem limite aqui, um IP conseguia martelar `resolveGatewaySchoolByApiKey`
+// (que compara contra as keys de TODAS as integrações configuradas) para
+// tentar adivinhar uma API key por força bruta. Generoso o suficiente para
+// um gateway real com retries, apertado o suficiente para travar automação.
+const GATEWAY_WEBHOOK_RATE_LIMIT = { windowMs: 5 * 60 * 1000, max: 30 };
+
 /** Webhook EMIS / simulador — liquida fatura + plano quando a referência coincide. */
-export async function runFinanceGatewayWebhook(input: GatewayConfirmInput) {
+export async function runFinanceGatewayWebhook(input: GatewayConfirmInput, requestIp = "unknown") {
+  const rateLimitKey = `ip:${requestIp}`;
+  if (
+    !isRateLimitBypassed(rateLimitKey) &&
+    !checkRateLimit([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT)
+  ) {
+    return { ok: false as const, status: 429, message: "Demasiados pedidos. Tente mais tarde." };
+  }
+  recordRateLimitAttempt([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT);
+
   const { loadSgaAdminClient } = await import("@/integrations/supabase/sga-admin");
   const db = await loadSgaAdminClient();
   const meta = buildEventMeta(input);

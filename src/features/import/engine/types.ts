@@ -21,7 +21,7 @@ export type AuditEntry = {
 };
 
 export type RowCommitResult = {
-  status: "imported" | "will_update" | "will_insert" | "error" | "ignored";
+  status: "imported" | "will_update" | "will_insert" | "error" | "ignored" | "duplicate";
   target_record_id?: string | null;
   warnings: string[];
   errors: string[];

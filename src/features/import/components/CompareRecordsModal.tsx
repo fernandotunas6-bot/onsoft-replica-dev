@@ -55,7 +55,7 @@ export function CompareRecordsModal({
       <DialogContent className="max-w-xl p-5">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-bold">
-            <ShieldAlert className="size-5 text-amber-500" />
+            <ShieldAlert className="size-5 text-warning" />
             Comparação Campo-a-Campo: {recordName}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
@@ -64,7 +64,7 @@ export function CompareRecordsModal({
           </p>
         </DialogHeader>
 
-        <div className="my-3 overflow-x-auto rounded-lg border border-border">
+        <div className="my-3 overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-border bg-muted/40 text-muted-foreground">
               <tr>
@@ -81,12 +81,12 @@ export function CompareRecordsModal({
                   <tr key={item.field} className="hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium text-foreground">{item.label}</td>
                     <td
-                      className={`px-3 py-2 ${currentChoice === "siga" ? "font-bold text-emerald-600" : "text-muted-foreground"}`}
+                      className={`px-3 py-2 ${currentChoice === "siga" ? "font-bold text-success" : "text-muted-foreground"}`}
                     >
                       {item.sigaValue || <span className="italic opacity-60">vazio</span>}
                     </td>
                     <td
-                      className={`px-3 py-2 ${currentChoice === "excel" ? "font-bold text-blue-600" : "text-muted-foreground"}`}
+                      className={`px-3 py-2 ${currentChoice === "excel" ? "font-bold text-primary" : "text-muted-foreground"}`}
                     >
                       {item.excelValue || <span className="italic opacity-60">vazio</span>}
                     </td>
@@ -96,7 +96,7 @@ export function CompareRecordsModal({
                           type="button"
                           className={`rounded px-2 py-0.5 text-[11px] font-medium transition-all ${
                             currentChoice === "siga"
-                              ? "bg-emerald-500 text-white shadow-xs"
+                              ? "bg-success text-success-foreground shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                           onClick={() => handleToggle(item.field, "siga")}
@@ -107,7 +107,7 @@ export function CompareRecordsModal({
                           type="button"
                           className={`rounded px-2 py-0.5 text-[11px] font-medium transition-all ${
                             currentChoice === "excel"
-                              ? "bg-blue-600 text-white shadow-xs"
+                              ? "bg-primary text-primary-foreground shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                           onClick={() => handleToggle(item.field, "excel")}

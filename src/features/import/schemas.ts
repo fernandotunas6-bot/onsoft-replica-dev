@@ -27,6 +27,33 @@ export const importModuleOptions = [
 
 export type ImportModule = (typeof importModuleOptions)[number];
 
+export const IMPLEMENTED_IMPORT_MODULES = [
+  "matriculas",
+  "alunos",
+  "encarregados",
+  "professores",
+  "funcionarios",
+  "turmas",
+  "classes",
+  "cursos",
+  "disciplinas",
+  "salas",
+  "horarios",
+  "notas",
+  "presencas",
+  "pautas",
+  "propinas",
+  "pagamentos",
+  "dividas",
+  "pessoas",
+  "inscricoes",
+  "avaliacoes",
+  "historico_academico",
+  "historico_financeiro",
+] as const satisfies readonly ImportModule[];
+
+export type ImplementedImportModule = (typeof IMPLEMENTED_IMPORT_MODULES)[number];
+
 export const importJobStatusOptions = [
   "uploaded",
   "analyzing",
@@ -142,7 +169,6 @@ export interface ImportJobRecord {
   inserted_rows: number;
   updated_rows: number;
   ignored_rows: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON arbitrário vindo da folha importada
   job_metadata?: Record<string, any> | null;
   started_at?: string | null;
   completed_at?: string | null;
@@ -155,9 +181,7 @@ export interface ImportRowRecord {
   import_job_id: string;
   sheet_name: string;
   row_number: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- linha bruta da folha importada
   raw_data: Record<string, any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- linha normalizada serializada
   normalized_data: Record<string, any>;
   status: ImportRowStatus;
   warnings: string[];
