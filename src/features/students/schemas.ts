@@ -14,7 +14,7 @@ export const studentStatusOptions = [
 
 export const searchStudentsInputSchema = z.object({
   query: z.string().trim().optional(),
-  limit: z.number().int().min(1).max(250).default(25),
+  limit: z.number().int().min(1).max(1000).default(25),
   offset: z.number().int().min(0).default(0),
   academicYearId: z.string().uuid().optional(),
   classGroupId: z.string().uuid().optional(),

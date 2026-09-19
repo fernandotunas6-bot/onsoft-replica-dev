@@ -26,6 +26,7 @@ export const SIGA_AUTHENTICATED_ROUTE_PREFIXES = [
   "/perfil",
 ] as const;
 
+/** Rotas públicas ou semi-públicas (sem RBAC de módulo escolar). */
 export const SIGA_PUBLIC_ROUTE_PREFIXES = [
   "/matricula",
   "/calendario/ics",
@@ -33,6 +34,8 @@ export const SIGA_PUBLIC_ROUTE_PREFIXES = [
   "/convite",
   "/auth",
 ] as const;
+
+/** Rotas sempre permitidas com sessão ou utilitários (API, pontes SaaS). */
 export const SIGA_BYPASS_ROUTE_PREFIXES = ["/alterar-senha", "/saas-admin", "/api/"] as const;
 
 export type SigaRoutePrefix =

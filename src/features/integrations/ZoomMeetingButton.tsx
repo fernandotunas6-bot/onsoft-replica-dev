@@ -66,9 +66,9 @@ export function ZoomMeetingButton({
       const fallbackUrl = meetingRoomLink("zoom");
       window.open(fallbackUrl, "_blank", "noopener,noreferrer");
       toast.success("A abrir sala Zoom", { description: fallbackUrl });
-    } catch (err: any) {
+    } catch (err) {
       // Se o Zoom corporativo ainda não estiver ligado via OAuth, orientar o utilizador
-      const msg = err?.message || "";
+      const msg = (err as Error)?.message || "";
       if (msg.includes("Zoom não está ligado") || msg.includes("Configuração Zoom em falta")) {
         toast.info("Conta Zoom não conectada", {
           description:

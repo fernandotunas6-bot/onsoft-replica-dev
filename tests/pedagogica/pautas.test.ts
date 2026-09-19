@@ -158,13 +158,13 @@ describe("deriveElectronicStatusClass", () => {
   });
 
   it("retorna classe verde para estados positivos", () => {
-    expect(deriveElectronicStatusClass("TRANSITA")).toContain("emerald");
-    expect(deriveElectronicStatusClass("APROVADO")).toContain("emerald");
-    expect(deriveElectronicStatusClass("APTO (PAP)")).toContain("emerald");
+    expect(deriveElectronicStatusClass("TRANSITA")).toContain("success");
+    expect(deriveElectronicStatusClass("APROVADO")).toContain("success");
+    expect(deriveElectronicStatusClass("APTO (PAP)")).toContain("success");
   });
 
   it("retorna classe âmbar para estados intermédios (ex: ADMITIDO A EXAME)", () => {
-    expect(deriveElectronicStatusClass("ADMITIDO A EXAME")).toContain("amber");
+    expect(deriveElectronicStatusClass("ADMITIDO A EXAME")).toContain("warning");
     expect(deriveElectronicStatusClass("RECURSO")).toContain("destructive");
   });
 
@@ -174,7 +174,7 @@ describe("deriveElectronicStatusClass", () => {
   });
 
   it("é case-insensitive", () => {
-    expect(deriveElectronicStatusClass("transita")).toContain("emerald");
+    expect(deriveElectronicStatusClass("transita")).toContain("success");
     expect(deriveElectronicStatusClass("não transita")).toContain("destructive");
   });
 });

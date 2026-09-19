@@ -26,9 +26,9 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
       if (authorizeUrl) {
         window.location.href = authorizeUrl;
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Falha ao iniciar autenticação com Zoom", {
-        description: err?.message || "Verifique se ZOOM_CLIENT_ID está configurado.",
+        description: (err as Error)?.message || "Verifique se ZOOM_CLIENT_ID está configurado.",
       });
       setLoading(false);
     }
@@ -40,9 +40,9 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
       await disconnectZoom();
       toast.success("Zoom desconectado com sucesso.");
       await queryClient.invalidateQueries({ queryKey: ["school", "integrations"] });
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Falha ao desligar Zoom", {
-        description: err?.message || "Ocorreu um erro ao revogar os segredos.",
+        description: (err as Error)?.message || "Ocorreu um erro ao revogar os segredos.",
       });
     } finally {
       setLoading(false);

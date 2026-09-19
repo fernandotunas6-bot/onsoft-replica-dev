@@ -159,9 +159,11 @@ export function ReviewAttendanceJustificationModal({
 
   const reviewMutation = useMutation({
     mutationFn: reviewAttendanceJustification,
-    onSuccess: (_, vars: any) => {
+    onSuccess: (_, vars) => {
       toast.success(
-        vars?.data?.status === "approved" ? "Justificativa Aprovada!" : "Justificativa Rejeitada.",
+        (vars as { data?: { status?: string } })?.data?.status === "approved"
+          ? "Justificativa Aprovada!"
+          : "Justificativa Rejeitada.",
       );
       queryClient.invalidateQueries({ queryKey: ["student-attendance-history"] });
       onOpenChange(false);

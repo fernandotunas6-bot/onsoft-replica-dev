@@ -572,7 +572,10 @@ export const rollbackImportJob = createServerFn({ method: "POST" })
             .eq("school_id", job.school_id);
           operationError = result.error;
         } else if (audit.action_type === "updated" && beforeData) {
-          const safeBefore: Record<string, unknown> = { ...beforeData, school_id: job.school_id };
+          const safeBefore: Record<string, unknown> = {
+            ...(beforeData as Record<string, unknown>),
+            school_id: job.school_id,
+          };
           delete safeBefore["id"];
           const result = await db
             .from(audit.table_name)
@@ -685,6 +688,9 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       mimeType: result.mimeType,
       base64: result.buffer.toString("base64"),
       recordCount: result.recordCount,
-      manifest: result.manifest as Record<string, any> | undefined,
+      manifest: (result.manifest ?? null) as Record<
+        string,
+        string | number | boolean | null
+      > | null,
     };
   });

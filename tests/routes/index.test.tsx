@@ -151,6 +151,23 @@ const emptyOverview: Overview = {
   studentsByCourse: [],
   topClasses: [],
   enrollmentPublicLink: null,
+  // Os três campos que o painel do Lovable acrescentou ao resumo do dashboard.
+  performanceHeatmap: {},
+  cashFlowForecast: {
+    months: [],
+    averageCollectionRate: null,
+    forecastDefaultRate: null,
+    mainPaymentChannel: null,
+  },
+  imports: {
+    available: false,
+    totalJobs: 0,
+    completedJobs: 0,
+    failedJobs: 0,
+    pendingJobs: 0,
+    importedRows: 0,
+    recent: [],
+  },
 };
 
 const withStudents: Overview = {

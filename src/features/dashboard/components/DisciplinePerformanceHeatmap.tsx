@@ -24,10 +24,17 @@ export interface HeatmapClassGroup {
 
 interface DisciplinePerformanceHeatmapProps {
   data?: HeatmapClassGroup[];
+  /** Médias reais por trimestre ("t1" | "t2" | "t3"). */
+  dataByTerm?: Record<string, HeatmapClassGroup[]>;
 }
 
-export function DisciplinePerformanceHeatmap({ data = [] }: DisciplinePerformanceHeatmapProps) {
+export function DisciplinePerformanceHeatmap({
+  data: dataProp = [],
+  dataByTerm,
+}: DisciplinePerformanceHeatmapProps) {
   const [selectedTerm, setSelectedTerm] = useState("t1");
+
+  const data = dataByTerm ? (dataByTerm[selectedTerm] ?? []) : dataProp;
 
   // Extrai lista única de disciplinas
   const allDisciplines = Array.from(

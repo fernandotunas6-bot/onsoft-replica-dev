@@ -169,6 +169,7 @@ export interface ImportJobRecord {
   inserted_rows: number;
   updated_rows: number;
   ignored_rows: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON arbitrário vindo da folha importada
   job_metadata?: Record<string, any> | null;
   started_at?: string | null;
   completed_at?: string | null;
@@ -181,7 +182,9 @@ export interface ImportRowRecord {
   import_job_id: string;
   sheet_name: string;
   row_number: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- linha bruta da folha importada
   raw_data: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- linha normalizada serializada
   normalized_data: Record<string, any>;
   status: ImportRowStatus;
   warnings: string[];

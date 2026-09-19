@@ -152,9 +152,9 @@ export function SchoolDataExportPanel({
       toast.success("Exportação concluída com sucesso!", {
         description: `${result.recordCount} registos exportados em ${result.fileName}`,
       });
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Falha ao exportar dados", {
-        description: err?.message || "Ocorreu um erro ao processar os dados escolares.",
+        description: (err as Error)?.message || "Ocorreu um erro ao processar os dados escolares.",
       });
     } finally {
       setIsExporting(false);

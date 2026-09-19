@@ -153,7 +153,13 @@ export async function buildOfficialExcelTemplate(moduleKey: ImportModule): Promi
   catalog.fields.forEach((field, colIdx) => {
     if (field.options && field.options.length > 0) {
       const colLetter = sheetData.getColumn(colIdx + 1).letter;
-      (sheetData as any).dataValidations.add(`${colLetter}2:${colLetter}100`, {
+      // exceljs expõe dataValidations em runtime, mas não o declara nos tipos da Worksheet
+      const validations = (
+        sheetData as unknown as {
+          dataValidations: { add: (ref: string, rule: Record<string, unknown>) => void };
+        }
+      ).dataValidations;
+      validations.add(`${colLetter}2:${colLetter}100`, {
         type: "list",
         allowBlank: !field.required,
         formulae: [`"${field.options.join(",")}"`],

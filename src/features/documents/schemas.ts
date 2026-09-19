@@ -17,8 +17,8 @@ export type CreateDocumentRequestInput = z.infer<typeof createDocumentRequestInp
 
 export const updateDocumentRequestStatusInputSchema = z.object({
   requestId: z.string().uuid(),
-  /** Allowed by SGA `document_requests_status_check`. */
-  status: z.enum(["submitted", "in_review", "approved", "rejected", "cancelled"]),
+  /** Allowed by `document_requests_status_check`. */
+  status: z.enum(["pending_payment", "queued", "processing", "ready", "delivered", "cancelled"]),
 });
 
 export type UpdateDocumentRequestStatusInput = z.infer<

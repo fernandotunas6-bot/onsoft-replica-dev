@@ -209,6 +209,7 @@ export function missingAdminNavPaths(paths: Set<string>): string[] {
   return ADMIN_NAV_PATH_COVERAGE.filter((path) => !paths.has(path));
 }
 
+/** Valida que cada módulo do inventário (`modules.json`) tem rota na sidebar admin. */
 export function missingModuleNavPaths(moduleRoutes: string[], adminPaths: Set<string>): string[] {
   return moduleRoutes.filter((path) => !adminPaths.has(path));
 }

@@ -33,7 +33,7 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
     retry: false,
   });
   const workspaceQuery = useQuery({
-    queryKey: ["academic", "pedagogical-workspace", selectedYearId, "nav"],
+    queryKey: ["academic", "pedagogical-workspace", selectedYearId],
     queryFn: () =>
       listPedagogicalWorkspace({
         data: selectedYearId ? { academicYearId: selectedYearId } : {},

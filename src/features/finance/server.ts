@@ -757,7 +757,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
     // o número do recibo atomicamente — evita a corrida de dois pagamentos simultâneos
     // sobre a mesma fatura que o insert directo anterior não protegia.
     // Corre no client da SESSÃO (não no admin) para auth.uid()/aal2 resolverem.
-    const { data: outcome, error } = await context.supabase.rpc("register_payment", {
+    const { data: outcome, error } = await sgaClient(context.supabase).rpc("register_payment", {
       school_id: membership.schoolId,
       invoice_id: data.invoiceId,
       amount: data.amount,

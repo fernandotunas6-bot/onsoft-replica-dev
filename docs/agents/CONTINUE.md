@@ -4,6 +4,63 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Estado (2026-09-19)
+
+### Ciclo 98 — Conciliação com a linha Lovable: 62 conflitos e as 30 colunas que o git não vê (2026-09-19)
+
+A integração Lovable (`gpt-engineer-app[bot]`) sincroniza o directório de trabalho com
+`main`: faz `reset --hard` ao que lá estiver e muda de ramo. Fê-lo duas vezes a 19/09 —
+às 20:00, arquivando em stash o trabalho por commitar dos Ciclos 92–97, e às 20:12,
+descartando a reposição desse stash. **Trabalhar neste directório sem commitar perde-se.**
+A fusão foi feita num worktree isolado (`.claude/worktrees/conciliacao-lovable`).
+
+**As duas linhas.** Fork a 03/09 (`ac50435`). `main` tem 77 commits, todos do bot; o ramo
+tem 341 (Ciclos 52–97). 69 ficheiros só de `main`, 799 só do ramo, **231 tocados por ambos** —
+169 fundiram-se sozinhos, 62 em conflito.
+
+**O `types.ts` foi o nó.** O do Lovable descreve outra base: declara `courses`,
+`term_grades`, `invoices`, `payments`, `class_schedule_slots`, `finance_summary` e mais —
+**nenhuma delas existe na produção** (verificado com 17 pedidos ao PostgREST, com controlo
+positivo em `finance_invoices`/`programs`). Ficou o do ramo, lido da produção.
+
+**O que o git não podia ver.** Os conflitos são o menor dos problemas: `git` funde por
+texto e não sabe o que existe na base. Depois de resolvidos os 62, o teste de colunas do
+Ciclo 94 acusou **29 colunas e 1 tabela inexistentes**, quase todas em linhas que se
+fundiram *sem conflito*. Recuperáveis por renomeação e assim corrigidas:
+
+| pedido pelo Lovable | real |
+|---|---|
+| `import_jobs.imported_rows` / `error_rows` | `inserted_rows` / `invalid_rows` |
+| `document_requests.requested_at` / `notes` / `template_name` | `created_at` / `review_note` / embed `document_templates(name)` |
+| `term_grades` (heatmap) | `siga_assessment_scores` + embed `siga_assessment_items(term, subject_id, max_score)`, nota normalizada a 20 |
+
+**Parqueado, por precisar de migração:** a remodelação de `document_requests` em
+`src/features/documents/server.ts` (25 referências) assenta em `request_number`,
+`fee_amount`, `due_on` e `priority`, que não têm equivalente — não é renomeação, é esquema
+que não existe. Ficou a versão do ramo. `document_templates` idem: a produção tem `status`,
+não `active`/`fee_amount`/`turnaround_days`/`requires_payment`.
+
+**Três resoluções que não foram de estilo:**
+- `reset-password-server.ts` — o lado Lovable acrescentava o fallback nativo do Supabase
+  que o comentário do próprio ficheiro proíbe (expõe "Supabase Auth" ao utilizador). Ficou
+  o ramo, e com ele o `deliveryError` e a auditoria `password_reset_failed`.
+- `saas/server.ts` — o lado Lovable removia o `requireTenantAccess` e passava o endereço
+  vindo do cliente; provisionava caixa no domínio de outra escola. Ficou o ramo.
+- `gateway-webhook-handler.ts` — `===` cru em vez de `timingSafeEqual`. Ficou o ramo.
+
+**Onde o Lovable ganhou:** `ci.yml` + `lighthouserc.json` (medir o build de produção em
+`127.0.0.1:3000`, que é onde `preview:prod` serve — o dev server dava LCP irreal),
+`import/server.ts` e `excel-template-builder.ts` (tipagens sem `any`), `school-bootstrap.ts`
+(`DEFAULT_ROLES`), `academic/server.ts` (`updateScheduleSlotInputSchema`),
+`students/schemas.ts` (`max(1000)`, que o próprio `alunos/index.tsx` pede), o cartão de
+importações do dashboard e os `ignores` do eslint (unidos, não escolhidos).
+
+**Resultados:** `vitest run`: 198 ficheiros, **1456/1460 testes verdes**, 3 skipped. A única
+falha é `rls-live-probe` — timeout de 5 s numa sonda ao vivo contra a produção, 14/16
+passam; é rede, não código. `tsc --noEmit`: **0 erros reais** (os TS2307/TS7006 restantes
+são todos de `@testing-library/react`, declarado no `package.json` e não instalado —
+`node_modules/@testing-library/` está vazio no repositório inteiro).
+
 ## Estado (2026-09-16)
 
 ### Ciclo 97 — Filtros, embeds e RPC: as superfícies que o teste de colunas não via (2026-09-16)

@@ -7,6 +7,8 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
+    // painel/* (WEB, ADMIN, DOC) e "modelo de pautas" têm configuração própria:
+    // manter aqui só o SIGA para os avisos serem legíveis.
     ignores: [
       "dist",
       ".output",
@@ -16,9 +18,14 @@ export default tseslint.config(
       // da raiz analisava ~490 ficheiros com um config que não é o deles
       // (outro tsconfig, outros globals) — só produzia ruído e ~10 min de CPU.
       "painel/**",
+      "modelo de pautas/**",
+      "playwright-report/**",
+      "reports/**",
       // Ficheiros gerados: nunca editados à mão, não há nada a corrigir neles.
       "**/*.gen.ts",
       "src/integrations/supabase/types.ts",
+      // Gerado pela integração Lovable Cloud.
+      "src/integrations/supabase/previewAuthStorage.ts",
       ".claude/**",
       // Artefactos de build do Tauri/Rust — o flat config não lê .gitignore,
       // e sem isto o lint analisava JS gerado dentro de src-tauri/target/.
@@ -60,6 +67,12 @@ export default tseslint.config(
       // sem mascarar erros a sério como `react-hooks/rules-of-hooks`.
       "@typescript-eslint/no-explicit-any": "warn",
     },
+  },
+  {
+    // Testes e scripts de manutenção usam duplos de teste e respostas externas
+    // sem forma fixa: `any` é aceitável fora do código da aplicação.
+    files: ["tests/**/*.{ts,tsx}", "scripts/**/*.{ts,mjs}", "*.config.ts"],
+    rules: { "@typescript-eslint/no-explicit-any": "off" },
   },
   eslintPluginPrettier,
 );

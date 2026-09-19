@@ -1,0 +1,125 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789713986561,
+      "tag": "0000_harden_profiles_and_foundation_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789714149721,
+      "tag": "0001_people_module_part1",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789714280814,
+      "tag": "0002_people_module_part2_academic_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789714373840,
+      "tag": "0003_school_settings_billing_and_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789714441153,
+      "tag": "0004_subjects_grades_schedule",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789714560520,
+      "tag": "0005_finance_core_and_invoice_issuance",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789714634591,
+      "tag": "0006_finance_reporting_expenses_reversals",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789714707401,
+      "tag": "0007_document_workflow_and_profile_avatar",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789714754051,
+      "tag": "0008_calendar_events_and_announcements",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789714788773,
+      "tag": "0009_assign_new_users_to_school",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789715146139,
+      "tag": "0010_rbac_memberships_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789715185150,
+      "tag": "0011_import_engine",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789715341332,
+      "tag": "0012_academic_compat_layer",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789715397200,
+      "tag": "0013_restrict_permission_catalog_reads",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789717909273,
+      "tag": "0014_sga_finance_core_and_rpcs",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789718103219,
+      "tag": "0015_sga_assessments_attendance_announcements_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789719288522,
+      "tag": "0016_people_contact_compat_columns",
+      "breakpoints": true
+    }
+  ]
+}

@@ -145,8 +145,9 @@ export async function exportSchoolData(
       for (const s of rows) {
         const p = Array.isArray(s.people) ? s.people[0] : s.people;
         const enr = s.enrollments && s.enrollments.length > 0 ? s.enrollments[0] : null;
-        const cg = enr?.class_groups;
-        const className = Array.isArray(cg) ? (cg[0] as any)?.name : (cg as any)?.name;
+        const cg = enr?.class_groups as
+          { name?: string | null } | { name?: string | null }[] | null | undefined;
+        const className = Array.isArray(cg) ? cg[0]?.name : cg?.name;
 
         sheet.addRow([
           s.student_number || "",

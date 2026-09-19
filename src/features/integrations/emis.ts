@@ -27,10 +27,17 @@ export function normalizeEmisGradeLevel(gradeName: string | null): string {
   return "Outro";
 }
 
+export interface EmisExportStudent {
+  id: string;
+  registration_number?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ficha de aluno com colunas variáveis por escola
+  [key: string]: any;
+}
+
 /**
  * Exporta dados de estudantes no formato requerido pelo gateway EMIS.
  */
-export function buildEmisExportPayload(schoolId: string, students: any[]) {
+export function buildEmisExportPayload(schoolId: string, students: EmisExportStudent[]) {
   return students.map((student) => ({
     emis_school_id: schoolId,
     student_id: student.id,

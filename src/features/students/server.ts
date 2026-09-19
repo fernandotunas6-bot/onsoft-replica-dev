@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -645,7 +646,7 @@ export const createStudent = createServerFn({ method: "POST" })
 
     // register_student cria o aluno numa transação atómica
     const firstGuardian = (data.guardians ?? [])[0];
-    const { data: registered, error: registerError } = await context.supabase.rpc(
+    const { data: registered, error: registerError } = await sgaClient(context.supabase).rpc(
       "register_student",
       {
         school_id: membership.schoolId,
@@ -691,12 +692,15 @@ export const createStudent = createServerFn({ method: "POST" })
 
     let enrollmentOutcome: { enrollmentId: string; enrollmentNumber: string } | null = null;
     if (data.classGroupId && data.academicYearId) {
-      const { data: enrolled, error: enrollError } = await context.supabase.rpc("enroll_student", {
-        school_id: membership.schoolId,
-        student_id: studentOutcome.studentId,
-        class_group_id: data.classGroupId,
-        enrolled_on: data.admittedOn ?? new Date().toISOString().slice(0, 10),
-      });
+      const { data: enrolled, error: enrollError } = await sgaClient(context.supabase).rpc(
+        "enroll_student",
+        {
+          school_id: membership.schoolId,
+          student_id: studentOutcome.studentId,
+          class_group_id: data.classGroupId,
+          enrolled_on: data.admittedOn ?? new Date().toISOString().slice(0, 10),
+        },
+      );
       if (enrollError) {
         if (rpcAuthError(enrollError)) {
           throw new Error(
@@ -798,7 +802,7 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
     // número de processo por sequência própria (nunca duplica sob pedidos simultâneos,
     // ao contrário do insert directo anterior) e valida a pessoa/encarregado antes de gravar.
     const firstGuardian = (data.guardians ?? [])[0];
-    const { data: registered, error: registerError } = await context.supabase.rpc(
+    const { data: registered, error: registerError } = await sgaClient(context.supabase).rpc(
       "register_student",
       {
         school_id: membership.schoolId,
@@ -849,12 +853,15 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
 
     let enrollmentOutcome: { enrollmentId: string; enrollmentNumber: string } | null = null;
     if (data.classGroupId && data.academicYearId) {
-      const { data: enrolled, error: enrollError } = await context.supabase.rpc("enroll_student", {
-        school_id: membership.schoolId,
-        student_id: studentOutcome.studentId,
-        class_group_id: data.classGroupId,
-        enrolled_on: data.admittedOn ?? new Date().toISOString().slice(0, 10),
-      });
+      const { data: enrolled, error: enrollError } = await sgaClient(context.supabase).rpc(
+        "enroll_student",
+        {
+          school_id: membership.schoolId,
+          student_id: studentOutcome.studentId,
+          class_group_id: data.classGroupId,
+          enrolled_on: data.admittedOn ?? new Date().toISOString().slice(0, 10),
+        },
+      );
       if (enrollError) {
         if (rpcAuthError(enrollError)) {
           throw new Error(
@@ -1073,7 +1080,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       .maybeSingle();
     const previousRpcStatus = beforeRpcStudent?.status ?? null;
 
-    const { data: enrolled, error } = await context.supabase.rpc("enroll_student", {
+    const { data: enrolled, error } = await sgaClient(context.supabase).rpc("enroll_student", {
       school_id: membership.schoolId,
       student_id: data.studentId,
       class_group_id: data.classGroupId,

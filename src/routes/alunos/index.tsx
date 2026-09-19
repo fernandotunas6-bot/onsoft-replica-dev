@@ -329,7 +329,7 @@ function StudentsPage() {
 
   const studentsQuery = useQuery({
     queryKey: ["students", "search"],
-    queryFn: () => searchStudents({ data: { limit: 100, offset: 0 } }),
+    queryFn: () => searchStudents({ data: { limit: 1000, offset: 0 } }),
   });
   const pendingApplicationsQuery = useQuery({
     queryKey: ["enrollment", "applications", "pending-count"],
