@@ -12,17 +12,10 @@ import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
 import { scoreAverage, inferTeachingCycle } from "@/lib/angola-academic";
 import { buildClassAcademicSummaries } from "./assessment-engine";
 import { ensureAcademicDefaultsCore } from "./academic-bootstrap";
-import {
-  ensureDefaultTeacher,
-  listSgaTermGrades,
-  upsertSgaTermGrade,
-  upsertSgaTermGradesBatch,
-} from "./sga-grades";
+import { listSgaTermGrades, upsertSgaTermGrade, upsertSgaTermGradesBatch } from "./sga-grades";
+import { reportSigaError } from "@/lib/ops-report";
 import {
   createClassGroupInputSchema,
-  createScheduleSlotInputSchema,
-  deleteScheduleSlotInputSchema,
-  updateScheduleSlotInputSchema,
   createSubjectInputSchema,
   updateSubjectInputSchema,
   deactivateSubjectInputSchema,
@@ -68,90 +61,6 @@ async function assertTermOpen(
   }
 }
 
-function scheduleTime(value: unknown) {
-  return String(value ?? "").slice(0, 5);
-}
-
-function scheduleTimesOverlap(
-  startsAt: string,
-  endsAt: string,
-  otherStartsAt: unknown,
-  otherEndsAt: unknown,
-) {
-  return startsAt < scheduleTime(otherEndsAt) && endsAt > scheduleTime(otherStartsAt);
-}
-
-async function assertScheduleSlotAvailable({
-  db,
-  schoolId,
-  classGroupId,
-  teacherId,
-  weekday,
-  startsAt,
-  endsAt,
-  room,
-  excludeSlotId,
-}: {
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>;
-  schoolId: string;
-  classGroupId: string;
-  teacherId: string | null;
-  weekday: number;
-  startsAt: string;
-  endsAt: string;
-  room: string;
-  excludeSlotId?: string;
-}) {
-  let query = db
-    .from("timetable_slots")
-    .select("id, class_subject_id, starts_at, ends_at, room")
-    .eq("school_id", schoolId)
-    .eq("weekday", weekday)
-    .eq("status", "active");
-  if (excludeSlotId) query = query.neq("id", excludeSlotId);
-  const { data: candidateSlots, error: slotsError } = await query;
-  if (slotsError) {
-    throw publicDatabaseError(slotsError, "Não foi possível validar conflitos de horário.");
-  }
-
-  const overlappingSlots = (candidateSlots ?? []).filter((slot) =>
-    scheduleTimesOverlap(startsAt, endsAt, slot.starts_at, slot.ends_at),
-  );
-  if (overlappingSlots.length === 0) return;
-
-  const relatedClassSubjectIds = [
-    ...new Set(overlappingSlots.map((slot) => String(slot.class_subject_id))),
-  ];
-  const { data: relatedClassSubjects, error: subjectsError } = await db
-    .from("class_subjects")
-    .select("id, class_group_id, teacher_id")
-    .eq("school_id", schoolId)
-    .in("id", relatedClassSubjectIds);
-  if (subjectsError) {
-    throw publicDatabaseError(subjectsError, "Não foi possível validar conflitos de horário.");
-  }
-  const subjectById = new Map(
-    (relatedClassSubjects ?? []).map((subject) => [String(subject.id), subject]),
-  );
-
-  for (const slot of overlappingSlots) {
-    const related = subjectById.get(String(slot.class_subject_id));
-    if (String(related?.class_group_id ?? "") === classGroupId) {
-      throw new Error("Esta turma já possui uma aula nesse período.");
-    }
-    if (teacherId && String(related?.teacher_id ?? "") === teacherId) {
-      throw new Error("O professor já possui uma aula nesse período.");
-    }
-    if (
-      String(slot.room ?? "")
-        .trim()
-        .toLocaleLowerCase() === room.trim().toLocaleLowerCase()
-    ) {
-      throw new Error("A sala já está ocupada nesse período.");
-    }
-  }
-}
-
 type StructureSummary = {
   id: string;
   name: string;
@@ -190,6 +99,12 @@ type SubjectSummary = {
   classes_label: string;
   weekly_hours_label: string;
   approval_rate: number | null;
+  subject_type_id?: string | null;
+  curriculum_area_id?: string | null;
+  is_mandatory?: boolean;
+  is_practical?: boolean;
+  annual_hours?: number | null;
+  color?: string | null;
 };
 
 type TermGradeSummary = {
@@ -418,7 +333,6 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       enrollmentStats.set(classGroupId, current);
     }
 
-    
     // Média real por turma a partir das notas por período já carregadas.
     const enrollmentClassMap = new Map<string, string>();
     for (const enrollment of enrollments.data ?? []) {
@@ -442,8 +356,10 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       return Math.round((sum / values.length) * 10) / 10;
     };
 
-
-    console.log("[DBG3] groups", JSON.stringify([...gradeAveragesByGroup.entries()].map(([k,v]) => [k, v.length])));
+    console.log(
+      "[DBG3] groups",
+      JSON.stringify([...gradeAveragesByGroup.entries()].map(([k, v]) => [k, v.length])),
+    );
 
     const programById = new Map(
       (programs.data ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
@@ -549,12 +465,18 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
           name: String(subject["name"] ?? ""),
           code: String(subject["code"] ?? ""),
           teacher_name: null,
-          weekly_hours: 0,
+          weekly_hours: Number(subject["weekly_hours"] ?? 0),
           grade_from: null,
           grade_to: null,
           classes_label: "—",
-          weekly_hours_label: "—",
+          weekly_hours_label: subject["weekly_hours"] ? `${subject["weekly_hours"]}h/sem` : "—",
           approval_rate: null,
+          subject_type_id: (subject["subject_type_id"] as string) ?? null,
+          curriculum_area_id: (subject["curriculum_area_id"] as string) ?? null,
+          is_mandatory: Boolean(subject["is_mandatory"] ?? true),
+          is_practical: Boolean(subject["is_practical"] ?? false),
+          annual_hours: subject["annual_hours"] ? Number(subject["annual_hours"]) : null,
+          color: (subject["color"] as string) ?? null,
         }));
 
     const enrollmentOptions = (enrollments.data ?? []).map((enrollment) => {
@@ -857,17 +779,28 @@ export const createSubject = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
+    const insertPayload: Record<string, unknown> = {
+      school_id: membership.schoolId,
+      code: data.code,
+      name: data.name,
+      short_name: data.shortName || data.name.slice(0, 20),
+      status: "active",
+      created_by: context.userId,
+      updated_by: context.userId,
+    };
+    if (data.subjectTypeId) insertPayload.subject_type_id = data.subjectTypeId;
+    if (data.curriculumAreaId) insertPayload.curriculum_area_id = data.curriculumAreaId;
+    if (data.annualHours !== undefined) insertPayload.annual_hours = data.annualHours;
+    if (data.weeklyHours !== undefined) insertPayload.weekly_hours = data.weeklyHours;
+    if (data.isMandatory !== undefined) insertPayload.is_mandatory = data.isMandatory;
+    if (data.isPractical !== undefined) insertPayload.is_practical = data.isPractical;
+    if (data.hasExam !== undefined) insertPayload.has_exam = data.hasExam;
+    if (data.hasPauta !== undefined) insertPayload.has_pauta = data.hasPauta;
+    if (data.color) insertPayload.color = data.color;
+
     const { data: subject, error } = await db
       .from("subjects")
-      .insert({
-        school_id: membership.schoolId,
-        code: data.code,
-        name: data.name,
-        short_name: data.name.slice(0, 20),
-        status: "active",
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
+      .insert(insertPayload)
       .select("*")
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar a disciplina.");
@@ -884,17 +817,30 @@ export const updateSubject = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
+
+    const updatePayload: Record<string, unknown> = {
+      code: data.code,
+      name: data.name,
+      short_name: data.shortName || data.name.slice(0, 20),
+      updated_by: context.userId,
+    };
+    if (data.subjectTypeId !== undefined) updatePayload.subject_type_id = data.subjectTypeId;
+    if (data.curriculumAreaId !== undefined)
+      updatePayload.curriculum_area_id = data.curriculumAreaId;
+    if (data.annualHours !== undefined) updatePayload.annual_hours = data.annualHours;
+    if (data.weeklyHours !== undefined) updatePayload.weekly_hours = data.weeklyHours;
+    if (data.isMandatory !== undefined) updatePayload.is_mandatory = data.isMandatory;
+    if (data.isPractical !== undefined) updatePayload.is_practical = data.isPractical;
+    if (data.hasExam !== undefined) updatePayload.has_exam = data.hasExam;
+    if (data.hasPauta !== undefined) updatePayload.has_pauta = data.hasPauta;
+    if (data.color !== undefined) updatePayload.color = data.color;
+
     const { data: subject, error } = await db
       .from("subjects")
-      .update({
-        code: data.code,
-        name: data.name,
-        short_name: data.name.slice(0, 20),
-        updated_by: context.userId,
-      })
+      .update(updatePayload)
       .eq("id", data.subjectId)
       .eq("school_id", membership.schoolId)
-      .select("id, code, name")
+      .select("*")
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a disciplina.");
     if (!subject) throw new Error("Disciplina não encontrada.");
@@ -1011,177 +957,6 @@ export const upsertTermGradesBatch = createServerFn({ method: "POST" })
     });
   });
 
-export const createScheduleSlot = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => createScheduleSlotInputSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
-    const db = await loadSgaAdminClient();
-    if (!data.subjectId) throw new Error("Seleccione uma disciplina para o horário.");
-
-    let classSubjectId: string | null = null;
-    let teacherId: string | null = null;
-    const { data: existing, error: existingError } = await db
-      .from("class_subjects")
-      .select("id, teacher_id")
-      .eq("school_id", membership.schoolId)
-      .eq("class_group_id", data.classGroupId)
-      .eq("subject_id", data.subjectId)
-      .eq("status", "active")
-      .maybeSingle();
-    if (existingError) {
-      throw publicDatabaseError(existingError, "Não foi possível associar a disciplina à turma.");
-    }
-    if (existing?.id) {
-      classSubjectId = existing.id;
-      teacherId = existing.teacher_id ?? null;
-    } else {
-      teacherId = await ensureDefaultTeacher(db, membership.schoolId, context.userId);
-      const { data: created, error: csError } = await db
-        .from("class_subjects")
-        .insert({
-          school_id: membership.schoolId,
-          class_group_id: data.classGroupId,
-          subject_id: data.subjectId,
-          teacher_id: teacherId,
-          weekly_periods: 1,
-          status: "active",
-          created_by: context.userId,
-          updated_by: context.userId,
-        })
-        .select("id")
-        .single();
-      if (csError)
-        throw publicDatabaseError(csError, "Não foi possível associar a disciplina à turma.");
-      classSubjectId = created.id;
-    }
-    if (!classSubjectId) throw new Error("Não foi possível associar a disciplina à turma.");
-
-    const startsAt = data.startsAt.length === 5 ? `${data.startsAt}:00` : data.startsAt;
-    const endsAt = data.endsAt.length === 5 ? `${data.endsAt}:00` : data.endsAt;
-    const room = data.label?.trim() || "Sala";
-    await assertScheduleSlotAvailable({
-      db,
-      schoolId: membership.schoolId,
-      classGroupId: data.classGroupId,
-      teacherId,
-      weekday: data.weekday,
-      startsAt,
-      endsAt,
-      room,
-    });
-
-    const { data: slot, error } = await db
-      .from("timetable_slots")
-      .insert({
-        school_id: membership.schoolId,
-        class_subject_id: classSubjectId,
-        weekday: data.weekday,
-        starts_at: startsAt,
-        ends_at: endsAt,
-        // SGA: room is NOT NULL — use rótulo or a safe default.
-        room,
-        status: "active",
-        created_by: context.userId,
-      })
-      .select("*")
-      .single();
-    if (error) throw publicDatabaseError(error, "Não foi possível criar o slot de horário.");
-    return slot;
-  });
-
-export const updateScheduleSlot = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => updateScheduleSlotInputSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
-    const db = await loadSgaAdminClient();
-    const { data: currentSlot, error: slotError } = await db
-      .from("timetable_slots")
-      .select("id, class_subject_id")
-      .eq("id", data.slotId)
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active")
-      .maybeSingle();
-    if (slotError)
-      throw publicDatabaseError(slotError, "Não foi possível carregar o slot de horário.");
-    if (!currentSlot) throw new Error("Slot não encontrado ou já inactivo.");
-
-    const { data: classSubject, error: subjectError } = await db
-      .from("class_subjects")
-      .select("id, class_group_id, teacher_id")
-      .eq("id", currentSlot.class_subject_id)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (subjectError) {
-      throw publicDatabaseError(subjectError, "Não foi possível validar o slot de horário.");
-    }
-    if (!classSubject) throw new Error("A disciplina deste slot já não está disponível.");
-
-    const startsAt = `${data.startsAt}:00`;
-    const endsAt = `${data.endsAt}:00`;
-    const room = data.label?.trim() || "Sala";
-    await assertScheduleSlotAvailable({
-      db,
-      schoolId: membership.schoolId,
-      classGroupId: String(classSubject.class_group_id),
-      teacherId: classSubject.teacher_id ? String(classSubject.teacher_id) : null,
-      weekday: data.weekday,
-      startsAt,
-      endsAt,
-      room,
-      excludeSlotId: data.slotId,
-    });
-
-    const { data: slot, error } = await db
-      .from("timetable_slots")
-      .update({
-        weekday: data.weekday,
-        starts_at: startsAt,
-        ends_at: endsAt,
-        room,
-      })
-      .eq("id", data.slotId)
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active")
-      .select("id")
-      .maybeSingle();
-    if (error) throw publicDatabaseError(error, "Não foi possível actualizar o slot de horário.");
-    if (!slot) throw new Error("Slot não encontrado ou já inactivo.");
-    return { id: slot.id };
-  });
-
-export const deleteScheduleSlot = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => deleteScheduleSlotInputSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
-    const db = await loadSgaAdminClient();
-    const { data: slot, error } = await db
-      .from("timetable_slots")
-      .update({ status: "inactive" })
-      .eq("id", data.slotId)
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active")
-      .select("id")
-      .maybeSingle();
-    if (error) throw publicDatabaseError(error, "Não foi possível remover o slot de horário.");
-    if (!slot) throw new Error("Slot não encontrado ou já inactivo.");
-    return { id: slot.id };
-  });
-
 export const assignClassSubjectTeacher = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => assignClassSubjectTeacherInputSchema.parse(input))
@@ -1220,6 +995,7 @@ export const assignClassSubjectTeacher = createServerFn({ method: "POST" })
     const { data: existing, error: existingError } = await db
       .from("class_subjects")
       .select("id")
+      .eq("school_id", membership.schoolId)
       .eq("class_group_id", data.classGroupId)
       .eq("subject_id", data.subjectId)
       .maybeSingle();
@@ -1756,6 +1532,20 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
           .eq("school_id", membership.schoolId);
       }),
     ]);
+    // Lançar notas é a escrita de maior consequência do sistema. Sem registo,
+    // um lote que falha a meio — uns alunos gravados, outros não — chega ao
+    // professor como uma mensagem genérica e não deixa rasto nenhum.
+    const failure = insertResult.error ?? updateResults.find((result) => result.error)?.error;
+    if (failure) {
+      reportSigaError("assessment.score.write_failed", failure, {
+        module: "academic",
+        action: "score.upsert",
+        school_id: membership.schoolId,
+        assessment_item_id: data.itemId,
+        user_id: context.userId,
+        count: data.rows.length,
+      });
+    }
     if (insertResult.error)
       throw publicDatabaseError(insertResult.error, "Não foi possível lançar as notas.");
     for (const result of updateResults) {

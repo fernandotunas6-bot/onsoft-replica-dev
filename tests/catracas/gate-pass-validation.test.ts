@@ -6,6 +6,7 @@
  * ligação real à base de dados.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   evaluateGatePassAccess,
   findGatePassCard,
@@ -67,7 +68,7 @@ function makeDb(
       }
       return makeQueryBuilder(null);
     }),
-  } as any;
+  } as unknown as SupabaseClient;
 
   return db;
 }

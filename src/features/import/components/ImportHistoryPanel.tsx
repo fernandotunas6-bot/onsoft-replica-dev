@@ -9,16 +9,16 @@ import type { ImportJobRecord } from "@/features/import/schemas";
 const statusBadge: Record<string, { label: string; class: string }> = {
   completed: {
     label: "Concluído",
-    class: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    class: "bg-success/15 text-success border-success/30",
   },
-  rolled_back: { label: "Revertido", class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  failed: { label: "Falhou", class: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
-  ready: { label: "Pronto", class: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  rolled_back: { label: "Revertido", class: "bg-warning/15 text-warning border-warning/30" },
+  failed: { label: "Falhou", class: "bg-destructive/15 text-destructive border-destructive/30" },
+  ready: { label: "Pronto", class: "bg-primary/15 text-primary border-primary/30" },
   importing: {
     label: "Em Processamento",
-    class: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+    class: "bg-primary/15 text-primary border-primary/30",
   },
-  uploaded: { label: "Carregado", class: "bg-muted text-muted-foreground" },
+  uploaded: { label: "Carregado", class: "bg-muted text-muted-foreground border-border" },
 };
 
 export function ImportHistoryPanel() {
@@ -64,7 +64,7 @@ export function ImportHistoryPanel() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-card">
           <table className="w-full text-left text-xs md:text-sm">
             <thead className="border-b border-border bg-muted/40 text-muted-foreground">
               <tr>
@@ -94,11 +94,11 @@ export function ImportHistoryPanel() {
                     <td className="px-3 py-2.5 font-medium text-foreground">{job.file_name}</td>
                     <td className="px-3 py-2.5 capitalize">{job.module}</td>
                     <td className="px-3 py-2.5">
-                      <span className="font-semibold text-emerald-600">
+                      <span className="font-semibold text-success">
                         {job.inserted_rows} inseridos
                       </span>
                       {job.updated_rows ? (
-                        <span className="ml-1 text-blue-600">/ {job.updated_rows} atualizados</span>
+                        <span className="ml-1 text-primary">/ {job.updated_rows} atualizados</span>
                       ) : null}
                     </td>
                     <td className="px-3 py-2.5">
@@ -115,7 +115,7 @@ export function ImportHistoryPanel() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-7 gap-1 text-xs text-amber-600 hover:text-amber-700"
+                              className="h-7 gap-1 text-xs text-warning hover:text-warning/80"
                               onClick={open}
                             >
                               <RotateCcw className="size-3.5" /> Reverter

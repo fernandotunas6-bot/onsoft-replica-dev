@@ -1,24 +1,40 @@
 import { describe, expect, it, beforeEach, vi, afterEach } from "vitest";
 import { runPublicSchoolSignup } from "@/features/saas/public-signup";
 import { provisionTenantCore } from "@/features/saas/provisioning-core";
-import { validatePublicSchoolSignup } from "@/features/saas/schemas";
 
-// Mock provisionTenantCore to avoid actually touching DB during these logic tests
+// Mock provisionTenantCore to avoid actually touching DB during these logic tests.
+// O mock devolve `slug`/`hostname` porque é o núcleo que os resolve (via
+// getPlatformSubdomain) — o signup público repassa-os em vez de repetir aqui o
+// domínio da plataforma.
 vi.mock("@/features/saas/provisioning-core", () => ({
   provisionTenantCore: vi.fn().mockResolvedValue({
     success: true,
     tenantId: "11111111-1111-1111-1111-111111111111",
+    slug: "escola-nova",
+    hostname: "escola-nova.portal-siga.com",
     bootstrapSeeded: ["academic_years", "roles"],
+    adminInviteDelivered: false,
+    adminPasswordSet: true,
+    adminSetupUrl: "https://exemplo.invalid/definir-senha",
   }),
 }));
 
 describe("runPublicSchoolSignup logic", () => {
+  // Forma real de `PublicSchoolSignupInput` (ver features/saas/schemas.ts).
+  // Antes este fixture usava `school_name` e omitia `plan_code`/`admin_*` —
+  // campos que o schema exige. Como `provisionTenantCore` está mockado, o
+  // teste passava a validar uma forma que a rota real rejeitaria.
   const baseData = {
-    school_name: "Escola Nova",
+    name: "Escola Nova",
+    nif: "5417000000",
     slug: "escola-nova",
     contact_name: "Admin",
     contact_email: "test@example.com",
     contact_phone: "912345678",
+    plan_code: "start" as const,
+    admin_email: "admin@example.com",
+    admin_name: "Administrador",
+    admin_password: "senha-forte-123",
     website: "", // Honeypot must be empty
   };
 
@@ -36,13 +52,21 @@ describe("runPublicSchoolSignup logic", () => {
     expect(res.success).toBe(true);
     expect(res.slug).toBe("escola-nova");
     expect(res.hostname).toBe("escola-nova.portal-siga.com");
+    expect(res.adminInviteDelivered).toBe(false);
+    // O link de definição de senha nunca sai pela API pública.
+    expect(res).not.toHaveProperty("adminSetupUrl");
     expect(provisionTenantCore).toHaveBeenCalledWith(
       {
-        school_name: "Escola Nova",
+        name: "Escola Nova",
+        nif: "5417000000",
         slug: "escola-nova",
         contact_name: "Admin",
         contact_email: "test@example.com",
         contact_phone: "912345678",
+        plan_code: "start",
+        admin_email: "admin@example.com",
+        admin_name: "Administrador",
+        admin_password: "senha-forte-123",
         trial_days: 14,
       },
       { auditUserId: null, source: "public_signup" },

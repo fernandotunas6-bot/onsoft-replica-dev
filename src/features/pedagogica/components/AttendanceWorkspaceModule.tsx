@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CheckSquare,
@@ -31,10 +31,23 @@ import { AttendanceCallDialog } from "@/features/pedagogica/components/Attendanc
 import { ReviewAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { todayInLuanda } from "@/features/calendar/dates";
 import { SchemaMissingBanner, isSchemaMissingError } from "@/components/ui/schema-missing-banner";
+import { EmptyState } from "@/components/ui/empty-state";
 
-export function AttendanceWorkspaceModule() {
-  const [selectedDate, setSelectedDate] = useState(todayInLuanda());
+export function AttendanceWorkspaceModule({
+  initialClassGroupId,
+  initialSubjectId,
+  initialDate,
+}: {
+  initialClassGroupId?: string | undefined;
+  initialSubjectId?: string | undefined;
+  initialDate?: string | undefined;
+} = {}) {
+  const [selectedDate, setSelectedDate] = useState(initialDate ?? todayInLuanda());
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [draftCall, setDraftCall] = useState<{
+    classGroupId: string;
+    subjectId: string;
+  } | null>(null);
   const [callDialogOpen, setCallDialogOpen] = useState(false);
   const [reviewJustificationModalOpen, setReviewJustificationModalOpen] = useState(false);
   const [selectedJustification, setSelectedJustification] = useState<{
@@ -43,6 +56,11 @@ export function AttendanceWorkspaceModule() {
     fileName?: string | null;
   } | null>(null);
   const [search, setSearch] = useState("");
+  const autoOpenedRef = useRef(false);
+
+  useEffect(() => {
+    if (initialDate) setSelectedDate(initialDate);
+  }, [initialDate]);
 
   const sessionsQuery = useQuery({
     queryKey: ["teacher-attendance-sessions", selectedDate],
@@ -54,7 +72,10 @@ export function AttendanceWorkspaceModule() {
     queryFn: () => getStudentAttendanceHistory({ data: {} }),
   });
 
-  const sessions = sessionsQuery.data?.sessions ?? [];
+  const sessions = useMemo(
+    () => sessionsQuery.data?.sessions ?? [],
+    [sessionsQuery.data?.sessions],
+  );
   const pendingCount = sessionsQuery.data?.pendingCount ?? 0;
   const historyRecords = historyQuery.data?.records ?? [];
 
@@ -65,6 +86,29 @@ export function AttendanceWorkspaceModule() {
         rec.status.toLowerCase().includes(search.toLowerCase())
       : true,
   );
+
+  // Deep-link da agenda / portal: abre a chamada da turma+disciplina.
+  useEffect(() => {
+    if (autoOpenedRef.current) return;
+    if (!initialClassGroupId || !initialSubjectId) return;
+    if (sessionsQuery.isLoading) return;
+
+    const match = sessions.find(
+      (sess) => sess.class_group_id === initialClassGroupId && sess.subject_id === initialSubjectId,
+    );
+    if (match) {
+      setSelectedSessionId(match.id);
+      setDraftCall(null);
+      setCallDialogOpen(true);
+      autoOpenedRef.current = true;
+      return;
+    }
+
+    setSelectedSessionId(null);
+    setDraftCall({ classGroupId: initialClassGroupId, subjectId: initialSubjectId });
+    setCallDialogOpen(true);
+    autoOpenedRef.current = true;
+  }, [initialClassGroupId, initialSubjectId, sessions, sessionsQuery.isLoading]);
 
   return (
     <div className="space-y-6">
@@ -91,6 +135,7 @@ export function AttendanceWorkspaceModule() {
           <div className="flex items-center gap-2">
             <Calendar className="size-4 text-muted-foreground" />
             <Input
+              aria-label="Data da aula"
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
@@ -119,9 +164,12 @@ export function AttendanceWorkspaceModule() {
             A carregar sessões de aula...
           </div>
         ) : sessions.length === 0 ? (
-          <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-            Não existem aulas registadas nesta data.
-          </div>
+          <EmptyState
+            icon={Clock}
+            title="Não existem aulas registadas nesta data"
+            description="Escolha outro dia ou confirme o horário das turmas em Pedagógica → Horários."
+            compact
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {sessions.map((sess) => (
@@ -193,6 +241,7 @@ export function AttendanceWorkspaceModule() {
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
             <Input
+              aria-label="Pesquisar aula"
               placeholder="Pesquisar por disciplina ou data..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -206,9 +255,12 @@ export function AttendanceWorkspaceModule() {
             A carregar histórico de presenças...
           </div>
         ) : filteredHistory.length === 0 ? (
-          <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-            Nenhum registo de falta ou presença encontrado.
-          </div>
+          <EmptyState
+            icon={UserCheck}
+            title="Ainda sem registos de presença"
+            description="Após fazer a primeira chamada, o histórico de faltas e justificações aparece aqui."
+            compact
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -290,11 +342,23 @@ export function AttendanceWorkspaceModule() {
       </div>
 
       {/* DIÁLOGOS DE CHAMADA E REVISÃO */}
-      {selectedSessionId ? (
+      {selectedSessionId || draftCall ? (
         <AttendanceCallDialog
           open={callDialogOpen}
-          onOpenChange={setCallDialogOpen}
-          sessionId={selectedSessionId}
+          onOpenChange={(open) => {
+            setCallDialogOpen(open);
+            if (!open) {
+              setSelectedSessionId(null);
+              setDraftCall(null);
+            }
+          }}
+          {...(selectedSessionId
+            ? { sessionId: selectedSessionId }
+            : {
+                classGroupId: draftCall!.classGroupId,
+                subjectId: draftCall!.subjectId,
+                date: selectedDate,
+              })}
         />
       ) : null}
 

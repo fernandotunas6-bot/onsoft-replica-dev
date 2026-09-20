@@ -1,0 +1,50 @@
+-- =============================================================================
+-- SIGA PLUS — NÃO APLICAR
+-- =============================================================================
+-- Este ficheiro foi escrito a partir de um pressuposto falso e é mantido apenas
+-- como registo. **Não o aplique.**
+--
+-- O QUE DIZIA
+--
+-- Que 17 tabelas com `school_id` — a família `hr_*`, currículo, turnos,
+-- horários, preferências de notificação — não tinham RLS nem política, e
+-- acrescentava-lhes políticas.
+--
+-- PORQUE ESTAVA ERRADO
+--
+-- Isso era verdade do **repositório**, não da base de dados. Verificado em
+-- produção a 2026-09-12: essas tabelas já têm `relrowsecurity = true` e, na
+-- maioria, três políticas cada. `finance_invoices` também — apesar de não ter
+-- sequer um CREATE TABLE no repositório.
+--
+-- Aplicar isto teria feito duas coisas indesejadas. As políticas de RLS
+-- permissivas são somadas com OR, portanto acrescentar as minhas ao lado das
+-- existentes não restringiria nada — apenas criaria uma quarta via de acesso e
+-- ruído para quem viesse a ler as políticas. E `FORCE ROW LEVEL SECURITY`
+-- passaria a aplicar RLS também ao dono da tabela, uma mudança real de
+-- comportamento sem razão que a justificasse.
+--
+-- O QUE A INVESTIGAÇÃO ENCONTROU DE FACTO
+--
+-- Duas coisas, ambas mais precisas do que a premissa original:
+--
+-- 1. A política de leitura das tabelas de RH é `is_school_member(school_id)` —
+--    ou seja, **qualquer membro da escola pode ler o processamento salarial**.
+--    A aplicação é mais restritiva do que a base: `HR_READ_ROLES` em
+--    `src/features/hr/server.ts` limita a Administrador e Tesouraria. Fechar
+--    isto significa **substituir** a política existente, não acrescentar outra
+--    — e vale a pena decidir primeiro se a regra correcta é a da aplicação.
+--
+-- 2. O papel `anon` tem `SELECT` concedido nas tabelas `hr_*`, ao contrário de
+--    alunos, pessoas e facturação, onde nem privilégio tem. Hoje é inofensivo,
+--    porque nenhuma política cobre `anon` e a consulta devolve vazio. Continua
+--    a ser uma concessão mais larga do que o resto, sem motivo aparente.
+--
+-- LIÇÃO
+--
+-- O repositório é um subconjunto da produção, não o seu espelho. A base tem um
+-- schema `private` com 95 funções e um modelo de permissões
+-- (`private.has_permission`) de que o repositório não fala. Qualquer conclusão
+-- de segurança tirada só da leitura do SQL versionado precisa de ser confirmada
+-- contra a base antes de virar migração. Ver OPS-01.
+-- =============================================================================

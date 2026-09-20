@@ -3,7 +3,6 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { sgaClient } from "@/integrations/supabase/sga";
-import { generateSaftInputSchema } from "./saft-generator";
 import {
   loadSgaAdminClient,
   requireSgaWriter,
@@ -19,11 +18,19 @@ import {
   cancelInvoiceInputSchema,
   cancelPaymentPlanInputSchema,
   upsertFeePlanSettingsInputSchema,
+  syncStudentToPayflowInputSchema,
 } from "./schemas";
+// Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
+// gerador de XML continua a ser carregado dinamicamente dentro do handler.
+import { generateSaftInputSchema } from "./saft-generator";
 import { insertFinanceArchive } from "@/features/arquivos/archive-finance-core";
 import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { canWriteFileArea } from "@/features/arquivos/kinds";
-import { DEFAULT_FEE_ITEMS, DEFAULT_FEE_PLAN_NAME } from "./fee-plan-defaults";
+import {
+  DEFAULT_FEE_ITEMS,
+  DEFAULT_FEE_PLAN_CODE,
+  DEFAULT_FEE_PLAN_NAME,
+} from "./fee-plan-defaults";
 import {
   generateMulticaixaReference,
   generateMobileWalletOptions,
@@ -90,7 +97,8 @@ function isMissingSgaTable(error: { code?: string; message?: string } | null) {
   );
 }
 
-function categoryToFeeKind(category: string) {
+/** Também usada pelos importadores (dividas/historico_financeiro) para escolher o item de taxa. */
+export function categoryToFeeKind(category: string) {
   const value = category.trim().toLowerCase();
   if (value.includes("matr")) return "enrollment";
   if (value.includes("mens") || value.includes("prop")) return "tuition";
@@ -749,7 +757,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
     // o número do recibo atomicamente — evita a corrida de dois pagamentos simultâneos
     // sobre a mesma fatura que o insert directo anterior não protegia.
     // Corre no client da SESSÃO (não no admin) para auth.uid()/aal2 resolverem.
-    const { data: outcome, error } = await sgaClient(context.supabase).rpc("register_payment", {
+    const { data: outcome, error } = await context.supabase.rpc("register_payment", {
       school_id: membership.schoolId,
       invoice_id: data.invoiceId,
       amount: data.amount,
@@ -919,10 +927,14 @@ export const cancelInvoice = createServerFn({ method: "POST" })
       throw new Error("Esta fatura já tem recibos. Anule os lançamentos antes de cancelar.");
     }
 
-    void data.reason;
     const { data: updated, error } = await db
       .from("finance_invoices")
-      .update({ status: "cancelled" })
+      .update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: context.userId,
+        cancellation_reason: data.reason ?? null,
+      })
       .eq("id", data.invoiceId)
       .eq("school_id", membership.schoolId)
       .select("id, status")
@@ -1016,23 +1028,51 @@ export const issueInvoice = createServerFn({ method: "POST" })
 
     const competenceMonth =
       (data.issuedOn ?? new Date().toISOString().slice(0, 10)).slice(0, 7) + "-01";
-    const { data: invoice, error } = await db
+
+    // Número gerado pelo servidor (nunca pelo cliente) para nunca aceitar texto livre
+    // (ex.: nº de processo do aluno colado por engano) na numeração fiscal FT-AAAA/NNNN.
+    const invoiceYear = new Date().getFullYear();
+    const { count: yearInvoiceCount } = await db
       .from("finance_invoices")
-      .insert({
-        school_id: membership.schoolId,
-        contract_id: contract.id,
-        fee_item_id: feeItem.id,
-        invoice_number: data.number,
-        competence_month: competenceMonth,
-        amount: data.amount,
-        discount_amount: 0,
-        penalty_amount: 0,
-        due_date: data.dueOn,
-        status: "open",
-        issued_by: context.userId,
-      })
-      .select("*")
-      .single();
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", membership.schoolId)
+      .like("invoice_number", `FT-${invoiceYear}/%`);
+    let sequence = (yearInvoiceCount ?? 0) + 1;
+
+    let invoice: Record<string, unknown> | null = null;
+    let invoiceNumber = "";
+    let error: { code?: string; message: string } | null = null;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      invoiceNumber = `FT-${invoiceYear}/${String(sequence).padStart(4, "0")}`;
+      const result = await db
+        .from("finance_invoices")
+        .insert({
+          school_id: membership.schoolId,
+          contract_id: contract.id,
+          fee_item_id: feeItem.id,
+          invoice_number: invoiceNumber,
+          competence_month: competenceMonth,
+          amount: data.amount,
+          discount_amount: 0,
+          penalty_amount: 0,
+          due_date: data.dueOn,
+          status: "open",
+          issued_by: context.userId,
+        })
+        .select("*")
+        .single();
+      if (!result.error) {
+        invoice = result.data;
+        error = null;
+        break;
+      }
+      error = result.error;
+      if (result.error.code === "23505") {
+        sequence += 1;
+        continue;
+      }
+      break;
+    }
     if (error) {
       if (/penalty_amount/i.test(error.message)) {
         throw new Error(
@@ -1050,24 +1090,32 @@ export const issueInvoice = createServerFn({ method: "POST" })
       }
       throw publicDatabaseError(error, "Não foi possível emitir a fatura.");
     }
+    if (!invoice) throw new Error("Não foi possível emitir a fatura.");
 
     const student = await personIdForStudent(db, membership.schoolId, data.studentId);
-    const documentCode = stableDocumentCode("fatura", String(invoice.id ?? data.number));
+    const documentCode = stableDocumentCode("fatura", String(invoice.id ?? invoiceNumber));
     const archived = await archiveFinanceQuietly(db, {
       schoolId: membership.schoolId,
       userId: context.userId,
       role: membership.appRole,
       category: "fatura",
-      title: `Fatura ${data.number}`,
-      description: `Fatura escolar ${data.number} (${data.category}). ${data.description?.trim() || "Documento de cobrança arquivado na biblioteca."} Processo ${student.studentNumber ?? "—"}.`,
+      title: `Fatura ${invoiceNumber}`,
+      description: `Fatura escolar ${invoiceNumber} (${data.category}). ${data.description?.trim() || "Documento de cobrança arquivado na biblioteca."} Processo ${student.studentNumber ?? "—"}.`,
       relatedPersonId: student.personId,
-      sourceLabel: data.number,
+      sourceLabel: invoiceNumber,
       amountLabel: formatAmountKz(Number(data.amount)),
       documentCode,
     });
 
+    const { queuePayflowStudentSyncBestEffort } = await import("./payflow-sync-execute");
+    queuePayflowStudentSyncBestEffort({
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+    });
+
     return {
       ...invoice,
+      invoice_number: invoiceNumber,
       library_document_code: archived?.documentCode ?? documentCode,
       library_file_id: archived?.fileId ?? null,
     };
@@ -1179,14 +1227,16 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
     if (data.invoiceId) {
       const { data: invoiceRow } = await db
         .from("finance_invoices")
-        .select("total_amount, amount, discount_amount")
+        // `total_amount` não existe em `finance_invoices` (as colunas são
+        // `amount` e `discount_amount`). Com ela no select, o PostgREST recusava
+        // a consulta inteira: `invoiceRow` vinha null e o valor da referência
+        // ficava por resolver — a defesa do `||` abaixo nunca chegava a correr.
+        .select("amount, discount_amount")
         .eq("id", data.invoiceId)
         .eq("school_id", membership.schoolId)
         .maybeSingle();
       if (invoiceRow) {
-        invoiceAmount =
-          Number(invoiceRow.total_amount ?? 0) ||
-          Number(invoiceRow.amount ?? 0) - Number(invoiceRow.discount_amount ?? 0);
+        invoiceAmount = Number(invoiceRow.amount ?? 0) - Number(invoiceRow.discount_amount ?? 0);
       }
     }
     if (!reference && data.invoiceId && isGatewayPaymentChannel(data.channel) && invoiceAmount) {
@@ -1438,10 +1488,30 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
         .eq("school_id", membership.schoolId);
       if (updateErr) throw publicDatabaseError(updateErr, "Não foi possível actualizar o plano.");
     } else {
+      // fee_plans.academic_year_id é NOT NULL: sem o resolver aqui o insert
+      // rebentava com 23502 e o painel voltava ao estado inicial sem dizer
+      // porquê — o plano de propinas nunca chegava a ser criado.
+      const { data: activeYear, error: yearErr } = await db
+        .from("academic_years")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .order("starts_on", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (yearErr) throw publicDatabaseError(yearErr, "Não foi possível resolver o ano lectivo.");
+      if (!activeYear?.id) {
+        throw new Error(
+          "Defina primeiro o ano lectivo da escola (Calendário Lectivo → «Definir ano lectivo»). O plano de propinas pertence a um ano lectivo.",
+        );
+      }
+
       const { data: created, error: createErr } = await db
         .from("fee_plans")
         .insert({
           school_id: membership.schoolId,
+          academic_year_id: activeYear.id,
+          code: DEFAULT_FEE_PLAN_CODE,
           name: data.planName || DEFAULT_FEE_PLAN_NAME,
           status: "active",
         })
@@ -1453,9 +1523,23 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
       planId = created.id as string;
     }
 
+    // `code` e `frequency` são NOT NULL sem default em fee_items — sem eles o
+    // insert falhava com 23502 e o painel não criava nenhuma propina.
     const desired = [
-      { kind: "tuition", name: "Propina mensal", amount: data.tuitionAmount },
-      { kind: "enrollment", name: "Taxa de matrícula", amount: data.enrollmentAmount },
+      {
+        kind: "tuition",
+        code: "TUITION",
+        frequency: "monthly",
+        name: "Propina mensal",
+        amount: data.tuitionAmount,
+      },
+      {
+        kind: "enrollment",
+        code: "ENROLLMENT",
+        frequency: "once",
+        name: "Taxa de matrícula",
+        amount: data.enrollmentAmount,
+      },
     ] as const;
 
     for (const item of desired) {
@@ -1479,8 +1563,10 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
         const { error } = await db.from("fee_items").insert({
           school_id: membership.schoolId,
           fee_plan_id: planId,
+          code: item.code,
           name: item.name,
           kind: item.kind,
+          frequency: item.frequency,
           amount: item.amount,
           is_active: true,
         });
@@ -1493,9 +1579,7 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
 
 export const exportSaftAoXml = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => {
-    return generateSaftInputSchema.parse(input);
-  })
+  .validator((input: unknown) => generateSaftInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
     const membership = await requireSgaWriter(context.supabase, context.userId, [
@@ -1647,5 +1731,196 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       xml,
       invoiceCount: formattedInvoices.length,
       warnings,
+    };
+  });
+
+/** Abre o painel PayFlow /admin via SSO assinado (anti-replay no PayFlow). */
+export const createPayflowAdminLaunch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
+
+    const { mapSigaRoleToPayflowAdmin, buildPayflowSsoClaims, createPayflowSsoAssertion } =
+      await import("./payflow-sso");
+    const role = mapSigaRoleToPayflowAdmin(membership.appRole);
+    if (!role) {
+      throw new Error("O seu cargo não tem acesso ao painel PayFlow.");
+    }
+
+    const secret = process.env.PAYFLOW_SSO_SECRET?.trim() ?? "";
+    if (secret.length < 32) {
+      throw new Error(
+        "PAYFLOW_SSO_SECRET não está configurado no servidor SIGA (mín. 32 caracteres).",
+      );
+    }
+
+    const db = await loadSgaAdminClient();
+    const { data: school, error: schoolError } = await db
+      .from("schools")
+      .select("id, tenant_id, name")
+      .eq("id", membership.schoolId)
+      .maybeSingle();
+    if (schoolError) {
+      throw publicDatabaseError(schoolError, "Não foi possível resolver a escola para o PayFlow.");
+    }
+    const tenantId =
+      typeof school?.tenant_id === "string" && school.tenant_id.trim()
+        ? school.tenant_id.trim()
+        : membership.schoolId;
+
+    const { getPayflowAdminUrl, getPayflowUrl } = await import("@/lib/ecosystem-urls");
+    const adminUrl = getPayflowAdminUrl();
+    const exchangeUrl = getPayflowUrl("/api/v1/sso/exchange");
+    if (!adminUrl || !exchangeUrl) {
+      throw new Error("VITE_PAYFLOW_URL não está configurada.");
+    }
+
+    const { data: profile } = await db
+      .from("profiles")
+      .select("full_name")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    const claims = buildPayflowSsoClaims({
+      userId: context.userId,
+      tenantId,
+      schoolId: membership.schoolId,
+      role,
+      name: typeof profile?.full_name === "string" ? profile.full_name : undefined,
+    });
+    const assertion = await createPayflowSsoAssertion(claims, secret);
+
+    return {
+      assertion,
+      exchangeUrl,
+      adminUrl,
+      role,
+      schoolId: membership.schoolId,
+      expiresAt: new Date(claims.exp * 1000).toISOString(),
+    };
+  });
+
+/**
+ * Sincroniza escola + aluno + faturas abertas + IBAN para o PayFlow
+ * (`POST /api/v1/education/sync`, autenticado com PAYFLOW_INTEGRATION_API_KEY).
+ */
+export const syncStudentToPayflow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => syncStudentToPayflowInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
+    const { executePayflowStudentSync } = await import("./payflow-sync-execute");
+    return executePayflowStudentSync({
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+    });
+  });
+
+/**
+ * Sincroniza só a conta IBAN da escola para o PayFlow
+ * (`POST /api/v1/bank-accounts/sync`, com upsert opcional da escola).
+ */
+export const syncSchoolBankToPayflow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriter(context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+    ]);
+
+    const apiKey = process.env.PAYFLOW_INTEGRATION_API_KEY?.trim() ?? "";
+    if (apiKey.length < 24) {
+      throw new Error(
+        "PAYFLOW_INTEGRATION_API_KEY não está configurada no servidor SIGA (mín. 24 caracteres).",
+      );
+    }
+    const { getPayflowUrl } = await import("@/lib/ecosystem-urls");
+    const syncUrl = getPayflowUrl("/api/v1/bank-accounts/sync");
+    if (!syncUrl) throw new Error("VITE_PAYFLOW_URL não está configurada.");
+
+    const { toPayflowSchoolCode, buildPayflowBankAccount } =
+      await import("./payflow-education-sync");
+    const { loadSchoolSettingsBundle } = await import("@/features/school/server");
+    const { validateAngolaIban } = await import("@/lib/angola-banking");
+
+    const db = await loadSgaAdminClient();
+    const { data: schoolRow } = await db
+      .from("schools")
+      .select("id, tenant_id, name")
+      .eq("id", membership.schoolId)
+      .maybeSingle();
+    const schoolName = typeof schoolRow?.name === "string" ? schoolRow.name : "Escola";
+    const tenantId =
+      typeof schoolRow?.tenant_id === "string" && schoolRow.tenant_id.trim()
+        ? schoolRow.tenant_id.trim()
+        : membership.schoolId;
+
+    const settings = await loadSchoolSettingsBundle(db, membership.schoolId);
+    const ibanCheck = validateAngolaIban(settings.banking.iban || "");
+    if (!ibanCheck.ok) {
+      throw new Error(
+        ibanCheck.error ||
+          "Configure um IBAN angolano válido em Definições → Financeiro antes de sincronizar.",
+      );
+    }
+
+    const bank = buildPayflowBankAccount({
+      schoolId: membership.schoolId,
+      accountHolder: settings.banking.account_holder || schoolName,
+      bankName: settings.banking.bank_name || "Banco",
+      iban: ibanCheck.compact || settings.banking.iban,
+      currency: settings.currency || "AOA",
+    });
+    if (!bank) {
+      throw new Error("Dados bancários incompletos (titular, banco e IBAN).");
+    }
+
+    const payload = {
+      ...bank,
+      scope: "school" as const,
+      school_id: membership.schoolId,
+      school: {
+        id: membership.schoolId,
+        tenant_id: tenantId,
+        code: toPayflowSchoolCode(membership.schoolId, schoolName),
+        name: schoolName.slice(0, 160),
+      },
+    };
+
+    const response = await fetch(syncUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const body = (await response.json().catch(() => ({}))) as {
+      data?: { id?: string; iban?: string; synced_at?: string };
+      error?: { message?: string };
+    };
+    if (!response.ok) {
+      throw new Error(
+        body.error?.message ||
+          `PayFlow recusou a sincronização da conta (HTTP ${response.status}).`,
+      );
+    }
+
+    return {
+      ok: true as const,
+      accountId: body.data?.id ?? bank.id,
+      ibanMasked: body.data?.iban ?? null,
+      syncedAt: body.data?.synced_at ?? new Date().toISOString(),
     };
   });

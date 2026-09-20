@@ -7,7 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 
 function useAvatarUrl(url?: string | null) {
-  const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;

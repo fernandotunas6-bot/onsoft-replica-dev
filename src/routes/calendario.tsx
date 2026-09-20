@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Award,
   CalendarDays,
+  CheckSquare,
   Download,
   FileDown,
   Pencil,
+  PieChart,
   Plus,
+  QrCode,
   Smartphone,
   Trash2,
 } from "lucide-react";
@@ -34,8 +37,10 @@ import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { calendarIcsFeedUrl, calendarWebcalFeedUrl } from "@/features/calendar/ics";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import {
@@ -47,14 +52,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  createAcademicYear,
   createCalendarEvent,
   deleteCalendarEvent,
+  getActiveAcademicYear,
   listCalendarEvents,
+  listDayAgendaLessons,
   type CalendarEventSummary,
   updateCalendarEvent,
 } from "@/features/calendar/server";
+import type { DayAgendaLesson } from "@/features/calendar/day-lessons";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { canAccessPath } from "@/features/auth/access-policy";
+import { agendaLessonActions } from "@/features/hr/teacher-classroom-links";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
@@ -108,6 +119,8 @@ function CalendarioPage() {
   const queryClient = useQueryClient();
   const { selectedYearId, selectedYearLabel, school } = useSchoolSettings();
   const canManage = account.role === "Administrador" || account.role === "Secretaria";
+  const canCall = canAccessPath("/pedagogica", account.role, account.grants);
+  const canQr = canAccessPath("/professor/presenca", account.role, account.grants);
   const installed = useInstalledIntegrations();
   const gcalOn = installed.hasCapability("gcal.subscribe");
   const appleOn = installed.hasCapability("apple.ics");
@@ -158,6 +171,28 @@ function CalendarioPage() {
   });
 
   const events = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
+
+  // Sem ano lectivo activo nada se destranca: nem períodos, nem planos de
+  // propina (fee_plans.academic_year_id é NOT NULL), nem estrutura pedagógica.
+  const activeYearQuery = useQuery({
+    queryKey: ["calendar", "active-year"],
+    queryFn: () => getActiveAcademicYear(),
+    retry: false,
+  });
+  const activeYear = activeYearQuery.data ?? null;
+  const needsAcademicYear = !activeYearQuery.isLoading && !activeYear;
+
+  const defineAcademicYear = async (values: Record<string, string>) => {
+    await createAcademicYear({
+      data: {
+        name: values["nome"] ?? "",
+        startsOn: values["inicio"] ?? "",
+        endsOn: values["fim"] ?? "",
+      },
+    });
+    await refreshCalendar();
+    await queryClient.invalidateQueries({ queryKey: ["school", "settings"] });
+  };
 
   const refreshCalendar = async () => {
     await Promise.all([
@@ -234,6 +269,12 @@ function CalendarioPage() {
     setMonthOverride(day.slice(0, 7));
   };
   const suggestedEnd = suggestTermEnd(selectedDay ?? today, events);
+  // Setembro→Julho é o ano lectivo padrão em Angola; a escola confirma ou ajusta.
+  const suggestedYearStartYear =
+    Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 9 ? 1 : 0);
+  const suggestedYearName = `${suggestedYearStartYear}/${suggestedYearStartYear + 1}`;
+  const suggestedYearStart = `${suggestedYearStartYear}-09-01`;
+  const suggestedYearEnd = `${suggestedYearStartYear + 1}-07-31`;
   const daysLeft = currentTerm
     ? inclusiveDaysLeft(currentTerm.ends_on || currentTerm.event_date, today)
     : 0;
@@ -243,6 +284,18 @@ function CalendarioPage() {
   const selectedTerms = selectedDay
     ? events.filter((event) => isoInInclusiveRange(selectedDay, event.event_date, event.ends_on))
     : [];
+
+  const dayLessonsQuery = useQuery({
+    queryKey: ["calendar", "day-lessons", selectedDay],
+    queryFn: () =>
+      listDayAgendaLessons({
+        data: { date: selectedDay!, limit: 20 },
+      }) as Promise<DayAgendaLesson[]>,
+    enabled: Boolean(selectedDay),
+    retry: false,
+    staleTime: 60_000,
+  });
+  const dayLessons = dayLessonsQuery.data ?? [];
 
   const columns = [
     { label: "Evento", value: (row: CalendarExportRow) => row.titulo },
@@ -452,7 +505,38 @@ function CalendarioPage() {
                   Apple
                 </Button>
               ) : null}
-              {canManage ? (
+              {canManage && needsAcademicYear ? (
+                <QuickFormModal
+                  title="Definir ano lectivo"
+                  description="Os períodos, as turmas e os planos de propina dependem de um ano lectivo activo. A escola indica as datas — o SIGA não as inventa."
+                  icon={<CalendarDays className="size-5" />}
+                  submitLabel="Criar ano lectivo"
+                  successDescription="Ano lectivo activo criado."
+                  onSubmit={defineAcademicYear}
+                  fields={[
+                    {
+                      name: "nome",
+                      label: "Nome",
+                      placeholder: suggestedYearName,
+                      defaultValue: suggestedYearName,
+                      full: true,
+                    },
+                    {
+                      name: "inicio",
+                      label: "Início",
+                      type: "date",
+                      defaultValue: suggestedYearStart,
+                    },
+                    { name: "fim", label: "Fim", type: "date", defaultValue: suggestedYearEnd },
+                  ]}
+                  trigger={(open) => (
+                    <Button className="gap-2" onClick={open}>
+                      <CalendarDays className="size-4" /> Definir ano lectivo
+                    </Button>
+                  )}
+                />
+              ) : null}
+              {canManage && !needsAcademicYear ? (
                 <QuickFormModal
                   title="Novo período lectivo"
                   description="No SGA o calendário são períodos (terms), não eventos livres."
@@ -533,7 +617,7 @@ function CalendarioPage() {
               onYearMonthChange={setMonthOverride}
               onSelectDay={jumpToDay}
             />
-            <aside className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+            <aside className="space-y-3 rounded-xl border border-border bg-muted/20 p-4 shadow-card">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {selectedDay
                   ? new Date(`${selectedDay}T12:00:00`).toLocaleDateString("pt-PT", {
@@ -563,6 +647,84 @@ function CalendarioPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">Fora de período lectivo.</p>
               )}
+              {selectedDay ? (
+                <div className="space-y-1.5 border-t border-border/60 pt-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Aulas do horário
+                  </p>
+                  {dayLessonsQuery.isLoading ? (
+                    <p className="text-xs text-muted-foreground">A carregar aulas…</p>
+                  ) : dayLessons.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Sem aulas activas neste dia da semana.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {dayLessons.map((lesson) => {
+                        const actions = agendaLessonActions({
+                          ...lesson,
+                          date: selectedDay ?? undefined,
+                        });
+                        return (
+                          <li key={lesson.id} className="text-sm">
+                            <p className="font-semibold">
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {lesson.startsAt}
+                              </span>{" "}
+                              {lesson.subjectName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {lesson.classGroupName}
+                              {lesson.room ? ` · ${lesson.room}` : ""}
+                              {lesson.teacherName ? ` · ${lesson.teacherName}` : ""}
+                            </p>
+                            {actions && (canCall || canQr) ? (
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                {canCall ? (
+                                  <Button
+                                    asChild
+                                    size="sm"
+                                    variant="secondary"
+                                    className="h-7 gap-1 px-2 text-[11px]"
+                                  >
+                                    <Link to="/pedagogica" search={actions.callSearch}>
+                                      <CheckSquare className="size-3" /> Chamada
+                                    </Link>
+                                  </Button>
+                                ) : null}
+                                {canCall ? (
+                                  <Button
+                                    asChild
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 gap-1 px-2 text-[11px]"
+                                  >
+                                    <Link to="/pedagogica" search={actions.gradesSearch}>
+                                      <PieChart className="size-3" /> Pauta
+                                    </Link>
+                                  </Button>
+                                ) : null}
+                                {canQr ? (
+                                  <Button
+                                    asChild
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 gap-1 px-2 text-[11px]"
+                                  >
+                                    <Link to="/professor/presenca" search={actions.qrSearch}>
+                                      <QrCode className="size-3" /> QR
+                                    </Link>
+                                  </Button>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
               {canManage && selectedTerms[0] ? (
                 <QuickFormModal
                   key={`edit-${selectedTerms[0].id}`}
@@ -727,11 +889,29 @@ function CalendarioPage() {
                 : "Não foi possível carregar o calendário."}
             </p>
           ) : events.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Sem períodos neste ano lectivo em <code className="font-mono">terms</code>.
-            </p>
+            <EmptyState
+              icon={CalendarDays}
+              title={
+                needsAcademicYear
+                  ? "A escola ainda não tem ano lectivo"
+                  : "Ainda não existem períodos neste ano lectivo"
+              }
+              description={
+                !canManage
+                  ? "Peça à secretaria ou à administração para definir o ano lectivo e os períodos."
+                  : needsAcademicYear
+                    ? "Use «Definir ano lectivo» no topo. Sem ele não é possível criar períodos, turmas nem planos de propina."
+                    : "Use «Novo período» no topo para criar trimestres ou semestres e organizar avaliações e pautas."
+              }
+              compact
+            />
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum período corresponde à pesquisa.</p>
+            <EmptyState
+              icon={CalendarDays}
+              title="Nenhum período corresponde à pesquisa"
+              description="Ajuste os filtros ou limpe a pesquisa para ver todos os períodos do ano lectivo."
+              compact
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -764,9 +944,16 @@ function CalendarioPage() {
                         {(() => {
                           const life = termLifecycle(event.event_date, event.ends_on, today);
                           return (
-                            <span className={cn(badgeBase, lifecycleTone(life))}>
-                              {termLifecycleLabels[life]}
-                            </span>
+                            <StatusBadge
+                              status={
+                                life === "em_curso"
+                                  ? "active"
+                                  : life === "futuro"
+                                    ? "pending"
+                                    : "inactive"
+                              }
+                              label={termLifecycleLabels[life]}
+                            />
                           );
                         })()}
                       </TableCell>

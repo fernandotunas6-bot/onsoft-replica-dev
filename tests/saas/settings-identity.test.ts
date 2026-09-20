@@ -15,19 +15,25 @@ import {
 import type { Plan } from "../../src/features/saas/types";
 
 // ---------- fixtures ----------
+// Os 4 módulos são obrigatórios em Plan["features"]; `{}` não satisfaz o tipo.
+const baseFeatures = { academic: true, finance: true, attendance: true, documents: true };
+// Campos alinhados com a interface Plan real: não tem `slug`, `updated_at`,
+// nem `price_monthly`/`price_yearly` (são `price_aoa_*`), e exige
+// `description`/`max_staff`. O fixture antigo inventava metade destes.
 const makePlan = (overrides: Partial<Plan>): Plan => ({
   id: "plan-test",
   name: "Test Plan",
-  slug: "test",
-  code: "starter",
-  price_monthly: 0,
-  price_yearly: 0,
+  // "start" é o código real do plano (planCodeSchema); "starter" não existe.
+  code: "start",
+  description: "Plano de teste",
   max_students: 100,
+  max_staff: 10,
   max_storage_gb: 1,
-  features: {},
+  price_aoa_monthly: 0,
+  price_aoa_yearly: 0,
+  features: { ...baseFeatures },
   is_active: true,
   created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
   ...overrides,
 });
 
@@ -71,52 +77,52 @@ describe("DigitalIdentityPanel — feature gates por plano", () => {
   });
 
   it("plano starter não tem domínio personalizado", () => {
-    const plan = makePlan({ code: "starter", features: {} });
+    const plan = makePlan({ code: "start", features: { ...baseFeatures } });
     expect(planIncludesCustomDomain(plan)).toBe(false);
   });
 
   it("plano business tem domínio personalizado", () => {
-    const plan = makePlan({ code: "business", features: {} });
+    const plan = makePlan({ code: "business", features: { ...baseFeatures } });
     expect(planIncludesCustomDomain(plan)).toBe(true);
   });
 
   it("plano enterprise tem domínio personalizado", () => {
-    const plan = makePlan({ code: "enterprise", features: {} });
+    const plan = makePlan({ code: "enterprise", features: { ...baseFeatures } });
     expect(planIncludesCustomDomain(plan)).toBe(true);
   });
 
   it("plano starter com custom_domain explícito nas features tem domínio personalizado", () => {
-    const plan = makePlan({ code: "starter", features: { custom_domain: true } });
+    const plan = makePlan({ code: "start", features: { ...baseFeatures, custom_domain: true } });
     expect(planIncludesCustomDomain(plan)).toBe(true);
   });
 
   it("plano starter não tem e-mail profissional", () => {
-    const plan = makePlan({ code: "starter", features: {} });
+    const plan = makePlan({ code: "start", features: { ...baseFeatures } });
     expect(planIncludesProfessionalEmail(plan)).toBe(false);
   });
 
   it("plano business tem e-mail profissional", () => {
-    const plan = makePlan({ code: "business", features: {} });
+    const plan = makePlan({ code: "business", features: { ...baseFeatures } });
     expect(planIncludesProfessionalEmail(plan)).toBe(true);
   });
 
   it("plano enterprise tem e-mail profissional", () => {
-    const plan = makePlan({ code: "enterprise", features: {} });
+    const plan = makePlan({ code: "enterprise", features: { ...baseFeatures } });
     expect(planIncludesProfessionalEmail(plan)).toBe(true);
   });
 
   it("plano starter não tem branding avançado", () => {
-    const plan = makePlan({ code: "starter", features: {} });
+    const plan = makePlan({ code: "start", features: { ...baseFeatures } });
     expect(planIncludesAdvancedBranding(plan)).toBe(false);
   });
 
   it("plano enterprise tem branding avançado", () => {
-    const plan = makePlan({ code: "enterprise", features: {} });
+    const plan = makePlan({ code: "enterprise", features: { ...baseFeatures } });
     expect(planIncludesAdvancedBranding(plan)).toBe(true);
   });
 
   it("plano com custom_domain nas features tem branding avançado", () => {
-    const plan = makePlan({ code: "starter", features: { custom_domain: true } });
+    const plan = makePlan({ code: "start", features: { ...baseFeatures, custom_domain: true } });
     expect(planIncludesAdvancedBranding(plan)).toBe(true);
   });
 });

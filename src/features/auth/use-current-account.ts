@@ -4,20 +4,39 @@ import { useAuthSession } from "@/components/auth/AuthGate";
 import { getCurrentAccountContext } from "@/features/auth/server";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import type { UserSchoolMembershipItem } from "@/integrations/supabase/sga";
+import {
+  isActiveSchoolUnavailable,
+  readStoredActiveSchool,
+  rememberActiveSchool,
+} from "@/features/auth/active-school";
+
+/**
+ * Identidade estável para "sem grants".
+ *
+ * `profile.data?.grants ?? {}` criava um objecto novo em CADA render enquanto a
+ * query de conta não resolvesse (ou se a resposta não trouxesse grants). Quem
+ * consome isto como dependência de `useMemo`/`useEffect` — a `AppSidebar`
+ * fá-lo — via a dependência mudar sempre e reentrava em ciclo de render.
+ */
+const NO_GRANTS: Record<string, string> = Object.freeze({});
 
 const ACTIVE_ROLE_KEY = "siga:active-role";
 const ACTIVE_STUDENT_KEY = "siga:active-student-id";
-const ACTIVE_SCHOOL_KEY = "siga:active-school-id";
 
 export function useCurrentAccount() {
   const session = useAuthSession();
   const userId = session?.user.id;
   const queryClient = useQueryClient();
 
-  const [activeSchoolIdState, setActiveSchoolIdState] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(ACTIVE_SCHOOL_KEY);
-  });
+  const [activeSchoolIdState, setActiveSchoolIdState] = useState<string | null>(() =>
+    readStoredActiveSchool(),
+  );
+
+  // O cookie é a fonte que o servidor lê; garante-se que reflecte o que ficou
+  // guardado, mesmo em sessões abertas antes de o cookie existir.
+  useEffect(() => {
+    rememberActiveSchool(activeSchoolIdState);
+  }, [activeSchoolIdState]);
 
   const profile = useQuery({
     queryKey: ["auth", "account-context", userId ?? "anon", activeSchoolIdState ?? "default"],
@@ -28,6 +47,13 @@ export function useCurrentAccount() {
           data: { preferredSchoolId: activeSchoolIdState || undefined },
         });
       } catch (error) {
+        // A escola guardada deixou de pertencer ao utilizador: limpa a selecção
+        // em vez de o deixar preso num erro, e deixa o servidor voltar a decidir.
+        if (isActiveSchoolUnavailable(error) && activeSchoolIdState) {
+          rememberActiveSchool(null);
+          setActiveSchoolIdState(null);
+          return await getCurrentAccountContext({ data: { preferredSchoolId: undefined } });
+        }
         console.error("[useCurrentAccount]", error);
         throw error;
       }
@@ -90,13 +116,9 @@ export function useCurrentAccount() {
 
   const setActiveSchoolId = (newSchoolId: string | null) => {
     setActiveSchoolIdState(newSchoolId);
-    if (typeof window !== "undefined") {
-      if (newSchoolId) {
-        localStorage.setItem(ACTIVE_SCHOOL_KEY, newSchoolId);
-      } else {
-        localStorage.removeItem(ACTIVE_SCHOOL_KEY);
-      }
-    }
+    // Grava o cookie antes de invalidar: os refetches que se seguem já têm de
+    // sair com a escola nova, senão recarregavam dados da escola anterior.
+    rememberActiveSchool(newSchoolId);
     // Invalidate queries so that all scoped school data is refreshed
     void queryClient.invalidateQueries({ queryKey: ["auth", "account-context"] });
   };
@@ -148,7 +170,7 @@ export function useCurrentAccount() {
     setActiveRole,
     avatarUrl,
     initials,
-    grants: profile.data?.grants ?? {},
+    grants: profile.data?.grants ?? NO_GRANTS,
     schoolId: currentSchoolId,
     schoolName: currentSchoolName,
     schoolSlug: currentSchoolSlug,

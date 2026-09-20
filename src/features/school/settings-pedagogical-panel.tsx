@@ -89,10 +89,8 @@ export function PedagogicalSettingsPanel() {
     try {
       await updatePedagogySettings({
         data: {
-          teachingLevels: teachingLevels as Array<
-            "pre_escolar" | "primario" | "i_ciclo" | "ii_ciclo" | "tecnico" | "adultos" | "superior"
-          >,
-          courses: courses as Array<"cfb" | "cej" | "letras" | "tecnico">,
+          teachingLevels,
+          courses,
           closedTerms,
           gradingProfile: teachingLevels.includes("superior")
             ? { scale: gradingScale, components: gradingComponents }

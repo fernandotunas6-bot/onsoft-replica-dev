@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,8 +10,10 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import {
@@ -124,6 +126,7 @@ const advanceActionLabel: Record<string, string> = {
 };
 
 function DocumentosPage() {
+  const realtimeInstanceId = useId();
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.documents");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -166,21 +169,17 @@ function DocumentosPage() {
   // Realtime — atualiza a lista de pedidos quando há novidades
   useEffect(() => {
     const channel = supabase
-      .channel("documentos_realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "siga_document_requests" },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
-          void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-        },
-      )
+      .channel(`documentos_realtime:${realtimeInstanceId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "document_requests" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, realtimeInstanceId]);
 
   const students = workspaceQuery.data?.students ?? [];
   const templates = workspaceQuery.data?.templates ?? [];
@@ -631,7 +630,18 @@ function DocumentosPage() {
                     <TableCell>{new Date(d.pedidoEm).toLocaleDateString("pt-PT")}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{d.responsavel}</TableCell>
                     <TableCell>
-                      <span className={cn(badgeBase, estadoTone[d.estado])}>{d.estado}</span>
+                      <StatusBadge
+                        status={
+                          d.estado === "Emitido"
+                            ? "paid"
+                            : d.estado === "Em processamento"
+                              ? "info"
+                              : d.estado === "Pendente de pagamento"
+                                ? "warning"
+                                : "cancelled"
+                        }
+                        label={d.estado}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -794,11 +804,21 @@ function DocumentosPage() {
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhum pedido encontrado para os filtros aplicados.
+                    <TableCell colSpan={7} className="p-4">
+                      <EmptyState
+                        icon={FileStack}
+                        title={
+                          (workspaceQuery.data?.requests ?? []).length === 0
+                            ? "Ainda não há pedidos de documentos"
+                            : "Nenhum pedido corresponde aos filtros"
+                        }
+                        description={
+                          (workspaceQuery.data?.requests ?? []).length === 0
+                            ? "Registe o primeiro pedido na secretaria para acompanhar declarações, certificados e transferências."
+                            : "Limpe a pesquisa ou altere o estado para ver outros pedidos."
+                        }
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}

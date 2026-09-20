@@ -30,9 +30,16 @@ export function getSchoolInitials(name: string): string {
   return (words[0][0] + (words[1] ? words[1][0] : "")).toUpperCase();
 }
 
+/** Só aceita hex de 3/6 dígitos — evita injeção de CSS/HTML via campo configurável pela escola. */
+export function sanitizeHexColor(color: string | null | undefined, fallback: string): string {
+  const trimmed = color?.trim() || "";
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed) ? trimmed : fallback;
+}
+
 export function renderResetPasswordEmail(params: {
   schoolName: string;
   logoUrl?: string | null;
+  primaryColor?: string | null;
   resetUrl: string;
   platformName?: string;
   platformUrl?: string;
@@ -43,6 +50,7 @@ export function renderResetPasswordEmail(params: {
   const platformUrl = params.platformUrl?.trim() || "https://portal-siga.com";
   const initials = getSchoolInitials(schoolName);
   const logoUrl = params.logoUrl?.trim() || null;
+  const brandColor = sanitizeHexColor(params.primaryColor, "#2563eb");
 
   const subject = `Redefina a sua senha — ${schoolName}`;
 
@@ -158,7 +166,7 @@ ${platformUrl}
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:24px 0 32px 0;">
                       <tr>
                         <td align="center">
-                          <a href="${params.resetUrl}" target="_blank" style="display:inline-block; background-color:#2563eb; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 32px; border-radius:12px; box-shadow:0 2px 4px rgba(37,99,235,0.25); text-align:center; min-width:200px;">
+                          <a href="${params.resetUrl}" target="_blank" style="display:inline-block; background-color:${brandColor}; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 32px; border-radius:12px; box-shadow:0 2px 4px rgba(37,99,235,0.25); text-align:center; min-width:200px;">
                             Redefinir Minha Senha
                           </a>
                         </td>
@@ -182,7 +190,7 @@ ${platformUrl}
                     <!-- Fallback Link -->
                     <p style="margin:24px 0 0 0; font-size:12px; line-height:1.5; color:#94a3b8; word-break:break-all;" class="text-muted">
                       Caso o botão acima não funcione, copie e cole o seguinte endereço no seu navegador:<br>
-                      <a href="${params.resetUrl}" style="color:#2563eb; text-decoration:underline;">${params.resetUrl}</a>
+                      <a href="${params.resetUrl}" style="color:${brandColor}; text-decoration:underline;">${params.resetUrl}</a>
                     </p>
 
                   </td>

@@ -27,6 +27,7 @@ const PLATFORM_DOMAIN = process.env.PLATFORM_DOMAIN;
 | `www` | Landing page (WEB) |
 | `app` | Portal SIGA geral / login |
 | `admin` | Painel SaaS (ADMIN) |
+| `payflow` | Pagamentos (PAYFLOW) |
 | `api` | API REST / Edge Functions |
 | `auth` | Supabase Auth |
 | `status` | Status page (futuro) |
@@ -38,6 +39,7 @@ const PLATFORM_DOMAIN = process.env.PLATFORM_DOMAIN;
 | `security`, `seguranca` | Segurança |
 | `login`, `signup`, `register` | Auth helpers |
 | `root`, `cloud`, `system`, `sistema` | Infra reservada |
+| `pagamentos`, `payments` | Alias PayFlow (reservados) |
 
 Estes slugs são geridos pela tabela `reserved_subdomains` e **nunca** podem ser atribuídos a uma escola.
 
@@ -51,6 +53,8 @@ Estes slugs são geridos pela tabela `reserved_subdomains` e **nunca** podem ser
 ├── www.{{DOMINIO_PRINCIPAL}}      → Landing (WEB)
 ├── app.{{DOMINIO_PRINCIPAL}}      → SIGA Plus (login geral)
 ├── admin.{{DOMINIO_PRINCIPAL}}    → Admin SaaS (ADMIN)
+├── payflow.{{DOMINIO_PRINCIPAL}}  → PayFlow (pagamentos)
+├── docs.{{DOMINIO_PRINCIPAL}}     → Documentação (DOC)
 ├── api.{{DOMINIO_PRINCIPAL}}      → API
 ├── auth.{{DOMINIO_PRINCIPAL}}     → Supabase Auth
 ├── status.{{DOMINIO_PRINCIPAL}}   → Status page (futuro)
@@ -105,6 +109,8 @@ TenantContext.activeTenant
 | `{{DOMINIO_PRINCIPAL}}`, `www.*` | Landing page |
 | `app.*` | Portal geral / login |
 | `admin.*`, `saas-admin.*` | Painel administrativo |
+| `payflow.*` | PayFlow (não é tenant escolar) |
+| `docs.*` | Documentação |
 | `esperanca.*` | Tenant slug = `esperanca` |
 | `portal.escola.ao` | Lookup em `tenant_domains` por hostname |
 

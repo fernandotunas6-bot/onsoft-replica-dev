@@ -76,6 +76,10 @@ export function CameraCaptureModal({
         activeStream.getTracks().forEach((track) => track.stop());
       }
     };
+    // O cleanup usa a variável local `activeStream`, não o state `stream`:
+    // incluir `stream` nas dependências reiniciava a câmara a cada setStream
+    // (ciclo infinito). A regra não distingue os dois.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, facingMode]);
 
   const capturePhoto = () => {

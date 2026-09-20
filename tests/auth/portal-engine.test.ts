@@ -3,6 +3,8 @@ import {
   resolvePortalMode,
   getPortalNavigation,
   getPortalContextualSuggestions,
+  isNavChildActive,
+  mergeOpenMenus,
 } from "@/features/auth/portal-engine";
 
 describe("Smart Portal Engine", () => {
@@ -24,6 +26,7 @@ describe("Smart Portal Engine", () => {
     const labels = items.map((i) => i.label);
     expect(labels).toContain("Início");
     expect(labels).toContain("Académico");
+    expect(labels).toContain("Calendário Lectivo");
     expect(labels).toContain("Frequência");
     expect(labels).toContain("Financeiro");
     expect(labels).toContain("Documentos");
@@ -43,6 +46,7 @@ describe("Smart Portal Engine", () => {
     const labels = items.map((i) => i.label);
     expect(labels).toContain("Meu Educando");
     expect(labels).toContain("Desempenho");
+    expect(labels).toContain("Calendário Lectivo");
     expect(labels).toContain("Frequência");
     expect(labels).toContain("Financeiro");
   });
@@ -57,6 +61,15 @@ describe("Smart Portal Engine", () => {
     expect(labels).toContain("Início");
     expect(labels).toContain("Frequência");
     expect(labels).toContain("Ensino e Avaliações");
+    expect(labels).toContain("Calendário Lectivo");
+  });
+
+  it("elevates Início and Calendário into Principal for admin staff", () => {
+    const nav = getPortalNavigation("Administrador");
+    expect(nav[0]?.title).toBe("Principal");
+    const principalLabels = (nav[0]?.items ?? []).map((i) => i.label);
+    expect(principalLabels).toEqual(["Início", "Calendário Lectivo"]);
+    expect(nav.some((g) => g.title === "Académico")).toBe(true);
   });
 
   it("returns contextual suggestions for each portal mode", () => {
@@ -68,5 +81,84 @@ describe("Smart Portal Engine", () => {
 
     const guardianSugg = getPortalContextualSuggestions("Encarregado");
     expect(guardianSugg.some((s) => s.label === "Faltas e Presenças")).toBe(true);
+  });
+});
+
+/**
+ * Regressão do realce múltiplo na barra lateral.
+ *
+ * "Área Pedagógica" tem cinco sub-itens e quatro deles apontam para o MESMO
+ * caminho (`/pedagogica`), distinguindo-se apenas pelo `?tab=`. O estado activo
+ * comparava só `child.to === pathname`, por isso em `/pedagogica` os quatro
+ * acendiam ao mesmo tempo e a barra deixava de dizer em que separador se está —
+ * bem visível no telemóvel, onde a barra ocupa o ecrã todo.
+ */
+describe("isNavChildActive", () => {
+  const pedagogicaChildren = [
+    { to: "/pedagogica", search: { tab: "turmas" } },
+    { to: "/pedagogica", search: { tab: "notas" } },
+    { to: "/pedagogica", search: { tab: "horarios" } },
+    { to: "/pedagogica", search: { tab: "chamada" } },
+    { to: "/planos-aula" },
+  ];
+
+  it("acende um único separador de /pedagogica de cada vez", () => {
+    const activos = pedagogicaChildren.filter((child) =>
+      isNavChildActive(child, "/pedagogica", { tab: "horarios" }),
+    );
+    expect(activos).toEqual([{ to: "/pedagogica", search: { tab: "horarios" } }]);
+  });
+
+  it("não acende nenhum separador quando o URL não fixa a aba", () => {
+    const activos = pedagogicaChildren.filter((child) =>
+      isNavChildActive(child, "/pedagogica", {}),
+    );
+    expect(activos).toEqual([]);
+  });
+
+  it("continua a distinguir sub-itens por caminho", () => {
+    expect(isNavChildActive({ to: "/planos-aula" }, "/planos-aula", {})).toBe(true);
+    expect(isNavChildActive({ to: "/planos-aula" }, "/pedagogica", {})).toBe(false);
+  });
+
+  it("ignora chaves de pesquisa indefinidas em vez de as exigir no URL", () => {
+    expect(
+      isNavChildActive(
+        { to: "/pedagogica", search: { tab: "notas", turma: undefined } },
+        "/pedagogica",
+        { tab: "notas" },
+      ),
+    ).toBe(true);
+  });
+
+  it("exige todas as chaves definidas, não só a primeira", () => {
+    const child = { to: "/pedagogica", search: { tab: "notas", turma: "t-1" } };
+    expect(isNavChildActive(child, "/pedagogica", { tab: "notas" })).toBe(false);
+    expect(isNavChildActive(child, "/pedagogica", { tab: "notas", turma: "t-1" })).toBe(true);
+  });
+});
+
+/**
+ * Regressão do ciclo infinito de render da barra lateral.
+ *
+ * A `AppSidebar` chama isto num `useEffect` cuja dependência deriva do
+ * papel/grants do utilizador. Enquanto `useCurrentAccount` devolvia
+ * `grants: … ?? {}` — objecto novo a cada render — a dependência mudava
+ * sempre; se o merge também devolvesse sempre um array novo, o `setState`
+ * mudava de identidade e o ciclo nunca parava. Montar a barra num teste
+ * pendurava o processo, sem sequer o timeout do Vitest a disparar.
+ */
+describe("mergeOpenMenus", () => {
+  it("devolve a MESMA referência quando não há nada a abrir", () => {
+    const prev = ["Área Pedagógica"];
+    expect(mergeOpenMenus(prev, ["Área Pedagógica"])).toBe(prev);
+    expect(mergeOpenMenus(prev, [])).toBe(prev);
+  });
+
+  it("acrescenta os menus em falta sem duplicar os já abertos", () => {
+    expect(mergeOpenMenus(["Área Pedagógica"], ["Área Pedagógica", "Financeiro"])).toEqual([
+      "Área Pedagógica",
+      "Financeiro",
+    ]);
   });
 });

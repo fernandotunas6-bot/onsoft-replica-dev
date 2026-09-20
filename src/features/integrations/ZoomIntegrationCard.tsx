@@ -93,7 +93,7 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
       </div>
 
       {isConnected ? (
-        <div className="flex items-center gap-2 p-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px]">
+        <div className="flex items-center gap-2 p-2 rounded-md bg-success/10 border border-success/20 text-success text-[11px]">
           <CheckCircle2 className="size-3.5 shrink-0" />
           <span>
             Conta autorizada: <strong>{accountName || "Zoom User"}</strong> (

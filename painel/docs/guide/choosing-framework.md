@@ -1,6 +1,6 @@
 # Stack por aplicação (não «escolher template»)
 
-O SIGA Plus **não** é um template Vite *ou* Next.js. São **quatro aplicações** com stacks distintas — não unificar frontends.
+O SIGA Plus **não** é um template Vite *ou* Next.js. São **cinco aplicações** com stacks distintas — não unificar frontends.
 
 ::: tip Arquitectura
 Detalhe canónico: [Arquitetura do ecossistema](/arquitetura/) e [Responsabilidades](/arquitetura/responsabilidades).
@@ -15,6 +15,7 @@ Detalhe canónico: [Arquitetura do ecossistema](/arquitetura/) e [Responsabilida
 | **SIGA** | raiz (`src/`) | TanStack Start + Router + React Query + Zod | 3006 |
 | **WEB** | `painel/web` | Vite + React | 5174 |
 | **ADMIN** | `painel/admin` | Next.js App Router | 3005 |
+| **PAYFLOW** | `painel/payflow` | Vinext + Cloudflare Workers | 3007 |
 | **DOC** | `painel/docs` | VitePress | 5173 |
 
 | Camada | Tecnologia |
@@ -35,6 +36,7 @@ Detalhe canónico: [Arquitetura do ecossistema](/arquitetura/) e [Responsabilida
 - **SIGA (TanStack Start)** — operação escolar (alunos, pedagógica, tesouraria). Ver [Navegação](/siga/navegacao).
 - **WEB (Vite)** — marketing e wizard `/start`. Manual: [Criar escola](/web/criar-escola).
 - **ADMIN (Next.js)** — Control Center SaaS. Manual: [Control Center](/admin/control-center).
+- **PAYFLOW (Vinext)** — cobrança escolar. Manual: [PayFlow](/financeiro/payflow).
 - **DOC (VitePress)** — manuais; secções `/vite/` e `/nextjs/` são referência de **componentes UI do template**, não escolha de produto.
 
 ---

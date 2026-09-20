@@ -1,0 +1,44 @@
+name: PayFlow
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "painel/payflow/**"
+      - ".github/workflows/payflow.yml"
+  pull_request:
+    paths:
+      - "painel/payflow/**"
+      - ".github/workflows/payflow.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payflow-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, build e testes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: painel/payflow
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: painel/payflow/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build e testes de segurança
+        run: npm test

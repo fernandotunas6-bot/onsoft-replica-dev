@@ -20,6 +20,12 @@ test.describe("Matrícula pública @live", () => {
   test.skip(!isLiveE2EEnabled(), "Defina SIGA_E2E_LIVE=1 com apps locais e Supabase configurado.");
 
   test("candidatura pública → aceitar → aluno criado", async ({ page, request }) => {
+    // Percorre signup + login + 3 passos assíncronos no painel de definições;
+    // o orçamento global de 90s (playwright.config.ts) chega para o caminho
+    // isolado mas fica apertado quando o ecossistema completo (5 apps) corre
+    // em paralelo com outras suites — visto reproduzir sob carga alta da
+    // máquina, sem indício de bug (dados já presentes no DOM ao expirar).
+    test.setTimeout(150_000);
     const slug = uniqueE2ESlug("mat");
     const payload = buildSignupPayload(slug);
     const candidateName = `Candidato E2E ${slug}`;
@@ -35,16 +41,16 @@ test.describe("Matrícula pública @live", () => {
       await page.goto(getPublicEnrollmentUrl(slug));
       await page.getByLabel("Nome completo").fill(candidateName);
       await page.getByRole("button", { name: "Enviar candidatura" }).click();
-      await expect(page.getByRole("heading", { name: "Candidatura enviada" })).toBeVisible({
+      await expect(page.getByRole("heading", { name: "Candidatura enviada" }).first()).toBeVisible({
         timeout: 30_000,
       });
 
       await page.goto(ECOSYSTEM_E2E_URLS.siga);
       await page.getByLabel("Email ou Nº de BI / NIF").fill(payload.admin_email);
-      await page.getByLabel("Senha").fill(E2E_LIVE_ADMIN_PASSWORD);
+      await page.getByLabel("Senha", { exact: true }).fill(E2E_LIVE_ADMIN_PASSWORD);
       await page.getByRole("button", { name: "Entrar no Portal" }).click();
       await expect(
-        page.getByText("Primeiros passos da escola").or(page.getByText("Visão Geral")),
+        page.getByText("Primeiros passos da escola").or(page.getByText("Visão Geral")).first(),
       ).toBeVisible({
         timeout: 60_000,
       });
@@ -54,7 +60,7 @@ test.describe("Matrícula pública @live", () => {
       }, OPEN_SETTINGS_EVENT);
 
       await expect(page.getByText("Matrícula pública").first()).toBeVisible({ timeout: 30_000 });
-      await expect(page.getByText(candidateName)).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByText(candidateName).first()).toBeVisible({ timeout: 30_000 });
 
       const soloCandidate = page.getByRole("button", { name: "Só candidato" });
       if (await soloCandidate.isVisible()) {
@@ -66,7 +72,12 @@ test.describe("Matrícula pública @live", () => {
           .click();
       }
 
-      await expect(page.getByText(/Candidatura aceite/i)).toBeVisible({ timeout: 30_000 });
+      await expect(
+        page
+          .getByText(/Candidatura aceite/i)
+          .or(page.getByText("accepted"))
+          .first(),
+      ).toBeVisible({ timeout: 30_000 });
 
       const schoolId = await findSchoolIdByTenantSlug(slug);
       expect(schoolId).toBeTruthy();

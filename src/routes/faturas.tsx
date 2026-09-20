@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useId, useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import {
   AlertCircle,
   Award,
+  Banknote,
   ChevronDown,
+  CreditCard,
   Download,
   FileDown,
   FileText,
+  FileUp,
   Plus,
   QrCode,
   Wallet,
@@ -20,10 +23,14 @@ import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
-import { DOC_PATHS } from "@/lib/ecosystem-urls";
+import { DOC_PATHS, getPayflowPayerUrl } from "@/lib/ecosystem-urls";
+import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
+import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -129,6 +136,7 @@ const estadoTone = {
 } as const;
 
 function FaturasPage() {
+  const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const { school, selectedYearLabel } = useSchoolSettings();
   const installed = useInstalledIntegrations();
@@ -242,7 +250,7 @@ function FaturasPage() {
   // Realtime — actualiza faturas e relatório ao vivo quando há novos pagamentos ou faturas
   useEffect(() => {
     const channel = supabase
-      .channel("faturas_realtime")
+      .channel(`faturas_realtime:${realtimeInstanceId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "invoices" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
         void queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
@@ -262,7 +270,7 @@ function FaturasPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, realtimeInstanceId]);
 
   const pagedFaturas = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -345,9 +353,6 @@ function FaturasPage() {
         ),
     });
   };
-  const year = new Date().getFullYear();
-  const suggestedInvoiceNumber = `FT-${year}/${String(invoiceCount + 1).padStart(4, "0")}`;
-
   const downloadReceipt = async (
     fatura: {
       numero: string;
@@ -566,6 +571,11 @@ function FaturasPage() {
             <>
               <DocHelpButton title="Navegação — Faturas e tesouraria" />
               <DocPathHelpButton
+                path={DOC_PATHS.financePayflow}
+                label="PayFlow"
+                title="PayFlow — cobrança e conciliação"
+              />
+              <DocPathHelpButton
                 path={DOC_PATHS.financeSaft}
                 label="SAFT-AO"
                 title="Exportação SAFT-AO / AGT"
@@ -617,6 +627,29 @@ function FaturasPage() {
                     className="gap-2 text-xs cursor-pointer"
                   >
                     <Download className="size-3.5" /> Ficheiro CSV
+                  </DropdownMenuItem>
+                  <div className="my-1 border-t border-border" />
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
+                      <FileUp className="size-3.5 text-primary" /> Importar Pagamentos (Excel)
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                    <a
+                      href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <PayflowBrandIcon size={14} /> Portal PayFlow (Pagamentos)
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="gap-2 text-xs cursor-pointer p-0"
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    <PayflowAdminLaunchButton asMenuItem className="px-2 py-1.5">
+                      Conciliação PayFlow
+                    </PayflowAdminLaunchButton>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -678,12 +711,6 @@ function FaturasPage() {
                     full: true,
                   },
                   {
-                    name: "numero",
-                    label: "Número",
-                    placeholder: "FT 2026/0001",
-                    defaultValue: suggestedInvoiceNumber,
-                  },
-                  {
                     name: "categoria",
                     label: "Categoria",
                     type: "select",
@@ -702,28 +729,28 @@ function FaturasPage() {
                 onSubmit={async (values) => {
                   const student = financeStudents[studentOptions.indexOf(values["aluno"] ?? "")];
                   if (!student) throw new Error("Selecione um aluno válido.");
-                  await issueInvoice({
+                  const created = await issueInvoice({
                     data: {
                       studentId: student.student_id,
-                      number: values["numero"] ?? "",
                       dueOn: values["vencimento"] ?? "",
                       category: values["categoria"] ?? "",
                       amount: Number(values["valor"]),
                       description: values["descricao"] || undefined,
                     },
                   });
+                  const numero = String(created.invoice_number ?? "");
                   await queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] });
                   await queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] });
                   await downloadReceipt(
                     {
-                      numero: values["numero"] ?? "",
+                      numero,
                       aluno: student.full_name,
                       processo: student.registration_number,
                       valor: Number(values["valor"]),
                       recebido: 0,
                       descricao: values["descricao"] || values["categoria"] || "Fatura escolar",
                     },
-                    values["numero"] ?? "",
+                    numero,
                     Number(values["valor"]),
                     "fatura",
                   );
@@ -784,8 +811,8 @@ function FaturasPage() {
         ) : null}
 
         {!schemaBlocked && missingActiveFeePlan ? (
-          <Alert className="border-amber-500/40 bg-amber-500/10">
-            <AlertCircle className="size-4 text-amber-700 dark:text-amber-300" />
+          <Alert variant="default" className="border-border bg-card">
+            <AlertCircle className="size-4 text-primary" />
             <AlertTitle>Plano de propinas em falta</AlertTitle>
             <AlertDescription className="space-y-2">
               <p>
@@ -916,7 +943,16 @@ function FaturasPage() {
                     <TableCell>{new Date(f.vencimento).toLocaleDateString("pt-PT")}</TableCell>
                     <TableCell className="text-right font-bold">{kwanza(f.valor)}</TableCell>
                     <TableCell className="text-right">
-                      <span className={cn(badgeBase, estadoTone[f.estado])}>{f.estado}</span>
+                      <StatusBadge
+                        status={
+                          f.estado === "Paga"
+                            ? "paid"
+                            : f.estado === "Vencida"
+                              ? "overdue"
+                              : "pending"
+                        }
+                        label={f.estado}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -1119,11 +1155,13 @@ function FaturasPage() {
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhuma factura encontrada para os filtros aplicados.
+                    <TableCell colSpan={9} className="p-4">
+                      <EmptyState
+                        icon={FileText}
+                        title="Nenhuma factura neste filtro"
+                        description="Altere o estado, o período ou a pesquisa — ou emita uma nova factura na tesouraria."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}

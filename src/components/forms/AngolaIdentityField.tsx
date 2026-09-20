@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { lookupAngolaBiOnline, validateAngolaBi, validateAngolaNif } from "@/lib/angola-identity";
+import { validateAngolaNif } from "@/lib/angola-identity";
 
 type AngolaIdentityFieldProps = {
   id: string;
@@ -16,7 +15,7 @@ type AngolaIdentityFieldProps = {
   placeholder?: string;
 };
 
-/** Campo BI/NIF com validação de formato e consulta opcional à API pública de BI. */
+/** Campo BI/NIF com validação de formato (Lei n.º 3/21). */
 export function AngolaIdentityField({
   id,
   name,
@@ -27,7 +26,6 @@ export function AngolaIdentityField({
   className,
   placeholder = "BI ou NIF (9–10 dígitos / 14 caracteres)",
 }: AngolaIdentityFieldProps) {
-  const [checking, setChecking] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
   const readValue = () => {
@@ -57,24 +55,6 @@ export function AngolaIdentityField({
     toast.success(message);
   };
 
-  const validateOnline = async () => {
-    const raw = readValue();
-    const bi = validateAngolaBi(raw);
-    if (!bi.ok) {
-      toast.error("A validação online só está disponível para BI (14 caracteres).");
-      return;
-    }
-    setChecking(true);
-    try {
-      const result = await lookupAngolaBiOnline(raw);
-      setHint(result.message);
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message);
-    } finally {
-      setChecking(false);
-    }
-  };
-
   return (
     <div className="space-y-2">
       <Input
@@ -96,21 +76,6 @@ export function AngolaIdentityField({
           disabled={disabled}
         >
           Validar formato
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void validateOnline()}
-          disabled={disabled || checking}
-        >
-          {checking ? (
-            <>
-              <Loader2 className="mr-1 size-3.5 animate-spin" /> A consultar…
-            </>
-          ) : (
-            "Validar BI online"
-          )}
         </Button>
       </div>
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}

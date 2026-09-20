@@ -6,7 +6,7 @@ Fluxo comercial para uma nova instituição aderir ao SIGA Plus. A UI é
 
 ## URL
 
-- Produção: [https://siga-web.pages.dev/start](https://siga-web.pages.dev/start) (ou `http://localhost:5174/start` em desenvolvimento)
+- Produção: [https://www.portal-siga.com/start](https://www.portal-siga.com/start) (ou `http://localhost:5174/start` em desenvolvimento)
 - A partir da landing: botão «Começar» / «Criar escola»
 
 Pontes equivalentes (não duplicam o wizard):
@@ -87,7 +87,7 @@ Após criar:
 
 ```sh
 npm run dev:ecosystem
-npm run siga:e2e-smoke          # HTTP (lookup, domains/verify 401, 4 apps)
+npm run siga:e2e-smoke          # HTTP (lookup, domains/verify 401, 5 apps)
 npm run siga:e2e-playwright-ts      # Playwright TS — rotas + wizard
 npm run siga:e2e-playwright-live    # Playwright TS @live (comercial + matrícula)
 SIGA_E2E_LIVE=1 npm run siga:e2e-playwright   # smoke + TS + Python + @live (requer secret)

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GatewayWebhookWindowSummary } from "@/features/finance/gateway-webhook-metrics";
-import { sendResendEmail } from "@/features/integrations/resend-client";
+import { resolveSystemSender, sendResendEmail } from "@/features/integrations/resend-client";
 
 export type GatewayFailureRateAlertConfig = {
   slackUrl: string | null;
@@ -51,7 +51,7 @@ export function parseGatewayFailureRateAlertConfig(
     emailFrom:
       env.SIGA_GATEWAY_FAILURE_RATE_ALERT_EMAIL_FROM?.trim() ||
       env.E2E_ALERT_EMAIL_FROM?.trim() ||
-      "SIGA Plus Alertas <onboarding@resend.dev>",
+      resolveSystemSender("finance", { displayName: "SIGA Payflow Alertas" }),
     threshold,
     minEvents,
     cooldownMs: cooldownHours * 60 * 60 * 1000,

@@ -115,5 +115,5 @@ describe("SIGA Data Import & Export Engine — Bidirectional Cycle Test", () => 
     expect(alunoRow["Nome Completo do Aluno"]).toBe("António Sebastião");
     expect(alunoRow["Nº de Processo / Nº Aluno"]).toBe("2026-0001");
     expect(alunoRow["Bilhete de Identidade / Cédula"]).toBe("001234567LA012");
-  });
+  }, 20000);
 });

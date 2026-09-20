@@ -44,7 +44,7 @@ URLs partilhadas: `ecosystem-urls.ts` / `VITE_*` / `NEXT_PUBLIC_*`.
 npm run siga:check          # inventário + navegação
 npm run siga:sql            # SQL canónico SGA
 npm run siga:scaffold -- <id>
-npm run dev:ecosystem       # 4 apps
+npm run dev:ecosystem       # 5 apps
 npm test                    # Vitest (Node 24)
 ```
 

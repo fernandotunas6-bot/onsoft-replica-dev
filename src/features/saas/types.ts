@@ -135,7 +135,13 @@ export interface CreateSchoolWizardData {
   // Step 1: Institution
   name: string;
   commercial_name?: string;
-  nif?: string;
+  /**
+   * Obrigatório, como no `createSchoolWizardInputSchema` que valida este
+   * objecto. Ficou `nif?` quando o schema apertou, e um tipo que promete menos
+   * do que o runtime exige é uma armadilha: quem escrever o próximo formulário
+   * de criação segue o tipo e apanha um 400.
+   */
+  nif: string;
   address?: string;
   city?: string;
   phone?: string;

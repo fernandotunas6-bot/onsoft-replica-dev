@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   sync:
-    if: ${{ !contains(github.event.head_commit.message, 'chore(lock): sync bun lockfile') }}
+    if: "${{ !contains(github.event.head_commit.message, 'chore(lock): sync bun lockfile') }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

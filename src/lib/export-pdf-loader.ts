@@ -32,7 +32,7 @@ export async function exportOfficialPautaPdf<Row extends object>(
   rows: ReadonlyArray<Row>,
 ) {
   const exporter = await loadPdfExporter();
-  exporter.exportOfficialPautaPdf(filename, title, meta, columns, rows);
+  await exporter.exportOfficialPautaPdf(filename, title, meta, columns, rows);
 }
 
 export async function exportOfficialDeclarationPdf(
@@ -45,5 +45,5 @@ export async function exportOfficialDeclarationPdf(
   },
 ) {
   const exporter = await loadPdfExporter();
-  exporter.exportOfficialDeclarationPdf(filename, title, meta);
+  await exporter.exportOfficialDeclarationPdf(filename, title, meta);
 }

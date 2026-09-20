@@ -10,10 +10,11 @@
  * Uso: node scripts/pwa-check.mjs [baseUrl]
  */
 
-const baseUrl = (process.argv[2] ?? process.env["PWA_CHECK_URL"] ?? "http://localhost:3000").replace(
-  /\/$/,
-  "",
-);
+const baseUrl = (
+  process.argv[2] ??
+  process.env["PWA_CHECK_URL"] ??
+  "http://localhost:3000"
+).replace(/\/$/, "");
 
 const failures = [];
 const checks = [];
@@ -46,9 +47,10 @@ if (!html.ok) {
 }
 
 // --- Manifesto ---------------------------------------------------------------
-const manifestHref = markup.match(/rel="manifest"\s+href="([^"]+)"/)?.[1] ?? "/manifest.webmanifest";
+const manifestHref =
+  markup.match(/rel="manifest"\s+href="([^"]+)"/)?.[1] ?? "/manifest.webmanifest";
 if (markup && !/rel="manifest"/.test(markup)) {
-  fail("HTML sem <link rel=\"manifest\">");
+  fail('HTML sem <link rel="manifest">');
 }
 
 const manifestResponse = await fetchOk(manifestHref);
@@ -65,10 +67,20 @@ if (!manifestResponse.ok) {
 }
 
 if (manifest) {
-  for (const field of ["name", "short_name", "start_url", "display", "theme_color", "background_color"]) {
+  for (const field of [
+    "name",
+    "short_name",
+    "start_url",
+    "display",
+    "theme_color",
+    "background_color",
+  ]) {
     if (!manifest[field]) fail(`Manifesto sem campo obrigatório "${field}"`);
   }
-  if (manifest["display"] && !["standalone", "fullscreen", "minimal-ui"].includes(manifest["display"])) {
+  if (
+    manifest["display"] &&
+    !["standalone", "fullscreen", "minimal-ui"].includes(manifest["display"])
+  ) {
     fail(`Manifesto com display "${manifest["display"]}" — não é instalável`);
   }
   const icons = Array.isArray(manifest["icons"]) ? manifest["icons"] : [];
@@ -81,19 +93,24 @@ if (manifest) {
   }
   for (const icon of icons) {
     if (!icon.src) continue;
-    const iconResponse = await fetchOk(icon.src.startsWith("http") ? new URL(icon.src).pathname : icon.src);
-    if (!iconResponse.ok) fail(`Ícone do manifesto inacessível: ${icon.src} (${iconResponse.status})`);
+    const iconResponse = await fetchOk(
+      icon.src.startsWith("http") ? new URL(icon.src).pathname : icon.src,
+    );
+    if (!iconResponse.ok)
+      fail(`Ícone do manifesto inacessível: ${icon.src} (${iconResponse.status})`);
   }
-  if (icons.length > 0) ok(`${icons.length} ícone(s) do manifesto acessíveis e com tamanhos exigidos`);
+  if (icons.length > 0)
+    ok(`${icons.length} ícone(s) do manifesto acessíveis e com tamanhos exigidos`);
 }
 
 // --- Ícone Apple -------------------------------------------------------------
 const appleHref = markup.match(/rel="apple-touch-icon"\s+href="([^"]+)"/)?.[1];
 if (!appleHref) {
-  fail("HTML sem <link rel=\"apple-touch-icon\"> (ecrã inicial iOS)");
+  fail('HTML sem <link rel="apple-touch-icon"> (ecrã inicial iOS)');
 } else {
   const appleResponse = await fetchOk(appleHref);
-  if (!appleResponse.ok) fail(`apple-touch-icon inacessível: ${appleHref} (${appleResponse.status})`);
+  if (!appleResponse.ok)
+    fail(`apple-touch-icon inacessível: ${appleHref} (${appleResponse.status})`);
   else ok(`apple-touch-icon disponível (${appleHref})`);
 }
 
@@ -110,7 +127,8 @@ if (!swResponse.ok) fail(`Service worker não servido em /sw.js (${swResponse.st
 else ok("Service worker servido em /sw.js");
 
 const offlineResponse = await fetchOk("/offline.html");
-if (!offlineResponse.ok) fail(`Página offline não servida em /offline.html (${offlineResponse.status})`);
+if (!offlineResponse.ok)
+  fail(`Página offline não servida em /offline.html (${offlineResponse.status})`);
 else ok("Página offline disponível");
 
 console.log(`\nProntidão PWA — ${baseUrl}\n`);
@@ -122,4 +140,6 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log("\nPWA pronto: manifesto instalável, ícones completos, service worker e modo offline activos.\n");
+console.log(
+  "\nPWA pronto: manifesto instalável, ícones completos, service worker e modo offline activos.\n",
+);

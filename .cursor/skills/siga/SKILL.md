@@ -42,6 +42,7 @@ Abrir o skill do módulo antes de editar (`.cursor/skills/siga-<id>/SKILL.md`).
 | Pessoas / docentes    | `siga-pessoas`      |
 | Pedagógica / turmas   | `siga-pedagogica`   |
 | Tesouraria            | `siga-financeiro`   |
+| RH / Folha salarial   | `siga-rh`           |
 | Documentos            | `siga-documentos`   |
 | Calendário / ICS      | `siga-calendario`   |
 | Comunicações          | `siga-comunicacoes` |
@@ -49,7 +50,7 @@ Abrir o skill do módulo antes de editar (`.cursor/skills/siga-<id>/SKILL.md`).
 | Matrícula pública     | `siga-matricula`    |
 | Integrações           | `siga-integracoes`  |
 | Arquivos              | `siga-arquivos`     |
-| Ecossistema 4 apps    | `siga-ecosystem`    |
+| Ecossistema 5 apps    | `siga-ecosystem`    |
 | WEB comercial         | `siga-web`          |
 | ADMIN SaaS            | `siga-admin`        |
 | DOC                   | `siga-docs`         |

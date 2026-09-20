@@ -1,4 +1,4 @@
-import { getSaasApiUrl } from "@/lib/ecosystem-urls"
+import { getPayflowHealthUrl, getSaasApiUrl } from "@/lib/ecosystem-urls"
 
 export interface SaasSessionProfile {
   userId: string
@@ -357,5 +357,39 @@ export async function fetchTenantMailboxes(token: string, tenantId?: string): Pr
     return { ok: true, mailboxes: data.mailboxes }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Unknown error" }
+  }
+}
+
+export type PayflowPublicHealth = {
+  service: string
+  status: string
+  runtime?: {
+    mode?: string
+    integrationConfigured?: boolean
+    ssoConfigured?: boolean
+    bankConnectorConfigured?: boolean
+    sigaSettlementConfigured?: boolean
+    emisHomologated?: boolean
+    sandboxEnabled?: boolean
+  }
+}
+
+/** Health público do PayFlow — sem propinas nem dados de escola. */
+export async function fetchPayflowPublicHealth(): Promise<
+  { ok: true; health: PayflowPublicHealth } | { ok: false; error: string }
+> {
+  try {
+    const res = await fetch(getPayflowHealthUrl(), { cache: "no-store" })
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` }
+    const json = (await res.json()) as { data?: PayflowPublicHealth }
+    if (!json.data || json.data.service !== "payflow") {
+      return { ok: false, error: "Resposta inesperada do PayFlow." }
+    }
+    return { ok: true, health: json.data }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "PayFlow indisponível.",
+    }
   }
 }

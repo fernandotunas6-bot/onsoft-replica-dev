@@ -114,3 +114,10 @@ export function isAdminSubdomain(hostname?: string): boolean {
     host === "saas-admin.portal-siga.com"
   );
 }
+
+/** PayFlow — cobranças; nunca resolve como tenant escolar. */
+export function isPayflowSubdomain(hostname?: string): boolean {
+  const host = normalizeHost(hostname);
+  const platformDomain = getPlatformDomain();
+  return host === `payflow.${platformDomain}` || host === "payflow.portal-siga.com";
+}

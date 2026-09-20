@@ -44,6 +44,7 @@ describe("ecossistema — contratos Fase 13", () => {
     expect(isPublicAppPath("/api/saas/plans")).toBe(true);
     expect(isPublicAppPath("/api/saas/tenants/lookup")).toBe(true);
     expect(isPublicAppPath("/api/finance/gateway/confirm")).toBe(true);
+    expect(isPublicAppPath("/api/finance/payflow/settlement")).toBe(true);
     expect(isPublicAppPath("/api/calendar/ics")).toBe(true);
     expect(isPublicAppPath("/calendario/ics")).toBe(true);
     expect(isPublicAppPath("/criar-escola")).toBe(true);
@@ -57,12 +58,14 @@ describe("ecossistema — contratos Fase 13", () => {
   it("valida payload mínimo do wizard WEB → API signup", () => {
     const payload = publicSchoolSignupInputSchema.parse({
       name: "Escola Nova",
+      nif: "5417000000",
       contact_name: "Director",
       contact_email: "dir@escola.ao",
       plan_code: "start",
       slug: "escola-nova",
       admin_name: "Director",
       admin_email: "dir@escola.ao",
+      admin_password: "senha-forte-123",
       website: "",
     });
     expect(payload.slug).toBe("escola-nova");
@@ -85,12 +88,14 @@ describe("ecossistema — contratos Fase 13", () => {
   it("aceita slug da escola demo no contrato de signup", () => {
     const payload = publicSchoolSignupInputSchema.parse({
       name: "Complexo Dom Afonso I",
+      nif: "5417000000",
       contact_name: "Director",
       contact_email: "geral@siga-demo.ao",
       plan_code: "enterprise",
       slug: "dom-afonso-demo",
       admin_name: "Director",
       admin_email: "geral@siga-demo.ao",
+      admin_password: "senha-forte-123",
       website: "",
     });
     expect(payload.slug).toBe("dom-afonso-demo");
@@ -105,5 +110,15 @@ describe("ecossistema — contratos Fase 13", () => {
     expect(getPublicEnrollmentUrl("dom-afonso-demo")).toMatch(/\/matricula\/dom-afonso-demo$/);
     expect(getSigaNavDocUrl()).toContain(DOC_PATHS.sigaNavigation);
     expect(DOC_PATHS.adminControlCenter).toMatch(/\/admin\/control-center/);
+    expect(DOC_PATHS.financePayflow).toMatch(/\/financeiro\/payflow/);
+  });
+
+  it("expõe URLs PayFlow sem hardcode de produção", async () => {
+    const { getPayflowPayerUrl, getPayflowAdminUrl, getPayflowUrl } =
+      await import("@/lib/ecosystem-urls");
+    expect(getPayflowUrl("/api/v1/health")).toMatch(/\/api\/v1\/health$/);
+    expect(getPayflowPayerUrl()).toMatch(/\/aluno\/pagar$/);
+    expect(getPayflowAdminUrl()).toMatch(/\/admin$/);
+    expect(getPayflowUrl("/")).not.toMatch(/portal-siga\.com/);
   });
 });

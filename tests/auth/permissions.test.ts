@@ -5,6 +5,7 @@ import {
   standardPermissions,
   roleDefaultPermissions,
 } from "@/features/auth/permissions";
+import type { ApplicationRole } from "@/features/auth/access-policy";
 
 describe("Enterprise Permissions & Contextual Authorization", () => {
   it("defines comprehensive standard permissions", () => {
@@ -48,10 +49,10 @@ describe("Enterprise Permissions & Contextual Authorization", () => {
 
     it("supports multi-role users", () => {
       // User with Professor + Tesouraria
-      const roles = ["Professor", "Tesouraria"] as const;
-      expect(hasPermission(roles as any, "grades.create")).toBe(true);
-      expect(hasPermission(roles as any, "finance.invoice")).toBe(true);
-      expect(hasPermission(roles as any, "school.settings.update")).toBe(false);
+      const roles: ApplicationRole[] = ["Professor", "Tesouraria"];
+      expect(hasPermission(roles, "grades.create")).toBe(true);
+      expect(hasPermission(roles, "finance.invoice")).toBe(true);
+      expect(hasPermission(roles, "school.settings.update")).toBe(false);
     });
   });
 

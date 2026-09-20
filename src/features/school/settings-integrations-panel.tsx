@@ -150,7 +150,7 @@ function GatewayWebhookHint({
         </AlertDialog>
       </div>
       {previousActive && previousExpires ? (
-        <p className="text-[11px] text-amber-700 dark:text-amber-400">
+        <p className="text-[11px] text-warning">
           Chave anterior aceite até{" "}
           {new Date(previousExpires).toLocaleString("pt-AO", {
             dateStyle: "short",

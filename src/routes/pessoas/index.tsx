@@ -7,6 +7,7 @@ import {
   Download,
   FileDown,
   FileText,
+  FileUp,
   FolderOpen,
   GitMerge,
   GraduationCap,
@@ -27,10 +28,12 @@ import { signSchoolFile } from "@/features/arquivos/server";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -55,7 +58,7 @@ import {
   updatePersonStatus,
   updateTeacher,
 } from "@/features/people/server";
-import { personDocumentTypeOptions } from "@/features/people/schemas";
+import { personDocumentTypeOptions, personRoleOptions } from "@/features/people/schemas";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
@@ -67,6 +70,7 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { PersonProfile360Modal } from "@/features/people/components/PersonProfile360Modal";
 import { PersonWizardModal } from "@/features/people/components/PersonWizardModal";
+import { angolaProvinces } from "@/lib/angola-territory";
 
 export const Route = createFileRoute("/pessoas/")({
   head: () => ({
@@ -94,8 +98,23 @@ const documentTypeLabels: Record<string, string> = {
   outro: "Outro",
 };
 
+const personRoleFilterLabels: Record<(typeof personRoleOptions)[number], string> = {
+  aluno: "Aluno",
+  encarregado: "Encarregado",
+  professor: "Professor",
+  funcionario: "Funcionário",
+  diretor: "Diretor",
+  coordenador: "Coordenador",
+  utilizador: "Utilizador",
+  fornecedor: "Fornecedor",
+  contacto_institucional: "Contacto institucional",
+};
+
 const pessoasFilterDefaults = {
   q: "",
+  province: "",
+  municipality: "",
+  role: "",
   teacherStatus: "all",
   personStatus: "todos",
 };
@@ -121,8 +140,24 @@ function PeoplePage() {
   const [pendingDocFile, setPendingDocFile] = useState<{ id: string; name: string } | null>(null);
 
   const peopleQuery = useQuery({
-    queryKey: ["people", "search", deferredQuery],
-    queryFn: () => searchPeople({ data: { query: deferredQuery, limit: 50 } }),
+    queryKey: [
+      "people",
+      "search",
+      deferredQuery,
+      filters.province,
+      filters.municipality,
+      filters.role,
+    ],
+    queryFn: () =>
+      searchPeople({
+        data: {
+          query: deferredQuery,
+          province: filters.province || undefined,
+          municipality: filters.municipality || undefined,
+          role: (filters.role as (typeof personRoleOptions)[number] | "") || undefined,
+          limit: 50,
+        },
+      }),
     placeholderData: (previous) => previous,
   });
 
@@ -319,6 +354,11 @@ function PeoplePage() {
             <Button variant="outline" className="gap-2" onClick={exportarProfessoresOficial}>
               <Award className="size-4" /> Oficial
             </Button>
+            <Button variant="outline" className="gap-2" asChild>
+              <Link to="/importar" search={{ tab: "novo", modulo: "professores" }}>
+                <FileUp className="size-4 text-primary" /> Importar Docentes
+              </Link>
+            </Button>
             <QuickFormModal
               title="Novo professor"
               eyebrow="Corpo docente"
@@ -452,6 +492,38 @@ function PeoplePage() {
               "aria-label": "Pesquisar pessoa",
             },
             {
+              name: "province",
+              type: "select",
+              label: "Província",
+              emptyValue: "",
+              options: [
+                { value: "", label: "Todas as províncias" },
+                ...angolaProvinces.map((province) => ({
+                  value: province,
+                  label: province,
+                })),
+              ],
+            },
+            {
+              name: "municipality",
+              label: "Município",
+              placeholder: "Filtrar município…",
+              "aria-label": "Filtrar pessoas por município",
+            },
+            {
+              name: "role",
+              type: "select",
+              label: "Vínculo",
+              emptyValue: "",
+              options: [
+                { value: "", label: "Todos os vínculos" },
+                ...personRoleOptions.map((role) => ({
+                  value: role,
+                  label: personRoleFilterLabels[role],
+                })),
+              ],
+            },
+            {
               name: "teacherStatus",
               type: "select",
               label: "Professores",
@@ -510,11 +582,13 @@ function PeoplePage() {
                   </TableRow>
                 ) : teachers.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="py-8 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhum professor neste filtro.
+                    <TableCell colSpan={5} className="p-4">
+                      <EmptyState
+                        icon={GraduationCap}
+                        title="Nenhum professor neste filtro"
+                        description="Ajuste a pesquisa ou o estado para encontrar docentes, ou registe um novo professor."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -548,7 +622,13 @@ function PeoplePage() {
                           ) : null}
                         </span>
                       </TableCell>
-                      <TableCell>{statusLabels[teacher.status] ?? teacher.status}</TableCell>
+                      <TableCell>
+                        <StatusBadge
+                          status={teacher.status === "active" ? "active" : "inactive"}
+                          label={statusLabels[teacher.status] ?? teacher.status}
+                          size="sm"
+                        />
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button asChild size="sm" variant="ghost">
@@ -723,11 +803,13 @@ function PeoplePage() {
                   </TableRow>
                 ) : (peopleQuery.data ?? []).length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="py-10 text-center text-sm text-muted-foreground"
-                    >
-                      Nenhuma pessoa encontrada.
+                    <TableCell colSpan={4} className="p-4">
+                      <EmptyState
+                        icon={User}
+                        title="Nenhuma pessoa encontrada"
+                        description="Ajuste a pesquisa ou o tipo de pessoa, ou registe alguém novo no botão «Nova pessoa»."
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -789,7 +871,11 @@ function PeoplePage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {statusLabels[row.status] ?? row.status}
+                        <StatusBadge
+                          status={row.status === "active" ? "active" : "inactive"}
+                          label={statusLabels[row.status] ?? row.status}
+                          size="sm"
+                        />
                       </TableCell>
                     </TableRow>
                   ))
@@ -906,6 +992,7 @@ function PeoplePage() {
                         {
                           name: "nif",
                           label: "BI/NIF",
+                          type: "angola-identity",
                           defaultValue: person.nif ?? "",
                           required: false,
                         },

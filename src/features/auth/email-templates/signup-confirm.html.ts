@@ -1,9 +1,10 @@
-import { getSchoolInitials } from "./reset-password.html";
+import { getSchoolInitials, sanitizeHexColor } from "./reset-password.html";
 
 export function renderSignupConfirmationEmail(params: {
   schoolName: string;
   confirmUrl: string;
   logoUrl?: string | null;
+  primaryColor?: string | null;
   platformName?: string;
   platformUrl?: string;
 }): { subject: string; html: string; text: string } {
@@ -12,6 +13,7 @@ export function renderSignupConfirmationEmail(params: {
   const platformUrl = params.platformUrl?.trim() || "https://portal-siga.com";
   const initials = getSchoolInitials(schoolName);
   const logoUrl = params.logoUrl?.trim() || null;
+  const brandColor = sanitizeHexColor(params.primaryColor, "#2563eb");
 
   const subject = `Confirmação de conta — ${schoolName}`;
 
@@ -109,7 +111,7 @@ ${platformUrl}
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:24px 0 32px 0;">
                       <tr>
                         <td align="center">
-                          <a href="${params.confirmUrl}" target="_blank" style="display:inline-block; background-color:#2563eb; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 32px; border-radius:12px; box-shadow:0 2px 4px rgba(37,99,235,0.25); text-align:center;">
+                          <a href="${params.confirmUrl}" target="_blank" style="display:inline-block; background-color:${brandColor}; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 32px; border-radius:12px; box-shadow:0 2px 4px rgba(37,99,235,0.25); text-align:center;">
                             Confirmar e Ativar Conta
                           </a>
                         </td>

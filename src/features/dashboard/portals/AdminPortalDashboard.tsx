@@ -34,6 +34,7 @@ import { schoolYear as fallbackSchoolYear } from "@/lib/school-config";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
+import { TodayAtSchoolCard } from "@/features/dashboard/components/TodayAtSchoolCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 
 const DashboardCharts = lazy(() =>
@@ -217,43 +218,82 @@ export function AdminPortalDashboard({
 
   return (
     <div className="space-y-6">
+      {/* HEADER EXECUTIVO — RESUMO DE HOJE */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex size-2 rounded-full bg-success" aria-hidden="true" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {school?.name ?? "Escola"} · Resumo de Hoje
+            </span>
+          </div>
+          <h1 className="mt-1 font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+            {greeting}, {currentUser.name.split(" ")[0]}
+          </h1>
+          <p className="mt-0.5 text-xs text-muted-foreground capitalize">
+            {now
+              ? now.toLocaleDateString("pt-PT", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })
+              : "Visão consolidada da operação escolar."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {canAccessPath("/alunos", currentUser.role) ? (
+            <Button asChild size="sm" className="rounded-lg shadow-xs">
+              <Link to="/alunos" search={{ action: "matricular" }}>
+                + Nova Matrícula
+              </Link>
+            </Button>
+          ) : null}
+          {canAccessPath("/financeiro", currentUser.role) ? (
+            <Button asChild size="sm" variant="outline" className="rounded-lg shadow-xs">
+              <Link to="/financeiro">Caixa & Pagamentos</Link>
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
       {/* BARRA DE SUBOPÇÕES CLICÁVEIS DO DASHBOARD */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
         <Button
           type="button"
-          variant={activeTab === "geral" ? "default" : "outline"}
+          variant={activeTab === "geral" ? "default" : "secondary"}
           size="sm"
           onClick={() => setActiveTab("geral")}
-          className="rounded-full text-xs font-bold"
+          className="rounded-full text-xs font-semibold px-3.5"
         >
           Visão Geral
         </Button>
         <Button
           type="button"
-          variant={activeTab === "pedagogico" ? "default" : "outline"}
+          variant={activeTab === "pedagogico" ? "default" : "secondary"}
           size="sm"
           onClick={() => setActiveTab("pedagogico")}
-          className="rounded-full text-xs font-bold"
+          className="rounded-full text-xs font-semibold px-3.5"
         >
           Desempenho & Pautas
         </Button>
         {capabilities.finance ? (
           <Button
             type="button"
-            variant={activeTab === "financeiro" ? "default" : "outline"}
+            variant={activeTab === "financeiro" ? "default" : "secondary"}
             size="sm"
             onClick={() => setActiveTab("financeiro")}
-            className="rounded-full text-xs font-bold"
+            className="rounded-full text-xs font-semibold px-3.5"
           >
             Projeção Financeira
           </Button>
         ) : null}
         <Button
           type="button"
-          variant={activeTab === "auditoria" ? "default" : "outline"}
+          variant={activeTab === "auditoria" ? "default" : "secondary"}
           size="sm"
           onClick={() => setActiveTab("auditoria")}
-          className="rounded-full text-xs font-bold"
+          className="rounded-full text-xs font-semibold px-3.5"
         >
           Auditoria de Produtividade
         </Button>
@@ -263,16 +303,28 @@ export function AdminPortalDashboard({
         <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <h2 className="text-sm font-bold">Primeiros passos da escola</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            A estrutura base (ano lectivo, turma, propinas) foi preparada no provisionamento.
-            Complete estes passos para começar a operar.
+            {data?.academicYear
+              ? "O provisionamento deixou a escola pronta para configurar. Complete estes passos para começar a operar."
+              : "A escola ainda não tem ano lectivo activo — sem ele não é possível criar turmas nem planos de propina. Comece por defini-lo."}
           </p>
           <ol className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            {data?.academicYear ? null : (
+              <li className="sm:col-span-2">
+                <button
+                  type="button"
+                  className="font-medium text-primary underline-offset-2 hover:underline"
+                  onClick={() => openSettingsPanel("escola")}
+                >
+                  1. Definir o ano lectivo (nome, início e fim)
+                </button>
+              </li>
+            )}
             <li>
               <Link
                 to="/alunos"
                 className="font-medium text-primary underline-offset-2 hover:underline"
               >
-                1. Matricular o primeiro aluno
+                {data?.academicYear ? "1." : "2."} Matricular o primeiro aluno
               </Link>
             </li>
             <li>
@@ -280,7 +332,7 @@ export function AdminPortalDashboard({
                 to="/pedagogica"
                 className="font-medium text-primary underline-offset-2 hover:underline"
               >
-                2. Rever turmas e disciplinas
+                {data?.academicYear ? "2." : "3."} Rever turmas e disciplinas
               </Link>
             </li>
             <li>
@@ -289,7 +341,7 @@ export function AdminPortalDashboard({
                 className="font-medium text-primary underline-offset-2 hover:underline"
                 onClick={() => openSettingsPanel("financeiro")}
               >
-                3. Confirmar valores de propina
+                {data?.academicYear ? "3." : "4."} Definir valores de propina
               </button>
             </li>
             <li>
@@ -300,7 +352,7 @@ export function AdminPortalDashboard({
                   rel="noreferrer"
                   className="font-medium text-primary underline-offset-2 hover:underline"
                 >
-                  4. Partilhar link público de matrícula
+                  {data?.academicYear ? "4." : "5."} Partilhar link público de matrícula
                 </a>
               ) : (
                 <button
@@ -308,7 +360,7 @@ export function AdminPortalDashboard({
                   className="font-medium text-primary underline-offset-2 hover:underline"
                   onClick={() => openSettingsPanel("matricula")}
                 >
-                  4. Activar link público de matrícula
+                  {data?.academicYear ? "4." : "5."} Activar link público de matrícula
                 </button>
               )}
             </li>
@@ -324,6 +376,8 @@ export function AdminPortalDashboard({
       ) : null}
 
       <InstalledModuleTools module="comunicacoes" />
+
+      {activeTab === "geral" ? <TodayAtSchoolCard /> : null}
 
       {activeTab === "geral" && data?.imports?.available ? (
         <section className="surface-card p-5">
@@ -481,7 +535,7 @@ export function AdminPortalDashboard({
               ) : null}
             </div>
             <ul className="space-y-3">
-              {data?.announcements.map((item) => (
+              {data?.announcements.map((item: any) => (
                 <li key={item.id} className="rounded-xl bg-secondary p-3">
                   <p className="text-sm font-semibold">{item.title}</p>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>

@@ -45,7 +45,7 @@ describe("finance-print", () => {
         passing_grade: 10,
         preferences: {},
         version: 1,
-        branding: { logo_url: "https://cdn/logo.png" },
+        branding: { logo_url: "https://cdn/logo.png", motto: null },
       },
       "2025/2026",
     );

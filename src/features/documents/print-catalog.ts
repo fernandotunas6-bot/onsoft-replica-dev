@@ -1,3 +1,6 @@
+import { angolaSchoolTypes } from "@/lib/school-config";
+import { documentValidationCode } from "@/features/academic/assessment-views";
+
 export const PRINT_TEMPLATE_KEYS = [
   "talao-candidatura",
   "talao-matricula",
@@ -228,6 +231,7 @@ export type PrintSchoolContext = {
   directorName?: string | null | undefined;
   academicYear?: string | null | undefined;
   logoUrl?: string | null | undefined;
+  schoolType?: string | null | undefined;
 };
 
 export type PrintStudentContext = {
@@ -239,16 +243,31 @@ export type PrintStudentContext = {
   validationCode?: string | undefined;
 };
 
+/** Rótulo legível da natureza da instituição para os cabeçalhos oficiais. */
+function schoolTypeLabel(id: string | null | undefined): string {
+  return angolaSchoolTypes.find((type) => type.id === id)?.label ?? "";
+}
+
 export function buildPrintSamplePayload(
   school: PrintSchoolContext,
-  extras?: { css?: string; student?: Partial<PrintStudentContext> },
+  extras?: {
+    css?: string;
+    student?: Partial<PrintStudentContext>;
+    // Documento real (via buildIssuePayload), não pré-visualização no Template
+    // Studio. Os campos de contacto da escola deixam de cair em valores de
+    // amostra plausíveis (NIF "5000000000", "Luanda, Angola", etc.) — um
+    // documento oficial nunca deve imprimir um NIF fictício sem aviso quando a
+    // escola simplesmente não o configurou em Definições.
+    realIssuance?: boolean;
+  },
 ): Record<string, unknown> {
   const year = school.academicYear || "2026/2027";
   const studentName = extras?.student?.fullName || "Ana Domingos Ferreira";
   const process = extras?.student?.academicNumber || "EST-2026-0142";
   const className = extras?.student?.className || "7ª A";
   const programName = extras?.student?.programName || "7.ª Classe · I Ciclo";
-  const hash = extras?.student?.validationCode || "SIGA-DEMO-0001";
+  const hash =
+    extras?.student?.validationCode || documentValidationCode([school.name, studentName, year]);
 
   const subjects = [
     {
@@ -302,12 +321,13 @@ export function buildPrintSamplePayload(
       shortName: school.name || "Escola SIGA",
       ministry: "REPÚBLICA DE ANGOLA",
       ministryLine: "MINISTÉRIO DA EDUCAÇÃO",
-      address: school.address || "Luanda, Angola",
-      nif: school.nif || "5000000000",
-      phone: school.phone || "+244 000 000 000",
-      email: school.email || "secretaria@escola.ao",
+      address: school.address || (extras?.realIssuance ? "" : "Luanda, Angola"),
+      nif: school.nif || (extras?.realIssuance ? "" : "5000000000"),
+      phone: school.phone || (extras?.realIssuance ? "" : "+244 000 000 000"),
+      email: school.email || (extras?.realIssuance ? "" : "secretaria@escola.ao"),
       logoUrl: school.logoUrl || "",
-      emblemUrl: "",
+      typeLabel: schoolTypeLabel(school.schoolType),
+      emblemUrl: "/brands/emblem-angola.svg",
       flagUrl: "",
     },
     student: {
@@ -582,5 +602,5 @@ export function buildIssuePayload(
   student: PrintStudentContext,
   css: string,
 ): Record<string, unknown> {
-  return buildPrintSamplePayload(school, { css, student });
+  return buildPrintSamplePayload(school, { css, student, realIssuance: true });
 }

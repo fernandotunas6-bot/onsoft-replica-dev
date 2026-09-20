@@ -6,11 +6,28 @@ const isLocal = isBrowser
     window.location.hostname.endsWith(".local")
   : process.env.NODE_ENV !== "production";
 
+/** Domínio canónico; nunca hardcodar hosts fora desta resolução. */
+const PLATFORM_DOMAIN = (
+  process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ||
+  process.env.PLATFORM_DOMAIN ||
+  "portal-siga.com"
+)
+  .trim()
+  .toLowerCase()
+  .replace(/^\.+|\.+$/g, "");
+
+function platformOrigin(sub: string): string {
+  return `https://${sub}.${PLATFORM_DOMAIN}`;
+}
+
 export const ECOSYSTEM_URLS = {
-  web: process.env.NEXT_PUBLIC_WEB_URL || (isLocal ? "http://localhost:5174" : "https://siga-web.pages.dev"),
-  siga: process.env.NEXT_PUBLIC_SIGA_URL || (isLocal ? "http://localhost:3006" : "https://portal-siga.com"),
-  admin: process.env.NEXT_PUBLIC_ADMIN_URL || (isLocal ? "http://localhost:3005" : "https://siga-admin.pages.dev"),
-  docs: process.env.NEXT_PUBLIC_DOCS_URL || (isLocal ? "http://localhost:5173" : "https://siga-docs.pages.dev"),
+  web: process.env.NEXT_PUBLIC_WEB_URL || (isLocal ? "http://localhost:5174" : platformOrigin("www")),
+  siga: process.env.NEXT_PUBLIC_SIGA_URL || (isLocal ? "http://localhost:3006" : `https://${PLATFORM_DOMAIN}`),
+  payflow:
+    process.env.NEXT_PUBLIC_PAYFLOW_URL ||
+    (isLocal ? "http://localhost:3007" : platformOrigin("payflow")),
+  admin: process.env.NEXT_PUBLIC_ADMIN_URL || (isLocal ? "http://localhost:3005" : platformOrigin("admin")),
+  docs: process.env.NEXT_PUBLIC_DOCS_URL || (isLocal ? "http://localhost:5173" : platformOrigin("docs")),
 } as const;
 
 export function getCreateSchoolUrl(): string {
@@ -47,4 +64,13 @@ export function getWebUrl(path = "/"): string {
 export function getSigaUrl(path = "/"): string {
   const clean = path.startsWith("/") ? path : `/${path}`;
   return `${ECOSYSTEM_URLS.siga}${clean}`;
+}
+
+export function getPayflowUrl(path = "/"): string {
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `${ECOSYSTEM_URLS.payflow}${clean}`;
+}
+
+export function getPayflowHealthUrl(): string {
+  return getPayflowUrl("/api/v1/health");
 }

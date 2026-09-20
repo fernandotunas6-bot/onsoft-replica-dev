@@ -27,7 +27,7 @@ test.describe("WEB — wizard comercial /start", () => {
     await page.getByRole("button", { name: /Continuar/ }).click();
 
     await expect(page.getByText("Colégio E2E Playwright")).toBeVisible();
-    await expect(page.getByText("Ana Director")).toBeVisible();
+    await expect(page.getByText("Ana Director", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /Criar escola/ })).toBeVisible();
   });
 });

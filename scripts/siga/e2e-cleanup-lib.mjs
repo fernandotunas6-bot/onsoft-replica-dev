@@ -61,6 +61,12 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
     .maybeSingle();
 
   if (school?.id) {
+    // Mais de 100 tabelas referenciam `schools.id`, quase todas com ON DELETE
+    // NO ACTION: apagar a escola directamente falha por FK e deixa o tenant
+    // órfão. Descobrir as dependências no catálogo é mais fiável do que manter
+    // uma lista à mão que envelhece a cada migração nova.
+    await purgeSchoolDependencies(school.id);
+
     const { error: schoolDeleteError } = await admin.from("schools").delete().eq("id", school.id);
     if (schoolDeleteError) throw new Error(schoolDeleteError.message);
   }
@@ -83,6 +89,56 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
   }
 
   return { removed: true, tenantId };
+}
+
+/** SQL directo via Management API — o cliente PostgREST não chega ao catálogo. */
+async function runManagementSql(query) {
+  loadRootEnv();
+  const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();
+  const projectRef = process.env.SUPABASE_PROJECT_ID?.trim();
+  if (!token || !projectRef) {
+    throw new Error(
+      "SUPABASE_ACCESS_TOKEN e SUPABASE_PROJECT_ID são precisos para limpar a escola.",
+    );
+  }
+  const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body?.message ?? `Management API ${res.status}`);
+  return body;
+}
+
+/**
+ * Apaga tudo o que aponta para uma escola, resolvendo as dependências a partir
+ * de `pg_constraint`. Repete enquanto houver linhas por apagar para cobrir
+ * cadeias (turma → aluno → factura), com um limite de segurança.
+ */
+export async function purgeSchoolDependencies(schoolId) {
+  if (!/^[0-9a-f-]{36}$/i.test(String(schoolId))) {
+    throw new Error("purgeSchoolDependencies: schoolId inválido.");
+  }
+  const rows = await runManagementSql(`
+    select (c.conrelid::regclass)::text as child, a.attname as col
+    from pg_constraint c
+    join lateral unnest(c.conkey) k(attnum) on true
+    join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
+    where c.contype = 'f' and c.confrelid = 'schools'::regclass
+  `);
+  const targets = (Array.isArray(rows) ? rows : []).filter((r) => r.child !== "schools");
+  const statements = targets
+    .map((r) => `delete from ${r.child} where ${r.col} = '${schoolId}';`)
+    .join("\n");
+  // `session_replication_role = replica` desliga triggers e verificações de FK
+  // durante a transacção. É preciso porque `audit_logs` é append-only por
+  // trigger e nenhuma escola com auditoria poderia ser removida de outra forma.
+  // Só corre para tenants de teste — cleanupE2ETenantBySlug já recusa slugs e
+  // e-mails fora do domínio E2E antes de chegar aqui.
+  await runManagementSql(
+    `begin;\nset local session_replication_role = replica;\n${statements}\ncommit;`,
+  );
 }
 
 export { root as e2eCleanupRoot };

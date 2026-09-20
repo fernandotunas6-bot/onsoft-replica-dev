@@ -95,6 +95,20 @@ describe("updateStudentProfileInputSchema", () => {
       }).success,
     ).toBe(true);
   });
+
+  it("accepts geography when updating the student person profile", () => {
+    const parsed = updateStudentProfileInputSchema.parse({
+      personId: uuid,
+      expectedVersion: 3,
+      fullName: "Ana Domingos",
+      province: "Huíla",
+      municipality: "Lubango",
+      commune: "Arimba",
+      address: "Bairro Comercial",
+    });
+    expect(parsed.province).toBe("Huíla");
+    expect(parsed.municipality).toBe("Lubango");
+  });
 });
 
 describe("assignGuardianInputSchema", () => {

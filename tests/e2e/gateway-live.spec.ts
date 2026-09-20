@@ -77,8 +77,9 @@ test.describe("Gateway EMIS @live", () => {
       const schoolId = await findSchoolIdByTenantSlug(slug);
       expect(schoolId).toBeTruthy();
 
+      const schoolWebhookKey = `e2e-mcx-${slug}`;
       await installE2EMulticaixaIntegration(schoolId!, {
-        webhookApiKey: E2E_GATEWAY_SCHOOL_WEBHOOK_KEY,
+        webhookApiKey: schoolWebhookKey,
         merchantId: "54321",
       });
 
@@ -86,7 +87,7 @@ test.describe("Gateway EMIS @live", () => {
 
       const confirm = await request.post(`${ECOSYSTEM_E2E_URLS.siga}/api/finance/gateway/confirm`, {
         data: {
-          apiKey: E2E_GATEWAY_SCHOOL_WEBHOOK_KEY,
+          apiKey: schoolWebhookKey,
           reference: fixture.reference,
           amount: fixture.amount,
           invoiceId: fixture.invoiceId,
@@ -168,8 +169,9 @@ test.describe("Gateway Unitel @live", () => {
       const schoolId = await findSchoolIdByTenantSlug(slug);
       expect(schoolId).toBeTruthy();
 
+      const unitelWebhookKey = `e2e-unt-${slug}`;
       await installE2EUnitelIntegration(schoolId!, {
-        webhookApiKey: E2E_UNITEL_SCHOOL_WEBHOOK_KEY,
+        webhookApiKey: unitelWebhookKey,
         merchantCode: "UNITEL-E2E",
       });
 
@@ -180,7 +182,7 @@ test.describe("Gateway Unitel @live", () => {
 
       const confirm = await request.post(unitelConfirmUrl, {
         data: {
-          apiKey: E2E_UNITEL_SCHOOL_WEBHOOK_KEY,
+          apiKey: unitelWebhookKey,
           reference: fixture.reference,
           amount: fixture.amount,
           invoiceId: fixture.invoiceId,

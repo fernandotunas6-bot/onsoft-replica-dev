@@ -3,9 +3,18 @@
 -- (xodgfmxiaunpamctfeea), como os outros ficheiros APPLY_*.sql desta pasta.
 --
 -- Extraído verbatim de APPLY_ENROLLMENT_AND_PREMIUM.sql (secção "MOTOR
--- CENTRAL DE IMPORTAÇÃO", linhas 958-1103) para poder ser corrido isolado.
+-- CENTRAL DE IMPORTAÇÃO") para poder ser corrido isolado.
 -- Idempotente (IF NOT EXISTS / DROP+CREATE em constraints e policies) —
 -- seguro correr mais que uma vez.
+--
+-- Ciclo 55: o catálogo TypeScript tem 22 módulos oficiais (incl. inscricoes,
+-- avaliacoes, historico_academico, historico_financeiro). A coluna
+-- import_jobs.module é texto livre — não há CHECK de nomes de módulo.
+--
+-- Tabelas relacionadas ao Ciclo 55 que NÃO estão neste ficheiro (estão em
+-- APPLY_ENROLLMENT_AND_PREMIUM.sql):
+--   • student_status_history
+--   • student_academic_history
 --
 -- Nota: em 2026-08-25 confirmámos por API REST que estas 4 tabelas não
 -- estavam visíveis ao PostgREST (schema cache), apesar de o SQL já existir

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { MediaAvatar } from "@/components/ui/media-frame";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,12 +26,16 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
-import { getPortalNavigation } from "@/features/auth/portal-engine";
+import {
+  getPortalNavigation,
+  isNavChildActive,
+  mergeOpenMenus,
+} from "@/features/auth/portal-engine";
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
 import { UserProfileModal } from "@/components/auth/UserProfileModal";
 import { AcademicNavTree } from "./AcademicNavTree";
-import { NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
+import { NAV_SUB_LIST, NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
 
 const MENU_KEY = "siga:sidebar-open-menus";
 
@@ -44,6 +49,11 @@ export function AppSidebar({
   onOpenSettings?: (panelId?: string) => void;
 }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  // Os sub-itens de "Área Pedagógica" partilham todos o caminho `/pedagogica`
+  // e distinguem-se pelo `?tab=`, por isso o estado activo precisa da pesquisa.
+  const locationSearch = useRouterState({
+    select: (r) => r.location.search as Record<string, unknown>,
+  });
   const currentUser = useCurrentAccount();
   const { activePlan } = useTenant();
   const { school, activeYearLabel } = useSchoolSettings();
@@ -55,6 +65,7 @@ export function AppSidebar({
 
   const hasSchool = Boolean(school?.name);
   const schoolLogoUrl = school?.branding?.logo_url?.trim() || null;
+  const schoolMotto = school?.branding?.motto?.trim() || null;
   const schoolInitials = (school?.name ?? "Escola")
     .split(/\s+/)
     .slice(0, 2)
@@ -65,10 +76,17 @@ export function AppSidebar({
     () => getPortalNavigation(currentUser.role, currentUser.grants, activePlan),
     [currentUser.role, currentUser.grants, activePlan],
   );
-  const parentsOfActive = visibleGroups
-    .flatMap((g) => g.items)
-    .filter((i) => i.children?.some((c) => c.to === pathname))
-    .map((i) => i.label);
+  // Memoizado para o efeito abaixo poder depender dele directamente. Antes
+  // dependia só de `pathname`, o que deixava de fora a mudança de
+  // `visibleGroups` (papel/grants/plano): os menus recém-visíveis não abriam.
+  const parentsOfActive = useMemo(
+    () =>
+      visibleGroups
+        .flatMap((g) => g.items)
+        .filter((i) => i.children?.some((c) => c.to === pathname))
+        .map((i) => i.label),
+    [visibleGroups, pathname],
+  );
   const [openMenus, setOpenMenus] = useState<string[]>(parentsOfActive);
 
   useEffect(() => {
@@ -83,12 +101,9 @@ export function AppSidebar({
     }
   }, []);
 
-  const parentsKey = parentsOfActive.join("|");
   useEffect(() => {
-    setOpenMenus((prev) =>
-      Array.from(new Set([...prev, ...parentsKey.split("|").filter(Boolean)])),
-    );
-  }, [parentsKey]);
+    setOpenMenus((prev) => mergeOpenMenus(prev, parentsOfActive));
+  }, [parentsOfActive]);
 
   const toggle = (label: string) =>
     setOpenMenus((prev) => {
@@ -126,17 +141,15 @@ export function AppSidebar({
                   title={school?.name ? `${school.name} • ${currentUser.name}` : currentUser.name}
                 >
                   {schoolLogoUrl ? (
-                    <img
+                    <MediaAvatar
                       src={schoolLogoUrl}
                       alt={school?.name ?? "Logótipo da escola"}
-                      className="size-8 shrink-0 rounded-[10px] bg-sidebar-accent/40 object-contain p-0.5"
-                      loading="lazy"
-                      decoding="async"
+                      className="size-9 shrink-0 ring-2 ring-primary/20 bg-background object-contain p-0.5"
                     />
                   ) : (
                     <span
                       aria-hidden
-                      className="inline-flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary/15 text-xs font-bold text-primary"
+                      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-2 ring-primary/20"
                     >
                       {schoolInitials || "E"}
                     </span>
@@ -144,12 +157,14 @@ export function AppSidebar({
                   {!collapsed ? (
                     <>
                       <span className="min-w-0 flex-1 leading-tight">
-                        <span className="block truncate text-xs font-bold text-sidebar-foreground">
-                          {currentUser.name}
-                        </span>
-                        <span className="block truncate text-[10px] font-medium text-sidebar-muted">
+                        <span className="block truncate text-sm font-bold text-sidebar-foreground">
                           {school?.name}
                         </span>
+                        {schoolMotto ? (
+                          <span className="block truncate text-[10px] font-medium text-sidebar-muted">
+                            {schoolMotto}
+                          </span>
+                        ) : null}
                       </span>
                       <ChevronDown aria-hidden className="size-3.5 shrink-0 opacity-50" />
                     </>
@@ -224,8 +239,7 @@ export function AppSidebar({
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
-                    <PlusCircle className="size-4 text-emerald-600 dark:text-emerald-400" /> Criar
-                    escola (WEB)
+                    <PlusCircle className="size-4 text-primary" /> Criar escola (WEB)
                   </a>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -272,7 +286,7 @@ export function AppSidebar({
                   // com o rótulo e os sub-itens do menu.
                   const flyout = collapsed ? (
                     <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
-                      <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-2xl">
+                      <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-float">
                         <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-[0.5px] text-sidebar-muted">
                           {item.label}
                         </p>
@@ -286,7 +300,7 @@ export function AppSidebar({
                                     {...(child.search ? { search: child.search } : {})}
                                     label={child.label}
                                     depth="sub"
-                                    active={child.to === pathname}
+                                    active={isNavChildActive(child, pathname, locationSearch)}
                                   />
                                 ) : (
                                   <NavButtonRow label={child.label} depth="sub" />
@@ -321,7 +335,7 @@ export function AppSidebar({
                         />
 
                         {isOpen && !collapsed ? (
-                          <ul className="mt-0.5 space-y-0.5 pl-4">
+                          <ul className={NAV_SUB_LIST}>
                             {item.children.map((child) => (
                               <li key={child.label}>
                                 {child.to ? (
@@ -330,7 +344,7 @@ export function AppSidebar({
                                     {...(child.search ? { search: child.search } : {})}
                                     label={child.label}
                                     depth="sub"
-                                    active={child.to === pathname}
+                                    active={isNavChildActive(child, pathname, locationSearch)}
                                   />
                                 ) : (
                                   <NavButtonRow label={child.label} depth="sub" />
@@ -348,10 +362,18 @@ export function AppSidebar({
                     <li key={item.label} className="group/fly relative">
                       <NavLinkRow
                         to={item.to as string}
+                        {...(item.search ? { search: item.search } : {})}
                         label={item.label}
                         icon={item.icon}
                         collapsed={collapsed}
-                        active={item.to === pathname}
+                        active={isNavChildActive(
+                          {
+                            to: item.to as string,
+                            ...(item.search ? { search: item.search } : {}),
+                          },
+                          pathname,
+                          locationSearch,
+                        )}
                       />
                       {flyout}
                     </li>

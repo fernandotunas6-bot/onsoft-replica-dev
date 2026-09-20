@@ -39,8 +39,8 @@ export const MARKETING_FOOTER_LINKS = {
     { name: "Arquitectura", href: getDocsUrl("/arquitetura/") },
   ],
   legal: [
-    { name: "Privacidade", href: "/#privacy" },
-    { name: "Termos", href: "/#terms" },
+    { name: "Privacidade", href: "/privacidade" },
+    { name: "Termos", href: "/termos" },
     { name: "Segurança", href: "/#security" },
     { name: "Estado", href: "/#status" },
   ],

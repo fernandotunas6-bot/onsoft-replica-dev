@@ -1,5 +1,14 @@
+import { useState, useMemo } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FileUp, History, ShieldCheck, Download, FileSpreadsheet, Sparkles } from "lucide-react";
+import {
+  FileUp,
+  History,
+  ShieldCheck,
+  Download,
+  FileSpreadsheet,
+  Sparkles,
+  Search,
+} from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
@@ -7,6 +16,8 @@ import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ImportWorkflowWizard } from "@/features/import/components/ImportWorkflowWizard";
 import { ImportHistoryPanel } from "@/features/import/components/ImportHistoryPanel";
@@ -16,10 +27,11 @@ import {
   generateOfficialCsvTemplate,
 } from "@/features/import/official-templates";
 import { downloadOfficialExcelTemplateFn } from "@/features/import/server";
-import type { ImportModule } from "@/features/import/schemas";
+import { importModuleOptions, type ImportModule } from "@/features/import/schemas";
 
 const importarSearchSchema = z.object({
   tab: z.enum(["novo", "historico", "modelos", "exportar"]).optional(),
+  modulo: z.enum(importModuleOptions).optional(),
 });
 
 export const Route = createFileRoute("/importar")({
@@ -43,9 +55,32 @@ export function ImportarDadosPage() {
   const navigate = useNavigate({ from: Route.id });
 
   const activeTab = search.tab || "novo";
+  const initialModule = search.modulo;
+
   const setActiveTab = (tab: "novo" | "historico" | "modelos" | "exportar") => {
     navigate({ search: (prev) => ({ ...prev, tab }) });
   };
+
+  const defaultCategory = useMemo(() => {
+    if (!initialModule) return "todos";
+    const spec = OFFICIAL_TEMPLATES[initialModule];
+    return spec ? spec.category : "todos";
+  }, [initialModule]);
+
+  const [templateCategory, setTemplateCategory] = useState<string>(defaultCategory);
+  const [templateSearch, setTemplateSearch] = useState<string>("");
+
+  const filteredTemplates = useMemo(() => {
+    return Object.entries(OFFICIAL_TEMPLATES).filter(([key, spec]) => {
+      const matchCategory = templateCategory === "todos" || spec.category === templateCategory;
+      const matchSearch =
+        !templateSearch ||
+        spec.label.toLowerCase().includes(templateSearch.toLowerCase()) ||
+        spec.module.toLowerCase().includes(templateSearch.toLowerCase()) ||
+        spec.columns.some((c) => c.header.toLowerCase().includes(templateSearch.toLowerCase()));
+      return matchCategory && matchSearch;
+    });
+  }, [templateCategory, templateSearch]);
 
   const handleDownloadCsvTemplate = (moduleKey: string) => {
     const csvContent = generateOfficialCsvTemplate(moduleKey);
@@ -87,7 +122,7 @@ export function ImportarDadosPage() {
       toast.success("Modelo Excel descarregado com sucesso!");
     } catch (err) {
       toast.error("Falha ao gerar modelo Excel", {
-        description: (err as Error)?.message || "Tente descarregar o formato CSV.",
+        description: err instanceof Error ? err.message : "Tente descarregar o formato CSV.",
       });
     }
   };
@@ -102,9 +137,9 @@ export function ImportarDadosPage() {
           actions={<DocHelpButton title="Navegação — Importar no mapa de módulos" />}
         />
 
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-xs shadow-card">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="size-4 text-emerald-600" />
+            <ShieldCheck className="size-4 text-primary" />
             <span>
               Escola: <strong>{school?.name || "—"}</strong>
             </span>
@@ -127,7 +162,7 @@ export function ImportarDadosPage() {
                 <FileUp className="size-3.5" /> Nova Importação
               </TabsTrigger>
               <TabsTrigger value="exportar" className="gap-1.5">
-                <FileSpreadsheet className="size-3.5 text-emerald-600" /> Exportar Dados
+                <FileSpreadsheet className="size-3.5 text-primary" /> Exportar Dados
               </TabsTrigger>
               <TabsTrigger value="historico" className="gap-1.5">
                 <History className="size-3.5" /> Histórico &amp; Auditoria
@@ -140,6 +175,7 @@ export function ImportarDadosPage() {
             <TabsContent value="novo">
               <ImportWorkflowWizard
                 academicYearId={selectedYearId}
+                initialModule={initialModule}
                 onComplete={() => setActiveTab("historico")}
               />
             </TabsContent>
@@ -157,28 +193,101 @@ export function ImportarDadosPage() {
 
             <TabsContent value="modelos">
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-base font-semibold">Modelos Oficiais de Importação</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Descarregue modelos oficiais pré-formatados com validações de lista suspensa,
-                    exemplos e orientações.
-                  </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-semibold">
+                      Modelos Oficiais de Importação ({Object.keys(OFFICIAL_TEMPLATES).length})
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Descarregue modelos oficiais pré-formatados com validações de lista suspensa,
+                      exemplos angolanos e orientações relacionais.
+                    </p>
+                  </div>
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                    <Input
+                      id="search-import-templates"
+                      aria-label="Buscar modelo ou coluna"
+                      placeholder="Buscar modelo ou coluna..."
+                      value={templateSearch}
+                      onChange={(e) => setTemplateSearch(e.target.value)}
+                      className="h-8 pl-8 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
+                  {[
+                    { id: "todos", label: "Todos", count: Object.keys(OFFICIAL_TEMPLATES).length },
+                    {
+                      id: "pessoas",
+                      label: "Identidade & Pessoas",
+                      count: Object.values(OFFICIAL_TEMPLATES).filter(
+                        (t) => t.category === "pessoas",
+                      ).length,
+                    },
+                    {
+                      id: "pedagogica",
+                      label: "Estrutura Pedagógica",
+                      count: Object.values(OFFICIAL_TEMPLATES).filter(
+                        (t) => t.category === "pedagogica",
+                      ).length,
+                    },
+                    {
+                      id: "academica",
+                      label: "Gestão Académica",
+                      count: Object.values(OFFICIAL_TEMPLATES).filter(
+                        (t) => t.category === "academica",
+                      ).length,
+                    },
+                    {
+                      id: "financeira",
+                      label: "Tesouraria & Finanças",
+                      count: Object.values(OFFICIAL_TEMPLATES).filter(
+                        (t) => t.category === "financeira",
+                      ).length,
+                    },
+                  ].map((cat) => (
+                    <Button
+                      key={cat.id}
+                      variant={templateCategory === cat.id ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setTemplateCategory(cat.id)}
+                    >
+                      {cat.label} ({cat.count})
+                    </Button>
+                  ))}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {Object.entries(OFFICIAL_TEMPLATES).map(([key, spec]) => (
+                  {filteredTemplates.map(([key, spec]) => (
                     <div
                       key={key}
-                      className="flex flex-col justify-between rounded-lg border border-border bg-card p-4 space-y-3"
+                      className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 space-y-3 shadow-card hover:shadow-subtle transition-all"
                     >
-                      <div className="flex items-start gap-2.5">
-                        <FileSpreadsheet className="size-5 shrink-0 text-emerald-600" />
-                        <div>
-                          <p className="font-semibold text-xs text-foreground">{spec.label}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {spec.columns.length} colunas mapeadas
-                          </p>
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-start gap-2.5">
+                          <FileSpreadsheet className="size-5 shrink-0 text-primary mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-xs text-foreground">{spec.label}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {spec.columns.length} colunas mapeadas
+                            </p>
+                          </div>
                         </div>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] capitalize shrink-0 font-normal"
+                        >
+                          {spec.category === "pessoas"
+                            ? "Identidade"
+                            : spec.category === "pedagogica"
+                              ? "Estrutura"
+                              : spec.category === "academica"
+                                ? "Académico"
+                                : "Financeiro"}
+                        </Badge>
                       </div>
 
                       <div className="flex flex-col gap-2">
@@ -190,18 +299,38 @@ export function ImportarDadosPage() {
                         >
                           <Sparkles className="size-3.5" /> Modelo Excel (.xlsx)
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full gap-1.5 text-xs"
-                          onClick={() => handleDownloadCsvTemplate(key)}
-                        >
-                          <Download className="size-3.5" /> Modelo CSV Simples
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-1/2 gap-1.5 text-xs"
+                            onClick={() => handleDownloadCsvTemplate(key)}
+                          >
+                            <Download className="size-3.5" /> CSV
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="w-1/2 gap-1.5 text-xs font-medium"
+                            onClick={() => {
+                              navigate({
+                                search: (prev) => ({ ...prev, tab: "novo", modulo: spec.module }),
+                              });
+                            }}
+                          >
+                            <FileUp className="size-3.5 text-primary" /> Importar
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {filteredTemplates.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    Nenhum modelo oficial encontrado para a pesquisa "{templateSearch}".
+                  </div>
+                ) : null}
               </div>
             </TabsContent>
           </Tabs>

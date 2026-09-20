@@ -26,6 +26,7 @@ const IGNORE_FILES = [
   /src[\\/]components[\\/]ui[\\/]/,
   /src[\\/]routeTree\.gen\.ts$/,
   /src[\\/]integrations[\\/]/,
+  /src[\\/]features[\\/]auth[\\/]email-templates[\\/]/,
 ];
 
 const BANNED_COLOR = [

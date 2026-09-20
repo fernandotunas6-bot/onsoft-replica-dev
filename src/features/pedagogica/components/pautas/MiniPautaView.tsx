@@ -28,8 +28,8 @@ function resolved(student: MiniPautaStudent, periodCount: 2 | 3) {
 }
 
 export function MiniPautaView({ data }: { data: MiniPautaDocument }) {
-  const periods = getPeriodsForCycle(data.context.cycle);
-  const periodCount = getPeriodCountForCycle(data.context.cycle);
+  const periods = getPeriodsForCycle(data.context.cycle, data.context.periodCount);
+  const periodCount = getPeriodCountForCycle(data.context.cycle, data.context.periodCount);
   const periodNoun = getPeriodNoun(data.context.cycle);
   const colCount = periods.length * 4;
   const [auditOpen, setAuditOpen] = useState(false);
@@ -53,7 +53,7 @@ export function MiniPautaView({ data }: { data: MiniPautaDocument }) {
   };
 
   return (
-    <div className="bg-background text-foreground p-4 md:p-6 rounded-xl border border-border shadow-xs overflow-x-auto print:p-0 print:border-none print:shadow-none print:bg-white print:text-black">
+    <div className="siga-pauta-sheet bg-background text-foreground p-4 md:p-6 rounded-xl border border-border shadow-xs overflow-x-auto print:p-0 print:border-none print:shadow-none">
       <DocumentHeader
         school={data.school}
         context={data.context}
@@ -62,78 +62,62 @@ export function MiniPautaView({ data }: { data: MiniPautaDocument }) {
       />
 
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-center text-xs border-collapse border border-border print:border-black">
+        <table className="w-full text-center text-xs border-collapse border border-border">
           <thead>
-            <tr className="bg-muted/50 print:bg-gray-100">
-              <th rowSpan={3} className="border border-border p-1.5 font-bold print:border-black">
+            <tr className="bg-muted/50 print:bg-muted/10">
+              <th rowSpan={3} className="border border-border p-1.5 font-bold">
                 N.º
               </th>
-              <th rowSpan={3} className="border border-border p-1.5 font-bold print:border-black">
+              <th rowSpan={3} className="border border-border p-1.5 font-bold">
                 Código
               </th>
               <th
                 rowSpan={3}
-                className="border border-border p-1.5 font-bold text-left min-w-[160px] print:border-black"
+                className="border border-border p-1.5 font-bold text-left min-w-[160px]"
               >
                 Nome Completo
               </th>
-              <th rowSpan={3} className="border border-border p-1.5 font-bold print:border-black">
+              <th rowSpan={3} className="border border-border p-1.5 font-bold">
                 Gén.
               </th>
               {periods.map((p) => (
-                <th
-                  key={p}
-                  colSpan={4}
-                  className="border border-border p-1.5 font-bold print:border-black"
-                >
+                <th key={p} colSpan={4} className="border border-border p-1.5 font-bold">
                   {getPeriodLabelUpper(data.context.cycle, p)}
                 </th>
               ))}
-              <th rowSpan={3} className="border border-border p-1.5 font-bold print:border-black">
+              <th rowSpan={3} className="border border-border p-1.5 font-bold">
                 MFD
               </th>
-              <th rowSpan={3} className="border border-border p-1.5 font-bold print:border-black">
+              <th rowSpan={3} className="border border-border p-1.5 font-bold">
                 Resultado
               </th>
               <th
                 rowSpan={3}
-                className="border border-border p-1.5 font-bold text-left min-w-[130px] print:border-black"
+                className="border border-border p-1.5 font-bold text-left min-w-[130px]"
               >
                 Observação
               </th>
             </tr>
-            <tr className="bg-muted/30 print:bg-gray-50">
+            <tr className="bg-muted/30 print:bg-muted/5">
               {periods.flatMap((t) => [
-                <th
-                  key={`${t}-mact`}
-                  className="border border-border p-1 font-semibold print:border-black"
-                >
+                <th key={`${t}-mact`} className="border border-border p-1 font-semibold">
                   MACT
                 </th>,
-                <th
-                  key={`${t}-npp`}
-                  className="border border-border p-1 font-semibold print:border-black"
-                >
+                <th key={`${t}-npp`} className="border border-border p-1 font-semibold">
                   NPP*
                 </th>,
-                <th
-                  key={`${t}-npt`}
-                  className="border border-border p-1 font-semibold print:border-black"
-                >
+                <th key={`${t}-npt`} className="border border-border p-1 font-semibold">
                   NPT
                 </th>,
-                <th
-                  key={`${t}-mt`}
-                  className="border border-border p-1 font-bold bg-muted/60 print:border-black"
-                >
+                <th key={`${t}-mt`} className="border border-border p-1 font-bold bg-muted/60">
                   MT{t}
                 </th>,
               ])}
             </tr>
-            <tr className="bg-muted/10 print:bg-white">
+            <tr className="bg-muted/10 print:bg-transparent">
               <th
                 colSpan={colCount}
-                className="border border-border p-1 text-[10px] font-normal text-left text-muted-foreground print:border-black"
+                className="border border-border p-1 text-[10px] font-normal text-left text-muted-foreground"
               >
                 Perfil 424/25: MT = (MACT + NPT) ÷ 2. NPP* mantido apenas como campo compatível com
                 modelos escolares anteriores. Clique em qualquer MT para inspecionar a auditoria da
@@ -146,32 +130,28 @@ export function MiniPautaView({ data }: { data: MiniPautaDocument }) {
               const r = resolved(s, periodCount);
               return (
                 <tr key={s.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="border border-border p-1 print:border-black">{s.number}</td>
-                  <td className="border border-border p-1 print:border-black font-mono text-[11px]">
-                    {s.code}
-                  </td>
-                  <td className="border border-border p-1 text-left font-medium print:border-black">
-                    {s.name}
-                  </td>
-                  <td className="border border-border p-1 print:border-black">{s.gender}</td>
+                  <td className="border border-border p-1">{s.number}</td>
+                  <td className="border border-border p-1 font-mono text-[11px]">{s.code}</td>
+                  <td className="border border-border p-1 text-left font-medium">{s.name}</td>
+                  <td className="border border-border p-1">{s.gender}</td>
                   {periods.flatMap((p) => {
                     const rec = periodRecord(s, p);
                     return [
-                      <td key={`${p}-mact`} className="border border-border p-1 print:border-black">
+                      <td key={`${p}-mact`} className="border border-border p-1">
                         {formatGrade(rec.mact)}
                       </td>,
                       <td
                         key={`${p}-npp`}
-                        className="border border-border p-1 text-muted-foreground print:border-black"
+                        className="border border-border p-1 text-muted-foreground"
                       >
                         {formatGrade(rec.npp)}
                       </td>,
-                      <td key={`${p}-npt`} className="border border-border p-1 print:border-black">
+                      <td key={`${p}-npt`} className="border border-border p-1">
                         {formatGrade(rec.npt)}
                       </td>,
                       <td
                         key={`${p}-mt`}
-                        className="border border-border p-1 font-semibold bg-muted/20 print:border-black cursor-pointer hover:bg-primary/20 underline decoration-dotted"
+                        className="border border-border p-1 font-semibold bg-muted/20 cursor-pointer hover:bg-primary/20 underline decoration-dotted"
                         onClick={() => handleOpenAudit(s.name, p, rec.mact, rec.npp, rec.npt)}
                         title="Clique para auditar origem da nota"
                       >
@@ -179,15 +159,15 @@ export function MiniPautaView({ data }: { data: MiniPautaDocument }) {
                       </td>,
                     ];
                   })}
-                  <td className="border border-border p-1 font-bold bg-muted/40 print:border-black">
+                  <td className="border border-border p-1 font-bold bg-muted/40">
                     {formatGrade(r.mfd)}
                   </td>
                   <td
-                    className={`border border-border p-1 font-bold print:border-black ${deriveElectronicStatusClass(s.status)}`}
+                    className={`border border-border p-1 font-bold ${deriveElectronicStatusClass(s.status)}`}
                   >
                     {s.status}
                   </td>
-                  <td className="border border-border p-1 text-left text-[11px] print:border-black">
+                  <td className="border border-border p-1 text-left text-[11px]">
                     {s.observation}
                   </td>
                 </tr>

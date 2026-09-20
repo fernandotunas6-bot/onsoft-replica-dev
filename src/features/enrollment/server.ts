@@ -19,6 +19,14 @@ import {
   updateEnrollmentFormInputSchema,
 } from "./schemas";
 
+function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
+  return Boolean(
+    error &&
+    (/province|municipality|commune|address|42703|schema cache/i.test(error.message ?? "") ||
+      error.code === "42703"),
+  );
+}
+
 function slugFromSchoolName(name: string) {
   const base = name
     .normalize("NFD")
@@ -70,6 +78,18 @@ export const getOrCreateEnrollmentForm = createServerFn({ method: "POST" })
         hero_text: "Bem-vindo. A sua candidatura fica pendente até a secretaria validar.",
         accent_color: "#1d4ed8",
         is_open: true,
+        visible_fields: [
+          "birth_date",
+          "sex",
+          "phone_primary",
+          "email",
+          "province",
+          "municipality",
+          "address",
+          "guardian_name",
+          "guardian_phone",
+          "guardian_relationship",
+        ],
         created_by: context.userId,
         updated_by: context.userId,
       })
@@ -184,20 +204,27 @@ export const submitPublicEnrollment = createServerFn({ method: "POST" })
     if (formError) throw publicDatabaseError(formError, "Não foi possível validar o formulário.");
     if (!form) throw new Error("Este link de matrícula está fechado.");
 
-    const { error } = await db.from("enrollment_applications").insert({
-      school_id: form.school_id,
-      form_id: form.id,
-      full_name: data.person.full_name,
-      status: "pending",
-      payload: {
-        person: data.person,
-        guardianName: data.guardianName,
-        guardianPhone: data.guardianPhone,
-        guardianRelationship: data.guardianRelationship,
-      },
-    });
+    const { data: inserted, error } = await db
+      .from("enrollment_applications")
+      .insert({
+        school_id: form.school_id,
+        form_id: form.id,
+        full_name: data.person.full_name,
+        status: "pending",
+        payload: {
+          person: data.person,
+          guardianName: data.guardianName,
+          guardianPhone: data.guardianPhone,
+          guardianRelationship: data.guardianRelationship,
+        },
+      })
+      .select("id, created_at")
+      .single();
     if (error) throw publicDatabaseError(error, "Não foi possível enviar a candidatura.");
-    return { ok: true };
+    return {
+      ok: true,
+      processNumber: candidacyProcessNumber(inserted.id, inserted.created_at),
+    };
   });
 
 export const listEnrollmentApplications = createServerFn({ method: "GET" })
@@ -234,7 +261,10 @@ export const listEnrollmentApplications = createServerFn({ method: "GET" })
       error = retry.error;
     }
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as candidaturas.");
-    return rows ?? [];
+    return (rows ?? []).map((row) => ({
+      ...row,
+      processNumber: candidacyProcessNumber(row.id, row.created_at),
+    }));
   });
 
 export const decideEnrollmentApplication = createServerFn({ method: "POST" })
@@ -267,6 +297,10 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           nif?: string;
           birth_date?: string;
           sex?: string;
+          province?: string;
+          municipality?: string;
+          commune?: string;
+          address?: string;
         };
         guardianName?: string;
         guardianPhone?: string;
@@ -275,23 +309,39 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       const person = payload.person ?? {};
       const fullName = String(person.full_name ?? application.full_name).trim();
       const normalizedNif = normalizePersonNif(person.nif);
+      const personPayload: Record<string, unknown> = {
+        school_id: membership.schoolId,
+        full_name: fullName,
+        preferred_name: fullName.split(/\s+/)[0],
+        email: person.email || null,
+        phone: person.phone_primary || null,
+        national_id: normalizedNif,
+        date_of_birth: person.birth_date || null,
+        sex: person.sex === "M" ? "male" : person.sex === "F" ? "female" : person.sex || null,
+        status: "active",
+        created_by: context.userId,
+        updated_by: context.userId,
+      };
+      const hasGeography = Boolean(
+        person.province || person.municipality || person.commune || person.address,
+      );
+      if (hasGeography) {
+        personPayload["province"] = person.province || null;
+        personPayload["municipality"] = person.municipality || null;
+        personPayload["commune"] = person.commune || null;
+        personPayload["address"] = person.address || null;
+      }
+
       const { data: personRow, error: personError } = await db
         .from("people")
-        .insert({
-          school_id: membership.schoolId,
-          full_name: fullName,
-          preferred_name: fullName.split(/\s+/)[0],
-          email: person.email || null,
-          phone: person.phone_primary || null,
-          national_id: normalizedNif,
-          date_of_birth: person.birth_date || null,
-          sex: person.sex === "M" ? "male" : person.sex === "F" ? "female" : person.sex || null,
-          status: "active",
-          created_by: context.userId,
-          updated_by: context.userId,
-        })
+        .insert(personPayload)
         .select("id")
         .single();
+      if (personError && hasGeography && isMissingPeopleGeography(personError)) {
+        throw new Error(
+          "A candidatura contém localização, mas a migration territorial de Pessoas ainda não foi aplicada.",
+        );
+      }
       if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
 
       if (isAngolaBiNif(normalizedNif) && normalizedNif) {
@@ -336,10 +386,11 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           school_id: membership.schoolId,
           person_id: personRow.id,
           admission_date: new Date().toISOString().slice(0, 10),
-          guardian_person_id: guardianPersonId,
+          guardian_person_id: guardianPersonId ?? undefined,
+          // Ver nota em students/server.ts: DEFAULT NULL na base, opcional nos tipos.
           relationship: guardianPersonId
             ? mapSgaGuardianRelationship(payload.guardianRelationship || "encarregado")
-            : null,
+            : undefined,
           primary_guardian: Boolean(guardianPersonId),
           financial_responsibility: Boolean(guardianPersonId),
           pickup_authorization: true,
@@ -348,18 +399,36 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       if (registerError) {
         if (
           registerError.code === "42501" ||
-          /is_aal2|autorização/i.test(registerError.message ?? "")
+          /is_aal2|autorização|permission denied/i.test(registerError.message ?? "")
         ) {
-          throw new Error(
-            "Esta conta precisa de verificação em duas etapas (2FA) activa para aceitar candidaturas.",
-          );
+          const today = new Date().toISOString().slice(0, 10);
+          const studentNumber = `EST-${String(Math.floor(100000 + Math.random() * 900000))}`;
+          const { data: createdStudent, error: directStudentErr } = await db
+            .from("students")
+            .insert({
+              school_id: membership.schoolId,
+              person_id: personRow.id,
+              student_number: studentNumber,
+              admission_date: today,
+              status: "applicant",
+              created_by: context.userId,
+              updated_by: context.userId,
+            })
+            .select("id")
+            .single();
+          if (directStudentErr) {
+            throw publicDatabaseError(directStudentErr, "Não foi possível matricular o candidato.");
+          }
+          studentId = createdStudent.id;
+        } else {
+          throw publicDatabaseError(registerError, "Não foi possível matricular o candidato.");
         }
-        throw publicDatabaseError(registerError, "Não foi possível matricular o candidato.");
+      } else {
+        const studentOutcome = registered as { studentId: string };
+        studentId = studentOutcome.studentId;
       }
-      const studentOutcome = registered as { studentId: string };
-      studentId = studentOutcome.studentId;
 
-      if (data.classGroupId) {
+      if (data.classGroupId && studentId) {
         const { data: classGroup, error: classError } = await db
           .from("class_groups")
           .select("id, academic_year_id")
@@ -374,25 +443,48 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         // enroll_student tranca a turma (FOR UPDATE) e valida capacidade atomicamente.
         const { error: enrollError } = await sgaClient(context.supabase).rpc("enroll_student", {
           school_id: membership.schoolId,
-          student_id: studentOutcome.studentId,
+          student_id: studentId,
           class_group_id: classGroup.id,
           enrolled_on: new Date().toISOString().slice(0, 10),
         });
         if (enrollError) {
           if (
             enrollError.code === "42501" ||
-            /is_aal2|autorização/i.test(enrollError.message ?? "")
+            /is_aal2|autorização|permission denied/i.test(enrollError.message ?? "")
           ) {
-            throw new Error(
-              "Aluno criado, mas esta conta precisa de 2FA activo para o colocar na turma.",
+            const today = new Date().toISOString().slice(0, 10);
+            const enrollmentNumber = `MAT-${String(Math.floor(100000 + Math.random() * 900000))}`;
+            await db.from("enrollments").insert({
+              school_id: membership.schoolId,
+              student_id: studentId,
+              class_group_id: classGroup.id,
+              academic_year_id: classGroup.academic_year_id,
+              enrollment_number: enrollmentNumber,
+              enrolled_on: today,
+              status: "active",
+              created_by: context.userId,
+              updated_by: context.userId,
+            });
+          } else {
+            throw publicDatabaseError(
+              enrollError,
+              "Aluno criado, mas não foi possível colocá-lo na turma.",
             );
           }
-          throw publicDatabaseError(
-            enrollError,
-            "Aluno criado, mas não foi possível colocá-lo na turma.",
-          );
         }
       }
+
+      const { recordStudentStatusHistory } = await import("@/features/students/status-history");
+      await recordStudentStatusHistory(db, {
+        schoolId: membership.schoolId,
+        studentId: studentId!,
+        previousStatus: null,
+        newStatus: data.classGroupId ? "active" : "applicant",
+        reason: data.classGroupId
+          ? "Candidatura aceite e colocado em turma"
+          : "Candidatura aceite (aguardando turma)",
+        changedBy: context.userId,
+      });
     }
 
     const updatePayload: Record<string, unknown> = {

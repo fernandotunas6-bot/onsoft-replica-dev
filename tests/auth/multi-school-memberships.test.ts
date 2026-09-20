@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   mapAppRoleToSgaCodes,
   mapSgaRoleCode,
@@ -98,7 +99,10 @@ describe("Multi-School Memberships & Roles Architecture", () => {
         }),
       };
 
-      const memberships = await listUserSchoolMemberships(mockClient as any, fakeUserId);
+      const memberships = await listUserSchoolMemberships(
+        mockClient as unknown as SupabaseClient,
+        fakeUserId,
+      );
       expect(memberships).toHaveLength(3);
 
       expect(memberships[0]).toMatchObject({
@@ -180,12 +184,19 @@ describe("Multi-School Memberships & Roles Architecture", () => {
       };
 
       // By default without preferredSchoolId -> resolves first school (School A / Professor)
-      const defaultResolved = await resolveSgaMembership(mockClient as any, fakeUserId);
+      const defaultResolved = await resolveSgaMembership(
+        mockClient as unknown as SupabaseClient,
+        fakeUserId,
+      );
       expect(defaultResolved?.schoolId).toBe(schoolAId);
       expect(defaultResolved?.appRole).toBe("Professor");
 
       // With preferredSchoolId = schoolBId -> resolves School B / Administrador
-      const switchedResolved = await resolveSgaMembership(mockClient as any, fakeUserId, schoolBId);
+      const switchedResolved = await resolveSgaMembership(
+        mockClient as unknown as SupabaseClient,
+        fakeUserId,
+        schoolBId,
+      );
       expect(switchedResolved?.schoolId).toBe(schoolBId);
       expect(switchedResolved?.appRole).toBe("Administrador");
       expect(switchedResolved?.schoolName).toBe("Universidade Central");

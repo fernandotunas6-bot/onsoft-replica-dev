@@ -16,7 +16,8 @@ const basePlan: Plan = {
   max_storage_gb: 5,
   price_aoa_monthly: 0,
   price_aoa_yearly: 0,
-  features: { academic: true },
+  // Os 4 módulos são obrigatórios em Plan["features"].
+  features: { academic: true, finance: true, attendance: true, documents: true },
   is_active: true,
 };
 
@@ -27,6 +28,10 @@ const baseTenant: Tenant = {
   status: "active",
   contact_email: "demo@escola.ao",
   max_students: 50,
+  // Obrigatórios em Tenant e antes em falta.
+  max_storage_gb: 5,
+  created_at: "2026-01-01T00:00:00.000Z",
+  updated_at: "2026-01-01T00:00:00.000Z",
 };
 
 describe("resolveMaxStudents", () => {

@@ -12,7 +12,9 @@ Billing da **plataforma** (assinatura SIGA, upgrade, planos comerciais) não
 pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
 
 - Rotas: `financeiro.tsx`, `faturas.tsx`, `relatorios.financeiros.tsx`
-- Domínio: `src/features/finance/{schemas,server}.ts`
+- RH / Folha (submódulo): skill `siga-rh` — `/financeiro/rh*` e `/professor/presenca`
+- Domínio: `src/features/finance/{schemas,server,payflow-sso,payflow-education-sync,payflow-sync-execute}.ts`
+- PayFlow UI: `PayflowAdminLaunchButton`, `PayflowStudentSyncButton`, `PayflowBankSyncButton`, `PayflowPayerLink` (portais aluno/encarregado)
 - Acesso: Admin/Tesouraria
 - Recibos SGA: método efectivo muitas vezes só `cash`.
 
@@ -30,3 +32,15 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
 6. `/faturas` recebe pagamento na linha (**Receber**) e imprime o recibo no modelo `service-document` com **Dados de pagamento** (IBAN de Definições → Financeiro; fallback `officialReceiptBody`). **Fatura** imprime o documento de cobrança. A lista tem **Oficial** e toolbars `financeiro` + `faturas`. Faturas pagas têm **Recibo**. Sem recibos: **Anular** (`cancelInvoice` → `cancelled`). Admin também recebe na ficha. Com Resend/WhatsApp: partilha da fatura, do recibo de caixa e da referência do plano. Relatório financeiro tem AGT, WhatsApp e **E-mail** Resend; PDFs oficiais incluem logótipo (`branding.logo_url`) e IBAN.
 7. Relatório financeiro: CSV/PDF das tabelas, **Oficial** completo e **Oficial cobrança** / **Oficial categorias** por secção (fallback `exportOfficialPautaPdf`). Caixa tem **Recibo** por lançamento, **Oficial** na lista filtrada e **Talão** nos planos. `/financeiro` e `/faturas` mostram toolbars de integrações instaladas. Helper: `src/lib/finance-print.ts`.
 8. **Arquivo na biblioteca**: receber/emitir/criar plano (e imprimir talão) grava stub em `siga_files` com ID pesquisável (`library_document_code`) e liga ao aluno via `related_person_id` quando existe.
+9. **PayFlow:**
+   - SSO admin: `createPayflowAdminLaunch` + botão Conciliação (requer `PAYFLOW_SSO_SECRET`).
+   - Sync aluno: `syncStudentToPayflow` / `executePayflowStudentSync`.
+   - Sync IBAN: `syncSchoolBankToPayflow` em Definições → Financeiro (também após «Guardar banco»).
+   - Auto-sync após emitir fatura: só com `PAYFLOW_AUTO_SYNC=1` (best-effort, não bloqueia).
+   - Segredos só no servidor: `PAYFLOW_INTEGRATION_API_KEY`, `PAYFLOW_SSO_SECRET` (nunca `VITE_`).
+   - Extrato CSV: `POST /api/v1/bank-statements/import` (dry-run; conciliar = `bank_statement`). Isolamento por `school_id`.
+   - Estorno: `POST /api/v1/payments/:id/refund` (só `finance_admin`; não apaga recibo). Acerto SIGA: `POST /api/finance/payflow/settlement`.
+   - API bancária: `POST /api/v1/bank-movements/ingest`. Pull: `POST /api/v1/bank-movements/pull` ou CLI `npm run siga:payflow-bank-pull`. Sandbox: feed `sandbox-feed` (só `PAYFLOW_RUNTIME_MODE=sandbox`).
+   - Alertas: `PAYFLOW_ALERT_WEBHOOK_URL` (opt-in HTTPS; fail-closed). Inclui falhas de acerto SIGA.
+   - Health: `GET /api/v1/health` → banco / settlement / alertas / EMIS (sem segredos).
+   - Webhook EMIS: `POST /api/v1/webhooks/emis` (HMAC; fail-closed; não liquida até adaptador de produção).

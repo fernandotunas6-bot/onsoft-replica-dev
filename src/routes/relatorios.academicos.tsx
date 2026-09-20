@@ -94,7 +94,7 @@ function RelatoriosAcademicos() {
   });
 
   const workspace = workspaceQuery.data;
-  const termGradesAll = useMemo(() => workspace?.termGrades ?? [], [workspace]);
+  const termGradesAll = useMemo(() => workspace?.termGrades ?? [], [workspace?.termGrades]);
   const subjects = workspace?.subjects ?? [];
   const classGroups = workspace?.classGroups ?? [];
   const gradesAvailable = workspace?.gradesAvailable !== false;

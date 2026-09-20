@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useId, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { listInboxPreviews, type SchoolColleague } from "@/features/messages/server";
@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function useInboxUnread(colleagues: SchoolColleague[] = []) {
   const currentUser = useCurrentAccount();
   const queryClient = useQueryClient();
+  const instanceId = useId();
   const inboxQuery = useQuery({
     queryKey: ["messages", "inbox", currentUser.id],
     enabled: Boolean(currentUser.id),
@@ -32,7 +33,7 @@ export function useInboxUnread(colleagues: SchoolColleague[] = []) {
   useEffect(() => {
     if (!currentUser.id) return;
     const channel = supabase
-      .channel(`inbox_${currentUser.id}`)
+      .channel(`inbox_${currentUser.id}_${instanceId}`)
       .on(
         "postgres_changes",
         {
@@ -52,7 +53,7 @@ export function useInboxUnread(colleagues: SchoolColleague[] = []) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [currentUser.id, queryClient]);
+  }, [currentUser.id, instanceId, queryClient]);
   const readTick = useQuery({
     queryKey: ["messages", "read-tick", currentUser.id],
     enabled: Boolean(currentUser.id),
@@ -61,6 +62,10 @@ export function useInboxUnread(colleagues: SchoolColleague[] = []) {
     initialData: 0,
   });
 
+  // `readTick.data` não é usado no corpo, mas é o sinal de invalidação: o mapa
+  // vem do localStorage e só deve ser relido quando o tick avança. Removê-lo
+  // (como a regra sugere) congelaria a contagem de não-lidos.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- tick de invalidação deliberado
   const lastRead = useMemo(() => readLastReadMap(currentUser.id), [currentUser.id, readTick.data]);
 
   const previews = useMemo(() => {

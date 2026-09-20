@@ -34,6 +34,31 @@ function decodeAccessTokenClaims(token: string): { sub: string; email?: string }
   }
 }
 
+async function verifyLocalJwtSignature(token: string, secret: string): Promise<boolean> {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+    const [headerB64, payloadB64, sigB64] = parts;
+    const unsigned = `${headerB64}.${payloadB64}`;
+
+    const normalizedSig = sigB64.replaceAll("-", "+").replaceAll("_", "/");
+    const paddedSig = normalizedSig.padEnd(Math.ceil(normalizedSig.length / 4) * 4, "=");
+    const sigBytes = Uint8Array.from(atob(paddedSig), (c) => c.charCodeAt(0));
+
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+
+    return await crypto.subtle.verify("HMAC", key, sigBytes, new TextEncoder().encode(unsigned));
+  } catch {
+    return false;
+  }
+}
+
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
   return (input, init) => {
     const headers = new Headers(
@@ -140,9 +165,21 @@ export const requireSupabaseAuth = createMiddleware({
     },
   });
 
+  // `authApiReachable` só fica true quando o Auth API respondeu de facto
+  // (mesmo que a rejeitar o token). SEGURANÇA: o fallback de decode local do
+  // JWT, mais abaixo, não verifica assinatura — só pode disparar quando o
+  // Auth API está genuinamente inacessível (falha de rede no SSR), nunca
+  // quando ele respondeu e recusou o token. `getUser`/`getClaims` devolvem
+  // `{ data: null, error }` para um token inválido — não lançam — por isso
+  // um simples try/catch em torno da chamada não chega para distinguir "API
+  // em baixo" de "token forjado/expirado"; sem esta flag, um token com
+  // assinatura inválida mas `sub`/`exp` bem formados passava sempre no
+  // fallback e dava acesso total via `supabaseAdmin` a jusante.
+  let authApiReachable = false;
   let authApiError: string | undefined;
   try {
     const { data, error } = await supabase.auth.getClaims(token);
+    authApiReachable = true;
     if (data?.claims?.sub) {
       setResponseHeaders(
         new Headers({
@@ -161,6 +198,7 @@ export const requireSupabaseAuth = createMiddleware({
 
   try {
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    authApiReachable = true;
     if (userData?.user?.id) {
       setResponseHeaders(
         new Headers({
@@ -178,20 +216,33 @@ export const requireSupabaseAuth = createMiddleware({
       authApiError || (userError instanceof Error ? userError.message : "getUser falhou");
   }
 
-  // Fallback: decode local do JWT quando o Auth API está inacessível no SSR
-  // (ex.: "fetch failed"). Handlers usam service role / membership depois disto.
-  const localClaims = decodeAccessTokenClaims(token);
-  if (localClaims?.sub) {
-    setResponseHeaders(
-      new Headers({
-        "Cache-Control": "private, no-store",
-        Vary: "Authorization",
-      }),
-    );
-    return next({
-      context: createAuthContext(supabase, localClaims.sub, localClaims),
-    });
+  if (authApiReachable) {
+    unauthorized(`Unauthorized: ${authApiError || "token rejeitado"}.`);
   }
 
-  unauthorized(`Unauthorized: ${authApiError || "token rejeitado"}.`);
+  // SEGURANÇA (Fail-Closed): Nunca aceitar claims de JWT sem verificação criptográfica da assinatura.
+  // Se a API de autenticação da Supabase estiver inacessível no SSR, só aceitar fallback se o
+  // SUPABASE_JWT_SECRET estiver configurado e a assinatura HMAC-SHA256 for validada com sucesso.
+  const jwtSecret = process.env["SUPABASE_JWT_SECRET"]?.trim();
+  if (jwtSecret && jwtSecret.length >= 16) {
+    const isValidSignature = await verifyLocalJwtSignature(token, jwtSecret);
+    if (isValidSignature) {
+      const localClaims = decodeAccessTokenClaims(token);
+      if (localClaims?.sub) {
+        setResponseHeaders(
+          new Headers({
+            "Cache-Control": "private, no-store",
+            Vary: "Authorization",
+          }),
+        );
+        return next({
+          context: createAuthContext(supabase, localClaims.sub, localClaims),
+        });
+      }
+    }
+  }
+
+  unauthorized(
+    `Unauthorized: ${authApiError || "sessão inválida ou serviço de autenticação indisponível"}.`,
+  );
 });

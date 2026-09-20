@@ -22,6 +22,7 @@ import { WindowsDesktopSettingsModal } from "./WindowsDesktopSettingsModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Table,
   TableBody,
@@ -382,6 +383,7 @@ export function TurnstileAccessPanel() {
 
             <div className="flex gap-2">
               <Input
+                aria-label="Número do cartão"
                 placeholder="Digitalize ou digite o número do cartão (ex: STU2026884920 ou CARD-2026-10294)..."
                 value={simulatorToken}
                 onChange={(e) => setSimulatorToken(e.target.value)}
@@ -620,21 +622,12 @@ export function TurnstileAccessPanel() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{log.device_name}</TableCell>
                   <TableCell className="text-xs text-right">
-                    {log.status === "granted" ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-success/10 text-success border-success/30 text-[10px]"
-                      >
-                        Autorizado
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="bg-destructive/10 text-destructive border-destructive/30 text-[10px]"
-                      >
-                        Negado: {log.denial_reason}
-                      </Badge>
-                    )}
+                    <StatusBadge
+                      status={log.status === "granted" ? "active" : "cancelled"}
+                      label={
+                        log.status === "granted" ? "Autorizado" : `Negado: ${log.denial_reason}`
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -658,6 +651,7 @@ export function TurnstileAccessPanel() {
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Nome do Dispositivo</Label>
               <Input
+                aria-label="Nome da catraca"
                 placeholder="Ex: Catraca 01 - Entrada Principal"
                 value={deviceName}
                 onChange={(e) => setDeviceName(e.target.value)}
@@ -667,6 +661,7 @@ export function TurnstileAccessPanel() {
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Localização no Recinto</Label>
               <Input
+                aria-label="Localização da catraca"
                 placeholder="Ex: Portaria Norte / Bloco B"
                 value={deviceLocation}
                 onChange={(e) => setDeviceLocation(e.target.value)}
@@ -678,6 +673,7 @@ export function TurnstileAccessPanel() {
                 IP da controladora (opcional, TCP 4370)
               </Label>
               <Input
+                aria-label="Endereço IP da catraca"
                 placeholder="Ex: 192.168.1.201 — usado no pulso físico ao autorizar"
                 value={deviceIp}
                 onChange={(e) => setDeviceIp(e.target.value)}

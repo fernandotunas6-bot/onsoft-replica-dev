@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import QRCode from "qrcode";
 import { QrCode, ShieldCheck, ShieldOff, GraduationCap } from "lucide-react";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
-import { MediaAvatar } from "@/components/ui/media-frame";
+import { MediaAvatar, MediaFrame } from "@/components/ui/media-frame";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -203,12 +203,15 @@ export function StudentDigitalCardModal({
 
               <div className="flex items-center justify-center p-3 bg-secondary/30 rounded-xl border border-border">
                 <div className="text-center space-y-2">
-                  <div className="size-36 mx-auto bg-white p-2 rounded-lg flex items-center justify-center">
+                  <div className="size-36 mx-auto bg-background p-2 rounded-lg flex items-center justify-center border border-border">
                     {qrDataUrl ? (
-                      <img
+                      <MediaFrame
                         src={qrDataUrl}
                         alt="QR code do cartão de acesso"
+                        ratio="1/1"
+                        rounded="rounded-md"
                         className="size-full"
+                        priority
                       />
                     ) : (
                       <div className="size-full animate-pulse rounded-md bg-muted" />
@@ -247,6 +250,7 @@ export function StudentDigitalCardModal({
                 <Label className="text-[11px] font-semibold">Tag RFID / Wiegand</Label>
                 <div className="flex gap-2">
                   <Input
+                    aria-label="Número do cartão RFID"
                     value={rfidDraft}
                     onChange={(e) => setRfidDraft(e.target.value)}
                     placeholder="Ex: A1B2C3D4 ou número do cartão físico"

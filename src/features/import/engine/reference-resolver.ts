@@ -118,7 +118,7 @@ export class ReferenceResolver {
         school_id: this.schoolId,
         full_name: cleanName,
         national_id: cleanBi,
-        gender: personData.gender || null,
+        sex: personData.gender || null,
         date_of_birth: personData.birth_date || null,
         phone: personData.phone || null,
         email: personData.email || null,
@@ -154,8 +154,8 @@ export class ReferenceResolver {
     let query = this.db
       .from("class_groups")
       .select("id, name, code, grade_level_id")
-      .eq("school_id", this.schoolId)
-      .is("deleted_at", null);
+      .eq("school_id", this.schoolId);
+    // `class_groups` não tem `deleted_at`: filtrar por ela recusava a consulta inteira.
 
     if (this.academicYearId) {
       query = query.eq("academic_year_id", this.academicYearId);

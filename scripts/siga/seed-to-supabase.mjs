@@ -33,12 +33,106 @@ const supabase = createClient(url, key, {
   auth: { persistSession: false },
 });
 
+/**
+ * Toda a escrita passa por aqui.
+ *
+ * Antes, quinze das dezasseis escritas deste script descartavam o erro: `await
+ * supabase.from(x).upsert(y)` sem ler `error`. O script escrevia para `courses` e
+ * `term_grades` — que não existem em produção —, o PostgREST recusava, e no fim imprimia
+ * "🎉 Sucesso Total! … 100% carregados". Um seed que mente sobre o que gravou é pior do
+ * que um seed que falha: deixa uma escola demo meia vazia com ar de completa.
+ */
+async function gravar(tabela, payload, opcoes) {
+  const { error } = opcoes?.insert
+    ? await supabase.from(tabela).insert(payload)
+    : await supabase.from(tabela).upsert(payload, opcoes?.upsert);
+  if (error) {
+    const detalhe = error.details ? ` (${error.details})` : "";
+    throw new Error(`Falha ao gravar em "${tabela}": ${error.message}${detalhe}`);
+  }
+}
+
+/**
+ * Identificadores determinísticos da escola demo.
+ *
+ * Os anteriores não eram UUID. `p0000000-…`, `st000000-…`, `g0000000-…`,
+ * `r0000000-…`, `sub00000-…`, `en000000-…` e `t3b07384-…` usam `p`, `s`, `t`,
+ * `g`, `r`, `u` e `n` — nenhum é dígito hexadecimal. O Postgres recusa cada um
+ * com 22P02, e desde que as escritas deixaram de engolir o erro o seed parava
+ * na primeira sala. Os prefixos abaixo são todos hexadecimais.
+ */
+const NS = {
+  campus: "ca",
+  sala: "a0",
+  nivel: "c0",
+  classe: "d0",
+  turma: "e0",
+  disciplina: "f0",
+  pessoalEscola: "a1",
+  pessoaAluno: "b1",
+  encarregado: "c1",
+  aluno: "e1",
+  matricula: "d1",
+  planoPropina: "a2",
+  itemPropina: "b2",
+  contrato: "c2",
+  fatura: "f2",
+  avaliacao: "a3",
+};
+const idDemo = (ns, n) => `${ns}000000-0000-4000-8000-${pad(n, 12)}`;
+
+/**
+ * `created_by`/`updated_by` são NOT NULL sem omissão em people, students,
+ * subjects, class_groups, enrollments, finance_contracts e finance_invoices —
+ * na produção nunca estão vazios. A aplicação preenche-os com `context.userId`;
+ * um seed não tem sessão, por isso o autor tem de ser dito. Adivinhá-lo para
+ * milhares de linhas de auditoria seria pior do que parar.
+ */
+async function resolverAutor() {
+  const explicito = process.env.SEED_ACTOR_USER_ID?.trim();
+  if (explicito) return explicito;
+
+  const email = process.env.SEED_ACTOR_EMAIL?.trim();
+  if (email) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
+    if (error) throw new Error(`Não foi possível procurar ${email}: ${error.message}`);
+    const achado = data?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+    if (achado) return achado.id;
+    throw new Error(`SEED_ACTOR_EMAIL=${email} não corresponde a nenhum utilizador.`);
+  }
+
+  throw new Error(
+    "Falta o autor das escritas. Defina SEED_ACTOR_USER_ID (uuid de auth.users) ou " +
+      "SEED_ACTOR_EMAIL no .env — created_by/updated_by são obrigatórios e não podem ser inventados.",
+  );
+}
+
+let AUTOR = null;
+
 console.log("🚀 A carregar dados da Escola Demo diretamente na base de dados do Supabase...");
 
 const SCHOOL_ID = "d3b07384-d113-4603-9c8e-a2f0714b2201";
-const DEMO_TENANT_ID = "t3b07384-d113-4603-9c8e-a2f0714b2201";
+const DEMO_TENANT_ID = "73b07384-d113-4603-9c8e-a2f0714b2201";
 const DEMO_TENANT_SLUG = "dom-afonso-demo";
 const YEAR_2026_ID = "a2026000-0000-0000-0000-000000002026";
+const CAMPUS_ID = idDemo(NS.campus, 1);
+const NIVEL_PRIMARIO = idDemo(NS.nivel, 1);
+const NIVEL_CICLO_I = idDemo(NS.nivel, 2);
+const NIVEL_CICLO_II = idDemo(NS.nivel, 3);
+
+/** manha/tarde/noite não são valores de `class_groups.shift`; o enum é inglês. */
+const TURNO = { manha: "morning", tarde: "afternoon", noite: "evening" };
+
+const FEE_PLAN_ID = idDemo(NS.planoPropina, 1);
+const FEE_ITEM_PROPINA = idDemo(NS.itemPropina, 1);
+const FEE_ITEM_MATRICULA = idDemo(NS.itemPropina, 2);
+
+/** Componentes da pauta angolana. `kind` e `component` seguem os enums da app. */
+const COMPONENTES = [
+  { nome: "MAC", kind: "continua", min: 10, max: 19 },
+  { nome: "NPP", kind: "prova", min: 9, max: 18 },
+  { nome: "NPT", kind: "teste", min: 11, max: 20 },
+];
 const YEAR_2025_ID = "a2025000-0000-0000-0000-000000002025";
 const YEAR_2024_ID = "a2024000-0000-0000-0000-000000002024";
 
@@ -249,7 +343,8 @@ async function linkDemoTenant() {
     return;
   }
 
-  const { error: tenantErr } = await supabase.from("tenants").upsert(
+  await gravar(
+    "tenants",
     {
       id: DEMO_TENANT_ID,
       name: "Complexo Escolar Polivalente Dom Afonso I — SIGA Demo",
@@ -262,12 +357,8 @@ async function linkDemoTenant() {
       max_storage_gb: planRow.max_storage_gb ?? 200,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "slug" },
+    { upsert: { onConflict: "slug" } },
   );
-  if (tenantErr) {
-    console.warn("⚠️  Tenant demo:", tenantErr.message);
-    return;
-  }
 
   const { data: tenant } = await supabase
     .from("tenants")
@@ -285,7 +376,8 @@ async function linkDemoTenant() {
     })
     .eq("id", SCHOOL_ID);
 
-  await supabase.from("tenant_domains").upsert(
+  await gravar(
+    "tenant_domains",
     {
       tenant_id: tenantId,
       hostname: `${DEMO_TENANT_SLUG}.portal-siga.com`,
@@ -293,7 +385,7 @@ async function linkDemoTenant() {
       status: "active",
       ssl_status: "active",
     },
-    { onConflict: "hostname" },
+    { upsert: { onConflict: "hostname" } },
   );
 
   const { count } = await supabase
@@ -301,7 +393,7 @@ async function linkDemoTenant() {
     .select("id", { count: "exact", head: true })
     .eq("tenant_id", tenantId);
   if (!count) {
-    await supabase.from("subscriptions").insert({
+    await gravar("subscriptions", {
       tenant_id: tenantId,
       plan_id: planRow.id,
       status: "active",
@@ -310,22 +402,24 @@ async function linkDemoTenant() {
     });
   }
 
-  await supabase
-    .from("tenant_usage")
-    .upsert(
-      { tenant_id: tenantId, active_students_count: 0, active_staff_count: 0 },
-      { onConflict: "tenant_id" },
-    );
+  await gravar(
+    "tenant_usage",
+    { tenant_id: tenantId, active_students_count: 0, active_staff_count: 0 },
+    { upsert: { onConflict: "tenant_id" } },
+  );
 
   console.log(`✅ Tenant SaaS «${DEMO_TENANT_SLUG}» ligado à escola demo (ADMIN /tenants).`);
 }
 
 async function runSeed() {
+  AUTOR = await resolverAutor();
+  console.log(`Autor das escritas: ${AUTOR}`);
+
   console.log("1. A registar a Escola Demo e Definições...");
-  await supabase.from("schools").upsert({
+  await gravar("schools", {
     id: SCHOOL_ID,
     name: "Complexo Escolar Polivalente Dom Afonso I — SIGA Demo",
-    code: "CEPDAI-DEMO",
+    public_code: "CEPDAI-DEMO",
     nif: "5417089123",
     email: "geral@siga-demo.ao",
     phone: "+244 923 000 111",
@@ -333,16 +427,23 @@ async function runSeed() {
     updated_at: new Date().toISOString(),
   });
 
-  await supabase.from("school_settings").upsert({
-    school_id: SCHOOL_ID,
-    academic_year: "Ano Lectivo 2026",
-    currency: "AOA",
-    updated_at: new Date().toISOString(),
-  });
+  // school_settings é chave-valor versionada (domain/value/version), não uma
+  // linha plana: `academic_year` e `currency` nunca foram colunas desta tabela.
+  await gravar(
+    "school_settings",
+    {
+      school_id: SCHOOL_ID,
+      domain: "geral",
+      value: { academic_year: "Ano Lectivo 2026", currency: "AOA" },
+      version: 1,
+      changed_by: AUTOR,
+    },
+    { upsert: { onConflict: "school_id,domain" } },
+  );
 
   await linkDemoTenant();
 
-  await supabase.from("enrollment_forms").upsert({
+  await gravar("enrollment_forms", {
     id: "e1111111-2222-3333-4444-555555555555",
     school_id: SCHOOL_ID,
     slug: "dom-afonso-demo",
@@ -354,14 +455,14 @@ async function runSeed() {
   });
 
   console.log("2. A registar Anos Lectivos (2024, 2025, 2026)...");
-  await supabase.from("academic_years").upsert([
+  await gravar("academic_years", [
     {
       id: YEAR_2024_ID,
       school_id: SCHOOL_ID,
       name: "Ano Lectivo 2024",
       starts_on: "2024-02-01",
       ends_on: "2024-12-15",
-      is_active: false,
+      status: "closed",
     },
     {
       id: YEAR_2025_ID,
@@ -369,7 +470,7 @@ async function runSeed() {
       name: "Ano Lectivo 2025",
       starts_on: "2025-02-01",
       ends_on: "2025-12-15",
-      is_active: false,
+      status: "closed",
     },
     {
       id: YEAR_2026_ID,
@@ -377,92 +478,139 @@ async function runSeed() {
       name: "Ano Lectivo 2026",
       starts_on: "2026-02-01",
       ends_on: "2026-12-18",
-      is_active: true,
+      status: "active",
     },
   ]);
 
-  console.log("3. A registar 26 Salas de Aula...");
+  // O campus é obrigatório em class_groups (campus_id NOT NULL) e nunca era criado.
+  await gravar("campuses", {
+    id: CAMPUS_ID,
+    school_id: SCHOOL_ID,
+    code: "SEDE",
+    name: "Campus Principal",
+    province: "Luanda",
+    municipality: "Luanda",
+  });
+
+  console.log("3. A registar as salas de aula...");
   const rooms = [];
   for (let r = 1; r <= 24; r++) {
     const bloco = r <= 12 ? "A" : "B";
     const num = r <= 12 ? 100 + r : 200 + (r - 12);
     rooms.push({
-      id: `r0000000-0000-0000-0000-${pad(r, 12)}`,
+      id: idDemo(NS.sala, r),
       school_id: SCHOOL_ID,
       code: `S-${num}`,
       name: `Sala ${num} — Bloco ${bloco}`,
+      campus_id: CAMPUS_ID,
       capacity: 40,
       room_type: "standard",
     });
   }
   rooms.push(
     {
-      id: "r0000000-0000-0000-0000-000000000901",
+      id: idDemo(NS.sala, 901),
       school_id: SCHOOL_ID,
       code: "LAB-INF",
+      campus_id: CAMPUS_ID,
       name: "Laboratório de Informática",
       capacity: 35,
-      room_type: "lab",
+      room_type: "computer_lab",
     },
     {
-      id: "r0000000-0000-0000-0000-000000000902",
+      id: idDemo(NS.sala, 902),
       school_id: SCHOOL_ID,
       code: "LAB-BIO",
+      campus_id: CAMPUS_ID,
       name: "Laboratório de Biologia e Química",
       capacity: 35,
-      room_type: "lab",
+      room_type: "biology_lab",
     },
   );
-  await supabase.from("rooms").upsert(rooms);
+  await gravar("rooms", rooms);
+  console.log(`   ${rooms.length} salas registadas.`);
 
-  console.log("4. A registar Cursos da Escola...");
-  const courses = [
+  // `courses` não existe na produção: o modelo real é academic_levels → programs
+  // → grade_levels. `duration_years` também não é coluna de nenhuma delas.
+  console.log("4. A registar Níveis, Programas e Classes...");
+  await gravar("academic_levels", [
+    {
+      id: NIVEL_PRIMARIO,
+      school_id: SCHOOL_ID,
+      code: "primary",
+      name: "Ensino Primário",
+      sequence: 1,
+    },
+    {
+      id: NIVEL_CICLO_I,
+      school_id: SCHOOL_ID,
+      code: "cycle_i",
+      name: "Iº Ciclo do Ensino Secundário",
+      sequence: 2,
+    },
+    {
+      id: NIVEL_CICLO_II,
+      school_id: SCHOOL_ID,
+      code: "cycle_ii",
+      name: "IIº Ciclo do Ensino Secundário",
+      sequence: 3,
+    },
+  ]);
+
+  const programs = [
     {
       id: "c0000001-0000-0000-0000-000000000001",
       school_id: SCHOOL_ID,
       code: "PRIM",
       name: "Ensino Primário",
-      duration_years: 6,
+      academic_level_id: NIVEL_PRIMARIO,
+      kind: "general",
     },
     {
       id: "c0000002-0000-0000-0000-000000000002",
       school_id: SCHOOL_ID,
       code: "C1-GERAL",
       name: "Iº Ciclo do Ensino Secundário",
-      duration_years: 3,
+      academic_level_id: NIVEL_CICLO_I,
+      kind: "general",
     },
     {
       id: "c0000003-0000-0000-0000-000000000003",
       school_id: SCHOOL_ID,
       code: "CFB",
       name: "Ciências Físicas e Biológicas",
-      duration_years: 3,
+      academic_level_id: NIVEL_CICLO_II,
+      kind: "general",
     },
     {
       id: "c0000004-0000-0000-0000-000000000004",
       school_id: SCHOOL_ID,
       code: "CEJ",
       name: "Ciências Económicas e Jurídicas",
-      duration_years: 3,
+      academic_level_id: NIVEL_CICLO_II,
+      kind: "general",
     },
     {
       id: "c0000005-0000-0000-0000-000000000005",
       school_id: SCHOOL_ID,
       code: "TI",
       name: "Técnico de Informática",
-      duration_years: 4,
+      academic_level_id: NIVEL_CICLO_II,
+      kind: "technical",
     },
     {
       id: "c0000006-0000-0000-0000-000000000006",
       school_id: SCHOOL_ID,
       code: "ENF",
       name: "Técnico de Enfermagem",
-      duration_years: 4,
+      academic_level_id: NIVEL_CICLO_II,
+      kind: "technical",
     },
   ];
-  await supabase.from("courses").upsert(courses);
+  await gravar("programs", programs);
+  const programCodeById = new Map(programs.map((p) => [p.id, p.code]));
 
-  console.log("5. A criar 36 Turmas da Escola Demo...");
+  console.log("5. A criar as turmas da Escola Demo...");
   const turmasList = [
     {
       code: "P1M",
@@ -700,162 +848,272 @@ async function runSeed() {
     },
   ];
 
+  // As classes (`grade_levels`) são derivadas da lista acima em vez de ficarem
+  // numa lista à parte: uma segunda lista divergiria à primeira turma nova.
+  // `grade_levels.program_id` é NOT NULL, e `class_groups.grade_level_id` também.
+  const gradeLevelKey = (t) => `${t.courseId}|${t.name.split("—")[0].trim()}`;
+  const gradeLevels = [];
+  const gradeLevelIdByKey = new Map();
+  for (const t of turmasList) {
+    const key = gradeLevelKey(t);
+    if (gradeLevelIdByKey.has(key)) continue;
+    const classe = t.name.split("—")[0].trim();
+    const ordem = Number(classe.match(/^(\d+)/)?.[1] ?? gradeLevels.length + 1);
+    const id = idDemo(NS.classe, gradeLevels.length + 1);
+    gradeLevelIdByKey.set(key, id);
+    gradeLevels.push({
+      id,
+      school_id: SCHOOL_ID,
+      program_id: t.courseId,
+      code: `${programCodeById.get(t.courseId)}-${ordem}`,
+      name: classe,
+      sequence: ordem,
+    });
+  }
+  await gravar("grade_levels", gradeLevels);
+
+  // `course_id`, `room_id` e `max_students` não são colunas de class_groups. A
+  // sala não vive aqui (vive no horário), a capacidade chama-se `capacity`, e
+  // `campus_id` é obrigatório.
   const classGroups = turmasList.map((t, idx) => ({
-    id: `g0000000-0000-0000-0000-${pad(idx + 1, 12)}`,
+    id: idDemo(NS.turma, idx + 1),
     school_id: SCHOOL_ID,
-    course_id: t.courseId,
     academic_year_id: YEAR_2026_ID,
+    campus_id: CAMPUS_ID,
+    grade_level_id: gradeLevelIdByKey.get(gradeLevelKey(t)),
     code: t.code,
     name: t.name,
-    shift: t.shift,
-    room_id: t.room,
-    max_students: 40,
+    shift: TURNO[t.shift] ?? t.shift,
+    capacity: 40,
+    created_by: AUTOR,
+    updated_by: AUTOR,
   }));
-  await supabase.from("class_groups").upsert(classGroups);
+  await gravar("class_groups", classGroups);
 
   console.log("6. A criar Disciplinas da Escola...");
   const subjects = [
     {
-      id: "sub00000-0000-0000-0000-000000000001",
+      id: idDemo(NS.disciplina, 1),
       school_id: SCHOOL_ID,
       code: "LP",
       name: "Língua Portuguesa",
     },
     {
-      id: "sub00000-0000-0000-0000-000000000002",
+      id: idDemo(NS.disciplina, 2),
       school_id: SCHOOL_ID,
       code: "MAT",
       name: "Matemática",
     },
     {
-      id: "sub00000-0000-0000-0000-000000000003",
+      id: idDemo(NS.disciplina, 3),
       school_id: SCHOOL_ID,
       code: "FIS",
       name: "Física",
     },
     {
-      id: "sub00000-0000-0000-0000-000000000004",
+      id: idDemo(NS.disciplina, 4),
       school_id: SCHOOL_ID,
       code: "QMC",
       name: "Química",
     },
     {
-      id: "sub00000-0000-0000-0000-000000000005",
+      id: idDemo(NS.disciplina, 5),
       school_id: SCHOOL_ID,
       code: "BIO",
       name: "Biologia",
     },
     {
-      id: "sub00000-0000-0000-0000-000000000006",
+      id: idDemo(NS.disciplina, 6),
       school_id: SCHOOL_ID,
       code: "HST",
       name: "História",
     },
     {
-      id: "sub00000-0000-0000-0000-000000000007",
+      id: idDemo(NS.disciplina, 7),
       school_id: SCHOOL_ID,
       code: "GEO",
       name: "Geografia",
     },
     {
-      id: "sub00000-0000-0000-0000-000000000008",
+      id: idDemo(NS.disciplina, 8),
       school_id: SCHOOL_ID,
       code: "ING",
       name: "Língua Inglesa",
     },
     {
-      id: "sub00000-0000-0000-0000-000000000009",
+      id: idDemo(NS.disciplina, 9),
       school_id: SCHOOL_ID,
       code: "TIC",
       name: "Tecnologias de Informação",
     },
     {
-      id: "sub00000-0000-0000-0000-000000000010",
+      id: idDemo(NS.disciplina, 10),
       school_id: SCHOOL_ID,
       code: "EF",
       name: "Educação Física",
     },
   ];
-  await supabase.from("subjects").upsert(subjects);
+  // created_by/updated_by são NOT NULL em subjects.
+  for (const sub of subjects) {
+    sub.created_by = AUTOR;
+    sub.updated_by = AUTOR;
+  }
+  await gravar("subjects", subjects);
 
   console.log(
     "7. A registar Perfis Especiais (Direção, Secretaria, Tesouraria, Professores e Encarregados)...",
   );
   const staffPeople = [
     {
-      id: "p0000000-0000-0000-0000-000000000001",
+      id: idDemo(NS.pessoalEscola, 1),
       school_id: SCHOOL_ID,
       full_name: "Prof. Dr. Alberto Canguele",
       sex: "M",
       email: "diretor@siga-demo.ao",
-      phone_primary: "+244 923 111 222",
-      nif: "005412981LA032",
+      phone: "+244 923 111 222",
+      national_id: "005412981LA032",
       address: "Talatona, Alvalade",
     },
     {
-      id: "p0000000-0000-0000-0000-000000000002",
+      id: idDemo(NS.pessoalEscola, 2),
       school_id: SCHOOL_ID,
       full_name: "Dra. Maria Esperança Coxe",
       sex: "F",
       email: "secretaria@siga-demo.ao",
-      phone_primary: "+244 923 111 223",
-      nif: "006712982LA041",
+      phone: "+244 923 111 223",
+      national_id: "006712982LA041",
       address: "Maianga, Rua Silva Porto",
     },
     {
-      id: "p0000000-0000-0000-0000-000000000003",
+      id: idDemo(NS.pessoalEscola, 3),
       school_id: SCHOOL_ID,
       full_name: "Dr. João Pedro Mateus",
       sex: "M",
       email: "tesouraria@siga-demo.ao",
-      phone_primary: "+244 923 111 224",
-      nif: "007812983LA055",
+      phone: "+244 923 111 224",
+      national_id: "007812983LA055",
       address: "Projecto Nova Vida",
     },
     {
-      id: "p0000000-0000-0000-0000-000000000004",
+      id: idDemo(NS.pessoalEscola, 4),
       school_id: SCHOOL_ID,
       full_name: "Prof. António Gonga",
       sex: "M",
       email: "prof.alberto@siga-demo.ao",
-      phone_primary: "+244 923 111 225",
-      nif: "008912984LA062",
+      phone: "+244 923 111 225",
+      national_id: "008912984LA062",
       address: "Viana, Estalagem",
     },
     {
-      id: "p0000000-0000-0000-0000-000000000005",
+      id: idDemo(NS.pessoalEscola, 5),
       school_id: SCHOOL_ID,
       full_name: "D. Beatriz Luísa Bento",
       sex: "F",
       email: "pais.demo@siga-demo.ao",
-      phone_primary: "+244 923 111 226",
-      nif: "009012985LA073",
+      phone: "+244 923 111 226",
+      national_id: "009012985LA073",
       address: "Kilamba Kiaxi, Palanca",
     },
   ];
-  await supabase.from("people").upsert(staffPeople);
+  for (const pessoa of staffPeople) {
+    pessoa.created_by = AUTOR;
+    pessoa.updated_by = AUTOR;
+  }
+  await gravar("people", staffPeople);
+
+  // Plano de propinas: `finance_invoices.fee_item_id` aponta para `fee_items`,
+  // que por sua vez pende de um `fee_plans` do ano lectivo. Sem esta cadeia não
+  // há factura possível — e era por isso que o lote de facturas, construído mas
+  // nunca gravado, nunca deu erro nem dados.
+  console.log("8. A registar o plano de propinas...");
+  await gravar("fee_plans", {
+    id: FEE_PLAN_ID,
+    school_id: SCHOOL_ID,
+    academic_year_id: YEAR_2026_ID,
+    code: "PROP-2026",
+    name: "Propinas 2026",
+    currency_code: "AOA",
+    status: "active",
+  });
+  await gravar("fee_items", [
+    {
+      id: FEE_ITEM_PROPINA,
+      school_id: SCHOOL_ID,
+      fee_plan_id: FEE_PLAN_ID,
+      code: "PROP-MENSAL",
+      name: "Propina Mensal",
+      kind: "tuition",
+      frequency: "monthly",
+      amount: 25000,
+    },
+    {
+      id: FEE_ITEM_MATRICULA,
+      school_id: SCHOOL_ID,
+      fee_plan_id: FEE_PLAN_ID,
+      code: "MATRICULA",
+      name: "Taxa de Matrícula",
+      kind: "enrollment",
+      frequency: "once",
+      amount: 45000,
+    },
+  ]);
+
+  // Um item de avaliação por turma × disciplina × componente. As notas dos
+  // alunos apontam para estes; sem eles não há onde as pendurar.
+  console.log("9. A criar itens de avaliação (MAC, NPP, NPT do 1º trimestre)...");
+  const assessmentItems = [];
+  const assessmentItemIds = new Map();
+  for (const cg of classGroups) {
+    for (let dIdx = 0; dIdx < 3; dIdx++) {
+      const sub = subjects[dIdx];
+      for (const componente of COMPONENTES) {
+        const id = idDemo(NS.avaliacao, assessmentItems.length + 1);
+        assessmentItemIds.set(`${cg.id}|${sub.id}|${componente.nome}`, id);
+        assessmentItems.push({
+          id,
+          school_id: SCHOOL_ID,
+          class_group_id: cg.id,
+          subject_id: sub.id,
+          term: 1,
+          name: `${componente.nome} — ${sub.name}`,
+          kind: componente.kind,
+          component: componente.nome,
+          max_score: 20,
+          counts_toward_pauta: true,
+          created_by: AUTOR,
+          updated_by: AUTOR,
+        });
+      }
+    }
+  }
+  for (let i = 0; i < assessmentItems.length; i += 250) {
+    await gravar("siga_assessment_items", assessmentItems.slice(i, i + 250));
+  }
+  const assessmentItemId = (turmaId, subjectId, componente) =>
+    assessmentItemIds.get(`${turmaId}|${subjectId}|${componente}`);
 
   console.log(
-    "8. A gerar 1152 Alunos Matriculados + Encarregados de Educação (Total 1380+ Registos)...",
+    `10. A gerar alunos (${classGroups.length} turmas × 32) e encarregados de educação...`,
   );
   const peopleBatch = [];
   const studentsBatch = [];
   const enrollmentsBatch = [];
-  const gradesBatch = [];
+  const scoresBatch = [];
+  const contractsBatch = [];
   const invoicesBatch = [];
 
   let studentCount = 1;
   for (const cg of classGroups) {
-    const classStudentLimit = 32; // 32 alunos * 36 turmas = 1152 alunos
+    const classStudentLimit = 32;
     for (let s = 1; s <= classStudentLimit; s++) {
       const isFemale = Math.random() > 0.5;
       const firstName = isFemale ? randChoice(firstNamesF) : randChoice(firstNamesM);
       const lastName1 = randChoice(lastNames);
       const lastName2 = randChoice(lastNames);
       const fullName = `${firstName} ${lastName1} ${lastName2}`;
-      const personId = `p1000000-0000-0000-0000-${pad(studentCount, 12)}`;
-      const studentId = `st000000-0000-0000-0000-${pad(studentCount, 12)}`;
-      const enrollId = `en000000-0000-0000-0000-${pad(studentCount, 12)}`;
+      const personId = idDemo(NS.pessoaAluno, studentCount);
+      const studentId = idDemo(NS.aluno, studentCount);
+      const enrollId = idDemo(NS.matricula, studentCount);
       const academicNum = `2026/${pad(studentCount, 4)}`;
       const nif = `${pad(randInt(100000, 999999), 9)}LA${pad(randInt(10, 99), 3)}`;
       const birthYear = 2026 - (9 + Math.floor(studentCount % 9));
@@ -866,7 +1124,7 @@ async function runSeed() {
         status = "suspended";
       } else if (studentCount % 35 === 0) {
         status = "transferred";
-        enrollStatus = "dropped";
+        enrollStatus = "withdrawn";
       }
 
       peopleBatch.push({
@@ -874,59 +1132,79 @@ async function runSeed() {
         school_id: SCHOOL_ID,
         full_name: fullName,
         sex: isFemale ? "F" : "M",
-        birth_date: `${birthYear}-0${randInt(1, 9)}-15`,
-        phone_primary: `+244 9${randInt(10000000, 99999999)}`,
+        date_of_birth: `${birthYear}-0${randInt(1, 9)}-15`,
+        phone: `+244 9${randInt(10000000, 99999999)}`,
         address: randChoice(bairros),
-        nif,
+        national_id: nif,
+        created_by: AUTOR,
+        updated_by: AUTOR,
       });
 
       studentsBatch.push({
         id: studentId,
         school_id: SCHOOL_ID,
         person_id: personId,
-        academic_number: academicNum,
+        student_number: academicNum,
         status,
+        created_by: AUTOR,
+        updated_by: AUTOR,
       });
 
       enrollmentsBatch.push({
         id: enrollId,
         student_id: studentId,
         class_group_id: cg.id,
+        school_id: SCHOOL_ID,
         academic_year_id: YEAR_2026_ID,
+        enrollment_number: `M2026/${pad(studentCount, 4)}`,
         status: enrollStatus,
-        enrolled_at: "2026-02-05T08:00:00+00:00",
+        enrolled_on: "2026-02-05",
+        created_by: AUTOR,
+        updated_by: AUTOR,
       });
 
-      // Lançamento de Notas de Pauta
+      // Notas. `term_grades` não existe na produção: uma nota é uma linha de
+      // `siga_assessment_scores` ligada ao item que lhe dá disciplina, trimestre
+      // e componente (MAC/NPP/NPT). A nota vive na matrícula, não no aluno.
       for (let dIdx = 0; dIdx < 3; dIdx++) {
         const sub = subjects[dIdx];
-        const mac = randInt(10, 19);
-        const npp = randInt(9, 18);
-        const npt = randInt(11, 20);
-        const mfd = Math.round((mac + npp + npt) / 3);
-        gradesBatch.push({
-          school_id: SCHOOL_ID,
-          student_id: studentId,
-          class_group_id: cg.id,
-          subject_id: sub.id,
-          term_name: "1º Trimestre",
-          mac,
-          npp,
-          npt,
-          mfd,
-          status: mfd >= 10 ? "Aprovado" : "Reprovado",
-        });
+        for (const componente of COMPONENTES) {
+          scoresBatch.push({
+            school_id: SCHOOL_ID,
+            item_id: assessmentItemId(cg.id, sub.id, componente.nome),
+            enrollment_id: enrollId,
+            score: randInt(componente.min, componente.max),
+            status: "draft",
+            recorded_by: AUTOR,
+          });
+        }
       }
 
-      // Propinas & Faturas (Alguns com status 'overdue' para teste de devedores)
+      // Contrato de propina por matrícula — é dele que pende a factura:
+      // `finance_invoices` exige `contract_id` e `fee_item_id`, e não tem
+      // `student_id`, `description` nem o estado "overdue".
+      contractsBatch.push({
+        id: idDemo(NS.contrato, studentCount),
+        school_id: SCHOOL_ID,
+        enrollment_id: enrollId,
+        fee_plan_id: FEE_PLAN_ID,
+        status: "active",
+        created_by: AUTOR,
+      });
+
+      // Um em cada dez fica por pagar, para haver devedores nos ecrãs.
       if (studentCount % 10 === 0) {
         invoicesBatch.push({
+          id: idDemo(NS.fatura, studentCount),
           school_id: SCHOOL_ID,
-          student_id: studentId,
+          contract_id: idDemo(NS.contrato, studentCount),
+          fee_item_id: FEE_ITEM_PROPINA,
+          invoice_number: `FT2026/${pad(studentCount, 5)}`,
+          competence_month: "2026-02-01",
           amount: 25000,
-          status: "overdue",
           due_date: "2026-02-10",
-          description: "Propina de Fevereiro 2026 — Em Atraso",
+          status: "open",
+          issued_by: AUTOR,
         });
       }
 
@@ -940,39 +1218,68 @@ async function runSeed() {
     const firstName = isFemale ? randChoice(firstNamesF) : randChoice(firstNamesM);
     const lastName1 = randChoice(lastNames);
     const lastName2 = randChoice(lastNames);
-    const personId = `p3000000-0000-0000-0000-${pad(p, 12)}`;
+    const personId = idDemo(NS.encarregado, p);
     peopleBatch.push({
       id: personId,
       school_id: SCHOOL_ID,
       full_name: `Encarregado ${firstName} ${lastName1} ${lastName2}`,
       sex: isFemale ? "F" : "M",
-      phone_primary: `+244 9${randInt(10000000, 99999999)}`,
+      phone: `+244 9${randInt(10000000, 99999999)}`,
       address: randChoice(bairros),
-      nif: `${pad(randInt(100000, 999999), 9)}LA${pad(randInt(10, 99), 3)}`,
+      national_id: `${pad(randInt(100000, 999999), 9)}LA${pad(randInt(10, 99), 3)}`,
+      created_by: AUTOR,
+      updated_by: AUTOR,
     });
   }
 
   // Inserção em Lotes para Desempenho Máximo
   const chunkSize = 250;
   for (let i = 0; i < peopleBatch.length; i += chunkSize) {
-    await supabase.from("people").upsert(peopleBatch.slice(i, i + chunkSize));
+    await gravar("people", peopleBatch.slice(i, i + chunkSize));
   }
   for (let i = 0; i < studentsBatch.length; i += chunkSize) {
-    await supabase.from("students").upsert(studentsBatch.slice(i, i + chunkSize));
+    await gravar("students", studentsBatch.slice(i, i + chunkSize));
   }
   for (let i = 0; i < enrollmentsBatch.length; i += chunkSize) {
-    await supabase.from("enrollments").upsert(enrollmentsBatch.slice(i, i + chunkSize));
+    await gravar("enrollments", enrollmentsBatch.slice(i, i + chunkSize));
   }
-  for (let i = 0; i < gradesBatch.length; i += chunkSize) {
-    await supabase.from("term_grades").upsert(gradesBatch.slice(i, i + chunkSize));
+  // A ordem não é de gosto: o contrato depende da matrícula, a factura do
+  // contrato, e a nota do item de avaliação.
+  for (let i = 0; i < contractsBatch.length; i += chunkSize) {
+    await gravar("finance_contracts", contractsBatch.slice(i, i + chunkSize));
+  }
+  for (let i = 0; i < invoicesBatch.length; i += chunkSize) {
+    await gravar("finance_invoices", invoicesBatch.slice(i, i + chunkSize));
+  }
+  for (let i = 0; i < scoresBatch.length; i += chunkSize) {
+    await gravar("siga_assessment_scores", scoresBatch.slice(i, i + chunkSize));
   }
 
+  // A contagem é lida dos lotes que foram mesmo gravados. A mensagem anterior
+  // dizia "propinas e pautas 100% carregados" com as duas por gravar.
   console.log(
-    `🎉 Sucesso Total! ${peopleBatch.length + staffPeople.length} Registos de Pessoas, 36 Turmas, ${studentsBatch.length} Alunos Matriculados, salas nos 3 turnos, propinas e pautas 100% carregados na Escola Demo!`,
+    [
+      "🎉 Escola Demo carregada:",
+      `${peopleBatch.length + staffPeople.length} pessoas`,
+      `${studentsBatch.length} alunos em ${classGroups.length} turmas`,
+      `${enrollmentsBatch.length} matrículas`,
+      `${assessmentItems.length} itens de avaliação e ${scoresBatch.length} notas`,
+      `${contractsBatch.length} contratos de propina e ${invoicesBatch.length} facturas em aberto`,
+      `${rooms.length} salas, ${gradeLevels.length} classes, ${programs.length} programas.`,
+    ].join(" · "),
   );
 }
 
-runSeed().catch((err) => {
-  console.error("❌ Erro na carga de dados:", err);
-  process.exit(1);
-});
+// Só corre quando é invocado directamente. Importado (pelo teste que compara
+// cada escrita com o retrato da produção), limita-se a exportar `runSeed`.
+const invocadoDirectamente =
+  process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (invocadoDirectamente) {
+  runSeed().catch((err) => {
+    console.error("❌ Erro na carga de dados:", err);
+    process.exit(1);
+  });
+}
+
+export { runSeed };

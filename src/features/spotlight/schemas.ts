@@ -206,6 +206,17 @@ export const spotlightOverridesSchema = z.object({
   extras: z.array(spotlightItemSchema).max(MAX_CUSTOM_SPOTLIGHTS).default([]),
 });
 export type SpotlightOverrides = z.infer<typeof spotlightOverridesSchema>;
+/**
+ * Forma aceite por `applySpotlightOverrides`: com `.default()` no zod,
+ * `z.infer` (a saída do parse) marca `items`/`extras` como obrigatórios, mas
+ * quem chama pode omiti-los — a implementação já faz `overrides?.items ?? {}`
+ * e `overrides?.extras ?? []`. Só as duas chaves de topo é que são opcionais;
+ * a forma de cada item mantém-se a da saída, que é o que a função devolve.
+ */
+export type SpotlightOverridesInput = {
+  items?: SpotlightOverrides["items"];
+  extras?: SpotlightOverrides["extras"];
+};
 
 export function createCustomSpotlight(order: number): SpotlightItem {
   return spotlightItemSchema.parse({
@@ -223,7 +234,7 @@ export function createCustomSpotlight(order: number): SpotlightItem {
 
 export function applySpotlightOverrides(
   catalog: SpotlightItem[],
-  overrides: SpotlightOverrides | null | undefined,
+  overrides: SpotlightOverridesInput | null | undefined,
 ): SpotlightItem[] {
   const patches = overrides?.items ?? {};
   const catalogIds = new Set(catalog.map((item) => item.id));

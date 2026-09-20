@@ -9,7 +9,7 @@ alunos, pautas nem propinas escolares.
 Contas em `platform_admins` (Supabase Auth). O **administrador escolar**
 (Diretor, Secretário no SIGA) **não** tem acesso.
 
-Login: [Control Center SaaS](https://siga-admin.pages.dev/sign-in) → redirecciona para
+Login: [Control Center SaaS](https://admin.portal-siga.com/sign-in) → redirecciona para
 `/tenants` após autenticação (ou `http://localhost:3005/sign-in` em dev local).
 
 ## Rotas principais
@@ -21,9 +21,10 @@ Login: [Control Center SaaS](https://siga-admin.pages.dev/sign-in) → redirecci
 | `/domains` | Subdomínios `*.portal-siga.com` + domínios custom |
 | `/platform-admins` | Conceder/revogar operadores da plataforma |
 | `/audit` | Últimos eventos `saas_audit_logs` |
+| `/dashboard-2` | Operações gateway + health público do PayFlow |
 | `/settings/billing` | Catálogo de planos SaaS (API) |
 
-Nova escola: abrir o [portal WEB `/start`](https://siga-web.pages.dev/start) — o
+Nova escola: abrir o [portal WEB `/start`](https://www.portal-siga.com/start) — o
 wizard chama `POST /api/saas/signup` no SIGA.
 
 ## APIs consumidas (SIGA :3006)

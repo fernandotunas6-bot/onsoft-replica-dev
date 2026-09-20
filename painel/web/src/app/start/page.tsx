@@ -5,7 +5,7 @@ import { Link } from "react-router-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { ArrowLeft, ArrowRight, Check } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,8 +19,14 @@ import {
 } from "@/components/ui/form"
 import { MarketingFormPage } from "@/components/marketing/marketing-form-page"
 import { cn } from "@/lib/utils"
-import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls"
-import { fetchSaasPlans, signupSchool, type PlanCode, type SaasPlan } from "@/lib/saas-api"
+import { ECOSYSTEM_URLS, PLATFORM_DOMAIN } from "@/lib/ecosystem-urls"
+import {
+  checkSlugAvailability,
+  fetchSaasPlans,
+  signupSchool,
+  type PlanCode,
+  type SaasPlan,
+} from "@/lib/saas-api"
 
 const FALLBACK_PLANS: SaasPlan[] = [
   { code: "start", name: "Start", description: "Escolas pequenas" },
@@ -37,10 +43,25 @@ const SUPPORT_EMAIL = String(import.meta.env["VITE_SUPPORT_EMAIL"] ?? "").trim()
 
 const schema = z.object({
   name: z.string().trim().min(2, "Nome da escola obrigatório"),
-  nif: z.string().trim().optional(),
+  // Obrigatório e validado do mesmo modo que no servidor. Era opcional, e o
+  // resultado foi 85 das 87 escolas em produção sem NIF — sem o qual não
+  // conseguem exportar SAF-T para a AGT nem emitir documento fiscal válido.
+  // Melhor recusar aqui, com a mensagem certa, do que deixar a escola descobrir
+  // meses depois na altura de declarar.
+  nif: z
+    .string()
+    .trim()
+    .min(1, "NIF obrigatório — necessário para facturação e SAF-T (AGT)")
+    .regex(/^[0-9]{9,10}$/, "NIF inválido. Use o NIF de entidade da AGT (9–10 dígitos)"),
   city: z.string().trim().optional(),
   address: z.string().trim().optional(),
-  phone: z.string().trim().optional(),
+  phone: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^\+?(244)?9\d{8}$/.test(v.replace(/[\s-]/g, "")), {
+      message: "Telefone inválido. Use +244 9XX XXX XXX",
+    }),
   email: z.string().trim().email("E-mail inválido").optional().or(z.literal("")),
   contact_name: z.string().trim().min(2, "Nome do responsável obrigatório"),
   contact_role: z.string().trim().optional(),
@@ -49,6 +70,25 @@ const schema = z.object({
   plan_code: z.enum(["start", "professional", "business", "enterprise"]),
   admin_name: z.string().trim().min(2, "Nome do administrador obrigatório"),
   admin_email: z.string().trim().email("E-mail do administrador inválido"),
+  // Espelha adminPasswordSchema no servidor. Se o formulário aceitasse o que o
+  // servidor recusa, o cliente só via o erro depois de submeter tudo.
+  admin_password: z
+    .string()
+    .min(10, "A senha deve ter pelo menos 10 caracteres")
+    .refine((v) => /[a-zA-Z]/.test(v) && /[0-9]/.test(v), {
+      message: "A senha deve combinar letras e números",
+    })
+    .refine((v) => !/^(.)\1+$/.test(v), { message: "A senha não pode ser o mesmo caracter repetido" })
+    .refine((v) => !/^\d+$/.test(v.trim()), { message: "A senha não pode ser só dígitos" })
+    .refine(
+      (v) =>
+        ![
+          "password", "passw0rd", "senha", "senhasenha", "qwerty", "qwertyuiop",
+          "abc123", "abcd1234", "admin123", "escola123", "1234567890",
+        ].includes(v.trim().toLowerCase().replace(/[^a-z0-9]/g, "")),
+      { message: "Esta senha é demasiado comum. Escolha outra" },
+    ),
+  admin_password_confirm: z.string().min(1, "Confirme a senha"),
   slug: z
     .string()
     .trim()
@@ -56,6 +96,9 @@ const schema = z.object({
     .min(3, "Mínimo 3 caracteres")
     .regex(/^[a-z0-9-]+$/, "Só letras minúsculas, números e hífen"),
   website: z.string().max(0).optional().or(z.literal("")),
+}).refine((data) => data.admin_password === data.admin_password_confirm, {
+  message: "As senhas não coincidem",
+  path: ["admin_password_confirm"],
 })
 
 type FormValues = z.infer<typeof schema>
@@ -65,9 +108,18 @@ const STEPS = [
   { id: 2, title: "Responsável" },
   { id: 3, title: "Plano" },
   { id: 4, title: "Conta" },
-  { id: 5, title: "Endereço" },
+  { id: 5, title: "Domínio" },
   { id: 6, title: "Revisão" },
 ]
+
+function formatAoa(value?: number) {
+  if (value == null) return null
+  return new Intl.NumberFormat("pt-AO", {
+    style: "currency",
+    currency: "AOA",
+    maximumFractionDigits: 0,
+  }).format(value)
+}
 
 function slugFromName(name: string) {
   return name
@@ -83,7 +135,17 @@ export function StartSchoolWizard() {
   const [step, setStep] = useState(1)
   const [plans, setPlans] = useState<SaasPlan[]>(FALLBACK_PLANS)
   const [serverError, setServerError] = useState<string | null>(null)
-  const [done, setDone] = useState<{ hostname: string; sigaUrl: string; adminTenantsUrl?: string } | null>(null)
+  // `form.formState.isSubmitting` só activa dentro de `form.handleSubmit(...)` — o
+  // <form onSubmit> aqui chama onNext/onCreate directamente, então nunca acendia.
+  // Sem isto, um duplo clique em "Criar escola" disparava dois pedidos de signup.
+  const [isCreating, setIsCreating] = useState(false)
+  const [done, setDone] = useState<{
+    hostname: string
+    sigaUrl: string
+    adminTenantsUrl?: string
+    adminInviteDelivered: boolean
+    adminPasswordSet: boolean
+  } | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -101,6 +163,8 @@ export function StartSchoolWizard() {
       plan_code: "professional",
       admin_name: "",
       admin_email: "",
+      admin_password: "",
+      admin_password_confirm: "",
       slug: "",
       website: "",
     },
@@ -111,6 +175,17 @@ export function StartSchoolWizard() {
       if (list.length) setPlans(list)
     })
   }, [])
+
+  // Chegar de /pricing com um plano já escolhido (?plan=professional) não deve
+  // obrigar a repetir a escolha no passo 3 — só pré-selecciona, a pessoa ainda
+  // confirma lá.
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("plan")
+    const validCodes: PlanCode[] = ["start", "professional", "business", "enterprise"]
+    if (requested && (validCodes as string[]).includes(requested)) {
+      form.setValue("plan_code", requested as PlanCode, { shouldValidate: false })
+    }
+  }, [form])
 
   const name = form.watch("name")
   useEffect(() => {
@@ -125,12 +200,32 @@ export function StartSchoolWizard() {
     [plans, values.plan_code],
   )
 
+  const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle")
+  const slug = values.slug
+  useEffect(() => {
+    if (!slug || slug.length < 3) {
+      setSlugStatus("idle")
+      return
+    }
+    setSlugStatus("checking")
+    const timeout = setTimeout(() => {
+      void checkSlugAvailability(slug).then((available) => {
+        if (available == null) {
+          setSlugStatus("idle") // não deu para confirmar — não bloqueia, o servidor valida na submissão
+        } else {
+          setSlugStatus(available ? "available" : "taken")
+        }
+      })
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [slug])
+
   async function validateStep() {
     const fieldsByStep: Record<number, (keyof FormValues)[]> = {
       1: ["name"],
       2: ["contact_name", "contact_email"],
       3: ["plan_code"],
-      4: ["admin_name", "admin_email"],
+      4: ["admin_name", "admin_email", "admin_password", "admin_password_confirm"],
       5: ["slug"],
     }
     const fields = fieldsByStep[step]
@@ -141,6 +236,10 @@ export function StartSchoolWizard() {
   async function onNext() {
     setServerError(null)
     if (!(await validateStep())) return
+    if (step === 5 && slugStatus === "taken") {
+      form.setError("slug", { message: "Este subdomínio já está em uso por outra escola." })
+      return
+    }
     if (step === 2 && !form.getValues("admin_name")) {
       form.setValue("admin_name", form.getValues("contact_name"))
       form.setValue("admin_email", form.getValues("contact_email"))
@@ -148,24 +247,53 @@ export function StartSchoolWizard() {
     setStep((s) => Math.min(6, s + 1))
   }
 
+  // Sem isto o passo seguinte abre a meio do cartão: o conteúdo do formulário
+  // troca mas o scroll da página fica onde o botão «Continuar» estava.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [step, done])
+
   async function onCreate() {
+    if (isCreating) return
     setServerError(null)
     const ok = await form.trigger()
     if (!ok) return
-    const payload = form.getValues()
-    const result = await signupSchool({
-      ...payload,
-      email: payload.email || payload.contact_email,
-    })
-    if (!result.ok) {
-      setServerError(result.error || "Falha ao criar a escola.")
+    if (slugStatus === "taken") {
+      setServerError("Este subdomínio já está em uso por outra escola. Volte ao passo 5 e escolha outro.")
       return
     }
-    setDone({
-      hostname: result.hostname || `${payload.slug}.portal-siga.com`,
-      sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
-      adminTenantsUrl: result.adminTenantsUrl,
-    })
+    setIsCreating(true)
+    try {
+      const { admin_password_confirm: _confirm, ...payload } = form.getValues()
+      let result: Awaited<ReturnType<typeof signupSchool>>
+      try {
+        result = await signupSchool({
+          ...payload,
+          email: payload.email || payload.contact_email,
+        })
+      } catch {
+        // Falha de rede (servidor em baixo, sem ligação) — signupSchool() não
+        // apanha isto sozinho, e sem este catch o erro ficava só na consola:
+        // o botão voltava ao normal e a pessoa não fazia ideia do que correu mal.
+        setServerError(
+          "Não foi possível ligar ao servidor. Verifique a sua ligação à internet e tente novamente.",
+        )
+        return
+      }
+      if (!result.ok) {
+        setServerError(result.error || "Falha ao criar a escola.")
+        return
+      }
+      setDone({
+        hostname: result.hostname || `${payload.slug}.${PLATFORM_DOMAIN}`,
+        sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
+        adminTenantsUrl: result.adminTenantsUrl,
+        adminInviteDelivered: result.adminInviteDelivered ?? false,
+        adminPasswordSet: result.adminPasswordSet ?? false,
+      })
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   if (done) {
@@ -181,6 +309,9 @@ export function StartSchoolWizard() {
     return (
       <Card>
         <CardHeader className="text-center">
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+            <Check className="h-6 w-6 text-emerald-600" />
+          </div>
           <CardTitle className="text-xl">Pedido da escola registado com sucesso</CardTitle>
           <CardDescription>
             O acesso experimental pode iniciar agora. O plano pago só fica activo depois da validação do pagamento.
@@ -212,6 +343,26 @@ export function StartSchoolWizard() {
             Ao enviar o comprovativo, identifique a instituição como <strong>{values.name}</strong> e informe o endereço <strong>{done.hostname}</strong>.
           </p>
 
+          <div className="rounded-lg border p-4 space-y-2 text-left">
+            <h3 className="font-semibold text-sm">Acesso do administrador</h3>
+            {done.adminPasswordSet ? (
+              <p className="text-sm text-muted-foreground">
+                A conta já está pronta. Entre no SIGA Plus com <strong>{values.admin_email}</strong> e a senha que definiu neste registo.
+                {done.adminInviteDelivered
+                  ? " Também enviámos um e-mail de confirmação — se não chegar em poucos minutos, verifique a pasta de spam."
+                  : ""}
+              </p>
+            ) : done.adminInviteDelivered ? (
+              <p className="text-sm text-muted-foreground">
+                Enviámos para <strong>{values.admin_email}</strong> o link para definir a senha de acesso. Se não chegar em poucos minutos, verifique a pasta de spam.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                A conta de <strong>{values.admin_email}</strong> já está criada, mas o convite ainda não foi enviado. Use «Recuperar senha» no SIGA Plus com este e-mail, ou peça o link à equipa de suporte.
+              </p>
+            )}
+          </div>
+
           {whatsappUrl || emailUrl ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
               {whatsappUrl ? (
@@ -229,10 +380,15 @@ export function StartSchoolWizard() {
             </div>
           ) : null}
 
-          <div className="mt-4 border-t pt-4 text-sm">
+          <div className="mt-4 flex flex-col items-center gap-1 border-t pt-4 text-sm">
             <Button variant="link" asChild className="text-muted-foreground">
               <a href={done.sigaUrl}>Entrar no SIGA Plus durante o período experimental &rarr;</a>
             </Button>
+            {done.adminTenantsUrl ? (
+              <Button variant="link" asChild className="text-muted-foreground">
+                <a href={done.adminTenantsUrl}>Ver no Control Center (ADMIN) &rarr;</a>
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -246,16 +402,33 @@ export function StartSchoolWizard() {
         <CardDescription>
           Passo {step} de {STEPS.length} · {STEPS[step - 1]?.title}
         </CardDescription>
-        <ol className="mt-4 flex justify-center gap-1.5">
-          {STEPS.map((item) => (
-            <li
-              key={item.id}
-              className={cn(
-                "h-1.5 w-8 rounded-full",
-                item.id <= step ? "bg-primary" : "bg-muted",
-              )}
-            />
-          ))}
+        <ol className="mt-5 flex items-center justify-center">
+          {STEPS.map((item, index) => {
+            const isComplete = item.id < step
+            const isActive = item.id === step
+            return (
+              <li key={item.id} className="flex items-center">
+                <div
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                    isComplete
+                      ? "bg-primary text-primary-foreground"
+                      : isActive
+                        ? "border-2 border-primary text-primary"
+                        : "border border-muted-foreground/30 text-muted-foreground",
+                  )}
+                  aria-current={isActive ? "step" : undefined}
+                >
+                  {isComplete ? <Check className="h-3.5 w-3.5" /> : item.id}
+                </div>
+                {index < STEPS.length - 1 ? (
+                  <div
+                    className={cn("h-px w-4 sm:w-8", isComplete ? "bg-primary" : "bg-muted")}
+                  />
+                ) : null}
+              </li>
+            )
+          })}
         </ol>
       </CardHeader>
       <CardContent>
@@ -273,20 +446,26 @@ export function StartSchoolWizard() {
             {step === 1 ? (
               <>
                 <Field form={form} name="name" label="Nome da instituição" />
-                <Field form={form} name="nif" label="NIF (opcional)" />
-                <Field form={form} name="city" label="Cidade" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field form={form} name="nif" label="NIF da instituição" />
+                  <Field form={form} name="city" label="Cidade" />
+                </div>
                 <Field form={form} name="address" label="Endereço (opcional)" />
-                <Field form={form} name="phone" label="Telefone (opcional)" />
-                <Field form={form} name="email" label="E-mail institucional (opcional)" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field form={form} name="phone" label="Telefone (opcional)" />
+                  <Field form={form} name="email" label="E-mail institucional (opcional)" />
+                </div>
               </>
             ) : null}
 
             {step === 2 ? (
               <>
                 <Field form={form} name="contact_name" label="Nome do responsável" />
-                <Field form={form} name="contact_role" label="Função (opcional)" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field form={form} name="contact_role" label="Função (opcional)" />
+                  <Field form={form} name="contact_phone" label="Telefone (opcional)" />
+                </div>
                 <Field form={form} name="contact_email" label="E-mail" />
-                <Field form={form} name="contact_phone" label="Telefone (opcional)" />
               </>
             ) : null}
 
@@ -304,7 +483,14 @@ export function StartSchoolWizard() {
                         : "hover:bg-muted/60",
                     )}
                   >
-                    <span className="font-medium">{plan.name}</span>
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="font-medium">{plan.name}</span>
+                      {formatAoa(plan.price_aoa_monthly) ? (
+                        <span className="shrink-0 text-xs font-semibold text-primary">
+                          {formatAoa(plan.price_aoa_monthly)}/mês
+                        </span>
+                      ) : null}
+                    </span>
                     {plan.description ? (
                       <span className="mt-0.5 block text-xs text-muted-foreground">{plan.description}</span>
                     ) : null}
@@ -316,7 +502,25 @@ export function StartSchoolWizard() {
             {step === 4 ? (
               <>
                 <Field form={form} name="admin_name" label="Nome do administrador inicial" />
-                <Field form={form} name="admin_email" label="E-mail da conta SIGA" />
+                <Field
+                  form={form}
+                  name="admin_email"
+                  label="E-mail da conta SIGA"
+                  description="É o e-mail usado para entrar no SIGA Plus."
+                />
+                <Field
+                  form={form}
+                  name="admin_password"
+                  label="Senha de acesso"
+                  type="password"
+                  description="Mínimo 8 caracteres. Guarde-a — vai usá-la para entrar no SIGA Plus."
+                />
+                <Field
+                  form={form}
+                  name="admin_password_confirm"
+                  label="Confirmar senha"
+                  type="password"
+                />
               </>
             ) : null}
 
@@ -326,13 +530,24 @@ export function StartSchoolWizard() {
                 name="slug"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Subdomínio SIGA</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Input {...field} />
-                        <span className="shrink-0 text-xs text-muted-foreground">.portal-siga.com</span>
-                      </div>
-                    </FormControl>
+                    <FormLabel htmlFor="subdomain-slug">Subdomínio SIGA</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormControl>
+                        <Input id="subdomain-slug" {...field} />
+                      </FormControl>
+                      <span className="shrink-0 text-xs text-muted-foreground">.{PLATFORM_DOMAIN}</span>
+                    </div>
+                    {slugStatus === "checking" ? (
+                      <p className="text-xs text-muted-foreground">A verificar disponibilidade…</p>
+                    ) : slugStatus === "available" ? (
+                      <p className="text-xs text-emerald-600">
+                        {field.value}.{PLATFORM_DOMAIN} está disponível.
+                      </p>
+                    ) : slugStatus === "taken" ? (
+                      <p className="text-xs text-destructive">
+                        {field.value}.{PLATFORM_DOMAIN} já está em uso por outra escola.
+                      </p>
+                    ) : null}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -342,10 +557,12 @@ export function StartSchoolWizard() {
             {step === 6 ? (
               <dl className="grid gap-2 text-sm">
                 <Row label="Escola" value={values.name} />
+                <Row label="Cidade" value={values.city ?? ""} />
+                <Row label="Endereço" value={values.address ?? ""} />
                 <Row label="Responsável" value={values.contact_name} />
                 <Row label="Plano" value={planLabel} />
                 <Row label="Administrador" value={`${values.admin_name} · ${values.admin_email}`} />
-                <Row label="Endereço" value={`${values.slug}.portal-siga.com`} />
+                <Row label="Domínio" value={`${values.slug}.${PLATFORM_DOMAIN}`} />
               </dl>
             ) : null}
 
@@ -357,7 +574,12 @@ export function StartSchoolWizard() {
 
             <div className="flex gap-2 pt-2">
               {step > 1 ? (
-                <Button type="button" variant="outline" onClick={() => setStep((s) => s - 1)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isCreating}
+                  onClick={() => setStep((s) => s - 1)}
+                >
                   <ArrowLeft className="size-4" />
                   Voltar
                 </Button>
@@ -366,8 +588,12 @@ export function StartSchoolWizard() {
                   <Link to="/">Cancelar</Link>
                 </Button>
               )}
-              <Button type="submit" className="ml-auto" disabled={form.formState.isSubmitting}>
-                {step < 6 ? (
+              <Button type="submit" className="ml-auto" disabled={isCreating}>
+                {isCreating ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" /> A criar a escola...
+                  </>
+                ) : step < 6 ? (
                   <>
                     Continuar <ArrowRight className="size-4" />
                   </>
@@ -389,10 +615,14 @@ function Field({
   form,
   name,
   label,
+  type = "text",
+  description,
 }: {
   form: ReturnType<typeof useForm<FormValues>>
   name: keyof FormValues
   label: string
+  type?: string
+  description?: string
 }) {
   return (
     <FormField
@@ -402,8 +632,9 @@ function Field({
         <FormItem>
           <FormLabel>{label}</FormLabel>
           <FormControl>
-            <Input {...field} value={field.value ?? ""} />
+            <Input type={type} {...field} value={field.value ?? ""} />
           </FormControl>
+          {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
           <FormMessage />
         </FormItem>
       )}

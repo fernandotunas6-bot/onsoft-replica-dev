@@ -16,9 +16,16 @@ import asyncio
 import os
 import sys
 
-from playwright.async_api import async_playwright
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:3006")
 
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:8080")
+CHROME_APP = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+
+
+def get_browser_kwargs():
+    kwargs = {"headless": True}
+    if CHROME_APP.exists():
+        kwargs["executable_path"] = str(CHROME_APP)
+    return kwargs
 
 ROUTES = [
     ("Dashboard", "/"),
@@ -58,7 +65,7 @@ ACTIVE = """(path) => {
 async def main() -> int:
     failures: list[str] = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(**get_browser_kwargs())
         ctx = await browser.new_context(viewport={"width": 1280, "height": 1000})
         page = await ctx.new_page()
 

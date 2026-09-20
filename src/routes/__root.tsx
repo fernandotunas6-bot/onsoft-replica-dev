@@ -19,6 +19,7 @@ import { AppearanceProvider } from "@/lib/appearance";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { RouteAccessGate } from "@/components/auth/RouteAccessGate";
 import { SchoolYearProvider } from "@/features/auth/use-school-settings";
+import { SchoolBrandAppearanceSync } from "@/components/layout/SchoolBrandAppearanceSync";
 import { EntityFocusProvider } from "@/features/intelligence/entity-focus-context";
 import { isPublicAppPath } from "@/lib/public-paths";
 import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
@@ -74,7 +75,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "SIGA" },
-
     ],
     links: [
       {
@@ -145,6 +145,7 @@ function RootComponent() {
             ) : (
               <AuthGate>
                 <SchoolYearProvider>
+                  <SchoolBrandAppearanceSync />
                   <EntityFocusProvider>
                     <RouteAccessGate>
                       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}

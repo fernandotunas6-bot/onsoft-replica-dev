@@ -17,5 +17,8 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // E o cliente para src/client.tsx — a entrada por omissão do pacote vive
+    // num subcaminho fora do `exports` e o Vite 8 não a consegue resolver.
+    client: { entry: "client" },
   },
 });

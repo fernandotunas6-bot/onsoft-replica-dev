@@ -193,21 +193,39 @@ export async function createEmailRoute(config: EmailRouteConfig): Promise<EmailR
     }
   }
 
-  // Persistir em Supabase
+  // Persistir em Supabase.
+  //
+  // A tabela é indexada por `school_id` e os endereços chamam-se `source_address` e
+  // `destination_address` — até 2026-09-16 este upsert usava `tenant_id`,
+  // `institutional_address`, `forward_to` e `active`, nomes que a tabela nunca teve, e o
+  // PostgREST recusava-o inteiro. O `catch` transformava isso num aviso no log: a rota
+  // era criada na Cloudflare e desaparecia do registo.
   try {
     const db = await loadSgaAdminClient();
-    await db.from("school_email_routes").upsert(
-      {
-        tenant_id: config.tenantId,
-        institutional_address: config.institutionalAddress,
-        forward_to: config.forwardTo,
-        cloudflare_route_id: routeId ?? null,
-        provider,
-        active: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "tenant_id,institutional_address" },
-    );
+
+    // `config.tenantId` é do TENANT; a escola é que é a chave desta tabela.
+    const { data: school } = await db
+      .from("schools")
+      .select("id")
+      .eq("tenant_id", config.tenantId)
+      .maybeSingle();
+
+    if (!school?.id) {
+      console.error("[SIGA] Email route sem escola para o tenant:", config.tenantId);
+    } else {
+      await db.from("school_email_routes").upsert(
+        {
+          school_id: school.id as string,
+          source_address: config.institutionalAddress,
+          destination_address: config.forwardTo,
+          cloudflare_route_id: routeId ?? null,
+          provider,
+          status: "active",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "school_id,source_address" },
+      );
+    }
   } catch (err) {
     // Não falha o pedido por erro de persistência — log e continua
     console.error("[SIGA] Falha ao persistir email route:", err);

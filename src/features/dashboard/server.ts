@@ -1,7 +1,30 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+
+/**
+ * Terceira fatia do ARQ-01, e a que mais interessa: o dashboard lê alunos,
+ * matrículas, facturas, recibos e assiduidade — os dados que não podem
+ * atravessar escolas. Passa a ler com `context.supabase`, que leva o JWT e
+ * respeita RLS. Não escreve nada, o que torna esta fatia inteira e não parcial.
+ *
+ * Verificado antes de trocar, na produção a 2026-09-14, porque as políticas
+ * destas tabelas não são simples «mesma escola» — são sensíveis ao papel:
+ *
+ *   · `finance_invoices` só tem `private.has_permission(school_id,
+ *     'finance.invoices.read')`. Quem não tiver a permissão vê zero facturas.
+ *   · `students` tem três políticas somadas: a do professor (só as turmas
+ *     atribuídas), a de membro com `can_read_students()`, e a de permissão.
+ *
+ * A questão era se algum cartão passaria a aparecer vazio. Não passa: na base,
+ * `finance.invoices.read` pertence a admin, owner, treasury e guardian, e o
+ * gate desta função já era `["Administrador", "Tesouraria"]`; `students.records.read`
+ * pertence a seis papéis, mais do que os três que a função deixa entrar. Ou
+ * seja, para cada papel que chega aqui, a base concede pelo menos o que o
+ * TypeScript já concedia — o resultado é o mesmo e passa a haver duas barreiras
+ * em vez de uma.
+ */
 import { buildSchoolAlert, type SchoolAlert } from "./alerts";
 import { averagePercent } from "@/features/students/schemas";
 import { getPublicEnrollmentUrl } from "@/lib/ecosystem-urls";
@@ -11,6 +34,13 @@ import {
   type AcademicYearPhase,
 } from "@/features/calendar/dates";
 import { buildUpcomingCalendarItems } from "@/features/calendar/upcoming";
+import {
+  emptySchoolTodayOps,
+  isStartingWithinMinutes,
+  nowTimeInLuanda,
+  weekdayJsFromIso,
+  type SchoolTodayOps,
+} from "./school-today";
 
 function countMap(entries: Array<string | null | undefined>) {
   const map = new Map<string, number>();
@@ -164,7 +194,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) return emptyOverview();
-    const db = await loadSgaAdminClient();
+    const db = context.supabase;
 
     const role = membership.appRole;
     const schoolId = membership.schoolId;
@@ -387,10 +417,11 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         const [{ data: heatmapGrades }, { data: heatmapGroups }, { data: heatmapSubjects }] =
           await Promise.all([
             db
-              .from("term_grades")
-              .select("enrollment_id, subject_id, term, mac, npp, npt")
+              .from("siga_assessment_scores")
+              .select(
+                "score, enrollment_id, siga_assessment_items!inner(term, subject_id, max_score)",
+              )
               .eq("school_id", schoolId)
-              .is("deleted_at", null)
               .limit(5000),
             db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
             db.from("subjects").select("id, name, code").eq("school_id", schoolId),
@@ -442,12 +473,16 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         for (const grade of heatmapGrades ?? []) {
           const groupId = groupByEnrollment.get(String(grade.enrollment_id));
           if (!groupId) continue;
-          const mac = Number(grade.mac ?? 0);
-          const npp = Number(grade.npp ?? 0);
-          const npt = Number(grade.npt ?? 0);
-          const average = (mac + npp + npt) / 3;
+          // O item é que carrega trimestre e disciplina; a nota vem normalizada
+          // à escala de 20, porque max_score varia entre tipos de avaliação.
+          const item = Array.isArray(grade.siga_assessment_items)
+            ? grade.siga_assessment_items[0]
+            : grade.siga_assessment_items;
+          if (!item) continue;
+          const maxScore = Number(item.max_score ?? 20) || 20;
+          const average = (Number(grade.score ?? 0) / maxScore) * 20;
           if (!Number.isFinite(average) || average <= 0) continue;
-          const key = `${Number(grade.term ?? 1)}|${groupId}|${String(grade.subject_id)}`;
+          const key = `${Number(item.term ?? 1)}|${groupId}|${String(item.subject_id)}`;
           const bucket = buckets.get(key) ?? { sum: 0, count: 0 };
           bucket.sum += average;
           bucket.count += 1;
@@ -502,7 +537,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     if (capabilities.documents) {
       const { data: docs, error } = await db
         .from("document_requests")
-        .select("id, template_name, status, notes, created_at")
+        .select("id, status, purpose, review_note, created_at, document_templates(name)")
         .eq("school_id", schoolId)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -519,8 +554,12 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         ).length;
         overview.recentActivity = rows.slice(0, 6).map((row) => ({
           id: String(row.id),
-          title: String(row.template_name ?? "Documento"),
-          detail: String(row.notes ?? row.status ?? "Pedido"),
+          title: String(
+            (Array.isArray(row.document_templates)
+              ? row.document_templates[0]?.name
+              : row.document_templates?.name) ?? "Documento",
+          ),
+          detail: String(row.review_note ?? row.purpose ?? row.status ?? "Pedido"),
           time: new Date(String(row.created_at)).toLocaleDateString("pt-PT"),
           tone: ["approved", "ready", "delivered", "issued"].includes(String(row.status))
             ? "success"
@@ -667,7 +706,8 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           })),
         ],
         averageCollectionRate: collectionRate,
-        forecastDefaultRate: collectionRate !== null ? Math.round((100 - collectionRate) * 10) / 10 : null,
+        forecastDefaultRate:
+          collectionRate !== null ? Math.round((100 - collectionRate) * 10) / 10 : null,
         mainPaymentChannel: topChannel ? (channelLabels[topChannel] ?? topChannel) : null,
       };
     }
@@ -692,18 +732,23 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     );
 
     const { data: announcementRows, error: announcementError } = await db
-      .from("announcements")
-      .select("id, title, body, published_at, status")
+      .from("school_announcements")
+      .select("id, title, body, published_at, scheduled_for, created_at, status")
       .eq("school_id", schoolId)
-      .or(`status.eq.published,and(status.eq.scheduled,scheduled_for.lte.${fromDate})`)
-      .order("published_at", { ascending: false })
+      .is("deleted_at", null)
+      .or(`status.eq.sent,and(status.eq.scheduled,scheduled_for.lte.${fromDate})`)
+      .order("created_at", { ascending: false })
       .limit(5);
     if (!announcementError) {
       overview.announcements = (announcementRows ?? []).map((row) => ({
         id: String(row.id),
         title: String(row.title ?? "Comunicado"),
         body: String(row.body ?? ""),
-        published_at: row.published_at ? String(row.published_at) : null,
+        published_at: row.published_at
+          ? String(row.published_at)
+          : row.scheduled_for
+            ? String(row.scheduled_for)
+            : null,
       }));
     }
 
@@ -716,7 +761,10 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         .limit(6);
       if (audits?.length) {
         overview.recentActivity = audits.map(
-          (row: { id: string; action: string; entity_type: string; occurred_at: string }) => {
+          // `audit_logs.id` é bigint na produção, não uuid. A anotação dizia
+          // `string` e ninguém reparou porque o cliente privilegiado não tem
+          // tipos; o `String(row.id)` abaixo já tratava o valor correctamente.
+          (row: { id: number; action: string; entity_type: string; occurred_at: string }) => {
             const op = String(row.action ?? "")
               .split(".")
               .at(-1)
@@ -755,7 +803,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         const { data: jobs, error: jobsError } = await db
           .from("import_jobs")
           .select(
-            "id, module, file_name, status, total_rows, imported_rows, error_rows, created_at",
+            "id, module, file_name, status, total_rows, inserted_rows, invalid_rows, created_at",
           )
           .eq("school_id", schoolId)
           .order("created_at", { ascending: false })
@@ -774,7 +822,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
             ),
           ).length;
           overview.imports.importedRows = rows.reduce(
-            (total, row) => total + Number(row.imported_rows ?? 0),
+            (total, row) => total + Number(row.inserted_rows ?? 0),
             0,
           );
           overview.imports.recent = rows.slice(0, 5).map((row) => ({
@@ -783,8 +831,8 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
             fileName: row.file_name ? String(row.file_name) : null,
             status: String(row.status ?? "—"),
             totalRows: Number(row.total_rows ?? 0),
-            importedRows: Number(row.imported_rows ?? 0),
-            errorRows: Number(row.error_rows ?? 0),
+            importedRows: Number(row.inserted_rows ?? 0),
+            errorRows: Number(row.invalid_rows ?? 0),
             createdAt: row.created_at ? String(row.created_at) : null,
           }));
         }
@@ -796,12 +844,186 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     return overview;
   });
 
+export const getSchoolTodayOps = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<SchoolTodayOps> => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    const today = todayInLuanda();
+    if (!membership) return emptySchoolTodayOps(today);
+
+    const role = membership.appRole;
+    if (!["Administrador", "Secretaria", "Tesouraria", "Professor"].includes(role)) {
+      return emptySchoolTodayOps(today);
+    }
+
+    const db = context.supabase;
+    const schoolId = membership.schoolId;
+    const ops = emptySchoolTodayOps(today);
+    const weekday = weekdayJsFromIso(today);
+    ops.weekday = weekday;
+    const nowHhMm = nowTimeInLuanda();
+
+    try {
+      const { data: slots } = await db
+        .from("timetable_slots")
+        .select("id, class_subject_id, starts_at, ends_at, room")
+        .eq("school_id", schoolId)
+        .eq("weekday", weekday)
+        .eq("status", "active");
+
+      const slotRows = slots ?? [];
+      ops.lessonsScheduled = slotRows.length;
+      ops.lessonsStartingSoon = slotRows.filter((slot) =>
+        isStartingWithinMinutes(String(slot.starts_at ?? ""), nowHhMm, 30),
+      ).length;
+      ops.roomsInUse = new Set(
+        slotRows
+          .map((slot) =>
+            String(slot.room ?? "")
+              .trim()
+              .toLocaleLowerCase(),
+          )
+          .filter(Boolean),
+      ).size;
+
+      const classSubjectIds = [
+        ...new Set(slotRows.map((slot) => String(slot.class_subject_id)).filter(Boolean)),
+      ];
+      if (classSubjectIds.length) {
+        const { data: classSubjects } = await db
+          .from("class_subjects")
+          .select("id, class_group_id, teacher_id")
+          .eq("school_id", schoolId)
+          .in("id", classSubjectIds);
+        const teachers = new Set(
+          (classSubjects ?? [])
+            .map((row) => (row.teacher_id ? String(row.teacher_id) : ""))
+            .filter(Boolean),
+        );
+        const classes = new Set(
+          (classSubjects ?? []).map((row) => String(row.class_group_id)).filter(Boolean),
+        );
+        ops.teachersScheduled = teachers.size;
+        ops.classesWithLessons = classes.size;
+      }
+    } catch {
+      /* horário indisponível */
+    }
+
+    try {
+      const { data: sessions } = await db
+        .from("siga_attendance_sessions")
+        .select("id, status")
+        .eq("school_id", schoolId)
+        .eq("lesson_date", today);
+      for (const session of sessions ?? []) {
+        const status = String(session.status ?? "");
+        if (status === "completed") ops.attendanceSessionsDone += 1;
+        else if (status !== "cancelled") ops.attendanceSessionsOpen += 1;
+      }
+    } catch {
+      /* chamadas indisponíveis */
+    }
+
+    try {
+      const { data: occurrences } = await db
+        .from("hr_teacher_lesson_occurrences")
+        .select("id, teacher_id, actual_started_at, status")
+        .eq("school_id", schoolId)
+        .eq("lesson_date", today);
+      const checked = new Set<string>();
+      const pending = new Set<string>();
+      for (const row of occurrences ?? []) {
+        const teacherId = row.teacher_id ? String(row.teacher_id) : "";
+        if (!teacherId) continue;
+        if (row.actual_started_at) checked.add(teacherId);
+        else if (String(row.status ?? "") !== "cancelled") pending.add(teacherId);
+      }
+      for (const id of checked) pending.delete(id);
+      ops.teachersCheckedIn = checked.size;
+      ops.teachersPendingCheckIn = pending.size;
+    } catch {
+      /* RH opcional */
+    }
+
+    try {
+      const mmDd = today.slice(5);
+      // A coluna é `date_of_birth`. O código pedia `birth_date`, que não existe
+      // em `people`: o PostgREST devolvia erro, o `catch` abaixo engolia-o, e o
+      // cartão «aniversários hoje» mostrava zero desde sempre. Só apareceu
+      // quando esta leitura passou a ser tipada — com o cliente privilegiado,
+      // que não tem tipos, um nome de coluna errado é indistinguível de um dia
+      // sem aniversários.
+      const { data: people } = await db
+        .from("people")
+        .select("id, date_of_birth")
+        .eq("school_id", schoolId)
+        .not("date_of_birth", "is", null)
+        .limit(2000);
+      ops.birthdaysToday = (people ?? []).filter(
+        (person) => String(person.date_of_birth ?? "").slice(5, 10) === mmDd,
+      ).length;
+    } catch {
+      /* aniversários opcionais */
+    }
+
+    if (["Administrador", "Tesouraria"].includes(role)) {
+      try {
+        const [{ data: invoices }, { data: receipts }] = await Promise.all([
+          db
+            .from("finance_invoices")
+            .select("id, amount, discount_amount, status, due_date")
+            .eq("school_id", schoolId)
+            .limit(250),
+          db
+            .from("finance_receipts")
+            .select("invoice_id, amount, status")
+            .eq("school_id", schoolId)
+            .limit(250),
+        ]);
+        const paidByInvoice = new Map<string, number>();
+        for (const receipt of receipts ?? []) {
+          if (receipt.status === "reversed") continue;
+          paidByInvoice.set(
+            String(receipt.invoice_id),
+            (paidByInvoice.get(String(receipt.invoice_id)) ?? 0) + Number(receipt.amount ?? 0),
+          );
+        }
+        let overdueCount = 0;
+        for (const invoice of invoices ?? []) {
+          if (invoice.status === "cancelled") continue;
+          const total = Number(invoice.amount ?? 0) - Number(invoice.discount_amount ?? 0);
+          const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
+          const openAmount = Math.max(total - paid, 0);
+          if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
+        }
+        ops.overdueInvoices = overdueCount;
+      } catch {
+        /* financeiro opcional */
+      }
+    }
+
+    try {
+      const { data: terms } = await db
+        .from("terms")
+        .select("id, name, starts_on, ends_on")
+        .eq("school_id", schoolId)
+        .lte("starts_on", today)
+        .gte("ends_on", today);
+      ops.calendarItemsToday = (terms ?? []).length;
+    } catch {
+      /* calendário opcional */
+    }
+
+    return ops;
+  });
+
 export const listSchoolAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) return [] as SchoolAlert[];
-    const db = await loadSgaAdminClient();
+    const db = context.supabase;
     const role = membership.appRole;
     const schoolId = membership.schoolId;
     const canStudents = ["Administrador", "Secretaria"].includes(role);

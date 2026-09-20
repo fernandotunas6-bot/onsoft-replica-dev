@@ -1,7 +1,40 @@
-/**
- * Cliente HTTP Resend partilhado (escola + alertas de plataforma).
- * Sem API key → o caller faz fallback (clipboard / mailto).
- */
+import { getPlatformDomain } from "@/lib/saas/platform-domain";
+import { getAppName } from "@/lib/app-config";
+
+export type EmailChannel = "default" | "auth" | "academic" | "finance" | "support";
+
+export interface ResolveSenderOptions {
+  /** Nome da escola para remetente institucional (ex: "Colégio Esperança via SIGA") */
+  schoolName?: string | null;
+  /** Nome de exibição customizado (substitui o padrão do canal) */
+  displayName?: string | null;
+  /** Domínio da plataforma alternativo (se não indicado, usa getPlatformDomain()) */
+  domain?: string | null;
+}
+
+const CHANNEL_ENV_KEYS: Record<EmailChannel, string> = {
+  academic: "RESEND_FROM_ACADEMIC_EMAIL",
+  finance: "RESEND_FROM_FINANCE_EMAIL",
+  auth: "RESEND_FROM_AUTH_EMAIL",
+  support: "RESEND_FROM_SUPPORT_EMAIL",
+  default: "RESEND_FROM_EMAIL",
+};
+
+const CHANNEL_DEFAULT_MAILBOXES: Record<EmailChannel, string> = {
+  academic: "notificacoes",
+  finance: "financeiro",
+  auth: "seguranca",
+  support: "suporte",
+  default: "noreply",
+};
+
+const CHANNEL_DEFAULT_DISPLAY_NAMES: Record<EmailChannel, string> = {
+  academic: "SIGA Académico",
+  finance: "SIGA Payflow",
+  auth: "SIGA Segurança",
+  support: "SIGA Suporte",
+  default: "SIGA Plus",
+};
 
 export type ResendSendInput = {
   apiKey: string;
@@ -16,6 +49,50 @@ export type ResendSendResult = {
   id: string | null;
   status: number;
 };
+
+/**
+ * Resolve o remetente oficial por canal com suporte a branding escolar e override por env.
+ */
+export function resolveSystemSender(
+  channel: EmailChannel = "default",
+  options?: ResolveSenderOptions,
+): string {
+  const envKey = CHANNEL_ENV_KEYS[channel];
+  const envValue =
+    typeof process !== "undefined" && envKey ? process.env?.[envKey]?.trim() : undefined;
+
+  // Se houver override direto para este canal específico, respeitar
+  if (envValue) {
+    return resolveResendFromAddress(envValue);
+  }
+
+  const domain = options?.domain?.trim() || getPlatformDomain();
+  const mailbox = CHANNEL_DEFAULT_MAILBOXES[channel] || "noreply";
+  const email = `${mailbox}@${domain}`;
+
+  if (options?.displayName?.trim()) {
+    return `${options.displayName.trim()} <${email}>`;
+  }
+
+  const school = options?.schoolName?.trim();
+  if (school) {
+    switch (channel) {
+      case "finance":
+        return `${school} (Financeiro) <${email}>`;
+      case "academic":
+      case "auth":
+      case "default":
+      default:
+        return `${school} via SIGA <${email}>`;
+    }
+  }
+
+  const appName = getAppName();
+  const defaultDisplayName =
+    channel === "default" ? appName : CHANNEL_DEFAULT_DISPLAY_NAMES[channel] || appName;
+
+  return `${defaultDisplayName} <${email}>`;
+}
 
 export function resolveResendFromAddress(callbackOrEmail: string): string {
   const raw = callbackOrEmail.trim();

@@ -145,8 +145,17 @@ async function ensureGradebook(
   }
 
   if (!ruleSetId) {
+    // Até 2026-09-20 isto era um beco sem saída numa escola nova: `assessment_rule_sets`
+    // não existia em produção, e as duas funções que a preencheriam
+    // (`configure_assessment_rules`, `publish_assessment_rule_version`) falhavam com 42P01
+    // pela mesma razão — sem `rule_set_id` não se abria o primeiro diário, logo não se
+    // lançavam notas. A migração `20260916140000_assessment_rule_sets.sql` foi aplicada e
+    // as funções passam a chegar à verificação de permissão (`assessment.rules.manage`).
+    // Restam, portanto, dois casos distintos, e o segundo é accionável por quem o lê.
     throw new Error(
-      "Não há regras de avaliação (assessment_rule_sets / rule_set_id) nesta escola. Configure-as no SGA antes de lançar notas.",
+      ruleTableMissing
+        ? "As regras de avaliação ainda não existem nesta base de dados. É preciso aplicar a migração 20260916140000_assessment_rule_sets.sql antes de abrir o primeiro diário de notas."
+        : "Não há regras de avaliação activas nesta escola. Configure-as no SGA antes de lançar notas.",
     );
   }
 

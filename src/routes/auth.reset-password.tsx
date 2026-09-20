@@ -22,6 +22,7 @@ import { useTenant } from "@/features/saas/tenant-context";
 import { getSchoolInitials } from "@/features/auth/email-templates/reset-password.html";
 import { getAppName } from "@/lib/app-config";
 
+// style-check: route-exempt - formulário de redefinição de senha.
 export const Route = createFileRoute("/auth/reset-password")({
   head: () => ({
     meta: [
@@ -275,14 +276,11 @@ function ResetPasswordPage() {
 
             {!checking && !tokenError && success && (
               <div className="space-y-4 py-3">
-                <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900 p-4 text-sm text-emerald-800 dark:text-emerald-300">
-                  <CheckCircle2 className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+                <div className="flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 p-4 text-sm text-success">
+                  <CheckCircle2 className="size-5 shrink-0 text-success mt-0.5" />
                   <div>
                     <p className="font-semibold">Senha atualizada com sucesso!</p>
-                    <p className="text-xs mt-1 opacity-90">
-                      A sua nova senha já está ativa. Será redirecionado para a plataforma em
-                      instantes…
-                    </p>
+                    <p className="text-xs opacity-90">A redireccionar para o início de sessão…</p>
                   </div>
                 </div>
 
@@ -354,7 +352,7 @@ function ResetPasswordPage() {
                   </p>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
                     <div
-                      className={`flex items-center gap-1.5 ${passwordChecks.length ? "text-emerald-600 font-medium" : "text-muted-foreground"}`}
+                      className={`flex items-center gap-1.5 ${passwordChecks.length ? "text-success font-medium" : "text-muted-foreground"}`}
                     >
                       <CheckCircle2
                         className={`size-3.5 ${passwordChecks.length ? "opacity-100" : "opacity-40"}`}
@@ -362,7 +360,7 @@ function ResetPasswordPage() {
                       <span>Mínimo 8 caracteres</span>
                     </div>
                     <div
-                      className={`flex items-center gap-1.5 ${passwordChecks.hasLetter ? "text-emerald-600 font-medium" : "text-muted-foreground"}`}
+                      className={`flex items-center gap-1.5 ${passwordChecks.hasLetter ? "text-success font-medium" : "text-muted-foreground"}`}
                     >
                       <CheckCircle2
                         className={`size-3.5 ${passwordChecks.hasLetter ? "opacity-100" : "opacity-40"}`}
@@ -370,7 +368,7 @@ function ResetPasswordPage() {
                       <span>Pelo menos 1 letra</span>
                     </div>
                     <div
-                      className={`flex items-center gap-1.5 ${passwordChecks.hasNumber ? "text-emerald-600 font-medium" : "text-muted-foreground"}`}
+                      className={`flex items-center gap-1.5 ${passwordChecks.hasNumber ? "text-success font-medium" : "text-muted-foreground"}`}
                     >
                       <CheckCircle2
                         className={`size-3.5 ${passwordChecks.hasNumber ? "opacity-100" : "opacity-40"}`}
@@ -378,7 +376,7 @@ function ResetPasswordPage() {
                       <span>Pelo menos 1 número</span>
                     </div>
                     <div
-                      className={`flex items-center gap-1.5 ${passwordChecks.matches ? "text-emerald-600 font-medium" : "text-muted-foreground"}`}
+                      className={`flex items-center gap-1.5 ${passwordChecks.matches ? "text-success font-medium" : "text-muted-foreground"}`}
                     >
                       <CheckCircle2
                         className={`size-3.5 ${passwordChecks.matches ? "opacity-100" : "opacity-40"}`}

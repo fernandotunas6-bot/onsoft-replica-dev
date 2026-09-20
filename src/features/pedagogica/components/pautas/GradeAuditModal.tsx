@@ -107,7 +107,7 @@ export function GradeAuditModal({
               <b className="text-foreground">{updatedAt || "Data oficial da sessão"}</b>
             </span>
           </div>
-          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center gap-2 text-success">
             <ShieldCheck className="size-3.5" />
             <span>Registo auditado e assinado no SIGA SGA</span>
           </div>

@@ -71,6 +71,7 @@ import {
 } from "@/lib/angola-academic";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { whatsappHref } from "@/features/integrations/actions";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 
 type EnrollmentRow = {
@@ -183,6 +184,7 @@ export function AssessmentCenter({
   canLaunch,
   canLockTerm,
   closedTerms,
+  evaluationPeriods,
   initialTerm,
   initialClassGroupId,
   initialSubjectId,
@@ -201,11 +203,13 @@ export function AssessmentCenter({
   canLaunch: boolean;
   canLockTerm: boolean;
   closedTerms: Array<1 | 2 | 3>;
+  evaluationPeriods?: number | undefined;
   initialTerm?: string | undefined;
   initialClassGroupId?: string | undefined;
   initialSubjectId?: string | undefined;
 }) {
   const queryClient = useQueryClient();
+  const { selectedTerm: globalTerm, terms: academicTerms, setSelectedTermId } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const turnitinOn = installed.hasCapability("turnitin.originality");
   const moodleGrades = installed.hasCapability("moodle.grades");
@@ -239,6 +243,9 @@ export function AssessmentCenter({
   useEffect(() => {
     if (!open) return;
     if (initialTerm && initialTerm !== "todos") setFilter("trimestre", initialTerm);
+    else if (globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3) {
+      setFilter("trimestre", String(globalTerm.sequence));
+    }
     if (initialClassGroupId) setFilter("turma", initialClassGroupId);
     if (initialSubjectId) {
       setFilter("disciplina", initialSubjectId);
@@ -248,7 +255,7 @@ export function AssessmentCenter({
       setScope("alunos");
       setMode("lancamento");
     }
-  }, [initialClassGroupId, initialSubjectId, initialTerm, open, setFilter]);
+  }, [globalTerm?.sequence, initialClassGroupId, initialSubjectId, initialTerm, open, setFilter]);
 
   const term = (Number(filters.trimestre) || 1) as 1 | 2 | 3;
   const termClosed = closedTerms.includes(term);
@@ -259,8 +266,30 @@ export function AssessmentCenter({
       ? (classGroups.find((group) => group.id === filters.turma) ?? null)
       : (classGroups[0] ?? null);
   const selectedCycle = inferTeachingCycle(selectedGroup?.grade_name, selectedGroup?.course_name);
-  const periodOptions = getPeriodsForCycle(selectedCycle);
+  const periodOptions = getPeriodsForCycle(selectedCycle, evaluationPeriods);
   const periodNoun = getPeriodNoun(selectedCycle);
+
+  // Topbar → Centro: quando o período global muda com o centro aberto.
+  useEffect(() => {
+    if (!open) return;
+    const sequence = globalTerm?.sequence;
+    if (!sequence || !periodOptions.includes(sequence as 1 | 2 | 3)) return;
+    if (String(sequence) === filters.trimestre) return;
+    setFilter("trimestre", String(sequence));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage ao período global
+  }, [globalTerm?.id, globalTerm?.sequence, open, periodOptions]);
+
+  // Centro → Topbar: o filtro de trimestre actualiza o período global.
+  useEffect(() => {
+    if (!open) return;
+    const next = Number(filters.trimestre);
+    if (!Number.isFinite(next) || next < 1 || next > 3) return;
+    if (globalTerm?.sequence === next) return;
+    const match = academicTerms.find((item) => item.sequence === next);
+    if (match) setSelectedTermId(match.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- evita loop com selectedTerm
+  }, [filters.trimestre, open, academicTerms, setSelectedTermId]);
+
   const selectedSubject =
     filters.disciplina !== "todas"
       ? (subjects.find((subject) => subject.id === filters.disciplina) ?? null)
@@ -303,8 +332,13 @@ export function AssessmentCenter({
     retry: false,
   });
 
-  const items = useMemo(() => assessmentsQuery.data?.items ?? [], [assessmentsQuery.data]);
-  const scores = useMemo(() => assessmentsQuery.data?.scores ?? [], [assessmentsQuery.data]);
+  // useMemo para a identidade destas listas não mudar a cada render — sem
+  // isto os useMemo/useEffect a jusante recalculavam sempre.
+  const items = useMemo(() => assessmentsQuery.data?.items ?? [], [assessmentsQuery.data?.items]);
+  const scores = useMemo(
+    () => assessmentsQuery.data?.scores ?? [],
+    [assessmentsQuery.data?.scores],
+  );
   const assessmentsAvailable = assessmentsQuery.data?.available !== false;
 
   useEffect(() => {
@@ -409,61 +443,92 @@ export function AssessmentCenter({
     return dirty;
   }, [baseline, items, roster, values]);
 
-  const computedRows = roster.map((student) => {
-    const row = values[student.id] ?? {};
-    const fromItems = (component: string) =>
-      items
-        .filter((item) => item.component === component && item.counts_toward_pauta)
-        .map((item) => parsePautaScore(row[String(item.id)] ?? ""));
-    const mac =
-      parsePautaScore(row["mac"] ?? "") ??
-      annualAverage(fromItems("MAC").filter((value) => value != null && !Number.isNaN(value)));
-    const npp =
-      parsePautaScore(row["npp"] ?? "") ??
-      annualAverage(fromItems("NPP").filter((value) => value != null && !Number.isNaN(value)));
-    const npt =
-      parsePautaScore(row["npt"] ?? "") ??
-      annualAverage(fromItems("NPT").filter((value) => value != null && !Number.isNaN(value)));
-    const average = mac != null && npp != null && npt != null ? scoreAverage(mac, npp, npt) : null;
-    const recurso = annualAverage(
-      items
-        .filter((item) => item.component === "recurso")
-        .map((item) => parsePautaScore(row[String(item.id)] ?? ""))
-        .filter((value): value is number => value != null && !Number.isNaN(value)),
-    );
-    const exame = annualAverage(
-      items
-        .filter((item) => item.component === "exame")
-        .map((item) => parsePautaScore(row[String(item.id)] ?? ""))
-        .filter((value): value is number => value != null && !Number.isNaN(value)),
-    );
-    const finalScore = exame ?? recursoFinal(average, recurso);
-    const situacao =
-      finalScore == null
-        ? { label: "Pendente", tone: "muted" as const }
-        : situacaoPauta(finalScore, passingGrade);
-    return { student, mac, npp, npt, average, recurso, exame, finalScore, situacao, row };
-  });
-
-  const visibleRows = computedRows.filter((entry) => {
-    if (mode === "revisao") {
-      const dirty = ["mac", "npp", "npt"].some((key) =>
-        dirtyKeys.has(cellKey(entry.student.id, key)),
-      );
-      return entry.average == null || dirty;
+  // Antes, cada linha de aluno fazia cinco `items.filter(...)` — MAC, NPP, NPT,
+  // recurso e exame. Numa turma de 40 com meia dúzia de itens são duzentos
+  // varrimentos do array **a cada tecla digitada**, porque `computedRows` corria
+  // sem memo. Agrupar uma vez troca esses varrimentos por consultas a um mapa.
+  //
+  // São dois mapas e não um: MAC/NPP/NPT só contam itens com
+  // `counts_toward_pauta`, recurso e exame contam todos.
+  const itensPorComponente = useMemo(() => {
+    type Item = (typeof items)[number];
+    const contam = new Map<string, Item[]>();
+    const todos = new Map<string, Item[]>();
+    for (const item of items) {
+      const componente = String(item.component ?? "");
+      if (!todos.has(componente)) todos.set(componente, []);
+      todos.get(componente)!.push(item);
+      if (item.counts_toward_pauta) {
+        if (!contam.has(componente)) contam.set(componente, []);
+        contam.get(componente)!.push(item);
+      }
     }
-    if (filters.situacao === "todos") return true;
-    if (filters.situacao === "pendente") return entry.average == null;
-    if (filters.situacao === "completo") return entry.average != null;
-    if (filters.situacao === "transita") return entry.situacao.label === "Transita";
-    if (filters.situacao === "nao_transita") return entry.situacao.label === "Não transita";
-    if (filters.situacao === "em_recurso") return entry.recurso != null;
-    if (filters.situacao === "aprovado")
-      return (entry.exame ?? entry.finalScore ?? 0) >= passingGrade;
-    if (filters.situacao === "reprovado")
-      return entry.finalScore != null && entry.finalScore < passingGrade;
-    return true;
-  });
+    return { contam, todos };
+  }, [items]);
+
+  const computedRows = useMemo(() => {
+    const notasDe = (
+      mapa: Map<string, (typeof items)[number][]>,
+      componente: string,
+      row: Record<string, string>,
+    ) => (mapa.get(componente) ?? []).map((item) => parsePautaScore(row[String(item.id)] ?? ""));
+
+    return roster.map((student) => {
+      const row = values[student.id] ?? {};
+      const fromItems = (component: string) => notasDe(itensPorComponente.contam, component, row);
+      const mac =
+        parsePautaScore(row["mac"] ?? "") ??
+        annualAverage(fromItems("MAC").filter((value) => value != null && !Number.isNaN(value)));
+      const npp =
+        parsePautaScore(row["npp"] ?? "") ??
+        annualAverage(fromItems("NPP").filter((value) => value != null && !Number.isNaN(value)));
+      const npt =
+        parsePautaScore(row["npt"] ?? "") ??
+        annualAverage(fromItems("NPT").filter((value) => value != null && !Number.isNaN(value)));
+      const average =
+        mac != null && npp != null && npt != null ? scoreAverage(mac, npp, npt) : null;
+      const recurso = annualAverage(
+        notasDe(itensPorComponente.todos, "recurso", row).filter(
+          (value): value is number => value != null && !Number.isNaN(value),
+        ),
+      );
+      const exame = annualAverage(
+        notasDe(itensPorComponente.todos, "exame", row).filter(
+          (value): value is number => value != null && !Number.isNaN(value),
+        ),
+      );
+      const finalScore = exame ?? recursoFinal(average, recurso);
+      const situacao =
+        finalScore == null
+          ? { label: "Pendente", tone: "muted" as const }
+          : situacaoPauta(finalScore, passingGrade);
+      return { student, mac, npp, npt, average, recurso, exame, finalScore, situacao, row };
+    });
+  }, [roster, values, itensPorComponente, passingGrade]);
+
+  const visibleRows = useMemo(
+    () =>
+      computedRows.filter((entry) => {
+        if (mode === "revisao") {
+          const dirty = ["mac", "npp", "npt"].some((key) =>
+            dirtyKeys.has(cellKey(entry.student.id, key)),
+          );
+          return entry.average == null || dirty;
+        }
+        if (filters.situacao === "todos") return true;
+        if (filters.situacao === "pendente") return entry.average == null;
+        if (filters.situacao === "completo") return entry.average != null;
+        if (filters.situacao === "transita") return entry.situacao.label === "Transita";
+        if (filters.situacao === "nao_transita") return entry.situacao.label === "Não transita";
+        if (filters.situacao === "em_recurso") return entry.recurso != null;
+        if (filters.situacao === "aprovado")
+          return (entry.exame ?? entry.finalScore ?? 0) >= passingGrade;
+        if (filters.situacao === "reprovado")
+          return entry.finalScore != null && entry.finalScore < passingGrade;
+        return true;
+      }),
+    [computedRows, mode, dirtyKeys, filters.situacao, passingGrade],
+  );
 
   const selectedStudent = visibleRows.find((row) => row.student.id === selectedId) ?? null;
   const contextLabel = [
@@ -487,18 +552,29 @@ export function AssessmentCenter({
             ? "disciplina"
             : "turma";
 
-  const dossier = selectedStudent
-    ? buildStudentDossier(termGrades, subjects, selectedStudent.student.id, passingGrade)
-    : [];
-  const classMap = buildClassCourseMap(
-    classGroups.filter((group) => {
-      if (filters.classe !== "todas" && group.grade_name !== filters.classe) return false;
-      if (filters.curso !== "todos" && group.course_name !== filters.curso) return false;
-      return true;
-    }),
-    enrollments,
-    termGrades,
-    passingGrade,
+  // Os dois corriam a cada render — logo, a cada tecla — e nenhum depende do
+  // que se está a digitar: o dossier é do aluno seleccionado, o mapa é das
+  // turmas filtradas.
+  const dossier = useMemo(
+    () =>
+      selectedStudent
+        ? buildStudentDossier(termGrades, subjects, selectedStudent.student.id, passingGrade)
+        : [],
+    [selectedStudent, termGrades, subjects, passingGrade],
+  );
+  const classMap = useMemo(
+    () =>
+      buildClassCourseMap(
+        classGroups.filter((group) => {
+          if (filters.classe !== "todas" && group.grade_name !== filters.classe) return false;
+          if (filters.curso !== "todos" && group.course_name !== filters.curso) return false;
+          return true;
+        }),
+        enrollments,
+        termGrades,
+        passingGrade,
+      ),
+    [classGroups, filters.classe, filters.curso, enrollments, termGrades, passingGrade],
   );
   const historyLines = changeHistoryLines(scores, items, roster);
 
@@ -642,6 +718,10 @@ export function AssessmentCenter({
       void saveChanges();
     }, 1600);
     return () => window.clearTimeout(timer);
+    // `saveChanges` é recriada a cada render: incluí-la reiniciaria o debounce
+    // a cada tecla e o autosave nunca chegaria a disparar. Estas três são o
+    // gatilho pretendido.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autosave, canEdit, dirtyCount]);
 
   const officialRows: PautaExportRow[] = visibleRows.map((entry, index) => ({
@@ -1040,6 +1120,10 @@ export function AssessmentCenter({
     if (!open) return;
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // `undo`/`redo`/`fillDown` são recriadas a cada render: incluí-las voltaria
+    // a registar o listener de teclado em cada render. O atalho só precisa de
+    // ser (re)ligado quando o painel abre ou fecha.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const classes = Array.from(new Set(classGroups.map((group) => group.grade_name).filter(Boolean)));
@@ -1578,7 +1662,7 @@ export function AssessmentCenter({
                 </li>
               </ul>
               {!termReadiness.allReady && termReadiness.notReady.length > 0 ? (
-                <ul className="space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+                <ul className="space-y-1 rounded-xl border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
                   {termReadiness.notReady.slice(0, 6).map((report) => (
                     <li key={report.classGroupId}>
                       <b className="text-foreground">{report.classGroupName}:</b>{" "}

@@ -1,4 +1,5 @@
 import type { ImportModule } from "./schemas";
+import { MODULE_DEMO_ROWS } from "./engine/demo-data";
 
 export interface OfficialTemplateColumn {
   header: string;
@@ -13,21 +14,27 @@ export interface OfficialTemplateSpec {
   module: ImportModule;
   label: string;
   filename: string;
+  category: "pessoas" | "pedagogica" | "academica" | "financeira";
   columns: OfficialTemplateColumn[];
+  demoRows?: Array<Record<string, string | number>>;
 }
 
 export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
+  // ---------------------------------------------------------------------------
+  // GRUPO 1: IDENTIDADE & PESSOAS
+  // ---------------------------------------------------------------------------
   pessoas: {
     module: "pessoas",
     label: "Modelo de Pessoas",
     filename: "Modelo_Pessoas_SIGA.csv",
+    category: "pessoas",
     columns: [
       {
         header: "Nome Completo",
         key: "full_name",
         required: true,
         type: "text",
-        description: "Nome completo da pessoa",
+        description: "Nome completo da pessoa física",
         example: "Maria Fernanda da Silva",
       },
       {
@@ -70,12 +77,22 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         description: "Telefone de contacto",
         example: "923112233",
       },
+      {
+        header: "Endereço / Morada",
+        key: "address",
+        required: false,
+        type: "text",
+        description: "Bairro, Município e Província",
+        example: "Bairro Benfica, Luanda",
+      },
     ],
   },
+
   alunos: {
     module: "alunos",
     label: "Modelo de Alunos",
     filename: "Modelo_Alunos_SIGA.csv",
+    category: "pessoas",
     columns: [
       {
         header: "Nome Completo",
@@ -84,6 +101,14 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         type: "text",
         description: "Nome completo do aluno",
         example: "João Manuel António",
+      },
+      {
+        header: "Nº de Processo",
+        key: "student_number",
+        required: false,
+        type: "text",
+        description: "Número do processo escolar",
+        example: "PROC-2026-042",
       },
       {
         header: "Bilhete de Identidade / Cédula",
@@ -114,8 +139,16 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         key: "phone",
         required: false,
         type: "text",
-        description: "Telefone de contacto",
+        description: "Telefone de contacto do aluno ou responsável",
         example: "923112233",
+      },
+      {
+        header: "E-mail",
+        key: "email",
+        required: false,
+        type: "text",
+        description: "Correio eletrónico do estudante",
+        example: "joao.antonio@escola.ao",
       },
       {
         header: "Encarregado",
@@ -130,15 +163,82 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         key: "class_group",
         required: false,
         type: "text",
-        description: "Nome da Turma (ex.: 7A, 10ª B)",
+        description: "Nome ou código da Turma (ex.: 7A, 10ª B)",
         example: "7A",
       },
     ],
   },
+
+  encarregados: {
+    module: "encarregados",
+    label: "Modelo de Encarregados de Educação",
+    filename: "Modelo_Encarregados_SIGA.csv",
+    category: "pessoas",
+    columns: [
+      {
+        header: "Aluno (Processo ou BI)",
+        key: "student_identifier",
+        required: true,
+        type: "text",
+        description: "Nº de Processo ou BI do educando",
+        example: "PROC-2026-042",
+      },
+      {
+        header: "Nome do Encarregado",
+        key: "guardian_name",
+        required: true,
+        type: "text",
+        description: "Nome completo do encarregado de educação",
+        example: "Manuel António Sebastião",
+      },
+      {
+        header: "BI do Encarregado",
+        key: "id_number",
+        required: false,
+        type: "text",
+        description: "Bilhete de identidade do encarregado",
+        example: "001928374LA033",
+      },
+      {
+        header: "Telefone do Encarregado",
+        key: "phone",
+        required: true,
+        type: "text",
+        description: "Telefone principal de contacto",
+        example: "924556677",
+      },
+      {
+        header: "E-mail",
+        key: "email",
+        required: false,
+        type: "text",
+        description: "E-mail para avisos e faturas",
+        example: "manuel.sebastiao@empresa.co.ao",
+      },
+      {
+        header: "Grau de Parentesco",
+        key: "relationship_type",
+        required: false,
+        type: "select",
+        description: "Pai, Mãe, Tutor, Tio, Avô ou Encarregado Legal",
+        example: "Pai",
+      },
+      {
+        header: "Responsável Financeiro",
+        key: "is_financial_responsible",
+        required: false,
+        type: "select",
+        description: "Sim ou Não",
+        example: "Sim",
+      },
+    ],
+  },
+
   professores: {
     module: "professores",
-    label: "Modelo de Professores",
+    label: "Modelo de Professores & Docentes",
     filename: "Modelo_Professores_SIGA.csv",
+    category: "pessoas",
     columns: [
       {
         header: "Nome Completo",
@@ -153,8 +253,16 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         key: "id_number",
         required: true,
         type: "text",
-        description: "Documento de identificação",
+        description: "Documento de identificação nacional",
         example: "001234567LA032",
+      },
+      {
+        header: "Nº de Agente / Funcionário",
+        key: "employee_number",
+        required: false,
+        type: "text",
+        description: "Número mecanográfico ou funcional",
+        example: "DOC-8921",
       },
       {
         header: "E-mail",
@@ -177,15 +285,374 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         key: "specialty",
         required: false,
         type: "text",
-        description: "Área de lecionação",
+        description: "Área de lecionação ou especialidade",
         example: "Matemática",
+      },
+      {
+        header: "Habilitações Literárias",
+        key: "degree",
+        required: false,
+        type: "text",
+        description: "Licenciatura, Mestrado, Bacharelato",
+        example: "Licenciatura em Ensino da Matemática",
       },
     ],
   },
+
+  funcionarios: {
+    module: "funcionarios",
+    label: "Modelo de Funcionários Administrativos",
+    filename: "Modelo_Funcionarios_SIGA.csv",
+    category: "pessoas",
+    columns: [
+      {
+        header: "Nome Completo",
+        key: "full_name",
+        required: true,
+        type: "text",
+        description: "Nome completo do colaborador",
+        example: "António Carlos dos Santos",
+      },
+      {
+        header: "Nº BI / Documento",
+        key: "id_number",
+        required: true,
+        type: "text",
+        description: "Bilhete de Identidade",
+        example: "004567891HA021",
+      },
+      {
+        header: "Cargo / Função",
+        key: "role_title",
+        required: true,
+        type: "text",
+        description: "Secretário, Tesoureiro, Porteiro, Técnico TI",
+        example: "Técnico de Secretaria",
+      },
+      {
+        header: "Departamento / Sector",
+        key: "department",
+        required: false,
+        type: "text",
+        description: "Secretaria, Tesouraria, Direcção, Serviços Gerais",
+        example: "Secretaria Pedagógica",
+      },
+      {
+        header: "Telefone",
+        key: "phone",
+        required: true,
+        type: "text",
+        description: "Telefone de contacto",
+        example: "912334455",
+      },
+      {
+        header: "E-mail",
+        key: "email",
+        required: false,
+        type: "text",
+        description: "Correio eletrónico",
+        example: "antonio.santos@escola.ao",
+      },
+      {
+        header: "Tipo de Contrato",
+        key: "contract_type",
+        required: false,
+        type: "select",
+        description: "Efectivo, A Termo, Estagiário, Prestação de Serviços",
+        example: "Efectivo",
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // GRUPO 2: ESTRUTURA PEDAGÓGICA
+  // ---------------------------------------------------------------------------
+  turmas: {
+    module: "turmas",
+    label: "Modelo de Turmas",
+    filename: "Modelo_Turmas_SIGA.csv",
+    category: "pedagogica",
+    columns: [
+      {
+        header: "Código da Turma",
+        key: "code",
+        required: true,
+        type: "text",
+        description: "Código identificador único (ex.: 10A-M, 7B-T)",
+        example: "10A-M",
+      },
+      {
+        header: "Nome da Turma",
+        key: "name",
+        required: true,
+        type: "text",
+        description: "Nome por extenso da turma",
+        example: "10ª Classe A - Manhã",
+      },
+      {
+        header: "Classe / Grau",
+        key: "grade_level",
+        required: true,
+        type: "text",
+        description: "Código ou nome da classe no SIGA (ex.: 10ª Classe, 7ª Classe)",
+        example: "10ª Classe",
+      },
+      {
+        header: "Turno",
+        key: "shift",
+        required: false,
+        type: "select",
+        description: "Manhã, Tarde ou Noite",
+        example: "Manhã",
+      },
+      {
+        header: "Sala / Campus",
+        key: "room",
+        required: false,
+        type: "text",
+        description: "Código ou nome da sala/bloco",
+        example: "Sala 04",
+      },
+      {
+        header: "Capacidade Máxima",
+        key: "capacity",
+        required: false,
+        type: "number",
+        description: "Número máximo de vagas",
+        example: "45",
+      },
+      {
+        header: "Ano Lectivo",
+        key: "academic_year",
+        required: false,
+        type: "text",
+        description: "Ex: 2026/2027",
+        example: "2026/2027",
+      },
+    ],
+  },
+
+  classes: {
+    module: "classes",
+    label: "Modelo de Classes & Graus",
+    filename: "Modelo_Classes_SIGA.csv",
+    category: "pedagogica",
+    columns: [
+      {
+        header: "Código da Classe",
+        key: "code",
+        required: true,
+        type: "text",
+        description: "Identificador curto da classe (ex.: 7, 8, 10-CFB)",
+        example: "10-CFB",
+      },
+      {
+        header: "Nome da Classe",
+        key: "name",
+        required: true,
+        type: "text",
+        description: "Nome completo da classe (ex.: 10ª Classe CFB)",
+        example: "10ª Classe",
+      },
+      {
+        header: "Curso / Especialidade",
+        key: "course_code",
+        required: false,
+        type: "text",
+        description: "Código ou nome do curso associado",
+        example: "CFB",
+      },
+      {
+        header: "Ciclo de Ensino",
+        key: "cycle",
+        required: false,
+        type: "text",
+        description: "Primário, I Ciclo, II Ciclo Técnico, II Ciclo Geral",
+        example: "II Ciclo Geral",
+      },
+      {
+        header: "Ordem / Nível",
+        key: "order_index",
+        required: false,
+        type: "number",
+        description: "Ordem sequencial numérica da classe (1 a 13)",
+        example: "10",
+      },
+    ],
+  },
+
+  cursos: {
+    module: "cursos",
+    label: "Modelo de Cursos & Especialidades",
+    filename: "Modelo_Cursos_SIGA.csv",
+    category: "pedagogica",
+    columns: [
+      {
+        header: "Código do Curso",
+        key: "code",
+        required: true,
+        type: "text",
+        description: "Sigla identificadora do curso",
+        example: "CFB",
+      },
+      {
+        header: "Nome do Curso",
+        key: "name",
+        required: true,
+        type: "text",
+        description: "Designação oficial do curso",
+        example: "Ciências Físicas e Biológicas",
+      },
+      {
+        header: "Nível Académico",
+        key: "academic_level",
+        required: false,
+        type: "text",
+        description:
+          "Nível já configurado na escola. Deixe vazio se a escola só tiver um nível activo",
+        example: "Ensino Secundário",
+      },
+      {
+        header: "Área de Formação",
+        key: "area",
+        required: false,
+        type: "text",
+        description: "Ciências da Natureza, Tecnologias, Gestão",
+        example: "Ciências Exactas e da Natureza",
+      },
+      {
+        header: "Duração (Anos)",
+        key: "duration_years",
+        required: false,
+        type: "number",
+        description: "Duração oficial do ciclo do curso",
+        example: "3",
+      },
+      {
+        header: "Habilitação / Grau",
+        key: "degree",
+        required: false,
+        type: "text",
+        description: "Técnico Médio, Ensino Geral",
+        example: "Ensino Secundário Geral",
+      },
+    ],
+  },
+
+  disciplinas: {
+    module: "disciplinas",
+    label: "Modelo de Disciplinas Curriculares",
+    filename: "Modelo_Disciplinas_SIGA.csv",
+    category: "pedagogica",
+    columns: [
+      {
+        header: "Código / Sigla",
+        key: "code",
+        required: true,
+        type: "text",
+        description: "Sigla única da disciplina (ex.: MAT, FIS, QUI)",
+        example: "MAT",
+      },
+      {
+        header: "Nome da Disciplina",
+        key: "name",
+        required: true,
+        type: "text",
+        description: "Nome oficial da disciplina",
+        example: "Matemática",
+      },
+      {
+        header: "Curso / Especialidade",
+        key: "course_code",
+        required: false,
+        type: "text",
+        description: "Código do curso onde a disciplina se aplica",
+        example: "CFB",
+      },
+      {
+        header: "Classe",
+        key: "grade_level",
+        required: false,
+        type: "text",
+        description: "Classe onde a disciplina é lecionada",
+        example: "10ª Classe",
+      },
+      {
+        header: "Carga Horária Anual (Horas)",
+        key: "annual_hours",
+        required: false,
+        type: "number",
+        description: "Horas lectivas no ano inteiro — é o que a ficha da disciplina guarda",
+        example: "132",
+      },
+      {
+        header: "Área Curricular",
+        key: "area",
+        required: false,
+        type: "text",
+        description: "Ciências Exactas, Letras, Formação Geral",
+        example: "Ciências Exactas",
+      },
+    ],
+  },
+
+  salas: {
+    module: "salas",
+    label: "Modelo de Salas & Infraestruturas",
+    filename: "Modelo_Salas_SIGA.csv",
+    category: "pedagogica",
+    columns: [
+      {
+        header: "Código da Sala",
+        key: "code",
+        required: true,
+        type: "text",
+        description: "Código identificador (ex.: S-01, LAB-INFO)",
+        example: "S-01",
+      },
+      {
+        header: "Nome da Sala",
+        key: "name",
+        required: true,
+        type: "text",
+        description: "Designação da sala ou espaço",
+        example: "Sala 01 - Bloco Central",
+      },
+      {
+        header: "Campus / Bloco",
+        key: "campus",
+        required: false,
+        type: "text",
+        description: "Identificação do campus ou bloco físico",
+        example: "Bloco A",
+      },
+      {
+        header: "Capacidade",
+        key: "capacity",
+        required: false,
+        type: "number",
+        description: "Lotação máxima de carteiras",
+        example: "40",
+      },
+      {
+        header: "Tipo de Espaço",
+        key: "room_type",
+        required: false,
+        type: "select",
+        description: "Sala de Aula, Laboratório, Anfiteatro, Pavilhão",
+        example: "Sala de Aula",
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // GRUPO 3: GESTÃO ACADÉMICA
+  // ---------------------------------------------------------------------------
   matriculas: {
     module: "matriculas",
-    label: "Modelo de Matrículas",
+    label: "Modelo de Matrículas & Confirmações",
     filename: "Modelo_Matriculas_SIGA.csv",
+    category: "academica",
     columns: [
       {
         header: "Aluno (BI ou Processo)",
@@ -200,7 +667,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         key: "class_group",
         required: true,
         type: "text",
-        description: "Código/Nome da Turma",
+        description: "Código ou Nome da Turma",
         example: "10ª Classe A - Manhã",
       },
       {
@@ -209,22 +676,178 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "text",
         description: "Ano escolar de referência",
-        example: "2026",
+        example: "2026/2027",
       },
       {
         header: "Data da Matrícula",
         key: "enrollment_date",
         required: false,
         type: "date",
-        description: "Data de inscrição",
+        description: "Data da confirmação/matrícula (AAAA-MM-DD)",
         example: "2026-02-01",
+      },
+      {
+        header: "Estado da Matrícula",
+        key: "status",
+        required: false,
+        type: "select",
+        description: "active (activa), pending (pendente), transferred, cancelled",
+        example: "active",
       },
     ],
   },
+
+  inscricoes: {
+    module: "inscricoes",
+    label: "Modelo de Inscrições & Candidaturas",
+    filename: "Modelo_Inscricoes_SIGA.csv",
+    category: "academica",
+    columns: [
+      {
+        header: "Nome do Candidato",
+        key: "applicant_name",
+        required: true,
+        type: "text",
+        description: "Nome completo do candidato",
+        example: "Benedita Luísa Panzo",
+      },
+      {
+        header: "Nº BI / Cédula",
+        key: "id_number",
+        required: true,
+        type: "text",
+        description: "Documento de identificação",
+        example: "009123847LA045",
+      },
+      {
+        header: "Gênero",
+        key: "gender",
+        required: true,
+        type: "select",
+        description: "M ou F",
+        example: "F",
+      },
+      {
+        header: "Data de Nascimento",
+        key: "birth_date",
+        required: true,
+        type: "date",
+        description: "AAAA-MM-DD",
+        example: "2010-08-19",
+      },
+      {
+        header: "Curso Pretendido",
+        key: "course_choice",
+        required: false,
+        type: "text",
+        description: "Curso ou especialidade pretendida",
+        example: "Informática de Gestão",
+      },
+      {
+        header: "Classe Pretendida",
+        key: "grade_level",
+        required: true,
+        type: "text",
+        description: "Classe a ingressar (ex: 10ª Classe, 7ª Classe)",
+        example: "10ª Classe",
+      },
+      {
+        header: "Telefone de Contacto",
+        key: "phone",
+        required: true,
+        type: "text",
+        description: "Telefone do encarregado ou candidato",
+        example: "921887766",
+      },
+      {
+        header: "E-mail",
+        key: "email",
+        required: false,
+        type: "text",
+        description: "Correio eletrónico de contacto",
+        example: "benedita.panzo@gmail.com",
+      },
+      {
+        header: "Data de Inscrição",
+        key: "application_date",
+        required: false,
+        type: "date",
+        description: "Data em que a ficha foi entregue",
+        example: "2026-01-15",
+      },
+    ],
+  },
+
+  horarios: {
+    module: "horarios",
+    label: "Modelo de Horários Escolares",
+    filename: "Modelo_Horarios_SIGA.csv",
+    category: "academica",
+    columns: [
+      {
+        header: "Turma",
+        key: "class_group",
+        required: true,
+        type: "text",
+        description: "Código ou nome da turma",
+        example: "10A-M",
+      },
+      {
+        header: "Disciplina",
+        key: "subject",
+        required: true,
+        type: "text",
+        description: "Sigla ou nome da disciplina",
+        example: "Matemática",
+      },
+      {
+        header: "Professor (Nº Agente ou BI)",
+        key: "teacher_identifier",
+        required: false,
+        type: "text",
+        description: "Docente responsável pela aula",
+        example: "001234567LA032",
+      },
+      {
+        header: "Dia da Semana",
+        key: "weekday",
+        required: true,
+        type: "select",
+        description: "Segunda-feira, Terça-feira, Quarta-feira, Quinta-feira, Sexta-feira, Sábado",
+        example: "Segunda-feira",
+      },
+      {
+        header: "Hora de Início",
+        key: "start_time",
+        required: true,
+        type: "text",
+        description: "Formato HH:MM (ex.: 07:30)",
+        example: "07:30",
+      },
+      {
+        header: "Hora de Fim",
+        key: "end_time",
+        required: true,
+        type: "text",
+        description: "Formato HH:MM (ex.: 08:15)",
+        example: "08:15",
+      },
+      {
+        header: "Sala",
+        key: "room",
+        required: false,
+        type: "text",
+        description: "Sala de realização da aula",
+        example: "Sala 04",
+      },
+    ],
+  },
+
   notas: {
     module: "notas",
-    label: "Modelo de Notas e Avaliações",
+    label: "Modelo de Notas e Avaliações Trimestrais",
     filename: "Modelo_Notas_SIGA.csv",
+    category: "academica",
     columns: [
       {
         header: "Aluno (Processo ou BI)",
@@ -247,7 +870,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         key: "term",
         required: true,
         type: "text",
-        description: "1º Trimestre, 2º Trimestre, etc.",
+        description: "1º Trimestre, 2º Trimestre, 3º Trimestre",
         example: "1º Trimestre",
       },
       {
@@ -263,7 +886,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         key: "npp",
         required: false,
         type: "number",
-        description: "Nota da prova de professor",
+        description: "Nota da prova de professor (0 a 20)",
         example: "14",
       },
       {
@@ -271,15 +894,329 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         key: "npt",
         required: false,
         type: "number",
-        description: "Nota da prova trimestral",
+        description: "Nota da prova trimestral (0 a 20)",
         example: "16",
       },
     ],
   },
+
+  avaliacoes: {
+    module: "avaliacoes",
+    label: "Modelo de Instrumentos de Avaliação",
+    filename: "Modelo_Avaliacoes_SIGA.csv",
+    category: "academica",
+    columns: [
+      {
+        header: "Turma",
+        key: "class_group",
+        required: true,
+        type: "text",
+        description: "Turma avaliada",
+        example: "10A-M",
+      },
+      {
+        header: "Disciplina",
+        key: "subject",
+        required: true,
+        type: "text",
+        description: "Disciplina curricular",
+        example: "Química",
+      },
+      {
+        header: "Trimestre / Período",
+        key: "term",
+        required: true,
+        type: "text",
+        description: "1º Trimestre, 2º Trimestre ou 3º Trimestre",
+        example: "1º Trimestre",
+      },
+      {
+        header: "Tipo de Instrumento",
+        key: "evaluation_type",
+        required: true,
+        type: "select",
+        description: "Prova Escrita, Trabalho Prático, Mini-Teste, Oral",
+        example: "Prova Escrita",
+      },
+      {
+        header: "Título da Avaliação",
+        key: "title",
+        required: true,
+        type: "text",
+        description: "Descrição da avaliação",
+        example: "1ª Prova Parcial de Estequiometria",
+      },
+      {
+        header: "Data de Aplicação",
+        key: "evaluation_date",
+        required: false,
+        type: "date",
+        description: "Data de realização da prova",
+        example: "2026-03-12",
+      },
+      {
+        header: "Cotação Máxima",
+        key: "max_score",
+        required: false,
+        type: "number",
+        description: "Escala máxima (padrão 20)",
+        example: "20",
+      },
+    ],
+  },
+
+  pautas: {
+    module: "pautas",
+    label: "Modelo de Pautas Oficiais & Resultados Finais",
+    filename: "Modelo_Pautas_SIGA.csv",
+    category: "academica",
+    columns: [
+      {
+        header: "Aluno (Processo ou BI)",
+        key: "student_identifier",
+        required: true,
+        type: "text",
+        description: "Número do processo ou bilhete de identidade",
+        example: "PROC-2026-042",
+      },
+      {
+        header: "Turma",
+        key: "class_group",
+        required: true,
+        type: "text",
+        description: "Turma oficial",
+        example: "10A-M",
+      },
+      {
+        header: "Disciplina",
+        key: "subject",
+        required: true,
+        type: "text",
+        description: "Disciplina avaliada",
+        example: "Matemática",
+      },
+      {
+        header: "Ano Lectivo",
+        key: "academic_year",
+        required: true,
+        type: "text",
+        description: "Ano lectivo",
+        example: "2026/2027",
+      },
+      {
+        header: "Média Anual (CAP)",
+        key: "annual_average",
+        required: true,
+        type: "number",
+        description: "Classificação Anual Pedagógica (0 a 20)",
+        example: "14",
+      },
+      {
+        header: "Exame Final (CNE)",
+        key: "exam_score",
+        required: false,
+        type: "number",
+        description: "Classificação da Prova ou Exame Nacional",
+        example: "15",
+      },
+      {
+        header: "Classificação Final (CFD)",
+        key: "final_score",
+        required: true,
+        type: "number",
+        description: "Classificação Final da Disciplina (0 a 20)",
+        example: "15",
+      },
+      {
+        header: "Decisão / Resultado",
+        key: "decision",
+        required: true,
+        type: "select",
+        description: "Aprovado, Recurso, Reprovado",
+        example: "Aprovado",
+      },
+    ],
+  },
+
+  presencas: {
+    module: "presencas",
+    label: "Modelo de Faltas & Presenças",
+    filename: "Modelo_Presencas_SIGA.csv",
+    category: "academica",
+    columns: [
+      {
+        header: "Aluno (Processo ou BI)",
+        key: "student_identifier",
+        required: true,
+        type: "text",
+        description: "Identificação do estudante",
+        example: "PROC-2026-042",
+      },
+      {
+        header: "Turma",
+        key: "class_group",
+        required: true,
+        type: "text",
+        description: "Turma frequentada",
+        example: "10A-M",
+      },
+      {
+        header: "Disciplina",
+        key: "subject",
+        required: true,
+        type: "text",
+        description: "Disciplina da aula",
+        example: "Língua Portuguesa",
+      },
+      {
+        header: "Data da Aula",
+        key: "attendance_date",
+        required: true,
+        type: "date",
+        description: "Data lectiva (AAAA-MM-DD)",
+        example: "2026-03-02",
+      },
+      {
+        header: "Estado da Presença",
+        key: "status",
+        required: true,
+        type: "select",
+        description: "Presente, Falta Justificada, Falta Injustificada, Atraso",
+        example: "Presente",
+      },
+      {
+        header: "Motivo / Justificação",
+        key: "reason",
+        required: false,
+        type: "text",
+        description: "Motivo de saúde, declaração médica, etc.",
+        example: "Consulta Médica",
+      },
+    ],
+  },
+
+  historico_academico: {
+    module: "historico_academico",
+    label: "Modelo de Histórico Escolar Anterior",
+    filename: "Modelo_Historico_Academico_SIGA.csv",
+    category: "academica",
+    columns: [
+      {
+        header: "Aluno (Processo ou BI)",
+        key: "student_identifier",
+        required: true,
+        type: "text",
+        description: "Aluno no SIGA",
+        example: "PROC-2026-042",
+      },
+      {
+        header: "Ano Lectivo Anterior",
+        key: "academic_year",
+        required: true,
+        type: "text",
+        description: "Ano em que frequentou o nível",
+        example: "2025/2026",
+      },
+      {
+        header: "Classe Frequentada",
+        key: "grade_level",
+        required: true,
+        type: "text",
+        description: "Classe de origem (ex.: 9ª Classe)",
+        example: "9ª Classe",
+      },
+      {
+        header: "Escola de Proveniência",
+        key: "previous_school",
+        required: false,
+        type: "text",
+        description: "Nome do colégio ou escola pública anterior",
+        example: "Complexo Escolar nº 1240 - Huambo",
+      },
+      {
+        header: "Média Final Obtida",
+        key: "final_average",
+        required: false,
+        type: "number",
+        description: "Média de conclusão do ano (0 a 20)",
+        example: "15.4",
+      },
+      {
+        header: "Desfecho / Resultado",
+        key: "outcome",
+        required: true,
+        type: "select",
+        description: "Concluído com Êxito, Transferido, Aprovado",
+        example: "Concluído com Êxito",
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // GRUPO 4: TESOURARIA & FINANÇAS
+  // ---------------------------------------------------------------------------
+  propinas: {
+    module: "propinas",
+    label: "Modelo de Tabela & Preçário de Propinas",
+    filename: "Modelo_Propinas_SIGA.csv",
+    category: "financeira",
+    columns: [
+      {
+        header: "Designação da Propina / Serviço",
+        key: "title",
+        required: true,
+        type: "text",
+        description: "Ex.: Propina Mensal 10ª Classe, Transporte Escolar, Almoço",
+        example: "Propina Mensal - 10ª Classe",
+      },
+      {
+        header: "Classe Aplicável",
+        key: "grade_level",
+        required: true,
+        type: "text",
+        description: "Classe ou grau destinatário",
+        example: "10ª Classe",
+      },
+      {
+        header: "Curso Aplicável",
+        key: "course",
+        required: false,
+        type: "text",
+        description: "Curso específico ou Todos",
+        example: "CFB",
+      },
+      {
+        header: "Valor Mensal (Kz)",
+        key: "amount",
+        required: true,
+        type: "number",
+        description: "Quantia oficial em Kwanzas",
+        example: "35000",
+      },
+      {
+        header: "Dia Limite de Pagamento",
+        key: "due_day",
+        required: false,
+        type: "number",
+        description: "Dia do mês limite sem multa (ex.: 10)",
+        example: "10",
+      },
+      {
+        header: "Taxa de Multa Diária (%)",
+        key: "penalty_rate",
+        required: false,
+        type: "number",
+        description: "Percentagem de mora após o vencimento",
+        example: "1.5",
+      },
+    ],
+  },
+
   pagamentos: {
     module: "pagamentos",
-    label: "Modelo de Pagamentos e Propinas",
+    label: "Modelo de Pagamentos & Cobrança de Propinas",
     filename: "Modelo_Pagamentos_SIGA.csv",
+    category: "financeira",
     columns: [
       {
         header: "Aluno (Processo ou BI)",
@@ -294,7 +1231,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         key: "month_ref",
         required: true,
         type: "text",
-        description: "Mês da propina ou serviço",
+        description: "Mês da propina ou serviço pago",
         example: "Fevereiro 2026",
       },
       {
@@ -303,33 +1240,178 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "number",
         description: "Valor em Kwanzas",
-        example: "25000",
+        example: "35000",
       },
       {
         header: "Data do Pagamento",
         key: "payment_date",
         required: true,
         type: "date",
-        description: "Data de recepção",
+        description: "Data do recibo (AAAA-MM-DD)",
         example: "2026-02-05",
       },
       {
         header: "Forma de Pagamento",
         key: "payment_method",
         required: false,
+        type: "select",
+        description: "TPA, Transferência Bancária, Depósito, Dinheiro, Multicaixa Express",
+        example: "Multicaixa Express",
+      },
+      {
+        header: "Nº de Recibo / Transação",
+        key: "receipt_number",
+        required: false,
         type: "text",
-        description: "TPA, Transferência, Multicaixas",
-        example: "TPA Express",
+        description: "Código do comprovativo bancário ou número de recibo",
+        example: "MCX-98218921",
+      },
+    ],
+  },
+
+  dividas: {
+    module: "dividas",
+    label: "Modelo de Dívidas & Faturas em Atraso",
+    filename: "Modelo_Dividas_SIGA.csv",
+    category: "financeira",
+    columns: [
+      {
+        header: "Aluno (Processo ou BI)",
+        key: "student_identifier",
+        required: true,
+        type: "text",
+        description: "Aluno devedor",
+        example: "PROC-2026-042",
+      },
+      {
+        header: "Nº da Fatura / Guia",
+        key: "invoice_number",
+        required: false,
+        type: "text",
+        description: "Número do documento de cobrança",
+        example: "FT-2026/0129",
+      },
+      {
+        header: "Mês / Descrição da Dívida",
+        key: "month_ref",
+        required: true,
+        type: "text",
+        description: "Mês ou serviço em incumprimento",
+        example: "Janeiro 2026",
+      },
+      {
+        header: "Valor em Dívida (Kz)",
+        key: "amount_due",
+        required: true,
+        type: "number",
+        description: "Montante em mora em Kwanzas",
+        example: "35000",
+      },
+      {
+        header: "Data de Vencimento",
+        key: "due_date",
+        required: true,
+        type: "date",
+        description: "Prazo original de pagamento (AAAA-MM-DD)",
+        example: "2026-01-10",
+      },
+      {
+        header: "Estado da Cobrança",
+        key: "status",
+        required: false,
+        type: "select",
+        description: "Pendente, Vencido, Em Negociação, Encaminhado para Cobrança",
+        example: "Vencido",
+      },
+    ],
+  },
+
+  historico_financeiro: {
+    module: "historico_financeiro",
+    label: "Modelo de Histórico Financeiro por Aluno",
+    filename: "Modelo_Historico_Financeiro_SIGA.csv",
+    category: "financeira",
+    columns: [
+      {
+        header: "Aluno (Processo ou BI)",
+        key: "student_identifier",
+        required: true,
+        type: "text",
+        description: "Identificação do estudante",
+        example: "PROC-2026-042",
+      },
+      {
+        header: "Ano Lectivo",
+        key: "academic_year",
+        required: true,
+        type: "text",
+        description: "Ano do balanço financeiro",
+        example: "2025/2026",
+      },
+      {
+        header: "Total Faturado no Ano (Kz)",
+        key: "total_billed",
+        required: true,
+        type: "number",
+        description: "Soma de todas as mensalidades e serviços emitidos",
+        example: "350000",
+      },
+      {
+        header: "Total Liquidado / Pago (Kz)",
+        key: "total_paid",
+        required: true,
+        type: "number",
+        description: "Soma de todos os pagamentos validados",
+        example: "350000",
+      },
+      {
+        header: "Saldo Devedor Residual (Kz)",
+        key: "balance_due",
+        required: false,
+        type: "number",
+        description: "Valor pendente (0 se regularizado)",
+        example: "0",
+      },
+      {
+        header: "Situação Financeira",
+        key: "financial_status",
+        required: false,
+        type: "select",
+        description: "Regularizada, Pendente, Com Dívidas",
+        example: "Regularizada",
       },
     ],
   },
 };
 
+// Anexar dados de demonstração práticos para todos os 22 módulos
+for (const key of Object.keys(OFFICIAL_TEMPLATES)) {
+  const mod = key as ImportModule;
+  if (MODULE_DEMO_ROWS[mod]) {
+    OFFICIAL_TEMPLATES[key].demoRows = MODULE_DEMO_ROWS[mod];
+  }
+}
+
+/**
+ * Gera conteúdo CSV padrão separado por ponto-e-vírgula com cabeçalhos oficiais
+ * e linhas de dados práticos de demonstração para qualquer módulo solicitado.
+ */
 export function generateOfficialCsvTemplate(moduleKey: string): string {
   const spec = OFFICIAL_TEMPLATES[moduleKey];
-  if (!spec) return "Nome Completo;BI;Data Nascimento\nExemplo Silva;000000000LA000;2010-01-01\n";
+  if (!spec) {
+    return "Nome Completo;Bilhete de Identidade;Telefone\nExemplo Silva;000000000LA000;923112233\n";
+  }
 
   const headers = spec.columns.map((c) => c.header).join(";");
-  const examples = spec.columns.map((c) => c.example).join(";");
-  return `${headers}\n${examples}\n`;
+  const demoRows = spec.demoRows || MODULE_DEMO_ROWS[spec.module as ImportModule];
+  const rows =
+    demoRows && demoRows.length > 0
+      ? demoRows.map((row) =>
+          spec.columns
+            .map((c) => (row[c.key] !== undefined ? String(row[c.key]) : (c.example ?? "")))
+            .join(";"),
+        )
+      : [spec.columns.map((c) => c.example).join(";")];
+
+  return `${headers}\n${rows.join("\n")}\n`;
 }

@@ -107,6 +107,8 @@ export function AccountDrawer({
     "perfil" | "foto" | "seguranca" | "instituicoes"
   >("perfil");
 
+  // `useCallback` para os dois efeitos abaixo poderem depender desta função
+  // em vez de replicarem à mão o que ela fecha por dentro (`currentUser.id`).
   const openThread = useCallback(
     (next: SchoolColleague) => {
       touchRecentContact(currentUser.id, next.id);

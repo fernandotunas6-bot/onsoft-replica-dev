@@ -5,6 +5,7 @@ import {
   resolveTenantLookup,
   getTenantSlugFromHostname,
   isAdminSubdomain,
+  isPayflowSubdomain,
 } from "@/lib/saas/tenant-resolver";
 
 describe("resolveTenantLookup", () => {
@@ -19,7 +20,7 @@ describe("resolveTenantLookup", () => {
     });
   });
 
-  it("trata subdomínios reservados www e app no portal-siga como hostname institucional", () => {
+  it("trata subdomínios reservados www, app e payflow no portal-siga como hostname institucional", () => {
     expect(resolveTenantLookup("www.portal-siga.com")).toEqual({
       mode: "hostname",
       hostname: "www.portal-siga.com",
@@ -27,6 +28,10 @@ describe("resolveTenantLookup", () => {
     expect(resolveTenantLookup("app.portal-siga.com")).toEqual({
       mode: "hostname",
       hostname: "app.portal-siga.com",
+    });
+    expect(resolveTenantLookup("payflow.portal-siga.com")).toEqual({
+      mode: "hostname",
+      hostname: "payflow.portal-siga.com",
     });
   });
 
@@ -69,5 +74,13 @@ describe("isAdminSubdomain", () => {
 
   it("não marca domínios customizados como admin", () => {
     expect(isAdminSubdomain("admin.colegio.ao")).toBe(false);
+  });
+});
+
+describe("isPayflowSubdomain", () => {
+  it("detecta payflow sob o domínio da plataforma", () => {
+    expect(isPayflowSubdomain("payflow.portal-siga.com")).toBe(true);
+    expect(isPayflowSubdomain("escola.portal-siga.com")).toBe(false);
+    expect(isPayflowSubdomain("payflow.colegio.ao")).toBe(false);
   });
 });
