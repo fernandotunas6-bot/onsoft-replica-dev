@@ -1,10 +1,10 @@
 {
-  "capturadoEm": "2026-09-16T05:02:46.325Z",
+  "capturadoEm": "2026-09-20T07:15:45.798Z",
   "resumo": {
-    "com_rls": 154,
+    "com_rls": 156,
     "funcoes_private": 95,
-    "politicas": 294,
-    "tabelas": 154,
+    "politicas": 296,
+    "tabelas": 156,
     "triggers": 134
   },
   "tabelas": [
@@ -459,6 +459,48 @@
       "rls": true,
       "rls_forcada": true,
       "tabela": "announcements"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "colunas": [
+        "id",
+        "school_id",
+        "rule_set_id",
+        "subject_id",
+        "created_at"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "assessment_key_subjects"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "colunas": [
+        "id",
+        "school_id",
+        "grading_scale_id",
+        "code",
+        "name",
+        "version",
+        "status",
+        "continuous_weight",
+        "exam_weight",
+        "passing_value",
+        "maximum_absence_percentage",
+        "rounding_method",
+        "grade_change_requires_approval",
+        "lock_after_publication",
+        "formula",
+        "created_by",
+        "created_at"
+      ],
+      "politicas": 1,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "assessment_rule_sets"
     },
     {
       "anon_select": false,
@@ -3648,6 +3690,22 @@
       "tabela": "announcements",
       "usando": "private.has_permission(school_id, 'communication.announcements.manage'::text)",
       "verificando": "private.has_permission(school_id, 'communication.announcements.manage'::text)"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "assessment_key_subjects_select_authorized",
+      "tabela": "assessment_key_subjects",
+      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "assessment_rule_sets_select_authorized",
+      "tabela": "assessment_rule_sets",
+      "usando": "private.has_permission(school_id, 'academic.structure.read'::text)",
+      "verificando": ""
     },
     {
       "cmd": "SELECT",

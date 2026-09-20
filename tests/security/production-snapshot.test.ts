@@ -117,12 +117,11 @@ const ANON_POLICIES_ESPERADAS = [
  *   2. Caixas de correio de tenant — `tenant_mailboxes`, declarada em
  *      `supabase/APPLY_MAILBOXES.sql`, script manual também por aplicar.
  *   3. Importadores contra o esquema Lovable antigo — `courses`, `invoices`,
- *      `payments`, `class_schedule_slots` e `assessment_rule_sets` são nomes do
- *      esquema que o SGA nunca teve. Os importadores respectivos escrevem para
- *      tabelas que não existem.
+ *      `payments` e `class_schedule_slots` são nomes do esquema que o SGA nunca
+ *      teve. Os importadores respectivos foram remapeados; o grupo está fechado.
  *
- * A lista existe para encolher até zero. Aplicar a migração fecha o grupo 1;
- * os outros dois precisam de decisão, não só de SQL.
+ * A lista existe para encolher até zero. Falta um: `tenant_mailboxes`, que
+ * precisa de decisão, não só de SQL.
  */
 /**
  * Cada entrada diz que funcionalidade fica partida enquanto a tabela não
@@ -137,15 +136,19 @@ const ANON_POLICIES_ESPERADAS = [
  * `pagamentos`, `historico_financeiro`) foram remapeados para o modelo real —
  * `programs`, `timetable_slots` (via `class_subjects`), `finance_invoices` e
  * `finance_receipts` (via `finance_contracts`) — em vez do esquema Lovable que
- * a produção nunca teve. `assessment_rule_sets` continua nesta lista: é do
- * caminho legado de notas (`sga-grades-legacy.ts`), fora destes cinco.
+ * a produção nunca teve.
+ *
+ * `assessment_rule_sets` (e `assessment_key_subjects`) saíram a 2026-09-20, com
+ * a migração `20260916140000_assessment_rule_sets.sql` aplicada à produção. Era
+ * a entrada mais cara da lista: `gradebooks.rule_set_id` é NOT NULL e o caminho
+ * legado só abre um diário com um `rule_set_id` desta tabela ou emprestado de
+ * outro diário da escola — numa escola nova não havia nenhum dos dois, logo não
+ * se abria o primeiro diário nem se lançavam notas.
  */
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
-  // Caixas de correio por tenant, no Control Center.
+  // Caixas de correio por tenant, no Control Center: sem a tabela, o
+  // aprovisionamento de caixas institucionais não grava nem lista nada.
   "tenant_mailboxes",
-
-  // Regras de avaliação do caminho legado de notas (sga-grades-legacy.ts).
-  "assessment_rule_sets",
 ]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

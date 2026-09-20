@@ -51,7 +51,7 @@ const podeSondar = Boolean(URL_BASE && CHAVE);
  * uma entrada daqui quando a migração respectiva for aplicada.
  */
 const AUSENCIAS_CONHECIDAS = new Map([
-  ["assessment_rule_sets", "migração 20260916140000_assessment_rule_sets.sql, por aplicar"],
+  // `assessment_rule_sets` saiu daqui a 2026-09-20: a migração foi aplicada.
   ["tenant_mailboxes", "caixas de correio por tenant — sem migração no repositório"],
 ]);
 

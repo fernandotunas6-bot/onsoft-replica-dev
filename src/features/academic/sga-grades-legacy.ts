@@ -145,12 +145,13 @@ async function ensureGradebook(
   }
 
   if (!ruleSetId) {
-    // Numa escola nova este é um beco sem saída, não um passo de configuração em falta:
-    // `assessment_rule_sets` não existe em produção, e as funções que a preencheriam
-    // (`configure_assessment_rules`, `publish_assessment_rule_version`) falham com 42P01
-    // pela mesma razão. Sem `rule_set_id` não se abre o primeiro diário, logo não se
-    // lançam notas. A migração que cria as tabelas está escrita e por aplicar:
-    // `supabase/migrations/20260916140000_assessment_rule_sets.sql` (npm run siga:sql).
+    // Até 2026-09-20 isto era um beco sem saída numa escola nova: `assessment_rule_sets`
+    // não existia em produção, e as duas funções que a preencheriam
+    // (`configure_assessment_rules`, `publish_assessment_rule_version`) falhavam com 42P01
+    // pela mesma razão — sem `rule_set_id` não se abria o primeiro diário, logo não se
+    // lançavam notas. A migração `20260916140000_assessment_rule_sets.sql` foi aplicada e
+    // as funções passam a chegar à verificação de permissão (`assessment.rules.manage`).
+    // Restam, portanto, dois casos distintos, e o segundo é accionável por quem o lê.
     throw new Error(
       ruleTableMissing
         ? "As regras de avaliação ainda não existem nesta base de dados. É preciso aplicar a migração 20260916140000_assessment_rule_sets.sql antes de abrir o primeiro diário de notas."

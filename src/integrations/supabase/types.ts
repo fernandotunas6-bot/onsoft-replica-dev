@@ -30,6 +30,14 @@
  * entretanto entraram. A regeneração só acrescentou — nenhuma tabela saiu.
  */
 
+/**
+ * Regenerado a 2026-09-20, depois de aplicada
+ * `20260916140000_assessment_rule_sets.sql`. São 156 tabelas (eram 154): as
+ * duas que faltavam ao núcleo de avaliação — `assessment_rule_sets` e
+ * `assessment_key_subjects`. A regeneração só acrescentou: 255 entradas
+ * passaram a 257 e nenhuma saiu.
+ */
+
 export type Json =
   | string
   | number
@@ -1334,6 +1342,127 @@ export type Database = {
           },
           {
             foreignKeyName: "announcements_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_key_subjects: {
+        Row: {
+          created_at: string
+          id: string
+          rule_set_id: string
+          school_id: string
+          subject_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rule_set_id: string
+          school_id: string
+          subject_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rule_set_id?: string
+          school_id?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_key_subjects_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_rule_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_key_subjects_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_key_subjects_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_rule_sets: {
+        Row: {
+          code: string
+          continuous_weight: number
+          created_at: string
+          created_by: string | null
+          exam_weight: number
+          formula: Json | null
+          grade_change_requires_approval: boolean
+          grading_scale_id: string
+          id: string
+          lock_after_publication: boolean
+          maximum_absence_percentage: number
+          name: string
+          passing_value: number
+          rounding_method: string
+          school_id: string
+          status: string
+          version: number
+        }
+        Insert: {
+          code?: string
+          continuous_weight: number
+          created_at?: string
+          created_by?: string | null
+          exam_weight: number
+          formula?: Json | null
+          grade_change_requires_approval?: boolean
+          grading_scale_id: string
+          id?: string
+          lock_after_publication?: boolean
+          maximum_absence_percentage: number
+          name: string
+          passing_value: number
+          rounding_method?: string
+          school_id: string
+          status?: string
+          version?: number
+        }
+        Update: {
+          code?: string
+          continuous_weight?: number
+          created_at?: string
+          created_by?: string | null
+          exam_weight?: number
+          formula?: Json | null
+          grade_change_requires_approval?: boolean
+          grading_scale_id?: string
+          id?: string
+          lock_after_publication?: boolean
+          maximum_absence_percentage?: number
+          name?: string
+          passing_value?: number
+          rounding_method?: string
+          school_id?: string
+          status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_rule_sets_grading_scale_id_fkey"
+            columns: ["grading_scale_id"]
+            isOneToOne: false
+            referencedRelation: "grading_scales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_rule_sets_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
