@@ -265,10 +265,28 @@ describe("dry run não escreve na base", () => {
     expect(writes).toEqual([]);
   });
 
-  it("todos os importadores registados verificam ctx.dryRun", () => {
-    // Guarda de regressão: um importador novo sem esta guarda faz uma
-    // pré-visualização que grava. Sete deles estiveram assim até 2026-09-16.
-    const semGuarda: string[] = [];
+  it("nenhum importador registado escreve antes da guarda de dry run", () => {
+    // A versão anterior só exigia que o ficheiro *mencionasse* `ctx.dryRun`.
+    // Mencionar não é devolver: um importador que gravasse e só depois
+    // verificasse a guarda passava na mesma. O que conta é a ordem — nada que
+    // grave pode correr antes de a guarda devolver.
+    //
+    // Escrever conta directo e por interposta pessoa. Dos quatro ajudantes dos
+    // núcleos que gravam, `resolveOrCreatePerson` verifica `ctx.dryRun` por
+    // dentro (e por isso é seguro chamá-lo antes da guarda); os três
+    // financeiros gravam sempre e têm de ficar depois dela.
+    const ESCRITORES_CEGOS = [
+      "ensureFinanceContract",
+      "insertInvoiceWithNumber",
+      "registerReceiptDirect",
+    ];
+    const escritaCega = new RegExp(
+      String.raw`\.(?:insert|upsert|update|delete)\(|\brpc\(|\b(?:${ESCRITORES_CEGOS.join("|")})\(`,
+      "g",
+    );
+
+    const problemas: string[] = [];
+
     for (const modulo of Object.keys(IMPORTER_REGISTRY)) {
       const ficheiro = resolve(
         __dirname,
@@ -281,11 +299,32 @@ describe("dry run não escreve na base", () => {
       } catch {
         continue; // módulos servidos por outro ficheiro (ex.: people-core)
       }
-      if (!código.includes("ctx.dryRun")) semGuarda.push(modulo);
+
+      const escritas = [...código.matchAll(escritaCega)];
+      if (escritas.length === 0) continue; // nada que gravar, nada a guardar
+
+      const primeiraEscrita = escritas[0].index ?? 0;
+
+      // A guarda aparece em três formas no repositório: com chavetas, sem elas,
+      // e com um `if` aninhado antes do return. Procurar `if (ctx.dryRun)` e
+      // exigir um `return` entre ela e a primeira escrita cobre as três.
+      const guardas = [...código.matchAll(/if\s*\(\s*ctx\.dryRun\s*\)/g)];
+      const guarda = guardas.find((g) => (g.index ?? Infinity) < primeiraEscrita);
+
+      if (!guarda) {
+        problemas.push(`${modulo}: grava (${escritas[0][0]}) sem guarda de dry run antes`);
+        continue;
+      }
+      const entre = código.slice(guarda.index ?? 0, primeiraEscrita);
+      if (!/\breturn\b/.test(entre)) {
+        problemas.push(`${modulo}: a guarda de dry run não devolve antes de gravar`);
+      }
     }
+
     expect(
-      semGuarda,
-      `Estes importadores gravam mesmo em dry run: ${semGuarda.join(", ")}.`,
+      problemas,
+      `Sem uma guarda que devolva antes da primeira escrita, a pré-visualização grava mesmo ` +
+        `— contratos financeiros, faturas, tempos de horário:\n${problemas.join("\n")}`,
     ).toEqual([]);
   });
 
