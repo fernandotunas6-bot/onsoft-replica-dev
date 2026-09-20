@@ -69,12 +69,23 @@ esconderia a próxima divergência.
 `check:style` com 575 ficheiros e 39/39 rotas, zero lacunas. `prettier --check` limpo nos
 ficheiros tocados.
 
-**A lacuna que fica aberta.** Nada no repositório valida os ficheiros de workflow. Um
-`: ` mal colocado desliga uma verificação de CI e a única pista é um run de 0 s com o nome
-do ficheiro, que se confunde com ruído. Um teste que corra o parser sobre
-`.github/workflows/*.yml` fechava isto em dez linhas, mas precisa de um parser de YAML
-declarado: `js-yaml` está em `node_modules` por via transitiva e **depender disso seria
-repetir exactamente o erro do `bun.lock`**. Por decidir se entra como devDependency.
+**A guarda, e porque tinha de ser um parser.** Nada no repositório validava os ficheiros
+de workflow: o `eslint` não lê YAML e o `check:style` só olha para `src/`. Um `: ` mal
+colocado desliga uma verificação de CI e a única pista é um run de 0 s com o nome do
+ficheiro, que se confunde com ruído. `tests/security/workflows-yaml.test.ts` corre o parser
+a sério sobre `.github/workflows/*.yml` — 31 asserções sobre os 10 ficheiros: que parseiam,
+que têm `on:` e `jobs:`, e que cada job tem `runs-on` e `steps` ou delega num workflow
+reutilizável. Uma expressão regular cobriria este caso e não a classe: um `*` à cabeça, um
+tab na indentação ou umas aspas por fechar partem um workflow da mesma maneira.
+
+O `js-yaml` **passou a devDependency declarada**. Estava em `node_modules` por via
+transitiva (`@eslint/eslintrc`, `xmlbuilder2`) e apoiar um teste nisso era repetir
+exactamente o erro do `bun.lock` — a dependência desaparece na primeira resolução que mude
+e o teste deixa de existir sem ninguém dar por isso. O `@types/js-yaml` foi instalado e
+logo removido: a v5 traz tipos próprios e o pacote de tipos publicado descreve a v4.
+
+Verificado por mutação: reposto o `if:` original em `lockfile-sync.yml`, o teste falha com
+`mapping values are not allowed here` e acusa o ficheiro pelo nome.
 
 ## Estado (2026-09-19)
 
