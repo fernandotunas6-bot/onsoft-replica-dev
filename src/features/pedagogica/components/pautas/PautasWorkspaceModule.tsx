@@ -712,6 +712,7 @@ export function PautasWorkspaceModule({
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
+              aria-label="Pesquisar aluno"
               type="search"
               placeholder="Pesquisar por aluno ou código..."
               className="pl-9 h-9 text-xs"
@@ -823,6 +824,7 @@ export function PautasWorkspaceModule({
               Nível de Ensino
             </label>
             <select
+              aria-label="Ciclo de ensino"
               className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary font-medium"
               value={selectedCycle}
               onChange={(e) => setSelectedCycle(e.target.value as AngolaTeachingCycle)}
@@ -839,6 +841,7 @@ export function PautasWorkspaceModule({
           <div className="space-y-1">
             <label className="text-xs font-semibold text-muted-foreground block">Turma</label>
             <select
+              aria-label="Turma"
               className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary font-medium"
               value={selectedClassId}
               onChange={(e) => {
@@ -864,6 +867,7 @@ export function PautasWorkspaceModule({
                 Disciplina
               </label>
               <select
+                aria-label="Disciplina"
                 className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary font-medium"
                 value={effectiveSubjectId}
                 onChange={(e) => setSelectedSubjectId(e.target.value)}
@@ -886,6 +890,7 @@ export function PautasWorkspaceModule({
                 {getPeriodNoun(selectedCycle)} Lectivo
               </label>
               <select
+                aria-label="Trimestre"
                 className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary font-medium"
                 value={selectedTerm}
                 onChange={(e) => applyTermSelection(Number(e.target.value))}

@@ -97,6 +97,7 @@ export function ProgramCurriculumPanel({
       <div className="space-y-1">
         <Label className="text-xs font-semibold text-muted-foreground">Curso</Label>
         <select
+          aria-label="Programa"
           className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm sm:max-w-xs"
           value={programId}
           onChange={(event) => setProgramId(event.target.value)}
@@ -159,6 +160,7 @@ export function ProgramCurriculumPanel({
       {canEdit ? (
         <div className="grid grid-cols-1 gap-2 rounded-xl border border-dashed border-border p-3 sm:grid-cols-[1fr_auto_auto_auto]">
           <select
+            aria-label="Disciplina"
             className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={subjectId}
             onChange={(event) => setSubjectId(event.target.value)}

@@ -358,6 +358,7 @@ export function PersonProfile360Modal({
                   )}
                 </button>
                 <input
+                  aria-label="Carregar fotografia"
                   ref={fileInputRef}
                   type="file"
                   accept="image/png,image/jpeg,image/webp"

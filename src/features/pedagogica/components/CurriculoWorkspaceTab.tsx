@@ -425,6 +425,7 @@ export function CurriculoWorkspaceTab({
             <div className="space-y-4">
               <div className="flex flex-wrap gap-3">
                 <select
+                  aria-label="Curso da matriz curricular"
                   value={matrixCourseId}
                   onChange={(e) => setMatrixCourseId(e.target.value)}
                   className="h-9 rounded-lg border border-input bg-background px-3 text-xs"
@@ -437,6 +438,7 @@ export function CurriculoWorkspaceTab({
                   ))}
                 </select>
                 <select
+                  aria-label="Classe da matriz curricular"
                   value={matrixGradeLevelId}
                   onChange={(e) => setMatrixGradeLevelId(e.target.value)}
                   className="h-9 rounded-lg border border-input bg-background px-3 text-xs"
@@ -489,6 +491,7 @@ export function CurriculoWorkspaceTab({
                             <TableRow key={row.key}>
                               <TableCell>
                                 <select
+                                  aria-label="Disciplina da linha"
                                   value={row.subjectId}
                                   onChange={(e) =>
                                     updateMatrixRow(row.key, { subjectId: e.target.value })
@@ -504,6 +507,7 @@ export function CurriculoWorkspaceTab({
                               </TableCell>
                               <TableCell>
                                 <select
+                                  aria-label="Tipo de disciplina"
                                   value={row.subjectTypeId}
                                   onChange={(e) =>
                                     updateMatrixRow(row.key, { subjectTypeId: e.target.value })
@@ -522,6 +526,7 @@ export function CurriculoWorkspaceTab({
                               </TableCell>
                               <TableCell className="text-center">
                                 <input
+                                  aria-label="Tempos semanais"
                                   type="number"
                                   min={1}
                                   max={25}
@@ -536,6 +541,7 @@ export function CurriculoWorkspaceTab({
                               </TableCell>
                               <TableCell className="text-center">
                                 <input
+                                  aria-label="Duração do tempo, em minutos"
                                   type="number"
                                   min={15}
                                   max={180}
@@ -551,6 +557,7 @@ export function CurriculoWorkspaceTab({
                               </TableCell>
                               <TableCell className="text-center">
                                 <input
+                                  aria-label="Disciplina obrigatória"
                                   type="checkbox"
                                   checked={row.isMandatory}
                                   onChange={(e) =>
@@ -877,6 +884,7 @@ export function CurriculoWorkspaceTab({
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
                 <select
+                  aria-label="Professor"
                   value={availabilityTeacherId}
                   onChange={(e) => setAvailabilityTeacherId(e.target.value)}
                   className="h-9 rounded-lg border border-input bg-background px-3 text-xs"
@@ -893,6 +901,7 @@ export function CurriculoWorkspaceTab({
                   <label className="flex items-center gap-2 text-xs text-muted-foreground">
                     Carga horária semanal máxima
                     <input
+                      aria-label="Máximo de horas semanais"
                       type="number"
                       min={1}
                       max={60}
@@ -934,6 +943,7 @@ export function CurriculoWorkspaceTab({
                             </TableCell>
                             <TableCell className="text-center">
                               <input
+                                aria-label="Dia disponível"
                                 type="checkbox"
                                 checked={row.isAvailable}
                                 onChange={(e) =>
@@ -946,6 +956,7 @@ export function CurriculoWorkspaceTab({
                             </TableCell>
                             <TableCell className="text-center">
                               <input
+                                aria-label="Hora de início"
                                 type="time"
                                 value={row.startsAt}
                                 disabled={!row.isAvailable}
@@ -957,6 +968,7 @@ export function CurriculoWorkspaceTab({
                             </TableCell>
                             <TableCell className="text-center">
                               <input
+                                aria-label="Hora de fim"
                                 type="time"
                                 value={row.endsAt}
                                 disabled={!row.isAvailable}
@@ -968,6 +980,7 @@ export function CurriculoWorkspaceTab({
                             </TableCell>
                             <TableCell>
                               <input
+                                aria-label="Observação de disponibilidade"
                                 type="text"
                                 value={row.notes}
                                 disabled={!row.isAvailable}

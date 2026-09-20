@@ -426,9 +426,10 @@ export function ScheduleWorkspace({
         <div className="flex flex-wrap items-center gap-3">
           {viewMode === "turma" && (
             <select
+              aria-label="Filtrar por turma"
               value={selectedClassGroupId}
               onChange={(e) => setClassGroupId(e.target.value)}
-              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {classGroups.map((group) => (
                 <option key={group.id} value={group.id}>
@@ -440,9 +441,10 @@ export function ScheduleWorkspace({
 
           {viewMode === "professor" && (
             <select
+              aria-label="Filtrar por professor"
               value={selectedTeacherId}
               onChange={(e) => setTeacherId(e.target.value)}
-              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {teachers.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -454,9 +456,10 @@ export function ScheduleWorkspace({
 
           {viewMode === "sala" && (
             <select
+              aria-label="Filtrar por sala"
               value={selectedRoomId}
               onChange={(e) => setRoomId(e.target.value)}
-              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {rooms.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -469,11 +472,12 @@ export function ScheduleWorkspace({
           <div className="relative">
             <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
             <input
+              aria-label="Filtrar grade"
               type="text"
               placeholder="Filtrar grade..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="rounded-xl border border-border bg-background py-1.5 pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="rounded-xl border border-border bg-background py-1.5 pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
           </div>
         </div>

@@ -304,6 +304,7 @@ export function AttendanceCallDialog({
               <div className="relative w-full">
                 <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                 <Input
+                  aria-label="Pesquisar aluno"
                   placeholder="Pesquisar aluno por nome ou número..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -521,6 +522,7 @@ export function AttendanceCallDialog({
           </DialogHeader>
           <div className="space-y-3 py-3">
             <Textarea
+              aria-label="Motivo da correcção"
               placeholder="Ex: Corrigido atraso do aluno João a pedido do encarregado com justificação..."
               value={editReason}
               onChange={(e) => setEditReason(e.target.value)}

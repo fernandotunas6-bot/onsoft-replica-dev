@@ -96,6 +96,7 @@ export function SubmitAttendanceJustificationModal({
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Motivo da ausência</Label>
             <Textarea
+              aria-label="Motivo da falta"
               placeholder="Descreva o motivo da falta (ex: consulta médica, motivo de saúde com atestado...)"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -201,6 +202,7 @@ export function ReviewAttendanceJustificationModal({
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Observações da Coordenação (Opcional)</Label>
             <Textarea
+              aria-label="Nota de aprovação ou rejeição"
               placeholder="Adicionar nota de aprovação ou motivo de rejeição..."
               value={reviewNotes}
               onChange={(e) => setReviewNotes(e.target.value)}

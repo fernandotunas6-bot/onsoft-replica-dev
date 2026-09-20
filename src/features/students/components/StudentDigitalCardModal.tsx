@@ -250,6 +250,7 @@ export function StudentDigitalCardModal({
                 <Label className="text-[11px] font-semibold">Tag RFID / Wiegand</Label>
                 <div className="flex gap-2">
                   <Input
+                    aria-label="Número do cartão RFID"
                     value={rfidDraft}
                     onChange={(e) => setRfidDraft(e.target.value)}
                     placeholder="Ex: A1B2C3D4 ou número do cartão físico"

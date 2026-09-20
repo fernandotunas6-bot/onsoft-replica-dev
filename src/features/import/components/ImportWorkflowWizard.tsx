@@ -450,6 +450,7 @@ export function ImportWorkflowWizard({
               </div>
             ) : null}
             <Input
+              aria-label="Ficheiro a importar"
               type="file"
               accept=".xlsx,.xlsm,.csv"
               className="mx-auto mt-4 max-w-xs cursor-pointer text-xs"
@@ -819,11 +820,13 @@ export function ImportWorkflowWizard({
                               </SelectContent>
                             </Select>
                             <Input
+                              aria-label="Editar valor da célula"
                               className="h-7 w-28 text-xs"
                               value={editingValue}
                               onChange={(e) => setEditingValue(e.target.value)}
                             />
                             <Button
+                              aria-label="Guardar alteração"
                               size="icon"
                               className="size-7"
                               onClick={() => handleSaveInlineEdit(row.id)}

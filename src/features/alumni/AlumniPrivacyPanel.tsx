@@ -50,6 +50,7 @@ function ToggleRow({
         <span className="mt-1 block text-xs leading-5 text-muted-foreground">{helper}</span>
       </span>
       <input
+        aria-label={label}
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}

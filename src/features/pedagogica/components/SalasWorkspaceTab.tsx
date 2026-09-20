@@ -244,18 +244,20 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
             <input
+              aria-label="Pesquisar sala"
               type="text"
               placeholder="Pesquisar sala por nome, código ou bloco…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
           </div>
 
           <select
+            aria-label="Filtrar por tipo de sala"
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="rounded-xl border border-border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+            className="rounded-xl border border-border bg-background px-3 py-2 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <option value="todos">Todos os tipos de sala</option>
             {Object.entries(roomTypeLabels).map(([key, label]) => (

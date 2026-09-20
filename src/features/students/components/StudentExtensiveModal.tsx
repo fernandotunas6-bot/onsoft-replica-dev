@@ -206,6 +206,7 @@ export function StudentExtensiveModal({
               )}
             </button>
             <input
+              aria-label="Carregar fotografia"
               ref={fileInputRef}
               type="file"
               accept="image/png,image/jpeg,image/webp"

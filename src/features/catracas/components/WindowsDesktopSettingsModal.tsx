@@ -261,6 +261,7 @@ export function WindowsDesktopSettingsModal({
                   Endereço IP da Controladora (TCP 4370)
                 </Label>
                 <Input
+                  aria-label="Endereço IP da catraca"
                   value={turnstileIp}
                   onChange={(e) => setTurnstileIp(e.target.value)}
                   placeholder="Ex: 192.168.1.201"
@@ -292,6 +293,7 @@ export function WindowsDesktopSettingsModal({
                   Endereço IP da Impressora de Rede
                 </Label>
                 <Input
+                  aria-label="Endereço IP da impressora"
                   value={printerIp}
                   onChange={(e) => setPrinterIp(e.target.value)}
                   placeholder="Ex: 192.168.1.205"
@@ -325,6 +327,7 @@ export function WindowsDesktopSettingsModal({
               <div className="space-y-1">
                 <Label className="text-[11px] font-semibold">URL do SIGA Plus</Label>
                 <Input
+                  aria-label="Endereço da aplicação SIGA"
                   value={sigaAppUrl}
                   onChange={(e) => setSigaAppUrl(e.target.value)}
                   placeholder="http://127.0.0.1:3006"
@@ -334,6 +337,7 @@ export function WindowsDesktopSettingsModal({
               <div className="space-y-1">
                 <Label className="text-[11px] font-semibold">API Key do dispositivo (Key)</Label>
                 <Input
+                  aria-label="Chave de API do dispositivo"
                   value={deviceApiKey}
                   onChange={(e) => setDeviceApiKey(e.target.value)}
                   placeholder="KEY-XXXXXXXX"

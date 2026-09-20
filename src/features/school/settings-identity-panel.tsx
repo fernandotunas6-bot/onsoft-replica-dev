@@ -397,6 +397,7 @@ export function DigitalIdentityPanel() {
             <div className="flex flex-col sm:flex-row items-center gap-2">
               <div className="relative flex-1 w-full">
                 <Input
+                  aria-label="Endereço do subdomínio"
                   readOnly
                   value={currentSubdomainUrl}
                   className="font-mono text-xs bg-muted/50 pr-20 select-all"
@@ -582,11 +583,13 @@ export function DigitalIdentityPanel() {
               <Label className="text-xs text-muted-foreground">Endereço Institucional</Label>
               <div className="flex items-center gap-2">
                 <Input
+                  aria-label="E-mail institucional"
                   readOnly
                   value={institutionalEmail}
                   className="font-mono text-xs bg-muted/40"
                 />
                 <Button
+                  aria-label="Copiar e-mail institucional"
                   variant="outline"
                   size="icon"
                   className="size-9 shrink-0"
@@ -733,6 +736,7 @@ export function DigitalIdentityPanel() {
                   </Label>
                   <div className="flex items-center gap-2">
                     <input
+                      aria-label="Cor primária, em hexadecimal"
                       type="color"
                       id="primary-color"
                       value={primaryColor}
@@ -740,6 +744,7 @@ export function DigitalIdentityPanel() {
                       className="size-8 rounded border cursor-pointer bg-transparent"
                     />
                     <Input
+                      aria-label="Cor primária, em hexadecimal"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
                       className="font-mono text-xs"
@@ -758,6 +763,7 @@ export function DigitalIdentityPanel() {
                   </Label>
                   <div className="flex items-center gap-2">
                     <input
+                      aria-label="Cor secundária, em hexadecimal"
                       type="color"
                       id="secondary-color"
                       value={secondaryColor}
@@ -765,6 +771,7 @@ export function DigitalIdentityPanel() {
                       className="size-8 rounded border cursor-pointer bg-transparent"
                     />
                     <Input
+                      aria-label="Cor secundária, em hexadecimal"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
                       className="font-mono text-xs"

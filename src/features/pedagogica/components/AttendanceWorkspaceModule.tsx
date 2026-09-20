@@ -135,6 +135,7 @@ export function AttendanceWorkspaceModule({
           <div className="flex items-center gap-2">
             <Calendar className="size-4 text-muted-foreground" />
             <Input
+              aria-label="Data da aula"
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
@@ -240,6 +241,7 @@ export function AttendanceWorkspaceModule({
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
             <Input
+              aria-label="Pesquisar aula"
               placeholder="Pesquisar por disciplina ou data..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
