@@ -6,6 +6,68 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Estado (2026-09-20)
 
+## Estado (2026-09-20)
+
+### Ciclo 101 — As quatro frentes, e o que já estava feito (2026-09-20)
+
+Quatro frentes pedidas. **Três já estavam substancialmente feitas pela conciliação** — o
+trabalho real foi provar isso com medida, e fechar o que faltava mesmo.
+
+**Frente 1 — alinhamento financeiro.** A cadeia já estava alinhada: as 77 consultas
+directas de `finance/server.ts`, `dashboard/server.ts` e `gateway-webhook-handler.ts`
+foram disparadas contra a produção e nenhuma recusada; `listInvoices` devolve linhas a
+valer. O que estava partido era um embed que nenhum teste via: `academic_years(name, code)`
+no motor de exportação — `code` nunca existiu, o PostgREST recusava a consulta inteira, e a
+exportação de matrículas saía vazia sem erro visível.
+
+Daí saiu `tests/security/selects-vs-producao-live.test.ts`: dispara **cada `.select(…)` de
+`src/`** contra a produção com `limit=0`. É a via que o Ciclo 97 procurou e descartou por
+tentar fazê-la estática — o grafo de chaves estrangeiras lido do repositório é parcial e
+deu falsos positivos. Ao vivo não há grafo a construir. 491 selects, 3 recusados, todos
+ausências já registadas. Salta sem credenciais, como a sonda de RLS.
+
+*Falso positivo meu, registado:* sondei `register_payment` com corpo vazio e li o 404 como
+"a função não existe". Existe em `public` com os argumentos exactos — o PostgREST devolve
+404 quando **nenhuma assinatura corresponde**, não quando a função falta.
+
+**Frente 2 — importadores.** Já estavam todos no ramo, já escreviam só para tabelas reais
+(incluindo os cinco que a memória marcava como partidos), 117 testes verdes. O que faltava
+era a força da garantia: a verificação estrutural só exigia que o ficheiro *mencionasse*
+`ctx.dryRun`. Mencionar não é devolver. Passa a exigir ordem — nada que grave pode correr
+antes de a guarda devolver —, contando escritas directas e por interposta pessoa:
+`resolveOrCreatePerson` verifica o ensaio por dentro e é seguro antes da guarda; os três
+financeiros gravam sempre.
+
+**Frente 3 — núcleo académico.** `20260916140000_assessment_rule_sets.sql` **aplicada à
+produção**, depois de verificar as dependências (`grading_scales`,
+`private.has_permission(uuid,text)`) e de correr a migração inteira dentro de
+`BEGIN…ROLLBACK`. 154 → 156 tabelas, tipos regenerados (255 → 257 entradas, nenhuma saiu).
+`configure_assessment_rules` deixou de falhar com 42P01 e passa a falhar com 42501 na
+verificação de permissão — chega agora onde devia.
+
+E a digitação de notas: o pedido falava do `PautasWorkspaceModule`, mas as vistas de pauta
+são de leitura e não têm `onChange`. Quem recebe notas é o `AssessmentCenter`, onde
+`computedRows`, `visibleRows`, `dossier` e `classMap` corriam **a cada tecla** —
+`computedRows` sem memo nenhum, com cinco `items.filter(...)` por aluno. Numa turma de 40
+com 12 itens são 2400 toques ao array por render; agrupando por componente uma vez e
+memoizando os quatro, passam a 212.
+
+**Frente 4 — testes e rotas.** O jsdom não estava partido: declarado, instalado, 50
+ficheiros a pedi-lo, 49 suites de rotas verdes. O sintoma era o mesmo do
+`@testing-library` — o `bun.lock` não declarava as dependências. Faltava a acessibilidade,
+o último verificador vermelho: **50 lacunas em `main`, 25 depois da conciliação, 0 agora**.
+Quarenta e dois campos e botões ganharam `aria-label` tirado do que o campo é; seis anéis
+de foco passaram de `focus:` para `focus-visible:`, porque com `focus:` o anel aparece
+também ao clicar com o rato, que não é para quem ele existe.
+
+**Resultados:** `vitest run` — 251 ficheiros, **1699 testes verdes, 0 falhas**, 3 saltados.
+`tsc --noEmit` 0 erros. `a11y`, `check:style` e `lint` os três a zero.
+
+**Achado por resolver:** `/alterar-senha` dá erro de hidratação no browser (o HTML do
+servidor não bate certo com o do cliente). Não vem deste ciclo — nessa página não há
+imagens nem `MediaFrame`, só os `aria-label` que são atributos estáticos. A suspeita é a
+porta de autenticação, que rende "A verificar sessão…" só no cliente.
+
 ### Ciclo 100 — O CI não corre desde 3 de Setembro, e só uma das causas era código (2026-09-20)
 
 O Ciclo 98 fechou com a suite verde na minha máquina. No GitHub não corria nada — e não
