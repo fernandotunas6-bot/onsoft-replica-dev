@@ -4,6 +4,78 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Estado (2026-09-20)
+
+### Ciclo 100 — O CI não corre desde 3 de Setembro, e só uma das causas era código (2026-09-20)
+
+O Ciclo 98 fechou com a suite verde na minha máquina. No GitHub não corria nada — e não
+era de agora.
+
+**Nenhum run passa desde 03/09.** Dos últimos 100 runs, 100 falharam; o último sucesso é
+`2026-09-03T13:30`. A forma da falha é sempre a mesma e não é a de um teste que quebra: os
+jobs terminam em ~3 s com `steps: []`, `runner_id: 0` e `runner_name: ""` — **nunca lhes
+foi atribuído um runner**, logo nem o `checkout` chegou a correr. Falham assim também os
+workflows que não tocam no código do ramo (o horário do gateway, o E2E nocturno, a
+auditoria de dependências), o que exclui o código como causa. É a assinatura de minutos de
+Actions esgotados ou de limite de despesa atingido num repositório privado.
+
+**Não o confirmei, e digo-o em vez de o afirmar.** O PAT desta máquina recebe 403 em
+`/settings/billing/actions` e nas anotações das check-runs, e o zip de logs vem vazio
+(22 bytes) porque não há logs — nenhum job arrancou. A confirmação está na UI do GitHub,
+em *Settings → Billing*, e é do dono. **Enquanto isso não for resolvido, nenhuma correcção
+de código põe este CI verde** — o que se segue é necessário, não suficiente.
+
+**Dois workflows estavam mesmo inválidos, e isso era código.** À parte da falta de runners,
+`lockfile-sync.yml` e `apply-production-fixes.yml` não parseavam:
+
+```yaml
+if: ${{ !contains(github.event.head_commit.message, 'chore(lock): sync bun lockfile') }}
+```
+
+O valor é um **escalar simples**, e o `: ` dentro das aspas simples faz o YAML ver um
+mapeamento onde devia estar texto — `mapping values are not allowed here`, linha 12,
+coluna 69. As aspas simples não protegem nada: quem está a ler ainda não sabe que está
+dentro de uma string. Um ficheiro de workflow inválido **produz uma verificação falhada em
+cada push, com o nome do próprio ficheiro** — eram os dois runs de 0 s de 19/09, que
+pareciam workflows a correr fora do seu ramo e não eram. O valor inteiro passou a estar
+entre aspas duplas. Os 10 workflows do repositório passam agora pelo parser, verificado um
+a um.
+
+**O `bun.lock` não declarava o `@testing-library`.** É a causa real da medição errada do
+Ciclo 98 e corrige a nota que lá estava: os 49 ficheiros de `tests/routes/` não eram
+recolhidos porque `@testing-library/react` e `@testing-library/dom` estavam ausentes de
+`node_modules`, apesar de ambos constarem do `package.json` — **o lock não os trazia**, e
+por isso `bun install --frozen-lockfile` no CI nunca os instalaria. Eu tinha atribuído isso
+a ter lido mal um `ls`; não tinha. O lock está sincronizado (`jsdom` entrou pela mesma via).
+
+**O ícone do PayFlow tinha voltado a ser um `<img>` cru.** Única lacuna de `check:style` no
+repositório, e regressão da fusão: o Ciclo 96 tinha-a fechado e a reposição do Lovable
+trouxe a versão antiga. Passa por `MediaFrame` como as restantes imagens do SIGA — o
+tamanho fica no invólucro, porque `MediaFrame` define a moldura pelo rácio e não aceita
+`style`, e `object-contain` vai por `imgClassName` para não ser comido pelo `object-cover`
+por omissão. **Fica a tremulação do placeholder** até a imagem carregar, o que o `<img>`
+cru não tinha; é um PNG local e vai com `priority`, portanto é breve — mas é uma troca, não
+um ganho limpo. Verificado por reversão: com a versão anterior o `style-checklist` acusa
+exactamente esta linha, com esta acusa zero.
+
+**Uma passagem do prettier** sobre os 27 ficheiros que a fusão deixou por formatar, sem
+alteração de comportamento. O `painel/web/`, o `types.ts` e o `PRODUCTION_SNAPSHOT.json`
+ficaram de fora de propósito — o `types.ts` foi lido da produção e reformatá-lo só
+esconderia a próxima divergência.
+
+**Resultados** (na máquina, que é onde há runner): `vitest run` — **249 ficheiros,
+247 passados e 2 ignorados, 1669 testes, 1666 passados e 3 ignorados**, saída 0; o
+`rls-live-probe` que falhava no Ciclo 98 não falhou desta vez. `tsc --noEmit` sem erros.
+`check:style` com 575 ficheiros e 39/39 rotas, zero lacunas. `prettier --check` limpo nos
+ficheiros tocados.
+
+**A lacuna que fica aberta.** Nada no repositório valida os ficheiros de workflow. Um
+`: ` mal colocado desliga uma verificação de CI e a única pista é um run de 0 s com o nome
+do ficheiro, que se confunde com ruído. Um teste que corra o parser sobre
+`.github/workflows/*.yml` fechava isto em dez linhas, mas precisa de um parser de YAML
+declarado: `js-yaml` está em `node_modules` por via transitiva e **depender disso seria
+repetir exactamente o erro do `bun.lock`**. Por decidir se entra como devDependency.
+
 ## Estado (2026-09-19)
 
 ### Ciclo 99 — O seed da escola demo, medido em vez de lido (2026-09-19)
@@ -126,10 +198,12 @@ não `active`/`fee_amount`/`turnaround_days`/`requires_payment`.
 `students/schemas.ts` (`max(1000)`, que o próprio `alunos/index.tsx` pede), o cartão de
 importações do dashboard e os `ignores` do eslint (unidos, não escolhidos).
 
-**Resultados** (revistos no Ciclo 99 — o número abaixo esteve errado): a primeira medição
-deu "198 ficheiros, 1456/1460", mas nessa corrida os **49 ficheiros de `tests/routes/`
-não estavam a ser recolhidos** e eu li mal um `ls` a `node_modules/@testing-library/`,
-concluindo que o pacote não estava instalado. Está. Com a suite inteira a correr:
+**Resultados** (revistos no Ciclo 100): a primeira medição deu "198 ficheiros, 1456/1460",
+mas nessa corrida os **49 ficheiros de `tests/routes/` não estavam a ser recolhidos**,
+porque `@testing-library/react` e `@testing-library/dom` estavam mesmo em falta em
+`node_modules` — **o `bun.lock` não os declarava**, apesar de estarem no `package.json`.
+Foram instalados a meio da sessão, e só aí a suite passou a recolhê-los. (A nota anterior
+dizia que eu tinha lido mal um `ls`; não tinha — ver Ciclo 100.) Com a suite inteira a correr:
 **249 ficheiros, 1669 testes**, e `tsc --noEmit` sem um único erro. A única falha que
 sobra é `rls-live-probe` — timeout de 5 s numa sonda ao vivo contra a produção, 14/16
 passam; é rede, não código. (Os dois testes de alumni que também falhavam eram anteriores
