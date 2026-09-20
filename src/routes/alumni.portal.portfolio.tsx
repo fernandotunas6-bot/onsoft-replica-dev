@@ -150,14 +150,10 @@ function AlumniPortfolioPage() {
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
-                <Link to="/alumni/portal/portfolio/showcase">
-                  Ver apresentação
-                </Link>
+                <Link to="/alumni/portal/portfolio/showcase">Ver apresentação</Link>
               </Button>
               <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
-                <Link to="/alumni/portal">
-                  Voltar ao Portal
-                </Link>
+                <Link to="/alumni/portal">Voltar ao Portal</Link>
               </Button>
             </div>
           }

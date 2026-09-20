@@ -333,7 +333,6 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       enrollmentStats.set(classGroupId, current);
     }
 
-    
     // Média real por turma a partir das notas por período já carregadas.
     const enrollmentClassMap = new Map<string, string>();
     for (const enrollment of enrollments.data ?? []) {
@@ -357,8 +356,10 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       return Math.round((sum / values.length) * 10) / 10;
     };
 
-
-    console.log("[DBG3] groups", JSON.stringify([...gradeAveragesByGroup.entries()].map(([k,v]) => [k, v.length])));
+    console.log(
+      "[DBG3] groups",
+      JSON.stringify([...gradeAveragesByGroup.entries()].map(([k, v]) => [k, v.length])),
+    );
 
     const programById = new Map(
       (programs.data ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),

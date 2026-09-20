@@ -343,7 +343,8 @@ async function linkDemoTenant() {
     return;
   }
 
-  await gravar("tenants", 
+  await gravar(
+    "tenants",
     {
       id: DEMO_TENANT_ID,
       name: "Complexo Escolar Polivalente Dom Afonso I — SIGA Demo",
@@ -375,7 +376,8 @@ async function linkDemoTenant() {
     })
     .eq("id", SCHOOL_ID);
 
-  await gravar("tenant_domains", 
+  await gravar(
+    "tenant_domains",
     {
       tenant_id: tenantId,
       hostname: `${DEMO_TENANT_SLUG}.portal-siga.com`,
@@ -532,9 +534,27 @@ async function runSeed() {
   // → grade_levels. `duration_years` também não é coluna de nenhuma delas.
   console.log("4. A registar Níveis, Programas e Classes...");
   await gravar("academic_levels", [
-    { id: NIVEL_PRIMARIO, school_id: SCHOOL_ID, code: "primary", name: "Ensino Primário", sequence: 1 },
-    { id: NIVEL_CICLO_I, school_id: SCHOOL_ID, code: "cycle_i", name: "Iº Ciclo do Ensino Secundário", sequence: 2 },
-    { id: NIVEL_CICLO_II, school_id: SCHOOL_ID, code: "cycle_ii", name: "IIº Ciclo do Ensino Secundário", sequence: 3 },
+    {
+      id: NIVEL_PRIMARIO,
+      school_id: SCHOOL_ID,
+      code: "primary",
+      name: "Ensino Primário",
+      sequence: 1,
+    },
+    {
+      id: NIVEL_CICLO_I,
+      school_id: SCHOOL_ID,
+      code: "cycle_i",
+      name: "Iº Ciclo do Ensino Secundário",
+      sequence: 2,
+    },
+    {
+      id: NIVEL_CICLO_II,
+      school_id: SCHOOL_ID,
+      code: "cycle_ii",
+      name: "IIº Ciclo do Ensino Secundário",
+      sequence: 3,
+    },
   ]);
 
   const programs = [

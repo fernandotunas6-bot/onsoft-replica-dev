@@ -238,9 +238,7 @@ function AlumniOperationsPage() {
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
-                <Link to="/alumni/insights">
-                  Insights
-                </Link>
+                <Link to="/alumni/insights">Insights</Link>
               </Button>
             </div>
           }
@@ -537,7 +535,9 @@ function AlumniOperationsPage() {
                 </select>
                 <Input
                   id="contribution-value"
-                  aria-label={contributionType === "volunteer_hours" ? "Horas de voluntariado" : "Valor em Kz"}
+                  aria-label={
+                    contributionType === "volunteer_hours" ? "Horas de voluntariado" : "Valor em Kz"
+                  }
                   type="number"
                   min="0"
                   value={contributionValue}

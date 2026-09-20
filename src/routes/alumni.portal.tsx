@@ -194,10 +194,7 @@ function AlumniPortalPage() {
             "Actualize a sua trajectória profissional, oportunidades, eventos e rede de mentoria."
           }
           icon={GraduationCap}
-          crumbs={[
-            { label: "Início", to: "/" },
-            { label: "Meu Portal Alumni" },
-          ]}
+          crumbs={[{ label: "Início", to: "/" }, { label: "Meu Portal Alumni" }]}
           actions={
             <div className="flex items-center gap-3">
               <div className="min-w-44 rounded-xl border border-border/70 bg-card p-2.5">

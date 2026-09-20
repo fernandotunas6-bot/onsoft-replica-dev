@@ -163,9 +163,7 @@ function AlumniPipelinePage() {
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
-                <Link to="/alumni/operations">
-                  Centro Operacional
-                </Link>
+                <Link to="/alumni/operations">Centro Operacional</Link>
               </Button>
             </div>
           }

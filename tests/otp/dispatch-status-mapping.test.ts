@@ -115,7 +115,7 @@ describe("as colunas escritas pelos handlers existem na tabela", () => {
     // (`status dispatch_status`, `channel communication_channel`) e a primeira
     // versão deste teste não as via — acusava o handler de gravar `status` numa
     // tabela que tem `status`.
-    return new Set([...corpo.matchAll(/\n  ([a-z_]+) [A-Za-z]/g)].map((m) => m[1]));
+    return new Set([...corpo.matchAll(/\n {2}([a-z_]+) [A-Za-z]/g)].map((m) => m[1]));
   })();
 
   /** Chaves que cada handler grava: `updatePayload.x =` e as do objecto do insert. */

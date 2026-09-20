@@ -280,9 +280,7 @@ function ResetPasswordPage() {
                   <CheckCircle2 className="size-5 shrink-0 text-success mt-0.5" />
                   <div>
                     <p className="font-semibold">Senha atualizada com sucesso!</p>
-                    <p className="text-xs opacity-90">
-                      A redireccionar para o início de sessão…
-                    </p>
+                    <p className="text-xs opacity-90">A redireccionar para o início de sessão…</p>
                   </div>
                 </div>
 

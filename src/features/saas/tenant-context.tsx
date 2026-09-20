@@ -164,7 +164,8 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             </div>
             <h1 className="text-2xl font-bold">{copy.title}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {copy.body} Instituição <strong className="text-foreground">{activeTenant?.name}</strong>.
+              {copy.body} Instituição{" "}
+              <strong className="text-foreground">{activeTenant?.name}</strong>.
             </p>
             <p className="mt-4 text-xs text-muted-foreground">
               Regularize a assinatura no portal comercial ou contacte o suporte da plataforma.

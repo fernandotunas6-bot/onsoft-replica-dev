@@ -31,9 +31,7 @@ export function ExamPautaView({ data }: { data: ExamPautaDocument }) {
               <th className="border border-border p-2 font-bold">MFD</th>
               {isTechnical ? (
                 <>
-                  <th className="border border-border p-2 font-bold">
-                    PAP (Defesa)
-                  </th>
+                  <th className="border border-border p-2 font-bold">PAP (Defesa)</th>
                   <th className="border border-border p-2 font-bold">Estágio</th>
                   <th className="border border-border p-2 font-bold bg-muted/60">
                     Média Final Curso
@@ -41,17 +39,13 @@ export function ExamPautaView({ data }: { data: ExamPautaDocument }) {
                 </>
               ) : (
                 <>
-                  <th className="border border-border p-2 font-bold">
-                    Nota do Exame
-                  </th>
+                  <th className="border border-border p-2 font-bold">Nota do Exame</th>
                   <th className="border border-border p-2 font-bold bg-muted/60">
                     Nota Final (NF)
                   </th>
                 </>
               )}
-              <th className="border border-border p-2 font-bold">
-                Resultado Final
-              </th>
+              <th className="border border-border p-2 font-bold">Resultado Final</th>
               <th className="border border-border p-2 font-bold text-left min-w-[140px]">
                 Observação
               </th>
@@ -61,16 +55,10 @@ export function ExamPautaView({ data }: { data: ExamPautaDocument }) {
             {data.students.map((student) => (
               <tr key={student.id} className="hover:bg-muted/30 transition-colors">
                 <td className="border border-border p-1.5">{student.number}</td>
-                <td className="border border-border p-1.5 font-mono text-[11px]">
-                  {student.code}
-                </td>
-                <td className="border border-border p-1.5 text-left font-medium">
-                  {student.name}
-                </td>
+                <td className="border border-border p-1.5 font-mono text-[11px]">{student.code}</td>
+                <td className="border border-border p-1.5 text-left font-medium">{student.name}</td>
                 <td className="border border-border p-1.5">{student.gender}</td>
-                <td className="border border-border p-1.5">
-                  {formatGrade(student.mfd)}
-                </td>
+                <td className="border border-border p-1.5">{formatGrade(student.mfd)}</td>
                 {isTechnical ? (
                   <>
                     <td className="border border-border p-1.5 font-semibold">

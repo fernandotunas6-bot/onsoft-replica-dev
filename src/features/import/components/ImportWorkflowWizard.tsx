@@ -777,7 +777,9 @@ export function ImportWorkflowWizard({
                           </p>
                         ) : null}
                         {row.errors.length ? (
-                          <p className="mt-1 text-[11px] text-destructive">{row.errors.join(" · ")}</p>
+                          <p className="mt-1 text-[11px] text-destructive">
+                            {row.errors.join(" · ")}
+                          </p>
                         ) : null}
                       </td>
                       <td className="px-3 py-2">

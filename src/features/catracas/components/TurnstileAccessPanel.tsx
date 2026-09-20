@@ -623,7 +623,9 @@ export function TurnstileAccessPanel() {
                   <TableCell className="text-xs text-right">
                     <StatusBadge
                       status={log.status === "granted" ? "active" : "cancelled"}
-                      label={log.status === "granted" ? "Autorizado" : `Negado: ${log.denial_reason}`}
+                      label={
+                        log.status === "granted" ? "Autorizado" : `Negado: ${log.denial_reason}`
+                      }
                     />
                   </TableCell>
                 </TableRow>

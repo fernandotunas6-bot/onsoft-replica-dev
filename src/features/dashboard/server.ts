@@ -418,7 +418,9 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           await Promise.all([
             db
               .from("siga_assessment_scores")
-              .select("score, enrollment_id, siga_assessment_items!inner(term, subject_id, max_score)")
+              .select(
+                "score, enrollment_id, siga_assessment_items!inner(term, subject_id, max_score)",
+              )
               .eq("school_id", schoolId)
               .limit(5000),
             db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
@@ -704,7 +706,8 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           })),
         ],
         averageCollectionRate: collectionRate,
-        forecastDefaultRate: collectionRate !== null ? Math.round((100 - collectionRate) * 10) / 10 : null,
+        forecastDefaultRate:
+          collectionRate !== null ? Math.round((100 - collectionRate) * 10) / 10 : null,
         mainPaymentChannel: topChannel ? (channelLabels[topChannel] ?? topChannel) : null,
       };
     }

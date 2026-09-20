@@ -233,7 +233,10 @@ export function TurmasWorkspaceTab({
           {turmasComDados.map((t) => {
             const ocupacao = Math.round((t.alunosActuais / t.capacidadeReal) * 100);
             return (
-              <div key={t.id} className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-subtle transition-all duration-200">
+              <div
+                key={t.id}
+                className="rounded-xl border border-border bg-card p-5 shadow-card hover:shadow-subtle transition-all duration-200"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <button
@@ -292,7 +295,7 @@ export function TurmasWorkspaceTab({
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-300",
-                        ocupacao > 90 ? "bg-warning" : "bg-primary"
+                        ocupacao > 90 ? "bg-warning" : "bg-primary",
                       )}
                       style={{ width: `${Math.min(ocupacao, 100)}%` }}
                     />

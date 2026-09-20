@@ -239,8 +239,7 @@ export function AppSidebar({
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
-                    <PlusCircle className="size-4 text-primary" /> Criar
-                    escola (WEB)
+                    <PlusCircle className="size-4 text-primary" /> Criar escola (WEB)
                   </a>
                 </DropdownMenuItem>
               </DropdownMenuContent>

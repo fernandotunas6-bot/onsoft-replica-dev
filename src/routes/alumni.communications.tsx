@@ -111,9 +111,7 @@ function AlumniCommunicationsPage() {
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
-                <Link to="/alumni/operations">
-                  Operações
-                </Link>
+                <Link to="/alumni/operations">Operações</Link>
               </Button>
             </div>
           }

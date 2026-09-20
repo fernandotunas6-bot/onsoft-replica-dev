@@ -672,7 +672,10 @@ function ComunicacoesPage() {
                       const audience = c.audience as Audience;
                       const Icon = canalIcon[channel] ?? Monitor;
                       return (
-                        <li key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-subtle transition-all duration-200">
+                        <li
+                          key={c.id}
+                          className="rounded-xl border border-border bg-card p-4 shadow-card hover:shadow-subtle transition-all duration-200"
+                        >
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div className="flex items-start gap-3">
                               <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong">

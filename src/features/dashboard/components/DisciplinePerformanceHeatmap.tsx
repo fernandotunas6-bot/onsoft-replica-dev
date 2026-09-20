@@ -129,10 +129,7 @@ export function DisciplinePerformanceHeatmap({
                     const match = cGroup.grades.find((g) => g.discipline === disc);
                     if (!match) {
                       return (
-                        <td
-                          key={disc}
-                          className="p-3 text-center text-muted-foreground font-mono"
-                        >
+                        <td key={disc} className="p-3 text-center text-muted-foreground font-mono">
                           —
                         </td>
                       );

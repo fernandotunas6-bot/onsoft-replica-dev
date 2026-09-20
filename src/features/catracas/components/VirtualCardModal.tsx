@@ -107,7 +107,10 @@ export function VirtualCardModal({
                 Cartão Virtual de Estudante
               </DialogTitle>
             </div>
-            <Badge variant="outline" className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 text-[10px]">
+            <Badge
+              variant="outline"
+              className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 text-[10px]"
+            >
               {selectedYearLabel}
             </Badge>
           </div>
@@ -154,7 +157,14 @@ export function VirtualCardModal({
             <div className="rounded-xl bg-background p-4 border border-border flex flex-col items-center justify-center space-y-2 text-center">
               <div className="size-36 bg-background rounded-xl p-2 flex items-center justify-center border border-border">
                 {qrDataUrl ? (
-                  <MediaFrame src={qrDataUrl} alt="QR code do cartão de acesso" ratio="1/1" rounded="rounded-lg" className="size-full" priority />
+                  <MediaFrame
+                    src={qrDataUrl}
+                    alt="QR code do cartão de acesso"
+                    ratio="1/1"
+                    rounded="rounded-lg"
+                    className="size-full"
+                    priority
+                  />
                 ) : (
                   <div className="size-full animate-pulse rounded-lg bg-muted" />
                 )}

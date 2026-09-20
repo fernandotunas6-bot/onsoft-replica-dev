@@ -93,12 +93,8 @@ export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
             {data.students.map((student) => (
               <tr key={student.id} className="hover:bg-muted/30 transition-colors">
                 <td className="border border-border p-1">{student.number}</td>
-                <td className="border border-border p-1 font-mono text-[11px]">
-                  {student.code}
-                </td>
-                <td className="border border-border p-1 text-left font-medium">
-                  {student.name}
-                </td>
+                <td className="border border-border p-1 font-mono text-[11px]">{student.code}</td>
+                <td className="border border-border p-1 text-left font-medium">{student.name}</td>
                 <td className="border border-border p-1">{student.gender}</td>
                 {data.subjects.flatMap((subject) => {
                   const r = student.subjects.find((x) => x.subjectId === subject.id);

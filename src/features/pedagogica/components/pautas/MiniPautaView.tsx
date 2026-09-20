@@ -81,11 +81,7 @@ export function MiniPautaView({ data }: { data: MiniPautaDocument }) {
                 Gén.
               </th>
               {periods.map((p) => (
-                <th
-                  key={p}
-                  colSpan={4}
-                  className="border border-border p-1.5 font-bold"
-                >
+                <th key={p} colSpan={4} className="border border-border p-1.5 font-bold">
                   {getPeriodLabelUpper(data.context.cycle, p)}
                 </th>
               ))}
@@ -104,28 +100,16 @@ export function MiniPautaView({ data }: { data: MiniPautaDocument }) {
             </tr>
             <tr className="bg-muted/30 print:bg-muted/5">
               {periods.flatMap((t) => [
-                <th
-                  key={`${t}-mact`}
-                  className="border border-border p-1 font-semibold"
-                >
+                <th key={`${t}-mact`} className="border border-border p-1 font-semibold">
                   MACT
                 </th>,
-                <th
-                  key={`${t}-npp`}
-                  className="border border-border p-1 font-semibold"
-                >
+                <th key={`${t}-npp`} className="border border-border p-1 font-semibold">
                   NPP*
                 </th>,
-                <th
-                  key={`${t}-npt`}
-                  className="border border-border p-1 font-semibold"
-                >
+                <th key={`${t}-npt`} className="border border-border p-1 font-semibold">
                   NPT
                 </th>,
-                <th
-                  key={`${t}-mt`}
-                  className="border border-border p-1 font-bold bg-muted/60"
-                >
+                <th key={`${t}-mt`} className="border border-border p-1 font-bold bg-muted/60">
                   MT{t}
                 </th>,
               ])}
@@ -147,12 +131,8 @@ export function MiniPautaView({ data }: { data: MiniPautaDocument }) {
               return (
                 <tr key={s.id} className="hover:bg-muted/30 transition-colors">
                   <td className="border border-border p-1">{s.number}</td>
-                  <td className="border border-border p-1 font-mono text-[11px]">
-                    {s.code}
-                  </td>
-                  <td className="border border-border p-1 text-left font-medium">
-                    {s.name}
-                  </td>
+                  <td className="border border-border p-1 font-mono text-[11px]">{s.code}</td>
+                  <td className="border border-border p-1 text-left font-medium">{s.name}</td>
                   <td className="border border-border p-1">{s.gender}</td>
                   {periods.flatMap((p) => {
                     const rec = periodRecord(s, p);

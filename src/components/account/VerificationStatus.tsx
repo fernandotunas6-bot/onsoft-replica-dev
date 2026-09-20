@@ -89,7 +89,9 @@ export function VerificationStatus() {
             className="w-full px-4 py-3 flex items-center justify-between hover:bg-accent/50 transition-colors"
           >
             <h3 className="font-semibold text-lg">🔐 Verificação de Contactos</h3>
-            <span className="text-muted-foreground">{expandedSection === "verification" ? "−" : "+"}</span>
+            <span className="text-muted-foreground">
+              {expandedSection === "verification" ? "−" : "+"}
+            </span>
           </button>
 
           {expandedSection === "verification" && (
@@ -117,7 +119,9 @@ export function VerificationStatus() {
               <div className="flex items-center justify-between pt-3 border-t border-border/50">
                 <div>
                   <p className="font-medium text-sm">📱 Telefone (SMS)</p>
-                  <p className="text-xs text-muted-foreground">{profile.phoneNumber || "Não adicionado"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {profile.phoneNumber || "Não adicionado"}
+                  </p>
                 </div>
                 <div className="text-right">
                   {profile.phoneNumber ? (
@@ -183,7 +187,9 @@ export function VerificationStatus() {
             className="w-full px-4 py-3 flex items-center justify-between hover:bg-accent/50 transition-colors"
           >
             <h3 className="font-semibold text-lg">📬 Preferências de Comunicação</h3>
-            <span className="text-muted-foreground">{expandedSection === "preferences" ? "−" : "+"}</span>
+            <span className="text-muted-foreground">
+              {expandedSection === "preferences" ? "−" : "+"}
+            </span>
           </button>
 
           {expandedSection === "preferences" && (

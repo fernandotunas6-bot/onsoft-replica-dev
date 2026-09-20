@@ -59,7 +59,12 @@ function AlumniCalendarPage() {
                 <Network className="mr-2 size-3.5" />
                 Rede Alumni
               </Link>
-              <Button size="sm" onClick={downloadIcs} disabled={!events.length} className="rounded-xl text-xs h-9">
+              <Button
+                size="sm"
+                onClick={downloadIcs}
+                disabled={!events.length}
+                className="rounded-xl text-xs h-9"
+              >
                 <Download className="mr-2 size-3.5" />
                 Exportar ICS
               </Button>

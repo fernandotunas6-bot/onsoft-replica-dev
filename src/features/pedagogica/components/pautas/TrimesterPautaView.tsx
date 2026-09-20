@@ -39,10 +39,7 @@ export function TrimesterPautaView({ data }: { data: TrimesterPautaDocument }) {
               </th>
               <th className="border border-border p-2 font-bold">Gén.</th>
               {data.subjects.map((sub) => (
-                <th
-                  key={sub.id}
-                  className="border border-border p-2 font-bold min-w-[85px]"
-                >
+                <th key={sub.id} className="border border-border p-2 font-bold min-w-[85px]">
                   {sub.shortName ?? sub.name}
                 </th>
               ))}
@@ -59,12 +56,8 @@ export function TrimesterPautaView({ data }: { data: TrimesterPautaDocument }) {
             {data.students.map((student) => (
               <tr key={student.id} className="hover:bg-muted/30 transition-colors">
                 <td className="border border-border p-1.5">{student.number}</td>
-                <td className="border border-border p-1.5 font-mono text-[11px]">
-                  {student.code}
-                </td>
-                <td className="border border-border p-1.5 text-left font-medium">
-                  {student.name}
-                </td>
+                <td className="border border-border p-1.5 font-mono text-[11px]">{student.code}</td>
+                <td className="border border-border p-1.5 text-left font-medium">{student.name}</td>
                 <td className="border border-border p-1.5">{student.gender}</td>
                 {data.subjects.map((sub) => {
                   const grade = student.subjectGrades[sub.id];
