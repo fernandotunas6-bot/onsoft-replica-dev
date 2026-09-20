@@ -607,7 +607,7 @@ export async function exportSchoolData(
             status,
             enrolled_on,
             students(student_number, people(full_name, national_id)),
-            academic_years(name, code),
+            academic_years(name),
             class_groups(name, grade_levels(name))
           `,
           )
@@ -632,7 +632,7 @@ export async function exportSchoolData(
             : null;
           return {
             id: enr.id,
-            academic_year_label: year?.name || year?.code || "",
+            academic_year_label: year?.name || "",
             grade_level: grade?.name || "",
             previous_school: null,
             final_average: null,
