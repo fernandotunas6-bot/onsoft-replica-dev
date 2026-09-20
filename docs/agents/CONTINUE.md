@@ -63,6 +63,11 @@ alteração de comportamento. O `painel/web/`, o `types.ts` e o `PRODUCTION_SNAP
 ficaram de fora de propósito — o `types.ts` foi lido da produção e reformatá-lo só
 esconderia a próxima divergência.
 
+**Confirmado no GitHub, depois de empurrar.** Os dois runs de 0 s com o nome do ficheiro
+**desapareceram** — é a prova de que o YAML era a causa deles. Os restantes continuam a
+falhar exactamente na mesma forma minutos depois do push (`runner_id: 0`, `steps: []`),
+o que fecha a questão: o que sobra não é código.
+
 **Resultados** (na máquina, que é onde há runner): `vitest run` — **249 ficheiros,
 247 passados e 2 ignorados, 1669 testes, 1666 passados e 3 ignorados**, saída 0; o
 `rls-live-probe` que falhava no Ciclo 98 não falhou desta vez. `tsc --noEmit` sem erros.
