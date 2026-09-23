@@ -67,7 +67,11 @@ if (fs.existsSync(wranglerPath)) {
     ...config.vars,
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY,
-    SUPABASE_SERVICE_ROLE_KEY,
+    // SUPABASE_SERVICE_ROLE_KEY e RESEND_API_KEY NÃO entram aqui. `vars` do
+    // Cloudflare são texto simples: aparecem na listagem de bindings de
+    // qualquer deploy e no painel, a quem tiver leitura da conta. A chave de
+    // serviço do Supabase ignora o RLS por completo — numa base multi-inquilino
+    // é acesso total a todas as escolas. Vão por `wrangler secret put`, abaixo.
     VITE_SUPABASE_URL: SUPABASE_URL,
     VITE_SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY,
     APP_URL: envVars["APP_URL"] || "https://portal-siga.com",
@@ -79,20 +83,58 @@ if (fs.existsSync(wranglerPath)) {
     VITE_DOCS_URL: DOCS_URL,
     VITE_SIGA_URL: SIGA_URL,
     VITE_PAYFLOW_URL: PAYFLOW_URL,
-    ...(envVars["RESEND_API_KEY"] ? { RESEND_API_KEY: envVars["RESEND_API_KEY"] } : {}),
   };
   fs.writeFileSync(wranglerPath, JSON.stringify(config, null, 2), "utf-8");
   console.log("==> Attached production Supabase & App environment variables to wrangler.json");
 }
 
+const cfEnv = { ...process.env, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID };
+const workerCwd = path.resolve(".output/server");
+
+/**
+ * Segredos por `wrangler secret put`, cifrados e fora da listagem de bindings.
+ *
+ * O valor vai por stdin e nunca por argumento da linha de comandos: argumentos
+ * ficam visíveis na tabela de processos da máquina e no histórico da shell.
+ *
+ * Os segredos persistem entre deploys, por isso são postos ANTES — assim a
+ * versão nova nunca chega a subir sem eles. Num worker que ainda não exista,
+ * `wrangler secret put` falha; nesse caso põem-se depois do primeiro deploy.
+ */
+function porSegredo(nome, valor) {
+  execSync(`npx wrangler secret put ${nome} --config wrangler.json`, {
+    cwd: workerCwd,
+    input: valor,
+    stdio: ["pipe", "inherit", "inherit"],
+    env: cfEnv,
+  });
+}
+
+const segredos = [
+  ["SUPABASE_SERVICE_ROLE_KEY", SUPABASE_SERVICE_ROLE_KEY],
+  ...(envVars["RESEND_API_KEY"] ? [["RESEND_API_KEY", envVars["RESEND_API_KEY"]]] : []),
+];
+
+let segredosPostos = false;
+try {
+  console.log("==> Setting encrypted secrets on the worker...");
+  for (const [nome, valor] of segredos) porSegredo(nome, valor);
+  segredosPostos = true;
+  console.log(`==> ${segredos.length} secret(s) stored encrypted (not visible as vars)`);
+} catch {
+  console.log("==> Worker not found yet; secrets will be set after the first deploy.");
+}
+
 console.log("==> Deploying to Cloudflare Workers...");
 execSync("npx wrangler deploy --config wrangler.json", {
-  cwd: path.resolve(".output/server"),
+  cwd: workerCwd,
   stdio: "inherit",
-  env: {
-    ...process.env,
-    CLOUDFLARE_API_TOKEN,
-    CLOUDFLARE_ACCOUNT_ID,
-  },
+  env: cfEnv,
 });
+
+if (!segredosPostos) {
+  console.log("==> Setting encrypted secrets on the freshly created worker...");
+  for (const [nome, valor] of segredos) porSegredo(nome, valor);
+  console.log(`==> ${segredos.length} secret(s) stored encrypted (not visible as vars)`);
+}
 console.log("==> Cloudflare deployment successfully updated!");

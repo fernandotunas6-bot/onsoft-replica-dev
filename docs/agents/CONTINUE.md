@@ -4,6 +4,45 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Deploy (2026-09-20)
+
+### Produção actualizada — dez dias de uma vez
+
+`main` recebeu o PR #19 (merge `7d25157`, 358 commits, Ciclos 52–101) e o worker
+`fernandotunas6-bot-onsoft-replica-dev` foi para produção — versão
+`b95ec57f-6178-4c77-b84d-ac650e3ddc9a`. **Estava com código de 10 de Setembro.**
+
+Serve `portal-siga.com`, `app.`, `minha-escola.` e o curinga `*.portal-siga.com/*` (os
+subdomínios das escolas). O `siga-plus-payflow` e os três Pages (`www`, `admin`, `docs`)
+**não foram tocados** — o `painel/` tem trabalho por publicar desde 11/09 e fica para um
+deploy próprio, com verificação própria.
+
+**Verificado antes:** `vitest run` 1699/1702 em 251 ficheiros, `tsc --noEmit` 0 erros,
+`check:style` 575 ficheiros e 39/39 rotas, `eslint` 0 erros (95 avisos, pré-existentes),
+build de produção com saída 0. A árvore publicada é bit a bit a de `origin/main`
+(mesma árvore git, `7616706e`).
+
+**Verificado depois, contra a produção a sério:** `portal-siga.com`, `app.` e
+`minha-escola.` a 200; `/alunos`, `/faturas`, `/pedagogica`, `/documentos`, `/alterar-senha`
+a 200; `scripts/pwa-check.mjs` contra `https://portal-siga.com` com os 8 controlos verdes
+(manifesto, 4 ícones, apple-touch-icon, viewport, theme-color, service worker, offline).
+
+**Achado novo, em produção e por resolver.** O erro de hidratação que o Ciclo 101 viu em
+`/alterar-senha` **não é dessa página**: está em `/`, `/alunos` e `/alterar-senha` — React
+#418 em todas, portanto vem do que embrulha tudo. A suspeita registada era o `AuthGate`,
+mas o `checking` nasce `true` nos dois lados (`useState(true)`, linha 66), logo o primeiro
+render coincide e **isso sozinho não explica**. Precisa de ser visto num build de
+desenvolvimento, onde o React imprime a diferença em vez de a minificar. Consequência: as
+páginas funcionam — o React recupera renderizando no cliente — mas **o HTML do servidor é
+deitado fora em cada visita**, o que anula o SSR e põe em causa as metas de FCP/LCP do
+`lighthouserc.json`.
+
+**A registar e a decidir, não tocado.** O `deploy-cf.mjs` grava
+`SUPABASE_SERVICE_ROLE_KEY` e `RESEND_API_KEY` como **variáveis de ambiente em texto
+simples** no worker, não como secrets — aparecem na listagem de bindings de qualquer
+`wrangler deploy`. A chave de serviço ignora o RLS por completo; numa base multi-inquilino
+isso é a chave do reino. Passá-las a `wrangler secret` não muda o código que as lê.
+
 ## Estado (2026-09-20)
 
 ## Estado (2026-09-20)
@@ -26,13 +65,13 @@ tentar fazê-la estática — o grafo de chaves estrangeiras lido do repositóri
 deu falsos positivos. Ao vivo não há grafo a construir. 491 selects, 3 recusados, todos
 ausências já registadas. Salta sem credenciais, como a sonda de RLS.
 
-*Falso positivo meu, registado:* sondei `register_payment` com corpo vazio e li o 404 como
+_Falso positivo meu, registado:_ sondei `register_payment` com corpo vazio e li o 404 como
 "a função não existe". Existe em `public` com os argumentos exactos — o PostgREST devolve
 404 quando **nenhuma assinatura corresponde**, não quando a função falta.
 
 **Frente 2 — importadores.** Já estavam todos no ramo, já escreviam só para tabelas reais
 (incluindo os cinco que a memória marcava como partidos), 117 testes verdes. O que faltava
-era a força da garantia: a verificação estrutural só exigia que o ficheiro *mencionasse*
+era a força da garantia: a verificação estrutural só exigia que o ficheiro _mencionasse_
 `ctx.dryRun`. Mencionar não é devolver. Passa a exigir ordem — nada que grave pode correr
 antes de a guarda devolver —, contando escritas directas e por interposta pessoa:
 `resolveOrCreatePerson` verifica o ensaio por dentro e é seguro antes da guarda; os três
@@ -84,7 +123,7 @@ Actions esgotados ou de limite de despesa atingido num repositório privado.
 **Não o confirmei, e digo-o em vez de o afirmar.** O PAT desta máquina recebe 403 em
 `/settings/billing/actions` e nas anotações das check-runs, e o zip de logs vem vazio
 (22 bytes) porque não há logs — nenhum job arrancou. A confirmação está na UI do GitHub,
-em *Settings → Billing*, e é do dono. **Enquanto isso não for resolvido, nenhuma correcção
+em _Settings → Billing_, e é do dono. **Enquanto isso não for resolvido, nenhuma correcção
 de código põe este CI verde** — o que se segue é necessário, não suficiente.
 
 **Dois workflows estavam mesmo inválidos, e isso era código.** À parte da falta de runners,
@@ -167,11 +206,11 @@ regista cada escrita, e o resultado compara-se com `PRODUCTION_SNAPSHOT.json`. O
 por expressão regular que o Ciclo 94 usa não serve aqui: as escritas passam pelo helper
 `gravar(tabela, payload)`, que esconde tabela e colunas de qualquer regex. Medida inicial:
 
-| | antes | depois |
-|---|---|---|
-| tabelas inexistentes | 2 (`courses`, `term_grades`) | **0** |
-| colunas inexistentes | 13 | **0** |
-| linhas com UUID inválido | ~5 500 | **0** |
+|                          | antes                        | depois |
+| ------------------------ | ---------------------------- | ------ |
+| tabelas inexistentes     | 2 (`courses`, `term_grades`) | **0**  |
+| colunas inexistentes     | 13                           | **0**  |
+| linhas com UUID inválido | ~5 500                       | **0**  |
 
 **Os UUIDs eram o achado maior, e não estava na lista do Ciclo 97.** `p0000000-…`,
 `st000000-…`, `g0000000-…`, `r0000000-…`, `sub00000-…`, `en000000-…` e `t3b07384-…` usam
@@ -217,6 +256,7 @@ as quatro classes de erro (tabela, coluna, UUID, ordem) foram reintroduzidas uma
 teste apanhou as quatro.
 
 **Duas notas de facto:**
+
 - `scripts/` **não é varrido por nenhum teste de segurança** — as sete varreduras de
   `colunas-inexistentes` e `production-snapshot` percorrem só `src/`. Foi nessa sombra que
   o seed apodreceu. Alargar a varredura não resolveria (o helper esconde tudo de um regex);
@@ -247,13 +287,13 @@ positivo em `finance_invoices`/`programs`). Ficou o do ramo, lido da produção.
 **O que o git não podia ver.** Os conflitos são o menor dos problemas: `git` funde por
 texto e não sabe o que existe na base. Depois de resolvidos os 62, o teste de colunas do
 Ciclo 94 acusou **29 colunas e 1 tabela inexistentes**, quase todas em linhas que se
-fundiram *sem conflito*. Recuperáveis por renomeação e assim corrigidas:
+fundiram _sem conflito_. Recuperáveis por renomeação e assim corrigidas:
 
-| pedido pelo Lovable | real |
-|---|---|
-| `import_jobs.imported_rows` / `error_rows` | `inserted_rows` / `invalid_rows` |
-| `document_requests.requested_at` / `notes` / `template_name` | `created_at` / `review_note` / embed `document_templates(name)` |
-| `term_grades` (heatmap) | `siga_assessment_scores` + embed `siga_assessment_items(term, subject_id, max_score)`, nota normalizada a 20 |
+| pedido pelo Lovable                                          | real                                                                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `import_jobs.imported_rows` / `error_rows`                   | `inserted_rows` / `invalid_rows`                                                                             |
+| `document_requests.requested_at` / `notes` / `template_name` | `created_at` / `review_note` / embed `document_templates(name)`                                              |
+| `term_grades` (heatmap)                                      | `siga_assessment_scores` + embed `siga_assessment_items(term, subject_id, max_score)`, nota normalizada a 20 |
 
 **Parqueado, por precisar de migração:** a remodelação de `document_requests` em
 `src/features/documents/server.ts` (25 referências) assenta em `request_number`,
@@ -262,6 +302,7 @@ que não existe. Ficou a versão do ramo. `document_templates` idem: a produçã
 não `active`/`fee_amount`/`turnaround_days`/`requires_payment`.
 
 **Três resoluções que não foram de estilo:**
+
 - `reset-password-server.ts` — o lado Lovable acrescentava o fallback nativo do Supabase
   que o comentário do próprio ficheiro proíbe (expõe "Supabase Auth" ao utilizador). Ficou
   o ramo, e com ele o `deliveryError` e a auditoria `password_reset_failed`.
@@ -333,7 +374,7 @@ colisão 23505 — que o insert anterior não tinha de todo: dois webhooks simul
 rebentavam.
 
 **O teste cobre agora cinco superfícies** — `select` directo, `select` com embed, escritas,
-filtros e RPC. A verificação de *argumentos* de RPC foi tentada e descartada: com extracção
+filtros e RPC. A verificação de _argumentos_ de RPC foi tentada e descartada: com extracção
 equilibrada de chavetas dá zero achados, e sem ela só dá falsos positivos.
 
 **Sexta superfície, verificada e não automatizada: nomes de relação nos embeds.** Construí o
@@ -942,6 +983,7 @@ item privado; alternar destaque envia sempre o inverso do estado actual
 do item (`!item.featured`).
 
 **Resultados Oficiais (âmbito deste ciclo):**
+
 - **`tsc --noEmit`**: **0 erros nos ficheiros deste ciclo.** Nota:
   `tsc` global tem ~11 erros neste momento (`Cannot find name`) em
   `src/features/access/server.ts`, `auth/magic-link-server.ts`,
@@ -959,6 +1001,7 @@ do item (`!item.featured`).
 agora suite de render em `tests/routes/`.
 
 **Próxima fatia:**
+
 1. ~~**`criar-escola`, `convite.$token`, `calendario.ics`, `relatorios.financeiros` e `alterar-senha`**~~ — Concluído no Ciclo 87.
 2. ~~**Verificar `tests/routes/perfil.test.tsx`**~~ — Concluído no Ciclo 87.
 3. ~~**Portais de Aluno/Encarregado/Professor do painel principal**~~ — Concluído no Ciclo 87.
@@ -1005,6 +1048,7 @@ do `waitFor`. Mesma lição do Ciclo 81: nunca confiar que um `waitFor`
 anterior cobre um estado diferente do que ele próprio verificou.
 
 **Resultados Oficiais (todos corridos e verificados):**
+
 - **`tsc --noEmit`**: **0 erros**.
 - **`npx eslint`** (ficheiros deste ciclo): 0 erros, 0 warnings.
 - **`vitest run tests/routes/`**: **38 ficheiros / 163 testes**, 100%
@@ -1012,11 +1056,12 @@ anterior cobre um estado diferente do que ele próprio verificou.
 - **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (4.4s).
 
 **Próxima fatia:**
+
 1. ~~**Módulo Alumni completo**~~ — **Concluído no Ciclo 84** (todas as rotas com suite de teste dedicada).
 2. ~~**`criar-escola`, `convite.$token`, `calendario.ics`, `relatorios.financeiros` e `alterar-senha`**~~ — **Concluído no Ciclo 87** (todas a verde com jsdom).
 3. ~~**Verificar `tests/routes/perfil.test.tsx`**~~ — **Confirmado e 100% verde no Ciclo 87** (4/4 testes a passar).
-5. ~~**Auditoria de pontes e ecossistema (`painel/web`, `painel/admin`, `painel/payflow`, `painel/docs`)**~~ — **Concluído no Ciclo 88** (todas as 5 apps constroem e testam 100% a verde).
-6. **Próximo foco sugerido:** Expansão de testes E2E e novos cenários de homologação bancária/EMIS.
+4. ~~**Auditoria de pontes e ecossistema (`painel/web`, `painel/admin`, `painel/payflow`, `painel/docs`)**~~ — **Concluído no Ciclo 88** (todas as 5 apps constroem e testam 100% a verde).
+5. **Próximo foco sugerido:** Expansão de testes E2E e novos cenários de homologação bancária/EMIS.
 
 ---
 
@@ -1042,6 +1087,7 @@ mentorId`, sem outro filtro), e "Criar mentoria" só desbloqueia com
 mentor + mentorado + foco (2+ caracteres).
 
 **Resultados Oficiais (todos corridos e verificados):**
+
 - **`tsc --noEmit`**: **0 erros**.
 - **`npx eslint`** (ficheiros deste ciclo): 0 erros, 0 warnings.
 - **`vitest run tests/routes/`**: **35 ficheiros / 150 testes**, 100%
@@ -1049,6 +1095,7 @@ mentor + mentorado + foco (2+ caracteres).
 - **`npm run build`**: Vite + Nitro Cloudflare Worker ✓.
 
 **Próxima fatia:**
+
 1. **Resto do módulo Alumni** (8 rotas por fazer): `alumni.communications`,
    `alumni.insights`, `alumni.operations`, `alumni.portal`,
    `alumni.portal.portfolio`, `alumni.portal.portfolio.education`,
@@ -1119,6 +1166,7 @@ com `enabled: Boolean(alumniId)` — confirmado que nunca dispara sem
 selecção.
 
 **Resultados Oficiais (todos corridos e verificados):**
+
 - **`tsc --noEmit`**: **0 erros**.
 - **`npx eslint`** (ficheiros deste ciclo): 0 erros, 0 warnings.
 - **`vitest run tests/routes/`**: **33 ficheiros / 141 testes**, 100%
@@ -1129,6 +1177,7 @@ selecção.
 - **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (7.8s).
 
 **Próxima fatia:**
+
 1. **Resto do módulo Alumni** (10 rotas por fazer): `alumni.$alumniId`,
    `alumni.$alumniId.portfolio`, `alumni.communications`, `alumni.insights`,
    `alumni.operations`, `alumni.pipeline`, `alumni.portal`,
@@ -1173,6 +1222,7 @@ família de bug class, três vezes:** `/auth/magic-link`,
 directamente (é a Supabase que gera o URL, não o router da app) e
 implementam a mesma cadeia de fallback `error → code → token_hash+type →
 …`. Diferenças reais capturadas em teste, não só documentadas:
+
 - `/auth/magic-link` tem fallback para `getSession()` quando não há
   `code`/`token_hash`; `/auth/email-change` **não tem** — chegar lá sem
   parâmetros válidos é sempre erro. Um teste fixa isto explicitamente
@@ -1212,6 +1262,7 @@ está envolvido. Se `tsc` não estiver limpo no próximo handoff, verificar
 primeiro se é este refactor ainda em curso antes de assumir regressão.
 
 **Resultados Oficiais (âmbito deste ciclo):**
+
 - **`tsc --noEmit`**: limpo para todos os ficheiros deste ciclo (erros
   pré-existentes fora de âmbito em `tests/saas/public-signup.test.ts`,
   ver nota de coordenação acima).
@@ -1222,6 +1273,7 @@ primeiro se é este refactor ainda em curso antes de assumir regressão.
   com este ciclo.
 
 **Próxima fatia:**
+
 1. **Módulo Alumni completo** (`alumni.tsx` + 13 sub-rotas) — ainda por
    começar; é o maior bloco de cobertura em falta.
 2. ~~**`criar-escola`, `convite.$token`, `calendario.ics`, `relatorios.financeiros` e `alterar-senha`**~~ — **Concluído e blindado.** (Todas as suites de teste a verde com jsdom)
@@ -1287,6 +1339,7 @@ paralelo (mesma mitigação já presente em `faturas.test.tsx`/`documentos.test.
 (5), `financeiro-rh-presenca.test.tsx` (5) e `financeiro-rh-pagamentos.test.tsx`
 (5) — as quatro rotas do RH que faltavam depois do ponto 3. Nada de novo em
 matéria de bugs, mas dois achados de teste que valem registo:
+
 - **`/financeiro/rh/pagamentos` e `/financeiro/rh/folha` têm queries
   independentes que resolvem em tempos diferentes**: um `waitFor` que só
   cobre a primeira e depois lê a segunda de forma síncrona falha
@@ -1313,6 +1366,7 @@ ficheiro, sem concorrência de outras suites) — fica sinalizado, não
 resolvido; a causa não parece ser só carga da máquina.
 
 **6. `/importar`, `/saas-admin` e `/professor/presenca` (3 suites, 12 testes):**
+
 - `tests/routes/importar.test.tsx` (5): a aba "Nova Importação" (por
   omissão) monta `ImportWorkflowWizard`, que **não** chama o servidor até o
   utilizador escolher um ficheiro — por isso a rota monta em segurança;
@@ -1348,6 +1402,7 @@ tocado, e nunca fazendo commit dos ficheiros dela. Se `arquivos`, `catracas`,
 confirmar primeiro se já não têm suite antes de escrever outra.
 
 **Resultados Oficiais (todos corridos e verificados):**
+
 - **`tsc --noEmit`**: **0 erros**.
 - **`npx eslint tests/routes/*.test.tsx`** (ficheiros tocados neste ciclo): 0 erros, 0 warnings.
 - **`vitest run tests/routes/`**: (ficheiros deste ciclo) **20 ficheiros / 87 testes**, 100% verde.
@@ -1355,6 +1410,7 @@ confirmar primeiro se já não têm suite antes de escrever outra.
 - **`npm run build`**: Vite + Nitro Cloudflare Worker ✓ (20s).
 
 **Próxima fatia:**
+
 1. **Rotas em `src/routes/` ainda sem suite em `tests/routes/`** — confirmar
    estado actual antes de escolher, dada a sessão concorrente (ver nota de
    coordenação): pelo menos todo o `alumni.*` (11 rotas) e `configuracoes`
@@ -1378,6 +1434,7 @@ textura corrompida no lugar do texto da barra lateral, e quatro sub-itens de
 destapou três bugs reais e uma classe inteira.
 
 **1. Realce múltiplo na barra lateral (visível na captura):**
+
 - `AppSidebar` decidia o estado activo com `child.to === pathname`. Os quatro
   sub-itens de "Área Pedagógica" apontam todos para `/pedagogica` e
   distinguem-se só pelo `?tab=`, por isso acendiam os quatro e a barra deixava
@@ -1387,6 +1444,7 @@ destapou três bugs reais e uma classe inteira.
   coincidência dos parâmetros de pesquisa definidos.
 
 **2. Separador perdido nos portais Aluno e Encarregado (bug funcional):**
+
 - O item de topo "Frequência" aponta para `/pedagogica?tab=presencas`, mas o
   render dos itens de topo passava só `to` ao `NavLinkRow` e deixava cair o
   `search` — ao contrário do render dos sub-itens, que já o passava. O aluno
@@ -1394,6 +1452,7 @@ destapou três bugs reais e uma classe inteira.
   topo com `search` em todo o catálogo de navegação.
 
 **3. Dois ciclos infinitos de render (o achado mais grave):**
+
 - **`AppSidebar`:** `useCurrentAccount` devolvia `grants: profile.data?.grants ?? {}`
   — objecto NOVO a cada render enquanto a query de conta não resolvesse. Esse
   valor é dependência de um `useMemo` que alimenta um `useEffect` que fazia
@@ -1413,6 +1472,7 @@ destapou três bugs reais e uma classe inteira.
   lixo.
 
 **4. Eliminada a classe toda:**
+
 - `src/lib/stable-empty.ts` com `EMPTY_LIST` (congelado, identidade estável),
   aplicado às 6 ocorrências do padrão (5 em `CurriculoWorkspaceTab`, 1 em
   `SalasWorkspaceTab`).
@@ -1422,6 +1482,7 @@ destapou três bugs reais e uma classe inteira.
   em props têm a mesma instabilidade mas hoje nenhum alimenta hooks.
 
 **5. Mitigação da corrupção de textura:**
+
 - `sheet.tsx`: `backdrop-filter` sai em `max-sm` (véu passa de 50% para 60% para
   manter a separação visual). Um `backdrop-filter` obriga o compositor a
   promover o painel que desliza a uma camada própria e a re-rasterizá-la durante
@@ -1435,6 +1496,7 @@ guarda estático a somar 2). Verificado que os testes de montagem falham sem a
 correcção do ponto 2 e que o guarda estático falha ao reintroduzir o padrão.
 
 **Resultados Oficiais (todos corridos e verificados):**
+
 - **`tsc --noEmit`**: **0 erros**.
 - **`npm run lint`**: **0 erros** (168 warnings).
 - **`vitest run`**: **167 ficheiros / 2 skipped (169)**, **1.120 testes / 2 skipped (1.122)**.
@@ -1450,14 +1512,17 @@ disto antes de suspeitar de lentidão.
 Continuação directa do Ciclo 77, completando a meta de cobrir com testes de montagem/render as rotas centrais do SIGA.
 
 **1. Três novas suítes de render de rotas (`tests/routes/` — 13 testes):**
+
 - **`faturas.test.tsx` (6):** transição loading → carregado com listagem de faturas reais, estado vazio ("Nenhuma factura neste filtro"), contingência de schema bloqueado quando faltam colunas no Postgres (`missingPenaltyAmount`), alerta para configuração de plano de propinas (`missingActiveFeePlan`), registo e integridade das subscrições realtime nas tabelas `invoices` e `payments`, e tratamento de falhas da API com mensagem de erro na tabela.
 - **`documentos.test.tsx` (4):** montagem de pedidos de certidões/declarações com associação ao aluno e turma, estado vazio de secretaria ("Ainda não há pedidos de documentos"), subscrição realtime de `document_requests` (evento `*`), e contingência de erro da API.
 - **`pessoas.test.tsx` (3):** montagem concorrente da listagem de professores e do registo central de pessoas, estados vazios amigáveis ("Nenhum professor neste filtro" e "Nenhuma pessoa encontrada"), e feedback visual seguro perante falhas de pesquisa no Postgres.
 
 **2. Refinamento de Tipagem em Documentos:**
+
 - **`src/features/documents/server.ts`:** tipagem explícita de `template` preservando `id`, `name` e `status` no retorno de `listDocumentWorkspace`, evitando que desestruturações com tipos soltos (`Record<string, unknown>`) apagassem propriedades essenciais para componentes de formulário (`QuickFormModal`) e garantindo verificação determinística de tipos no `tsc`.
 
 **Resultados Oficiais (todos corridos e verificados):**
+
 - **`tsc --noEmit`**: **0 erros** (100% limpo em todo o `src/` e `tests/`).
 - **`npx eslint tests/routes`**: **0 erros, 0 warnings**.
 - **`vitest run tests/routes/`**: **12 ficheiros / 48 testes**, 100% verde.
@@ -1466,6 +1531,7 @@ Continuação directa do Ciclo 77, completando a meta de cobrir com testes de mo
 - **`npm run build`**: Vite + Nitro Cloudflare Worker compilados com sucesso.
 
 **Próxima fatia:**
+
 1. **Flakiness de `enrollment-live.spec.ts`** (Ciclo 71) com a máquina em repouso.
 2. **Integração do ecossistema das 5 apps**: avaliar os refinamentos pendentes em `painel/` (redireccionamentos canónicos, boundaries resilientes e bridges para o PayFlow).
 
@@ -1476,12 +1542,14 @@ Continuação directa do Ciclo 77, completando a meta de cobrir com testes de mo
 Continuação directa do Ciclo 75/76, cumprindo o ponto 1 da sua «próxima fatia»: as quatro rotas que faltavam no harness de render e a higienização de tipos nas rotas de Alumni.
 
 **1. Quatro suítes novas (`tests/routes/` — 21 testes):**
+
 - **`comunicacoes.test.tsx` (6):** loading → carregado, estado vazio, aviso de migração em falta (que substitui o erro cru do Postgres **e** fecha a redacção), erro real quando a falha não é de schema, corte por papel (`canManage`) e subscrição realtime de `school_announcements`.
 - **`calendario.test.tsx` (5):** o impasse da escola nova — sem ano lectivo activo o ecrã tem de pedir «Definir ano lectivo» e **não** «Novo período», que não teria onde gravar; mais o estado vazio com ano activo, o encaminhamento para a secretaria em papéis sem gestão e o ramo de erro.
 - **`relatorios-academicos.test.tsx` (5):** aviso de migração académica incompleta a substituir os indicadores (a zero seriam lidos como resultado real da escola), tabela de desempenho por turma, ramo de erro e o corte por papel — que também fixa que a query **nem sequer arranca** (`enabled: canRead`).
 - **`alunos.test.tsx` (5):** o estado vazio muda de texto conforme a categoria activa, que vem do deep link `?action=confirmar` do dashboard; mais o aviso de turmas em falta e as **cinco** subscrições realtime da listagem.
 
 **2. Harness (`tests/routes/_harness.tsx`) — três peças novas:**
+
 - `setCurrentAccount` / `resetCurrentAccount`: muda o papel teste a teste. A fábrica do `vi.mock` corre uma vez por módulo, por isso sem isto cada papel exigia um ficheiro próprio — e os ramos por permissão ficavam por testar.
 - `supabaseClientMock` + `realtimeBindingsFor` / `emitRealtime`: substitui o cliente Supabase, que de outra forma é construído no import do módulo e abre uma **WebSocket para produção** durante o teste. Além de cortar a rede, deixa asseverar a tabela subscrita — a classe de bug do Ciclo 54 (`direct_messages` vs. `siga_direct_messages`), que não dá erro nenhum: o painel só nunca actualiza. Verificado que o guarda falha ao trocar o nome da tabela.
 - `resetPersistedFilters`: ver a armadilha abaixo.
@@ -1489,10 +1557,12 @@ Continuação directa do Ciclo 75/76, cumprindo o ponto 1 da sua «próxima fati
 **3. Terceira armadilha do jsdom — os filtros persistem também na URL:** `usePersistedListFilters` guarda os critérios em **dois** sítios: `localStorage` e a query string (`?lf=`, via `history.replaceState`). O jsdom reutiliza a mesma `window.location` em todo o ficheiro, por isso `localStorage.clear()` no `afterEach` **não chega** — um teste que activa um filtro contamina os seguintes, e a falha aparece como uma linha que «não existe» numa lista que devia tê-la. Custou uma sessão de depuração em `/alunos`. `resetPersistedFilters` limpa os dois e substituiu o `localStorage.clear()` nas sete suítes.
 
 **4. Higienização de Tipos e Erradicação de `any` em Alumni:**
+
 - `src/routes/alumni.$alumniId.portfolio.tsx`, `alumni.portal.portfolio.print.tsx`, `alumni.portal.portfolio.showcase.tsx`: tipagem estrita de itens de portfólio (`AdminPortfolioItem`, `PortfolioItem`) e remoção do padrão inseguro `person ?? {}` (que transformava o tipo em `{}` e ocultava campos reais no TypeScript), substituído por optional chaining limpo `person?.photo_url` e `person?.full_name`.
 - `src/routes/alumni.pipeline.tsx`: desconstrução segura de relações de junção PostgREST (`alumni_opportunities`, `alumni_events`), tratando transparentemente cenários onde o retorno do driver PostgREST é inferido como array sem recorrer a casts `any`.
 
 **Resultados Oficiais (todos corridos e verificados):**
+
 - **`tsc --noEmit`**: **0 erros** (100% limpo em todo o `src/` e `tests/`).
 - **`npm run lint`**: **0 erros** (warnings reduzidos de 168 para 130).
 - **`vitest run`**: **171 ficheiros / 2 skipped**, **1.141 testes / 2 skipped**, 100% verde (Node 24).
@@ -1508,12 +1578,14 @@ Continuação directa do Ciclo 75/76, cumprindo o ponto 1 da sua «próxima fati
 Continuação directa do Ciclo 74, cumprindo o item de maior valor do roadmap: expansão dos testes de montagem/render às rotas mais complexas do sistema e erradicação de débitos de tipagem.
 
 **1. Expansão de Testes de Render de Componentes (`tests/routes/` — 11 testes):**
+
 - Criado `tests/routes/_harness.tsx`: ambiente partilhado para jsdom com polyfills resilientes (`ResizeObserver`, `ImmediateIntersectionObserver`, `matchMedia`, `scrollIntoView`), permitindo que componentes complexos (gráficos `recharts`, primitivos Radix, visualizações `LazyVisible`) montem com precisão determinística.
 - **`tests/routes/pedagogica.test.tsx` (3 testes):** Validação da renderização completa de `/pedagogica`, incluindo o ecrã de bootstrap enquanto não há estrutura, a listagem de turmas quando semeada, e a navegação directa via query param `?tab=horarios`.
 - **`tests/routes/financeiro.test.tsx` (3 testes):** Renderização de `/financeiro`, verificando a transição loading → carregado, o bloqueio seguro de emissão quando faltam colunas de esquema e o pedido amigável de plano de propinas.
 - **`tests/routes/acessos.test.tsx` (3 testes):** Renderização de `/acessos`, testando a transição de carregamento, o estado vazio na ausência de contas e a mensagem de contingência na falta de chave de serviço.
 
 **2. Higienização de Tipos e Redução de `any`:**
+
 - **`src/routes/pedagogica.tsx`:** Remoção de casts `as any` em `subjectTypes`, `curriculumAreas` e no mapeamento de salas (`rooms`), utilizando os tipos canónicos de `advanced-academic-server`.
 - **`src/routes/alumni.tsx`:** Tipagem estrita de `employmentStatus` via `alumniEmploymentStatuses` e remoção de `any` nos mappings de eventos e oportunidades.
 - **`src/routes/alumni.portal.portfolio.tsx`:** Tipagem estrita de estágios e itens; substituição de tag `<img>` nua por `<MediaFrame>` com proporção `16/9`, satisfazendo as directrizes de estilo do SIGA.
@@ -1522,9 +1594,11 @@ Continuação directa do Ciclo 74, cumprindo o item de maior valor do roadmap: e
 - **Suítes de Teste:** Limpeza de `any` em `tests/catracas/gate-pass-validation.test.ts`, `tests/auth/user-profile-specs.test.ts`, `tests/auth/permissions.test.ts`, `tests/auth/multi-school-memberships.test.ts` e `tests/import/schemas.test.ts`.
 
 **3. Resiliência do Pipeline de CI (`.github/workflows/ci.yml`):**
+
 - Adicionado fallback `HEAD~1` para `STYLE_CHECK_CHANGED_FROM` tanto em `check:style` como em `check:a11y:report` durante eventos que não sejam `pull_request` (e.g. `push` para `main`), assegurando que verificações incrementais não quebrem o workflow por dívida legada documentada.
 
 **4. Duas armadilhas do jsdom que custaram tempo — ler antes de escrever a próxima rota:**
+
 - **`IntersectionObserver` não pode ser um noop.** O `LazyVisible`
   (`src/components/ui/lazy-visible.tsx`) renderiza os filhos de imediato quando a
   API **não existe**, mas fica preso no placeholder quando existe e nunca
@@ -1548,6 +1622,7 @@ Continuação directa do Ciclo 74, cumprindo o item de maior valor do roadmap: e
   o teste não asseverar contra dados que já não existem.
 
 **Resultados Oficiais (todos corridos e verificados):**
+
 - **`tsc --noEmit`**: **0 erros** (100% limpo, incluindo todo o `src/` e `tests/`).
 - **`npm run lint`**: **0 erros** (warnings reduzidos de 190 para 168).
 - **`vitest run`**: **165 ficheiros passaram / 2 skipped (167)**, **1.108 testes passaram / 2 skipped (1.110)** com 100% de aprovação.
@@ -1555,6 +1630,7 @@ Continuação directa do Ciclo 74, cumprindo o item de maior valor do roadmap: e
 - **`npm run build`**: Bundle de produção Vite (2.51s) e Nitro Cloudflare Worker compilados com sucesso.
 
 **Próxima fatia (por ordem de valor):**
+
 1. **Mais rotas no harness** — `/comunicacoes`, `/calendario`, `/relatorios.academicos`
    e `/alunos` seguem o mesmo molde e agora custam pouco: mockar as server
    functions da rota, `Route.useSearch` se a rota a usar, e asseverar um ramo
@@ -1571,33 +1647,39 @@ Continuação directa do Ciclo 74, cumprindo o item de maior valor do roadmap: e
 Continuação directa dos Ciclos 71–73, com foco em testes de segurança estruturais, activação do pipeline de Lint no CI e integração de mapas relacionais no Dashboard.
 
 **1. Testes de Segurança Estruturais do Núcleo:**
+
 - **`tests/security/auth-middleware.test.ts` (11 testes):** Cobertura exaustiva do middleware `requireSupabaseAuth`. Fixação das duas barreiras contra tokens forjados:
   1. Quando a Supabase Auth API responde (mesmo rejeitando), a decisão é terminativa e nunca cai em fallback local.
   2. Em caso de inacessibilidade de rede (SSR), validação estrita de assinatura HMAC-SHA256 e expiração contra `SUPABASE_JWT_SECRET`. Rejeição determinística de tokens forjados ou com assinaturas adulteradas.
 - **`tests/security/tenant-isolation.test.ts` (10 testes):** Verificação das fronteiras multi-tenant em `requireSgaWriter` e `resolveSgaMembershipAdmin`. Garantia de que tentativas de leitura/escrita com `school_id` inconsistente, falsificação de cookie de escola activa ou utilizadores sem membership correspondente falham estritamente com `ACTIVE_SCHOOL_UNAVAILABLE`.
 
 **2. Expansão do Motor Relacional no Dashboard:**
+
 - Adicionado `src/features/intelligence/dashboard/dashboard-overview-relation-map.ts` mapeando os atalhos relacionais e contextuais de `/pedagogica?tab=horarios` e `/calendario` a partir de `dashboard-overview`.
 - Integrado em `src/features/intelligence/use-relations.ts`.
 
 **3. Hardening do CI e Higienização de Lint:**
+
 - `.github/workflows/ci.yml`: Re-activado o gate estrito de Lint (`bun run lint` sem `continue-on-error`), eliminando bloqueios anteriores.
 - `eslint.config.js`: Ignorados artefactos de compilação Tauri/Rust (`src-tauri/target/**`, `src-tauri/gen/**`).
 - Correções de formatação e remoção de redundâncias de sintaxe em `access/server.ts`, `alumni/server.ts`, `alumni/self-service.ts`, `integrations/zoom.ts` e suites de segurança.
 
 **4. Primeiro teste de componente do repositório (bug real de render apanhado):**
-- **Bug corrigido (commit `77f8e2b`):** `src/routes/alumni.portal.portfolio.showcase.tsx` chamava `useMemo` **depois** de dois `return` condicionais (ecrã de loading e "portal não activado"). O primeiro render corria 5 Hooks e saía cedo; quando as queries resolviam, o render seguinte corria 6 e o React rebentava com *"Rendered more hooks than during the previous render"* — de forma **determinística**, sempre que a página acabava de carregar. Os `useMemo` subiram para cima dos returns.
+
+- **Bug corrigido (commit `77f8e2b`):** `src/routes/alumni.portal.portfolio.showcase.tsx` chamava `useMemo` **depois** de dois `return` condicionais (ecrã de loading e "portal não activado"). O primeiro render corria 5 Hooks e saía cedo; quando as queries resolviam, o render seguinte corria 6 e o React rebentava com _"Rendered more hooks than during the previous render"_ — de forma **determinística**, sempre que a página acabava de carregar. Os `useMemo` subiram para cima dos returns.
 - **Porque é que nenhum dos ~1.100 testes apanhou isto:** nenhum montava um componente. Toda a suite era lógica pura em ambiente `node`.
 - **Infra nova (opt-in, sem custo para a suite existente):** `@testing-library/react` + `@testing-library/dom` + `jsdom` nas devDependencies; `react()` adicionado aos plugins do `vitest.config.ts`; `include` alargado a `tests/**/*.test.{ts,tsx}`. O ambiente por omissão **continua `node`** — arrancar jsdom nos ~160 ficheiros de lógica só custava tempo. Os testes de componente pedem jsdom com o docblock `// @vitest-environment jsdom` no topo do ficheiro (`environmentMatchGlobs` foi removido no Vitest 4).
 - **`tests/routes/alumni-portfolio-showcase.test.tsx` (2 testes):** faz exactamente a transição loading → carregado que rebentava, mais o ramo "portal não activado". Rotas do TanStack, `AppShell` e `MediaAvatar` são mockados; as três server functions do Alumni são substituídas por `vi.fn()`.
 - **Rede de segurança complementar:** com o gate de lint estrito do ponto 3, `react-hooks/rules-of-hooks` corre agora a **error** em todo o `src/` — auditado o repositório inteiro, **zero ocorrências** da mesma classe de bug fora desta.
 
 **5. `tests/` sob verificação estrita de tipos:**
+
 - `tsconfig.json`: `include` alargado a `tests/**/*.ts` e `tests/**/*.tsx` — até aqui as suites nunca passavam por `tsc --noEmit` e podiam mentir sobre a forma dos dados que asseveravam.
 - Corrigidos os erros que isso destapou em `tests/angola/finance-print.test.ts`, `tests/intelligence/students/narrative-engine.test.ts`, `tests/saas/*` e `tests/security/access-security.test.ts`.
 - Adicionado `scripts/siga/gateway-reference.d.mts`: o `gateway-reference.mjs` é JS puro partilhado entre a CLI de simulação e os testes, mas era importado de TypeScript como `any` implícito.
 
 **Resultados Oficiais:**
+
 - **`tsc --noEmit`**: **0 erros** (100% limpo, agora **incluindo `tests/`**).
 - **`npm run lint`**: **0 erros** (190 warnings não-bloqueantes: 155 `no-explicit-any`, 35 `react-refresh/only-export-components`).
 - **`vitest run`**: **162 ficheiros passaram / 2 skipped (164)**, **1.099 testes passaram / 2 skipped (1.101)** com 100% de sucesso.
@@ -1605,6 +1687,7 @@ Continuação directa dos Ciclos 71–73, com foco em testes de segurança estru
 - **`npm run build`**: Bundle de produção Vite e Nitro Cloudflare Worker compilados com sucesso em 13.1s.
 
 **Próxima fatia (opções por ordem de valor):**
+
 1. **Alargar testes de render** com a infra do ponto 4 às rotas mais pesadas (`pedagogica`, `financeiro`, `acessos`) — a classe de bug "página rebenta ao acabar de carregar" continua sem cobertura fora do Alumni, e o lint só apanha o subconjunto que viola as Rules of Hooks.
 2. **Semear `role_permissions`** de `treasury`/`teacher`/`guardian`/`student`/`user` (ver "Por fazer" do Ciclo 60) — só `owner`/`admin`/`secretary` estão preenchidos.
 3. **Fechar a flakiness de `enrollment-live.spec.ts`** (Ciclo 71) com a máquina em repouso, para separar carga real de regressão.
@@ -1616,12 +1699,14 @@ Continuação directa dos Ciclos 71–73, com foco em testes de segurança estru
 Continuação directa do Ciclo 72 e encerramento definitivo de todo o débito de tipos histórico do repositório (de 52 erros espalhados por 26 ficheiros para rigorosamente **ZERO**).
 
 **1. Resolução do cluster crítico nos importadores de pessoas (`encarregados`, `funcionarios`, `inscricoes`):**
+
 - Investigado e confirmado o achado sinalizado no Ciclo 72: a assinatura de `resolveOrCreatePerson` (`people-core.ts`) tinha sido refactorizada para aceitar `(candidate: PersonCandidate, existingPeople: ExistingPersonRow[], ctx: ImportCommitContext)` e devolver `{ personId, created, match, audits }`.
 - Três importadores (`encarregados-importer.ts`, `funcionarios-importer.ts`, `inscricoes-importer.ts`) continuavam a passar argumentos desactualizados (5 argumentos legados ou `normalized` cru) e a tentar aceder a propriedades inexistentes (`.id`, `.person.id`, `.status`, `.errors`).
 - Corrigidas as invocações com a construção correcta de `PersonCandidate`, propagação de `person.personId` para os relacionamentos (`student_guardians`, `person_roles`, `students`) e suporte a `ctx.dryRun`.
 - **Aperfeiçoamento preventivo em `people-core.ts`:** em criação bem-sucedida de uma nova pessoa, a mesma é agora adicionada imediatamente ao array em memória `existingPeople` do job, garantindo que registos subsequentes na mesma remessa de importação não criem pessoas duplicadas.
 
 **2. Eliminação dos restantes erros de compilação:**
+
 - `src/features/import/server.ts`: tipagem explícita de `safeBefore: Record<string, unknown>` no rollback e de `manifest` em `exportSchoolDataFn` para validação de serialização do TanStack Start.
 - `src/features/import/engine/excel-template-builder.ts`: cast em `sheetData.dataValidations` para compatibilidade com os tipos do `exceljs`.
 - `src/features/import/export-engine.ts`: correcção de tipos nas uniões de `class_groups` e `student_academic_history`.
@@ -1632,6 +1717,7 @@ Continuação directa do Ciclo 72 e encerramento definitivo de todo o débito de
 - `src/features/integrations/ZoomMeetingButton.tsx`: extração e verificação de `joinUrl` evitando erros de tipos em `navigator.clipboard.writeText`.
 
 **Resultados Oficiais:**
+
 - **`tsc --noEmit`**: **0 erros** (limpo a 100%).
 - **`npm test -- --run`**: **1067/1069 passaram** (2 skipped), 158/160 ficheiros de teste 100% verdes.
 - **`npm run siga:check`**: 18 módulos inventariados + navegação validada.
@@ -1697,6 +1783,7 @@ ficou desalinhado. Corrigido: `brandedLauncherIds` passa a ser a união das
 chaves dos dois objectos. Commit `106f11b`, enviado.
 
 **Resultados oficiais (depois da correcção acima):**
+
 - **`npm test -- --run`**: **1067/1069 ✓** (2 skipped), 158/160 ficheiros.
 - **`npm run siga:check`**: 14 módulos + `siga:check-nav` (13 testes) ✓.
 - **`npm run siga:e2e-smoke`**: **33/33 endpoints** OK.
@@ -1762,7 +1849,7 @@ nesse comentário. **Gap fechado nesta fatia:** nova migração
 `is_platform_admin()`, colunas de perfil comercial em `schools`, RLS) —
 100% idempotente, aplicada ao vivo via Management API sem qualquer erro
 (confirma que é mesmo um mirror exacto do estado já em produção). Timestamp
-escolhido *antes* de `20260908130000_school_branding_versioned.sql`
+escolhido _antes_ de `20260908130000_school_branding_versioned.sql`
 (20260908125000, não 20260909020000) porque essa migração já depende de
 `is_platform_admin()` — só a ordem cronológica correcta resolve o "function
 does not exist" num bootstrap do zero. Comentário de drift em
@@ -1808,13 +1895,14 @@ explícito onde cabia). Commit `ca7b27f`.
 profiling ao vivo (hook `__REACT_DEVTOOLS_GLOBAL_HOOK__.onCommitFiberRoot`
 instrumentado via `javascript_tool`, já que a extensão real do React
 DevTools não está disponível nestas ferramentas). Descobertas, em ordem:
+
 - Todos os componentes desde a raiz (`RouterProvider`, `RootShell`, etc.)
   apareciam como "actualizados" em cada commit — sugeria algo muito alto na
   árvore, não um componente de rota isolado.
 - `src/client.tsx` envolve `<StartClient />` em `<StrictMode>`, que monta,
   desmonta e remonta cada componente 2× em dev (comportamento normal e
   documentado do React) — removendo-o temporariamente, o erro parou de
-  reproduzir. Confirma que StrictMode é o *gatilho* que expõe um efeito não
+  reproduzir. Confirma que StrictMode é o _gatilho_ que expõe um efeito não
   perfeitamente idempotente nalgum componente; não é, por si só, a causa.
 - 5 componentes de rota (`routes/index.tsx`, `documentos.tsx`, `faturas.tsx`,
   `comunicacoes.tsx`, `alunos/index.tsx`) abrem um canal Supabase Realtime
@@ -1855,7 +1943,7 @@ deixada em aberto. Servidor Vite isolado (`siga-fresh`, porta 3016, config
 outra instância. Numa aba nova (`tabs_create`), sessão real já autenticada
 ("Colegio Adventista - Huambo") — testadas as 5 rotas antes sinalizadas
 (`/`, `/alunos`, `/pedagogica`, `/documentos`, `/faturas`, `/comunicacoes`)
-com *hard reload* completo em cada uma, mais navegação client-side (SPA, sem
+com _hard reload_ completo em cada uma, mais navegação client-side (SPA, sem
 reload) entre `/pedagogica` e `/comunicacoes`: **zero ocorrências de
 "Maximum update depth exceeded" em qualquer rota**, zero crescimento de
 mensagens de consola ou de tráfego de rede em 20s+ de inactividade em
@@ -1879,6 +1967,7 @@ rotas suspeitas.**
 Consolidação rigorosa e validação de 100% das especificações (`.spec.ts` e `.test.ts`) em todo o ecossistema SIGA (WEB, ADMIN, SIGA, PAYFLOW, DOC) contra serviços locais e banco de dados real Supabase.
 
 **Resultados Oficiais:**
+
 - **Playwright E2E TS (`npm run siga:e2e-playwright-ts`)**: **10/10 passaram** (27.7s)
   - `tests/e2e/ecosystem-routes.spec.ts`: 9/9 rotas públicas (WEB landing, /start, DOC home, ADMIN /tenants, /platform-admins, /audit, /domains, /subscriptions, SIGA home).
   - `tests/e2e/commercial-wizard.spec.ts`: 1/1 navegação completa dos passos 1 a 6 de onboarding escolar.
@@ -1891,6 +1980,7 @@ Consolidação rigorosa e validação de 100% das especificações (`.spec.ts` e
 - **Módulos Escolares (`npm run siga:check`)**: **18 módulos inventariados + 13 rotas de navegação OK**.
 
 **Ajustes e Hardening:**
+
 1. **Bypass de Rate-Limit em `public-signup.ts`**: restrito estritamente a testes E2E (`process.env.SIGA_E2E_LIVE === "1" || keys.some(k => k.includes("siga-plus.test"))`), restaurando a validação unitária de rate-limit por IP/Email.
 2. **Fixture E2E de Gateway (`tests/e2e/helpers/sga-live-admin.ts`)**: inclusão de `created_by` onde requerido por constraints NOT NULL e remoção onde não existente no schema PostgREST.
 3. **Liquidação e Decisão de Candidatura**: fallback server-side com service role para evitar bloqueios de falta de sessão humana AAL2 em webhooks bancários automáticos (EMIS/Unitel).
@@ -1911,6 +2001,7 @@ corrida real) e não valida disponibilidade docente nem capacidade de sala.
 e completamente órfã (nenhum componente a chamava).
 
 **O que foi entregue:**
+
 - **`pedagogica.tsx`:** `onCreateSlot` (usado por "Nova Aula" e "Copiar Aula" em
   `ScheduleWorkspace`) passa a chamar `createAdvancedScheduleSlot` em vez de
   `createScheduleSlot`. Os `warnings` não-bloqueantes devolvidos (disponibilidade
@@ -1937,6 +2028,7 @@ e completamente órfã (nenhum componente a chamava).
   `onDeleteSlot` mantido como estava (delete não tem a mesma classe de bugs).
 
 **Validado ao vivo pela UI real:**
+
 - Criação: aula de Matemática (Terça 10:00-10:45, Turma 10a A) →
   `POST createAdvancedScheduleSlot` 200 → confirmado o slot em
   `timetable_slots` via query directa; removido depois (dado de teste).
@@ -1949,6 +2041,7 @@ e completamente órfã (nenhum componente a chamava).
 
 **Dois bugs pré-existentes encontrados durante o teste manual (não corrigidos
 nesta fatia — sinalizados como tarefas separadas):**
+
 1. **Loop "Maximum update depth exceeded" em toda a app** (não só `/pedagogica` —
    reproduz também em `/`), 275+ mensagens de erro no console, gerando tráfego de
    rede descontrolado (milhares de pedidos de assets). Confirmado pré-existente
@@ -1995,6 +2088,7 @@ estático** ("Estrutura Curricular Unificada") — não havia nenhuma UI que
 efectivamente chamasse essas funções.
 
 **O que foi entregue e integrado:**
+
 - **`CurriculoWorkspaceTab.tsx`:** duas novas sub-abas funcionais:
   - **Matrizes Curriculares:** selectors de Curso + Classe, tabela editável
     (disciplina, tipo, aulas/semana, duração, obrigatória) com adicionar/remover
@@ -2014,6 +2108,7 @@ efectivamente chamasse essas funções.
   `as any[]`); eslint/prettier alinhados ao padrão do resto do ficheiro.
 
 **Validado ao vivo (projecto `xodgfmxiaunpamctfeea`), ponta-a-ponta pela UI real:**
+
 - Disponibilidade Docente: marcada disponibilidade de "Madalena Pedro Chissengo"
   → `POST saveTeacherAvailability` 200 → confirmado em `teacher_availability`
   (7 linhas, weekday correcto marcado `is_available=true`).
@@ -2038,6 +2133,7 @@ duras; considerar surfacear esse warning na criação de slots.
 Continuação directa do Ciclo 64. Correcção crítica: `document_sequences` estava vazia em ambas as escolas (bug silencioso desde sempre), o que tornava qualquer pagamento/contrato impossível.
 
 **O que foi entregue e integrado:**
+
 - **`seedDefaultDocumentSequences` expandido (school-bootstrap.ts):** de 2 para 9 tipos canónicos: `invoice(FT/4)`, `receipt(RC/6)`, `credit_note(NC)`, `expense(EX)`, `declaration(DC)`, `certificate(CE)`, `transfer(TF)`, `term(TM)`, `other(OT)`. Alinhado com o check constraint `document_sequences_document_type_check`.
 - **Migration 20260908200000 actualizada:** PASSO 3 adicionado — seed de 9 tipos via `CROSS JOIN` para todas as escolas (idempotente).
 - **Aplicado ao vivo:** 18 sequências (9 × 2 escolas) semeadas via REST API.
@@ -2048,6 +2144,7 @@ Continuação directa do Ciclo 64. Correcção crítica: `document_sequences` es
 - **Commits:** `507abb3` (Ciclos 62-63), `3226a84` (Ciclo 64), `54a4833` (Ciclo 65) — todos em `feat/payflow-integration-production`.
 
 **Estado actual da BD ao vivo (`xodgfmxiaunpamctfeea`):**
+
 - 2 escolas × 8 papéis × permissões correctas = **510 role_permissions**
 - 2 escolas × 9 tipos = **18 document_sequences**
 - 125 triggers activos, RLS 100% em todas as tabelas
@@ -2057,6 +2154,7 @@ Continuação directa do Ciclo 64. Correcção crítica: `document_sequences` es
 Continuação directa do Ciclo 63. Foco na integridade da base de dados e versionamento completo de toda a lógica de negócio.
 
 **O que foi entregue e integrado:**
+
 - **Credenciais de Acesso Completas Configuradas:**
   - Management API PAT: `sbp_c045658b2ddd159f56e222ebaa5306eb420649f7`
   - PostgreSQL directo: `postgresql://postgres.xodgfmxiaunpamctfeea@aws-0-eu-west-3.pooler.supabase.com:5432/postgres`
@@ -2078,6 +2176,7 @@ Continuação directa do Ciclo 63. Foco na integridade da base de dados e versio
 - **Commit `507abb3` (Ciclos 62+63):** 22 ficheiros, 4671 inserções — commitado ao branch `feat/payflow-integration-production`.
 
 **Validação:**
+
 - `npm run siga:check` — 100% verde.
 - `npm run build` — bundle limpo.
 - RBAC: 510 role_permissions em 2 escolas (verificado ao vivo via Supabase REST API).
@@ -2087,6 +2186,7 @@ Continuação directa do Ciclo 63. Foco na integridade da base de dados e versio
 Continuação directa dos Ciclos 61 e 62. Finalizada a expansão do sistema RBAC-v2, atribuição docente às turmas e verificação de contratos com o PayFlow.
 
 **O que foi entregue e integrado:**
+
 - **Matriz Canónica de Permissões RBAC-v2 (PostgreSQL / Supabase):**
   - Identificado o catálogo de todas as 74 permissões granulares em `public.permissions` e mapeadas para todas as 8 funções canónicas do sistema.
   - Criada e aplicada ao vivo (projecto `xodgfmxiaunpamctfeea`) a migração `supabase/migrations/20260908190000_seed_remaining_role_permissions.sql`:
@@ -2118,6 +2218,7 @@ Continuação directa dos Ciclos 61 e 62. Finalizada a expansão do sistema RBAC
 Continuação directa do Ciclo 61. Implementado o núcleo avançado de planeamento académico do SIGA / Onsoft, integrando a configuração de recursos físicos e curriculares com o motor determinístico de horários e sincronização com presenças e calendário.
 
 **O que foi entregue e integrado:**
+
 - **Camada de Dados Canónica (PostgreSQL / Supabase):**
   - Migração `supabase/migrations/20260908180000_advanced_academic_core.sql` definindo: `subject_types`, `curriculum_areas`, `school_shifts`, `school_shift_slots`, `curricula`, `curriculum_subjects`, `teacher_availability` e `academic_schedules`.
   - Extensão não-destrutiva de `subjects` (`subject_type_id`, `curriculum_area_id`, `short_name`, `annual_hours`, `is_mandatory`, `is_practical`, `color`), `rooms` (`room_type`, `building`, `block`, `floor`, `resources`, `accessibility`) e `timetable_slots` (`room_id`, `schedule_id`, `shift_id`, `day_period_number`).
@@ -2167,12 +2268,12 @@ anterior sem deixar rasto em `supabase/migrations/` nem `APPLY_*.sql`.
 **Bugs confirmados e corrigidos (todos ao vivo no projecto `xodgfmxiaunpamctfeea`,
 espelhados em `APPLY_ENROLLMENT_AND_PREMIUM.sql` + migrações novas):**
 
-| # | Bug | Sintoma | Ficheiro |
-| - | --- | --- | --- |
-| 1 | `role_permissions` nunca semeada no provisionamento — só a escola manual "Colegio Adventista - Huambo" tinha linhas (owner=74/74, secretary=23) | Qualquer RPC gated por `has_permission()` nega sempre, mesmo ao dono da escola | `20260908140000_seed_default_role_permissions.sql` + `school-bootstrap.ts` (`seedDefaultRolePermissions`) |
-| 2 | `private.register_student` gerava `student_number` em `YYMMnnn` (ex. `2609001`); a tabela exige `^EST-[0-9]{6,}$` | 23514 em toda e qualquer matrícula, desde sempre | `20260908150000_fix_register_student_number_format.sql` (restaura o padrão `EST-NNNNNN` com `period='legacy'`, confirmado pelos 2 alunos reais existentes) |
-| 3 | `document_sequences` nunca semeada no provisionamento (mesma classe de bug que #1) | `register_payment` falha com 55000 "sequência não configurada" | `20260908160000_seed_default_document_sequences.sql` + `school-bootstrap.ts` (`seedDefaultDocumentSequences`) |
-| 4 | `private.next_document_number` tinha **dois overloads ambíguos** — `(uuid, text)` estrito e `(uuid, text, text DEFAULT NULL)` auto-criador — qualquer chamada de 2 argumentos (`register_payment`, `create_financial_contract`) ficou ambígua | 42725 "function … is not unique" em todo pagamento/contrato | `20260908170000_drop_ambiguous_next_document_number_overload.sql` (remove o overload estrito; o de 3 args cobre os dois casos) |
+| #   | Bug                                                                                                                                                                                                                                           | Sintoma                                                                        | Ficheiro                                                                                                                                                   |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `role_permissions` nunca semeada no provisionamento — só a escola manual "Colegio Adventista - Huambo" tinha linhas (owner=74/74, secretary=23)                                                                                               | Qualquer RPC gated por `has_permission()` nega sempre, mesmo ao dono da escola | `20260908140000_seed_default_role_permissions.sql` + `school-bootstrap.ts` (`seedDefaultRolePermissions`)                                                  |
+| 2   | `private.register_student` gerava `student_number` em `YYMMnnn` (ex. `2609001`); a tabela exige `^EST-[0-9]{6,}$`                                                                                                                             | 23514 em toda e qualquer matrícula, desde sempre                               | `20260908150000_fix_register_student_number_format.sql` (restaura o padrão `EST-NNNNNN` com `period='legacy'`, confirmado pelos 2 alunos reais existentes) |
+| 3   | `document_sequences` nunca semeada no provisionamento (mesma classe de bug que #1)                                                                                                                                                            | `register_payment` falha com 55000 "sequência não configurada"                 | `20260908160000_seed_default_document_sequences.sql` + `school-bootstrap.ts` (`seedDefaultDocumentSequences`)                                              |
+| 4   | `private.next_document_number` tinha **dois overloads ambíguos** — `(uuid, text)` estrito e `(uuid, text, text DEFAULT NULL)` auto-criador — qualquer chamada de 2 argumentos (`register_payment`, `create_financial_contract`) ficou ambígua | 42725 "function … is not unique" em todo pagamento/contrato                    | `20260908170000_drop_ambiguous_next_document_number_overload.sql` (remove o overload estrito; o de 3 args cobre os dois casos)                             |
 
 **Validado ao vivo, ponta-a-ponta, na escola de teste `e2e-web-mts7ka0q`:**
 matrícula (EST-000001, turma 10ª A) → factura (FT-2026/0001, 45.000 Kz) →
@@ -2186,6 +2287,7 @@ estavam posicionados após as cláusulas de retorno condicional (`profileQuery.i
 Foram movidos para o topo do componente, respeitando a ordem estrita das regras dos Hooks do React.
 
 **Por fazer (não coberto nesta fatia):**
+
 - `role_permissions` dos papéis `treasury`/`teacher`/`guardian`/`student`/`user`
   continuam vazios — só `owner`/`admin` (acesso total) e `secretary` (cópia do
   conjunto da Huambo) foram semeados. Sem precedente de produção para os
@@ -2207,7 +2309,7 @@ Percorrida a operação real de uma escola acabada de provisionar
 **Impasse encontrado (escola nova ficava inutilizável):** não existia nenhuma
 forma de criar o **primeiro ano lectivo**. «Novo período» exigia ano activo;
 «Preparar estrutura académica» exigia períodos configurados; o selector
-«Ano lectivo activo» das Definições só *activa* um ano que já exista
+«Ano lectivo activo» das Definições só _activa_ um ano que já exista
 (`updateSchoolSettings` faz UPDATE, nunca INSERT); e o provisionamento não
 inventa datas de propósito. Resolvido com `createAcademicYear` +
 `getActiveAcademicYear` (`features/calendar/server.ts`) e o CTA **«Definir ano
@@ -2216,11 +2318,11 @@ lectivo»** em `/calendario`, que substitui «Novo período» enquanto não houv
 **INSERTs fora de sincronia com o schema SGA** (todos NOT NULL sem default,
 todos falhavam em silêncio com 23502):
 
-| Tabela | Coluna em falta | Onde |
-| --- | --- | --- |
-| `fee_plans` | `academic_year_id`, `code` | `finance/server.ts`, `school-bootstrap.ts` |
-| `fee_items` | `code`, `frequency` | idem (`fee-plan-defaults.ts` passa a ser a fonte única) |
-| `academic_levels` | `sequence` | `academic-bootstrap-legacy.ts` |
+| Tabela            | Coluna em falta            | Onde                                                    |
+| ----------------- | -------------------------- | ------------------------------------------------------- |
+| `fee_plans`       | `academic_year_id`, `code` | `finance/server.ts`, `school-bootstrap.ts`              |
+| `fee_items`       | `code`, `frequency`        | idem (`fee-plan-defaults.ts` passa a ser a fonte única) |
+| `academic_levels` | `sequence`                 | `academic-bootstrap-legacy.ts`                          |
 
 **Guardar definições da escola estava partido para todas as escolas:**
 `updateSchoolSettings` escrevia `schools.evaluation_periods`, coluna que só
@@ -2254,6 +2356,7 @@ NOT NULL do SGA (o padrão repetiu-se 5 vezes).
 ### Ciclo 59 — Módulo Alumni: integração completa e produção local (2026-09-08)
 
 Módulo Alumni integrado a partir de `feat/alumni-master-premium` para o ambiente local:
+
 - **Domínio e Rotas:** `/alumni` (workspace master), `/alumni/$alumniId` (360º), `/alumni/operations`, `/alumni/insights`, `/alumni/communications`, `/alumni/matching`, `/alumni/documents`, `/alumni/calendar`, `/alumni/pipeline`, e `/alumni/portal` (self-service do antigo aluno com portfólio por nível de ensino e privacidade).
 - **Base de Dados & SQL:** consolidado `supabase/APPLY_ALUMNI_MODULE.sql` (8 migrações). Corrigido identificador reservado `"current_role"`. Aplicado via query API com sucesso: 15 tabelas criadas (`alumni_profiles`, `alumni_experiences`, `alumni_engagements`, `alumni_opportunities`, `alumni_opportunity_applications`, `alumni_mentorships`, `alumni_events`, `alumni_event_registrations`, `alumni_surveys`, `alumni_survey_responses`, `alumni_contributions`, `alumni_communication_preferences`, `alumni_privacy_audit`, `alumni_portfolio_items`, `alumni_education_stages`).
 - **Checklist SQL SGA:** actualizado `scripts/siga/modules.json`, `scripts/siga/print-apply-sql.mjs` e `scripts/siga/apply-all-sql.mjs`. `siga:sql:verify` validou 65/65 tabelas presentes (100%).
@@ -2455,6 +2558,7 @@ botões «Ajuda» seguidos; tipagem RPC `hr_*` continua fora do `database.types`
 - **Ciclo 56.7 — Plano + materiais:** deep-links `teacher-classroom-links.ts` para `/planos-aula?turma=&disciplina=` e `/arquivos?turma=` no diálogo de chamada, portal e presença; `/planos-aula` faz seed dos filtros a partir da URL.
 
 Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise completo (Fases 1–15) + Ciclos 50–56.
+
 ### Ciclo 55 — Estados Académicos Unificados, 22 Importadores e PayFlow Admin (2026-09-05)
 
 - **Motor de domínio `academic-status.ts`:** deriva estado académico (matrícula + vínculo) e snapshot financeiro (faturas/recibos) de forma independente — um aluno pode ser «Activo» e «Com dívida» ao mesmo tempo.
@@ -2490,7 +2594,7 @@ Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise com
 - **Fluxo Visual & Validação de Matrículas:**
   - `EducationWorkflowVisual.tsx` integrado no fluxo de pessoas e matrículas (`StudentEnrollmentSheet.tsx` e `PersonWizardModal.tsx`).
   - Suporte ao território angolano (21 províncias em `lib/angola-territory.ts`).
-  - Alerta de lotação máxima preenchida (`enrolled_count >= capacity`) com confirmação de matrícula extraordinária e selo visual *Sobrelotação*.
+  - Alerta de lotação máxima preenchida (`enrolled_count >= capacity`) com confirmação de matrícula extraordinária e selo visual _Sobrelotação_.
   - Filtros contextuais hierárquicos: Ano Lectivo → Curso → Classe → Turno → Sala → Turma com occupancy indicators.
   - Validação estrita de ano lectivo no importador de matrículas (`matriculas-importer.ts`).
   - Modal extensivo do aluno (`StudentExtensiveModal.tsx`) na listagem de alunos com suporte a emissão directa do Cartão Digital do Aluno (`QrCode`).
@@ -2522,50 +2626,61 @@ Referência de arquitectura canónica para agentes: Prompt Mestre Enterprise com
 Prompt Mestre Enterprise — 15 fases concluídas e verificadas (684/684 testes passando em 100 ficheiros).
 
 #### Fase 2 — Auth & Profiles DDL (`APPLY_IN_SQL_EDITOR.sql`)
+
 - `public.profiles`: colunas `phone`, `first_name`, `last_name`, `full_name`, `preferred_name`, `avatar_url`, `avatar_path`, `cargo`, `school_id`, `locale`, `timezone`, `status`, `onboarding_status`, `last_active_at`.
 - `handle_new_user()` trigger: `SECURITY DEFINER`, `SET search_path = ''`, graceful metadata fallback, `EXCEPTION WHEN OTHERS THEN`.
 - `public.people.user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL` + `people_user_id_idx`.
 - Buckets storage: `avatars` (privado, URLs assinadas) e `school-logos` (público) com políticas RLS cross-school correctas.
 
 #### Fase 3 — Multi-Tenant & RBAC DDL (`APPLY_ENROLLMENT_AND_PREMIUM.sql`)
+
 - `public.school_memberships` com `UNIQUE(school_id, user_id)` + lifecycle columns + RLS + `updated_at` trigger.
 - `public.roles`, `public.permissions`, `public.role_permissions`, `public.member_roles` com RLS policies.
 - `public.school_invitations` com `token_hash` (sha256), `expires_at`, status enum, indexes.
 - RLS helpers: `public.is_school_member(uuid)` e `public.has_school_permission(uuid, text)` — ambas `SECURITY DEFINER`, `SET search_path = pg_catalog, public`, REVOKE de PUBLIC.
 
 #### Fase 4 — TypeScript Permissions Module
+
 - `src/features/auth/permissions.ts` (~260 linhas): `standardPermissions` (49 permissões canónicas), `roleDefaultPermissions`, `hasPermission()`, `canAccessContext()`.
 - `tests/auth/permissions.test.ts` (10 testes).
 
 #### Fase 5 — Access Server Functions & Convites
+
 - `src/features/access/server.ts`: import ESM estático, person-linking idempotente, `updateSystemAccountCargo`, `setSystemAccountDisabled`, `resendSystemInvite`, `listSchoolInvitations`, `createSchoolInvitation` (SHA-256 token), `revokeSchoolInvitation`, `acceptSchoolInvitation` (validação hash sha-256, expiração, ativação idempotente de membership com role, linking people.user_id).
 - `src/features/access/schemas.ts`: `createSchoolInvitationInputSchema`, `revokeSchoolInvitationInputSchema`, `acceptSchoolInvitationInputSchema`.
 - `src/routes/convite.$token.tsx`: Página pública de aceitação de convite institucional com auto-aceitação para utilizadores autenticados e feedback visual.
 - `src/lib/public-paths.ts`, `src/features/auth/access-policy.ts`, `src/features/auth/route-inventory.ts`: registo de `/convite` como rota pública bypass.
 
 #### Fase 6 — Acessos UI Panel (`src/routes/acessos.tsx`)
+
 - Painel «Convites institucionais» com tabela de convites, status badge, botão Revogar.
 - `invitationsQuery` com `useQuery`.
 
 #### Fase 7 — Scripts & print-apply-sql
+
 - `scripts/siga/print-apply-sql.mjs`: adicionados `school_memberships`, `roles`, `permissions`, `school_invitations` às smoke tables.
 
 #### Fase 8 — APPLY_SAAS_PLATFORM.sql (verificação)
+
 - RLS completo com `is_platform_admin()` em `plans`, `tenants`, `tenant_domains`, `subscriptions`, `tenant_usage`, `saas_audit_logs`, `platform_admins`.
 - Política `platform_admin_read_self` — utilizador vê o próprio registo sem INSERT/DELETE na `authenticated` role.
 
 #### Fase 9 — Multi-School Provisioning & Roles Scoping
+
 - `src/features/saas/provisioning-core.ts`: roles com escopo explícito `school_id` ou global `is_system=true`.
 - `src/features/saas/school-bootstrap.ts`: seeding de papéis canónicos (`owner`, `admin`, `secretary`, `treasury`, `teacher`, `student`, `guardian`, `user`) por escola recém-criada.
 
 #### Fase 12 — DOC (`painel/docs/guide/sql-sga.md`)
+
 - Tabela de tabelas novas (Ciclo 49): `school_memberships`, `roles`, `permissions`, `role_permissions`, `member_roles`, `school_invitations`.
 - Documentação das funções de segurança RLS helpers.
 - Tabela completa de índices de performance (Fase 14).
 - Sintomas adicionados: `school_memberships not found`, convites vazios.
 
 #### Fase 14 — Índices Compostos de Performance (`APPLY_ENROLLMENT_AND_PREMIUM.sql`)
+
 12 índices compostos adicionados (todos idempotentes `CREATE INDEX IF NOT EXISTS`):
+
 - `people_school_status_idx`, `students_school_status_idx` (WHERE `deleted_at IS NULL`)
 - `enrollments_school_year_status_idx`, `enrollments_school_created_desc_idx`
 - `finance_invoices_school_status_idx`, `finance_invoices_school_created_desc_idx`
@@ -2574,6 +2689,7 @@ Prompt Mestre Enterprise — 15 fases concluídas e verificadas (684/684 testes 
 - `announcements_school_created_desc_idx`, `siga_files_school_created_desc_idx`, `roles_school_code_idx`
 
 #### Fase 15 — Testes Hostis de Isolamento Multi-Tenant & Convites
+
 - `tests/saas/rls-isolation.test.ts` (56 testes): catálogo de permissões, RBAC por papel, grant overrides, `canAccessContext`, mapeamento SGA↔AppRole, validação defensiva de schemas, Pessoa vs Conta (`user_id NULL`), switching multi-escola.
 - `tests/access/accept-invitation.test.ts` (28 testes): hash SHA-256 determinístico, verificação de expiração, idempotência de membership (reactivação vs inserção), ligação people.user_id por email case-insensitive sem sobrescrita, validação de schema e mapeamento role_code.
 
@@ -2650,7 +2766,7 @@ Prompt Mestre Enterprise — 15 fases concluídas e verificadas (684/684 testes 
 | 42    | RFID no cartão + renovar QR + API key do dispositivo                                                                        | Feito                           |
 | 43    | Lista de cartões + webhook api_key + validação partilhada                                                                   | Feito                           |
 | 44    | Rota HTTP `/api/catracas/device-scan` + bridge Python → SIGA + pulso no grant                                               | Feito                           |
-| 46    | Navegação unificada: sidebar + launcher + inventário; logótipo só no topo da sidebar                                          | Feito                           |
+| 46    | Navegação unificada: sidebar + launcher + inventário; logótipo só no topo da sidebar                                        | Feito                           |
 
 ## Ciclo 46 — navegação, launcher e identidade visual (2026-08-28)
 
@@ -3375,7 +3491,7 @@ Implementado sem unificar frontends:
 - **Subscrições Realtime em Rotas Principais**:
   - `src/routes/faturas.tsx`: Escuta as tabelas `invoices` (INSERT, UPDATE) e `payments` (INSERT). Invalida `["finance", "invoices"]`, `["finance", "reporting"]`, e `["dashboard", "overview"]` mantendo os painéis financeiros vivos.
   - `src/routes/documentos.tsx`: Escuta a tabela `siga_document_requests` (*). Invalida `["documents", "workspace"]` e `["dashboard", "overview"]` (ideal para pedidos entrados no portal do aluno/encarregado).
-  - `src/routes/alunos/index.tsx`: Escuta `students` (*) e `enrollments` (*). Invalida `["students", "search"]` e `["dashboard", "overview"]`.
+  - `src/routes/alunos/index.tsx`: Escuta `students` (_) e `enrollments` (_). Invalida `["students", "search"]` e `["dashboard", "overview"]`.
   - `src/features/messages/StaffMessenger.tsx`: **Correção crítica** — a tabela de mensagens diretas no backend era `siga_direct_messages` mas o cliente realtime estava a escutar `direct_messages`. Corrigido para a tabela correta para fazer os chats funcionarem em tempo real.
 - **Sincronização de Dados (Integração EMIS)**:
   - Scaffolding de `src/features/integrations/emis.ts` (normalização rigorosa de classes/anos lectivos usando taxonomia EMIS).
@@ -3386,10 +3502,10 @@ Implementado sem unificar frontends:
   - Dicionário `ANGOLA_BANK_CODES` massivamente expandido com os principais bancos comerciais (BMA, BCI, BE, BNI, Yetu, Access Bank, Sol, BCA).
   - Ficheiro `angola-banking.test.ts` expandido para validar os novos bancos comerciais e mapeamento nulo para desconhecidos.
 - **Centro de Avaliação (Assessment Center)**:
-  - Corrigido um *bug* na função `copyPreviousTerm` e no parse do estado inicial onde notas em branco (`null` na DB) eram convertidas para a string `"null"`, causando lixo visual no painel do professor. Agora faz fall-back para empty string `""` corretamente.
+  - Corrigido um _bug_ na função `copyPreviousTerm` e no parse do estado inicial onde notas em branco (`null` na DB) eram convertidas para a string `"null"`, causando lixo visual no painel do professor. Agora faz fall-back para empty string `""` corretamente.
 - **Ecossistema SaaS e Lógica Central**:
   - Tabela `school_invitations` restaurada e aprovisionada no Supabase de produção, fechando a lacuna de 30/31 tabelas no verificador (`npm run siga:sql:verify`). As verificações da base de dados encontram-se a 100%.
-  - Nova suite `tests/saas/public-signup.test.ts` construída para atestar e cobrir a proteção heurística de limite de taxa (*rate-limiting* por IP e por Email) no percurso do Funil Comercial (Inscrição Escolar SaaS).
+  - Nova suite `tests/saas/public-signup.test.ts` construída para atestar e cobrir a proteção heurística de limite de taxa (_rate-limiting_ por IP e por Email) no percurso do Funil Comercial (Inscrição Escolar SaaS).
 - **Testes da Área Pedagógica (`tests/pedagogica/pautas.test.ts`)**:
   - **Expandido** de 6 para **24 testes**.
   - Cobertura completa adicionada para: `isGrade`, `normalizeGrade`, `roundGrade`, `formatGrade`.
@@ -3399,8 +3515,8 @@ Implementado sem unificar frontends:
   - **Expandido** de 2 para **9 testes** abrangendo todos os 4 tipos de avisos (`candidaturas`, `matricula`, `documentos`, `faturas`).
   - Cobertura completa de singulares, plurais e rotas de encaminhamento (links e painéis de definições).
 - **Inteligência Preditiva (Fase 2 - ML Suggestions)**:
-  - Novo motor `dashboard-overview` embutido. Sugestões contextuais (`dashboard-suggestion-rules.ts`) analisam candidaturas pendentes, configuração do ano letivo e calendário. As sugestões geradas mapeiam diretamente para o `ContextualActionsPanelHost` na *home* da escola.
-  - Criado o `narrative-engine.ts` que compila relatórios contextuais em formato SMS humano a partir de *snapshots*. O motor infere e acopla a sugestão "Partilhar Relatório de Inteligência" sempre que um encarregado esteja associado ao perfil.
+  - Novo motor `dashboard-overview` embutido. Sugestões contextuais (`dashboard-suggestion-rules.ts`) analisam candidaturas pendentes, configuração do ano letivo e calendário. As sugestões geradas mapeiam diretamente para o `ContextualActionsPanelHost` na _home_ da escola.
+  - Criado o `narrative-engine.ts` que compila relatórios contextuais em formato SMS humano a partir de _snapshots_. O motor infere e acopla a sugestão "Partilhar Relatório de Inteligência" sempre que um encarregado esteja associado ao perfil.
 - **Validação & Estado**:
   - `npm run siga:check`: **100% aprovado**.
   - `npm test`: **134 ficheiros · 944 testes aprovados** (100% verde em Node 24) + **16 testes PayFlow**.
@@ -3408,25 +3524,25 @@ Implementado sem unificar frontends:
 ## Próximos passos úteis
 
 0. **SQL:** verificado live 2026-09-05 (33/33 + `current_school_id` + RLS históricos). Manter `npm run siga:sql:verify` após alterações DDL.
-0b. **Ecossistema:** seguir Fases 10–13 em `ARCHITECTURE_HARMONIZATION.md`. Não
+   0b. **Ecossistema:** seguir Fases 10–13 em `ARCHITECTURE_HARMONIZATION.md`. Não
    unificar frontends. Não apagar `/saas-admin` sem destino no ADMIN.
-0c. **Integrações:** credenciais reais de portal bancário e sincronização automática EMIS.
-0d. **PayFlow:** SSO + sync + IBAN + extrato + ingest/pull + estorno + alertas + settlement + EMIS ingress fail-closed + feed sandbox local; falta contrato/homologação EMIS (adaptador real) e o URL real do banco.
-0e. **Domínios / Cloudflare:** Conta correcta `Valentinocanguele` (`701800…`). CNAMEs: `www`→`siga-web.pages.dev`, `admin`→`siga-admin.pages.dev`, `docs`→`siga-docs.pages.dev` (Pages **active**). Workers: `app`/`payflow`/apex OK. Rotas bypass www/admin/docs + payflow/app específicas.
-0f. **GitHub Actions:** se jobs falharem em ~3s com «payments failed / spending limit», corrigir Billing & plans da conta dona do repo (privado = 2 000 min free). Validar localmente: `bun run test` e `cd painel/payflow && npm test`.
-2. Manter commits pequenos por alteração e nunca incluir `.env` nem `.claude/worktrees/`.
-3. Aceitar candidatura cria aluno, encarregado (se veio no formulário) e opcionalmente turma (`classGroupId`). Sem turma fica `applicant`. Em `/alunos`: **Turma** (candidato), **Mudar** (activo), **Estado** e PDF **Oficial**. Campanha de matrícula (Definições) liga a `/documentos#modelos` para talões.
-4. Emitir em `/documentos` usa o modelo `.hbs` escolhido em **Modelos de impressão** (Ver / Editar / Usar). Cabeçalho da página tem botão **Modelos** (`#modelos`). Atalhos: Definições → Escola → **Atalhos**, `/configuracoes?painel=documentos` ou campanha de matrícula. A lista de pedidos também tem **Oficial**. A ficha do aluno emite **Boletim**, **Histórico**, **Declaração** e **Mais modelos** (dossiê, certificado, credenciais). Pedagógica: pauta, boletim, mapa, acta e validação. Workspace do professor: **Diário**. Relatórios académicos e talões de candidatura/matrícula também. Sem modelo ou se falhar, cai no PDF MINED. Pedidos já emitidos têm **PDF**. Pedidos em curso: **Recusar** e **Cancelar**. Ficha também: **Fatura** e **Documento**.
-5. Pedagógica: **Atribuir professor** liga `class_subjects.teacher_id`. Disciplinas: **Editar** e **Desactivar**. Horários: **Copiar** slot para outro dia. Na pauta, **Copiar trimestre anterior** preenche MAC/NPP/NPT (depois Guardar). Cabeçalho da área pedagógica tem **Pauta Oficial** e **Turmas Oficial**; grelha e centro de avaliação também. Centro de avaliação: **Imprimir** usa `issuePrintDocument` (pauta oficial), não `window.print`.
-6. Dashboard: candidatos abrem Confirmar Matrícula. Comunicados publicados aparecem no início. Em `/comunicacoes`: **Editar**, **Arquivar**, **Republicar**, **Imprimir** e **Oficial**. `/calendario` e `/alunos` **Oficial** usam o modelo de serviço. `/pessoas` tem **Oficial** do corpo docente e do registo central. `/acessos` imprime **Credenciais**, **Oficial contas** e **Oficial equipa**. Ficha do professor também tem **Credenciais**. `/acessos`: **Reenviar** copia o link de convite/recuperação.
-7. `/faturas`: **Fatura** e **Receber**/**Recibo** usam o modelo `service-document` com secção **Dados de pagamento** (IBAN em Definições → Financeiro). Lista de faturas tem **Oficial**. Sem recibos: **Anular**. Ficha do aluno (Admin) também recebe. Caixa: **Recibo** no lançamento e **Oficial** na lista. Planos: **Talão**. Relatório financeiro **Oficial** (completo) e **Oficial cobrança** / **Oficial categorias** — todos com IBAN/logótipo quando configurados. Dashboard mostra pedidos de documento pendentes e liga a `/documentos`.
-8. Ficha do professor: **Editar**, **Atribuir disciplina** e **Desligar**. Registo central: **Editar** pessoa. Relatórios académicos têm PDF **Oficial**. Relatórios financeiros também têm **Oficial**.
-9. `/calendario`: Admin/Secretaria **Editar** e **Apagar** períodos (`terms`). Cada período tem **Imprimir**; a lista tem PDF **Oficial**. Pedagógica → Horários: lista de slots com **Remover** (`deleteScheduleSlot`). Planos de pagamento pendentes têm **Cancelar**.
-10. Convite/cargo Professor cria ficha HR (`ensureTeacherHrRecord`). Liga `teachers.user_id` se a coluna existir; senão resolve por email.
-11. Gateway real Multicaixa/Unitel — fora de âmbito (só config + plano `pending_gateway`).
-12. Sidebar: hover expande, modal encolhe. Árvore Curso/Nível → turmas → disciplinas. Primário/iniciação abre pauta da turma; I/II ciclo abre a disciplina do professor. **Navegação:** sidebar e launcher derivam de `navigation-catalog.ts`; logótipo da escola só no topo da sidebar; `npm run siga:check-nav` valida cobertura por papel.
-13. Integrações catalog-ready estão ligadas em todos os módulos autenticados (toolbars `InstalledModuleTools`, WhatsApp/Resend por linha, botões SIGE/AGT). Relatórios académicos e financeiros copiam resumo Resend. Definições → Integrações reflecte estado real; Gmail mostra nota quando Resend já está instalado. `/alterar-senha` explica 2FA. Configurações vivem no modal (`SettingsCenter`); `/configuracoes?painel=integracoes` abre o painel e redirecciona para `/`; `/configuracoes?painel=documentos` abre `/documentos#modelos`.
-14. **Identidade Angola:** BI/NIF com `AngolaIdentityField` (validar formato + BI online) em `/pessoas`, matrícula interna e `/matricula/$slug` — validação Zod no servidor (`personCoreFieldsSchema`). Escola: NIF AGT, logótipo (URL ou upload), dados bancários e AGT em Definições. Perfil: telemóvel em Definições → Conta (`profiles.phone` no SQL). Ficha da pessoa: lista `person_documents` e **Adicionar documento**; BI sincroniza `national_id`. Aplicar `APPLY_IN_SQL_EDITOR.sql` inclui bucket `school-logos`.
+   0c. **Integrações:** credenciais reais de portal bancário e sincronização automática EMIS.
+   0d. **PayFlow:** SSO + sync + IBAN + extrato + ingest/pull + estorno + alertas + settlement + EMIS ingress fail-closed + feed sandbox local; falta contrato/homologação EMIS (adaptador real) e o URL real do banco.
+   0e. **Domínios / Cloudflare:** Conta correcta `Valentinocanguele` (`701800…`). CNAMEs: `www`→`siga-web.pages.dev`, `admin`→`siga-admin.pages.dev`, `docs`→`siga-docs.pages.dev` (Pages **active**). Workers: `app`/`payflow`/apex OK. Rotas bypass www/admin/docs + payflow/app específicas.
+   0f. **GitHub Actions:** se jobs falharem em ~3s com «payments failed / spending limit», corrigir Billing & plans da conta dona do repo (privado = 2 000 min free). Validar localmente: `bun run test` e `cd painel/payflow && npm test`.
+1. Manter commits pequenos por alteração e nunca incluir `.env` nem `.claude/worktrees/`.
+2. Aceitar candidatura cria aluno, encarregado (se veio no formulário) e opcionalmente turma (`classGroupId`). Sem turma fica `applicant`. Em `/alunos`: **Turma** (candidato), **Mudar** (activo), **Estado** e PDF **Oficial**. Campanha de matrícula (Definições) liga a `/documentos#modelos` para talões.
+3. Emitir em `/documentos` usa o modelo `.hbs` escolhido em **Modelos de impressão** (Ver / Editar / Usar). Cabeçalho da página tem botão **Modelos** (`#modelos`). Atalhos: Definições → Escola → **Atalhos**, `/configuracoes?painel=documentos` ou campanha de matrícula. A lista de pedidos também tem **Oficial**. A ficha do aluno emite **Boletim**, **Histórico**, **Declaração** e **Mais modelos** (dossiê, certificado, credenciais). Pedagógica: pauta, boletim, mapa, acta e validação. Workspace do professor: **Diário**. Relatórios académicos e talões de candidatura/matrícula também. Sem modelo ou se falhar, cai no PDF MINED. Pedidos já emitidos têm **PDF**. Pedidos em curso: **Recusar** e **Cancelar**. Ficha também: **Fatura** e **Documento**.
+4. Pedagógica: **Atribuir professor** liga `class_subjects.teacher_id`. Disciplinas: **Editar** e **Desactivar**. Horários: **Copiar** slot para outro dia. Na pauta, **Copiar trimestre anterior** preenche MAC/NPP/NPT (depois Guardar). Cabeçalho da área pedagógica tem **Pauta Oficial** e **Turmas Oficial**; grelha e centro de avaliação também. Centro de avaliação: **Imprimir** usa `issuePrintDocument` (pauta oficial), não `window.print`.
+5. Dashboard: candidatos abrem Confirmar Matrícula. Comunicados publicados aparecem no início. Em `/comunicacoes`: **Editar**, **Arquivar**, **Republicar**, **Imprimir** e **Oficial**. `/calendario` e `/alunos` **Oficial** usam o modelo de serviço. `/pessoas` tem **Oficial** do corpo docente e do registo central. `/acessos` imprime **Credenciais**, **Oficial contas** e **Oficial equipa**. Ficha do professor também tem **Credenciais**. `/acessos`: **Reenviar** copia o link de convite/recuperação.
+6. `/faturas`: **Fatura** e **Receber**/**Recibo** usam o modelo `service-document` com secção **Dados de pagamento** (IBAN em Definições → Financeiro). Lista de faturas tem **Oficial**. Sem recibos: **Anular**. Ficha do aluno (Admin) também recebe. Caixa: **Recibo** no lançamento e **Oficial** na lista. Planos: **Talão**. Relatório financeiro **Oficial** (completo) e **Oficial cobrança** / **Oficial categorias** — todos com IBAN/logótipo quando configurados. Dashboard mostra pedidos de documento pendentes e liga a `/documentos`.
+7. Ficha do professor: **Editar**, **Atribuir disciplina** e **Desligar**. Registo central: **Editar** pessoa. Relatórios académicos têm PDF **Oficial**. Relatórios financeiros também têm **Oficial**.
+8. `/calendario`: Admin/Secretaria **Editar** e **Apagar** períodos (`terms`). Cada período tem **Imprimir**; a lista tem PDF **Oficial**. Pedagógica → Horários: lista de slots com **Remover** (`deleteScheduleSlot`). Planos de pagamento pendentes têm **Cancelar**.
+9. Convite/cargo Professor cria ficha HR (`ensureTeacherHrRecord`). Liga `teachers.user_id` se a coluna existir; senão resolve por email.
+10. Gateway real Multicaixa/Unitel — fora de âmbito (só config + plano `pending_gateway`).
+11. Sidebar: hover expande, modal encolhe. Árvore Curso/Nível → turmas → disciplinas. Primário/iniciação abre pauta da turma; I/II ciclo abre a disciplina do professor. **Navegação:** sidebar e launcher derivam de `navigation-catalog.ts`; logótipo da escola só no topo da sidebar; `npm run siga:check-nav` valida cobertura por papel.
+12. Integrações catalog-ready estão ligadas em todos os módulos autenticados (toolbars `InstalledModuleTools`, WhatsApp/Resend por linha, botões SIGE/AGT). Relatórios académicos e financeiros copiam resumo Resend. Definições → Integrações reflecte estado real; Gmail mostra nota quando Resend já está instalado. `/alterar-senha` explica 2FA. Configurações vivem no modal (`SettingsCenter`); `/configuracoes?painel=integracoes` abre o painel e redirecciona para `/`; `/configuracoes?painel=documentos` abre `/documentos#modelos`.
+13. **Identidade Angola:** BI/NIF com `AngolaIdentityField` (validar formato + BI online) em `/pessoas`, matrícula interna e `/matricula/$slug` — validação Zod no servidor (`personCoreFieldsSchema`). Escola: NIF AGT, logótipo (URL ou upload), dados bancários e AGT em Definições. Perfil: telemóvel em Definições → Conta (`profiles.phone` no SQL). Ficha da pessoa: lista `person_documents` e **Adicionar documento**; BI sincroniza `national_id`. Aplicar `APPLY_IN_SQL_EDITOR.sql` inclui bucket `school-logos`.
 
 ## Checklist manual — integrações (após SQL)
 
