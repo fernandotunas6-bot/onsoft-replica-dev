@@ -1086,6 +1086,7 @@ function PedagogicaPage() {
               scheduleAvailable={scheduleAvailable}
               classGroups={classGroups}
               subjects={subjects}
+              classSubjects={classSubjects}
               rooms={classrooms.map((r) => ({
                 id: r.id,
                 name: r.name,
