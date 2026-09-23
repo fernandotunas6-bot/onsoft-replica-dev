@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { resolveSgaMembership } from "@/integrations/supabase/sga";
 
 export interface VerifyInstitutionalMembershipResponse {
   authorized: boolean;
@@ -18,7 +19,10 @@ export const verifyInstitutionalMembershipFn = createServerFn({ method: "POST" }
   .handler(async ({ context }): Promise<VerifyInstitutionalMembershipResponse> => {
     if (!context) throw new Error("Unauthorized");
 
-    const membership = await resolveSgaMembershipAdmin(context.userId);
+    // A verificação de acesso inicial não depende da escola guardada em cookie:
+    // o utilizador pode ter mudado de instituição desde a última sessão.
+    const db = await loadSgaAdminClient();
+    const membership = await resolveSgaMembership(db, context.userId);
     return membership
       ? { authorized: true, reason: "authorized" }
       : { authorized: false, reason: "no_active_school_membership" };
