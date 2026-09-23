@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, FolderOpen, LoaderCircle, Shield, Sliders, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -189,6 +189,122 @@ function ProfileAvatarField() {
   );
 }
 
+function MfaSecurityPanel() {
+  const [enabled, setEnabled] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [pending, setPending] = useState<{ id: string; qrCode: string } | null>(null);
+  const [code, setCode] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    void supabase.auth.mfa.listFactors().then(({ data, error }) => {
+      if (!active) return;
+      if (error) {
+        toast.error("Não foi possível verificar o estado do 2FA.");
+      } else {
+        setEnabled(Boolean(data?.totp.some((factor) => factor.status === "verified")));
+      }
+      setChecking(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const enroll = async () => {
+    setEnrolling(true);
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "SIGA Authenticator",
+      });
+      if (error || !data?.totp?.qr_code) throw error ?? new Error("QR code indisponível.");
+      setPending({ id: data.id, qrCode: data.totp.qr_code });
+      setCode("");
+    } catch (error) {
+      toast.error("Não foi possível iniciar o 2FA.", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  const confirm = async () => {
+    if (!pending || code.trim().length < 6) return;
+    setVerifying(true);
+    try {
+      const challenge = await supabase.auth.mfa.challenge({ factorId: pending.id });
+      if (challenge.error) throw challenge.error;
+      const verified = await supabase.auth.mfa.verify({
+        factorId: pending.id,
+        challengeId: challenge.data.id,
+        code: code.trim(),
+      });
+      if (verified.error) throw verified.error;
+      setEnabled(true);
+      setPending(null);
+      setCode("");
+      toast.success("Autenticação de dois fatores ativada.");
+    } catch (error) {
+      toast.error("Código 2FA inválido ou expirado.", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-border bg-muted/20 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <Shield className="size-4 text-primary" /> Autenticação de dois fatores
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Proteja a conta com uma aplicação autenticadora.
+          </p>
+        </div>
+        <Badge variant={enabled ? "default" : "outline"}>
+          {checking ? "A verificar…" : enabled ? "Ativo" : "Não configurado"}
+        </Badge>
+      </div>
+
+      {!checking && !enabled && !pending ? (
+        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void enroll()} disabled={enrolling}>
+          {enrolling ? "A preparar…" : "Configurar 2FA"}
+        </Button>
+      ) : null}
+
+      {pending ? (
+        <div className="mt-4 space-y-3 border-t border-border pt-4">
+          <img src={pending.qrCode} alt="QR code para configurar autenticação de dois fatores" className="size-40 rounded-md border bg-white p-2" />
+          <Label htmlFor="mfa-setup-code">Código da aplicação autenticadora</Label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="mfa-setup-code"
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\s/g, ""))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="000000"
+              maxLength={8}
+            />
+            <Button type="button" onClick={() => void confirm()} disabled={verifying || code.length < 6}>
+              {verifying ? "A confirmar…" : "Ativar"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function ProfileSettingsPanel() {
   const currentUser = useCurrentAccount();
   const queryClient = useQueryClient();
@@ -249,6 +365,8 @@ export function ProfileSettingsPanel() {
   return (
     <form className="space-y-6" onSubmit={saveProfile} onChange={() => stackNav?.reportDirty(true)}>
       <ProfileAvatarField />
+      <Separator />
+      <MfaSecurityPanel />
       <Separator />
 
       <div className="grid gap-4 sm:grid-cols-2">
