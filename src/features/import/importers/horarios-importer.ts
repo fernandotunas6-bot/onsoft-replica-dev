@@ -9,12 +9,21 @@ import {
 } from "./academic-core";
 
 type Ref = { id: string; code: string; name: string };
+type ScheduledSlot = {
+  classGroupId: string;
+  teacherId: string | null;
+  weekday: number;
+  startsAt: number;
+  endsAt: number;
+  room: string;
+};
 type HorariosCache = ImportRefCache & {
   classGroups: Ref[];
   subjects: Ref[];
   teachers: TeacherRef[];
   classSubjects: ClassSubjectRef[];
   existingSlots: Set<string>; // key: `${class_subject_id}:${weekday}:${starts_at}`
+  scheduledSlots: ScheduledSlot[];
 };
 
 function valueOf(row: Record<string, unknown>, ...keys: string[]) {
@@ -38,12 +47,27 @@ function parseWeekday(val: unknown): number | null {
 }
 
 function parseTimeToMinutes(value: string): number | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value.trim());
   if (!match) return null;
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
   if (hours > 23 || minutes > 59) return null;
   return hours * 60 + minutes;
+}
+
+function timeKey(value: string): string {
+  const minutes = parseTimeToMinutes(value);
+  if (minutes === null) return normalizeText(value);
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+function intervalsOverlap(
+  startsAt: number,
+  endsAt: number,
+  otherStartsAt: number,
+  otherEndsAt: number,
+): boolean {
+  return startsAt < otherEndsAt && otherStartsAt < endsAt;
 }
 
 function classSubjectKey(classGroupId: string, subjectId: string) {
@@ -73,7 +97,7 @@ export const horariosImporter: RowImporter = {
       loadClassSubjectRefs(ctx.db, ctx.schoolId),
       ctx.db
         .from("timetable_slots")
-        .select("class_subject_id, weekday, starts_at")
+        .select("class_subject_id, weekday, starts_at, ends_at, room")
         .eq("school_id", ctx.schoolId),
     ]);
 
@@ -85,9 +109,24 @@ export const horariosImporter: RowImporter = {
 
     const existingSlots = new Set(
       (slotRows.data ?? []).map(
-        (r) => `${r.class_subject_id}:${r.weekday}:${normalizeText(r.starts_at)}`,
+        (r) => `${r.class_subject_id}:${r.weekday}:${timeKey(String(r.starts_at ?? ""))}`,
       ),
     );
+    const classSubjectById = new Map(classSubjects.map((row) => [row.id, row]));
+    const scheduledSlots: ScheduledSlot[] = (slotRows.data ?? []).flatMap((row) => {
+      const classSubject = classSubjectById.get(String(row.class_subject_id));
+      const startsAt = parseTimeToMinutes(String(row.starts_at ?? ""));
+      const endsAt = parseTimeToMinutes(String(row.ends_at ?? ""));
+      if (!classSubject || startsAt === null || endsAt === null || endsAt <= startsAt) return [];
+      return [{
+        classGroupId: classSubject.class_group_id,
+        teacherId: classSubject.teacher_id,
+        weekday: Number(row.weekday),
+        startsAt,
+        endsAt,
+        room: normalizeText(row.room) || "A definir",
+      }];
+    });
 
     return {
       existingPeople: [],
@@ -105,6 +144,7 @@ export const horariosImporter: RowImporter = {
       teachers,
       classSubjects,
       existingSlots,
+      scheduledSlots,
     } as HorariosCache;
   },
 
@@ -180,13 +220,29 @@ export const horariosImporter: RowImporter = {
     }
     if (errors.length) return { status: "error", warnings, errors };
 
-    if (classSubject && cache.existingSlots.has(`${classSubject.id}:${weekday}:${startTime}`)) {
+    const startTimeKey = timeKey(startTime);
+    if (classSubject && cache.existingSlots.has(`${classSubject.id}:${weekday}:${startTimeKey}`)) {
       return {
         status: "duplicate",
         warnings: ["Já existe uma aula agendada para esta turma neste dia e horário."],
         errors: [],
         duplicate_of: slotKey,
       };
+    }
+
+    const requestedRoom = normalizeText(valueOf(normalized, "room", "sala")) || "A definir";
+    const teacherId = teacher?.id ?? classSubject?.teacher_id ?? null;
+    const scheduleConflict = cache.scheduledSlots.find(
+      (slot) =>
+        slot.weekday === weekday &&
+        intervalsOverlap(startMinutes!, endMinutes!, slot.startsAt, slot.endsAt) &&
+        (slot.classGroupId === groupMatch.row!.id ||
+          (teacherId !== null && slot.teacherId === teacherId) ||
+          (requestedRoom !== "A definir" && slot.room === requestedRoom)),
+    );
+    if (scheduleConflict) {
+      errors.push("Conflito de horário: turma, professor ou sala já está ocupado neste intervalo.");
+      return { status: "error", warnings, errors };
     }
 
     return { status: "valid", warnings, errors: [] };
@@ -302,7 +358,8 @@ export const horariosImporter: RowImporter = {
       };
     }
 
-    const slotKey = `${classSubject.id}:${weekday}:${startTime}`;
+    const startTimeKey = timeKey(startTime);
+    const slotKey = `${classSubject.id}:${weekday}:${startTimeKey}`;
     if (cache.existingSlots.has(slotKey)) {
       return {
         status: "duplicate",
@@ -338,6 +395,14 @@ export const horariosImporter: RowImporter = {
     }
 
     cache.existingSlots.add(slotKey);
+    cache.scheduledSlots.push({
+      classGroupId: group.id,
+      teacherId: classSubject.teacher_id,
+      weekday,
+      startsAt: parseTimeToMinutes(startTime)!,
+      endsAt: parseTimeToMinutes(endTime)!,
+      room,
+    });
     return {
       status: "imported",
       warnings: analysis.warnings,
