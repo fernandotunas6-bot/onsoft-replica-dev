@@ -147,7 +147,10 @@ export type ScheduleSlotSummary = {
   ends_at: string;
   subject_id: string | null;
   teacher_id: string | null;
+  room_id: string | null;
+  room_name: string | null;
   label: string | null;
+  notes: string | null;
   subject_name: string | null;
   display_label: string;
   class_group_name: string;
