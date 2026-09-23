@@ -159,6 +159,7 @@ export type ScheduleSlotSummary = {
 type ClassSubjectNav = {
   class_group_id: string;
   subject_id: string;
+  weekly_periods: number | null;
   subject_name: string;
   teacher_id: string | null;
   teacher_name: string | null;
@@ -617,6 +618,9 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       return {
         class_group_id: String(record["class_group_id"] ?? ""),
         subject_id: String(record["subject_id"] ?? ""),
+        weekly_periods: Number.isFinite(Number(record["weekly_periods"]))
+          ? Number(record["weekly_periods"])
+          : null,
         subject_name: String(subject?.["name"] ?? "Disciplina"),
         teacher_id: teacherId,
         teacher_name: teacherId ? (teacherNameById.get(teacherId) ?? null) : null,
