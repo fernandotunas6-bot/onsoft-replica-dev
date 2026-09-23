@@ -17,6 +17,17 @@ bugs. **Estava a dar-lhes crédito a mais**, e a distinção importa para quem v
 | `appearance.tsx` (`isDark`) | não podia morder | `mode` nasce em `"light"`; com `isDark` revertido, `mode:"system"` semeado e SO escuro → sem #418 |
 | `calendario.ics.tsx` | código inalcançável | o `server.handlers.GET` responde a todos os pedidos; nenhuma variante devolve o shell da app |
 
+**E o alcance do único defeito real era menor do que eu disse.** Escrevi «em todas as
+páginas com `AppShell`» e «em todas as páginas de quem tem sessão». Nenhuma das duas é
+verdade: nas rotas autenticadas o servidor **nunca** renderiza o `AppShell`, porque o
+`AuthGate` tem `checking = true` no SSR — a sessão vive no cliente — e por isso manda
+sempre o `PageLoading` (medido: `/` e `/alunos` em produção trazem o `PageLoading` e zero
+`data-tauri-drag-region`). Das rotas públicas, só `alterar-senha.tsx` usa `AppShell`;
+`convite.$token.tsx`, `saas-admin.tsx` e `matricula/$slug.tsx` têm zero referências.
+
+**O alcance real era uma rota: `/alterar-senha`.** O que fecha o círculo — era a única que
+dava #418 porque era a única que podia dar. A medição e o mecanismo passam a concordar.
+
 O `calendario.ics.tsx` foi o pior dos meus exageros: anunciei-o como «terceira instância da
 mesma falha» encontrada pelo guarda, quando o componente `CalendarFeedPage` **nunca
 renderiza** — a rota tem um handler de GET que devolve HTML fixo (token curto ou ausente)

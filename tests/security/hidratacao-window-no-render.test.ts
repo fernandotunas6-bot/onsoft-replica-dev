@@ -12,9 +12,14 @@ import { resolve, relative } from "node:path";
  *
  *   · `DesktopTitleBar` — **defeito real.** `!isDesktop && typeof window !== "undefined" &&
  *     !search.includes(…)` devolvia `null` no cliente e renderizava a barra inteira no
- *     servidor. Deu React #418 em `/alterar-senha` (a única rota que rende `AppShell`
- *     deslogado) e em todas as páginas de quem tem sessão. Confirmado por controlo:
- *     revertendo-o o erro volta, com ele desaparece.
+ *     servidor. Confirmado por controlo: revertendo-o o #418 volta, com ele desaparece.
+ *
+ *     O alcance foi **uma rota, `/alterar-senha`** — e não «todas as páginas com
+ *     `AppShell`», como aqui esteve escrito. Nas rotas autenticadas o servidor nunca
+ *     renderiza o `AppShell`: o `AuthGate` tem `checking = true` no SSR (a sessão vive no
+ *     cliente), portanto manda sempre o `PageLoading` e o cliente começa igual. Das rotas
+ *     públicas, só `alterar-senha.tsx` usa `AppShell` — `convite`, `saas-admin` e
+ *     `matricula/$slug` não. É por isso que só essa dava erro.
  *   · `appearance.tsx` — **não podia morder.** `isDark` lia `matchMedia` no corpo do
  *     provider, mas o estado nasce em `defaults` (`mode: "light"`) e o valor guardado só
  *     entra num `useEffect`: no primeiro render o modo é sempre `"light"` dos dois lados.
