@@ -501,6 +501,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 onSubmit={(event) => {
                   event.preventDefault();
                   void (async () => {
+                    const code = mfaCode.replace(/\D/g, "");
+                    if (!/^\d{6}$/.test(code)) {
+                      setError("Introduza os 6 dígitos da aplicação autenticadora.");
+                      return;
+                    }
                     setSubmitting(true);
                     setError(null);
                     try {
@@ -511,7 +516,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       const verified = await supabase.auth.mfa.verify({
                         factorId: mfaFactorId,
                         challengeId: challenge.data.id,
-                        code: mfaCode.trim(),
+                        code,
                       });
                       if (verified.error) throw verified.error;
 
@@ -537,10 +542,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       setSession(sessionData.session);
                       setMfaFactorId(null);
                       setMfaCode("");
-                    } catch (verifyError) {
-                      setError(
-                        verifyError instanceof Error ? verifyError.message : "Código 2FA inválido.",
-                      );
+                    } catch {
+                      setError("Não foi possível confirmar o código 2FA. Verifique-o e tente novamente.");
                     } finally {
                       setSubmitting(false);
                     }
@@ -548,14 +551,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 }}
               >
                 <p className="text-xs text-muted-foreground">
-                  Introduza o código da aplicação autenticadora para concluir o início de sessão.
+                  Introduza os 6 dígitos da aplicação autenticadora para concluir o início de sessão.
                 </p>
                 <Input
                   aria-label="Código de autenticação multifator"
                   value={mfaCode}
-                  onChange={(event) => setMfaCode(event.target.value)}
+                  onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   inputMode="numeric"
                   autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
                   placeholder="000000"
                   required
                 />
