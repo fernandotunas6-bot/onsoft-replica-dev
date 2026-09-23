@@ -6,6 +6,41 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Hidratação (2026-09-23)
 
+### `/calendario/ics`: a página e o handler contradizem-se — decisão por tomar
+
+Descoberto ao verificar o alcance das correcções de hidratação, e **não resolvido de
+propósito**.
+
+O `server.handlers.GET` da rota responde a *todos* os pedidos, pelo que o componente
+`CalendarFeedPage` (57 linhas: endereço do feed, contagem de eventos, botão de descarga)
+**nunca renderiza**. Medido contra um build de produção nas três variantes: 368 bytes do
+handler (token curto ou ausente), 404 do `servePublicCalendarIcs` (token válido), zero
+ocorrências de `/assets/index-` em qualquer delas. Por dentro da aplicação também não há
+caminho: nenhum `Link` para a rota, e as quatro utilizações de `calendarIcsFeedUrl`
+constroem o endereço para ser **copiado**, não navegado.
+
+Mas o componente tem `tests/routes/calendario-ics.test.tsx` — dois testes deliberados, que
+montam a página, verificam a contagem de eventos e clicam no botão de descarga. Alguém quis
+aquilo a funcionar.
+
+**Cheguei a removê-lo** (commit `70e9446`) por o dar como código morto, e **revertê-lo foi a
+decisão certa**: a minha verificação de que não havia testes usou `grep … | head -5`, e o
+ficheiro de testes ficou de fora do corte. Foi o mesmo erro que ando a apanhar noutros
+sítios — uma verificação que inspecciona menos do que aparenta. Apagar UI com testes
+intencionais por trás, com base só na minha leitura, não é decisão de quem passa a corrigir
+outra coisa.
+
+A escolha é entre duas, e é do dono:
+
+  a) **a página é para existir** → o handler tem de deixar passar os pedidos com
+     `Accept: text/html` e só servir `.ics` a quem pede `.ics`;
+  b) **não é para existir** → removem-se o componente e os testes, e fica o componente
+     mínimo que as outras 14 rotas com handler já usam.
+
+Enquanto não se decidir, o estado é este: os testes passam, mas testam código que o produto
+não corre. Fica uma nota no topo do ficheiro da rota a dizer isto mesmo, para ninguém
+repetir o meu caminho.
+
 ### Balanço honesto: das três ocorrências, só uma era defeito
 
 Verificadas uma a uma, depois de as ter corrigido às três e de ter descrito as três como
