@@ -12,6 +12,12 @@ export type ScheduleClassGroup = {
   status?: string;
 };
 
+export type ScheduleClassSubject = {
+  class_group_id: string;
+  subject_id: string;
+  weekly_periods?: number | null;
+};
+
 export type ScheduleSubject = {
   id: string;
   name: string;
