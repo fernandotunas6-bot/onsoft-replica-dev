@@ -39,7 +39,7 @@ import type {
 import { detectScheduleConflicts } from "./utils/conflicts";
 import { toast } from "sonner";
 
-const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"] as const;
+const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"] as const;
 const weekdayByLabel = new Map<string, number>(weekdays.map((label, index) => [label, index + 1]));
 
 function optionLabel(id: string, label: string) {
@@ -65,7 +65,9 @@ function gridRows(slots: ScheduleSlot[]) {
       range,
       cells: weekdays.map((_, index) => {
         const daySlots = slots.filter(
-          (slot) => slot.weekday === index + 1 && timeValue(slot.starts_at) === start,
+          (slot) =>
+            slot.weekday === index + 1 &&
+            `${timeValue(slot.starts_at)} – ${timeValue(slot.ends_at)}` === range,
         );
         return { slot: daySlots[0], additionalCount: Math.max(0, daySlots.length - 1) };
       }),
@@ -486,6 +488,15 @@ export function ScheduleWorkspace({
         </div>
       </div>
 
+      {viewMode === "turma" && selectedClassGroup ? (
+        <div className="mb-4 grid gap-2 rounded-xl border border-border bg-muted/20 p-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
+          <div><span className="text-muted-foreground">Nível:</span> <span className="font-semibold text-foreground">{selectedClassGroup.grade_name || "Não definido"}</span></div>
+          <div><span className="text-muted-foreground">Curso:</span> <span className="font-semibold text-foreground">{selectedClassGroup.course_name || "Não definido"}</span></div>
+          <div><span className="text-muted-foreground">Turno:</span> <span className="font-semibold text-foreground">{selectedClassGroup.shift || "Não definido"}</span></div>
+          <div><span className="text-muted-foreground">Lotação:</span> <span className="font-semibold text-foreground">{selectedClassGroup.enrolled_count}/{selectedClassGroup.capacity ?? "—"} alunos</span></div>
+        </div>
+      ) : null}
+
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full border border-border bg-muted/40 px-3 py-1.5 font-medium text-muted-foreground">
           {visibleSlots.length} aulas visíveis
@@ -521,8 +532,8 @@ export function ScheduleWorkspace({
       )}
 
       {/* Grade Semanal de Horário */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
-        <Table>
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-card">
+        <Table className="min-w-[920px]">
           <TableHeader>
             <TableRow className="bg-muted/40">
               <TableHead className="w-[120px] text-xs font-bold text-foreground">Horário</TableHead>
@@ -536,7 +547,7 @@ export function ScheduleWorkspace({
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-xs text-muted-foreground">
+                <TableCell colSpan={weekdays.length + 1} className="py-12 text-center text-xs text-muted-foreground">
                   Nenhuma aula agendada para esta selecção.
                 </TableCell>
               </TableRow>
