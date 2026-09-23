@@ -125,7 +125,15 @@ build de produção com saída 0. A árvore publicada é bit a bit a de `origin/
 a 200; `scripts/pwa-check.mjs` contra `https://portal-siga.com` com os 8 controlos verdes
 (manifesto, 4 ícones, apple-touch-icon, viewport, theme-color, service worker, offline).
 
-**Achado novo, em produção e por resolver.** O erro de hidratação que o Ciclo 101 viu em
+**Achado novo, em produção — RESOLVIDO a 2026-09-23** (ver a secção «Hidratação» no topo
+deste ficheiro; correcções em `1963804` e `f1a51d4`). **Atenção ao que segue, porque está
+errado e ficou registado como facto:** a parte de «está em `/`, `/alunos` e
+`/alterar-senha`» era um **artefacto de medição** — a consola do painel acumula mensagens
+entre navegações, e o #418 do `/alterar-senha` era lido como se fosse da página seguinte.
+Medido em separador limpo, o erro vinha **só do `/alterar-senha`**, a única das três que
+renderiza o `AppShell` estando deslogado. O texto original fica abaixo tal como estava.
+
+O erro de hidratação que o Ciclo 101 viu em
 `/alterar-senha` **não é dessa página**: está em `/`, `/alunos` e `/alterar-senha` — React
 #418 em todas, portanto vem do que embrulha tudo. A suspeita registada era o `AuthGate`,
 mas o `checking` nasce `true` nos dois lados (`useState(true)`, linha 66), logo o primeiro
@@ -200,10 +208,12 @@ também ao clicar com o rato, que não é para quem ele existe.
 **Resultados:** `vitest run` — 251 ficheiros, **1699 testes verdes, 0 falhas**, 3 saltados.
 `tsc --noEmit` 0 erros. `a11y`, `check:style` e `lint` os três a zero.
 
-**Achado por resolver:** `/alterar-senha` dá erro de hidratação no browser (o HTML do
-servidor não bate certo com o do cliente). Não vem deste ciclo — nessa página não há
-imagens nem `MediaFrame`, só os `aria-label` que são atributos estáticos. A suspeita é a
-porta de autenticação, que rende "A verificar sessão…" só no cliente.
+**~~Achado por resolver~~ — RESOLVIDO a 2026-09-23** (`1963804`): `/alterar-senha` dava
+erro de hidratação porque é a única rota que renderiza o `AppShell` estando deslogado, e o
+`DesktopTitleBar` decidia o que mostrar com `typeof window` — o servidor mandava a barra,
+o cliente não a desenhava. A suspeita registada aqui (a porta de autenticação) estava
+errada: o `AuthGate` rende `checking = true` dos dois lados. Ver a secção «Hidratação» no
+topo deste ficheiro.
 
 ### Ciclo 100 — O CI não corre desde 3 de Setembro, e só uma das causas era código (2026-09-20)
 
