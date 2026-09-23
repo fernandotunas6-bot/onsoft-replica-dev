@@ -2,12 +2,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { sgaClient } from "@/integrations/supabase/sga";
 
 const DEMO_EMAIL = "dev@siga.local";
-const DEMO_PASSWORD = "siga-dev-bypass-2026";
 const DEMO_NAME = "Administrador Dev";
 
 function bypassEnabled() {
   // Never allow this administrative shortcut outside an explicit local development environment.
   return process.env["NODE_ENV"] === "development" && process.env["AUTH_BYPASS"] === "true";
+}
+
+function requireDevBypassPassword() {
+  const password = process.env["DEV_BYPASS_PASSWORD"]?.trim();
+  if (!password) throw new Error("DEV_BYPASS_PASSWORD não configurada.");
+  return password;
 }
 
 /**
@@ -18,6 +23,8 @@ export const ensureDevBypassSession = createServerFn({ method: "POST" }).handler
   if (!bypassEnabled()) {
     throw new Error("Bypass de autenticação desactivado.");
   }
+
+  const demoPassword = requireDevBypassPassword();
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = sgaClient(supabaseAdmin);
@@ -33,7 +40,7 @@ export const ensureDevBypassSession = createServerFn({ method: "POST" }).handler
   if (!user) {
     const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: DEMO_EMAIL,
-      password: DEMO_PASSWORD,
+      password: demoPassword,
       email_confirm: true,
       user_metadata: { full_name: DEMO_NAME },
     });
@@ -41,7 +48,7 @@ export const ensureDevBypassSession = createServerFn({ method: "POST" }).handler
     user = created.user;
   } else {
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
-      password: DEMO_PASSWORD,
+      password: demoPassword,
       email_confirm: true,
       user_metadata: {
         ...(user.user_metadata ?? {}),
@@ -132,7 +139,7 @@ export const ensureDevBypassSession = createServerFn({ method: "POST" }).handler
 
   const { data: signedIn, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
     email: DEMO_EMAIL,
-    password: DEMO_PASSWORD,
+    password: demoPassword,
   });
   if (signInError || !signedIn.session) {
     throw new Error(signInError?.message || "Falha ao abrir sessão demo.");
