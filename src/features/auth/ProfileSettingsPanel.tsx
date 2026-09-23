@@ -245,10 +245,8 @@ function MfaSecurityPanel() {
       if (error || !data?.totp?.qr_code) throw error ?? new Error("QR code indisponível.");
       setPending({ id: data.id, qrCode: data.totp.qr_code });
       setCode("");
-    } catch (error) {
-      toast.error("Não foi possível iniciar o 2FA.", {
-        description: error instanceof Error ? error.message : undefined,
-      });
+    } catch {
+      toast.error("Não foi possível iniciar o 2FA. Tente novamente.");
     } finally {
       setEnrolling(false);
     }
@@ -270,10 +268,8 @@ function MfaSecurityPanel() {
       setPending(null);
       setCode("");
       toast.success("Autenticação de dois fatores ativada.");
-    } catch (error) {
-      toast.error("Código 2FA inválido ou expirado.", {
-        description: error instanceof Error ? error.message : undefined,
-      });
+    } catch {
+      toast.error("Código 2FA inválido ou expirado. Tente novamente.");
     } finally {
       setVerifying(false);
     }
