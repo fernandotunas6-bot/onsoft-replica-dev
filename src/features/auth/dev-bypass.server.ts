@@ -6,7 +6,8 @@ const DEMO_PASSWORD = "siga-dev-bypass-2026";
 const DEMO_NAME = "Administrador Dev";
 
 function bypassEnabled() {
-  return process.env["AUTH_BYPASS"] === "true" || process.env["VITE_AUTH_DISABLED"] === "true";
+  // Never allow this administrative shortcut outside an explicit local development environment.
+  return process.env["NODE_ENV"] === "development" && process.env["AUTH_BYPASS"] === "true";
 }
 
 /**
