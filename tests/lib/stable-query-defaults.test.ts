@@ -37,21 +37,47 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
+/**
+ * `const { data: x = [] } = useQuery({` — a desestruturação com valor por omissão
+ * directamente sobre o resultado de uma query. Extraída para fora do varrimento para o
+ * caso de controlo poder exercitá-la sem tocar no disco.
+ */
+function éInfracção(linha: string): boolean {
+  const code = linha.trim();
+  if (code.startsWith("*") || code.startsWith("//")) return false; // comentários
+  const destructuresQueryData = /\{\s*data(\s*:\s*\w+)?\s*=\s*(\[\]|\{\})/.test(code);
+  const isQuery = /=\s*use(Suspense)?(Query|Queries|Mutation)\(/.test(code);
+  return destructuresQueryData && isQuery;
+}
+
 describe("identidade estável em resultados de query", () => {
+  it("inspecciona mesmo a base de código", () => {
+    // Sem isto, o teste seguinte passa a verde com zero ficheiros lidos — bastava o
+    // caminho mudar ou o varrimento partir-se. Um teste que diz "está limpo" tem de
+    // provar que olhou para alguma coisa.
+    expect(sourceFiles(SRC).length).toBeGreaterThan(500);
+  });
+
+  it("o detector apanha a forma proibida", () => {
+    // Controlo: sem ele, `offenders` vazio não distingue "não há" de "não procurei".
+    expect(éInfracção("const { data: linhas = [] } = useQuery({ queryKey: [] });")).toBe(true);
+    expect(éInfracção("const { data: mapa = {} } = useSuspenseQuery({ queryKey: [] });")).toBe(
+      true,
+    );
+    // E não apanha o que é legítimo, senão a regra deixava de ser usável.
+    expect(éInfracção("const { data } = useQuery({ queryKey: [] });")).toBe(false);
+    expect(éInfracção("const linhas = query.data ?? EMPTY_LIST;")).toBe(false);
+    expect(éInfracção("// const { data: x = [] } = useQuery({")).toBe(false);
+  });
+
   it("nenhum ficheiro desestrutura `data` com [] ou {} por omissão", () => {
     const offenders: string[] = [];
 
     for (const file of sourceFiles(SRC)) {
       const lines = readFileSync(file, "utf8").split("\n");
       lines.forEach((line, index) => {
-        const code = line.trim();
-        if (code.startsWith("*") || code.startsWith("//")) return; // comentários
-        // `const { data: x = [] } = useQuery({` — a desestruturação com valor
-        // por omissão directamente sobre o resultado de uma query.
-        const destructuresQueryData = /\{\s*data(\s*:\s*\w+)?\s*=\s*(\[\]|\{\})/.test(code);
-        const isQuery = /=\s*use(Suspense)?(Query|Queries|Mutation)\(/.test(code);
-        if (destructuresQueryData && isQuery) {
-          offenders.push(`${file.replace(process.cwd() + "/", "")}:${index + 1}  ${code}`);
+        if (éInfracção(line)) {
+          offenders.push(`${file.replace(process.cwd() + "/", "")}:${index + 1}  ${line.trim()}`);
         }
       });
     }
