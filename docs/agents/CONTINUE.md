@@ -4,6 +4,39 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## `tenant_mailboxes` (2026-09-23)
+
+### O SQL que estava à espera de ser aplicado falharia se o fosse
+
+`tenant_mailboxes` é a última tabela que o código consulta e a produção não tem. Quatro
+sítios escrevem ou lêem dela (`saas/server.ts`, `saas/school-domain-ops.ts`,
+`api/saas/mailboxes.tsx` ×2), pelo que o aprovisionamento de caixas institucionais no
+Control Center devolve o erro de tabela inexistente — não um ecrã vazio.
+
+`supabase/APPLY_MAILBOXES.sql` está por aplicar desde 2026-09-02, e **ao verificá-lo antes
+de o dar como pronto descobri que rebentaria**: a segunda política que declara faz
+`SELECT tenant_id FROM tenant_members`, e **`tenant_members` não existe em produção**
+(verificado contra o retrato). Quem o corresse ficava com a tabela criada, a primeira
+política aplicada e a segunda a falhar com 42P01 — o pior dos estados, porque parece meio
+feito.
+
+O papel de `tenant_members` é desempenhado por `school_memberships`, e a ponte para o
+tenant é `schools.tenant_id`. Escrita a migração
+`20260923120000_tenant_mailboxes.sql` com esse caminho real, e **por aplicar** — é escrita
+na base, decisão do dono.
+
+Verificado antes de a propor:
+
+- as colunas cobrem o que o código **escreve** (`tenant_id`, `email`, `display_name`,
+  `provider`, `provider_account_id`, `status`) e o que **lê** (incluindo `created_at`, que
+  é usado no `order`);
+- o embed `tenants(name, slug)` que o endpoint faz precisa da chave estrangeira
+  `tenant_mailboxes → tenants`, que a migração declara;
+- validada com o parser real do Postgres (pglast): 7 instruções, 0 erros.
+
+Depois de aplicar: `npm run siga:db-snapshot` e retirar a entrada de
+`TABELAS_AUSENTES_DA_PRODUCAO`, que fica então **vazia**.
+
 ## Hidratação (2026-09-23)
 
 ### `/calendario/ics`: a página e o handler contradizem-se — decisão por tomar

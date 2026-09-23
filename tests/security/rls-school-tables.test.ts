@@ -89,7 +89,22 @@ const RLS_PENDING = new Set<string>([
  * `configure_assessment_rules` falham com 42P01, e uma escola nova não consegue
  * abrir o primeiro diário de notas (`gradebooks.rule_set_id` é NOT NULL).
  */
-const SCHEMA_ONLY_IN_PRODUCTION = new Set(["avatars", "tenant_mailboxes"]);
+/**
+ * `tenant_mailboxes` saiu a 2026-09-23 com `20260923120000_tenant_mailboxes.sql`.
+ *
+ * Não é o `supabase/APPLY_MAILBOXES.sql` que estava à espera desde Setembro: esse
+ * declarava a política de leitura por `tenant_members`, tabela que **não existe em
+ * produção**, e teria falhado com 42P01 a meio — tabela criada, uma política aplicada e a
+ * outra não. A migração nova segue o caminho real, `school_memberships` → `schools.tenant_id`.
+ *
+ * Continua **ausente da produção** enquanto a migração não for aplicada; isso é a outra
+ * lista (`TABELAS_AUSENTES_DA_PRODUCAO`), e é lá que continua registada. Esta mede
+ * declaração no repositório.
+ *
+ * Sobra `avatars`, que é o falso positivo do conjunto: é um bucket de storage, não uma
+ * tabela.
+ */
+const SCHEMA_ONLY_IN_PRODUCTION = new Set(["avatars"]);
 
 function collectSqlFiles(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;
