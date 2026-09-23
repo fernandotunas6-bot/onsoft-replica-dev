@@ -4,6 +4,44 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Hidratação (2026-09-23)
+
+### Duas das causas do React #418, e o que falta saber
+
+O registo de 20/09 deixou o #418 em `/`, `/alunos` e `/alterar-senha` como «achado novo, em
+produção e por resolver», com a intuição certa de que vinha do que embrulha tudo.
+Reproduzido hoje na versão no ar, nos três caminhos. Corrigidas duas causas (`1963804`),
+ambas do mesmo feitio: **uma condição que lê `window` durante o render**.
+
+- **`DesktopTitleBar`** — `!isDesktop && typeof window !== "undefined" && !search.includes(…)`.
+  No servidor `typeof window` é `"undefined"`, a condição dá falsa, e a barra inteira vai no
+  HTML; no primeiro render do cliente dá verdadeira e devolve `null`. A guarda estava lá
+  para não ler `window.location` no SSR — o efeito dela era inverter o resultado.
+- **`appearance.tsx`** — `isDark` calculado com `matchMedia` no corpo do provider. Vai para
+  o JSX do `AppShell` (ícone e rótulo do botão de tema). Com o modo em `system` e o SO em
+  escuro: servidor `false`, cliente `true`.
+
+**Correcção a uma leitura minha, registada porque custou tempo.** Concluí a meio que o
+defeito «só acontecia no build de produção», porque em desenvolvimento a consola estava
+limpa. Está errado: o SSR de desenvolvimento trazia a barra exactamente como o de produção
+(verificado antes da correcção). O que é exclusivo da produção é o **relato** — nesta
+montagem o React em dev não imprime aviso nenhum de hidratação. É por isso que isto
+sobreviveu desde 20/09: a única consola que o diz é a da versão construída.
+
+**O que falta, dito por inteiro.** Em `/` e `/alunos`, deslogado, o servidor renderiza
+**só** o `PageLoading` do `AuthGate` — sem `AppShell`, sem barra (confirmado: 0 ocorrências
+de `data-tauri-drag-region` no HTML de produção dos dois) — e mesmo assim davam #418. As
+duas correcções acima não explicam esses dois casos: há uma terceira causa por identificar,
+algures entre os providers, o `AuthGate` e o `Toaster`. Já excluído: a estrutura ao nível do
+`body` coincide entre servidor e cliente, e os marcadores de Suspense coincidem entre dev e
+produção nos dois caminhos.
+
+**Porque não foi verificado aqui.** O sintoma só aparece num build de produção, e esta
+máquina não o corre: `vite preview` não serve o preset `cloudflare-module` (procura
+`dist/server/`, o build gera `.output/server/`), e o `wrangler dev` recusa-se — o runtime
+do Cloudflare exige macOS 13.5+ e esta é a 12.6. Fica por confirmar no próximo deploy, ou
+numa máquina/container que corra o workerd.
+
 ## Deploy (2026-09-23)
 
 ### As chaves saíram do texto simples — e o deploy deixou de mentir quando falha
