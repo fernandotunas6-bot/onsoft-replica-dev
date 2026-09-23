@@ -119,16 +119,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
           await import("@/features/auth/verify-institutional-membership-server");
         const verification = await verifyInstitutionalMembershipFn();
         if (verification.authorized) return false;
-      } catch {
-        // Falha fechada: sem confirmação do vínculo não há acesso à aplicação.
-      }
 
-      await supabase.auth.signOut({ scope: "local" });
-      if (active) {
-        setSession(null);
-        setError("A sua conta não possui um vínculo institucional ativo.");
+        await supabase.auth.signOut({ scope: "local" });
+        if (active) {
+          setSession(null);
+          setError("A sua conta não possui um vínculo institucional ativo.");
+        }
+        return true;
+      } catch {
+        // Falha fechada sem afirmar, incorretamente, que o vínculo não existe.
+        await supabase.auth.signOut({ scope: "local" });
+        if (active) {
+          setSession(null);
+          setError("Não foi possível confirmar o vínculo institucional. Tente novamente.");
+        }
+        return true;
       }
-      return true;
     };
 
     const requireMfaChallenge = async (): Promise<boolean> => {
