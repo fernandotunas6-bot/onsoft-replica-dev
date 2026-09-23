@@ -113,6 +113,24 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
+    const requireInstitutionalMembership = async (): Promise<boolean> => {
+      try {
+        const { verifyInstitutionalMembershipFn } =
+          await import("@/features/auth/verify-institutional-membership-server");
+        const verification = await verifyInstitutionalMembershipFn();
+        if (verification.authorized) return false;
+      } catch {
+        // Falha fechada: sem confirmação do vínculo não há acesso à aplicação.
+      }
+
+      await supabase.auth.signOut({ scope: "local" });
+      if (active) {
+        setSession(null);
+        setError("A sua conta não possui um vínculo institucional ativo.");
+      }
+      return true;
+    };
+
     const requireMfaChallenge = async (): Promise<boolean> => {
       try {
         const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -144,6 +162,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
         const { data } = await supabase.auth.getSession();
         if (!active) return;
         if (data.session) {
+          if (await requireInstitutionalMembership()) {
+            if (active) setChecking(false);
+            return;
+          }
           if (await requireMfaChallenge()) {
             if (active) setChecking(false);
             return;
@@ -215,6 +237,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
             setError("Não foi possível confirmar a conta. Tente novamente.");
             return;
           }
+        }
+
+        if (!oauthPending && (await requireInstitutionalMembership())) {
+          if (active) {
+            setChecking(false);
+            setSubmitting(false);
+          }
+          return;
         }
 
         if (await requireMfaChallenge()) {
