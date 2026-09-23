@@ -147,7 +147,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
         const factors = await supabase.auth.mfa.listFactors();
         if (factors.error) throw factors.error;
-        const totp = factors.data?.totp[0];
+        const totp = factors.data?.totp.find((factor) => factor.status === "verified");
         if (!totp) {
           setError("A autenticação de dois fatores não pôde ser iniciada.");
           setSession(null);
