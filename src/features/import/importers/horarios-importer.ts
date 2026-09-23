@@ -280,14 +280,14 @@ export const horariosImporter: RowImporter = {
     if (ctx.dryRun) {
       if (
         existingClassSubject &&
-        cache.existingSlots.has(`${existingClassSubject.id}:${weekday}:${startTime}`)
+        cache.existingSlots.has(`${existingClassSubject.id}:${weekday}:${timeKey(startTime)}`)
       ) {
         return {
           status: "duplicate",
           warnings: analysis.warnings,
           errors: [],
           audits: [],
-          target_record_id: `${existingClassSubject.id}:${weekday}:${startTime}`,
+          target_record_id: `${existingClassSubject.id}:${weekday}:${timeKey(startTime)}`,
         };
       }
       return {
@@ -376,8 +376,8 @@ export const horariosImporter: RowImporter = {
         school_id: ctx.schoolId,
         class_subject_id: classSubject.id,
         weekday,
-        starts_at: startTime,
-        ends_at: endTime,
+        starts_at: timeKey(startTime),
+        ends_at: timeKey(endTime),
         room,
         status: "active",
         created_by: ctx.userId,
