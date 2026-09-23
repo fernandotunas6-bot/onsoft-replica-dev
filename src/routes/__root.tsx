@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { registerServiceWorker } from "@/lib/pwa";
@@ -115,6 +115,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 import { TauriTitlebar } from "@/components/TauriTitlebar";
 
+function ClientOnlyToaster() {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  return hydrated ? <Toaster position="top-right" richColors /> : null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -156,7 +166,7 @@ function RootComponent() {
               </AuthGate>
             )}
           </div>
-          <Toaster position="top-right" richColors />
+          <ClientOnlyToaster />
         </AppearanceProvider>
       </TenantProvider>
     </QueryClientProvider>
