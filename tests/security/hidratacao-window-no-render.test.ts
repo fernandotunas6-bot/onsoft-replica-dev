@@ -5,17 +5,28 @@ import { resolve, relative } from "node:path";
 /**
  * `typeof window` a decidir o que um componente renderiza.
  *
- * É a forma mais fiável de partir a hidratação nesta base, e já lá chegou três vezes —
- * duas delas até à produção, onde se manifestavam como o React #418 e faziam o HTML do
- * servidor ser deitado fora a cada visita (SSR anulado):
+ * O padrão apareceu três vezes nesta base. **Uma** delas foi um defeito a sério, chegou à
+ * produção e foi medida lá; as outras duas eram a mesma forma em sítios onde não podia
+ * morder. A distinção está aqui escrita de propósito — foi verificada uma a uma, e quem
+ * ler isto não deve concluir que qualquer ocorrência é um bug em produção:
  *
- *   · `DesktopTitleBar` — `!isDesktop && typeof window !== "undefined" && !search.includes(…)`
- *     devolvia `null` no cliente e renderizava a barra inteira no servidor, em todas as
- *     páginas com `AppShell`;
- *   · `appearance.tsx` — `isDark` calculado com `matchMedia` no corpo do provider, e o
- *     valor vai para o JSX do `AppShell`;
- *   · `calendario.ics.tsx` — `url` era o token no servidor e o endereço completo no
- *     cliente, ambos renderizados como texto.
+ *   · `DesktopTitleBar` — **defeito real.** `!isDesktop && typeof window !== "undefined" &&
+ *     !search.includes(…)` devolvia `null` no cliente e renderizava a barra inteira no
+ *     servidor. Deu React #418 em `/alterar-senha` (a única rota que rende `AppShell`
+ *     deslogado) e em todas as páginas de quem tem sessão. Confirmado por controlo:
+ *     revertendo-o o erro volta, com ele desaparece.
+ *   · `appearance.tsx` — **não podia morder.** `isDark` lia `matchMedia` no corpo do
+ *     provider, mas o estado nasce em `defaults` (`mode: "light"`) e o valor guardado só
+ *     entra num `useEffect`: no primeiro render o modo é sempre `"light"` dos dois lados.
+ *     Verificado com o `isDark` revertido, `mode: "system"` semeado e o SO em escuro — sem
+ *     #418.
+ *   · `calendario.ics.tsx` — **código inalcançável.** A rota tem um `server.handlers.GET`
+ *     que responde a todos os pedidos (HTML fixo ou o ficheiro ICS), portanto o componente
+ *     `CalendarFeedPage` nunca renderiza. Medido: nenhuma das variantes de pedido devolve
+ *     o shell da aplicação.
+ *
+ * As duas últimas ficaram corrigidas na mesma, e é esta regra que as justifica — não um
+ * sintoma observado.
  *
  * O padrão é sempre o mesmo, e a intenção é sempre boa: a guarda `typeof window` é posta
  * para não ler `window` no servidor. Só que numa expressão que decide o render, o efeito

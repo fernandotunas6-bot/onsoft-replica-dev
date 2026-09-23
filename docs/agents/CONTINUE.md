@@ -6,6 +6,28 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Hidratação (2026-09-23)
 
+### Balanço honesto: das três ocorrências, só uma era defeito
+
+Verificadas uma a uma, depois de as ter corrigido às três e de ter descrito as três como
+bugs. **Estava a dar-lhes crédito a mais**, e a distinção importa para quem vier a seguir:
+
+| ocorrência | veredicto | como foi verificado |
+|---|---|---|
+| `DesktopTitleBar` | **defeito real, em produção** | controlo: revertendo-o o #418 volta, com ele desaparece |
+| `appearance.tsx` (`isDark`) | não podia morder | `mode` nasce em `"light"`; com `isDark` revertido, `mode:"system"` semeado e SO escuro → sem #418 |
+| `calendario.ics.tsx` | código inalcançável | o `server.handlers.GET` responde a todos os pedidos; nenhuma variante devolve o shell da app |
+
+O `calendario.ics.tsx` foi o pior dos meus exageros: anunciei-o como «terceira instância da
+mesma falha» encontrada pelo guarda, quando o componente `CalendarFeedPage` **nunca
+renderiza** — a rota tem um handler de GET que devolve HTML fixo (token curto ou ausente)
+ou o ficheiro ICS (token válido). Medido: 368 bytes do handler, zero ocorrências de
+`/assets/index-` em qualquer das variantes.
+
+As duas correcções ficam, e o guarda continua a justificá-las: ler `window` numa expressão
+de render é a forma que causou o defeito real, e não se quer distinguir caso a caso de cada
+vez. Mas são **higiene com teste a suportá-la**, não correcções de sintomas observados.
+
+
 ### Duas das causas do React #418, e o que falta saber
 
 O registo de 20/09 deixou o #418 em `/`, `/alunos` e `/alterar-senha` como «achado novo, em
