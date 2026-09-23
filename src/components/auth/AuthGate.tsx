@@ -201,10 +201,34 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
-      if (event !== "SIGNED_IN" || !nextSession) {
-        setSession(nextSession);
+      // O bootstrap abaixo é a única via para a sessão restaurada. Não
+      // disponibilizar INITIAL_SESSION antes do vínculo institucional e MFA.
+      if (event === "INITIAL_SESSION") return;
+
+      if (!nextSession) {
+        setSession(null);
         setChecking(false);
         setSubmitting(false);
+        return;
+      }
+
+      if (event !== "SIGNED_IN") {
+        void (async () => {
+          if (
+            (await requireInstitutionalMembership()) ||
+            (await requireMfaChallenge())
+          ) {
+            if (active) {
+              setChecking(false);
+              setSubmitting(false);
+            }
+            return;
+          }
+          if (!active) return;
+          setSession(nextSession);
+          setChecking(false);
+          setSubmitting(false);
+        })();
         return;
       }
 
