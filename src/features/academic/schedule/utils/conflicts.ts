@@ -4,6 +4,11 @@ function timeValue(value: string) {
   return value.slice(0, 5);
 }
 
+function isExplicitRoomLabel(value: string | null | undefined): boolean {
+  const label = value?.trim().toLocaleLowerCase() ?? "";
+  return Boolean(label) && !["sala", "a definir", "sem sala fixa"].includes(label);
+}
+
 function overlaps(left: ScheduleSlot, right: ScheduleSlot) {
   return (
     left.weekday === right.weekday &&
@@ -43,7 +48,7 @@ export function detectScheduleConflicts(slots: ScheduleSlot[]): ScheduleConflict
           severity: "blocker" as const,
           matches:
             (Boolean(left.room_id) && left.room_id === right.room_id) ||
-            (Boolean(left.label?.trim()) &&
+            (isExplicitRoomLabel(left.label) &&
               left.label?.trim().toLocaleLowerCase() === right.label?.trim().toLocaleLowerCase()),
           message: `A sala ${left.room_name || left.label} está ocupada em dois slots sobrepostos.`,
         },
