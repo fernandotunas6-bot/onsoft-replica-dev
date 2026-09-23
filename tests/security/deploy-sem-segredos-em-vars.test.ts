@@ -100,6 +100,43 @@ describe("deploy para o Cloudflare", () => {
     ).not.toMatch(/wrangler secret put[^\n]*\$\{(?!nome)/);
   });
 
+  /**
+   * O primeiro `secret put` corre ANTES do deploy e pode falhar por duas razões
+   * benignas — o nome ainda está ocupado por uma `var` em texto simples (10053),
+   * ou o worker ainda não existe (10007). Ambas se resolvem pondo os segredos a
+   * seguir ao deploy.
+   *
+   * Qualquer outra razão — token sem permissão, conta errada, rede — não pode
+   * ser engolida: a 2026-09-23 o `catch` engolia tudo e anunciava «Worker not
+   * found yet» perante um 10053, e o deploy seguiu na mesma. Como esse deploy
+   * remove a `var`, a versão nova esteve no ar alguns segundos **sem chave de
+   * serviço nenhuma**. Um token revogado daria o mesmo desfecho sem o remendo a
+   * seguir: produção sem as chaves e a dizer que estava tudo bem.
+   */
+  it("uma falha não reconhecida ao pôr segredos aborta em vez de deployar", () => {
+    const iCatch = script.indexOf("} catch (erro) {", script.indexOf("Setting encrypted secrets"));
+    expect(iCatch, "o `try` à volta dos segredos mudou de forma").toBeGreaterThan(-1);
+    const bloco = script.slice(iCatch, script.indexOf("Deploying to Cloudflare", iCatch));
+
+    expect(bloco, "o catch tem de classificar a falha, não assumir uma causa").toMatch(
+      /classificarFalha/,
+    );
+    expect(
+      bloco,
+      "uma causa não reconhecida tem de abortar — deployar a seguir põe no ar uma versão sem chaves",
+    ).toMatch(/process\.exit\(1\)/);
+
+    // As duas causas benignas têm de continuar a ser reconhecidas, senão um
+    // worker novo ou a migração de `vars` passam a abortar sem razão.
+    const iClassificar = script.indexOf("function classificarFalha");
+    expect(iClassificar, "`classificarFalha` não encontrada").toBeGreaterThan(-1);
+    const corpo = script.slice(iClassificar, iClassificar + 600);
+    expect(corpo, "10053 (nome já em uso) tem de ser reconhecido").toMatch(/10053/);
+    expect(corpo, "10007 / script_not_found tem de ser reconhecido").toMatch(
+      /10007|script_not_found/,
+    );
+  });
+
   it("a chave de serviço continua a ser exigida — o worker precisa dela em runtime", () => {
     // Se alguém a "resolver" apagando-a do deploy, o admin client fica sem chave
     // e todas as leituras privilegiadas passam a falhar em produção.
