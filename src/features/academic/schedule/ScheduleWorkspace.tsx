@@ -63,9 +63,12 @@ function gridRows(slots: ScheduleSlot[]) {
     const [start] = range.split(" – ");
     return {
       range,
-      cells: weekdays.map((_, index) =>
-        slots.find((slot) => slot.weekday === index + 1 && timeValue(slot.starts_at) === start),
-      ),
+      cells: weekdays.map((_, index) => {
+        const daySlots = slots.filter(
+          (slot) => slot.weekday === index + 1 && timeValue(slot.starts_at) === start,
+        );
+        return { slot: daySlots[0], additionalCount: Math.max(0, daySlots.length - 1) };
+      }),
     };
   });
 }
@@ -483,6 +486,23 @@ export function ScheduleWorkspace({
         </div>
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+        <span className="rounded-full border border-border bg-muted/40 px-3 py-1.5 font-medium text-muted-foreground">
+          {visibleSlots.length} aulas visíveis
+        </span>
+        <span
+          className={
+            selectedConflicts.length
+              ? "rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1.5 font-semibold text-destructive"
+              : "rounded-full border border-success/30 bg-success/10 px-3 py-1.5 font-semibold text-success"
+          }
+        >
+          {selectedConflicts.length
+            ? `${selectedConflicts.length} conflito(s) a resolver`
+            : "Sem conflitos nesta vista"}
+        </span>
+      </div>
+
       {/* Alertas de Conflito em Tempo Real */}
       {selectedConflicts.length > 0 && (
         <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive">
@@ -526,7 +546,7 @@ export function ScheduleWorkspace({
                   <TableCell className="font-mono text-xs font-semibold text-muted-foreground whitespace-nowrap bg-muted/20">
                     {row.range}
                   </TableCell>
-                  {row.cells.map((slot, cellIdx) => (
+                  {row.cells.map(({ slot, additionalCount }, cellIdx) => (
                     <TableCell
                       key={cellIdx}
                       className="p-1.5 align-top min-w-[140px] max-w-[180px]"
@@ -544,7 +564,7 @@ export function ScheduleWorkspace({
                               {slot.subject_name || slot.display_label}
                             </span>
                             {canManage && (
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
+                              <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                                 <QuickFormModal
                                   title="Editar Aula"
                                   description={`Actualize o horário de ${slot.display_label}.`}
@@ -623,6 +643,7 @@ export function ScheduleWorkspace({
                                       size="sm"
                                       className="size-6 p-0 text-muted-foreground hover:text-primary"
                                       onClick={open}
+                                      aria-label="Editar aula"
                                     >
                                       <Pencil className="size-3" />
                                     </Button>
@@ -651,6 +672,7 @@ export function ScheduleWorkspace({
                                       size="sm"
                                       className="size-6 p-0 text-muted-foreground hover:text-primary"
                                       onClick={open}
+                                      aria-label="Copiar aula"
                                     >
                                       <Copy className="size-3" />
                                     </Button>
@@ -667,6 +689,7 @@ export function ScheduleWorkspace({
                                       size="sm"
                                       className="size-6 p-0 text-muted-foreground hover:text-destructive"
                                       onClick={open}
+                                      aria-label="Remover aula"
                                     >
                                       <Trash2 className="size-3" />
                                     </Button>
@@ -699,6 +722,11 @@ export function ScheduleWorkspace({
                               </p>
                             )}
                           </div>
+                          {additionalCount > 0 ? (
+                            <p className="mt-2 rounded-md bg-destructive/10 px-2 py-1 text-[10px] font-medium text-destructive">
+                              +{additionalCount} aula(s) no mesmo horário — reveja os conflitos.
+                            </p>
+                          ) : null}
                         </div>
                       ) : (
                         <div className="h-full min-h-[50px] rounded-lg border border-dashed border-border/40 hover:border-primary/40 transition-colors" />
