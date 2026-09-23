@@ -123,11 +123,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
           return;
         }
 
-        if (AUTH_DISABLED) {
-          try {
-            const { data: adminLogin, error: autoLoginError } =
-              await supabase.auth.signInWithPassword({
-                email: "admin@e        setSession(null);
+
+
+        setSession(null);
         setChecking(false);
       } catch (bootstrapError) {
         if (!active) return;
