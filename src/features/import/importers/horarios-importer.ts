@@ -37,6 +37,15 @@ function parseWeekday(val: unknown): number | null {
   return null;
 }
 
+function parseTimeToMinutes(value: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return hours * 60 + minutes;
+}
+
 function classSubjectKey(classGroupId: string, subjectId: string) {
   return `${classGroupId}:${subjectId}`;
 }
@@ -117,6 +126,14 @@ export const horariosImporter: RowImporter = {
     if (!startTime) errors.push("Hora de início é obrigatória (ex: 07:30).");
     if (!endTime) errors.push("Hora de fim é obrigatória (ex: 08:15).");
 
+    const startMinutes = startTime ? parseTimeToMinutes(startTime) : null;
+    const endMinutes = endTime ? parseTimeToMinutes(endTime) : null;
+    if (startTime && startMinutes === null) errors.push("Hora de início inválida (use HH:MM).");
+    if (endTime && endMinutes === null) errors.push("Hora de fim inválida (use HH:MM).");
+    if (startMinutes !== null && endMinutes !== null && endMinutes <= startMinutes) {
+      errors.push("A hora de fim deve ser posterior à hora de início.");
+    }
+
     if (errors.length) return { status: "error", warnings, errors };
 
     const groupMatch = uniqueExactMatch(groupVal, cache.classGroups, [
@@ -152,6 +169,17 @@ export const horariosImporter: RowImporter = {
       subjMatch.row!.id,
       cache.classSubjects,
     );
+    const teacher = teacherVal
+      ? uniqueExactMatch(teacherVal, cache.teachers, [
+          (t) => t.employee_number,
+          (t) => t.national_id,
+        ]).row
+      : null;
+    if (teacher && classSubject?.teacher_id && classSubject.teacher_id !== teacher.id) {
+      errors.push("A disciplina já está atribuída a outro professor nesta turma.");
+    }
+    if (errors.length) return { status: "error", warnings, errors };
+
     if (classSubject && cache.existingSlots.has(`${classSubject.id}:${weekday}:${startTime}`)) {
       return {
         status: "duplicate",
@@ -251,12 +279,27 @@ export const horariosImporter: RowImporter = {
       };
       cache.classSubjects.push(classSubject);
     } else if (teacher && !classSubject.teacher_id) {
-      await ctx.db
+      const { error: teacherUpdateError } = await ctx.db
         .from("class_subjects")
         .update({ teacher_id: teacher.id, updated_by: ctx.userId })
         .eq("id", classSubject.id)
         .eq("school_id", ctx.schoolId);
+      if (teacherUpdateError) {
+        return {
+          status: "error",
+          warnings: analysis.warnings,
+          errors: [`Erro ao atribuir professor à disciplina: ${teacherUpdateError.message}`],
+          audits: [],
+        };
+      }
       classSubject.teacher_id = teacher.id;
+    } else if (teacher && classSubject.teacher_id !== teacher.id) {
+      return {
+        status: "error",
+        warnings: analysis.warnings,
+        errors: ["A disciplina já está atribuída a outro professor nesta turma."],
+        audits: [],
+      };
     }
 
     const slotKey = `${classSubject.id}:${weekday}:${startTime}`;
