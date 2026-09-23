@@ -13,9 +13,10 @@ export function useSignOut() {
     if (error) {
       toast.error("Não foi possível terminar a sessão.");
       setSigningOut(false);
-      return;
+      return false;
     }
     queryClient.clear();
+    return true;
   };
 
   const signOutAllDevices = () => signOut("global");
