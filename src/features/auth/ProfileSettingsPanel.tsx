@@ -195,6 +195,7 @@ function MfaSecurityPanel() {
   const [enrolling, setEnrolling] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [pending, setPending] = useState<{ id: string; qrCode: string } | null>(null);
+  const [incompleteFactorId, setIncompleteFactorId] = useState<string | null>(null);
   const [code, setCode] = useState("");
 
   useEffect(() => {
@@ -206,6 +207,9 @@ function MfaSecurityPanel() {
         toast.error("Não foi possível verificar o estado do 2FA.");
       } else {
         setEnabled(Boolean(data?.totp.some((factor) => factor.status === "verified")));
+        setIncompleteFactorId(
+          data?.totp.find((factor) => factor.status === "unverified")?.id ?? null,
+        );
       }
       setChecking(false);
     });
@@ -214,6 +218,22 @@ function MfaSecurityPanel() {
       active = false;
     };
   }, []);
+
+  const discardIncompleteEnrollment = async (factorId: string) => {
+    setEnrolling(true);
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId });
+      if (error) throw error;
+      setPending(null);
+      setIncompleteFactorId(null);
+      setCode("");
+      toast.success("Configuração 2FA incompleta removida.");
+    } catch {
+      toast.error("Não foi possível remover a configuração 2FA incompleta.");
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   const enroll = async () => {
     setEnrolling(true);
@@ -275,10 +295,25 @@ function MfaSecurityPanel() {
         </Badge>
       </div>
 
-      {!checking && !enabled && !pending ? (
+      {!checking && !enabled && !pending && !incompleteFactorId ? (
         <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => void enroll()} disabled={enrolling}>
           {enrolling ? "A preparar…" : "Configurar 2FA"}
         </Button>
+      ) : null}
+
+      {!checking && !enabled && !pending && incompleteFactorId ? (
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-muted-foreground">
+          <span>Existe uma configuração 2FA incompleta.</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void discardIncompleteEnrollment(incompleteFactorId)}
+            disabled={enrolling}
+          >
+            Remover e configurar novamente
+          </Button>
+        </div>
       ) : null}
 
       {pending ? (
@@ -289,14 +324,24 @@ function MfaSecurityPanel() {
             <Input
               id="mfa-setup-code"
               value={code}
-              onChange={(event) => setCode(event.target.value.replace(/\s/g, ""))}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
               inputMode="numeric"
               autoComplete="one-time-code"
+              pattern="[0-9]{6}"
               placeholder="000000"
-              maxLength={8}
+              maxLength={6}
             />
-            <Button type="button" onClick={() => void confirm()} disabled={verifying || code.length < 6}>
+            <Button type="button" onClick={() => void confirm()} disabled={verifying || code.length !== 6}>
               {verifying ? "A confirmar…" : "Ativar"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => void discardIncompleteEnrollment(pending.id)}
+              disabled={verifying || enrolling}
+            >
+              Cancelar configuração
             </Button>
           </div>
         </div>
