@@ -150,14 +150,14 @@ export function AccountDrawer({
   }, [colleagues, pendingPeerId, openThread]);
 
   const handleSignOut = async () => {
-    await signOut();
+    if (!(await signOut())) return;
     onOpenChange(false);
     setView("menu");
     setPeer(null);
   };
 
   const handleGlobalSignOut = async () => {
-    await signOutAllDevices();
+    if (!(await signOutAllDevices())) return;
     setGlobalSignOutOpen(false);
     onOpenChange(false);
     setView("menu");
