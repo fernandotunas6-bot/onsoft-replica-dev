@@ -4,6 +4,55 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Deploy (2026-09-23)
+
+### As chaves saíram do texto simples — e o deploy deixou de mentir quando falha
+
+Fecha o ponto que o registo de 20/09 deixou em aberto como «a registar e a decidir, não
+tocado»: `SUPABASE_SERVICE_ROLE_KEY` e `RESEND_API_KEY` iam como `vars` em texto simples.
+Dois commits: `3e71de8` passa-as a `wrangler secret put`, e `5dc7d36` corrige o que esse
+primeiro deploy destapou.
+
+**O que correu mal na primeira tentativa, hoje.** O `secret put` falhou com 10053 —
+«Binding name already in use»: o worker no ar ainda tinha o nome como `var`, e o Cloudflare
+não deixa criar um segredo por cima. O `catch` era vazio e assumia sempre a mesma causa,
+por isso anunciou «Worker not found yet» e deployou na mesma. Como é esse deploy que remove
+a `var`, a versão nova esteve no ar **alguns segundos sem chave de serviço nenhuma**, e o
+script imprimiu «successfully updated!» no fim. O 10053 resolvia-se sozinho no passo
+seguinte; o que não se resolvia era o caso geral — um token revogado dava o mesmo caminho,
+sem remendo a seguir.
+
+**A segunda tentativa correu pelo caminho limpo.** Os dois segredos entraram **antes** do
+deploy, sem 10053 — a `var` já tinha sido removida pela tentativa anterior. Não houve
+janela sem chave. Versão `da6f88d2-43fa-44b5-ae6f-339b90081d88`, worker
+`fernandotunas6-bot-onsoft-replica-dev`. Os Pages e o `siga-plus-payflow` não foram
+tocados.
+
+**Verificado depois, contra a produção a sério:**
+
+- `GET /api/saas/plans` a **200 com dados reais**, em `portal-siga.com` e no `workers.dev`.
+  Não é um ping: `fetchActivePlans` passa por `loadSgaAdminClient()`, logo um 200 aqui é a
+  prova de que o runtime lê a chave de serviço a partir do **segredo cifrado**. Sem ela,
+  seria 500.
+- **73 bundles de cliente + o HTML** (1,6 MB de JS) varridos à procura das duas chaves:
+  zero ocorrências. O detector foi validado primeiro contra um ficheiro de controlo que
+  continha a chave — sem isso, «0 fugas» não distingue «está limpo» de «não procurei».
+
+**Nota metodológica, porque custou três tentativas.** A varredura dos bundles reportou
+«0 fugas» três vezes **sem ter inspeccionado ficheiro nenhum**: primeiro o padrão dos
+caminhos estava errado (`/_build/assets/` em vez de `/assets/`); depois o `grep` tratou o
+HTML como binário e o `-o` devolveu vazio (precisa de `-a`); por fim, a shell é **zsh**,
+que não faz word-splitting de variáveis não citadas, e o `for a in $ASSETS` iterou uma vez
+sobre os 73 caminhos colados num só argumento. As três davam o mesmo verde tranquilizador.
+É o mesmo modo de falha que os testes deste repositório já apanharam duas vezes — um
+teste que inspecciona menos do que diz é pior do que não existir.
+
+**Por provar em campo.** O `process.exit(1)` perante uma falha não reconhecida é o ponto
+do `5dc7d36` e **não foi exercitado ao vivo** — nesta corrida os segredos subiram à
+primeira. Está provado pelo teste que lê o script, não por uma falha real. Só se saberá no
+dia em que o token estiver revogado ou a conta errada, que é exactamente o dia em que
+interessa.
+
 ## Deploy (2026-09-20)
 
 ### Produção actualizada — dez dias de uma vez
