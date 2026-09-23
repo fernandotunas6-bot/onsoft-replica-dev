@@ -54,6 +54,12 @@ describe("horariosImporter", () => {
     expect(result.errors[0]).toContain("Conflito de horário");
   });
 
+  it("aceita sábado como dia lectivo configurável", () => {
+    const result = horariosImporter.analyzeRow({ ...row, weekday: "sábado" }, cache() as any);
+
+    expect(result.status).toBe("ready");
+  });
+
   it("rejeita docente diferente da associação existente turma-disciplina", () => {
     const result = horariosImporter.analyzeRow(
       row,
