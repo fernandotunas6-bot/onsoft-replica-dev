@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import type {
   ScheduleClassGroup,
+  ScheduleClassSubject,
   ScheduleRoom,
   ScheduleSlot,
   ScheduleSlotInput,
@@ -37,6 +38,7 @@ import type {
   ScheduleTeacher,
 } from "./types";
 import { detectScheduleConflicts } from "./utils/conflicts";
+import { getWeeklyScheduleCoverage } from "./utils/workload";
 import { toast } from "sonner";
 
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"] as const;
@@ -82,6 +84,7 @@ export function ScheduleWorkspace({
   scheduleAvailable,
   classGroups,
   subjects,
+  classSubjects = [],
   rooms = [],
   teachers = [],
   slots,
@@ -97,6 +100,7 @@ export function ScheduleWorkspace({
   scheduleAvailable: boolean;
   classGroups: ScheduleClassGroup[];
   subjects: ScheduleSubject[];
+  classSubjects?: ScheduleClassSubject[];
   rooms?: ScheduleRoom[];
   teachers?: ScheduleTeacher[];
   slots: ScheduleSlot[];
@@ -159,6 +163,11 @@ export function ScheduleWorkspace({
   });
 
   const conflicts = useMemo(() => detectScheduleConflicts(slots), [slots]);
+  const weeklyCoverage = useMemo(
+    () => getWeeklyScheduleCoverage(slots, classSubjects, selectedClassGroupId),
+    [slots, classSubjects, selectedClassGroupId],
+  );
+  const hasScheduleGaps = weeklyCoverage.some((item) => item.missingPeriods > 0);
   const selectedConflicts = conflicts.filter((conflict) =>
     conflict.slotIds.some((slotId) => currentSlots.some((slot) => slot.id === slotId)),
   );
@@ -306,7 +315,7 @@ export function ScheduleWorkspace({
                   size="sm"
                   className="rounded-xl text-xs border-primary/30 text-primary hover:bg-primary/10 gap-1.5"
                   onClick={handlePublish}
-                  disabled={publishing || selectedConflicts.length > 0}
+                  disabled={publishing || selectedConflicts.length > 0 || hasScheduleGaps}
                 >
                   <Send className="size-3.5" />
                   {publishing ? "A publicar…" : "Publicar Horário"}
@@ -512,7 +521,22 @@ export function ScheduleWorkspace({
             ? `${selectedConflicts.length} conflito(s) a resolver`
             : "Sem conflitos nesta vista"}
         </span>
+        {viewMode === "turma" && hasScheduleGaps ? (
+          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 font-semibold text-amber-700 dark:text-amber-300">
+            {weeklyCoverage.filter((item) => item.missingPeriods > 0).length} disciplina(s) com carga semanal pendente
+          </span>
+        ) : null}
       </div>
+      {viewMode === "turma" && hasScheduleGaps ? (
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-foreground">
+          <p className="font-semibold">Publicação bloqueada até completar a carga semanal configurada.</p>
+          <ul className="mt-1 list-inside list-disc text-muted-foreground">
+            {weeklyCoverage.filter((item) => item.missingPeriods > 0).map((item) => (
+              <li key={item.subjectId}>{item.subjectName}: {item.plannedPeriods}/{item.requiredPeriods} tempos semanais.</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {/* Alertas de Conflito em Tempo Real */}
       {selectedConflicts.length > 0 && (
