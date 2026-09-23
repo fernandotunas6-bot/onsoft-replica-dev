@@ -160,6 +160,28 @@ describe("inscricoesImporter", () => {
       expect(cache.existingApplicantNumbers.size).toBe(1);
     });
 
+    it("gera candidaturas distintas no mesmo lote quando o número não é fornecido", async () => {
+      const cache = {
+        existingPeople: [] as any[],
+        classGroups: [],
+        studentByPersonId: new Map(),
+        existingApplicantNumbers: new Set<string>(),
+      };
+      resolveOrCreatePersonMock.mockResolvedValue({
+        personId: "person-3",
+        created: true,
+        match: null,
+        audits: [],
+      });
+      const mockDb = createMockDb({ students: { data: { id: "student-1" }, error: null } });
+      const ctx = createMockCtx(mockDb);
+
+      await inscricoesImporter.commitRow({ full_name: "Beatriz Fernandes" }, ctx, cache as any);
+      await inscricoesImporter.commitRow({ full_name: "Joana Fernandes" }, ctx, cache as any);
+
+      expect(cache.existingApplicantNumbers.size).toBe(2);
+    });
+
     it("devolve error sem chamar resolveOrCreatePerson quando a linha é inválida", async () => {
       const cache = {
         existingPeople: [],
