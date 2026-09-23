@@ -90,9 +90,7 @@ function perguntasNoRender(): string[] {
         let deslocamento = 0;
         for (const linha of componente.corpo.split("\n")) {
           if (profundidade === 0 && /typeof\s+(window|document)\s*[!=]==/.test(linha)) {
-            const nLinha = código
-              .slice(0, componente.início + deslocamento)
-              .split("\n").length;
+            const nLinha = código.slice(0, componente.início + deslocamento).split("\n").length;
             achados.push(`${relative(REPO, completo)}:${nLinha} <${componente.nome}>`);
           }
           profundidade += (linha.match(/[{(]/g) ?? []).length - (linha.match(/[})]/g) ?? []).length;
