@@ -15,6 +15,16 @@ function valueOf(row: Record<string, unknown>, ...keys: string[]) {
   return null;
 }
 
+function generateApplicantNumber(existingNumbers: ReadonlySet<string>): string {
+  let candidate = "";
+  do {
+    // Mantém um identificador legível, mas sem depender do milissegundo da
+    // importação — várias linhas podem ser processadas no mesmo instante.
+    candidate = `CAND-${crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase()}`;
+  } while (existingNumbers.has(normalizeText(candidate)));
+  return candidate;
+}
+
 export const inscricoesImporter: RowImporter = {
   module: "inscricoes",
 
@@ -84,7 +94,7 @@ export const inscricoesImporter: RowImporter = {
     const appNumber =
       normalizeText(
         valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
-      ) || `CAND-${Date.now().toString().slice(-6)}`;
+      ) || generateApplicantNumber(cache.existingApplicantNumbers);
 
     // Não criar pessoa órfã nem tentar um INSERT que viola a chave única.
     if (cache.existingApplicantNumbers.has(appNumber)) {
