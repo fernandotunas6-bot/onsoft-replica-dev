@@ -51,7 +51,12 @@ export const inscricoesImporter: RowImporter = {
     );
 
     if (appNumber && cache.existingApplicantNumbers.has(appNumber)) {
-      warnings.push(`Candidatura "${appNumber}" já existe no sistema; dados serão consolidados.`);
+      return {
+        status: "duplicate",
+        warnings: [`Candidatura "${appNumber}" já existe no sistema; linha ignorada para evitar duplicação.`],
+        errors: [],
+        duplicate_of: appNumber,
+      };
     }
 
     if (errors.length) return { status: "error", warnings, errors };
@@ -76,12 +81,23 @@ export const inscricoesImporter: RowImporter = {
       };
     }
 
-    const personRes = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
-
     const appNumber =
       normalizeText(
         valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
       ) || `CAND-${Date.now().toString().slice(-6)}`;
+
+    // Não criar pessoa órfã nem tentar um INSERT que viola a chave única.
+    if (cache.existingApplicantNumbers.has(appNumber)) {
+      return {
+        status: "duplicate",
+        warnings: [`Candidatura "${appNumber}" já existe no sistema; linha ignorada para evitar duplicação.`],
+        errors: [],
+        audits: [],
+        target_record_id: appNumber,
+      };
+    }
+
+    const personRes = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
 
     if (ctx.dryRun) {
       return {
