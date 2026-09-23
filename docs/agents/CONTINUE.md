@@ -17,9 +17,23 @@ ambas do mesmo feitio: **uma condição que lê `window` durante o render**.
   No servidor `typeof window` é `"undefined"`, a condição dá falsa, e a barra inteira vai no
   HTML; no primeiro render do cliente dá verdadeira e devolve `null`. A guarda estava lá
   para não ler `window.location` no SSR — o efeito dela era inverter o resultado.
-- **`appearance.tsx`** — `isDark` calculado com `matchMedia` no corpo do provider. Vai para
-  o JSX do `AppShell` (ícone e rótulo do botão de tema). Com o modo em `system` e o SO em
-  escuro: servidor `false`, cliente `true`.
+- **`appearance.tsx`** — `isDark` calculado com `matchMedia` no corpo do provider, valor
+  que vai para o JSX do `AppShell` (ícone e rótulo do botão de tema).
+
+  **Correcção ao que eu escrevi no commit `1963804`:** disse que com o modo em `system` e o
+  SO em escuro o servidor dava `false` e o cliente `true`. **É falso.** O provider faz
+  `useState(defaults)` e `defaults.mode` é `"light"`; o valor guardado em `localStorage` só
+  é lido num `useEffect`, portanto no primeiro render do cliente o modo é sempre `"light"`
+  e `isDark` dá `false` dos dois lados. Nunca podia haver desencontro aqui.
+
+  Verificado por controlo a 2026-09-23: build com **só** o `isDark` revertido (mantendo a
+  correcção do `DesktopTitleBar`), `localStorage` semeado com `mode: "system"` e o browser
+  a emular SO escuro → **sem #418**.
+
+  A alteração fica na mesma, mas por outra razão: ler `window` numa expressão de render é a
+  forma que já causou dois defeitos reais aqui, e o guarda em
+  `tests/security/hidratacao-window-no-render.test.ts` reprova-a. É higiene com um teste a
+  suportá-la, não a correcção de um defeito observado.
 
 **Correcção a uma leitura minha, registada porque custou tempo.** Concluí a meio que o
 defeito «só acontecia no build de produção», porque em desenvolvimento a consola estava
