@@ -294,7 +294,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const { data: timetableSlots, error: scheduleError } = classSubjectIds.length
       ? await db
           .from("timetable_slots")
-          .select("id, class_subject_id, weekday, starts_at, ends_at, room, status")
+          .select("id, class_subject_id, weekday, starts_at, ends_at, room, room_id, notes, status")
           .in("class_subject_id", classSubjectIds)
           .eq("status", "active")
           .order("starts_at")
@@ -511,7 +511,10 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
             ends_at: String(slot["ends_at"] ?? ""),
             subject_id: subjectIdRaw ? String(subjectIdRaw) : null,
             teacher_id: classSubject?.["teacher_id"] ? String(classSubject["teacher_id"]) : null,
+            room_id: slot["room_id"] ? String(slot["room_id"]) : null,
+            room_name: slot["room"] ? String(slot["room"]) : null,
             label: slot["room"] ? String(slot["room"]) : null,
+            notes: slot["notes"] ? String(slot["notes"]) : null,
             subject_name: (subject?.["name"] as string | null) ?? null,
             display_label: (subject?.["name"] as string) ?? (slot["room"] as string) ?? "—",
             class_group_name: (classGroup?.["name"] as string) ?? "—",
