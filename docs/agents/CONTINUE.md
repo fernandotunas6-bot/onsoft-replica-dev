@@ -28,45 +28,30 @@ limpa. Está errado: o SSR de desenvolvimento trazia a barra exactamente como o 
 montagem o React em dev não imprime aviso nenhum de hidratação. É por isso que isto
 sobreviveu desde 20/09: a única consola que o diz é a da versão construída.
 
-**O que falta, dito por inteiro.** Em `/` e `/alunos`, deslogado, o servidor renderiza
-**só** o `PageLoading` do `AuthGate` — sem `AppShell`, sem barra (confirmado: 0 ocorrências
-de `data-tauri-drag-region` no HTML de produção dos dois) — e mesmo assim davam #418. As
-duas correcções acima não explicam esses dois casos.
+**Resolvido, e a terceira causa não existia.** O build de produção corre nesta máquina com
+o preset `node-server` em vez do `cloudflare-module` — o `workerd` é que exige macOS 13.5+,
+o Node não. Trocar o preset (temporariamente, reposto a seguir) dá um servidor local que
+reproduz o #418 fielmente, e com ele fez-se o que faltava: um **controlo**.
 
-Percorrida a árvore do `/` peça a peça. **Excluídos, com a razão:**
+- Build de controlo, com as duas correcções revertidas → #418 em `/alterar-senha`.
+- Build com as correcções → **limpo**, em separador novo, nas duas rotas.
 
-- `page-loading.tsx` — não toca no browser de todo.
-- `tenant-context.tsx` e o resto de `appearance.tsx` — os `typeof window` que lá estão
-  vivem dentro de efeitos e handlers, não decidem o que se renderiza.
-- `TauriTitlebar` (o do `__root`, distinto do `DesktopTitleBar`) — devolve `null` nos dois
-  lados.
-- **`sonner`** (o `Toaster`, renderizado em todas as páginas) — tem **dois** ramos em
-  `typeof window` no render: o tema (`'system'` → `matchMedia`) e a direcção
-  (`'undefined' → 'ltr'`). Parecia o suspeito perfeito, mas ambos resolvem igual na nossa
-  configuração: o `theme` por omissão é `'light'`, não `'system'`, e o `<html lang="pt">`
-  não tem `dir`, pelo que a direcção computada no browser também é `ltr`.
-- Estrutura ao nível do `body` e marcadores de Suspense — coincidem.
+E a medição contra a produção, que ainda corre o código sem correcções, num **único
+separador e em sequência**: `/` (duas vezes) limpo, `/alunos` limpo, `/alterar-senha`
+**#418**. Ou seja: o erro vinha só da rota que renderiza o `AppShell` — e portanto o
+`DesktopTitleBar` — estando deslogado. O `/` e o `/alunos` mostram apenas o ecrã de sessão
+do `AuthGate` e estão limpos.
 
-**Hipótese que sobra, com a medida por trás.** A hidratação é sobre o `document` **inteiro**
-(`hydrateRoot(document, …)` em `src/client.tsx`), logo o `<head>` entra na árvore comparada.
-E é aí que produção e desenvolvimento divergem de forma enorme:
+**A afirmação de que estava nas três rotas era um artefacto de medição**, tanto no registo
+de 20/09 como nas minhas próprias leituras de hoje: a consola do painel **acumula mensagens
+entre navegações**, e a primeira leitura a seguir a abrir um separador vem quase sempre
+vazia porque ainda não ligou. Quem navega `/alterar-senha` → `/` e lê a consola vê o #418 e
+atribui-o ao `/`. Caí nisto duas vezes antes de desconfiar. Para medir isto: separador
+novo, uma rota de cada vez, e uma navegação de aquecimento antes da que conta.
 
-| | `/` | `/alterar-senha` |
-|---|---|---|
-| produção | **73** `rel="modulepreload"` | 46 |
-| desenvolvimento | **1** | 1 |
-
-Uma diferença estrutural de 72 elementos no `<head>`, presente só no build de produção e em
-todas as páginas — encaixa nos três sintomas e em nunca se ver localmente. **Não está
-provado**: o cliente lê o mesmo manifesto do router e pode muito bem produzir os mesmos 73
-links, caso em que não há desencontro nenhum. Fica como o próximo sítio a olhar, não como
-conclusão.
-
-**Porque não foi verificado aqui.** O sintoma só aparece num build de produção, e esta
-máquina não o corre: `vite preview` não serve o preset `cloudflare-module` (procura
-`dist/server/`, o build gera `.output/server/`), e o `wrangler dev` recusa-se — o runtime
-do Cloudflare exige macOS 13.5+ e esta é a 12.6. Fica por confirmar no próximo deploy, ou
-numa máquina/container que corra o workerd.
+**Por consequência, não há terceira causa por identificar** — o que havia era uma causa
+(`DesktopTitleBar`) mal localizada. A correcção do `isDark` em `appearance.tsx` continua a
+valer: é o mesmo defeito, e manifestar-se-ia no `AppShell` de quem tem o SO em escuro.
 
 ## Deploy (2026-09-23)
 
