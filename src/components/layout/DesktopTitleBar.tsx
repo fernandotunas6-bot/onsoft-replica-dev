@@ -13,18 +13,29 @@ export function DesktopTitleBar() {
   const { school } = useSchoolSettings();
   const [osName, setOsName] = useState<string>("desktop");
   const [isDesktop, setIsDesktop] = useState(false);
+  const [forcadaPorQuery, setForcadaPorQuery] = useState(false);
 
   useEffect(() => {
     setIsDesktop(isTauriDesktop());
+    setForcadaPorQuery(window.location.search.includes("show_titlebar"));
     void getNativeSystemInfo().then((info) => setOsName(info.os_type));
   }, []);
 
-  // Em navegadores web padrão, só exibe a barra se for desktop ou para testes
-  if (
-    !isDesktop &&
-    typeof window !== "undefined" &&
-    !window.location.search.includes("show_titlebar")
-  ) {
+  // Em navegadores web padrão, só exibe a barra se for desktop ou para testes.
+  //
+  // A condição NÃO pode depender de `typeof window`. Tinha aqui um
+  // `typeof window !== "undefined"`, posto para não ler `window.location` no
+  // servidor — mas o efeito era inverter o resultado: no servidor a condição
+  // dava falsa, a barra era renderizada no HTML, e no primeiro render do
+  // cliente dava verdadeira e devolvia `null`. O servidor mandava uma barra que
+  // o cliente não desenhava, em TODAS as páginas com `AppShell`, e a hidratação
+  // falhava com o React #418 — o HTML do servidor era deitado fora a cada
+  // visita, o que anula o SSR.
+  //
+  // `show_titlebar` passa por estado definido no efeito: assim o servidor e o
+  // primeiro render do cliente concordam (ambos `null`), e a barra aparece no
+  // render seguinte se for mesmo para aparecer.
+  if (!isDesktop && !forcadaPorQuery) {
     return null;
   }
 
