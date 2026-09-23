@@ -15,9 +15,12 @@ import { servePublicCalendarIcs } from "@/features/calendar/ics-serve";
  * Medido a 2026-09-23 contra um build de produção, nas três variantes de pedido: 368 bytes
  * do handler, 404 do `servePublicCalendarIcs`, e **zero** ocorrências de `/assets/index-`
  * em qualquer delas (o shell da aplicação nunca é servido). Por dentro também não: não há
- * `Link` para esta rota, e as quatro utilizações de `calendarIcsFeedUrl` (`AppLauncher`,
- * `TeacherWorkspacePanel`, `InstalledModuleTools`, `professores/$teacherId`) constroem o
- * endereço para o **copiar** para a área de transferência, não para navegar.
+ * `Link` nem `navigate` para esta rota em lado nenhum, e as **cinco** utilizações de
+ * `calendarIcsFeedUrl` (`AppLauncher`, `TeacherWorkspacePanel`, `InstalledModuleTools`,
+ * `calendario.tsx` e `professores/$teacherId`) constroem o endereço para o **copiar** para
+ * a área de transferência — todas elas chamam `navigator.clipboard.writeText`. As únicas
+ * outras referências à rota são listas de configuração (`public-paths`, `route-inventory`,
+ * `access-policy`), não navegação.
  *
  * O componente tem testes deliberados (`tests/routes/calendario-ics.test.tsx`), o que diz
  * que alguém quis que a página funcionasse. São duas coisas incompatíveis, e a escolha não

@@ -16,8 +16,10 @@ O `server.handlers.GET` da rota responde a *todos* os pedidos, pelo que o compon
 **nunca renderiza**. Medido contra um build de produção nas três variantes: 368 bytes do
 handler (token curto ou ausente), 404 do `servePublicCalendarIcs` (token válido), zero
 ocorrências de `/assets/index-` em qualquer delas. Por dentro da aplicação também não há
-caminho: nenhum `Link` para a rota, e as quatro utilizações de `calendarIcsFeedUrl`
-constroem o endereço para ser **copiado**, não navegado.
+caminho: nenhum `Link` nem `navigate` para a rota, e as **cinco** utilizações de
+`calendarIcsFeedUrl` chamam todas `navigator.clipboard.writeText` — o endereço é para ser
+**copiado**, não navegado. (Escrevi «quatro» numa primeira versão: a contagem saiu de um
+`grep | head` e faltava o `calendario.tsx`. A conclusão não muda; a contagem estava errada.)
 
 Mas o componente tem `tests/routes/calendario-ics.test.tsx` — dois testes deliberados, que
 montam a página, verificam a contagem de eventos e clicam no botão de descarga. Alguém quis
@@ -41,6 +43,29 @@ Enquanto não se decidir, o estado é este: os testes passam, mas testam código
 não corre. Fica uma nota no topo do ficheiro da rota a dizer isto mesmo, para ninguém
 repetir o meu caminho.
 
+### Nota de método: `head` num comando de verificação é mentir a si próprio
+
+Registado porque me custou três vezes no mesmo dia, sempre da mesma maneira: o comando
+parece verificar, devolve um resultado tranquilizador, e o corte escondeu o que importava.
+
+- `grep -rln "calendario" tests/ | head -5` → concluí que o componente não tinha testes e
+  **removi-o**. Tinha dois, em `tests/routes/calendario-ics.test.tsx`, fora do corte. Só
+  apareceu ao correr a suite completa; se eu tivesse parado no «tsc e eslint limpos», a
+  remoção ficava.
+- `grep -rn "calendarIcsFeedUrl" … | head` → escrevi «as quatro utilizações» num comentário
+  de código. São cinco.
+- `ls src/routes/*.tsx` com um `case` → conclusão sobre o alcance do defeito tirada de uma
+  listagem que ignora subdirectórios e não cobria o prefixo `/auth`.
+
+Mais duas da mesma família, noutras frentes desta sessão: um varrimento de bundles com o
+padrão de caminho errado que inspeccionou **zero** ficheiros e reportou «0 fugas», e um
+`for` em `zsh` que iterou uma vez sobre 73 caminhos colados num só argumento.
+
+A regra que fica: **em exploração, `head` à vontade; em verificação, nunca.** Um comando
+que decide «está limpo» tem de contar o que inspeccionou e falhar se esse número for zero
+ou implausível — é o que os testes desta pasta fazem com os limiares mínimos e os casos de
+controlo, e é por isso que os têm.
+
 ### Balanço honesto: das três ocorrências, só uma era defeito
 
 Verificadas uma a uma, depois de as ter corrigido às três e de ter descrito as três como
@@ -60,7 +85,15 @@ sempre o `PageLoading` (medido: `/` e `/alunos` em produção trazem o `PageLoad
 `data-tauri-drag-region`). Das rotas públicas, só `alterar-senha.tsx` usa `AppShell`;
 `convite.$token.tsx`, `saas-admin.tsx` e `matricula/$slug.tsx` têm zero referências.
 
-**O alcance real era uma rota: `/alterar-senha`.** O que fecha o círculo — era a única que
+**O alcance real era uma rota: `/alterar-senha`.** Reverificado a sério depois de eu ter
+usado uma listagem parcial (`ls src/routes/*.tsx`, que ignora subdirectórios, e sem cobrir
+o prefixo `/auth`): com `find` sobre todos os prefixos públicos, as dez rotas dão
+`alterar-senha.tsx` com três referências a `AppShell` e **zero** em todas as outras —
+`auth.email-change`, `auth.magic-link`, `auth.reset-password`, `calendario.ics`,
+`convite.$token`, `criar-escola`, `matricula/$slug`, `saas-admin`. O `calendario.tsx` usa
+`AppShell`, mas `/calendario` **não** é público (só `/calendario/ics` está na lista), logo
+passa pelo `AuthGate` e o servidor manda `PageLoading`. A conclusão aguentou-se; a
+evidência que eu tinha para ela é que era fraca. O que fecha o círculo — era a única que
 dava #418 porque era a única que podia dar. A medição e o mecanismo passam a concordar.
 
 O `calendario.ics.tsx` foi o pior dos meus exageros: anunciei-o como «terceira instância da
