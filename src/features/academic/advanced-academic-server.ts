@@ -810,6 +810,53 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
+    // A publicação é uma operação de fecho: não pode criar uma versão que
+    // ignore a carga semanal previamente configurada para a turma.
+    const { data: classSubjects, error: classSubjectsError } = await db
+      .from("class_subjects")
+      .select("id, weekly_periods")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", data.classGroupId)
+      .eq("status", "active");
+    if (classSubjectsError) {
+      throw publicDatabaseError(classSubjectsError, "Não foi possível validar a carga semanal.");
+    }
+    if (!classSubjects || classSubjects.length === 0) {
+      throw new Error("Associe disciplinas activas à turma antes de publicar o horário.");
+    }
+
+    const classSubjectIds = classSubjects.map((item) => item.id);
+    const { data: slots, error: slotsError } = await db
+      .from("timetable_slots")
+      .select("class_subject_id")
+      .eq("school_id", membership.schoolId)
+      .in("class_subject_id", classSubjectIds)
+      .eq("status", "active");
+    if (slotsError) {
+      throw publicDatabaseError(slotsError, "Não foi possível validar os slots do horário.");
+    }
+
+    const plannedByClassSubject = new Map<string, number>();
+    for (const slot of slots ?? []) {
+      plannedByClassSubject.set(
+        String(slot.class_subject_id),
+        (plannedByClassSubject.get(String(slot.class_subject_id)) ?? 0) + 1,
+      );
+    }
+    const incomplete = classSubjects.filter((item) => {
+      const required = Number(item.weekly_periods ?? 0);
+      return Number.isFinite(required) && required > 0 &&
+        (plannedByClassSubject.get(String(item.id)) ?? 0) < required;
+    });
+    if (incomplete.length > 0) {
+      throw new Error(
+        `Existem ${incomplete.length} disciplina(s) com carga semanal incompleta. Complete os tempos configurados antes de publicar.`,
+      );
+    }
+    if ((slots ?? []).length === 0) {
+      throw new Error("Adicione pelo menos uma aula activa antes de publicar o horário.");
+    }
+
     // 1. Obter ou criar versão de horário
     const { count } = await db
       .from("academic_schedules")
@@ -845,14 +892,8 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
     }
 
     // 2. Associar slots ativos da turma a esta versão de horário
-    const { data: classSubjects } = await db
-      .from("class_subjects")
-      .select("id")
-      .eq("school_id", membership.schoolId)
-      .eq("class_group_id", data.classGroupId);
-
-    if (classSubjects && classSubjects.length > 0) {
-      const csIds = classSubjects.map((c) => c.id);
+    if (classSubjects.length > 0) {
+      const csIds = classSubjectIds;
       await db
         .from("timetable_slots")
         .update({ schedule_id: schedule.id, updated_by: context.userId })
@@ -940,7 +981,7 @@ async function syncScheduleSlotsToSessions({
   const candidates: Array<{ slot: (typeof slots)[number]; dateStr: string }> = [];
   for (let d = new Date(start); d <= maxEnd; d.setDate(d.getDate() + 1)) {
     const jsDay = d.getDay(); // 0=Dom, 1=Seg, ... 5=Sex
-    if (jsDay === 0 || jsDay === 6) continue;
+    if (jsDay === 0) continue;
 
     const dateStr = d.toISOString().slice(0, 10);
     for (const slot of slots.filter((s) => s.weekday === jsDay)) {
