@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { getPublicCalendarFeed } from "@/features/calendar/feed";
@@ -37,8 +38,16 @@ function CalendarFeedPage() {
   });
   const feed = feedQuery.data;
   const events = feed?.events ?? [];
-  const url =
-    typeof window !== "undefined" ? calendarIcsFeedUrl(window.location.origin, token) : token;
+  // A origem vem por estado, não lida durante o render.
+  //
+  // Estava `typeof window !== "undefined" ? calendarIcsFeedUrl(origin, token) : token`, e
+  // `url` vai para o JSX: o servidor renderizava o token cru e o cliente o endereço
+  // completo. Texto diferente dos dois lados é desencontro de hidratação — a mesma falha
+  // que o `DesktopTitleBar` tinha. Assim, ambos começam no token e o endereço aparece
+  // assim que montar.
+  const [origem, setOrigem] = useState("");
+  useEffect(() => setOrigem(window.location.origin), []);
+  const url = origem ? calendarIcsFeedUrl(origem, token) : token;
 
   return (
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
