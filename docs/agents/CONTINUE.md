@@ -31,10 +31,36 @@ sobreviveu desde 20/09: a única consola que o diz é a da versão construída.
 **O que falta, dito por inteiro.** Em `/` e `/alunos`, deslogado, o servidor renderiza
 **só** o `PageLoading` do `AuthGate` — sem `AppShell`, sem barra (confirmado: 0 ocorrências
 de `data-tauri-drag-region` no HTML de produção dos dois) — e mesmo assim davam #418. As
-duas correcções acima não explicam esses dois casos: há uma terceira causa por identificar,
-algures entre os providers, o `AuthGate` e o `Toaster`. Já excluído: a estrutura ao nível do
-`body` coincide entre servidor e cliente, e os marcadores de Suspense coincidem entre dev e
-produção nos dois caminhos.
+duas correcções acima não explicam esses dois casos.
+
+Percorrida a árvore do `/` peça a peça. **Excluídos, com a razão:**
+
+- `page-loading.tsx` — não toca no browser de todo.
+- `tenant-context.tsx` e o resto de `appearance.tsx` — os `typeof window` que lá estão
+  vivem dentro de efeitos e handlers, não decidem o que se renderiza.
+- `TauriTitlebar` (o do `__root`, distinto do `DesktopTitleBar`) — devolve `null` nos dois
+  lados.
+- **`sonner`** (o `Toaster`, renderizado em todas as páginas) — tem **dois** ramos em
+  `typeof window` no render: o tema (`'system'` → `matchMedia`) e a direcção
+  (`'undefined' → 'ltr'`). Parecia o suspeito perfeito, mas ambos resolvem igual na nossa
+  configuração: o `theme` por omissão é `'light'`, não `'system'`, e o `<html lang="pt">`
+  não tem `dir`, pelo que a direcção computada no browser também é `ltr`.
+- Estrutura ao nível do `body` e marcadores de Suspense — coincidem.
+
+**Hipótese que sobra, com a medida por trás.** A hidratação é sobre o `document` **inteiro**
+(`hydrateRoot(document, …)` em `src/client.tsx`), logo o `<head>` entra na árvore comparada.
+E é aí que produção e desenvolvimento divergem de forma enorme:
+
+| | `/` | `/alterar-senha` |
+|---|---|---|
+| produção | **73** `rel="modulepreload"` | 46 |
+| desenvolvimento | **1** | 1 |
+
+Uma diferença estrutural de 72 elementos no `<head>`, presente só no build de produção e em
+todas as páginas — encaixa nos três sintomas e em nunca se ver localmente. **Não está
+provado**: o cliente lê o mesmo manifesto do router e pode muito bem produzir os mesmos 73
+links, caso em que não há desencontro nenhum. Fica como o próximo sítio a olhar, não como
+conclusão.
 
 **Porque não foi verificado aqui.** O sintoma só aparece num build de produção, e esta
 máquina não o corre: `vite preview` não serve o preset `cloudflare-module` (procura
