@@ -23,6 +23,11 @@ describe("gridRows", () => {
     expect(rows.map((row) => row.cells.filter(Boolean).length)).toEqual([1, 1]);
   });
 
+  it("distingue intervalos separados por segundos", () => {
+    const rows = gridRows([slot("a", 1), slot("b", 2, "08:00:30", "09:00:30")]);
+    expect(rows).toHaveLength(2);
+  });
+
   it("devolve uma grelha vazia quando não há aulas", () => {
     expect(gridRows([])).toEqual([]);
   });
