@@ -1,4 +1,4 @@
-import ExcelJS from "@protobi/exceljs";
+import ExcelJS from "exceljs";
 import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ImportModule } from "./schemas";
