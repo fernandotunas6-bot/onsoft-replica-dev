@@ -37,9 +37,13 @@ export function schedulePublicationReadiness(input: {
       issues.push({ code: "teacher", slotId: slot.id, message: `Professor por atribuir: ${slot.display_label}.` });
     if (!slot.room_id || !roomById.has(slot.room_id))
       issues.push({ code: "room", slotId: slot.id, message: `Sala por atribuir: ${slot.display_label}.` });
-    else if (group && group.enrolled_count > 0 && roomById.get(slot.room_id)?.capacity != null
-      && roomById.get(slot.room_id)!.capacity! < group.enrolled_count)
-      issues.push({ code: "capacity", slotId: slot.id, message: `A sala de ${slot.display_label} não comporta ${group.enrolled_count} alunos.` });
+    else if (group && group.enrolled_count > 0) {
+      const capacity = roomById.get(slot.room_id)?.capacity;
+      if (capacity == null || !Number.isFinite(capacity) || capacity <= 0)
+        issues.push({ code: "capacity", slotId: slot.id, message: `Defina a lotação da sala de ${slot.display_label} antes de publicar.` });
+      else if (capacity < group.enrolled_count)
+        issues.push({ code: "capacity", slotId: slot.id, message: `A sala de ${slot.display_label} não comporta ${group.enrolled_count} alunos.` });
+    }
     try {
       assertValidScheduleTime(slot.weekday, slot.starts_at, slot.ends_at);
     } catch {
