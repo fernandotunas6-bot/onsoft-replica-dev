@@ -25,5 +25,16 @@ describe("eventos de catracas", () => {
   it("sinaliza relógio adiantado sem inventar ausência docente", () => {
     const result = reconcileGateEvents([{ ...base, occurredAt: "2026-09-24T09:00:00+01:00" }], "school-1", devices);
     expect(result.warnings).toHaveLength(1);
+    expect(result.accepted).toHaveLength(0);
+  });
+  it("permite retransmissão corrigida após evento com timestamp inválido", () => {
+    const result = reconcileGateEvents([{ ...base, occurredAt: "sem-data" }, base], "school-1", devices);
+    expect(result.rejected).toHaveLength(1);
+    expect(result.accepted).toHaveLength(1);
+  });
+  it("coloca em quarentena eventos offline com mais de 24 horas", () => {
+    const result = reconcileGateEvents([{ ...base, receivedAt: "2026-09-26T08:01:00+01:00" }], "school-1", devices);
+    expect(result.accepted).toHaveLength(0);
+    expect(result.warnings).toHaveLength(1);
   });
 });
