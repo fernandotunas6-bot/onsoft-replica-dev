@@ -15,7 +15,7 @@ const blueprint: AssessmentBlueprint = { id: "b1", schoolId: "s1", periodId: "te
   curriculumUnitIds: ["fractions"], objectiveIds: ["add-fractions"], maximumPoints: 20,
   questions: [{ id: "q1", objectiveId: "add-fractions", points: 20 }],
   status: "approved", approvedBy: "coordinator" };
-const base = { blueprint, session, schoolId: "s1", periodId: "term1", approvedPlans: [plan] };
+const base = { blueprint, session, schoolId: "s1", periodId: "term1", approvedPlans: [plan], deliveredOccurrenceIds: new Set(["l1@2026-10-01"]) };
 describe("matriz de avaliação e plano curricular", () => {
   it("valida a prova alinhada ao plano aprovado e à cotação", () => {
     expect(validateAssessmentPlanAlignment(base)).toEqual({ ready: true, issues: [] });
@@ -23,6 +23,16 @@ describe("matriz de avaliação e plano curricular", () => {
   it("bloqueia prova sem aprovação ou cotação correcta", () => {
     expect(validateAssessmentPlanAlignment({ ...base, blueprint: { ...blueprint,
       status: "draft", maximumPoints: 19 } }).ready).toBe(false);
+  });
+  it("não confunde plano aprovado com conteúdo realmente leccionado", () => {
+    const result = validateAssessmentPlanAlignment({ ...base, deliveredOccurrenceIds: new Set() });
+    expect(result.ready).toBe(false);
+    expect(result.issues.some((issue) => issue.includes("execução pedagógica"))).toBe(true);
+  });
+  it("impede validar matéria leccionada apenas no próprio dia do exame", () => {
+    const result = validateAssessmentPlanAlignment({ ...base,
+      approvedPlans: [{ ...plan, date: "2026-12-05" }] });
+    expect(result.ready).toBe(false);
   });
   it("bloqueia conteúdos ainda não planificados antes da prova", () => {
     expect(validateAssessmentPlanAlignment({ ...base, approvedPlans: [{ ...plan,
