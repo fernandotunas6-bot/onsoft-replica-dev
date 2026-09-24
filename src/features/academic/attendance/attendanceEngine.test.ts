@@ -99,6 +99,18 @@ describe("presença docente e apuramento mensal", () => {
     expect(() => evaluateLessonAttendance({ ...lesson, endsAt: "2026-09-26T09:00:00+01:00" }, [], policy)).toThrow(/24 horas/);
   });
 
+  it("impede reutilização da mesma leitura QR em aulas diferentes", () => {
+    const first = evaluateLessonAttendance(lesson, [
+      event("check_in", "08:00:00", "qr-in"), event("check_out", "09:00:00", "qr-out"),
+    ], policy);
+    const second = { ...first, lessonId: "lesson-2" };
+    const twoLessons = { ...payroll, expectedLessonCount: 2,
+      expectedLessonIds: ["lesson-1", "lesson-2"],
+      expectedLessonMinutes: { "lesson-1": 60, "lesson-2": 60 } };
+    expect(() => previewPayroll([first, second], twoLessons)).toThrow(/mesma evidência/);
+    expect(() => previewPayroll([{ ...first, evidenceIds: ["qr-in", "qr-in"] }], payroll)).toThrow(/mesma evidência/);
+  });
+
   it("impede dupla contabilização da mesma aula no salário", () => {
     const confirmed = evaluateLessonAttendance(lesson, [
       event("check_in", "08:00:00"), event("check_out", "09:00:00"),
