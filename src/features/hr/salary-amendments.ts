@@ -57,7 +57,28 @@ export const listHrContractsForSalaryChange = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId).eq("status", "active")
       .is("deleted_at", null).order("starts_on", { ascending: false }).limit(200);
     if (error) throw publicDatabaseError(error, "Não foi possível consultar contratos.");
-    return data ?? [];
+    if (!data?.length) return [];
+    const luandaParts = new Intl.DateTimeFormat("en", {
+      timeZone: "Africa/Luanda", year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(new Date());
+    const part = (type: string) => luandaParts.find((item) => item.type === type)?.value ?? "";
+    const today = `${part("year")}-${part("month")}-${part("day")}`;
+    const { data: amendments, error: amendmentError } = await db
+      .from("hr_contract_salary_amendments")
+      .select("contract_id,effective_on,new_base_salary_kz")
+      .eq("school_id", membership.schoolId)
+      .in("contract_id", data.map((contract) => contract.id))
+      .lte("effective_on", today)
+      .order("effective_on", { ascending: false });
+    if (amendmentError) throw publicDatabaseError(amendmentError, "Não foi possível consultar o vencimento vigente.");
+    const latest = new Map<string, number>();
+    for (const row of amendments ?? []) {
+      if (!latest.has(row.contract_id)) latest.set(row.contract_id, Number(row.new_base_salary_kz));
+    }
+    return data.map((contract) => ({
+      ...contract,
+      effective_base_salary_kz: latest.get(contract.id) ?? Number(contract.base_salary_kz),
+    }));
   });
 
 /** Read-only, school-scoped audit ledger for applied salary amendments. */
