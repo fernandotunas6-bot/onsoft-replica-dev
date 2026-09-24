@@ -1,5 +1,6 @@
 -- SGA ONLY — companion to publication guard, staged for staging tests.
 -- Ensures later edits to slots of published schedules cannot bypass publication checks.
+-- Shared teachers and rooms are checked across overlapping academic years.
 CREATE OR REPLACE FUNCTION private.prevent_published_timetable_slot_conflicts()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $$
@@ -47,7 +48,6 @@ BEGIN
      AND published.school_id = other.school_id
      AND published.status = 'published'
      AND published.deleted_at IS NULL
-     AND published.academic_year_id = current_schedule.academic_year_id
      AND published.id <> current_schedule.id
      AND published.valid_from <= current_schedule.valid_to
      AND published.valid_to >= current_schedule.valid_from
