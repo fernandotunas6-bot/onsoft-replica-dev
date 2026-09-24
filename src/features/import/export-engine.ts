@@ -759,15 +759,20 @@ export async function exportSchoolData(
     }
 
     if (mod === "notas") {
-      let scoreQuery=db.from("grade_scores").select("id,grade_item_id,enrollment_id,score,status,note,grade_items(code,name),gradebooks!inner(term_id,class_subject_id,class_group_id)").eq("school_id",options.schoolId);
+      // grade_scores não tem FK directa para gradebooks -- a relação passa por
+      // grade_items.gradebook_id. O embed tem de aninhar gradebooks dentro de
+      // grade_items; embutir os dois lado a lado fazia o PostgREST recusar a
+      // consulta inteira ("Could not find a relationship between grade_scores and
+      // gradebooks"), e o ecrã de exportação ficava vazio sem nenhum erro visível.
+      let scoreQuery=db.from("grade_scores").select("id,grade_item_id,enrollment_id,score,status,note,grade_items(code,name,gradebooks!inner(term_id,class_subject_id,class_group_id))").eq("school_id",options.schoolId);
       const {data,error}=await scoreQuery;
       if(error) throw new Error(`Não foi possível exportar notas: ${error.message}`);
       const rows=data||[]; counts["notas"]=rows.length; totalRecords+=rows.length;
-      const enrIds=[...new Set(rows.map((r:any)=>String(r.enrollment_id)))]; const csIds=[...new Set(rows.map((r:any)=>String(first(r.gradebooks as any)?.class_subject_id)))];
+      const enrIds=[...new Set(rows.map((r:any)=>String(r.enrollment_id)))]; const csIds=[...new Set(rows.map((r:any)=>String(first(first(r.grade_items as any)?.gradebooks as any)?.class_subject_id)))];
       const {data: enrollments}=enrIds.length?await db.from("enrollments").select("id,student_id,class_group_id").in("id",enrIds):{data:[]};
       const {data: css}=csIds.length?await db.from("class_subjects").select("id,subject_id").in("id",csIds):{data:[]};
       const studentIds=[...new Set((enrollments||[]).map((r:any)=>String(r.student_id)))]; const subjectIds=[...new Set((css||[]).map((r:any)=>String(r.subject_id)))];
-      const termIds=[...new Set(rows.map((r:any)=>String(first(r.gradebooks as any)?.term_id)))];
+      const termIds=[...new Set(rows.map((r:any)=>String(first(first(r.grade_items as any)?.gradebooks as any)?.term_id)))];
       const [{data:students},{data:subjects},{data:terms}]=await Promise.all([
         studentIds.length?db.from("students").select("id,student_number").in("id",studentIds):Promise.resolve({data:[] as any[]}),
         subjectIds.length?db.from("subjects").select("id,name,code").in("id",subjectIds):Promise.resolve({data:[] as any[]}),
@@ -778,7 +783,7 @@ export async function exportSchoolData(
       const termm=new Map((terms||[]).map((r:any)=>[String(r.id),r.sequence ?? r.name]));
       const sheet=workbook.addWorksheet("NOTAS"); sheet.views=[{state:"frozen",ySplit:1,showGridLines:true}];
       styleHeaderRow(sheet.addRow(["Identificador do Aluno (Processo ou Nome)","Turma","Disciplina","Trimestre / Período","Código da Avaliação","Nota / Média Final do Período","Observação"]),options.mode);
-      for(const r of rows){const gb=first(r.gradebooks as any); const e=em.get(String(r.enrollment_id)); const cs=cm.get(String(gb?.class_subject_id)); const sub=subm.get(String(cs?.subject_id)); const gi=first(r.grade_items as any); sheet.addRow([sm.get(String(e?.student_id))||"",String(e?.class_group_id||""),sub?.code||sub?.name||"",termm.get(String(gb?.term_id))||"",gi?.code||"",r.score??"",r.note||""]); }
+      for(const r of rows){const gi=first(r.grade_items as any); const gb=first(gi?.gradebooks as any); const e=em.get(String(r.enrollment_id)); const cs=cm.get(String(gb?.class_subject_id)); const sub=subm.get(String(cs?.subject_id)); sheet.addRow([sm.get(String(e?.student_id))||"",String(e?.class_group_id||""),sub?.code||sub?.name||"",termm.get(String(gb?.term_id))||"",gi?.code||"",r.score??"",r.note||""]); }
       autoFitColumns(sheet);
     }
 
