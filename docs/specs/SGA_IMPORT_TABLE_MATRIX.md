@@ -1,0 +1,76 @@
+# SGA — Matriz Governada de Importação/Exportação
+
+**Atualização:** 2026-09-24
+
+## Catálogo vivo
+
+A tabela `public.import_table_specs` acompanha o schema público do SGA e contém uma linha por tabela pública.
+
+Estado actual:
+- 157 tabelas públicas, incluindo o próprio catálogo;
+- 157/157 com RLS;
+- 157 especificações;
+- 46 tabelas classificadas como `controlled`;
+- 12 como `deny`;
+- 99 como `review`;
+- 149 com grafo de FKs detectado;
+- 90 com uma candidate unique key detectada.
+
+> O catálogo é conservador: `review` significa que a tabela ainda exige validação do fluxo funcional antes de ser autorizada para importação directa.
+
+## Políticas
+
+### controlled
+A escrita é permitida apenas através do motor de importação, com:
+- escola/tenant correcto;
+- resolução de FKs;
+- validação de regras;
+- duplicate strategy;
+- auditoria;
+- rollback quando reversível.
+
+### deny
+Nunca aceitar escrita directa pelo ficheiro do utilizador. Exemplos:
+- `school_integration_secrets`;
+- tokens;
+- OTPs;
+- logs/auditorias;
+- eventos de webhook;
+- assinaturas;
+- auditoria de privacidade.
+
+### review
+Não assumir que uma tabela é importável só porque existe no PostgreSQL. A equipa deve confirmar:
+- se é dado de negócio;
+- se é derivado;
+- se possui UI/importador;
+- se pode ser recalculado;
+- quais são as regras de autorização;
+- qual é a chave natural.
+
+## Grafo de dependências
+
+O catálogo lê as FKs do schema vivo e guarda:
+- colunas de origem;
+- tabela destino;
+- colunas destino.
+
+Também captura uma candidate unique key quando disponível. Isto é uma pista para matching, não uma autorização automática de upsert.
+
+## Ordem
+
+O motor deve construir o plano a partir das dependências reais. A ordem base continua:
+
+`school/context → people → identities → academic structure → subjects → classes → class_subjects → enrollments → timetable → attendance → assessment → grades → finance → history → derived data`
+
+Se uma FK exigir outra dependência, o grafo do SGA prevalece sobre a ordem acima.
+
+## Regra de segurança
+
+O catálogo está com RLS + FORCE RLS e sem policy de cliente. O acesso deve ser server-side pelo motor de importação.
+
+Não devem ser criadas policies genéricas apenas para reduzir avisos do Security Advisor.
+
+## Regra de compatibilidade
+
+O catálogo não substitui as tabelas de negócio e não altera IDs existentes. Ele funciona como camada de governança para o Import/Export Premium.
