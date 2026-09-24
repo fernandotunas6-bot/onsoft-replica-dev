@@ -156,7 +156,15 @@ export const presencasImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: [],
+      audits: [
+        {
+          table_name: "enrollments",
+          target_id: enrollment.id,
+          action_type: "updated",
+          before_data: before,
+          after_data: { attendance_rate: rateNum },
+        },
+      ],
       target_record_id: enrollment.id,
     };
   },
