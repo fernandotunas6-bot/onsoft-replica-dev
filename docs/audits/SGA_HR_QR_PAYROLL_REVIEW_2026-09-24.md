@@ -11,12 +11,12 @@
 1. Administração ou Tesouraria emite QR temporário para ocorrência RH. A server function revoga os QR activos anteriores e cria uma sessão hash + expiração de cinco minutos.
 2. Docente autenticado lê o QR; a server function resolve o vínculo `teachers.user_id`, consulta a sessão e calcula um score de assurance.
 3. A RPC `hr_redeem_teacher_qr` bloqueia sessão e ocorrência `FOR UPDATE`, valida `auth.uid()` e grava entrada ou saída.
-4. No check-out, a RPC pode calcular `payable_quantity`, criar `hr_compensation_events` com `validation_status='validated'` e `validated_by` igual ao docente que leu o QR, e marcar a ocorrência como `confirmed`. A decisão do assurance calculada no passo 2 não entra como parâmetro nem é revalidada na mesma transacção da RPC.
+4. Antes da migração aplicada nesta data, o check-out podia criar um evento salarial validado pelo próprio docente. A RPC agora exige assurance recente, regista a saída como `pending_review` e aguarda validação independente de RH.
 
-## Correções aplicoudas no PR
+## Correções no PR e migrações aplicadas
 
 - Emissão falha se a revogação da sessão anterior devolver erro; vínculo `teachers.user_id` atribuído a outro utilizador não é reutilizado, e o backfill verifica a atualização.
-- `20260924_hr_qr_active_session_guard.sql`: índice único parcial para apenas uma sessão activa por escola, ocorrência e operação. Exige preflight e teste concorrente antes de aplicar.
+- `20260924_hr_qr_active_session_guard.sql`: índice único parcial para apenas uma sessão activa por escola, ocorrência e operação. O preflight não encontrou duplicados; teste concorrente não executado por instrução do utilizador.
 - `20260924_hr_qr_payroll_review_gate.sql`: substituição completa da RPC, obtida da definição efectiva na base e modificada para exigir assurance recente do próprio docente e horário oficial publicado nas aulas programadas; deixa o check-out em `pending_review`, sem criar compensação aprovada automaticamente. Inclui verificação de hash da definição actual e aborta se a RPC tiver mudado desde a captura; **aplicada à Sga em 24-09-2026, sem testes funcionais a pedido do utilizador**.
 - O domínio passa a manter a compensação `pending` qualquer que seja a pontuação do assurance QR. O portal deixa de anunciar elegibilidade salarial antes da revisão do RH e usa a data civil `Africa/Luanda` para destacar aulas do dia.
 
@@ -28,14 +28,14 @@ O provisionamento de contas e a aceitação de convites também foram endurecido
 
 ## Gate de implantação e fecho do ciclo
 
-1. Preparar clone isolado da Sga PostgreSQL 17 com as migrations RH actuais. Confirmar a definição da RPC e o estado dos dados antes de aplicar os quatro ficheiros aplicoudos.
+1. Num ciclo posterior, validar as quatro migrações já aplicadas num clone isolado da Sga PostgreSQL 17.
 2. Testar emissões concorrentes: uma única sessão activa para a mesma aula/operação; erro de revogação não gera nova sessão.
 3. Testar dois resgates concorrentes do mesmo token, token expirado, escola e docente diferentes, entrada sem aula publicada, saída sem entrada e relógio fora da janela.
 4. Confirmar na mesma transacção que check-out cria evidência, mas não evento de compensação validado pelo docente. Exercitar a RPC de confirmação com revisor independente, quantidade revista, justificação, contestação e auditoria antes de transformar em folha salarial.
 5. Conciliar `hr_teacher_lesson_occurrences` com o horário publicado e com `academic_evidence` sem duplicar IDs nem QR; depois testar ponta a ponta no portal e em folha mensal. A migração de evidência ainda é um modelo separado e não está ligada a este fluxo.
 6. Nunca activar descontos automáticos por QR ausente, catraca isolada ou 22 dias fixos. O fecho financeiro só deve usar calendário contratual, revisões concluídas e autorização RH persistida.
 
-**Estado:** correções no PR em rascunho; produção preservada. A Sga tem apenas a branch principal; outro projeto está inactivo. Não há clone de teste PostgreSQL disponível, por isso as três migrations aplicoudas não foram aplicadas nem ensaiadas. Teste SQL real, integração, aprovação RH e revisão jurídica/laboral continuam pendentes.
+**Estado:** as quatro migrações foram aplicadas à Sga activa em 24-09-2026 e constam no histórico. As correções de código permanecem no PR em rascunho. A pedido do utilizador, não foram realizados testes funcionais nem criada uma branch de teste. A implantação do código, o fluxo de aprovação de RH, a conciliação ponta a ponta e a revisão jurídica/laboral continuam pendentes.
 
 ## Identidade docente — impacto medido
 
