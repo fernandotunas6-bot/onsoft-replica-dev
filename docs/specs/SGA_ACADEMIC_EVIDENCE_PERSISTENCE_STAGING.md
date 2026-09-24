@@ -29,3 +29,10 @@ As tabelas têm RLS activo e acesso directo negado a anon e authenticated; o ser
 - Uma reposição de aula exige agora referência composta (id, school_id) e validação adicional de que a aula original pertence à **mesma versão** do horário. Não é permitido transformar uma ocorrência existente noutra escola, noutra versão ou noutro identificador.
 - O teste de preparação passou a tentar uma reposição entre escolas e uma alteração da escola de uma aula. Ambas devem ser rejeitadas, com rollback de todos os dados do ensaio.
 - **Atenção:** o script de preparação ainda não foi executado em PostgreSQL; executar migração e teste SQL num ambiente isolado antes de aprovar o PR ou activar a persistência.
+
+## Reforço da integridade de planos e execução
+
+- O identificador institucional e a identidade do snapshot permanecem estáveis desde o rascunho. O plano de aula não pode ser transferido para outra ocorrência, revisão ou instituição por uma simples actualização.
+- A execução registada não pode exceder os minutos da ocorrência oficial. Depois da revisão, o registo de execução fica imutável; correcções exigem um futuro fluxo de rectificação auditado, com nova versão ou evento compensatório.
+- O ensaio SQL de preparação tenta explicitamente alterar a escola do snapshot, a ocorrência de um plano, os minutos além da duração oficial e a evidência de execução já revista.
+- Estes são testes **escritos mas não executados**. A migração continua sujeita à verificação de DDL, permissões, concorrência e testes de integração numa base PostgreSQL de preparação.
