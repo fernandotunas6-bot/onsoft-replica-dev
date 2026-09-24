@@ -31,6 +31,7 @@ export function assertNoScheduleConflict(
   existing: ScheduleSlot[],
   proposed: ProposedSlot,
   editingSlotId?: string,
+  scheduleId?: string | null,
 ): void {
   assertValidScheduleTime(proposed.weekday, proposed.starts_at, proposed.ends_at);
   if (existing.some((slot) => slot.id === "__candidate__")) {
@@ -39,6 +40,7 @@ export function assertNoScheduleConflict(
   const candidate: ScheduleSlot = {
     ...proposed,
     id: "__candidate__",
+    schedule_id: scheduleId ?? null,
     class_group_name: "seleccionada",
     subject_id: null,
     subject_name: null,
@@ -47,7 +49,9 @@ export function assertNoScheduleConflict(
     display_label: "Nova aula",
   };
   const conflicts = detectScheduleConflicts([
-    ...existing.filter((slot) => slot.id !== editingSlotId),
+    ...existing.filter((slot) =>
+      slot.id !== editingSlotId && (slot.schedule_id ?? null) === (scheduleId ?? null),
+    ),
     candidate,
   ]).filter((conflict) => conflict.slotIds.includes(candidate.id));
   if (conflicts.length > 0) {
