@@ -40,3 +40,10 @@
 ## Verificação de concorrência obrigatória
 
 Os testes devem usar duas conexões reais com transações separadas, isolamento READ COMMITTED e sincronização explícita para forçar a sobreposição. Repetir com atualização de atribuição numa conexão e inserção de aula na outra. Se ocorrer deadlock, timeout ou duas operações aceites, não implantar: rever ordem de aquisição de bloqueios e visibilidade das transações. Não executar estes testes sobre dados de produção.
+
+## Critérios adicionais para publicação
+
+- Uma versão em rascunho com conflitos internos não pode ser publicada, incluindo dados criados antes dos novos triggers.
+- Atribuir um professor a aulas de uma versão publicada não pode provocar colisões com outras versões publicadas cujas datas se sobreponham.
+- Corrigir as datas dos dois horários publicados existentes em ambiente controlado antes de ativar a política de datas obrigatórias; não inventar datas automaticamente.
+- **Bloqueador de implantação:** verificar com duas sessões que a aquisição do bloqueio consultivo depois do bloqueio implícito da linha de UPDATE não causa deadlock entre edição de `class_subjects` e inserção de `timetable_slots`. Se ocorrer, redesenhar os fluxos para adquirir o bloqueio por escola antes das operações de escrita, no início da transação.
