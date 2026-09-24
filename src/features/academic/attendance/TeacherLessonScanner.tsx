@@ -22,21 +22,37 @@ export function TeacherLessonScanner({
   const [message, setMessage] = useState("");
   const [accepted, setAccepted] = useState(false);
   const lastScan = useRef("");
+  const inFlight = useRef(false);
+  const currentContext = useRef(`${lessonId}:${operation}`);
+  currentContext.current = `${lessonId}:${operation}`;
+  useEffect(() => {
+    setRunning(false);
+    setManualCode("");
+    setMessage("");
+    setAccepted(false);
+    lastScan.current = "";
+  }, [lessonId, operation]);
   const submit = async (qrPayload: string) => {
-    if (!qrPayload.trim() || busy || lastScan.current === qrPayload) return;
-    lastScan.current = qrPayload;
+    const payload = qrPayload.trim();
+    if (!payload || inFlight.current || accepted || lastScan.current === payload) return;
+    const context = `${lessonId}:${operation}`;
+    inFlight.current = true;
+    lastScan.current = payload;
     setBusy(true);
     try {
-      const result = await submitChallenge({ lessonId, operation, qrPayload: qrPayload.trim() });
+      const result = await submitChallenge({ lessonId, operation, qrPayload: payload });
+      if (currentContext.current !== context) return;
       setMessage(result.message);
       setAccepted(result.accepted);
       if (!result.accepted) lastScan.current = "";
       if (result.accepted) setRunning(false);
     } catch {
+      if (currentContext.current !== context) return;
       lastScan.current = "";
       setAccepted(false);
       setMessage("Não foi possível confirmar a leitura. Tente novamente; a aula permanece pendente.");
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
