@@ -1,7 +1,7 @@
 -- SGA ONLY — companion to publication guard, staged for staging tests.
 -- Ensures later edits to slots of published schedules cannot bypass publication checks.
 CREATE OR REPLACE FUNCTION private.prevent_published_timetable_slot_conflicts()
-RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $$
 DECLARE
   current_schedule record;
