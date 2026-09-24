@@ -103,7 +103,6 @@ BEGIN
      AND other_schedule.status = 'published'
      AND other_schedule.deleted_at IS NULL
      AND other_schedule.id <> current_schedule.id
-     AND other_schedule.academic_year_id = current_schedule.academic_year_id
      AND other_schedule.valid_from <= current_schedule.valid_to
      AND other_schedule.valid_to >= current_schedule.valid_from
     WHERE current_slot.school_id = NEW.school_id
