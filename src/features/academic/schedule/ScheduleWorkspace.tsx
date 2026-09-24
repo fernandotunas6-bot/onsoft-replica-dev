@@ -56,18 +56,30 @@ function weekdayLabel(value: number) {
 }
 
 function gridRows(slots: ScheduleSlot[]) {
+  // Preserve every lesson when multiple groups share a time range.
+  // A single .find() silently hid concurrent lessons in teacher/room views.
   const ranges = Array.from(
     new Set(slots.map((slot) => `${timeValue(slot.starts_at)} – ${timeValue(slot.ends_at)}`)),
   ).sort();
 
-  return ranges.map((range) => {
-    const [start] = range.split(" – ");
-    return {
-      range,
-      cells: weekdays.map((_, index) =>
-        slots.find((slot) => slot.weekday === index + 1 && timeValue(slot.starts_at) === start),
-      ),
-    };
+  return ranges.flatMap((range) => {
+    const [start, end] = range.split(" – ");
+    const matching = weekdays.map((_, index) =>
+      slots
+        .filter(
+          (slot) =>
+            slot.weekday === index + 1 &&
+            timeValue(slot.starts_at) === start &&
+            timeValue(slot.ends_at) === end,
+        )
+        .sort((a, b) => a.id.localeCompare(b.id)),
+    );
+    const rowCount = Math.max(0, ...matching.map((day) => day.length));
+    return Array.from({ length: rowCount }, (_, occurrence) => ({
+      key: `${range}:${occurrence}`,
+      range: occurrence === 0 ? range : `${range} · ${occurrence + 1}`,
+      cells: matching.map((day) => day[occurrence]),
+    }));
   });
 }
 
@@ -535,7 +547,7 @@ export function ScheduleWorkspace({
               </TableRow>
             ) : (
               rows.map((row) => (
-                <TableRow key={row.range} className="hover:bg-muted/10 transition-colors">
+                <TableRow key={row.key} className="hover:bg-muted/10 transition-colors">
                   <TableCell className="font-mono text-xs font-semibold text-muted-foreground whitespace-nowrap bg-muted/20">
                     {row.range}
                   </TableCell>
