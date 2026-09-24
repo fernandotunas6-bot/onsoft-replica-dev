@@ -1,6 +1,14 @@
 -- STAGING ONLY. Captured from active Sga on 2026-09-24.
 -- Review full function replacement against newer migrations before applying.
 BEGIN;
+DO $qr_preflight$
+BEGIN
+  IF md5(pg_catalog.pg_get_functiondef('public.hr_redeem_teacher_qr(text)'::regprocedure))
+     <> '0d963d7ac3c92d0d16c34e995b0a8495' THEN
+    RAISE EXCEPTION 'HR QR RPC definition changed; review replacement before applying';
+  END IF;
+END;
+$qr_preflight$;
 CREATE OR REPLACE FUNCTION public.hr_redeem_teacher_qr(p_token_hash text)
  RETURNS TABLE(occurrence_id uuid, purpose text, compensation_event_id uuid, occurrence_status text)
  LANGUAGE plpgsql
