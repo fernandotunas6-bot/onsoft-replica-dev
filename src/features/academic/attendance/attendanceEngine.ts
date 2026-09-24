@@ -75,7 +75,8 @@ export function evaluateLessonAttendance(
   const outTime = timestamp(checkOut.occurredAt);
   if (outTime <= inTime) return { ...base, status: "pending_review",
     evidenceIds: [checkIn.id, checkOut.id], reasons: ["Saída anterior ou igual à entrada."] };
-  if (inTime < start - policy.graceMinutes * 60000 || outTime > end + policy.graceMinutes * 60000) {
+  if (inTime < start - policy.graceMinutes * 60000 || inTime >= end ||
+      outTime <= start || outTime > end + policy.graceMinutes * 60000) {
     return { ...base, status: "pending_review", evidenceIds: [checkIn.id, checkOut.id],
       reasons: ["Leitura fora da janela permitida; requer revisão."] };
   }
