@@ -28,17 +28,15 @@ const REPO = resolve(__dirname, "../..");
  * Se for sempre service_role, a política passa a `FOR SELECT` e o buraco fecha.
  *
  * **Esta lista só pode encolher.** Pertencem a áreas ainda não auditadas — `school_invitations`
- * e `person_documents` são as que mais preocupam à primeira vista.
+ * é a que mais preocupa à primeira vista.
  */
 const POR_FECHAR = new Set([
   "finance_payment_plans",
-  "person_documents",
   "rooms",
   "school_integrations",
   "school_invitations",
   "siga_access_cards",
   "siga_access_logs",
-  "siga_files",
   "siga_lesson_plan_components",
   "siga_lesson_plans",
   "siga_turnstile_devices",
@@ -54,6 +52,11 @@ const JA_FECHADAS = [
   "siga_attendance_justifications",
   "student_academic_history",
   "student_status_history",
+  // Fechadas depois, pela mesma analise:
+  //   person_documents → 20260924140000 (documentos de identidade)
+  //   siga_files       → 20260924072000 (biblioteca de ficheiros da escola)
+  "person_documents",
+  "siga_files",
 ];
 
 const PADRAO =

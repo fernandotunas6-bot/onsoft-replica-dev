@@ -52,13 +52,21 @@ function cadeia(tabela: string, resolver: (filtros: Array<[string, unknown]>) =>
 
 function construirDb(): SupabaseClient {
   let tentativaInsert = 0;
+  let proximoNumeroRecibo = 1;
   return {
-    rpc: async () => ({
-      data: null,
+    rpc: async (nome: string) => {
+      if (nome === "next_document_number_service") {
+        const numero = `REC-${String(proximoNumeroRecibo).padStart(4, "0")}`;
+        proximoNumeroRecibo += 1;
+        return { data: numero, error: null };
+      }
       // Um webhook servidor-a-servidor tem auth.uid() nulo: register_payment levanta
       // sempre 42501 e o caminho real é o fallback. É esse que estamos a testar.
-      error: { code: "42501", message: "Sem autorização para registar pagamentos." },
-    }),
+      return {
+        data: null,
+        error: { code: "42501", message: "Sem autorização para registar pagamentos." },
+      };
+    },
     from: (tabela: string) => ({
       select: (_cols?: unknown, opcoes?: { count?: string; head?: boolean }) => {
         if (tabela === "finance_invoices") {

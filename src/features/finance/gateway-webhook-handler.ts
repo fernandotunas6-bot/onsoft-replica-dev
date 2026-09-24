@@ -113,13 +113,18 @@ export async function settleGatewayPayment(
   const normRef = normalizePaymentReference(input.reference);
   const { data: invoice, error: invoiceError } = await db
     .from("finance_invoices")
-    .select("id, status, amount, discount_amount, issued_by")
+    .select("id, status, amount, discount_amount, penalty_amount, issued_by")
     .eq("id", input.invoiceId)
     .eq("school_id", input.schoolId)
     .maybeSingle();
   if (invoiceError) throw publicDatabaseError(invoiceError, "Não foi possível ler a fatura.");
   if (!invoice) throw new Error("Fatura não encontrada para esta escola.");
   if (invoice.status === "cancelled") throw new Error("Fatura cancelada.");
+  // Mesma correção de private.register_payment (20260924135028): o saldo em aberto é
+  // o valor líquido, não o bruto — sem isto uma fatura com desconto nunca chegava a
+  // "paid" pagando o valor correcto, e uma com multa ficava "paid" antes de tempo.
+  const invoiceAmountDue =
+    Number(invoice.amount) - Number(invoice.discount_amount ?? 0) + Number(invoice.penalty_amount ?? 0);
   if (invoice.status === "paid") {
     return {
       alreadyPaid: true as const,
@@ -207,7 +212,7 @@ export async function settleGatewayPayment(
       // lá o excesso levanta excepção, aqui `alreadyPaid` só era usado para escolher entre
       // `paid` e `partially_paid`. Sem ela, recibos a mais somavam acima do valor da fatura
       // sem nada o assinalar.
-      if (alreadyPaid + input.amount > Number(invoice.amount)) {
+      if (alreadyPaid + input.amount > invoiceAmountDue) {
         throw new Error("O valor do pagamento excede o saldo em aberto da fatura.");
       }
 
@@ -235,22 +240,18 @@ export async function settleGatewayPayment(
         );
       }
 
-      // A numeração oficial vem de `private.next_document_number`, que não tem wrapper
-      // público — e, mesmo que tivesse, exige `auth.uid()`, que num webhook
-      // server-to-server é null. A chamada que aqui estava falhava sempre com PGRST202 e
-      // o erro era ignorado, pelo que o recibo ficava com um número baseado no relógio.
+      // A numeração oficial vem de `private.next_document_number`, mas essa exige
+      // `auth.uid()`, que num webhook server-to-server é sempre null — a mesma série
+      // que a tesouraria usa ("REC-0001") ficava inalcançável daqui, e este caminho
+      // tinha o seu próprio contador paralelo (REC-AAAA/NNNN via count(*), nunca via
+      // document_sequences). Duas séries do mesmo tipo de documento é um problema de
+      // conformidade (há exportação SAF-T AO neste módulo) — ver
+      // docs/auditoria/06-auditoria.md, achado P1 da área 6.2.
       //
-      // Sem sessão, a sequência conta-se aqui, como `issueInvoice` faz para as faturas:
-      // REC-AAAA/NNNN, avançando em colisão (23505) — `(school_id, receipt_number)` é
-      // único e dois webhooks podem chegar ao mesmo tempo.
-      const year = new Date().getFullYear();
-      const { count: receiptsThisYear } = await db
-        .from("finance_receipts")
-        .select("id", { count: "exact", head: true })
-        .eq("school_id", input.schoolId)
-        .like("receipt_number", `REC-${year}/%`);
-
-      let sequence = (receiptsThisYear ?? 0) + 1;
+      // `public.next_document_number_service` (20260924135100) é a mesma sequência
+      // sem a exigência de sessão, restrita a service_role por GRANT — o webhook já
+      // validou a assinatura HMAC antes de chegar aqui. Atómica (FOR UPDATE dentro da
+      // função): não precisa do retry manual por colisão de número.
       let receiptNumber = "";
       let newReceipt: { id: string } | null = null;
       let recError: { code?: string; message: string; details?: string } | null = null;
@@ -259,8 +260,16 @@ export async function settleGatewayPayment(
       // o insert devolve 42703 e repete-se sem a coluna — a protecção contra reenvio
       // continua a ser a do histórico de eventos, acima.
       let withExternalId = Boolean(input.externalId);
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        receiptNumber = `REC-${year}/${String(sequence).padStart(4, "0")}`;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const { data: generatedNumber, error: numberError } = await db.rpc(
+          "next_document_number_service",
+          { school_id: input.schoolId, document_type: "receipt", default_prefix: "REC" },
+        );
+        if (numberError || !generatedNumber) {
+          recError = numberError ?? { message: "Não foi possível gerar o número do recibo." };
+          break;
+        }
+        receiptNumber = generatedNumber;
         const result = await db
           .from("finance_receipts")
           .insert({
@@ -289,7 +298,9 @@ export async function settleGatewayPayment(
         if (result.error.code === "23505") {
           // Duas colisões diferentes com o mesmo código. Se foi o índice de idempotência,
           // outra entrega da MESMA transação chegou primeiro e já a liquidou: avançar o
-          // número de recibo repetiria o pagamento em vez de o impedir.
+          // número de recibo repetiria o pagamento em vez de o impedir. Se foi o próprio
+          // número (corrida rara entre duas chamadas concorrentes à RPC), pedir o
+          // próximo e tentar de novo — a função já avançou o contador.
           const conflito = `${result.error.message} ${result.error.details ?? ""}`;
           if (/external_id/i.test(conflito)) {
             return {
@@ -299,7 +310,6 @@ export async function settleGatewayPayment(
               planSettled: false,
             };
           }
-          sequence += 1;
           continue;
         }
         break;
@@ -311,7 +321,7 @@ export async function settleGatewayPayment(
         );
 
       const newStatus =
-        alreadyPaid + input.amount >= Number(invoice.amount) ? "paid" : "partially_paid";
+        alreadyPaid + input.amount >= invoiceAmountDue ? "paid" : "partially_paid";
       await db
         .from("finance_invoices")
         .update({ status: newStatus })

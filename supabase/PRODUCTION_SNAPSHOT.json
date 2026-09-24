@@ -1,8 +1,8 @@
 {
-  "capturadoEm": "2026-09-24T12:51:41.921Z",
+  "capturadoEm": "2026-09-24T13:04:49.618Z",
   "resumo": {
     "com_rls": 162,
-    "funcoes_private": 96,
+    "funcoes_private": 97,
     "politicas": 296,
     "tabelas": 162,
     "triggers": 173
@@ -6395,6 +6395,12 @@
       "security_definer": true
     },
     {
+      "args": "target_school_id uuid, target_document_type text, default_prefix text",
+      "funcao": "next_document_number_service",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "",
       "funcao": "normalize_class_group",
       "schema": "private",
@@ -7269,6 +7275,12 @@
       "funcao": "mark_notification_read",
       "schema": "public",
       "security_definer": false
+    },
+    {
+      "args": "school_id uuid, document_type text, default_prefix text",
+      "funcao": "next_document_number_service",
+      "schema": "public",
+      "security_definer": true
     },
     {
       "args": "school_id uuid, timetable_slot_id uuid, session_date date",

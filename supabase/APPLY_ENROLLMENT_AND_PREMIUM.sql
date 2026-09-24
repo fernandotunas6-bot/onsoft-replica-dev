@@ -554,12 +554,16 @@ CREATE POLICY "Read school person documents"
   FOR SELECT TO authenticated
   USING (public.is_school_member(school_id));
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260924140000. Pertenca a escola nao basta
+-- para escrever um documento de identidade -- as politicas estritas de INSERT e
+-- UPDATE (`Create/Update person_documents in own school`, com
+-- `can_manage_students()`) e que decidem isso. Enquanto esta era `FOR ALL`,
+-- combinava-se com elas por OR e anulava-as.
 DROP POLICY IF EXISTS "Manage school person documents" ON public.person_documents;
 CREATE POLICY "Manage school person documents"
   ON public.person_documents
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- Referência opcional a ficheiro da biblioteca SIGA (sem FK para não bloquear SQL antigo)
 ALTER TABLE public.person_documents
@@ -819,12 +823,20 @@ CREATE POLICY "Read school files"
   FOR SELECT TO authenticated
   USING (public.is_school_member(school_id));
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260924072000. Pertenca a escola nao basta
+-- para escrever -- e sobretudo nao basta para apagar, que era o que o `FOR ALL`
+-- dava de lambuja. A escrita passa a ser decidida pelas politicas por comando
+-- que essa migracao cria, a partir de `area`, `visibility` e `owner_user_id`.
+--
+-- Se este script voltar a correr DEPOIS da migracao, reintroduz esta politica de
+-- leitura ampla ao lado da restrita, e politicas permissivas combinam-se por OR:
+-- a leitura volta a alargar. Aplicar a migracao outra vez repoe o estado -- ela e
+-- idempotente. A causa e correr APPLY a mao sobre uma base ja migrada.
 DROP POLICY IF EXISTS "Write school files" ON public.siga_files;
 CREATE POLICY "Write school files"
   ON public.siga_files
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id) AND owner_user_id = auth.uid());
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- ---------------------------------------------------------------------------
 -- Planos de Aula (ciclo 34): documento título/conteúdo/anexo por turma+disciplina
