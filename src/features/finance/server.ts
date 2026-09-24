@@ -1272,17 +1272,7 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
       //
       // Corre no client da SESSÃO, e não no de serviço, para `auth.uid()` e `is_aal2()`
       // resolverem — tal como `recordInvoicePayment` faz com `register_payment`.
-      // `src/integrations/supabase/types.ts` está dessincronizado da produção neste ponto:
-      // declara `reverse_cash_entry(p_cash_entry_id, p_reason)`, que **não existe** em
-      // produção, e omite `reverse_receipt(school_id, receipt_id, reason)`, que existe
-      // (confirmado em PRODUCTION_SNAPSHOT.json e no corpo capturado em
-      // 20260908210000_capture_all_db_functions.sql). Até os tipos serem regerados contra a
-      // base real, a chamada vai destipada — como `sga-grades.ts` já faz pela mesma razão.
-      const rpc = context.supabase.rpc.bind(context.supabase) as unknown as (
-        nome: string,
-        args: Record<string, unknown>,
-      ) => Promise<{ data: unknown; error: { code?: string; message: string } | null }>;
-      const { data: outcome, error } = await rpc("reverse_receipt", {
+      const { data: outcome, error } = await context.supabase.rpc("reverse_receipt", {
         school_id: membership.schoolId,
         receipt_id: data.cashEntryId,
         reason: data.reason,
