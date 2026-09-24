@@ -22,3 +22,10 @@ As tabelas têm RLS activo e acesso directo negado a anon e authenticated; o ser
 - O esquema guarda uma aprovação de execução por ocorrência. Fluxos de contestação, substituição e múltiplas revisões de execução exigem histórico de eventos adicional, sem sobrescrever a evidência anterior.
 - O controlo de conflitos entre provas e aulas existe na lógica TypeScript; falta uma transacção única que o revalide imediatamente antes de publicar.
 - O fecho de período só poderá ser gravado por uma função de backend que recompute o roster e os bloqueios na mesma transacção. Os campos de aprovação não devem ser aceites directamente de formulários.
+
+## Refinamento de integridade (24-09-2026)
+
+- Corrigidos três delimitadores PL/pgSQL malformados na migração preparada. A verificação estática não substitui a execução real do SQL.
+- Uma reposição de aula exige agora referência composta (id, school_id) e validação adicional de que a aula original pertence à **mesma versão** do horário. Não é permitido transformar uma ocorrência existente noutra escola, noutra versão ou noutro identificador.
+- O teste de preparação passou a tentar uma reposição entre escolas e uma alteração da escola de uma aula. Ambas devem ser rejeitadas, com rollback de todos os dados do ensaio.
+- **Atenção:** o script de preparação ainda não foi executado em PostgreSQL; executar migração e teste SQL num ambiente isolado antes de aprovar o PR ou activar a persistência.
