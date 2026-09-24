@@ -16,6 +16,11 @@ export function reconcileGateEvents(
     throw new Error("Configuração de catracas inválida.");
   }
   const seen = new Set<string>();
+  const validTimestamp = (value: string): number | null => {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return null;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
   const accepted: GateEvent[] = [];
   const rejected: GateEventResult["rejected"] = [];
   const warnings: GateEventResult["warnings"] = [];
@@ -40,11 +45,14 @@ export function reconcileGateEvents(
       rejected.push({ event, reason: "Timestamp inválido ou sem fuso horário." });
       continue;
     }
+    seen.add(key);
     if (occurred > received + maxClockSkewMinutes * 60000) {
       warnings.push({ event, reason: "Relógio do dispositivo adiantado; verificar antes de utilizar." });
+      continue;
     }
     if (received - occurred > 24 * 60 * 60000) {
       warnings.push({ event, reason: "Evento antigo ou sincronização tardia; verificar." });
+      continue;
     }
     accepted.push(event);
   }
