@@ -155,8 +155,8 @@ export function planAcademicLessons(input: {
     for (let day = parseCivilDate(period.startsOn); day <= parseCivilDate(period.endsOn); day += 86400000) {
       const date = civil(day);
       if (holidays.has(date) || excluded.has(date)) continue;
+      if (isoWeekday(day) !== lesson.weekday) continue;
       if (!extra.has(date) && !period.teachingDays.includes(isoWeekday(day))) continue;
-      if (isoWeekday(day) !== lesson.weekday && !extra.has(date)) continue;
       if (occurrences.length >= max) throw new Error("Limite de aulas excedido; reduza o período.");
       occurrences.push({ ...lesson, date, startsAtLocal: date + "T" + lesson.start,
         endsAtLocal: date + "T" + lesson.end });
