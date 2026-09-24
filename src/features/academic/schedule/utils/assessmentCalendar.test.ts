@@ -28,9 +28,23 @@ describe("calendário de provas e exames", () => {
     expect(validateAssessmentCalendar({ periods, windows, sessions })
       .some((x) => x.code === "daily_exam_limit")).toBe(true);
   });
+  it("não assume elegibilidade nacional sem regras oficiais versionadas", () => {
+    const national: AssessmentWindow = { ...windows[0], kind: "national_exam" };
+    expect(validateAssessmentCalendar({ periods, windows: [national], sessions: [] })
+      .some((issue) => issue.code === "national_exam_grade")).toBe(true);
+  });
+  it("bloqueia exames sobre aulas publicadas da turma, sala ou vigilante", () => {
+    const teachingSlots = [{ id: "lesson1", date: "2026-12-03", startsAt: "08:45",
+      endsAt: "09:15", classGroupId: "9B", roomId: "room2", teacherId: "teacher1" }];
+    expect(validateAssessmentCalendar({ periods, windows, sessions: [session], teachingSlots })
+      .some((issue) => issue.code === "exam_lesson_collision")).toBe(true);
+    expect(validateAssessmentCalendar({ periods, windows, sessions: [session],
+      teachingSlots: [{ ...teachingSlots[0], startsAt: "09:30", endsAt: "10:00" }] })
+      .some((issue) => issue.code === "exam_lesson_collision")).toBe(false);
+  });
   it("bloqueia classes não elegíveis para exame nacional", () => {
     const national: AssessmentWindow = { ...windows[0], kind: "national_exam", allowedGrades: [7] };
-    expect(validateAssessmentCalendar({ periods, windows: [national], sessions: [] })
+    expect(validateAssessmentCalendar({ periods, windows: [national], sessions: [], nationalExamGrades: [6, 9, 12] })
       .some((x) => x.code === "national_exam_grade")).toBe(true);
   });
 });
