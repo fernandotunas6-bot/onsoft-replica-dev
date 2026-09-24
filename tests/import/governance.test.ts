@@ -18,6 +18,18 @@ describe("Import governance contract", () => {
     );
   });
 
+  it("keeps inscricoes and presencas aligned with their real persistence models", () => {
+    expect(IMPORTER_TARGET_TABLES.inscricoes).toEqual(
+      expect.arrayContaining(["people", "enrollment_applications"]),
+    );
+    expect(IMPORTER_TARGET_TABLES.inscricoes).not.toContain("students");
+
+    expect(IMPORTER_TARGET_TABLES.presencas).toEqual(
+      expect.arrayContaining(["siga_attendance_sessions", "siga_attendance_records"]),
+    );
+    expect(IMPORTER_TARGET_TABLES.presencas).not.toContain("enrollments");
+  });
+
   it("keeps finance and security boundaries explicit", () => {
     expect(IMPORTER_TARGET_TABLES.pagamentos).toEqual(
       expect.arrayContaining(["finance_invoices", "finance_receipts"]),
