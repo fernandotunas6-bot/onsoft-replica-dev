@@ -22,6 +22,7 @@ export type LessonAttendance = {
 export type PayrollPolicy = {
   currency: "AOA"; monthlyBaseCents: number; monthlyContractMinutes: number;
   deductionEnabled: boolean; approvedByHr: boolean;
+  expectedLessonCount?: number; // supplied by the authoritative published timetable
 };
 export type PayrollPreview = {
   scheduledMinutes: number; verifiedMinutes: number; unverifiedMinutes: number;
@@ -96,6 +97,8 @@ export function previewPayroll(
   positiveInteger(policy.monthlyBaseCents, "Salário base");
   positiveInteger(policy.monthlyContractMinutes, "Carga horária contratual");
   if (policy.monthlyContractMinutes === 0) throw new Error("A carga horária contratual não pode ser zero.");
+  if (policy.expectedLessonCount !== undefined) positiveInteger(policy.expectedLessonCount, "Número de aulas previstas");
+  const incompleteRoster = policy.expectedLessonCount === undefined || policy.expectedLessonCount !== attendance.length;
   const lessonIds = new Set<string>();
   for (const entry of attendance) {
     if (!entry.lessonId || lessonIds.has(entry.lessonId)) {
@@ -121,11 +124,11 @@ export function previewPayroll(
     .reduce((sum, entry) => sum + entry.scheduledMinutes, 0);
   const missingMinutes = resolved.reduce((sum, entry) =>
     sum + Math.max(0, entry.scheduledMinutes - entry.verifiedMinutes), 0);
-  const proposedDeductionCents = policy.deductionEnabled && policy.approvedByHr && unverifiedMinutes === 0
+  const proposedDeductionCents = policy.deductionEnabled && policy.approvedByHr && !incompleteRoster && unverifiedMinutes === 0
     ? Math.min(policy.monthlyBaseCents,
         Math.round(policy.monthlyBaseCents * missingMinutes / policy.monthlyContractMinutes))
     : 0;
   return { scheduledMinutes, verifiedMinutes, unverifiedMinutes, proposedDeductionCents,
     payableBaseCents: policy.monthlyBaseCents - proposedDeductionCents,
-    requiresHrApproval: unverifiedMinutes > 0 || !policy.approvedByHr };
+    requiresHrApproval: incompleteRoster || unverifiedMinutes > 0 || !policy.approvedByHr };
 }
