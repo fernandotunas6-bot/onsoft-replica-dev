@@ -41,8 +41,18 @@ export function schedulePublicationReadiness(input: {
       issues.push({ code: "time", slotId: slot.id, message: `Dia ou intervalo inválido: ${slot.display_label}.` });
     }
   }
-  const relatedConflicts = detectScheduleConflicts(slots).filter((conflict) =>
-    conflict.slotIds.some((id) => own.some((slot) => slot.id === id)),
+  // Drafts from different schedule versions must not be treated as simultaneous.
+  // A missing version ID is legacy data and remains in the local comparison.
+  const relatedSlots = slots.filter((slot) =>
+    own.some((candidate) =>
+      candidate.id === slot.id ||
+      (candidate.schedule_id == null && slot.schedule_id == null) ||
+      (candidate.schedule_id != null && candidate.schedule_id === slot.schedule_id),
+    ),
+  );
+  const ownIds = new Set(own.map((slot) => slot.id));
+  const relatedConflicts = detectScheduleConflicts(relatedSlots).filter((conflict) =>
+    conflict.slotIds.some((id) => ownIds.has(id)),
   );
   for (const conflict of relatedConflicts)
     issues.push({ code: "conflict", message: conflict.message });
