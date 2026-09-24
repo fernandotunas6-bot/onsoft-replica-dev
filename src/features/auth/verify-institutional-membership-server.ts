@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { resolveSgaMembership } from "@/integrations/supabase/sga";
 
 export interface VerifyInstitutionalMembershipResponse {
@@ -21,8 +20,15 @@ export const verifyInstitutionalMembershipFn = createServerFn({ method: "POST" }
 
     // A verificação de acesso inicial não depende da escola guardada em cookie:
     // o utilizador pode ter mudado de instituição desde a última sessão.
-    const db = await loadSgaAdminClient();
-    const membership = await resolveSgaMembership(db, context.userId);
+    //
+    // Corre com o cliente da sessão, não com o privilegiado: uma função que
+    // pergunta "tens acesso?" não deve responder com uma identidade que tem
+    // acesso a tudo. As quatro tabelas que `resolveSgaMembership` lê
+    // (`school_memberships`, `schools`, `member_roles`, `roles`) têm política de
+    // leitura que cobre o próprio utilizador — `user_id = auth.uid()` na
+    // primeira, `is_school_member`/`is_active_member` nas outras — logo quem tem
+    // vínculo lê-o, e quem não tem lê vazio, que é a resposta certa.
+    const membership = await resolveSgaMembership(context.supabase, context.userId);
     return membership
       ? { authorized: true, reason: "authorized" }
       : { authorized: false, reason: "no_active_school_membership" };

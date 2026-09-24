@@ -207,8 +207,13 @@ function MfaSecurityPanel() {
         toast.error("Não foi possível verificar o estado do 2FA.");
       } else {
         setEnabled(Boolean(data?.totp.some((factor) => factor.status === "verified")));
+        // `data.totp` só traz factores verificados (auth-js: `Factor<K,'verified'>[]`),
+        // logo procurar ali por "unverified" nunca encontrava nada e a recuperação
+        // de um enrolamento a meio não chegava a acontecer. `data.all` traz os dois.
         setIncompleteFactorId(
-          data?.totp.find((factor) => factor.status === "unverified")?.id ?? null,
+          data?.all.find(
+            (factor) => factor.factor_type === "totp" && factor.status === "unverified",
+          )?.id ?? null,
         );
       }
       setChecking(false);
