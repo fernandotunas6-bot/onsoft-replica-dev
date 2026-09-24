@@ -4,7 +4,7 @@
 
 - Código: `src/features/hr/teacher-lessons.ts`, `TeacherAttendancePanel.tsx` e RPC `public.hr_redeem_teacher_qr` lida em Sga.
 - Base Sga activa (consultas apenas de leitura): tabelas `hr_teacher_qr_sessions` e `hr_teacher_lesson_occurrences`, RPCs `hr_redeem_teacher_qr` e `hr_evaluate_teacher_attendance_assurance` presentes.
-- Na consulta: zero sessões QR, zero ocorrências RH e zero eventos de compensação provenientes de `teacher_lesson_occurrence`. Os três indicadores do preflight retornaram zero; este resultado reflecte a ausência de dados de teste, não aprovação do comportamento futuro.
+- Na consulta: zero sessões QR, zero ocorrências RH e zero eventos de compensação provenientes de `teacher_lesson_occurrence`. Os quatro indicadores do preflight retornaram zero; este resultado reflecte a ausência de dados de teste, não aprovação do comportamento futuro.
 
 ## Sequência real
 
@@ -17,7 +17,7 @@
 
 - Emissão falha se a revogação da sessão anterior devolver erro; vínculo `teachers.user_id` atribuído a outro utilizador não é reutilizado, e o backfill verifica a atualização.
 - `20260924_hr_qr_active_session_guard_staged.sql`: índice único parcial para apenas uma sessão activa por escola, ocorrência e operação. Exige preflight e teste concorrente antes de aplicar.
-- `20260924_hr_qr_payroll_review_gate_staged.sql`: substituição completa da RPC, obtida da definição efectiva na base e modificada para deixar o check-out em `pending_review`, sem criar compensação aprovada automaticamente. Exige comparação com a definição da base no momento da aplicação; **não foi executada**.
+- `20260924_hr_qr_payroll_review_gate_staged.sql`: substituição completa da RPC, obtida da definição efectiva na base e modificada para exigir assurance recente do próprio docente e horário oficial publicado nas aulas programadas; deixa o check-out em `pending_review`, sem criar compensação aprovada automaticamente. Exige comparação com a definição da base no momento da aplicação; **não foi executada**.
 - O portal deixa de anunciar elegibilidade salarial antes da revisão do RH e usa a data civil `Africa/Luanda` para destacar aulas do dia.
 
 ## Gate de implantação e fecho do ciclo
