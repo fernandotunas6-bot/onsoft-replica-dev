@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS academic_evidence.lesson_occurrences (
   created_at timestamptz NOT NULL DEFAULT now(),
   FOREIGN KEY (snapshot_id, school_id)
     REFERENCES academic_evidence.schedule_snapshots(id, school_id),
-  FOREIGN KEY (replacement_of) REFERENCES academic_evidence.lesson_occurrences(id),
+  FOREIGN KEY (replacement_of, school_id)
+    REFERENCES academic_evidence.lesson_occurrences(id, school_id),
   UNIQUE (snapshot_id, occurrence_key),
   UNIQUE (id, school_id),
   CHECK (ends_at > starts_at AND ends_at <= starts_at + interval '24 hours')
@@ -276,6 +277,24 @@ BEGIN
   ELSE
     SELECT status INTO parent_status FROM academic_evidence.schedule_snapshots
       WHERE id = NEW.snapshot_id FOR UPDATE;
+  END IF;
+  IF TG_OP = 'UPDATE' AND (NEW.snapshot_id IS DISTINCT FROM OLD.snapshot_id
+      OR NEW.school_id IS DISTINCT FROM OLD.school_id
+      OR NEW.id IS DISTINCT FROM OLD.id) THEN
+    RAISE EXCEPTION 'Occurrence identity and institution are immutable'
+      USING ERRCODE = '23514';
+  END IF;
+  IF TG_OP <> 'DELETE' AND NEW.replacement_of IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM academic_evidence.lesson_occurrences original
+      WHERE original.id = NEW.replacement_of
+        AND original.school_id = NEW.school_id
+        AND original.snapshot_id = NEW.snapshot_id
+        AND original.id <> NEW.id
+    ) THEN
+      RAISE EXCEPTION 'Replacement must reference another lesson in the same snapshot'
+        USING ERRCODE = '23514';
+    END IF;
   END IF;
   IF parent_status IS DISTINCT FROM 'draft' THEN
     RAISE EXCEPTION 'Published academic occurrences are immutable'
