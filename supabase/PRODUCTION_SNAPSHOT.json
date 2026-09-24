@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-09-24T13:04:49.618Z",
+  "capturadoEm": "2026-09-24T13:15:04.111Z",
   "resumo": {
     "com_rls": 162,
-    "funcoes_private": 97,
+    "funcoes_private": 98,
     "politicas": 296,
     "tabelas": 162,
-    "triggers": 173
+    "triggers": 174
   },
   "tabelas": [
     {
@@ -6323,6 +6323,12 @@
       "security_definer": true
     },
     {
+      "args": "",
+      "funcao": "enforce_timetable_slot_no_overlap",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "target_school_id uuid, target_student_id uuid, target_class_group_id uuid, target_enrolled_on date",
       "funcao": "enroll_student",
       "schema": "private",
@@ -8549,6 +8555,12 @@
       "funcao_schema": "private",
       "tabela": "timetable_slots",
       "trigger": "enforce_academic_manager_structure_scope"
+    },
+    {
+      "funcao": "enforce_timetable_slot_no_overlap",
+      "funcao_schema": "private",
+      "tabela": "timetable_slots",
+      "trigger": "timetable_slot_no_overlap"
     },
     {
       "funcao": "validate_timetable_school_references",
