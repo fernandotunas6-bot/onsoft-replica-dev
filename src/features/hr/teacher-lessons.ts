@@ -39,8 +39,8 @@ function qrTokenHash(token: string) {
 
 /**
  * Resolve a ficha `teachers` do utilizador autenticado.
- * Preferência: teachers.user_id → people.user_id → email do login.
- * Quando encontra ficha sem user_id, faz backfill para o QR/SQL passarem a validar.
+ * Apenas vínculos explícitos teachers.user_id ou people.user_id são aceites.
+ * Uma ficha sem user_id só é vinculada quando people.user_id já foi verificado.
  */
 export async function resolveAuthenticatedTeacherId(
   db: SgaAdminClient,
@@ -57,47 +57,15 @@ export async function resolveAuthenticatedTeacherId(
     .maybeSingle();
   if (!byUser.error && byUser.data?.id) return String(byUser.data.id);
 
-  let personId: string | null = null;
-  let email = "";
-
-  const personByUser = await db
+  const { data: personByUser, error: personError } = await db
     .from("people")
-    .select("id, email")
+    .select("id")
     .eq("school_id", schoolId)
     .eq("user_id", userId)
     .limit(1)
     .maybeSingle();
-  if (!personByUser.error && personByUser.data?.id) {
-    personId = String(personByUser.data.id);
-    email = String(personByUser.data.email ?? "")
-      .trim()
-      .toLowerCase();
-  }
-
-  if (!personId) {
-    try {
-      const { data: authUser } = await db.auth.admin.getUserById(userId);
-      email = String(authUser.user?.email ?? "")
-        .trim()
-        .toLowerCase();
-    } catch {
-      /* ignore */
-    }
-    if (email) {
-      const personByEmail = await db
-        .from("people")
-        .select("id, email")
-        .eq("school_id", schoolId)
-        .ilike("email", email)
-        .limit(1)
-        .maybeSingle();
-      if (!personByEmail.error && personByEmail.data?.id) {
-        personId = String(personByEmail.data.id);
-      }
-    }
-  }
-
-  if (!personId) return null;
+  if (personError || !personByUser?.id) return null;
+  const personId = String(personByUser.id);
 
   const byPerson = await db
     .from("teachers")
