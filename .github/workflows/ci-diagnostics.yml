@@ -1,0 +1,28 @@
+name: CI diagnostics
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ci-diagnostics.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Runner
+        run: |
+          uname -a
+          node --version
+          npm --version
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Bun setup
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Bun verification
+        run: bun --version
