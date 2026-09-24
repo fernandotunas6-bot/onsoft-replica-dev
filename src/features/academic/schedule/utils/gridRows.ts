@@ -1,6 +1,6 @@
 import type { ScheduleSlot } from "../types";
 
-const weekdays = [1, 2, 3, 4, 5] as const;
+const weekdays = [1, 2, 3, 4, 5, 6, 7] as const;
 
 function timeValue(value: string) {
   const [hours = "00", minutes = "00", seconds = "00"] = value.split(":");
