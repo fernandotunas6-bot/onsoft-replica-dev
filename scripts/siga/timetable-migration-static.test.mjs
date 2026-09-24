@@ -70,3 +70,12 @@ test('assignment guard checks published versions after reassignment', () => {
   assert.match(sql, /A alteração cria conflito com outra versão publicada/);
   assert.match(sql, /other_schedule\.valid_from <= current_schedule\.valid_to/);
 });
+
+
+test('published resource collisions span overlapping academic years', () => {
+  for (const name of files.slice(2)) {
+    const sql = readFileSync(new URL(name, base), 'utf8');
+    assert.doesNotMatch(sql, /(?:published|other_schedule)\.academic_year_id\s*=\s*(?:NEW|current_schedule)\.academic_year_id/);
+    assert.match(sql, /valid_from\s*<=\s*(?:NEW|current_schedule)\.valid_to/);
+  }
+});
