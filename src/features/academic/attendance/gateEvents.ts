@@ -13,7 +13,7 @@ export function reconcileGateEvents(
   maxClockSkewMinutes = 5,
   previouslyProcessedKeys: ReadonlySet<string> = new Set(),
 ): GateEventResult {
-  if (!expectedSchoolId || !Number.isFinite(maxClockSkewMinutes) || maxClockSkewMinutes < 0) {
+  if (!expectedSchoolId || !Number.isSafeInteger(maxClockSkewMinutes) || maxClockSkewMinutes < 0 || maxClockSkewMinutes > 240) {
     throw new Error("Configuração de catracas inválida.");
   }
   const seen = new Set<string>();
@@ -43,7 +43,6 @@ export function reconcileGateEvents(
       rejected.push({ event, reason: "Timestamp inválido ou sem fuso horário." });
       continue;
     }
-    seen.add(key);
     if (occurred > received + maxClockSkewMinutes * 60000) {
       warnings.push({ event, reason: "Relógio do dispositivo adiantado; verificar antes de utilizar." });
       continue;
@@ -52,6 +51,9 @@ export function reconcileGateEvents(
       warnings.push({ event, reason: "Evento antigo ou sincronização tardia; verificar." });
       continue;
     }
+    // Quarantined events are not consumed: a corrected retransmission can
+    // still be accepted, while an accepted event remains idempotent.
+    seen.add(key);
     accepted.push(event);
   }
   return { accepted, rejected, warnings };
