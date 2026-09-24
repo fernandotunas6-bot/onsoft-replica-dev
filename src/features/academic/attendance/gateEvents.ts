@@ -1,3 +1,5 @@
+import { parseStrictTimestamp } from "./strictTimestamp";
+
 /** Normalização determinística de eventos de catraca, sem alterar presença em aulas. */
 export type GateDirection = "entry" | "exit";
 export type GateEvent = {
@@ -17,11 +19,6 @@ export function reconcileGateEvents(
     throw new Error("Configuração de catracas inválida.");
   }
   const seen = new Set<string>();
-  const validTimestamp = (value: string): number | null => {
-    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return null;
-    const parsed = Date.parse(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  };
   const accepted: GateEvent[] = [];
   const rejected: GateEventResult["rejected"] = [];
   const warnings: GateEventResult["warnings"] = [];
@@ -37,8 +34,8 @@ export function reconcileGateEvents(
       rejected.push({ event, reason: "Evento duplicado." });
       continue;
     }
-    const occurred = validTimestamp(event.occurredAt);
-    const received = validTimestamp(event.receivedAt);
+    const occurred = parseStrictTimestamp(event.occurredAt);
+    const received = parseStrictTimestamp(event.receivedAt);
     if (occurred === null || received === null) {
       rejected.push({ event, reason: "Timestamp inválido ou sem fuso horário." });
       continue;
