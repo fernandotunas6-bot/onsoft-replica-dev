@@ -38,3 +38,9 @@ A regra de folha salarial exige identidade, quantidade **e duração** de todas 
 6. Integrar painel do docente e do RH com relatórios de aulas previstas, leccionadas, atrasos, saídas antecipadas, justificações e contestação; executar testes automatizados, staging e piloto com equipamento físico.
 
 **Critério de libertação:** testes de unidade, integração e concorrência efectivamente executados, build e verificação de tipos sem erros, RLS entre escolas, validação da legislação aplicável, revisão humana do fecho e ensaio físico da catraca. Não declarar produção pronta antes disso.
+
+## 5. Reposição e apuramento mensal por ocorrência
+
+- Reposição de aulas usa mapeamento explícito `recoveryDays: [{ date, followsWeekday }]`: a escola pode determinar que um sábado siga o horário de segunda-feira. A data deve estar dentro de um período válido e não pode coincidir com feriado, exclusão ou outra exceção extraordinária. O calendário não copia indiscriminadamente todos os dias.
+- `monthlyLessonRoster.ts` transforma ocorrências datadas de um docente em identificadores `idDaAula@AAAA-MM-DD`, minutos previstos por ocorrência e total mensal, sem contar intervalos. A projeção rejeita planos com conflitos, duplicações e timestamps locais incoerentes.
+- Esta projeção é preparatória. A API deve gerar o roster apenas a partir da versão **publicada e imutável** do horário e das substituições autorizadas, com fuso IANA, `school_id` e versão do calendário. O cliente não pode escolher ou alterar o roster usado para aprovar descontos.
