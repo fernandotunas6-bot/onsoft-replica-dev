@@ -106,10 +106,8 @@ export async function exportSchoolData(
     "presencas",
     "funcionarios",
     "classes",
-    "cursos",
     "salas",
     "horarios",
-    "notas",
     "dividas",
   ]);
   const unsupportedModules = options.modules.filter((mod) => !supportedExportModules.has(mod));
