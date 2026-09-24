@@ -195,6 +195,9 @@ export function ScheduleWorkspace({
       throw new Error("A sala seleccionada não está disponível nesta instituição.");
     }
 
+    if (resolvedRoom && classGroup.enrolled_count > 0 && (resolvedRoom.capacity == null || !Number.isFinite(resolvedRoom.capacity) || resolvedRoom.capacity <= 0)) {
+      throw new Error(`Defina uma lotação válida para a sala ${resolvedRoom.name} antes de atribuí-la à turma.`);
+    }
     if (resolvedRoom?.capacity != null && classGroup.enrolled_count > resolvedRoom.capacity) {
       throw new Error(`A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${classGroup.enrolled_count}.`);
     }
@@ -241,6 +244,9 @@ export function ScheduleWorkspace({
       throw new Error("A sala seleccionada não está disponível nesta instituição.");
     }
     const currentGroup = classGroups.find((group) => group.id === slot.class_group_id);
+    if (resolvedRoom && currentGroup && currentGroup.enrolled_count > 0 && (resolvedRoom.capacity == null || !Number.isFinite(resolvedRoom.capacity) || resolvedRoom.capacity <= 0)) {
+      throw new Error(`Defina uma lotação válida para a sala ${resolvedRoom.name} antes de atribuí-la à turma.`);
+    }
     if (resolvedRoom?.capacity != null && currentGroup && currentGroup.enrolled_count > resolvedRoom.capacity) {
       throw new Error(`A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${currentGroup.enrolled_count}.`);
     }
@@ -287,7 +293,7 @@ export function ScheduleWorkspace({
   };
 
   const handlePublish = async () => {
-    if (!selectedClassGroupId || !onPublishSchedule) return;
+    if (!canManage || !scheduleAvailable || !selectedClassGroupId || !onPublishSchedule || publishing) return;
     if (!publication.ready) {
       toast.error(`Resolva ${publication.issues.length} pendência(s) antes de publicar.`);
       return;
@@ -603,7 +609,7 @@ export function ScheduleWorkspace({
                             <span className="font-bold text-xs text-foreground tracking-tight line-clamp-1">
                               {slot.subject_name || slot.display_label}
                             </span>
-                            {canManage && (
+                            {canManage && scheduleAvailable && (
                               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
                                 <QuickFormModal
                                   title="Editar Aula"
