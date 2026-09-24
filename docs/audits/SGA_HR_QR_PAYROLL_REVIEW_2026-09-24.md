@@ -20,12 +20,18 @@
 - `20260924_hr_qr_payroll_review_gate_staged.sql`: substituição completa da RPC, obtida da definição efectiva na base e modificada para exigir assurance recente do próprio docente e horário oficial publicado nas aulas programadas; deixa o check-out em `pending_review`, sem criar compensação aprovada automaticamente. Inclui verificação de hash da definição actual e aborta se a RPC tiver mudado desde a captura; **não foi executada**.
 - O portal deixa de anunciar elegibilidade salarial antes da revisão do RH e usa a data civil `Africa/Luanda` para destacar aulas do dia.
 
+## Confirmação salarial independente
+
+A leitura da RPC `hr_confirm_teacher_lesson` revelou outro caminho que insere directamente um evento salarial validado com a quantidade contratual, sem exigir entrada, saída ou revisão da quantidade. O acesso à RPC está concedido a `authenticated`, mas as políticas das tabelas restringem a gravação a Administração/Tesouraria. O ficheiro `20260924_hr_confirm_independent_review_staged.sql` prepara verificações adicionais na RPC: revisor com papel RH diferente do docente, entrada e saída ordenadas, quantidade remunerável positiva revista, referência para evidência não QR e horário publicado em ocorrências programadas. O evento passa a usar a quantidade revista. Contém preflight da definição efectiva; **não aplicado**. A interface de revisão explícita e os testes transaccionais ainda precisam ser concluídos.
+
+O provisionamento de contas e a aceitação de convites também foram endurecidos: e-mail da sessão obrigatório, busca de identidade sem duplicados e vínculo condicional que nunca substitui outro `user_id`. A criação de conta faz verificação antes de criar o utilizador; concorrência e recuperação de falhas após a criação ainda requerem teste integrado.
+
 ## Gate de implantação e fecho do ciclo
 
-1. Preparar clone isolado da Sga PostgreSQL 17 com as migrations RH actuais. Confirmar a definição da RPC e o estado dos dados antes de aplicar os dois ficheiros preparados.
+1. Preparar clone isolado da Sga PostgreSQL 17 com as migrations RH actuais. Confirmar a definição da RPC e o estado dos dados antes de aplicar os três ficheiros preparados.
 2. Testar emissões concorrentes: uma única sessão activa para a mesma aula/operação; erro de revogação não gera nova sessão.
 3. Testar dois resgates concorrentes do mesmo token, token expirado, escola e docente diferentes, entrada sem aula publicada, saída sem entrada e relógio fora da janela.
-4. Confirmar na mesma transacção que check-out cria evidência, mas não evento de compensação validado pelo docente. Simular revisão do RH por papel independente com justificação, contestação e auditoria antes de transformar em folha salarial.
+4. Confirmar na mesma transacção que check-out cria evidência, mas não evento de compensação validado pelo docente. Exercitar a RPC de confirmação com revisor independente, quantidade revista, justificação, contestação e auditoria antes de transformar em folha salarial.
 5. Conciliar `hr_teacher_lesson_occurrences` com o horário publicado e com `academic_evidence` sem duplicar IDs nem QR; depois testar ponta a ponta no portal e em folha mensal. A migração de evidência ainda é um modelo separado e não está ligada a este fluxo.
 6. Nunca activar descontos automáticos por QR ausente, catraca isolada ou 22 dias fixos. O fecho financeiro só deve usar calendário contratual, revisões concluídas e autorização RH persistida.
 
