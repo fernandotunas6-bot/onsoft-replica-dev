@@ -1,4 +1,4 @@
--- STAGING ONLY. Run the read-only hr-teacher-qr-payroll-preflight.sql first.
+-- STAGING ONLY. Run the read-only hr-teacher-qr-payroll-preflight.readonly.sql first.
 -- Reject concurrent issuers that attempt to leave two active QR challenges
 -- for the same school, lesson and operation.
 BEGIN;
