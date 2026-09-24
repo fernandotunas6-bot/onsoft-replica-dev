@@ -35,8 +35,18 @@ export const requestHrSalaryChange = createServerFn({ method: "POST" })
       .eq("id", data.contractId).eq("school_id", membership.schoolId)
       .is("deleted_at", null).maybeSingle();
     if (contractError) throw publicDatabaseError(contractError, "Não foi possível validar o contrato.");
-    if (!contract || !["draft", "active"].includes(contract.status)) {
+    if (!contract || contract.status !== "active") {
       throw new Error("Contrato inexistente ou indisponível para alteração.");
+    }
+    if (data.effectiveOn < contract.starts_on ||
+      (contract.ends_on && data.effectiveOn > contract.ends_on)) {
+      throw new Error("Data da alteração fora da vigência do contrato.");
+    }
+    const todayLuanda = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Luanda", year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(new Date());
+    if (data.effectiveOn < todayLuanda) {
+      throw new Error("Alterações retroactivas exigem um procedimento de rectificação.");
     }
     const { data: request, error } = await db.from("hr_salary_change_requests")
       .insert({
