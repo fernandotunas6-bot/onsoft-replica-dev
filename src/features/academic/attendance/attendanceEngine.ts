@@ -134,11 +134,23 @@ export function previewPayroll(
     policy.expectedLessonCount !== attendance.length || expectedIds?.length !== attendance.length ||
     expectedIds?.some((id) => !actualIds.has(id)) === true;
   const lessonIds = new Set<string>();
+  const evidenceOwners = new Map<string, string>();
   for (const entry of attendance) {
     if (!entry.lessonId || lessonIds.has(entry.lessonId)) {
       throw new Error("Aulas duplicadas ou sem identificação no apuramento mensal.");
     }
     lessonIds.add(entry.lessonId);
+    if (!Array.isArray(entry.evidenceIds) ||
+        entry.evidenceIds.some((id) => typeof id !== "string" || !id.trim())) {
+      throw new Error("Identificadores de evidência inválidos; requer revisão.");
+    }
+    for (const id of entry.evidenceIds) {
+      const owner = evidenceOwners.get(id);
+      if (owner !== undefined && owner !== entry.lessonId) {
+        throw new Error("A mesma evidência foi usada em aulas diferentes; requer revisão.");
+      }
+      evidenceOwners.set(id, entry.lessonId);
+    }
     // API payloads have no TypeScript types at runtime. Unknown states must
     // never fall through to the financially resolved branch.
     if (!["present", "late", "partial", "absent", "excused", "pending_review"].includes(entry.status)) {
