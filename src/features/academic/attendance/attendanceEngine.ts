@@ -1,3 +1,5 @@
+import { parseStrictTimestamp } from "./strictTimestamp";
+
 export type AttendanceEvidence = "gate" | "lesson_qr" | "manual";
 export type AttendanceStatus = "present" | "late" | "partial" | "absent" | "excused" | "pending_review";
 export type ScheduledLesson = {
@@ -32,12 +34,11 @@ export type PayrollPreview = {
 };
 
 function timestamp(value: string): number {
-  // Require explicit timezone: local clock values are ambiguous at school boundaries.
-  if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(value)) {
+  if (!/(?:Z|[+-]\\d{2}:\\d{2})$/.test(value)) {
     throw new Error("A data deve incluir o fuso horário.");
   }
-  const result = Date.parse(value);
-  if (!Number.isFinite(result)) throw new Error("Data inválida.");
+  const result = parseStrictTimestamp(value);
+  if (result === null) throw new Error("Data inválida.");
   return result;
 }
 function positiveInteger(value: number, name: string): void {
