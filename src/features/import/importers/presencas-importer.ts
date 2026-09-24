@@ -14,6 +14,7 @@ import {
 } from "./academic-core";
 
 type AttendanceCache = ImportRefCache & {
+  academicYearId: string | null;
   students: StudentRef[];
   groups: ClassGroupRef[];
   subjects: SubjectRef[];
@@ -56,6 +57,7 @@ export const presencasImporter: RowImporter = {
       existingPeople: [],
       classGroups: groups.map((g) => ({ id: g.id, name: g.name })),
       studentByPersonId: new Map(),
+      academicYearId: ctx.academicYearId,
       students,
       groups,
       subjects,
@@ -66,6 +68,10 @@ export const presencasImporter: RowImporter = {
     const cache = rawCache as AttendanceCache;
     const errors: string[] = [];
     const warnings: string[] = [];
+
+    if (!cache.academicYearId) {
+      errors.push("Seleccione o ano lectivo antes de importar presenças.");
+    }
 
     const identifier = studentIdentifierOf(normalized);
     const groupValue = valueOf(normalized, "class_group", "turma", "codigo_turma");
