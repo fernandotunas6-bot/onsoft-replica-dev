@@ -1,9 +1,9 @@
 {
-  "capturadoEm": "2026-09-24T13:15:04.111Z",
+  "capturadoEm": "2026-09-24T13:31:02.075Z",
   "resumo": {
     "com_rls": 162,
-    "funcoes_private": 98,
-    "politicas": 296,
+    "funcoes_private": 100,
+    "politicas": 297,
     "tabelas": 162,
     "triggers": 174
   },
@@ -2337,7 +2337,7 @@
         "file_id",
         "file_name"
       ],
-      "politicas": 5,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "person_documents"
@@ -3133,7 +3133,7 @@
       "tabela": "siga_file_events"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -3166,7 +3166,7 @@
         "is_system",
         "deleted_at"
       ],
-      "politicas": 2,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_files"
@@ -5181,14 +5181,6 @@
       "verificando": "(is_school_member(school_id) AND (created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT can_manage_students() AS can_manage_students))"
     },
     {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "Manage school person documents",
-      "tabela": "person_documents",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Read person_documents in own school",
@@ -5685,20 +5677,36 @@
       "verificando": "(is_school_member(school_id) AND (actor_user_id = ( SELECT auth.uid() AS uid)))"
     },
     {
-      "cmd": "SELECT",
+      "cmd": "DELETE",
       "papeis": "{authenticated}",
-      "politica": "Read school files",
+      "politica": "siga_files_delete_admin",
       "tabela": "siga_files",
-      "usando": "is_school_member(school_id)",
+      "usando": "(is_school_member(school_id) AND (is_system IS NOT TRUE) AND (private.sga_file_role(school_id) = 'Administrador'::text))",
       "verificando": ""
     },
     {
-      "cmd": "ALL",
+      "cmd": "INSERT",
       "papeis": "{authenticated}",
-      "politica": "Write school files",
+      "politica": "siga_files_insert_scoped",
       "tabela": "siga_files",
-      "usando": "is_school_member(school_id)",
-      "verificando": "(is_school_member(school_id) AND (owner_user_id = ( SELECT auth.uid() AS uid)))"
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (owner_user_id = ( SELECT auth.uid() AS uid)) AND (is_system IS NOT TRUE) AND private.sga_file_can_write_area(private.sga_file_role(school_id), area))"
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
+      "politica": "siga_files_select_scoped",
+      "tabela": "siga_files",
+      "usando": "(is_school_member(school_id) AND\nCASE\n    WHEN (area = 'secretaria'::text) THEN (private.sga_file_role(school_id) = ANY (ARRAY['Administrador'::text, 'Secretaria'::text]))\n    ELSE (private.sga_file_role(school_id) = ANY (ARRAY['Administrador'::text, 'Secretaria'::text, 'Tesouraria'::text, 'Professor'::text]))\nEND AND ((area <> 'pessoal'::text) OR (owner_user_id = ( SELECT auth.uid() AS uid))) AND ((visibility <> 'private'::text) OR (owner_user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_file_role(school_id) = 'Administrador'::text) OR ((area = 'secretaria'::text) AND (private.sga_file_role(school_id) = 'Secretaria'::text))))",
+      "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "siga_files_update_scoped",
+      "tabela": "siga_files",
+      "usando": "(is_school_member(school_id) AND (is_system IS NOT TRUE) AND ((owner_user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_file_role(school_id) = 'Administrador'::text) OR ((area = 'secretaria'::text) AND (private.sga_file_role(school_id) = 'Secretaria'::text))) AND private.sga_file_can_write_area(private.sga_file_role(school_id), area))",
+      "verificando": "(is_school_member(school_id) AND (is_system IS NOT TRUE) AND ((owner_user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_file_role(school_id) = 'Administrador'::text) OR ((area = 'secretaria'::text) AND (private.sga_file_role(school_id) = 'Secretaria'::text))) AND private.sga_file_can_write_area(private.sga_file_role(school_id), area))"
     },
     {
       "cmd": "SELECT",
@@ -6607,6 +6615,18 @@
     {
       "args": "",
       "funcao": "sga_delete_actor_id",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_role text, p_area text",
+      "funcao": "sga_file_can_write_area",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid",
+      "funcao": "sga_file_role",
       "schema": "private",
       "security_definer": true
     },
