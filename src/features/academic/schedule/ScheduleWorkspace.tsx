@@ -183,17 +183,24 @@ export function ScheduleWorkspace({
 
     const teacherOpt = values["professor"];
     const resolvedTeacher = teachers.find((t) => optionLabel(t.id, t.name) === teacherOpt);
+    if (teacherOpt && teacherOpt !== "Sem professor atribuído" && !resolvedTeacher) {
+      throw new Error("O professor seleccionado não está disponível nesta instituição.");
+    }
 
     const roomOpt = values["sala"];
     const resolvedRoom = rooms.find(
       (r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`) === roomOpt,
     );
+    if (roomOpt && roomOpt !== "Sem sala fixa" && !resolvedRoom) {
+      throw new Error("A sala seleccionada não está disponível nesta instituição.");
+    }
 
     if (resolvedRoom?.capacity != null && classGroup.enrolled_count > resolvedRoom.capacity) {
       throw new Error(`A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${classGroup.enrolled_count}.`);
     }
     const roomLabel = resolvedRoom?.name || values["rotulo"]?.trim() || "Sala";
     const virtualRoom = virtualRooms.find((item) => item.label === values["salaVirtual"]);
+    if (values["salaVirtual"] && !virtualRoom) throw new Error("A sala virtual seleccionada não está disponível.");
 
     const startsAt = values["inicio"] ?? "";
     const endsAt = values["fim"] ?? "";
@@ -202,6 +209,7 @@ export function ScheduleWorkspace({
 
     await onCreateSlot({
       classGroupId: classGroup.id,
+      scheduleId: slots.find((item) => item.class_group_id === classGroup.id)?.schedule_id ?? null,
       subjectId: subject.id,
       weekday,
       startsAt,
@@ -221,11 +229,17 @@ export function ScheduleWorkspace({
 
     const teacherOpt = values["professor"];
     const resolvedTeacher = teachers.find((t) => optionLabel(t.id, t.name) === teacherOpt);
+    if (teacherOpt && teacherOpt !== "Sem professor atribuído" && !resolvedTeacher) {
+      throw new Error("O professor seleccionado não está disponível nesta instituição.");
+    }
 
     const roomOpt = values["sala"];
     const resolvedRoom = rooms.find(
       (r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`) === roomOpt,
     );
+    if (roomOpt && roomOpt !== "Sem sala fixa" && !resolvedRoom) {
+      throw new Error("A sala seleccionada não está disponível nesta instituição.");
+    }
     const currentGroup = classGroups.find((group) => group.id === slot.class_group_id);
     if (resolvedRoom?.capacity != null && currentGroup && currentGroup.enrolled_count > resolvedRoom.capacity) {
       throw new Error(`A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${currentGroup.enrolled_count}.`);
@@ -239,6 +253,7 @@ export function ScheduleWorkspace({
 
     await onUpdateSlot({
       slotId: slot.id,
+      scheduleId: slot.schedule_id ?? null,
       weekday,
       startsAt,
       endsAt,
@@ -260,6 +275,7 @@ export function ScheduleWorkspace({
     assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: slot.teacher_id, room_id: slot.room_id ?? null, weekday, starts_at: slot.starts_at, ends_at: slot.ends_at }, undefined, slot.schedule_id);
     await onCreateSlot({
       classGroupId: slot.class_group_id,
+      scheduleId: slot.schedule_id ?? null,
       subjectId: slot.subject_id,
       weekday,
       startsAt: slot.starts_at,
@@ -304,7 +320,7 @@ export function ScheduleWorkspace({
       }
       description={
         scheduleAvailable
-          ? "Planeamento de aulas sem conflitos, com motor de choques e sincronização com o calendário."
+          ? "Planeamento semanal com validação de conflitos, turmas, professores e salas."
           : "Não foi possível carregar os horários neste momento."
       }
       action={
