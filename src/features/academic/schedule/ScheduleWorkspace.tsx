@@ -277,6 +277,25 @@ export function ScheduleWorkspace({
     const weekday = weekdayByLabel.get(values["dia"] ?? "");
     if (!weekday) throw new Error("Seleccione o dia.");
 
+    const sourceGroup = classGroups.find((group) => group.id === slot.class_group_id);
+    const sourceRoom = rooms.find((room) => room.id === slot.room_id);
+    if (!sourceGroup || !subjects.some((subject) => subject.id === slot.subject_id)) {
+      throw new Error("A turma ou disciplina desta aula deixou de estar disponível.");
+    }
+    if (slot.teacher_id && !teachers.some((teacher) => teacher.id === slot.teacher_id)) {
+      throw new Error("O professor desta aula deixou de estar disponível.");
+    }
+    if (slot.room_id && !sourceRoom) {
+      throw new Error("A sala desta aula deixou de estar disponível.");
+    }
+    if (sourceRoom && sourceGroup.enrolled_count > 0 &&
+      (sourceRoom.capacity == null || !Number.isFinite(sourceRoom.capacity) || sourceRoom.capacity < sourceGroup.enrolled_count)) {
+      throw new Error("A sala já não tem lotação válida para esta turma.");
+    }
+    const sourceVersions = new Set(slots.filter((item) => item.class_group_id === slot.class_group_id).map((item) => item.schedule_id ?? "__legacy__"));
+    if (sourceVersions.size > 1) {
+      throw new Error("Existem várias versões desta turma. Seleccione a versão antes de copiar aulas.");
+    }
     assertValidScheduleTime(weekday, slot.starts_at, slot.ends_at);
     assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: slot.teacher_id, room_id: slot.room_id ?? null, weekday, starts_at: slot.starts_at, ends_at: slot.ends_at }, undefined, slot.schedule_id);
     await onCreateSlot({
