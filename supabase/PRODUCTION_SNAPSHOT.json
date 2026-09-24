@@ -1,9 +1,9 @@
 {
-  "capturadoEm": "2026-09-24T20:13:53.414Z",
+  "capturadoEm": "2026-09-24T20:17:47.564Z",
   "resumo": {
     "com_rls": 162,
     "funcoes_private": 101,
-    "politicas": 291,
+    "politicas": 290,
     "tabelas": 162,
     "triggers": 174
   },
@@ -2337,7 +2337,7 @@
         "file_id",
         "file_name"
       ],
-      "politicas": 4,
+      "politicas": 3,
       "rls": true,
       "rls_forcada": true,
       "tabela": "person_documents"
@@ -5137,15 +5137,7 @@
       "papeis": "{authenticated}",
       "politica": "Read person_documents in own school",
       "tabela": "person_documents",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_read_students() AS can_read_students))",
-      "verificando": ""
-    },
-    {
-      "cmd": "SELECT",
-      "papeis": "{authenticated}",
-      "politica": "Read school person documents",
-      "tabela": "person_documents",
-      "usando": "is_school_member(school_id)",
+      "usando": "(is_school_member(school_id) AND can_manage_students())",
       "verificando": ""
     },
     {
