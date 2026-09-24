@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-09-20T07:15:45.798Z",
+  "capturadoEm": "2026-09-24T11:14:55.992Z",
   "resumo": {
-    "com_rls": 156,
-    "funcoes_private": 95,
+    "com_rls": 162,
+    "funcoes_private": 96,
     "politicas": 296,
-    "tabelas": 156,
-    "triggers": 134
+    "tabelas": 162,
+    "triggers": 173
   },
   "tabelas": [
     {
@@ -1489,6 +1489,26 @@
       "tabela": "hr_contract_remuneration_policies"
     },
     {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "contract_id",
+        "request_id",
+        "effective_on",
+        "previous_base_salary_kz",
+        "new_base_salary_kz",
+        "salary_scale_step_id",
+        "applied_by",
+        "created_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_contract_salary_amendments"
+    },
+    {
       "anon_select": true,
       "auth_select": true,
       "colunas": [
@@ -1512,7 +1532,9 @@
         "created_by",
         "updated_by",
         "deleted_at",
-        "version"
+        "version",
+        "salary_scale_step_id",
+        "salary_scale_snapshot_kz"
       ],
       "politicas": 3,
       "rls": true,
@@ -1784,6 +1806,85 @@
       "tabela": "hr_positions"
     },
     {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "contract_id",
+        "requested_step_id",
+        "proposed_base_salary_kz",
+        "effective_on",
+        "reason",
+        "status",
+        "requested_by",
+        "reviewed_by",
+        "reviewed_at",
+        "review_reason",
+        "applied_at",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_salary_change_requests"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "version_id",
+        "category_code",
+        "category_name",
+        "grade",
+        "monthly_base_kz",
+        "created_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_salary_scale_steps"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "scale_id",
+        "version_label",
+        "effective_from",
+        "effective_until",
+        "status",
+        "approved_at",
+        "created_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_salary_scale_versions"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "code",
+        "name",
+        "jurisdiction",
+        "sector",
+        "source_title",
+        "source_reference",
+        "source_url",
+        "created_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "hr_salary_scales"
+    },
+    {
       "anon_select": true,
       "auth_select": true,
       "colunas": [
@@ -1867,7 +1968,11 @@
         "early_leave_minutes",
         "attendance_percent",
         "payable_quantity",
-        "attendance_exception_status"
+        "attendance_exception_status",
+        "review_decision",
+        "review_reason",
+        "reviewed_by",
+        "reviewed_at"
       ],
       "politicas": 3,
       "rls": true,
@@ -1911,7 +2016,10 @@
         "action_type",
         "before_data",
         "after_data",
-        "created_at"
+        "created_at",
+        "sequence_no",
+        "reversible",
+        "source_hash"
       ],
       "politicas": 1,
       "rls": true,
@@ -1941,7 +2049,15 @@
         "started_at",
         "completed_at",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "schema_version",
+        "exchange_mode",
+        "source_format",
+        "dry_run",
+        "idempotency_key",
+        "manifest",
+        "dependency_plan",
+        "error_summary"
       ],
       "politicas": 1,
       "rls": true,
@@ -1963,12 +2079,42 @@
         "errors",
         "duplicate_of",
         "target_record_id",
-        "created_at"
+        "created_at",
+        "natural_key",
+        "natural_key_hash",
+        "validation_stage",
+        "resolution",
+        "source_hash"
       ],
       "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "import_rows"
+    },
+    {
+      "anon_select": true,
+      "auth_select": true,
+      "colunas": [
+        "id",
+        "table_schema",
+        "table_name",
+        "direct_import_policy",
+        "export_policy",
+        "sensitivity",
+        "module_code",
+        "dependency_rank",
+        "natural_key_columns",
+        "fk_dependencies",
+        "derived_from",
+        "notes",
+        "active",
+        "created_at",
+        "updated_at"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "import_table_specs"
     },
     {
       "anon_select": false,
@@ -1981,7 +2127,13 @@
         "header_signature",
         "mappings",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "version",
+        "mode",
+        "target_tables",
+        "dependencies",
+        "checksum",
+        "is_system"
       ],
       "politicas": 1,
       "rls": true,
@@ -3744,7 +3896,7 @@
       "papeis": "{authenticated}",
       "politica": "Read own calendar feed token",
       "tabela": "calendar_feed_tokens",
-      "usando": "(user_id = auth.uid())",
+      "usando": "(user_id = ( SELECT auth.uid() AS uid))",
       "verificando": ""
     },
     {
@@ -3752,7 +3904,7 @@
       "papeis": "{authenticated}",
       "politica": "Revoke own calendar feed token",
       "tabela": "calendar_feed_tokens",
-      "usando": "(user_id = auth.uid())",
+      "usando": "(user_id = ( SELECT auth.uid() AS uid))",
       "verificando": ""
     },
     {
@@ -3880,7 +4032,7 @@
       "papeis": "{authenticated}",
       "politica": "auth_view_own_contact_profile",
       "tabela": "contact_verification_profiles",
-      "usando": "(user_id = auth.uid())",
+      "usando": "(user_id = ( SELECT auth.uid() AS uid))",
       "verificando": ""
     },
     {
@@ -5513,7 +5665,7 @@
       "politica": "Send school direct messages",
       "tabela": "siga_direct_messages",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (sender_id = auth.uid()))"
+      "verificando": "(is_school_member(school_id) AND (sender_id = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "SELECT",
@@ -5529,7 +5681,7 @@
       "politica": "Write school file events",
       "tabela": "siga_file_events",
       "usando": "",
-      "verificando": "(is_school_member(school_id) AND (actor_user_id = auth.uid()))"
+      "verificando": "(is_school_member(school_id) AND (actor_user_id = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "SELECT",
@@ -5545,7 +5697,7 @@
       "politica": "Write school files",
       "tabela": "siga_files",
       "usando": "is_school_member(school_id)",
-      "verificando": "(is_school_member(school_id) AND (owner_user_id = auth.uid()))"
+      "verificando": "(is_school_member(school_id) AND (owner_user_id = ( SELECT auth.uid() AS uid)))"
     },
     {
       "cmd": "SELECT",
@@ -5944,7 +6096,7 @@
       "papeis": "{authenticated}",
       "politica": "auth_view_own_communication_prefs",
       "tabela": "user_communication_preferences",
-      "usando": "(user_id = auth.uid())",
+      "usando": "(user_id = ( SELECT auth.uid() AS uid))",
       "verificando": ""
     },
     {
@@ -6536,6 +6688,12 @@
       "security_definer": false
     },
     {
+      "args": "",
+      "funcao": "validate_timetable_school_references",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "school_id uuid, signature_id uuid, status text, note text",
       "funcao": "act_on_document_signature",
       "schema": "public",
@@ -6788,6 +6946,12 @@
       "security_definer": true
     },
     {
+      "args": "p_request_id uuid, p_school_id uuid, p_actor_id uuid",
+      "funcao": "hr_apply_approved_salary_change",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "p_payroll_run_id uuid",
       "funcao": "hr_approve_payroll_run",
       "schema": "public",
@@ -6932,6 +7096,84 @@
       "security_definer": true
     },
     {
+      "args": "",
+      "funcao": "hr_guard_approved_salary_version",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_finalized_payroll_source_events",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_payroll_input_freshness",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_payroll_item_arithmetic",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_payroll_missing_employees",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_payroll_pending_inputs",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_payroll_policy_history",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_payroll_salary_snapshot",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_payroll_stale_items",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_published_salary_scale",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_salary_amendment_ledger",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_salary_review",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_guard_salary_scale_effective_period",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "p_lat1 double precision, p_lon1 double precision, p_lat2 double precision, p_lon2 double precision",
       "funcao": "hr_haversine_distance_m",
       "schema": "public",
@@ -6958,6 +7200,30 @@
     {
       "args": "p_batch_id uuid",
       "funcao": "hr_refresh_payroll_payment_batch",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_occurrence_id uuid, p_decision text, p_payable_quantity numeric, p_reason text",
+      "funcao": "hr_review_teacher_lesson",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_serialize_salary_payroll",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_validate_contract_salary_reference",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "",
+      "funcao": "hr_validate_salary_change_request",
       "schema": "public",
       "security_definer": false
     },
@@ -7294,6 +7560,12 @@
       "trigger": "announcements_set_updated_at"
     },
     {
+      "funcao": "guard_academic_review_integrity",
+      "funcao_schema": "academic_evidence",
+      "tabela": "assessment_sessions",
+      "trigger": "guard_assessment_review_integrity"
+    },
+    {
       "funcao": "audit_row_change",
       "funcao_schema": "private",
       "tabela": "attendance_records",
@@ -7328,6 +7600,24 @@
       "funcao_schema": "storage",
       "tabela": "buckets",
       "trigger": "enforce_bucket_name_length_trigger"
+    },
+    {
+      "funcao": "protect_bucket_control_columns",
+      "funcao_schema": "storage",
+      "tabela": "buckets",
+      "trigger": "protect_bucket_control_insert"
+    },
+    {
+      "funcao": "protect_bucket_control_columns",
+      "funcao_schema": "storage",
+      "tabela": "buckets",
+      "trigger": "protect_bucket_control_update"
+    },
+    {
+      "funcao": "enforce_bucket_lifecycle_service_role",
+      "funcao_schema": "storage",
+      "tabela": "buckets",
+      "trigger": "protect_bucket_control_update_role"
     },
     {
       "funcao": "protect_delete",
@@ -7394,6 +7684,30 @@
       "funcao_schema": "public",
       "tabela": "curriculum_subjects",
       "trigger": "curriculum_subjects_set_updated_at"
+    },
+    {
+      "funcao": "guard_correction_decision",
+      "funcao_schema": "academic_evidence",
+      "tabela": "delivery_correction_decisions",
+      "trigger": "guard_correction_decision"
+    },
+    {
+      "funcao": "guard_append_only_evidence",
+      "funcao_schema": "academic_evidence",
+      "tabela": "delivery_correction_decisions",
+      "trigger": "guard_correction_decisions_append_only"
+    },
+    {
+      "funcao": "guard_correction_request",
+      "funcao_schema": "academic_evidence",
+      "tabela": "delivery_corrections",
+      "trigger": "guard_correction_request"
+    },
+    {
+      "funcao": "guard_append_only_evidence",
+      "funcao_schema": "academic_evidence",
+      "tabela": "delivery_corrections",
+      "trigger": "guard_delivery_corrections_append_only"
     },
     {
       "funcao": "audit_row_change",
@@ -7552,6 +7866,12 @@
       "trigger": "hr_absence_same_school"
     },
     {
+      "funcao": "hr_guard_finalized_payroll_source_events",
+      "funcao_schema": "public",
+      "tabela": "hr_absence_events",
+      "trigger": "hr_lock_finalized_absence_sources"
+    },
+    {
       "funcao": "set_updated_at_and_version",
       "funcao_schema": "public",
       "tabela": "hr_attendance_assurance_policies",
@@ -7576,6 +7896,12 @@
       "trigger": "hr_gate_teacher_compensation_by_assurance"
     },
     {
+      "funcao": "hr_guard_finalized_payroll_source_events",
+      "funcao_schema": "public",
+      "tabela": "hr_compensation_events",
+      "trigger": "hr_lock_finalized_compensation_sources"
+    },
+    {
       "funcao": "set_updated_at_and_version",
       "funcao_schema": "public",
       "tabela": "hr_contract_remuneration_policies",
@@ -7586,6 +7912,30 @@
       "funcao_schema": "public",
       "tabela": "hr_contract_remuneration_policies",
       "trigger": "hr_contract_remuneration_policy_same_school"
+    },
+    {
+      "funcao": "hr_guard_payroll_policy_history",
+      "funcao_schema": "public",
+      "tabela": "hr_contract_remuneration_policies",
+      "trigger": "hr_payroll_policy_history_guard"
+    },
+    {
+      "funcao": "hr_serialize_salary_payroll",
+      "funcao_schema": "public",
+      "tabela": "hr_contract_salary_amendments",
+      "trigger": "hr_aa_salary_payroll_serialization"
+    },
+    {
+      "funcao": "hr_guard_salary_amendment_ledger",
+      "funcao_schema": "public",
+      "tabela": "hr_contract_salary_amendments",
+      "trigger": "hr_salary_amendment_ledger_guard"
+    },
+    {
+      "funcao": "hr_validate_contract_salary_reference",
+      "funcao_schema": "public",
+      "tabela": "hr_contracts",
+      "trigger": "hr_contract_salary_reference_guard"
     },
     {
       "funcao": "hr_assert_same_school",
@@ -7684,10 +8034,52 @@
       "trigger": "hr_payroll_payment_items_set_updated_at"
     },
     {
+      "funcao": "hr_serialize_salary_payroll",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_runs",
+      "trigger": "hr_aa_salary_payroll_serialization"
+    },
+    {
+      "funcao": "hr_guard_payroll_input_freshness",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_runs",
+      "trigger": "hr_payroll_input_freshness_guard"
+    },
+    {
+      "funcao": "hr_guard_payroll_item_arithmetic",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_runs",
+      "trigger": "hr_payroll_item_arithmetic_guard"
+    },
+    {
+      "funcao": "hr_guard_payroll_missing_employees",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_runs",
+      "trigger": "hr_payroll_missing_employees_guard"
+    },
+    {
+      "funcao": "hr_guard_payroll_pending_inputs",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_runs",
+      "trigger": "hr_payroll_pending_inputs_guard"
+    },
+    {
       "funcao": "set_updated_at_and_version",
       "funcao_schema": "public",
       "tabela": "hr_payroll_runs",
       "trigger": "hr_payroll_runs_set_updated_at"
+    },
+    {
+      "funcao": "hr_guard_payroll_salary_snapshot",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_runs",
+      "trigger": "hr_payroll_salary_snapshot_guard"
+    },
+    {
+      "funcao": "hr_guard_payroll_stale_items",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_runs",
+      "trigger": "hr_payroll_stale_items_guard"
     },
     {
       "funcao": "hr_assert_same_school",
@@ -7700,6 +8092,42 @@
       "funcao_schema": "public",
       "tabela": "hr_positions",
       "trigger": "hr_positions_set_updated_at"
+    },
+    {
+      "funcao": "hr_validate_salary_change_request",
+      "funcao_schema": "public",
+      "tabela": "hr_salary_change_requests",
+      "trigger": "hr_salary_change_validate"
+    },
+    {
+      "funcao": "hr_guard_salary_review",
+      "funcao_schema": "public",
+      "tabela": "hr_salary_change_requests",
+      "trigger": "hr_salary_review_guard"
+    },
+    {
+      "funcao": "hr_guard_approved_salary_version",
+      "funcao_schema": "public",
+      "tabela": "hr_salary_scale_steps",
+      "trigger": "hr_salary_steps_immutable"
+    },
+    {
+      "funcao": "hr_guard_salary_scale_effective_period",
+      "funcao_schema": "public",
+      "tabela": "hr_salary_scale_versions",
+      "trigger": "hr_salary_scale_period_guard"
+    },
+    {
+      "funcao": "hr_guard_approved_salary_version",
+      "funcao_schema": "public",
+      "tabela": "hr_salary_scale_versions",
+      "trigger": "hr_salary_versions_immutable"
+    },
+    {
+      "funcao": "hr_guard_published_salary_scale",
+      "funcao_schema": "public",
+      "tabela": "hr_salary_scales",
+      "trigger": "hr_published_salary_scale_guard"
     },
     {
       "funcao": "set_updated_at_and_version",
@@ -7750,6 +8178,54 @@
       "trigger": "notify_document_issued"
     },
     {
+      "funcao": "guard_delivered_occurrence",
+      "funcao_schema": "academic_evidence",
+      "tabela": "lesson_delivery",
+      "trigger": "guard_delivered_occurrence"
+    },
+    {
+      "funcao": "guard_delivery_duration",
+      "funcao_schema": "academic_evidence",
+      "tabela": "lesson_delivery",
+      "trigger": "guard_delivery_duration"
+    },
+    {
+      "funcao": "guard_delivery_plan",
+      "funcao_schema": "academic_evidence",
+      "tabela": "lesson_delivery",
+      "trigger": "guard_delivery_plan"
+    },
+    {
+      "funcao": "guard_academic_review_integrity",
+      "funcao_schema": "academic_evidence",
+      "tabela": "lesson_delivery",
+      "trigger": "guard_lesson_delivery_review_integrity"
+    },
+    {
+      "funcao": "guard_occurrence_mutation",
+      "funcao_schema": "academic_evidence",
+      "tabela": "lesson_occurrences",
+      "trigger": "guard_occurrence_mutation"
+    },
+    {
+      "funcao": "guard_approved_plan",
+      "funcao_schema": "academic_evidence",
+      "tabela": "lesson_plans",
+      "trigger": "guard_approved_plan"
+    },
+    {
+      "funcao": "guard_academic_review_integrity",
+      "funcao_schema": "academic_evidence",
+      "tabela": "lesson_plans",
+      "trigger": "guard_lesson_plan_review_integrity"
+    },
+    {
+      "funcao": "guard_plan_identity",
+      "funcao_schema": "academic_evidence",
+      "tabela": "lesson_plans",
+      "trigger": "guard_plan_identity"
+    },
+    {
       "funcao": "audit_row_change",
       "funcao_schema": "private",
       "tabela": "member_roles",
@@ -7778,6 +8254,12 @@
       "funcao_schema": "private",
       "tabela": "people",
       "trigger": "protect_person_identity"
+    },
+    {
+      "funcao": "guard_period_closure_pending_integration",
+      "funcao_schema": "academic_evidence",
+      "tabela": "period_closures",
+      "trigger": "guard_period_closure_pending_integration"
     },
     {
       "funcao": "enforce_person_document_school",
@@ -7826,6 +8308,18 @@
       "funcao_schema": "public",
       "tabela": "rooms",
       "trigger": "rooms_set_updated_at"
+    },
+    {
+      "funcao": "guard_published_snapshot",
+      "funcao_schema": "academic_evidence",
+      "tabela": "schedule_snapshots",
+      "trigger": "guard_published_snapshot"
+    },
+    {
+      "funcao": "guard_snapshot_publication",
+      "funcao_schema": "academic_evidence",
+      "tabela": "schedule_snapshots",
+      "trigger": "guard_snapshot_publication"
     },
     {
       "funcao": "siga_touch_updated_at",
@@ -8042,6 +8536,12 @@
       "funcao_schema": "private",
       "tabela": "timetable_slots",
       "trigger": "enforce_academic_manager_structure_scope"
+    },
+    {
+      "funcao": "validate_timetable_school_references",
+      "funcao_schema": "private",
+      "tabela": "timetable_slots",
+      "trigger": "validate_timetable_school_references"
     },
     {
       "funcao": "siga_touch_updated_at_and_version",
