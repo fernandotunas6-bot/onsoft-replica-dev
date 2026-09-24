@@ -127,6 +127,33 @@ describe("presença docente e apuramento mensal", () => {
     expect(previewPayroll([result], payroll).proposedDeductionCents).toBe(0);
   });
 
+  it("arredonda descontos em cêntimos sem perder precisão monetária", () => {
+    const partial = {
+      lessonId: "lesson-1", status: "partial" as const,
+      scheduledMinutes: 2, verifiedMinutes: 1, lateMinutes: 0,
+      evidenceIds: ["scan-in", "scan-out"], reasons: [],
+    };
+    const result = previewPayroll([partial], {
+      ...payroll, monthlyBaseCents: Number.MAX_SAFE_INTEGER,
+      monthlyContractMinutes: 2, expectedLessonMinutes: { "lesson-1": 2 },
+    });
+    expect(result.proposedDeductionCents).toBe(4503599627370496);
+    expect(result.payableBaseCents).toBe(4503599627370495);
+  });
+  it("não desconta mais do que o salário base quando aulas excedem a carga contratual", () => {
+    const partial = {
+      lessonId: "lesson-1", status: "absent" as const,
+      scheduledMinutes: 120, verifiedMinutes: 0, lateMinutes: 0,
+      evidenceIds: [], reasons: [],
+    };
+    const result = previewPayroll([partial], {
+      ...payroll, monthlyBaseCents: 101,
+      monthlyContractMinutes: 60, expectedLessonMinutes: { "lesson-1": 120 },
+    });
+    expect(result.proposedDeductionCents).toBe(101);
+    expect(result.payableBaseCents).toBe(0);
+  });
+
   it("rejeita datas sem fuso e carga horária mensal zero", () => {
     expect(() => evaluateLessonAttendance({ ...lesson, startsAt: "2026-09-24T08:00:00" }, [], policy)).toThrow(/fuso/);
     expect(() => previewPayroll([], { ...payroll, monthlyContractMinutes: 0 })).toThrow();
