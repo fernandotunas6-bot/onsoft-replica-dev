@@ -57,6 +57,8 @@ describe("schedulePublicationReadiness", () => {
     const newVersion: ScheduleSlot = { ...slot, id: "new", schedule_id: "version-2" };
     const result = schedulePublicationReadiness({ ...base, slots: [oldVersion, newVersion] });
     expect(result.issues.map((issue) => issue.code)).not.toContain("conflict");
+    expect(result.issues.map((issue) => issue.code)).toContain("version");
+    expect(result.ready).toBe(false);
   });
 
 });
