@@ -200,7 +200,21 @@ export const cursosImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: [],
+      audits: [
+        {
+          table_name: "programs",
+          target_id: String(data.id),
+          action_type: "inserted",
+          after_data: {
+            school_id: ctx.schoolId,
+            academic_level_id: level!.id,
+            code,
+            name,
+            kind,
+            is_active: true,
+          },
+        },
+      ],
       target_record_id: String(data.id),
     };
   },
