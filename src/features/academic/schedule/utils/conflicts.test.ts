@@ -49,6 +49,10 @@ describe("detectScheduleConflicts", () => {
     expect(detectScheduleConflicts([slot("a", { schedule_id: "v1" }), slot("b", { schedule_id: "v1" })])).toHaveLength(3);
   });
 
+  it("não mistura versão legada sem ID com versão identificada", () => {
+    expect(detectScheduleConflicts([slot("legacy", { schedule_id: null }), slot("identified", { schedule_id: "v1" })])).toEqual([]);
+  });
+
   it("não mistura dias diferentes", () => {
     expect(detectScheduleConflicts([slot("a"), slot("b", { weekday: 2 })])).toEqual([]);
   });
