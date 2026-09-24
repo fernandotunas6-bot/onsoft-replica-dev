@@ -82,6 +82,20 @@ describe("presença docente e apuramento mensal", () => {
     expect(() => evaluateLessonAttendance({ ...lesson, endsAt: "2026-09-26T09:00:00+01:00" }, [], policy)).toThrow(/24 horas/);
   });
 
+  it("impede dupla contabilização da mesma aula no salário", () => {
+    const confirmed = evaluateLessonAttendance(lesson, [
+      event("check_in", "08:00:00"), event("check_out", "09:00:00"),
+    ], policy);
+    expect(() => previewPayroll([confirmed, confirmed], payroll)).toThrow(/duplicadas/);
+  });
+  it("rejeita minutos impossíveis e presença pendente com tempo confirmado", () => {
+    const confirmed = evaluateLessonAttendance(lesson, [
+      event("check_in", "08:00:00"), event("check_out", "09:00:00"),
+    ], policy);
+    expect(() => previewPayroll([{ ...confirmed, verifiedMinutes: 61 }], payroll)).toThrow(/inconsistente/);
+    expect(() => previewPayroll([{ ...confirmed, status: "pending_review" }], payroll)).toThrow(/inconsistente/);
+  });
+
   it("rejeita datas sem fuso e carga horária mensal zero", () => {
     expect(() => evaluateLessonAttendance({ ...lesson, startsAt: "2026-09-24T08:00:00" }, [], policy)).toThrow(/fuso/);
     expect(() => previewPayroll([], { ...payroll, monthlyContractMinutes: 0 })).toThrow();
