@@ -2,7 +2,7 @@ import type { AtomicQrStore, QrStoreRecord } from "./lessonQrChallenge";
 
 /** Database adapter; pass a transaction-scoped client when inserting attendance. */
 export type QrSqlClient = {
-  query(sql: string, parameters: readonly unknown[]): Promise<{ rowCount: number | null }>;
+  query(sql: string, parameters: unknown[]): Promise<{ rowCount: number | null }>;
 };
 const registerSql = `
 INSERT INTO academic_evidence.lesson_qr_challenges
@@ -19,7 +19,7 @@ WHERE nonce_hash=$1 AND school_id=$2 AND snapshot_id=$3
   AND consumed_at IS NULL AND expires_at > clock_timestamp()
 RETURNING nonce_hash
 `;
-function parameters(record: QrStoreRecord): readonly unknown[] {
+function parameters(record: QrStoreRecord): unknown[] {
   return [
     record.nonceHash, record.schoolId, record.snapshotId, record.lessonId,
     record.teacherId, record.operation,
