@@ -115,11 +115,25 @@ export const angolaGradeScale = {
  * avaliação (`assessment-engine.ts`) como pelas pautas (`pautas/assessment.ts`) — não duplicar
  * esta fórmula noutro sítio.
  */
+/**
+ * Uma casa decimal, que é a precisão em que as médias são impressas nas pautas.
+ *
+ * Fonte única de propósito: a média **decide** com o mesmo arredondamento com que é
+ * **impressa**. Ter dois sítios a arredondar por conta própria foi o que fez uma pauta
+ * imprimir "Média 10,0 — NÃO TRANSITA" (o motor decidia sobre 9,95 bruto).
+ *
+ * `Number.EPSILON` corrige o caso em que a divisão cai imediatamente abaixo do meio por
+ * erro de vírgula flutuante — sem ele, 2,675 arredonda para 2,67.
+ */
+export function roundToOneDecimal(value: number): number {
+  return Math.round((value + Number.EPSILON) * 10) / 10;
+}
+
 export function normalizeScore(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   const num = Number(value);
   if (!Number.isFinite(num) || num < 0 || num > 20) return null;
-  return Math.round((num + Number.EPSILON) * 10) / 10;
+  return roundToOneDecimal(num);
 }
 
 /**
@@ -137,10 +151,10 @@ export function calculateTrimesterAverage(
   const normNpp = normalizeScore(npp);
 
   if (normMac !== null && normNpt !== null) {
-    return Math.round(((normMac + normNpt) / 2 + Number.EPSILON) * 10) / 10;
+    return roundToOneDecimal((normMac + normNpt) / 2);
   }
   if (normMac !== null && normNpp !== null && normNpt !== null) {
-    return Math.round(((normMac + normNpp + normNpt) / 3 + Number.EPSILON) * 10) / 10;
+    return roundToOneDecimal((normMac + normNpp + normNpt) / 3);
   }
   if (normMac !== null) return normMac;
   if (normNpt !== null) return normNpt;
@@ -159,7 +173,7 @@ export function calculateDisciplineFinalAverage(
   const valid = [v1, v2, v3].filter((x): x is number => x !== null);
   if (valid.length === 0) return null;
   const sum = valid.reduce((a, b) => a + b, 0);
-  return Math.round((sum / valid.length + Number.EPSILON) * 10) / 10;
+  return roundToOneDecimal(sum / valid.length);
 }
 
 export function scoreAverage(mac: number, npp: number, npt: number) {
