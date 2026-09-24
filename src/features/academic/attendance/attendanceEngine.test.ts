@@ -50,6 +50,15 @@ describe("presença docente e apuramento mensal", () => {
     expect(previewPayroll([partial], { ...payroll, approvedByHr: false }).proposedDeductionCents).toBe(0);
     expect(previewPayroll([partial], payroll).proposedDeductionCents).toBe(62500);
   });
+  it("suspende todos os descontos enquanto existir outra aula por confirmar", () => {
+    const partial = evaluateLessonAttendance(lesson, [event("check_in", "08:30:00"), event("check_out", "09:00:00")], policy);
+    const pending = evaluateLessonAttendance({ ...lesson, id: "lesson-2" }, [], policy);
+    const preview = previewPayroll([partial, pending], payroll);
+    expect(preview.unverifiedMinutes).toBe(60);
+    expect(preview.proposedDeductionCents).toBe(0);
+    expect(preview.requiresHrApproval).toBe(true);
+  });
+
   it("rejeita datas sem fuso e carga horária mensal zero", () => {
     expect(() => evaluateLessonAttendance({ ...lesson, startsAt: "2026-09-24T08:00:00" }, [], policy)).toThrow(/fuso/);
     expect(() => previewPayroll([], { ...payroll, monthlyContractMinutes: 0 })).toThrow();
