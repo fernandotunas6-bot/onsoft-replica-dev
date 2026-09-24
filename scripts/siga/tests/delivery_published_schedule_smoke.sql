@@ -6,10 +6,12 @@ DECLARE
   school uuid := gen_random_uuid();
   snapshot uuid := gen_random_uuid();
   occurrence uuid := gen_random_uuid();
+  cancelled_occurrence uuid := gen_random_uuid();
   author uuid := gen_random_uuid();
   plan_reviewer uuid := gen_random_uuid();
   delivery_reviewer uuid := gen_random_uuid();
   plan uuid := gen_random_uuid();
+  cancelled_plan uuid := gen_random_uuid();
   blocked boolean;
 BEGIN
   INSERT INTO academic_evidence.schedule_snapshots
@@ -28,6 +30,19 @@ BEGIN
      methods,criteria,state,approved_by,approved_at,authored_by)
   VALUES (plan,school,occurrence,1,'fractions','["fractions"]'::jsonb,
           '["exercise"]'::jsonb,'["accuracy"]'::jsonb,
+          'approved',plan_reviewer,now(),author);
+
+  INSERT INTO academic_evidence.lesson_occurrences
+    (id,snapshot_id,school_id,occurrence_key,teacher_id,class_group_id,
+     subject_id,lesson_date,starts_at,ends_at,state)
+  VALUES (cancelled_occurrence,snapshot,school,'cancelled-delivery-test',author,
+          gen_random_uuid(),gen_random_uuid(),'2026-09-24',
+          '2026-09-24 09:00+01','2026-09-24 09:45+01','cancelled');
+  INSERT INTO academic_evidence.lesson_plans
+    (id,school_id,occurrence_id,revision,curriculum_unit_id,objectives,
+     methods,criteria,state,approved_by,approved_at,authored_by)
+  VALUES (cancelled_plan,school,cancelled_occurrence,1,'fractions',
+          '["fractions"]'::jsonb,'["exercise"]'::jsonb,'["accuracy"]'::jsonb,
           'approved',plan_reviewer,now(),author);
 
   blocked := false;
@@ -58,6 +73,20 @@ BEGIN
   END;
   IF NOT blocked THEN
     RAISE EXCEPTION 'Plan author accepted as delivery reviewer';
+  END IF;
+
+  blocked := false;
+  BEGIN
+    INSERT INTO academic_evidence.lesson_delivery
+      (school_id,occurrence_id,plan_id,delivered_minutes,
+       actual_curriculum_units,evidence_ids,state,reviewed_by,reviewed_at)
+    VALUES (school,cancelled_occurrence,cancelled_plan,45,
+            '["fractions"]'::jsonb,'["evidence-2"]'::jsonb,
+            'delivered',delivery_reviewer,now());
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN
+    RAISE EXCEPTION 'Cancelled lesson accepted as delivered';
   END IF;
 
   INSERT INTO academic_evidence.lesson_delivery
