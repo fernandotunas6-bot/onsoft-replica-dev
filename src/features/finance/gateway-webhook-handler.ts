@@ -129,6 +129,45 @@ export async function settleGatewayPayment(
     };
   }
 
+  // `invoice.status === "paid"` acima só apanha a fatura totalmente liquidada. Numa fatura
+  // parcialmente paga, reenviar a mesma confirmação passava e emitia um segundo recibo —
+  // e os gateways reenviam por omissão sempre que não recebem o 200 a tempo.
+  //
+  // O identificador da transação no provedor é a chave natural para isto. Já era recolhido
+  // e gravado em `finance_gateway_webhook_events`, mas nunca lido. Aqui é lido: se esta
+  // transação já foi liquidada com sucesso, não se liquida outra vez.
+  //
+  // Isto resolve o reenvio, não a concorrência: o evento só é gravado depois de a
+  // liquidação terminar, pelo que duas entregas em paralelo ainda passam as duas. A defesa
+  // contra essa corrida é o índice único de `20260924120000_finance_receipt_idempotency.sql`,
+  // que tem de ser aplicado à base.
+  if (input.externalId) {
+    const { data: priorEvent, error: priorError } = await db
+      .from("finance_gateway_webhook_events")
+      .select("id, invoice_id")
+      .eq("school_id", input.schoolId)
+      .eq("external_id", input.externalId)
+      .eq("ok", true)
+      .limit(1)
+      .maybeSingle();
+    // Uma falha a ler o histórico não pode liquidar à sorte: sem esta resposta não há
+    // como saber se a transação já entrou, e repetir um pagamento é pior do que recusá-lo.
+    if (priorError && priorError.code !== "42P01") {
+      throw publicDatabaseError(
+        priorError,
+        "Não foi possível verificar se esta transação já tinha sido liquidada.",
+      );
+    }
+    if (priorEvent?.id) {
+      return {
+        alreadyPaid: true as const,
+        receiptId: null,
+        receiptNumber: null,
+        planSettled: false,
+      };
+    }
+  }
+
   let result: {
     receiptId: string;
     receiptNumber: string;
@@ -148,31 +187,52 @@ export async function settleGatewayPayment(
       // Chamada de webhook server-to-server (sem sessão AAL2 interactiva).
       // Liquidação direta com o client de serviço da escola.
       const today = new Date().toISOString().slice(0, 10);
-      const { data: receipts } = await db
+      const { data: receipts, error: receiptsError } = await db
         .from("finance_receipts")
         .select("amount")
         .eq("school_id", input.schoolId)
         .eq("invoice_id", input.invoiceId)
         .eq("status", "issued");
+      // Sem esta soma não há como saber quanto falta; falhar a lê-la e liquidar à mesma
+      // era assumir que a fatura estava em aberto.
+      if (receiptsError) {
+        throw publicDatabaseError(
+          receiptsError,
+          "Não foi possível apurar o valor já liquidado desta fatura.",
+        );
+      }
       const alreadyPaid = (receipts ?? []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
 
+      // A mesma guarda que `private.register_payment` tem e que este caminho tinha perdido:
+      // lá o excesso levanta excepção, aqui `alreadyPaid` só era usado para escolher entre
+      // `paid` e `partially_paid`. Sem ela, recibos a mais somavam acima do valor da fatura
+      // sem nada o assinalar.
+      if (alreadyPaid + input.amount > Number(invoice.amount)) {
+        throw new Error("O valor do pagamento excede o saldo em aberto da fatura.");
+      }
+
+      // `finance_receipts.received_by` é NOT NULL e um webhook não tem utilizador. Quem
+      // emitiu a fatura é o mais próximo de um responsável verdadeiro.
+      //
+      // O último recurso anterior era `school_memberships` **sem filtro de escola** — um
+      // recibo podia ficar atribuído a um utilizador de outra instituição, o que além de
+      // errado atravessa a fronteira entre inquilinos. Um membro da escola, mesmo que
+      // arbitrário, é a pior atribuição aceitável; fora da escola não é atribuição nenhuma.
       let receivedBy = (invoice as { issued_by?: string | null }).issued_by ?? null;
       if (!receivedBy) {
         const { data: member } = await db
           .from("school_memberships")
           .select("user_id")
           .eq("school_id", input.schoolId)
+          .eq("status", "active")
           .limit(1)
           .maybeSingle();
         receivedBy = member?.user_id ?? null;
       }
       if (!receivedBy) {
-        const { data: anyMember } = await db
-          .from("school_memberships")
-          .select("user_id")
-          .limit(1)
-          .maybeSingle();
-        receivedBy = anyMember?.user_id ?? null;
+        throw new Error(
+          "Não há membro activo nesta escola a quem atribuir o recibo do gateway. Configure a tesouraria antes de activar o pagamento automático.",
+        );
       }
 
       // A numeração oficial vem de `private.next_document_number`, que não tem wrapper
@@ -193,8 +253,13 @@ export async function settleGatewayPayment(
       let sequence = (receiptsThisYear ?? 0) + 1;
       let receiptNumber = "";
       let newReceipt: { id: string } | null = null;
-      let recError: { code?: string; message: string } | null = null;
-      for (let attempt = 0; attempt < 5; attempt += 1) {
+      let recError: { code?: string; message: string; details?: string } | null = null;
+      // `finance_receipts.external_id` só existe depois de
+      // `20260924120000_finance_receipt_idempotency.sql` ser aplicada. Enquanto não for,
+      // o insert devolve 42703 e repete-se sem a coluna — a protecção contra reenvio
+      // continua a ser a do histórico de eventos, acima.
+      let withExternalId = Boolean(input.externalId);
+      for (let attempt = 0; attempt < 6; attempt += 1) {
         receiptNumber = `REC-${year}/${String(sequence).padStart(4, "0")}`;
         const result = await db
           .from("finance_receipts")
@@ -207,6 +272,7 @@ export async function settleGatewayPayment(
             payment_method: mapPaymentMethodForLedger(input.method),
             status: "issued",
             received_by: receivedBy,
+            ...(withExternalId ? { external_id: input.externalId } : {}),
           })
           .select("id")
           .single();
@@ -216,7 +282,23 @@ export async function settleGatewayPayment(
           break;
         }
         recError = result.error;
+        if (result.error.code === "42703" && withExternalId) {
+          withExternalId = false;
+          continue;
+        }
         if (result.error.code === "23505") {
+          // Duas colisões diferentes com o mesmo código. Se foi o índice de idempotência,
+          // outra entrega da MESMA transação chegou primeiro e já a liquidou: avançar o
+          // número de recibo repetiria o pagamento em vez de o impedir.
+          const conflito = `${result.error.message} ${result.error.details ?? ""}`;
+          if (/external_id/i.test(conflito)) {
+            return {
+              alreadyPaid: true as const,
+              receiptId: null,
+              receiptNumber: null,
+              planSettled: false,
+            };
+          }
           sequence += 1;
           continue;
         }
