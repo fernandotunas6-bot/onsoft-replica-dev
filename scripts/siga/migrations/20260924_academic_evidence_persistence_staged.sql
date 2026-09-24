@@ -155,6 +155,10 @@ BEGIN
     END IF;
     RETURN NEW;
   END IF;
+  IF OLD.status = 'draft' AND NEW.status NOT IN ('draft', 'published') THEN
+    RAISE EXCEPTION 'Draft snapshot must be published before supersession'
+      USING ERRCODE = '23514';
+  END IF;
   IF NEW.status = 'published' AND OLD.status = 'draft' THEN
     IF NOT EXISTS (
       SELECT 1 FROM pg_catalog.pg_timezone_names WHERE name = NEW.time_zone
@@ -236,6 +240,11 @@ AS $$
 BEGIN
   IF TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'Academic snapshot deletion is forbidden' USING ERRCODE = '23514';
+  END IF;
+  IF OLD.status = 'draft' AND NEW.status = 'draft' AND
+      (NEW.published_at IS NOT NULL OR NEW.published_by IS NOT NULL) THEN
+    RAISE EXCEPTION 'Draft cannot carry publication metadata'
+      USING ERRCODE = '23514';
   END IF;
   IF OLD.status <> 'draft' THEN
     IF NEW IS DISTINCT FROM OLD THEN
