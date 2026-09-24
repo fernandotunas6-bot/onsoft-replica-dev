@@ -25,6 +25,9 @@
 | Versão de horário de outra turma | Rejeitado |
 | Alterar professor para outro já ocupado | Rejeitado |
 | Duas gravações concorrentes para o mesmo recurso | Apenas uma aceite |
+| Duas aulas da mesma disciplina após mudança de professor | Verificar ambas com os novos valores |
+| Mudar professor com colisão histórica de sala não relacionada | Não bloquear apenas pela sala |
+| Aula ativa ligada a disciplina inativa | Corrigir antes da implantação |
 | Duas versões alternativas de horário | Sem bloqueio cruzado até validação de publicação |
 
 ## Limitações que impedem implantação sem testes
@@ -33,3 +36,7 @@
 - O trigger de atribuições não deve ser confundido com autorização: RLS e permissões de gestão académica continuam obrigatórias.
 - Não aplicar migrações Lovable antigas ao projeto SGA.
 - Após aplicar, testar em transações isoladas e confirmar o funcionamento do fluxo completo da interface e da API.
+
+## Verificação de concorrência obrigatória
+
+Os testes devem usar duas conexões reais com transações separadas, isolamento READ COMMITTED e sincronização explícita para forçar a sobreposição. Repetir com atualização de atribuição numa conexão e inserção de aula na outra. Se ocorrer deadlock, timeout ou duas operações aceites, não implantar: rever ordem de aquisição de bloqueios e visibilidade das transações. Não executar estes testes sobre dados de produção.
