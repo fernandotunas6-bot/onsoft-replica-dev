@@ -70,10 +70,69 @@ CREATE TRIGGER guard_lesson_qr_challenge
 BEFORE INSERT OR UPDATE OR DELETE ON academic_evidence.lesson_qr_challenges
 FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_lesson_qr_challenge();
 
+-- One confirmed event per operation and occurrence; both scans remain
+-- distinct, immutable records. This table is not direct client API surface.
+CREATE TABLE IF NOT EXISTS academic_evidence.lesson_qr_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  nonce_hash text NOT NULL UNIQUE
+    REFERENCES academic_evidence.lesson_qr_challenges(nonce_hash),
+  school_id uuid NOT NULL,
+  snapshot_id uuid NOT NULL,
+  occurrence_id uuid NOT NULL,
+  teacher_id uuid NOT NULL,
+  operation text NOT NULL CHECK (operation IN ('check_in','check_out')),
+  occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  UNIQUE (school_id,occurrence_id,teacher_id,operation),
+  FOREIGN KEY (occurrence_id,school_id)
+    REFERENCES academic_evidence.lesson_occurrences(id,school_id)
+);
+CREATE OR REPLACE FUNCTION academic_evidence.guard_lesson_qr_event()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $
+DECLARE
+  registered academic_evidence.lesson_qr_challenges%ROWTYPE;
+BEGIN
+  IF TG_OP <> 'INSERT' THEN
+    RAISE EXCEPTION 'Confirmed QR events are immutable' USING ERRCODE = '23514';
+  END IF;
+  SELECT * INTO registered FROM academic_evidence.lesson_qr_challenges
+  WHERE nonce_hash=NEW.nonce_hash FOR SHARE;
+  IF NOT FOUND OR registered.consumed_at IS NULL OR
+     (registered.school_id,registered.snapshot_id,registered.occurrence_id,
+      registered.teacher_id,registered.operation)
+       IS DISTINCT FROM
+     (NEW.school_id,NEW.snapshot_id,NEW.occurrence_id,
+      NEW.teacher_id,NEW.operation) THEN
+    RAISE EXCEPTION 'QR event must match its consumed challenge'
+      USING ERRCODE = '23514';
+  END IF;
+  IF NEW.operation='check_out' AND NOT EXISTS (
+    SELECT 1 FROM academic_evidence.lesson_qr_events previous
+    WHERE previous.school_id=NEW.school_id
+      AND previous.occurrence_id=NEW.occurrence_id
+      AND previous.teacher_id=NEW.teacher_id
+      AND previous.operation='check_in'
+      AND previous.occurred_at<=NEW.occurred_at
+  ) THEN
+    RAISE EXCEPTION 'QR checkout requires a previous confirmed check-in'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$;
+CREATE TRIGGER guard_lesson_qr_event
+BEFORE INSERT OR UPDATE OR DELETE ON academic_evidence.lesson_qr_events
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_lesson_qr_event();
+
 ALTER TABLE academic_evidence.lesson_qr_challenges ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON academic_evidence.lesson_qr_challenges FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON academic_evidence.lesson_qr_challenges TO service_role;
+ALTER TABLE academic_evidence.lesson_qr_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON academic_evidence.lesson_qr_events FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT ON academic_evidence.lesson_qr_events TO service_role;
 REVOKE ALL ON FUNCTION academic_evidence.guard_lesson_qr_challenge()
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION academic_evidence.guard_lesson_qr_event()
   FROM PUBLIC, anon, authenticated;
 -- Consume with one conditional UPDATE; no SELECT-then-UPDATE race:
 -- UPDATE academic_evidence.lesson_qr_challenges
