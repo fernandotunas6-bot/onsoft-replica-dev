@@ -18,8 +18,8 @@ export const ensureDevBypassSession = createServerFn({ method: "POST" }).handler
     throw new Error("Bypass de autenticação desactivado.");
   }
 
-  // Uma palavra-passe de bypass nunca deve ficar fixa no código ou no bundle.
-  // Só existe durante esta execução e é imediatamente trocada pela sessão.
+  // Uma palavra-passe de bypass nunca deve ficar fixa no código, no bundle nem
+  // num `.env`. Só existe durante esta execução e é trocada pela sessão de imediato.
   const demoPassword = `siga-dev-${crypto.randomUUID()}-${crypto.randomUUID()}`;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

@@ -20,7 +20,6 @@ import type { Session } from "@supabase/supabase-js";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
-import { ensureDevBypassSession } from "@/features/auth/dev-bypass.server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,8 +28,6 @@ import { PageLoading } from "@/components/ui/page-loading";
 const AuthSessionContext = createContext<Session | null>(null);
 const IDLE_TIMEOUT_MS = 30 * 60_000;
 const ACTIVITY_WRITE_INTERVAL_MS = 15_000;
-const LOGIN_REQUIRED = true;
-const AUTH_DISABLED = !LOGIN_REQUIRED && import.meta.env["VITE_AUTH_DISABLED"] === "true";
 const REMEMBERED_EMAIL_KEY = "portal:login-email";
 
 const activityKey = (userId: string) => `portal:last-activity:${userId}`;
@@ -116,11 +113,70 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
+    const requireInstitutionalMembership = async (): Promise<boolean> => {
+      try {
+        const { verifyInstitutionalMembershipFn } =
+          await import("@/features/auth/verify-institutional-membership-server");
+        const verification = await verifyInstitutionalMembershipFn();
+        if (verification.authorized) return false;
+
+        await supabase.auth.signOut({ scope: "local" });
+        if (active) {
+          setSession(null);
+          setError("A sua conta não possui um vínculo institucional ativo.");
+        }
+        return true;
+      } catch {
+        // Falha fechada sem afirmar, incorretamente, que o vínculo não existe.
+        await supabase.auth.signOut({ scope: "local" });
+        if (active) {
+          setSession(null);
+          setError("Não foi possível confirmar o vínculo institucional. Tente novamente.");
+        }
+        return true;
+      }
+    };
+
+    const requireMfaChallenge = async (): Promise<boolean> => {
+      try {
+        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (assurance.error) throw assurance.error;
+        if (assurance.data?.nextLevel !== "aal2" || assurance.data.currentLevel === "aal2") {
+          return false;
+        }
+
+        const factors = await supabase.auth.mfa.listFactors();
+        if (factors.error) throw factors.error;
+        const totp = factors.data?.totp.find((factor) => factor.status === "verified");
+        if (!totp) {
+          setError("A autenticação de dois fatores não pôde ser iniciada.");
+          setSession(null);
+          return true;
+        }
+        setMfaFactorId(totp.id);
+        setSession(null);
+        return true;
+      } catch {
+        setError("Não foi possível confirmar a autenticação de dois fatores.");
+        setSession(null);
+        return true;
+      }
+    };
+
     const bootstrap = async () => {
       try {
         const { data } = await supabase.auth.getSession();
         if (!active) return;
         if (data.session) {
+          if (await requireInstitutionalMembership()) {
+            if (active) setChecking(false);
+            return;
+          }
+          if (await requireMfaChallenge()) {
+            if (active) setChecking(false);
+            return;
+          }
+          if (!active) return;
           setSession(data.session);
           setChecking(false);
           return;
@@ -159,69 +215,94 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
-      if (event === "SIGNED_IN" && nextSession) {
-        localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
+      // O bootstrap abaixo é a única via para a sessão restaurada. Não
+      // disponibilizar INITIAL_SESSION antes do vínculo institucional e MFA.
+      if (event === "INITIAL_SESSION") return;
 
-        // Login OAuth (Google) cria a conta auth.users automaticamente para
-        // e-mails nunca vistos — ao contrário do login por senha, que só
-        // existe para contas já provisionadas por um administrador. Sem esta
-        // verificação, qualquer conta Google entraria numa sessão "limbo",
-        // sem escola associada. Só corre para sessões vindas do fluxo OAuth
-        // (marcador definido em signInWithGoogle), nunca no bootstrap normal.
+      if (!nextSession) {
+        setSession(null);
+        setChecking(false);
+        setSubmitting(false);
+        return;
+      }
+
+      if (event !== "SIGNED_IN") {
+        void (async () => {
+          if (
+            (await requireInstitutionalMembership()) ||
+            (await requireMfaChallenge())
+          ) {
+            if (active) {
+              setChecking(false);
+              setSubmitting(false);
+            }
+            return;
+          }
+          if (!active) return;
+          setSession(nextSession);
+          setChecking(false);
+          setSubmitting(false);
+        })();
+        return;
+      }
+
+      localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
+      void (async () => {
+        // O OAuth só autentica a identidade; a associação à escola é sempre
+        // confirmada no servidor antes de a sessão chegar à aplicação.
         let oauthPending = false;
         try {
           oauthPending = sessionStorage.getItem("siga:oauth-pending") === "1";
+          if (oauthPending) sessionStorage.removeItem("siga:oauth-pending");
         } catch {
           oauthPending = false;
         }
+
         if (oauthPending) {
           try {
-            sessionStorage.removeItem("siga:oauth-pending");
-          } catch {
-            /* ignore */
-          }
-          void (async () => {
-            try {
-              const { verifyOAuthAccountFn } =
-                await import("@/features/auth/verify-oauth-account-server");
-              const verification = await verifyOAuthAccountFn();
-              if (!active) return;
-              if (!verification.authorized) {
-                // O servidor já apagou a conta auth.users criada pelo OAuth —
-                // aqui só limpamos a sessão local, que ficou órfã.
-                await supabase.auth.signOut({ scope: "local" });
-                if (!active) return;
-                setSession(null);
-                setChecking(false);
-                setSubmitting(false);
-                setError(
-                  "Esta conta Google não está associada a nenhuma escola no SIGA. Peça ao administrador da sua instituição para a convidar.",
-                );
-                return;
-              }
-            } catch {
-              // Falha ao verificar associação: não deixar a sessão passar sem
-              // confirmação — mais seguro exigir novo login do que assumir.
-              if (!active) return;
+            const { verifyOAuthAccountFn } =
+              await import("@/features/auth/verify-oauth-account-server");
+            const verification = await verifyOAuthAccountFn();
+            if (!active) return;
+            if (!verification.authorized) {
               await supabase.auth.signOut({ scope: "local" });
               if (!active) return;
               setSession(null);
-              setChecking(false);
-              setSubmitting(false);
-              setError("Não foi possível confirmar a conta. Tente novamente.");
+              setError(
+                "Esta conta Google não está associada a nenhuma escola no SIGA. Peça ao administrador da sua instituição para a convidar.",
+              );
               return;
             }
+          } catch {
             if (!active) return;
-            setSession(nextSession);
+            await supabase.auth.signOut({ scope: "local" });
+            if (!active) return;
+            setSession(null);
+            setError("Não foi possível confirmar a conta. Tente novamente.");
+            return;
+          }
+        }
+
+        if (!oauthPending && (await requireInstitutionalMembership())) {
+          if (active) {
             setChecking(false);
             setSubmitting(false);
-          })();
+          }
           return;
         }
-      }
-      setSession(nextSession);
-      setChecking(false);
-      setSubmitting(false);
+
+        if (await requireMfaChallenge()) {
+          if (active) {
+            setChecking(false);
+            setSubmitting(false);
+          }
+          return;
+        }
+        if (!active) return;
+        setSession(nextSession);
+        setChecking(false);
+        setSubmitting(false);
+      })();
     });
     return () => {
       active = false;
@@ -230,7 +311,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!session || AUTH_DISABLED) return;
+    if (!session) return;
 
     const key = activityKey(session.user.id);
     let lastWrite = 0;
@@ -304,25 +385,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
       if (options?.remember) localStorage.setItem(REMEMBERED_EMAIL_KEY, inputIdentifier.trim());
       else localStorage.removeItem(REMEMBERED_EMAIL_KEY);
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (!signInError) {
-        if (data.user) localStorage.setItem(activityKey(data.user.id), String(Date.now()));
-        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
-          const factors = await supabase.auth.mfa.listFactors();
-          const totp = factors.data?.totp[0];
-          if (totp) {
-            setMfaFactorId(totp.id);
-            setSession(null);
-            return;
-          }
-        }
-        return;
-      }
-      setError(mapSignInError(signInError.message));
+      if (signInError) setError(mapSignInError(signInError.message));
     } catch {
       setError("Não foi possível contactar o serviço de autenticação.");
     } finally {
@@ -508,6 +575,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 onSubmit={(event) => {
                   event.preventDefault();
                   void (async () => {
+                    const code = mfaCode.replace(/\D/g, "");
+                    if (!/^\d{6}$/.test(code)) {
+                      setError("Introduza os 6 dígitos da aplicação autenticadora.");
+                      return;
+                    }
                     setSubmitting(true);
                     setError(null);
                     try {
@@ -518,7 +590,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       const verified = await supabase.auth.mfa.verify({
                         factorId: mfaFactorId,
                         challengeId: challenge.data.id,
-                        code: mfaCode.trim(),
+                        code,
                       });
                       if (verified.error) throw verified.error;
 
@@ -544,10 +616,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       setSession(sessionData.session);
                       setMfaFactorId(null);
                       setMfaCode("");
-                    } catch (verifyError) {
-                      setError(
-                        verifyError instanceof Error ? verifyError.message : "Código 2FA inválido.",
-                      );
+                    } catch {
+                      setError("Não foi possível confirmar o código 2FA. Verifique-o e tente novamente.");
                     } finally {
                       setSubmitting(false);
                     }
@@ -555,14 +625,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 }}
               >
                 <p className="text-xs text-muted-foreground">
-                  Introduza o código da aplicação autenticadora para concluir o início de sessão.
+                  Introduza os 6 dígitos da aplicação autenticadora para concluir o início de sessão.
                 </p>
                 <Input
                   aria-label="Código de autenticação multifator"
                   value={mfaCode}
-                  onChange={(event) => setMfaCode(event.target.value)}
+                  onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   inputMode="numeric"
                   autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
                   placeholder="000000"
                   required
                 />

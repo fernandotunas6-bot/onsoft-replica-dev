@@ -7,16 +7,25 @@ export function useSignOut() {
   const queryClient = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
 
-  const signOut = async () => {
+  const signOut = async (scope: "local" | "global" = "local") => {
     setSigningOut(true);
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Não foi possível terminar a sessão.");
+    try {
+      const { error } = await supabase.auth.signOut({ scope });
+      if (error) {
+        toast.error("Não foi possível terminar a sessão.");
+        setSigningOut(false);
+        return false;
+      }
+      queryClient.clear();
+      return true;
+    } catch {
+      toast.error("Não foi possível contactar o serviço de autenticação.");
       setSigningOut(false);
-      return;
+      return false;
     }
-    queryClient.clear();
   };
 
-  return { signOut, signingOut };
+  const signOutAllDevices = () => signOut("global");
+
+  return { signOut, signOutAllDevices, signingOut };
 }

@@ -54,9 +54,28 @@ describe("Development authentication bypass", () => {
     );
   });
 
-  it("only enables the shortcut explicitly outside production", () => {
+  it("only enables the shortcut in explicit local development", () => {
     expect(isDevAuthBypassEnabled({ NODE_ENV: "development" })).toBe(false);
     expect(isDevAuthBypassEnabled({ NODE_ENV: "development", AUTH_BYPASS: "true" })).toBe(true);
+  });
+
+  it("treats anything that is not development as not development", () => {
+    // Recusar apenas `production` deixava passar um NODE_ENV ausente ou staging.
+    for (const environment of [
+      { AUTH_BYPASS: "true" },
+      { NODE_ENV: "", AUTH_BYPASS: "true" },
+      { NODE_ENV: "test", AUTH_BYPASS: "true" },
+      { NODE_ENV: "staging", AUTH_BYPASS: "true" },
+    ]) {
+      expect(isDevAuthBypassEnabled(environment)).toBe(false);
+    }
+  });
+
+  it("never lets a client-side flag open a server session", () => {
+    // `VITE_AUTH_DISABLED` vai no bundle: nao pode decidir isto sozinha.
+    expect(isDevAuthBypassEnabled({ NODE_ENV: "development", VITE_AUTH_DISABLED: "true" })).toBe(
+      false,
+    );
   });
 
   it("does not keep a reusable development password in source code", () => {
