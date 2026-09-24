@@ -46,6 +46,14 @@ describe("schedulePublicationReadiness", () => {
     expect(result.issues.map((issue) => issue.code)).toContain("capacity");
   });
 
+  it("bloqueia salas com lotação zero ou inválida", () => {
+    for (const capacity of [0, -1, Number.NaN]) {
+      const result = schedulePublicationReadiness({ ...base, rooms: [{ ...base.rooms[0], capacity }] });
+      expect(result.issues.map((issue) => issue.code)).toContain("capacity");
+      expect(result.ready).toBe(false);
+    }
+  });
+
   it("deteta choques de docentes mesmo entre turmas diferentes", () => {
     const second: ScheduleSlot = { ...slot, id: "slot-2", class_group_id: "class-2", class_group_name: "10.ª B", room_id: "room-2" };
     const result = schedulePublicationReadiness({ ...base, slots: [slot, second] });
