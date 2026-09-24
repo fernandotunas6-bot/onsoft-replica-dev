@@ -88,6 +88,30 @@ export async function exportSchoolData(
   const counts: Record<string, number> = {};
   let totalRecords = 0;
 
+  // Não permitir exportação silenciosamente parcial: um módulo sem rotina de
+  // exportação específica não pode produzir um ficheiro que pareça reimportável.
+  const supportedExportModules = new Set<ImportModule>([
+    "pessoas",
+    "alunos",
+    "professores",
+    "turmas",
+    "matriculas",
+    "disciplinas",
+    "pagamentos",
+    "propinas",
+    "inscricoes",
+    "avaliacoes",
+    "historico_academico",
+    "historico_financeiro",
+    "presencas",
+  ]);
+  const unsupportedModules = options.modules.filter((mod) => !supportedExportModules.has(mod));
+  if (unsupportedModules.length) {
+    throw new Error(
+      `Exportação bloqueada: os módulos ${unsupportedModules.join(", ")} ainda não possuem uma rotina de exportação bidireccional validada. Nenhum ficheiro parcial será gerado.`,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // 1. CARREGAMENTO E POPULAÇÃO DOS MÓDULOS SELECIONADOS
   // ---------------------------------------------------------------------------
