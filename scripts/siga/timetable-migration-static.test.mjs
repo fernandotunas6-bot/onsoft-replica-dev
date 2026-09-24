@@ -25,6 +25,45 @@ for (const name of files) {
   });
 }
 
+test('statement lock runs before timetable row triggers on all three tables', () => {
+  const sql = readFileSync(new URL('20260924_timetable_statement_lock.sql', base), 'utf8');
+  assert.match(sql, /LANGUAGE plpgsql SECURITY INVOKER/);
+  assert.equal(sql.split('$timetable_statement_lock
+  for (const name of files.slice(1)) {
+    const sql = readFileSync(new URL(name, base), 'utf8');
+    assert.match(sql, /pg_advisory_xact_lock/);
+    assert.match(sql, /hashtextextended\(NEW\.school_id::text, 90240924\)/);
+  }
+});
+
+test('publication rejects incomplete effective dates and internal collisions', () => {
+  const sql = readFileSync(new URL(files[3], base), 'utf8');
+  assert.match(sql, /NEW\.valid_from IS NULL OR NEW\.valid_to IS NULL/);
+  assert.match(sql, /A versão contém aulas sobrepostas/);
+  assert.match(sql, /published\.valid_from <= NEW\.valid_to/);
+});
+
+test('assignment guard checks published versions after reassignment', () => {
+  const sql = readFileSync(new URL(files[2], base), 'utf8');
+  assert.match(sql, /A alteração cria conflito com outra versão publicada/);
+  assert.match(sql, /other_schedule\.valid_from <= current_schedule\.valid_to/);
+});
+
+test('published resource collisions span overlapping academic years', () => {
+  for (const name of files.slice(2)) {
+    const sql = readFileSync(new URL(name, base), 'utf8');
+    assert.doesNotMatch(sql, /(?:published|other_schedule)\.academic_year_id\s*=\s*(?:NEW|current_schedule)\.academic_year_id/);
+    assert.match(sql, /valid_from\s*<=\s*(?:NEW|current_schedule)\.valid_to/);
+  }
+});
+).length - 1, 2);
+  for (const table of ['timetable_slots', 'class_subjects', 'academic_schedules']) {
+    assert.match(sql, new RegExp('BEFORE INSERT OR UPDATE OR DELETE ON public\\.' + table));
+  }
+  assert.equal((sql.match(/FOR EACH STATEMENT EXECUTE FUNCTION/g) ?? []).length, 3);
+  assert.match(sql, /pg_advisory_xact_lock/);
+});
+
 test('slot, assignment and publication guards use the same school lock', () => {
   for (const name of files.slice(1)) {
     const sql = readFileSync(new URL(name, base), 'utf8');
