@@ -3,7 +3,7 @@ import { schedulePublicationReadiness } from "./publicationReadiness";
 import type { ScheduleSlot } from "../types";
 
 const slot: ScheduleSlot = {
-  id: "slot-1", class_group_id: "class-1", class_group_name: "10.ª A",
+  id: "slot-1", schedule_id: "version-1", class_group_id: "class-1", class_group_name: "10.ª A",
   subject_id: "subject-1", subject_name: "Matemática", teacher_id: "teacher-1",
   teacher_name: "Professor A", room_id: "room-1", room_name: "Sala 1",
   weekday: 1, starts_at: "08:00:00", ends_at: "08:45:00",
@@ -24,6 +24,12 @@ describe("schedulePublicationReadiness", () => {
     expect(result.lessonCount).toBe(1);
     expect(result.teacherCount).toBe(1);
     expect(result.roomCount).toBe(1);
+  });
+
+  it("bloqueia publicação de aulas legadas sem versão identificada", () => {
+    const result = schedulePublicationReadiness({ ...base, slots: [{ ...slot, schedule_id: null }] });
+    expect(result.ready).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain("version");
   });
 
   it("impede publicação de horário vazio", () => {
