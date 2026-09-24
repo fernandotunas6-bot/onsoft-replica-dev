@@ -44,3 +44,11 @@ As tabelas têm RLS activo e acesso directo negado a anon e authenticated; o ser
 - Uma aula marcada como substituída precisa de uma reposição activa na mesma versão e instituição. O vínculo é individual: não são permitidas múltiplas reposições da mesma aula nem cadeias de reposições. O estado da aula original tem de estar explicitamente marcado como substituído antes de criar a nova ocorrência.
 - O ensaio SQL tenta publicar aulas simultâneas e uma substituição órfã; ambas as operações devem falhar e os dados do ensaio são revertidos.
 - **Pendente:** testar em PostgreSQL real, adicionar regras de conflitos de salas e exames em transacção e confrontar as FKs com o esquema real do SIGA antes de qualquer deploy.
+
+## Rectificações auditadas da execução docente
+
+- A evidência de aula revista é imutável. Uma rectificação é um pedido independente com chave idempotente por escola, motivo obrigatório, requerente, duração proposta, unidades e evidências propostas.
+- A decisão é um registo separado, único por pedido, com responsável diferente do requerente e justificação obrigatória. A aprovação de minutos superiores à duração oficial da aula é rejeitada. Pedidos e decisões são append-only, sem alterações nem eliminação.
+- A vista de consulta `approved_delivery_corrections` mostra apenas rectificações aprovadas e **não modifica automaticamente** os registos originais, notas, faltas ou vencimentos. A aplicação de efeitos exige serviço autorizado e transacção auditada próprios.
+- Pré-requisito adicional: PostgreSQL 15+ para `CREATE VIEW ... WITH (security_invoker = true)`. Validar a versão do servidor e as permissões antes de aplicar a migração. Não publicar a vista nos esquemas de acesso directo de alunos ou docentes.
+- A prova SQL de preparação verifica pedido aprovado por terceiro, rejeição de auto-aprovação e impossibilidade de alterar o histórico. Ainda não foi executada numa instância PostgreSQL.
