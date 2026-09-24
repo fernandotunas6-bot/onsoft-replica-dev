@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - package.json
+      - .github/workflows/refresh-bun-lock.yml
 
 permissions:
   contents: write
