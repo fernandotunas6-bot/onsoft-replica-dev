@@ -46,6 +46,13 @@ describe("eventos de catracas", () => {
     expect(result.rejected).toHaveLength(1);
     expect(result.rejected[0].reason).toMatch(/duplicado/);
   });
+  it("rejeita datas inexistentes sem consumir a retransmissão correta", () => {
+    const invalid = { ...base, occurredAt: "2026-09-31T08:00:00+01:00" };
+    const result = reconcileGateEvents([invalid, base], "school-1", devices);
+    expect(result.rejected).toHaveLength(1);
+    expect(result.accepted).toHaveLength(1);
+  });
+
   it("rejeita tolerância de relógio desmedida ou fracionária", () => {
     expect(() => reconcileGateEvents([base], "school-1", devices, 1000000000000000)).toThrow();
     expect(() => reconcileGateEvents([base], "school-1", devices, 1.5)).toThrow();
