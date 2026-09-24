@@ -74,3 +74,37 @@ Não devem ser criadas policies genéricas apenas para reduzir avisos do Securit
 ## Regra de compatibilidade
 
 O catálogo não substitui as tabelas de negócio e não altera IDs existentes. Ele funciona como camada de governança para o Import/Export Premium.
+
+
+## Auditoria cruzada dos 22 importadores — 2026-09-24
+
+O motor passou a ter um contrato explícito `IMPORTER_TARGET_TABLES` para os 22 módulos. Antes de criar um job e novamente antes de cada lote de commit, o servidor consulta o catálogo vivo `import_table_specs`.
+
+Critérios de bloqueio:
+- tabela ausente no catálogo;
+- `active = false`;
+- `direct_import_policy` diferente de `controlled`;
+- sensibilidade `secret` ou `internal`.
+
+Resultado da reconciliação live: **0 alvos fora da governança** entre os 22 módulos.
+
+Correção de segurança relevante:
+- `funcionarios` deixou de escrever em `person_roles`, que é uma tabela de papéis institucionais protegida contra escrita por clientes;
+- `funcionarios` agora grava `people` + `hr_positions` + `hr_employments`;
+- `person_roles` permanece fora do conjunto de tabelas importáveis;
+- `school_billing_settings` foi explicitamente autorizado como `controlled`, pois contém apenas parâmetros operacionais de cobrança e não segredos.
+
+O contrato também exige `hire_date` no modelo humano de funcionários; não é inventada uma data para completar dados ausentes.
+
+## Integridade do job Premium
+
+`createImportJob` agora persiste no SGA:
+- `schema_version`;
+- `exchange_mode`;
+- `source_format`;
+- `dry_run`;
+- `idempotency_key`;
+- `manifest`;
+- `dependency_plan`.
+
+A chave de idempotência é validada por escola e não pode ser reutilizada para outro módulo.
