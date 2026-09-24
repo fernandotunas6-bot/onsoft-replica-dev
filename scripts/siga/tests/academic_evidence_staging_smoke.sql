@@ -108,6 +108,38 @@ BEGIN
   END;
   IF NOT blocked THEN RAISE EXCEPTION 'Reviewed delivery mutated'; END IF;
 
+  -- Publication must reject simultaneous lessons for the same teacher.
+  INSERT INTO academic_evidence.lesson_occurrences
+    (snapshot_id, school_id, occurrence_key, teacher_id, class_group_id,
+     subject_id, lesson_date, starts_at, ends_at)
+  VALUES (snap, school_a, 'overlap@2026-09-24', teacher, gen_random_uuid(),
+    gen_random_uuid(), '2026-09-24',
+    '2026-09-24 08:30:00+01', '2026-09-24 09:15:00+01');
+  blocked := false;
+  BEGIN
+    UPDATE academic_evidence.schedule_snapshots
+      SET status = 'published', published_at = now(), published_by = reviewer
+      WHERE id = snap;
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Overlapping teaching roster published'; END IF;
+  DELETE FROM academic_evidence.lesson_occurrences
+    WHERE snapshot_id = snap AND occurrence_key = 'overlap@2026-09-24';
+
+  -- An occurrence cannot be marked replaced without a real active substitute.
+  UPDATE academic_evidence.lesson_occurrences SET state = 'replaced'
+    WHERE id = occurrence;
+  blocked := false;
+  BEGIN
+    UPDATE academic_evidence.schedule_snapshots
+      SET status = 'published', published_at = now(), published_by = reviewer
+      WHERE id = snap;
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Orphan replacement published'; END IF;
+  UPDATE academic_evidence.lesson_occurrences SET state = 'scheduled'
+    WHERE id = occurrence;
+
   UPDATE academic_evidence.schedule_snapshots
     SET status = 'published', published_at = now(), published_by = reviewer
     WHERE id = snap;
