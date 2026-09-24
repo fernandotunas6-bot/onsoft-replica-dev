@@ -8,7 +8,7 @@
 -- separate publication/assignment guards; this trigger alone cannot cover them.
 CREATE OR REPLACE FUNCTION private.prevent_timetable_slot_conflicts()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
