@@ -46,12 +46,10 @@ CREATE TABLE IF NOT EXISTS academic_evidence.lesson_occurrences (
   FOREIGN KEY (replacement_of) REFERENCES academic_evidence.lesson_occurrences(id),
   UNIQUE (snapshot_id, occurrence_key),
   UNIQUE (id, school_id),
-  CHECK (ends_at > starts_at AND ends_at <= starts_at + interval '24 hours'),
-  CHECK (lesson_date = (starts_at AT TIME ZONE 'Africa/Luanda')::date)
+  CHECK (ends_at > starts_at AND ends_at <= starts_at + interval '24 hours')
 );
--- NOTE: the Africa/Luanda check above is suitable ONLY for Angolan schools.
--- Replace it with a trigger using the parent snapshot.time_zone if global
--- multi-country operation is enabled. Verify IANA zone on snapshot creation.
+-- Validate lesson_date against the IANA time zone of the parent snapshot
+-- in the publication transaction, never against the teacher's device clock.
 
 CREATE TABLE IF NOT EXISTS academic_evidence.lesson_plans (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -144,6 +142,86 @@ CREATE INDEX IF NOT EXISTS idx_academic_delivery_review
 CREATE INDEX IF NOT EXISTS idx_academic_assessments_start
   ON academic_evidence.assessment_sessions(school_id, exam_starts_at);
 
+-- Fail closed before publishing a schedule with missing or malformed
+-- occurrence dates, or with a time zone unsupported by PostgreSQL.
+CREATE OR REPLACE FUNCTION academic_evidence.guard_snapshot_publication()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $
+BEGIN
+  IF NEW.status = 'published' AND OLD.status = 'draft' THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_catalog.pg_timezone_names WHERE name = NEW.time_zone
+    ) THEN
+      RAISE EXCEPTION 'Unrecognized institutional time zone' USING ERRCODE = '23514';
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM academic_evidence.lesson_occurrences WHERE snapshot_id = NEW.id
+    ) THEN
+      RAISE EXCEPTION 'Cannot publish an empty academic schedule'
+        USING ERRCODE = '23514';
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM academic_evidence.lesson_occurrences AS o
+      WHERE o.snapshot_id = NEW.id
+        AND (o.lesson_date <> (o.starts_at AT TIME ZONE NEW.time_zone)::date
+          OR (o.ends_at AT TIME ZONE NEW.time_zone)::date <> o.lesson_date)
+    ) THEN
+      RAISE EXCEPTION 'Lesson occurrence does not match the school-local date'
+        USING ERRCODE = '23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$;
+DROP TRIGGER IF EXISTS guard_snapshot_publication
+  ON academic_evidence.schedule_snapshots;
+CREATE TRIGGER guard_snapshot_publication
+BEFORE UPDATE OF status ON academic_evidence.schedule_snapshots
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_snapshot_publication();
+
+-- A delivery record must point to the plan for its own occurrence.
+-- Approved plans are revision-frozen; corrections require a new revision.
+CREATE OR REPLACE FUNCTION academic_evidence.guard_delivery_plan()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $
+BEGIN
+  IF NEW.plan_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM academic_evidence.lesson_plans p
+    WHERE p.id = NEW.plan_id AND p.school_id = NEW.school_id
+      AND p.occurrence_id = NEW.occurrence_id AND p.state = 'approved'
+  ) THEN
+    RAISE EXCEPTION 'Delivery must reference an approved plan for this occurrence'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$;
+DROP TRIGGER IF EXISTS guard_delivery_plan
+  ON academic_evidence.lesson_delivery;
+CREATE TRIGGER guard_delivery_plan
+BEFORE INSERT OR UPDATE ON academic_evidence.lesson_delivery
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_delivery_plan();
+
+CREATE OR REPLACE FUNCTION academic_evidence.guard_approved_plan()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'Lesson plan deletion is forbidden' USING ERRCODE = '23514';
+  END IF;
+  IF OLD.state = 'approved' AND NEW IS DISTINCT FROM OLD THEN
+    RAISE EXCEPTION 'Approved lesson plan is immutable; create a new revision'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$;
+DROP TRIGGER IF EXISTS guard_approved_plan
+  ON academic_evidence.lesson_plans;
+CREATE TRIGGER guard_approved_plan
+BEFORE UPDATE OR DELETE ON academic_evidence.lesson_plans
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_approved_plan();
+
 -- Lock published snapshots and their occurrence records against silent edits.
 CREATE OR REPLACE FUNCTION academic_evidence.guard_published_snapshot()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
@@ -200,5 +278,6 @@ ALTER TABLE academic_evidence.assessment_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE academic_evidence.period_closures ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON ALL TABLES IN SCHEMA academic_evidence FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA academic_evidence TO service_role;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA academic_evidence FROM PUBLIC, anon, authenticated;
 -- No DELETE grant. Backend must never accept school_id from an unverified client.
 COMMIT;
