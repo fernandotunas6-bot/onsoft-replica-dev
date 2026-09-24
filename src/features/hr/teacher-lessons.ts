@@ -110,12 +110,19 @@ export async function resolveAuthenticatedTeacherId(
   if (byPerson.error || !byPerson.data?.id) return null;
 
   const teacherId = String(byPerson.data.id);
+  if (byPerson.data.user_id && String(byPerson.data.user_id) !== userId) {
+    return null;
+  }
   if (!byPerson.data.user_id) {
-    await db
+    const { data: bound, error: bindingError } = await db
       .from("teachers")
       .update({ user_id: userId })
       .eq("id", teacherId)
-      .eq("school_id", schoolId);
+      .eq("school_id", schoolId)
+      .is("user_id", null)
+      .select("id")
+      .maybeSingle();
+    if (bindingError || !bound?.id) return null;
   }
   return teacherId;
 }
