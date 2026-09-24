@@ -123,17 +123,24 @@ export function planAcademicLessons(input: {
   maxOccurrences?: number;
 }): PlanningResult {
   const issues = validateAcademicPeriods(input.periods);
+  if (issues.length) return { issues, occurrences: [] };
   const shiftMap = new Map(input.shifts.map((s) => [s.id, s]));
   const periodMap = new Map(input.periods.map((p) => [p.id, p]));
   if (!unique(input.shifts.map((s) => s.id)) || input.shifts.some((s) => !s.id)) throw new Error("Turnos duplicados.");
   if (!unique(input.lessons.map((l) => l.id)) || input.lessons.some((l) => !l.id)) throw new Error("Aulas duplicadas.");
   for (const shift of input.shifts) issues.push(...validateAcademicShift(shift));
+  if (issues.length) return { issues, occurrences: [] };
   const holidays = new Set(input.holidays ?? []);
   const excluded = new Set(input.excludedDates ?? []);
   const extra = new Set(input.extraTeachingDates ?? []);
   for (const date of [...holidays, ...excluded, ...extra]) parseCivilDate(date);
   if ([...extra].some((date) => holidays.has(date) || excluded.has(date))) {
     throw new Error("Dia extraordinário não pode ser feriado ou dia excluído.");
+  }
+  for (const date of extra) {
+    if (!input.periods.some((p) => p.startsOn <= date && date <= p.endsOn)) {
+      throw new Error("Dia lectivo extraordinário fora dos períodos configurados.");
+    }
   }
   const max = input.maxOccurrences ?? 10000;
   if (!Number.isSafeInteger(max) || max < 1 || max > 100000) throw new Error("Limite de ocorrências inválido.");
