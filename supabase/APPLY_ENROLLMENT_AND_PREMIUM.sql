@@ -436,12 +436,18 @@ ALTER TABLE public.siga_assessment_items FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_assessment_items TO authenticated;
 GRANT ALL ON public.siga_assessment_items TO service_role;
 
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "Manage assessment items in own school" ON public.siga_assessment_items;
-CREATE POLICY "Manage assessment items in own school"
+DROP POLICY IF EXISTS "Read assessment items in own school" ON public.siga_assessment_items;
+CREATE POLICY "Read assessment items in own school"
   ON public.siga_assessment_items
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_assessment_scores (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -461,12 +467,18 @@ ALTER TABLE public.siga_assessment_scores FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_assessment_scores TO authenticated;
 GRANT ALL ON public.siga_assessment_scores TO service_role;
 
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "Manage assessment scores in own school" ON public.siga_assessment_scores;
-CREATE POLICY "Manage assessment scores in own school"
+DROP POLICY IF EXISTS "Read assessment scores in own school" ON public.siga_assessment_scores;
+CREATE POLICY "Read assessment scores in own school"
   ON public.siga_assessment_scores
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- Mensagens internas entre contas da mesma escola (painel da conta)
 CREATE TABLE IF NOT EXISTS public.siga_direct_messages (
@@ -1299,12 +1311,18 @@ ALTER TABLE public.siga_attendance_sessions FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_attendance_sessions TO authenticated;
 GRANT ALL ON public.siga_attendance_sessions TO service_role;
 
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "Manage attendance sessions in own school" ON public.siga_attendance_sessions;
-CREATE POLICY "Manage attendance sessions in own school"
+DROP POLICY IF EXISTS "Read attendance sessions in own school" ON public.siga_attendance_sessions;
+CREATE POLICY "Read attendance sessions in own school"
   ON public.siga_attendance_sessions
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_attendance_records (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1327,12 +1345,18 @@ ALTER TABLE public.siga_attendance_records FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_attendance_records TO authenticated;
 GRANT ALL ON public.siga_attendance_records TO service_role;
 
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "Manage attendance records in own school" ON public.siga_attendance_records;
-CREATE POLICY "Manage attendance records in own school"
+DROP POLICY IF EXISTS "Read attendance records in own school" ON public.siga_attendance_records;
+CREATE POLICY "Read attendance records in own school"
   ON public.siga_attendance_records
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_attendance_audits (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1387,12 +1411,18 @@ ALTER TABLE public.siga_attendance_justifications FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_attendance_justifications TO authenticated;
 GRANT ALL ON public.siga_attendance_justifications TO service_role;
 
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "Manage attendance justifications in own school" ON public.siga_attendance_justifications;
-CREATE POLICY "Manage attendance justifications in own school"
+DROP POLICY IF EXISTS "Read attendance justifications in own school" ON public.siga_attendance_justifications;
+CREATE POLICY "Read attendance justifications in own school"
   ON public.siga_attendance_justifications
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- ============================================================================
 -- CATRACAS DE ACESSO, CARTÕES VIRTUAIS & CONTROLO DE RECINTO
@@ -1757,11 +1787,18 @@ GRANT SELECT, INSERT ON public.student_status_history TO authenticated;
 GRANT ALL ON public.student_status_history TO service_role;
 
 DROP POLICY IF EXISTS "Read student status history in own school" ON public.student_status_history;
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "School members can access student status history" ON public.student_status_history;
-CREATE POLICY "School members can access student status history" ON public.student_status_history
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+DROP POLICY IF EXISTS "School members can read student status history" ON public.student_status_history;
+CREATE POLICY "School members can read student status history"
+  ON public.student_status_history
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- =============================================================================
 -- Histórico escolar anterior (Ciclo 55c — importador historico_academico)
@@ -1810,11 +1847,18 @@ ALTER TABLE public.student_academic_history FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.student_academic_history TO authenticated;
 GRANT ALL ON public.student_academic_history TO service_role;
 
+-- SÓ LEITURA. Com `FOR ALL`, esta política deixava qualquer membro da escola -- incluindo
+-- um utilizador cujo único papel é Aluno ou Encarregado -- escrever nesta tabela, porque
+-- `is_school_member` não olha ao papel e o PostgreSQL combina políticas permissivas com OR
+-- (anulando a política estrita que existisse ao lado). Ver
+-- migrations/20260924123000_close_school_member_write_policies.sql e docs/auditoria/05-auditoria.md.
+-- Nenhuma escrita da aplicação passa por aqui: todas correm por service_role.
 DROP POLICY IF EXISTS "School members can access student academic history" ON public.student_academic_history;
-CREATE POLICY "School members can access student academic history" ON public.student_academic_history
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+DROP POLICY IF EXISTS "School members can read student academic history" ON public.student_academic_history;
+CREATE POLICY "School members can read student academic history"
+  ON public.student_academic_history
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- Verificação: deve devolver as relações novas.
 SELECT c.relname AS tabela
