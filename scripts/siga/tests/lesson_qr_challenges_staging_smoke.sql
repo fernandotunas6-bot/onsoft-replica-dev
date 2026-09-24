@@ -55,6 +55,24 @@ BEGIN
     AND consumed_at IS NULL AND expires_at>clock_timestamp();
   GET DIAGNOSTICS updated_count = ROW_COUNT;
   IF updated_count <> 1 THEN RAISE EXCEPTION 'First QR consumption failed'; END IF;
+  INSERT INTO academic_evidence.lesson_qr_events
+    (nonce_hash,school_id,snapshot_id,occurrence_id,teacher_id,operation)
+  VALUES (token_hash,school,snapshot,occurrence,teacher,'check_in');
+  blocked := false;
+  BEGIN
+    INSERT INTO academic_evidence.lesson_qr_events
+      (nonce_hash,school_id,snapshot_id,occurrence_id,teacher_id,operation)
+    VALUES (repeat('b',43),school,snapshot,occurrence,teacher,'check_out');
+  EXCEPTION WHEN foreign_key_violation OR check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Unconsumed checkout accepted'; END IF;
+  blocked := false;
+  BEGIN
+    UPDATE academic_evidence.lesson_qr_events SET teacher_id=gen_random_uuid()
+    WHERE nonce_hash=token_hash;
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Confirmed event rewritten'; END IF;
   UPDATE academic_evidence.lesson_qr_challenges SET consumed_at=clock_timestamp()
   WHERE nonce_hash=token_hash AND consumed_at IS NULL AND expires_at>clock_timestamp();
   GET DIAGNOSTICS updated_count = ROW_COUNT;
