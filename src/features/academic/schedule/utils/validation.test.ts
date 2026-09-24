@@ -44,6 +44,13 @@ describe("validação dos horários", () => {
     }, "existing")).not.toThrow();
   });
 
+  it("isola conflitos de versões diferentes e mantém os da mesma versão", () => {
+    const existing = { ...base, schedule_id: "version-a" };
+    const candidate = { class_group_id: "group-a", teacher_id: "teacher-a", room_id: "room-a", weekday: 1, starts_at: "08:30", ends_at: "09:30" };
+    expect(() => assertNoScheduleConflict([existing], candidate, undefined, "version-b")).not.toThrow();
+    expect(() => assertNoScheduleConflict([existing], candidate, undefined, "version-a")).toThrow(/Conflito/);
+  });
+
   it("permite aulas adjacentes", () => {
     expect(() => assertNoScheduleConflict([base], {
       class_group_id: "group-a", teacher_id: "teacher-a", room_id: "room-a",
