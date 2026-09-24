@@ -8,6 +8,8 @@ DECLARE
   snap uuid := gen_random_uuid();
   occurrence uuid := gen_random_uuid();
   plan uuid := gen_random_uuid();
+  delivery uuid := gen_random_uuid();
+  correction uuid := gen_random_uuid();
   teacher uuid := gen_random_uuid();
   reviewer uuid := gen_random_uuid();
   blocked boolean;
@@ -44,7 +46,7 @@ BEGIN
     VALUES (snap, school_b, 'foreign-replacement', teacher, gen_random_uuid(),
       gen_random_uuid(), '2026-09-24',
       '2026-09-24 09:00:00+01', '2026-09-24 09:45:00+01', occurrence);
-  EXCEPTION WHEN foreign_key_violation THEN blocked := true;
+  EXCEPTION WHEN foreign_key_violation OR check_violation THEN blocked := true;
   END;
   IF NOT blocked THEN RAISE EXCEPTION 'Cross-school replacement accepted'; END IF;
 
@@ -72,10 +74,40 @@ BEGIN
   IF NOT blocked THEN RAISE EXCEPTION 'Approved plan mutated'; END IF;
 
   INSERT INTO academic_evidence.lesson_delivery
-    (school_id, occurrence_id, plan_id, delivered_minutes,
+    (id, school_id, occurrence_id, plan_id, delivered_minutes,
      actual_curriculum_units, evidence_ids, state, reviewed_by, reviewed_at)
-  VALUES (school_a, occurrence, plan, 45, '["fractions"]'::jsonb,
+  VALUES (delivery, school_a, occurrence, plan, 45, '["fractions"]'::jsonb,
     '["qr-in","qr-out"]'::jsonb, 'delivered', reviewer, now());
+
+  INSERT INTO academic_evidence.delivery_corrections
+    (id, school_id, delivery_id, request_key, requested_by, reason,
+     proposed_minutes, proposed_curriculum_units, proposed_evidence_ids)
+  VALUES (correction, school_a, delivery, 'fix-lesson-1', teacher,
+    'Rectificar registo após revisão pedagógica', 40,
+    '["fractions"]'::jsonb, '["teacher-report"]'::jsonb);
+
+  blocked := false;
+  BEGIN
+    INSERT INTO academic_evidence.delivery_correction_decisions
+      (school_id, correction_id, decided_by, decision, decision_reason)
+    VALUES (school_a, correction, teacher, 'approved',
+      'Aprovação não permitida pelo próprio requerente');
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Self-approved correction accepted'; END IF;
+
+  INSERT INTO academic_evidence.delivery_correction_decisions
+    (school_id, correction_id, decided_by, decision, decision_reason)
+  VALUES (school_a, correction, reviewer, 'approved',
+    'Rectificação verificada pela coordenação');
+
+  blocked := false;
+  BEGIN
+    UPDATE academic_evidence.delivery_corrections SET proposed_minutes = 45
+      WHERE id = correction;
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Correction history was overwritten'; END IF;
 
   blocked := false;
   BEGIN
