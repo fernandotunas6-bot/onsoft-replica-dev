@@ -19,7 +19,9 @@ BEGIN
     JOIN academic_evidence.schedule_snapshots s
       ON s.id = o.snapshot_id AND s.school_id = o.school_id
     WHERE o.id = NEW.occurrence_id AND o.school_id = NEW.school_id
-    FOR SHARE OF o, s;
+    -- The snapshot is the lock root for publication and occurrence edits.
+    -- Occurrence mutation already takes FOR UPDATE on this same parent.
+    FOR SHARE OF s;
 
   IF occurrence_state IS DISTINCT FROM 'scheduled'
      OR snapshot_state IS DISTINCT FROM 'published' THEN
