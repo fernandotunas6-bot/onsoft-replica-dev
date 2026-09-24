@@ -9,7 +9,7 @@ const inputSchema = z.object({ requestId: z.string().uuid() });
 /** Apply an approved request to an effective-dated ledger; never mutate past payroll. */
 export const applyApprovedHrSalaryChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(inputSchema)
+  .validator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ context, data }) => {
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership || membership.appRole !== "Administrador") {
