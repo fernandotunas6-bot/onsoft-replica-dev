@@ -13,17 +13,25 @@ type SignedClaims = LessonQrIdentity & {
   issuedAtMs: number;
   expiresAtMs: number;
 };
-export type AtomicQrConsumer = {
-  // Must be one INSERT/UPDATE transaction with a unique nonce hash.
-  // false means the challenge has already been consumed.
-  consume(input: {
+export type AtomicQrStore = {
+  // Register before exposing the signed token. Persistence must enforce
+  // nonce uniqueness and verify the published lesson and teacher assignment.
+  register(input: QrStoreRecord): Promise<void>;
+  // Must be a conditional atomic UPDATE of a registered, unexpired nonce.
+  // false means missing, expired or already consumed.
+  consume(input: QrStoreRecord): Promise<boolean>;
+};
+export type QrStoreRecord = {
     nonceHash: string;
     schoolId: string;
+    snapshotId: string;
     lessonId: string;
+    teacherId: string;
     operation: LessonQrOperation;
+    issuedAtMs: number;
     expiresAtMs: number;
-  }): Promise<boolean>;
 };
+
 const encoder = new TextEncoder();
 const MAX_LIFETIME_MS = 120_000;
 const MAX_FUTURE_SKEW_MS = 5_000;
@@ -52,6 +60,7 @@ export async function importLessonQrKey(secret: Uint8Array): Promise<CryptoKey> 
 export async function issueLessonQr(
   identity: LessonQrIdentity,
   key: CryptoKey,
+  store: AtomicQrStore,
   nowMs: number,
   lifetimeMs = 60_000,
 ): Promise<string> {
@@ -67,13 +76,17 @@ export async function issueLessonQr(
   if (!validTime(claims.expiresAtMs)) throw new Error("Prazo do QR inválido.");
   const body = base64url(encoder.encode(JSON.stringify(claims)));
   const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(body)));
+  const nonceHash = base64url(new Uint8Array(await crypto.subtle.digest(
+    "SHA-256", decode64url(claims.nonce))));
+  await store.register({ nonceHash, ...identity, issuedAtMs: claims.issuedAtMs,
+    expiresAtMs: claims.expiresAtMs });
   return body + "." + base64url(signature);
 }
 export async function consumeLessonQr(
   token: string,
   expected: LessonQrIdentity,
   key: CryptoKey,
-  consumer: AtomicQrConsumer,
+  store: AtomicQrStore,
   nowMs: number,
 ): Promise<boolean> {
   assertIdentity(expected);
@@ -104,9 +117,9 @@ export async function consumeLessonQr(
     const nonceBytes = decode64url(claims.nonce);
     if (nonceBytes.byteLength !== 24) return false;
     const nonceHash = base64url(new Uint8Array(await crypto.subtle.digest("SHA-256", nonceBytes)));
-    return consumer.consume({
-      nonceHash, schoolId: expected.schoolId, lessonId: expected.lessonId,
-      operation: expected.operation, expiresAtMs: claims.expiresAtMs as number,
+    return store.consume({
+      nonceHash, ...expected, issuedAtMs: claims.issuedAtMs as number,
+      expiresAtMs: claims.expiresAtMs as number,
     });
   } catch {
     return false;
