@@ -41,7 +41,7 @@ import { gridRows } from "./utils/gridRows";
 import { assertValidScheduleTime, assertNoScheduleConflict } from "./utils/validation";
 import { toast } from "sonner";
 
-const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"] as const;
+const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"] as const;
 const weekdayByLabel = new Map<string, number>(weekdays.map((label, index) => [label, index + 1]));
 
 function optionLabel(id: string, label: string) {
@@ -146,6 +146,7 @@ export function ScheduleWorkspace({
   );
 
   const rows = gridRows(visibleSlots);
+  const visibleWeekdays = weekdays.slice(0, slots.some((slot) => slot.weekday > 5) ? 7 : 5);
 
   const classGroupOptions = classGroups.map((group) => optionLabel(group.id, group.name));
   const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
@@ -505,7 +506,7 @@ export function ScheduleWorkspace({
           <TableHeader>
             <TableRow className="bg-muted/40">
               <TableHead className="w-[120px] text-xs font-bold text-foreground">Horário</TableHead>
-              {weekdays.map((day) => (
+              {visibleWeekdays.map((day) => (
                 <TableHead key={day} className="text-center text-xs font-bold text-foreground">
                   {day}
                 </TableHead>
@@ -515,7 +516,7 @@ export function ScheduleWorkspace({
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-xs text-muted-foreground">
+                <TableCell colSpan={visibleWeekdays.length + 1} className="py-12 text-center text-xs text-muted-foreground">
                   Nenhuma aula agendada para esta selecção.
                 </TableCell>
               </TableRow>
@@ -525,7 +526,7 @@ export function ScheduleWorkspace({
                   <TableCell className="font-mono text-xs font-semibold text-muted-foreground whitespace-nowrap bg-muted/20">
                     {row.range}
                   </TableCell>
-                  {row.cells.map((slot, cellIdx) => (
+                  {row.cells.slice(0, visibleWeekdays.length).map((slot, cellIdx) => (
                     <TableCell
                       key={cellIdx}
                       className="p-1.5 align-top min-w-[140px] max-w-[180px]"
