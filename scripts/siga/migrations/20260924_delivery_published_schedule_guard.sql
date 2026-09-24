@@ -1,5 +1,5 @@
--- Run after academic_evidence_persistence_staged and academic_evidence_integrity_followup.
--- Staging gate: reviewed delivery must correspond to an active published occurrence.
+-- Run after academic_evidence_persistence and academic_evidence_integrity_followup.
+-- Delivery requires a scheduled occurrence on a published snapshot and an approved plan.
 BEGIN;
 CREATE OR REPLACE FUNCTION academic_evidence.guard_delivered_occurrence()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
