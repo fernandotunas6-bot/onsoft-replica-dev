@@ -603,6 +603,72 @@ export async function exportSchoolData(
       autoFitColumns(sheet);
     }
 
+    if (mod === "presencas") {
+      const { data: records, error } = await db
+        .from("siga_attendance_records")
+        .select("id, status, notes, student_id, siga_attendance_sessions!inner(class_group_id, subject_id, lesson_date)")
+        .eq("school_id", options.schoolId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        throw new Error(`Não foi possível exportar presenças: ${error.message}`);
+      }
+
+      const rows = records || [];
+      const studentIds = [...new Set(rows.map((r: any) => String(r.student_id)))];
+      const sessionRows = rows.map((r: any) => Array.isArray(r.siga_attendance_sessions) ? r.siga_attendance_sessions[0] : r.siga_attendance_sessions);
+      const groupIds = [...new Set(sessionRows.map((r: any) => r?.class_group_id).filter(Boolean).map(String))];
+      const subjectIds = [...new Set(sessionRows.map((r: any) => r?.subject_id).filter(Boolean).map(String))];
+
+      const [{ data: students }, { data: groups }, { data: subjects }] = await Promise.all([
+        studentIds.length
+          ? db.from("students").select("id, student_number").in("id", studentIds)
+          : Promise.resolve({ data: [], error: null } as any),
+        groupIds.length
+          ? db.from("class_groups").select("id, name").in("id", groupIds)
+          : Promise.resolve({ data: [], error: null } as any),
+        subjectIds.length
+          ? db.from("subjects").select("id, name").in("id", subjectIds)
+          : Promise.resolve({ data: [], error: null } as any),
+      ]);
+
+      const studentById = new Map((students || []).map((s: any) => [String(s.id), String(s.student_number || "")]));
+      const groupById = new Map((groups || []).map((g: any) => [String(g.id), String(g.name || "")]));
+      const subjectById = new Map((subjects || []).map((s: any) => [String(s.id), String(s.name || "")]));
+
+      counts["presencas"] = rows.length;
+      totalRecords += rows.length;
+
+      const sheet = workbook.addWorksheet("PRESENCAS", {
+        properties: { tabColor: { argb: "FF0EA5E9" } },
+      });
+      sheet.views = [{ state: "frozen", ySplit: 1, showGridLines: true }];
+
+      const headers = [
+        "Identificador do Aluno (Nº Processo, BI ou Nome)",
+        "Turma",
+        "Disciplina",
+        "Data da Presença",
+        "Estado",
+        "Motivo / Observação",
+      ];
+      const hRow = sheet.addRow(headers);
+      styleHeaderRow(hRow, options.mode);
+
+      rows.forEach((record: any, index: number) => {
+        const session = sessionRows[index] || {};
+        sheet.addRow([
+          studentById.get(String(record.student_id)) || "",
+          groupById.get(String(session.class_group_id)) || "",
+          subjectById.get(String(session.subject_id)) || "",
+          session.lesson_date || "",
+          record.status || "",
+          record.notes || "",
+        ]);
+      });
+      autoFitColumns(sheet);
+    }
+
     if (mod === "historico_academico") {
       const { data: historyRows } = await db
         .from("student_academic_history")
