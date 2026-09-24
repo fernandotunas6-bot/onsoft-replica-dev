@@ -34,7 +34,6 @@ BEGIN
     SELECT 1
     FROM public.academic_schedules AS other
     WHERE other.school_id = NEW.school_id
-      AND other.academic_year_id = NEW.academic_year_id
       AND other.id <> NEW.id
       AND other.status = 'published'
       AND other.deleted_at IS NULL
@@ -77,8 +76,8 @@ BEGIN
       USING ERRCODE = '23514';
   END IF;
 
-  -- Compare only other published, non-deleted schedules in the same school
-  -- and academic year whose effective dates intersect (inclusive).
+  -- Compare published, non-deleted schedules across ALL academic years of
+  -- the same school: teachers and rooms are shared across overlapping years.
   SELECT candidate.id INTO conflicting_slot
   FROM public.timetable_slots AS candidate
   JOIN public.class_subjects AS candidate_assignment
@@ -100,7 +99,6 @@ BEGIN
    AND published.school_id = occupied.school_id
    AND published.status = 'published'
    AND published.deleted_at IS NULL
-   AND published.academic_year_id = NEW.academic_year_id
    AND published.id <> NEW.id
    AND published.valid_from <= NEW.valid_to
    AND published.valid_to >= NEW.valid_from
