@@ -36,6 +36,23 @@ describe("presença docente e apuramento mensal", () => {
     expect(evaluateLessonAttendance(lesson, [{ ...events[0], teacherId: "other" }, events[1]], policy).status).toBe("pending_review");
     expect(evaluateLessonAttendance(lesson, [{ ...events[0], verified: false }, events[1]], policy).status).toBe("pending_review");
   });
+  it("coloca em revisão valores sem tipo válido recebidos da API", () => {
+    const checkIn = event("check_in", "08:00:00");
+    const checkOut = event("check_out", "09:00:00");
+    const invalid = [
+      { ...checkIn, verified: "true" } as unknown as AttendanceEvent,
+      { ...checkIn, evidence: "unknown" } as unknown as AttendanceEvent,
+      { ...checkIn, kind: "entry" } as unknown as AttendanceEvent,
+    ];
+    for (const bad of invalid) {
+      const result = evaluateLessonAttendance(lesson, [bad, checkOut],
+        { ...policy, requireVerifiedQr: false });
+      expect(result.status).toBe("pending_review");
+      expect(previewPayroll([result], payroll).proposedDeductionCents).toBe(0);
+    }
+    expect(evaluateLessonAttendance(lesson, [checkIn, checkOut], policy).status).toBe("present");
+  });
+
   it("não aceita leitura de catraca como confirmação de aula quando QR é obrigatório", () => {
     const events = [event("check_in", "08:00:00"), event("check_out", "09:00:00")].map((e) => ({ ...e, evidence: "gate" as const }));
     expect(evaluateLessonAttendance(lesson, events, policy).status).toBe("pending_review");
