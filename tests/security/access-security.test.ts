@@ -1,6 +1,9 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { isRateLimitBypassed, checkRateLimit, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { clientIpFromRequest } from "@/lib/request-ip";
+import { isDevAuthBypassEnabled } from "@/lib/dev-auth-bypass";
 
 describe("Rate Limit Security Hardening", () => {
   const originalEnv = process.env;
@@ -40,6 +43,43 @@ describe("Rate Limit Security Hardening", () => {
 
     // Exceeded max=2
     expect(checkRateLimit([key], opts)).toBe(false);
+  });
+});
+
+describe("Development authentication bypass", () => {
+  it("never enables a bypass in production, even when a flag leaks into the environment", () => {
+    expect(isDevAuthBypassEnabled({ NODE_ENV: "production", AUTH_BYPASS: "true" })).toBe(false);
+    expect(isDevAuthBypassEnabled({ NODE_ENV: "production", VITE_AUTH_DISABLED: "true" })).toBe(
+      false,
+    );
+  });
+
+  it("only enables the shortcut explicitly outside production", () => {
+    expect(isDevAuthBypassEnabled({ NODE_ENV: "development" })).toBe(false);
+    expect(isDevAuthBypassEnabled({ NODE_ENV: "development", AUTH_BYPASS: "true" })).toBe(true);
+  });
+
+  it("does not keep a reusable development password in source code", () => {
+    const source = readFileSync(
+      resolve(__dirname, "../../src/features/auth/dev-bypass.server.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("crypto.randomUUID()");
+    expect(source).not.toContain("siga-dev-bypass-");
+    expect(source).not.toContain("Admin@Escola2026!");
+  });
+});
+
+describe("Static ADMIN defence in depth", () => {
+  it("keeps the full dashboard shell behind the platform-admin client gate", () => {
+    const source = readFileSync(
+      resolve(__dirname, "../../painel/admin/src/app/(dashboard)/layout.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("const dashboard = (");
+    expect(source).toContain("<PlatformAdminGate>{dashboard}</PlatformAdminGate>");
   });
 });
 

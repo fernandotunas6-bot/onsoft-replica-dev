@@ -127,22 +127,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
         }
 
         if (AUTH_DISABLED) {
-          try {
-            const { data: adminLogin, error: autoLoginError } =
-              await supabase.auth.signInWithPassword({
-                email: "admin@escola.ao",
-                password: "Admin@Escola2026!",
-              });
-            if (!autoLoginError && adminLogin?.session) {
-              localStorage.setItem(activityKey(adminLogin.session.user.id), String(Date.now()));
-              setSession(adminLogin.session);
-              setChecking(false);
-              return;
-            }
-          } catch {
-            // fallback to dev bypass tokens
-          }
-
           const tokens = await ensureDevBypassSession();
           if (!active) return;
           const { data: setData, error: setError } = await supabase.auth.setSession({
