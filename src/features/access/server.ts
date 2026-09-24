@@ -156,6 +156,20 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       );
     }
     const admin = await loadAdminClient();
+    // Validar o cadastro antes de criar auth.users: um conflito não deve
+    // deixar conta, perfil ou membership parcialmente provisionados.
+    const inviteEmail = data.email.trim().toLowerCase();
+    const { data: existingPeople, error: existingPeopleError } = await admin
+      .from("people")
+      .select("id, user_id")
+      .eq("school_id", schoolId)
+      .ilike("email", inviteEmail);
+    if (existingPeopleError) {
+      throw publicDatabaseError(existingPeopleError, "Não foi possível validar a identidade do convite.");
+    }
+    if ((existingPeople ?? []).length > 1 || existingPeople?.[0]?.user_id) {
+      throw new Error("Pessoa já vinculada ou e-mail duplicado nesta escola; reveja o cadastro antes de criar a conta.");
+    }
 
     // Não usar inviteUserByEmail: o mailer nativo da Supabase (sem SMTP próprio)
     // envia um e-mail genérico "Supabase Auth" — proibido pela identidade
@@ -247,20 +261,38 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       });
     }
 
-    // Vinculação idempotente com o registo de pessoa (se já existir na escola com este email)
-    try {
-      const { data: existingPerson } = await admin
+    // Professores são vinculados em ensureTeacherHrRecord. Outras pessoas só
+    // recebem o vínculo quando a identidade existente não pertence a outro login.
+    if (data.cargo !== "Professor") {
+      const normalizedEmail = data.email.trim().toLowerCase();
+      const { data: matchingPeople, error: personLookupError } = await admin
         .from("people")
-        .select("id")
+        .select("id, user_id")
         .eq("school_id", schoolId)
-        .eq("email", data.email.trim().toLowerCase())
-        .maybeSingle();
-
-      if (existingPerson?.id) {
-        await admin.from("people").update({ user_id: userId }).eq("id", existingPerson.id);
+        .ilike("email", normalizedEmail);
+      if (personLookupError) {
+        throw publicDatabaseError(personLookupError, "Não foi possível validar a identidade da pessoa.");
       }
-    } catch {
-      // Falha não impeditiva na vinculação biográfica
+      if ((matchingPeople ?? []).length > 1) {
+        throw new Error("E-mail associado a múltiplas pessoas nesta escola; reveja o cadastro.");
+      }
+      const person = matchingPeople?.[0];
+      if (person?.user_id && String(person.user_id) !== userId) {
+        throw new Error("Pessoa já vinculada a outra conta; reveja o cadastro.");
+      }
+      if (person && !person.user_id) {
+        const { data: linked, error: linkError } = await admin
+          .from("people")
+          .update({ user_id: userId })
+          .eq("id", person.id)
+          .eq("school_id", schoolId)
+          .is("user_id", null)
+          .select("id")
+          .maybeSingle();
+        if (linkError || !linked?.id) {
+          throw new Error("Não foi possível vincular a pessoa ao login.");
+        }
+      }
     }
 
     // Entrega do link de acesso por e-mail institucional (best-effort: a conta
@@ -830,7 +862,7 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     // 3.1. Validar correspondência do destinatário (anti-sequestro de convite)
     const userEmail = (context.claims?.email as string | undefined)?.toLowerCase().trim();
     const invitedEmail = (invitation.email as string).toLowerCase().trim();
-    if (userEmail && userEmail !== invitedEmail) {
+    if (!userEmail || userEmail !== invitedEmail) {
       throw new Error(
         `Este convite foi emitido para ${invitedEmail}. A sessão actual (${userEmail}) não corresponde ao destinatário do convite.`,
       );
@@ -893,16 +925,34 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
         );
     }
 
-    // 6. Ligar people.user_id por email (idempotente)
-    try {
-      await admin
+    // 6. Vincular somente uma pessoa identificada pelo email do convite.
+    const { data: invitePeople, error: invitePeopleError } = await admin
+      .from("people")
+      .select("id, user_id")
+      .eq("school_id", schoolId)
+      .ilike("email", invitedEmail);
+    if (invitePeopleError) {
+      throw publicDatabaseError(invitePeopleError, "Não foi possível validar a identidade do convite.");
+    }
+    if ((invitePeople ?? []).length > 1) {
+      throw new Error("E-mail associado a múltiplas pessoas nesta escola; reveja o cadastro.");
+    }
+    const invitePerson = invitePeople?.[0];
+    if (invitePerson?.user_id && String(invitePerson.user_id) !== userId) {
+      throw new Error("Pessoa já vinculada a outra conta; reveja o cadastro.");
+    }
+    if (invitePerson && !invitePerson.user_id) {
+      const { data: linked, error: linkError } = await admin
         .from("people")
         .update({ user_id: userId })
+        .eq("id", invitePerson.id)
         .eq("school_id", schoolId)
-        .ilike("email", invitedEmail)
-        .is("user_id", null);
-    } catch {
-      // Não crítico — falha silenciosa se people não tiver coluna email ou user_id
+        .is("user_id", null)
+        .select("id")
+        .maybeSingle();
+      if (linkError || !linked?.id) {
+        throw new Error("Não foi possível vincular a pessoa ao login.");
+      }
     }
 
     // 7. Marcar como aceite

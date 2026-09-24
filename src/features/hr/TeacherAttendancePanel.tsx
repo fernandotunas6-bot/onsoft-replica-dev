@@ -32,6 +32,7 @@ import {
   teacherLessonPlansSearch,
 } from "@/features/hr/teacher-classroom-links";
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
+import { schoolTodayIso } from "./schoolClock";
 import { toast } from "sonner";
 
 type BarcodeDetectorLike = {
@@ -53,11 +54,12 @@ function formatDateTime(value: string | null) {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Africa/Luanda",
   }).format(new Date(value));
 }
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return schoolTodayIso(new Date());
 }
 
 function lessonTitle(lesson: HrTeacherLessonOccurrence) {
@@ -190,7 +192,7 @@ export function TeacherAttendancePanel({
       } else {
         setScanMode("check_in");
         toast.success("Saída confirmada", {
-          description: `Presença validada automaticamente com confiança ${assurance.score}/100 e elegível para remuneração.`,
+          description: `Saída registada com confiança ${assurance.score}/100. A remuneração depende da validação do RH.`,
         });
       }
       setToken("");

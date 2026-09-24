@@ -1,7 +1,9 @@
 import type { ScheduleConflict, ScheduleSlot } from "../types";
 
 function timeValue(value: string) {
-  return value.slice(0, 5);
+  // Compare complete HH:mm:ss, not only HH:mm: second-level overlaps matter.
+  const [hours = "00", minutes = "00", seconds = "00"] = value.split(":");
+  return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
 }
 
 function overlaps(left: ScheduleSlot, right: ScheduleSlot) {
@@ -20,6 +22,9 @@ export function detectScheduleConflicts(slots: ScheduleSlot[]): ScheduleConflict
     const left = slots[leftIndex];
     if (!left) continue;
     for (const right of slots.slice(leftIndex + 1)) {
+      // Aulas em versões distintas não coexistem por definição. A verificação
+      // de vigências entre versões publicadas pertence ao guard transacional.
+      if ((left.schedule_id ?? null) !== (right.schedule_id ?? null)) continue;
       if (!overlaps(left, right)) continue;
 
       const checks = [
@@ -42,9 +47,7 @@ export function detectScheduleConflicts(slots: ScheduleSlot[]): ScheduleConflict
           kind: "sala" as const,
           severity: "blocker" as const,
           matches:
-            (Boolean(left.room_id) && left.room_id === right.room_id) ||
-            (Boolean(left.label?.trim()) &&
-              left.label?.trim().toLocaleLowerCase() === right.label?.trim().toLocaleLowerCase()),
+            Boolean(left.room_id) && left.room_id === right.room_id,
           message: `A sala ${left.room_name || left.label} está ocupada em dois slots sobrepostos.`,
         },
       ];

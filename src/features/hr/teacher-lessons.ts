@@ -39,8 +39,8 @@ function qrTokenHash(token: string) {
 
 /**
  * Resolve a ficha `teachers` do utilizador autenticado.
- * Preferência: teachers.user_id → people.user_id → email do login.
- * Quando encontra ficha sem user_id, faz backfill para o QR/SQL passarem a validar.
+ * Apenas vínculos explícitos teachers.user_id ou people.user_id são aceites.
+ * Uma ficha sem user_id só é vinculada quando people.user_id já foi verificado.
  */
 export async function resolveAuthenticatedTeacherId(
   db: SgaAdminClient,
@@ -57,47 +57,15 @@ export async function resolveAuthenticatedTeacherId(
     .maybeSingle();
   if (!byUser.error && byUser.data?.id) return String(byUser.data.id);
 
-  let personId: string | null = null;
-  let email = "";
-
-  const personByUser = await db
+  const { data: personByUser, error: personError } = await db
     .from("people")
-    .select("id, email")
+    .select("id")
     .eq("school_id", schoolId)
     .eq("user_id", userId)
     .limit(1)
     .maybeSingle();
-  if (!personByUser.error && personByUser.data?.id) {
-    personId = String(personByUser.data.id);
-    email = String(personByUser.data.email ?? "")
-      .trim()
-      .toLowerCase();
-  }
-
-  if (!personId) {
-    try {
-      const { data: authUser } = await db.auth.admin.getUserById(userId);
-      email = String(authUser.user?.email ?? "")
-        .trim()
-        .toLowerCase();
-    } catch {
-      /* ignore */
-    }
-    if (email) {
-      const personByEmail = await db
-        .from("people")
-        .select("id, email")
-        .eq("school_id", schoolId)
-        .ilike("email", email)
-        .limit(1)
-        .maybeSingle();
-      if (!personByEmail.error && personByEmail.data?.id) {
-        personId = String(personByEmail.data.id);
-      }
-    }
-  }
-
-  if (!personId) return null;
+  if (personError || !personByUser?.id) return null;
+  const personId = String(personByUser.id);
 
   const byPerson = await db
     .from("teachers")
@@ -110,12 +78,19 @@ export async function resolveAuthenticatedTeacherId(
   if (byPerson.error || !byPerson.data?.id) return null;
 
   const teacherId = String(byPerson.data.id);
+  if (byPerson.data.user_id && String(byPerson.data.user_id) !== userId) {
+    return null;
+  }
   if (!byPerson.data.user_id) {
-    await db
+    const { data: bound, error: bindingError } = await db
       .from("teachers")
       .update({ user_id: userId })
       .eq("id", teacherId)
-      .eq("school_id", schoolId);
+      .eq("school_id", schoolId)
+      .is("user_id", null)
+      .select("id")
+      .maybeSingle();
+    if (bindingError || !bound?.id) return null;
   }
   return teacherId;
 }
@@ -526,7 +501,7 @@ export const createTeacherLessonQr = createServerFn({ method: "POST" })
       throw new Error("O professor já efectuou o check-out desta aula.");
     }
 
-    await db
+    const { error: revokeError } = await db
       .from("hr_teacher_qr_sessions")
       .update({
         status: "revoked",
@@ -537,6 +512,9 @@ export const createTeacherLessonQr = createServerFn({ method: "POST" })
       .eq("occurrence_id", data.occurrenceId)
       .eq("purpose", data.purpose)
       .eq("status", "active");
+    if (revokeError) {
+      throw publicDatabaseError(revokeError, "Não foi possível revogar o QR anterior.");
+    }
 
     const token = randomBytes(32).toString("base64url");
     const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();

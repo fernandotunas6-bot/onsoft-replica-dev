@@ -611,6 +611,7 @@ export const createPerson = createServerFn({ method: "POST" })
       const { error: teacherError } = await db.from("teachers").insert({
         school_id: membership.schoolId,
         person_id: person.id,
+        user_id: input.userId,
         employee_number: `DOC-${seq}`,
         hired_on: new Date().toISOString().slice(0, 10),
         employment_type: "permanent",
@@ -1272,7 +1273,7 @@ export const updatePersonStatus = createServerFn({ method: "POST" })
     return person;
   });
 
-/** Liga o login a uma ficha HR de professor (people + teachers). Sem coluna user_id, fica só por email. */
+/** Vincula um login a um professor apenas com identidade institucional não conflituosa. */
 export async function ensureTeacherHrRecord(input: {
   schoolId: string;
   userId: string;
@@ -1282,15 +1283,21 @@ export async function ensureTeacherHrRecord(input: {
 }) {
   const db = await loadSgaAdminClient();
   const email = input.email.trim().toLowerCase();
-  const { data: people } = await db
+  if (!email) throw new Error("É necessário um e-mail institucional para vincular o professor.");
+  const { data: people, error: peopleError } = await db
     .from("people")
-    .select("id, email, full_name")
-    .eq("school_id", input.schoolId);
-  let person =
-    (people ?? []).find((row) => String(row.email ?? "").toLowerCase() === email && email) ??
-    (people ?? []).find(
-      (row) => String(row.full_name ?? "").toLowerCase() === input.fullName.trim().toLowerCase(),
-    );
+    .select("id, email, full_name, user_id")
+    .eq("school_id", input.schoolId)
+    .ilike("email", email);
+  if (peopleError) throw publicDatabaseError(peopleError, "Não foi possível validar a identidade do professor.");
+  const matchingPeople = (people ?? []).filter((row) => String(row.email ?? "").toLowerCase() === email);
+  if (matchingPeople.length > 1) {
+    throw new Error("E-mail associado a múltiplas pessoas nesta escola; reveja o cadastro.");
+  }
+  let person = matchingPeople[0];
+  if (person?.user_id && String(person.user_id) !== input.userId) {
+    throw new Error("Pessoa já vinculada a outra conta; reveja o cadastro.");
+  }
 
   if (!person) {
     const created = await db
@@ -1300,11 +1307,12 @@ export async function ensureTeacherHrRecord(input: {
         full_name: input.fullName,
         preferred_name: input.fullName.split(/\s+/)[0],
         email: email || null,
+        user_id: input.userId,
         status: "active",
         created_by: input.actorId,
         updated_by: input.actorId,
       })
-      .select("id, email, full_name")
+      .select("id, email, full_name, user_id")
       .single();
     if (created.error) {
       throw publicDatabaseError(created.error, "Não foi possível criar a pessoa do professor.");
@@ -1312,12 +1320,30 @@ export async function ensureTeacherHrRecord(input: {
     person = created.data;
   }
 
-  const { data: existing } = await db
+  const { data: existing, error: teacherLookupError } = await db
     .from("teachers")
-    .select("id")
+    .select("id, user_id")
     .eq("school_id", input.schoolId)
     .eq("person_id", person.id)
     .maybeSingle();
+  if (teacherLookupError) throw publicDatabaseError(teacherLookupError, "Não foi possível validar a ficha docente.");
+
+  if (existing?.user_id && String(existing.user_id) !== input.userId) {
+    throw new Error("Professor já vinculado a outra conta; reveja o cadastro.");
+  }
+  if (!person.user_id) {
+    const { data: linkedPerson, error: linkError } = await db
+      .from("people")
+      .update({ user_id: input.userId, updated_by: input.actorId })
+      .eq("id", person.id)
+      .eq("school_id", input.schoolId)
+      .is("user_id", null)
+      .select("id")
+      .maybeSingle();
+    if (linkError || !linkedPerson?.id) {
+      throw new Error("Não foi possível vincular a pessoa ao login.");
+    }
+  }
 
   let teacherId = existing?.id ? String(existing.id) : null;
   if (!teacherId) {
@@ -1331,6 +1357,7 @@ export async function ensureTeacherHrRecord(input: {
       .insert({
         school_id: input.schoolId,
         person_id: person.id,
+        user_id: input.userId,
         employee_number: `DOC-${seq}`,
         hired_on: new Date().toISOString().slice(0, 10),
         employment_type: "permanent",
@@ -1347,13 +1374,18 @@ export async function ensureTeacherHrRecord(input: {
     teacherId = String(inserted.data.id);
   }
 
-  const linked = await db
-    .from("teachers")
-    .update({ user_id: input.userId, updated_by: input.actorId })
-    .eq("id", teacherId)
-    .eq("school_id", input.schoolId);
-  if (linked.error && !/user_id|42703|schema cache/i.test(linked.error.message)) {
-    throw publicDatabaseError(linked.error, "Ficha criada, mas não ligou o login ao professor.");
+  if (!existing?.user_id && existing?.id) {
+    const { data: linked, error: linkError } = await db
+      .from("teachers")
+      .update({ user_id: input.userId, updated_by: input.actorId })
+      .eq("id", teacherId)
+      .eq("school_id", input.schoolId)
+      .is("user_id", null)
+      .select("id")
+      .maybeSingle();
+    if (linkError || !linked?.id) {
+      throw new Error("Não foi possível vincular a ficha docente ao login.");
+    }
   }
 
   return { teacherId, personId: person.id };

@@ -137,14 +137,11 @@ export function canConfirmPaymentItem(status: string): boolean {
   return (HR_PAYMENT_CONFIRMABLE_STATUSES as readonly string[]).includes(status);
 }
 
-/**
- * Compensação de aula só deve entrar no cálculo da folha quando a decisão
- * de assurance do check-out é `auto_approve`.
- */
+/** QR avalia a confiança da presença; só o RH pode validar a remuneração. */
 export function compensationValidationFromAssurance(
-  decision: HrAssuranceDecision | null | undefined,
-): "validated" | "pending" {
-  return decision === "auto_approve" ? "validated" : "pending";
+  _decision: HrAssuranceDecision | null | undefined,
+): "pending" {
+  return "pending";
 }
 
 // ─── Inputs de server actions ────────────────────────────────────────────────
