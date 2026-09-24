@@ -62,7 +62,15 @@ export function evaluateLessonAttendance(
     event.lessonId === lesson.id && event.teacherId === lesson.teacherId &&
     event.schoolId === lesson.schoolId && event.verified &&
     (!policy.requireVerifiedQr || event.evidence === "lesson_qr"),
-  ).sort((a, b) => timestamp(a.occurredAt) - timestamp(b.occurredAt));
+  );
+  // Malformed evidence is quarantined instead of crashing the whole payroll run.
+  if (relevant.some((event) => {
+    try { timestamp(event.occurredAt); return false; } catch { return true; }
+  })) {
+    return { ...base, status: "pending_review", evidenceIds: relevant.map((event) => event.id),
+      reasons: ["Evento validado com timestamp inválido; requer revisão."] };
+  }
+  relevant.sort((a, b) => timestamp(a.occurredAt) - timestamp(b.occurredAt));
   const checkIns = relevant.filter((event) => event.kind === "check_in");
   if (checkIns.length === 0) return { ...base, status: "pending_review", reasons: ["Sem entrada validada; confirmar antes de apurar falta."] };
   const checkOuts = relevant.filter((event) => event.kind === "check_out");
