@@ -11,6 +11,7 @@ export type GateEventResult = {
 export function reconcileGateEvents(
   events: GateEvent[], expectedSchoolId: string, knownDeviceIds: ReadonlySet<string>,
   maxClockSkewMinutes = 5,
+  previouslyProcessedKeys: ReadonlySet<string> = new Set(),
 ): GateEventResult {
   if (!expectedSchoolId || !Number.isFinite(maxClockSkewMinutes) || maxClockSkewMinutes < 0) {
     throw new Error("Configuração de catracas inválida.");
@@ -32,7 +33,7 @@ export function reconcileGateEvents(
       rejected.push({ event, reason: "Dispositivo, instituição, docente ou sentido inválido." });
       continue;
     }
-    if (seen.has(key)) {
+    if (seen.has(key) || previouslyProcessedKeys.has(key)) {
       rejected.push({ event, reason: "Evento duplicado." });
       continue;
     }
