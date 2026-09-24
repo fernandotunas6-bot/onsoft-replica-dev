@@ -3,7 +3,7 @@ import { detectScheduleConflicts } from "./conflicts";
 import { assertValidScheduleTime } from "./validation";
 
 export type PublicationIssue = {
-  code: "empty" | "subject" | "teacher" | "room" | "class" | "capacity" | "time" | "conflict";
+  code: "empty" | "subject" | "teacher" | "room" | "class" | "capacity" | "time" | "conflict" | "version";
   message: string;
   slotId?: string;
 };
@@ -17,10 +17,15 @@ export function schedulePublicationReadiness(input: {
   rooms: ScheduleRoom[];
 }): { ready: boolean; issues: PublicationIssue[]; lessonCount: number; teacherCount: number; roomCount: number } {
   const { classGroupId, slots, classGroups, subjects, teachers, rooms } = input;
-  const own = slots.filter((slot) => slot.class_group_id === classGroupId);
+  const classSlots = slots.filter((slot) => slot.class_group_id === classGroupId);
+  const versionIds = new Set(classSlots.map((slot) => slot.schedule_id ?? "__legacy__"));
+  // Publishing by class alone is ambiguous if multiple timetable versions are loaded.
+  // Fail closed rather than validating lessons from a mixture of versions.
+  const own = classSlots;
   const group = classGroups.find((item) => item.id === classGroupId);
   const issues: PublicationIssue[] = [];
   if (!group) issues.push({ code: "class", message: "Seleccione uma turma válida." });
+  if (versionIds.size > 1) issues.push({ code: "version", message: "Existem várias versões desta turma. Seleccione uma versão antes de publicar." });
   if (own.length === 0) issues.push({ code: "empty", message: "Adicione pelo menos uma aula antes de publicar." });
   const knownSubjects = new Set(subjects.map((item) => item.id));
   const knownTeachers = new Set(teachers.map((item) => item.id));
@@ -43,13 +48,8 @@ export function schedulePublicationReadiness(input: {
   }
   // Drafts from different schedule versions must not be treated as simultaneous.
   // A missing version ID is legacy data and remains in the local comparison.
-  const relatedSlots = slots.filter((slot) =>
-    own.some((candidate) =>
-      candidate.id === slot.id ||
-      (candidate.schedule_id == null && slot.schedule_id == null) ||
-      (candidate.schedule_id != null && candidate.schedule_id === slot.schedule_id),
-    ),
-  );
+  const version = own[0]?.schedule_id ?? null;
+  const relatedSlots = slots.filter((slot) => (slot.schedule_id ?? null) === version);
   const ownIds = new Set(own.map((slot) => slot.id));
   const relatedConflicts = detectScheduleConflicts(relatedSlots).filter((conflict) =>
     conflict.slotIds.some((id) => ownIds.has(id)),
