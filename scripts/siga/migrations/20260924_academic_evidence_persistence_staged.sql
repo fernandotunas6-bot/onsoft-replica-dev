@@ -181,6 +181,32 @@ BEGIN
       RAISE EXCEPTION 'Lesson occurrence does not match the school-local date'
         USING ERRCODE = '23514';
     END IF;
+    IF EXISTS (
+      SELECT 1
+      FROM academic_evidence.lesson_occurrences a
+      JOIN academic_evidence.lesson_occurrences z
+        ON z.snapshot_id = a.snapshot_id AND z.id > a.id
+       AND z.state = 'scheduled' AND a.state = 'scheduled'
+       AND z.starts_at < a.ends_at AND a.starts_at < z.ends_at
+       AND (z.teacher_id = a.teacher_id OR z.class_group_id = a.class_group_id)
+      WHERE a.snapshot_id = NEW.id
+    ) THEN
+      RAISE EXCEPTION 'Overlapping published lessons for teacher or class'
+        USING ERRCODE = '23514';
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM academic_evidence.lesson_occurrences o
+      WHERE o.snapshot_id = NEW.id AND o.state = 'replaced'
+        AND NOT EXISTS (
+          SELECT 1 FROM academic_evidence.lesson_occurrences replacement
+          WHERE replacement.snapshot_id = o.snapshot_id
+            AND replacement.replacement_of = o.id
+            AND replacement.state = 'scheduled'
+        )
+    ) THEN
+      RAISE EXCEPTION 'Replaced lesson has no active replacement'
+        USING ERRCODE = '23514';
+    END IF;
   END IF;
   RETURN NEW;
 END;
@@ -238,7 +264,7 @@ FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_approved_plan();
 -- between institutions or occurrences; approval metadata is set once.
 CREATE OR REPLACE FUNCTION academic_evidence.guard_plan_identity()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
-AS $
+AS $$
 BEGIN
   IF NEW.id IS DISTINCT FROM OLD.id OR NEW.school_id IS DISTINCT FROM OLD.school_id
      OR NEW.occurrence_id IS DISTINCT FROM OLD.occurrence_id
@@ -250,7 +276,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 DROP TRIGGER IF EXISTS guard_plan_identity ON academic_evidence.lesson_plans;
 CREATE TRIGGER guard_plan_identity
 BEFORE UPDATE ON academic_evidence.lesson_plans
@@ -260,7 +286,7 @@ FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_plan_identity();
 -- nor rebind a reviewed record to a different teacher or lesson.
 CREATE OR REPLACE FUNCTION academic_evidence.guard_delivery_duration()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
-AS $
+AS $$
 DECLARE scheduled_minutes integer;
 BEGIN
   IF TG_OP = 'UPDATE' AND (
@@ -284,7 +310,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 DROP TRIGGER IF EXISTS guard_delivery_duration ON academic_evidence.lesson_delivery;
 CREATE TRIGGER guard_delivery_duration
 BEFORE INSERT OR UPDATE ON academic_evidence.lesson_delivery
