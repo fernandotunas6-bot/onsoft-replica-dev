@@ -44,6 +44,15 @@ describe("desafio QR docente assinado", () => {
     expect(await consumeLessonQr(token, identity, key, store, now + 60_000)).toBe(false);
     expect(await consumeLessonQr(token, identity, key, store, now + 1000)).toBe(true);
   });
+  it("não emite QR quando a persistência do desafio falha", async () => {
+    const key = await importLessonQrKey(crypto.getRandomValues(new Uint8Array(32)));
+    const failingStore: AtomicQrStore = {
+      async register() { throw new Error("Base indisponível"); },
+      async consume() { return false; },
+    };
+    await expect(issueLessonQr(identity, key, failingStore, now)).rejects.toThrow(/Base indisponível/);
+  });
+
   it("rejeita uma chave curta, prazo longo e relógio antes da emissão", async () => {
     await expect(importLessonQrKey(new Uint8Array(16))).rejects.toThrow();
     const key = await importLessonQrKey(crypto.getRandomValues(new Uint8Array(32)));
