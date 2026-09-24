@@ -195,6 +195,23 @@ BEGIN
         USING ERRCODE = '23514';
     END IF;
     IF EXISTS (
+      SELECT 1 FROM academic_evidence.lesson_occurrences replacement
+      WHERE replacement.snapshot_id = NEW.id AND replacement.replacement_of IS NOT NULL
+        AND replacement.state <> 'scheduled'
+    ) THEN
+      RAISE EXCEPTION 'Replacement lesson must remain active'
+        USING ERRCODE = '23514';
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM academic_evidence.lesson_occurrences replacement
+      WHERE replacement.snapshot_id = NEW.id AND replacement.replacement_of IS NOT NULL
+      GROUP BY replacement.replacement_of
+      HAVING count(*) > 1
+    ) THEN
+      RAISE EXCEPTION 'A replaced lesson cannot have multiple active substitutes'
+        USING ERRCODE = '23514';
+    END IF;
+    IF EXISTS (
       SELECT 1 FROM academic_evidence.lesson_occurrences o
       WHERE o.snapshot_id = NEW.id AND o.state = 'replaced'
         AND NOT EXISTS (
@@ -382,6 +399,8 @@ BEGIN
         AND original.school_id = NEW.school_id
         AND original.snapshot_id = NEW.snapshot_id
         AND original.id <> NEW.id
+        AND original.state = 'replaced'
+        AND original.replacement_of IS NULL
     ) THEN
       RAISE EXCEPTION 'Replacement must reference another lesson in the same snapshot'
         USING ERRCODE = '23514';
