@@ -146,7 +146,7 @@ CREATE INDEX IF NOT EXISTS idx_academic_assessments_start
 -- occurrence dates, or with a time zone unsupported by PostgreSQL.
 CREATE OR REPLACE FUNCTION academic_evidence.guard_snapshot_publication()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
-AS $
+AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     IF NEW.status <> 'draft' THEN
@@ -183,7 +183,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 DROP TRIGGER IF EXISTS guard_snapshot_publication
   ON academic_evidence.schedule_snapshots;
 CREATE TRIGGER guard_snapshot_publication
@@ -194,7 +194,7 @@ FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_snapshot_publication();
 -- Approved plans are revision-frozen; corrections require a new revision.
 CREATE OR REPLACE FUNCTION academic_evidence.guard_delivery_plan()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
-AS $
+AS $$
 BEGIN
   IF NEW.plan_id IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM academic_evidence.lesson_plans p
@@ -206,7 +206,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 DROP TRIGGER IF EXISTS guard_delivery_plan
   ON academic_evidence.lesson_delivery;
 CREATE TRIGGER guard_delivery_plan
@@ -215,7 +215,7 @@ FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_delivery_plan();
 
 CREATE OR REPLACE FUNCTION academic_evidence.guard_approved_plan()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
-AS $
+AS $$
 BEGIN
   IF TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'Lesson plan deletion is forbidden' USING ERRCODE = '23514';
@@ -226,7 +226,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 DROP TRIGGER IF EXISTS guard_approved_plan
   ON academic_evidence.lesson_plans;
 CREATE TRIGGER guard_approved_plan
@@ -284,7 +284,7 @@ BEGIN
   IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
   RETURN NEW;
 END;
-$;
+$$;
 DROP TRIGGER IF EXISTS guard_occurrence_mutation
   ON academic_evidence.lesson_occurrences;
 CREATE TRIGGER guard_occurrence_mutation
