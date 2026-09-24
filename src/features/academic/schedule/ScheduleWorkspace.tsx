@@ -14,6 +14,7 @@ import {
   User,
   Users,
   Sparkles,
+  Printer,
 } from "lucide-react";
 import { Panel } from "@/components/layout/PageHeader";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
@@ -38,6 +39,7 @@ import type {
 } from "./types";
 import { detectScheduleConflicts } from "./utils/conflicts";
 import { gridRows } from "./utils/gridRows";
+import { schedulePublicationReadiness } from "./utils/publicationReadiness";
 import { assertValidScheduleTime, assertNoScheduleConflict } from "./utils/validation";
 import { toast } from "sonner";
 
@@ -146,7 +148,8 @@ export function ScheduleWorkspace({
   );
 
   const rows = gridRows(visibleSlots);
-  const visibleWeekdays = weekdays.slice(0, slots.some((slot) => slot.weekday > 5) ? 7 : 5);
+  const visibleWeekdays = weekdays.slice(0, visibleSlots.some((slot) => slot.weekday > 5) ? 7 : 5);
+  const publication = schedulePublicationReadiness({ classGroupId: selectedClassGroupId, slots, classGroups, subjects, teachers, rooms });
 
   const classGroupOptions = classGroups.map((group) => optionLabel(group.id, group.name));
   const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
@@ -256,6 +259,10 @@ export function ScheduleWorkspace({
 
   const handlePublish = async () => {
     if (!selectedClassGroupId || !onPublishSchedule) return;
+    if (!publication.ready) {
+      toast.error(`Resolva ${publication.issues.length} pendência(s) antes de publicar.`);
+      return;
+    }
     setPublishing(true);
     try {
       await onPublishSchedule(selectedClassGroupId);
@@ -295,13 +302,17 @@ export function ScheduleWorkspace({
 
           {canManage && scheduleAvailable && classGroups.length > 0 && (
             <>
+              <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5 print:hidden" onClick={() => window.print()} title="Imprimir o horário actualmente visível">
+                <Printer className="size-3.5" /> Imprimir
+              </Button>
               {onPublishSchedule && selectedClassGroupId && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="rounded-xl text-xs border-primary/30 text-primary hover:bg-primary/10 gap-1.5"
                   onClick={handlePublish}
-                  disabled={publishing || selectedConflicts.length > 0}
+                  disabled={publishing || !publication.ready || viewMode !== "turma"}
+                  title={!publication.ready ? publication.issues.map((issue) => issue.message).join("\n") : "Publicar horário da turma seleccionada"}
                 >
                   <Send className="size-3.5" />
                   {publishing ? "A publicar…" : "Publicar Horário"}
@@ -483,6 +494,26 @@ export function ScheduleWorkspace({
         </div>
       </div>
 
+      {viewMode === "turma" && canManage && onPublishSchedule && (
+        <section aria-label="Preparação para publicação" className="mb-4 rounded-2xl border border-border bg-gradient-to-r from-card to-muted/30 p-4 shadow-sm print:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Preparação para publicação</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{publication.lessonCount} aulas · {publication.teacherCount} professores · {publication.roomCount} salas</p>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${publication.ready ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}>
+              {publication.ready ? "Pronto para publicar" : `${publication.issues.length} pendência(s)`}
+            </span>
+          </div>
+          {publication.issues.length > 0 && (
+            <ul className="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-2" aria-live="polite">
+              {publication.issues.slice(0, 8).map((issue, index) => <li key={`${issue.code}-${issue.slotId ?? index}`} className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" />{issue.message}</li>)}
+              {publication.issues.length > 8 && <li>Mais {publication.issues.length - 8} pendência(s).</li>}
+            </ul>
+          )}
+        </section>
+      )}
+
       {/* Alertas de Conflito em Tempo Real */}
       {selectedConflicts.length > 0 && (
         <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive">
@@ -501,10 +532,10 @@ export function ScheduleWorkspace({
       )}
 
       {/* Grade Semanal de Horário */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm print:overflow-visible print:shadow-none">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40">
+            <TableRow className="bg-muted/50">
               <TableHead className="w-[120px] text-xs font-bold text-foreground">Horário</TableHead>
               {visibleWeekdays.map((day) => (
                 <TableHead key={day} className="text-center text-xs font-bold text-foreground">
@@ -529,11 +560,11 @@ export function ScheduleWorkspace({
                   {row.cells.slice(0, visibleWeekdays.length).map((slot, cellIdx) => (
                     <TableCell
                       key={cellIdx}
-                      className="p-1.5 align-top min-w-[140px] max-w-[180px]"
+                      className="p-2 align-top min-w-[150px] max-w-[200px]"
                     >
                       {slot ? (
                         <div
-                          className={`group relative rounded-xl border p-2.5 shadow-sm transition-all hover:shadow-md ${
+                          className={`group relative rounded-xl border-l-4 border p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
                             selectedConflicts.some((c) => c.slotIds.includes(slot.id))
                               ? "border-destructive/60 bg-destructive/10"
                               : "border-primary/20 bg-gradient-to-br from-card to-primary/5 hover:border-primary/40"
