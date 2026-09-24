@@ -47,8 +47,21 @@ BEGIN
   IF v_occ.payable_quantity IS NULL OR v_occ.payable_quantity <= 0 THEN
     RAISE EXCEPTION 'HR must record a positive reviewed payable quantity';
   END IF;
-  IF p_evidence_method = 'qr' AND v_occ.evidence_method IS DISTINCT FROM 'qr' THEN
-    RAISE EXCEPTION 'QR evidence has not been recorded for this lesson';
+  IF p_evidence_method = 'qr' THEN
+    IF v_occ.evidence_method IS DISTINCT FROM 'qr' OR NOT EXISTS (
+      SELECT 1 FROM public.hr_teacher_qr_sessions q
+      JOIN public.teachers t ON t.id=v_occ.teacher_id AND t.school_id=v_occ.school_id
+      WHERE q.id::text=v_occ.evidence_ref AND q.school_id=v_occ.school_id
+        AND q.occurrence_id=v_occ.id AND q.purpose='check_out'
+        AND q.status='used' AND q.used_by=t.user_id
+    ) OR NOT EXISTS (
+      SELECT 1 FROM public.hr_teacher_qr_sessions q
+      JOIN public.teachers t ON t.id=v_occ.teacher_id AND t.school_id=v_occ.school_id
+      WHERE q.school_id=v_occ.school_id AND q.occurrence_id=v_occ.id
+        AND q.purpose='check_in' AND q.status='used' AND q.used_by=t.user_id
+    ) THEN
+      RAISE EXCEPTION 'Verified QR entry and exit required for HR confirmation';
+    END IF;
   END IF;
   IF p_evidence_method <> 'qr' AND NULLIF(btrim(p_evidence_ref), '') IS NULL THEN
     RAISE EXCEPTION 'Documented evidence reference required for manual HR confirmation';
@@ -106,7 +119,8 @@ BEGIN
   UPDATE public.hr_teacher_lesson_occurrences
   SET status = 'confirmed',
       evidence_method = p_evidence_method,
-      evidence_ref = NULLIF(btrim(p_evidence_ref), ''),
+      evidence_ref = CASE WHEN p_evidence_method = 'qr' THEN v_occ.evidence_ref
+                          ELSE NULLIF(btrim(p_evidence_ref), '') END,
       confirmed_at = now(),
       confirmed_by = (SELECT auth.uid()),
       compensation_event_id = v_event_id,
