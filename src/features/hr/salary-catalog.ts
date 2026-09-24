@@ -30,10 +30,14 @@ export const listApprovedSalaryScales = createServerFn({ method: "GET" })
       .from("hr_salary_scale_versions")
       .select("id, scale_id, version_label, effective_from, effective_until")
       .eq("status", "approved")
-      .lte("effective_from", new Date().toISOString().slice(0, 10))
       .order("effective_from", { ascending: false });
     if (versionError) throw publicDatabaseError(versionError, "Não foi possível carregar versões salariais.");
-    const today = new Date().toISOString().slice(0, 10);
+    const luandaParts = new Intl.DateTimeFormat("en", {
+      timeZone: "Africa/Luanda", year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(new Date());
+    const part = (type: string) => luandaParts.find((item) => item.type === type)?.value ?? "";
+    const today = `${part("year")}-${part("month")}-${part("day")}`;
+    // Include approved future versions so HR can schedule a lawful future-dated amendment.
     const currentVersions = (versions ?? []).filter((v) => !v.effective_until || v.effective_until >= today);
     if (!currentVersions.length) return [];
 
