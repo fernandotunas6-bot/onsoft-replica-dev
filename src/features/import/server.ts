@@ -18,6 +18,7 @@ import {
 } from "./schemas";
 import { suggestModule } from "./engine/suggest";
 import { getImporter, isModuleImplemented } from "./engine/registry";
+import { assertImportModuleGoverned } from "./engine/governance";
 import type { ImportCommitContext } from "./engine/types";
 
 /**
@@ -125,6 +126,7 @@ export const createImportJob = createServerFn({ method: "POST" })
       );
     }
     const db = await loadSgaAdminClient();
+    await assertImportModuleGoverned(db, data.module);
 
     if (data.academic_year_id) {
       const { data: year } = await db
@@ -136,6 +138,24 @@ export const createImportJob = createServerFn({ method: "POST" })
       if (!year) throw new Error("Ano lectivo inválido para esta escola.");
     }
 
+    if (data.idempotency_key) {
+      const { data: existing, error: existingError } = await db
+        .from("import_jobs")
+        .select("*")
+        .eq("school_id", membership.schoolId)
+        .eq("idempotency_key", data.idempotency_key)
+        .maybeSingle();
+      if (existingError) {
+        throw publicDatabaseError(existingError, "Não foi possível verificar a idempotência da importação.");
+      }
+      if (existing) {
+        if (existing.module !== data.module) {
+          throw new Error("A chave de idempotência já pertence a outro módulo de importação.");
+        }
+        return existing as ImportJobRecord;
+      }
+    }
+
     const { data: job, error } = await db
       .from("import_jobs")
       .insert({
@@ -145,6 +165,13 @@ export const createImportJob = createServerFn({ method: "POST" })
         module: data.module,
         file_name: data.file_name,
         total_rows: data.total_rows,
+        schema_version: data.schema_version,
+        exchange_mode: data.exchange_mode,
+        source_format: data.source_format,
+        dry_run: data.dry_run,
+        idempotency_key: data.idempotency_key ?? null,
+        manifest: data.manifest,
+        dependency_plan: data.dependency_plan,
         status: "uploaded",
       })
       .select("*")
@@ -360,6 +387,7 @@ export const commitImportBatch = createServerFn({ method: "POST" })
       data.job_id,
     );
     const importer = getImporter(job.module);
+    await assertImportModuleGoverned(db, job.module);
 
     const PENDING_STATUSES = [
       "valid",
