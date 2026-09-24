@@ -33,6 +33,9 @@ export function assertNoScheduleConflict(
   editingSlotId?: string,
 ): void {
   assertValidScheduleTime(proposed.weekday, proposed.starts_at, proposed.ends_at);
+  if (existing.some((slot) => slot.id === "__candidate__")) {
+    throw new Error("Identificador reservado encontrado no horário.");
+  }
   const candidate: ScheduleSlot = {
     ...proposed,
     id: "__candidate__",
