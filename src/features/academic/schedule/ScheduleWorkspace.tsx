@@ -186,13 +186,16 @@ export function ScheduleWorkspace({
       (r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`) === roomOpt,
     );
 
+    if (resolvedRoom?.capacity != null && classGroup.enrolled_count > resolvedRoom.capacity) {
+      throw new Error(`A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${classGroup.enrolled_count}.`);
+    }
     const roomLabel = resolvedRoom?.name || values["rotulo"]?.trim() || "Sala";
     const virtualRoom = virtualRooms.find((item) => item.label === values["salaVirtual"]);
 
     const startsAt = values["inicio"] ?? "";
     const endsAt = values["fim"] ?? "";
     assertValidScheduleTime(weekday, startsAt, endsAt);
-    assertNoScheduleConflict(slots, { class_group_id: classGroup.id, teacher_id: resolvedTeacher?.id ?? null, room_id: resolvedRoom?.id ?? null, weekday, starts_at: startsAt, ends_at: endsAt });
+    assertNoScheduleConflict(slots, { class_group_id: classGroup.id, teacher_id: resolvedTeacher?.id ?? null, room_id: resolvedRoom?.id ?? null, weekday, starts_at: startsAt, ends_at: endsAt }, undefined, slots.find((item) => item.class_group_id === classGroup.id)?.schedule_id ?? null);
 
     await onCreateSlot({
       classGroupId: classGroup.id,
@@ -220,12 +223,16 @@ export function ScheduleWorkspace({
     const resolvedRoom = rooms.find(
       (r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`) === roomOpt,
     );
+    const currentGroup = classGroups.find((group) => group.id === slot.class_group_id);
+    if (resolvedRoom?.capacity != null && currentGroup && currentGroup.enrolled_count > resolvedRoom.capacity) {
+      throw new Error(`A sala ${resolvedRoom.name} comporta ${resolvedRoom.capacity} alunos; a turma tem ${currentGroup.enrolled_count}.`);
+    }
     const roomLabel = resolvedRoom?.name || values["rotulo"]?.trim() || slot.label || "Sala";
 
     const startsAt = values["inicio"] ?? "";
     const endsAt = values["fim"] ?? "";
     assertValidScheduleTime(weekday, startsAt, endsAt);
-    assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: resolvedTeacher?.id ?? null, room_id: resolvedRoom?.id ?? null, weekday, starts_at: startsAt, ends_at: endsAt }, slot.id);
+    assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: resolvedTeacher?.id ?? null, room_id: resolvedRoom?.id ?? null, weekday, starts_at: startsAt, ends_at: endsAt }, slot.id, slot.schedule_id);
 
     await onUpdateSlot({
       slotId: slot.id,
@@ -247,7 +254,7 @@ export function ScheduleWorkspace({
     if (!weekday) throw new Error("Seleccione o dia.");
 
     assertValidScheduleTime(weekday, slot.starts_at, slot.ends_at);
-    assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: slot.teacher_id, room_id: slot.room_id ?? null, weekday, starts_at: slot.starts_at, ends_at: slot.ends_at });
+    assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: slot.teacher_id, room_id: slot.room_id ?? null, weekday, starts_at: slot.starts_at, ends_at: slot.ends_at }, undefined, slot.schedule_id);
     await onCreateSlot({
       classGroupId: slot.class_group_id,
       subjectId: slot.subject_id,
