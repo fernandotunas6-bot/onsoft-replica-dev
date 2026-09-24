@@ -103,6 +103,13 @@ export const createImportJobSchema = z.object({
   module: z.enum(importModuleOptions),
   file_name: z.string().min(1),
   total_rows: z.number().int().nonnegative().default(0),
+  schema_version: z.string().min(1).default("1.0"),
+  exchange_mode: z.enum(importExchangeModeOptions).default("human"),
+  source_format: z.enum(importSourceFormatOptions).default("xlsx"),
+  dry_run: z.boolean().default(false),
+  idempotency_key: z.string().trim().min(1).max(200).optional(),
+  manifest: z.record(z.string(), z.unknown()).default({}),
+  dependency_plan: z.array(z.unknown()).default([]),
 });
 
 export type CreateImportJobInput = z.infer<typeof createImportJobSchema>;
