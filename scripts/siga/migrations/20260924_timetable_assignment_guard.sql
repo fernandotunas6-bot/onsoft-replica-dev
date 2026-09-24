@@ -1,5 +1,5 @@
 -- SGA ONLY — staged companion to timetable_concurrency_guard.
--- SQL delimiter fixed; verify syntax on a staging database before rollout.
+-- Assignment guard: repaired SQL terminator; verify in staging before rollout (revision 2).
 -- Run after the slot guard, in staging first.
 -- Prevents a teacher/class reassignment from introducing clashes into
 -- existing active timetable slots. Uses the SAME per-school advisory lock.
