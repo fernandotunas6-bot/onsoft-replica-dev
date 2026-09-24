@@ -17,7 +17,7 @@
 
 - Emissão falha se a revogação da sessão anterior devolver erro; vínculo `teachers.user_id` atribuído a outro utilizador não é reutilizado, e o backfill verifica a atualização.
 - `20260924_hr_qr_active_session_guard_staged.sql`: índice único parcial para apenas uma sessão activa por escola, ocorrência e operação. Exige preflight e teste concorrente antes de aplicar.
-- `20260924_hr_qr_payroll_review_gate_staged.sql`: substituição completa da RPC, obtida da definição efectiva na base e modificada para exigir assurance recente do próprio docente e horário oficial publicado nas aulas programadas; deixa o check-out em `pending_review`, sem criar compensação aprovada automaticamente. Exige comparação com a definição da base no momento da aplicação; **não foi executada**.
+- `20260924_hr_qr_payroll_review_gate_staged.sql`: substituição completa da RPC, obtida da definição efectiva na base e modificada para exigir assurance recente do próprio docente e horário oficial publicado nas aulas programadas; deixa o check-out em `pending_review`, sem criar compensação aprovada automaticamente. Inclui verificação de hash da definição actual e aborta se a RPC tiver mudado desde a captura; **não foi executada**.
 - O portal deixa de anunciar elegibilidade salarial antes da revisão do RH e usa a data civil `Africa/Luanda` para destacar aulas do dia.
 
 ## Gate de implantação e fecho do ciclo
