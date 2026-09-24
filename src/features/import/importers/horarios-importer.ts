@@ -299,7 +299,22 @@ export const horariosImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: [],
+      audits: [
+        {
+          table_name: "timetable_slots",
+          target_id: String(data.id),
+          action_type: "inserted",
+          after_data: {
+            school_id: ctx.schoolId,
+            class_subject_id: classSubject.id,
+            weekday,
+            starts_at: startTime,
+            ends_at: endTime,
+            room,
+            status: "active",
+          },
+        },
+      ],
       target_record_id: String(data.id),
     };
   },
