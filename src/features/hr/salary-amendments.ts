@@ -59,3 +59,22 @@ export const listHrContractsForSalaryChange = createServerFn({ method: "GET" })
     if (error) throw publicDatabaseError(error, "Não foi possível consultar contratos.");
     return data ?? [];
   });
+
+/** Read-only, school-scoped audit ledger for applied salary amendments. */
+export const listHrSalaryAmendments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership || !["Administrador", "Tesouraria"].includes(membership.appRole)) {
+      throw new Error("Sem permissão para consultar o histórico salarial.");
+    }
+    const db = await loadSgaAdminClient();
+    const { data, error } = await db.from("hr_contract_salary_amendments")
+      .select("id,contract_id,request_id,effective_on,previous_base_salary_kz,new_base_salary_kz,salary_scale_step_id,applied_by,created_at")
+      .eq("school_id", membership.schoolId)
+      .order("effective_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw publicDatabaseError(error, "Não foi possível consultar o histórico salarial.");
+    return data ?? [];
+  });
