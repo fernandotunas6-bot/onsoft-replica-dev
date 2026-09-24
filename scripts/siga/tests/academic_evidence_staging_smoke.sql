@@ -79,6 +79,18 @@ BEGIN
   VALUES (delivery, school_a, occurrence, plan, 45, '["fractions"]'::jsonb,
     '["qr-in","qr-out"]'::jsonb, 'delivered', reviewer, now());
 
+  blocked := false;
+  BEGIN
+    INSERT INTO academic_evidence.delivery_corrections
+      (school_id, delivery_id, request_key, requested_by, reason,
+       proposed_minutes, proposed_curriculum_units, proposed_evidence_ids)
+    VALUES (school_a, delivery, 'invalid-overrun', teacher,
+      'Tentativa de rectificação superior ao horário', 46,
+      '["fractions"]'::jsonb, '["report"]'::jsonb);
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Oversized correction request accepted'; END IF;
+
   INSERT INTO academic_evidence.delivery_corrections
     (id, school_id, delivery_id, request_key, requested_by, reason,
      proposed_minutes, proposed_curriculum_units, proposed_evidence_ids)
