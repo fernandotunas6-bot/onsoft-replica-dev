@@ -25,8 +25,10 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Recheck EVERY active slot of this assignment, not just the first one.
-  -- Other assignments may belong to the same class, teacher or room.
+  -- Recheck every active slot. For another slot of THIS assignment,
+  -- compare against NEW values, not the OLD values still in the table.
+  -- Room collisions are unaffected by changing teacher/class and are
+  -- handled by the slot guard instead.
   SELECT current_slot.id INTO conflicting_slot
   FROM public.timetable_slots AS current_slot
   JOIN public.timetable_slots AS other
@@ -45,11 +47,11 @@ BEGIN
     AND current_slot.class_subject_id = NEW.id
     AND current_slot.status = 'active'
     AND (
-      other_assignment.class_group_id = NEW.class_group_id
+      (CASE WHEN other_assignment.id = NEW.id
+        THEN NEW.class_group_id ELSE other_assignment.class_group_id END) = NEW.class_group_id
       OR (NEW.teacher_id IS NOT NULL
-          AND other_assignment.teacher_id = NEW.teacher_id)
-      OR (current_slot.room_id IS NOT NULL
-          AND current_slot.room_id = other.room_id)
+          AND (CASE WHEN other_assignment.id = NEW.id
+            THEN NEW.teacher_id ELSE other_assignment.teacher_id END) = NEW.teacher_id)
     )
   LIMIT 1;
 
