@@ -133,6 +133,96 @@ CREATE TABLE IF NOT EXISTS academic_evidence.period_closures (
   CHECK (coordinator_id <> pedagogical_director_id)
 );
 
+-- Immutable correction requests: the original reviewed delivery is never overwritten.
+-- Approval is a separate append-only decision with an accountable reviewer.
+CREATE TABLE IF NOT EXISTS academic_evidence.delivery_corrections (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL,
+  delivery_id uuid NOT NULL,
+  request_key text NOT NULL CHECK (length(trim(request_key)) > 0),
+  requested_by uuid NOT NULL,
+  reason text NOT NULL CHECK (length(trim(reason)) >= 12),
+  proposed_minutes integer NOT NULL CHECK (proposed_minutes BETWEEN 0 AND 1440),
+  proposed_curriculum_units jsonb NOT NULL
+    CHECK (jsonb_typeof(proposed_curriculum_units) = 'array'),
+  proposed_evidence_ids jsonb NOT NULL
+    CHECK (jsonb_typeof(proposed_evidence_ids) = 'array'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (delivery_id, school_id)
+    REFERENCES academic_evidence.lesson_delivery(id, school_id),
+  UNIQUE (school_id, request_key),
+  UNIQUE (id, school_id)
+);
+
+CREATE TABLE IF NOT EXISTS academic_evidence.delivery_correction_decisions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL,
+  correction_id uuid NOT NULL,
+  decided_by uuid NOT NULL,
+  decision text NOT NULL CHECK (decision IN ('approved','rejected')),
+  decision_reason text NOT NULL CHECK (length(trim(decision_reason)) >= 12),
+  decided_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (correction_id, school_id)
+    REFERENCES academic_evidence.delivery_corrections(id, school_id),
+  UNIQUE (correction_id),
+  UNIQUE (id, school_id)
+);
+
+CREATE OR REPLACE FUNCTION academic_evidence.guard_correction_decision()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $
+DECLARE original_minutes integer;
+DECLARE max_minutes integer;
+DECLARE requester uuid;
+BEGIN
+  SELECT d.delivered_minutes, c.requested_by,
+         floor(extract(epoch FROM (o.ends_at - o.starts_at)) / 60)::integer
+    INTO original_minutes, requester, max_minutes
+    FROM academic_evidence.delivery_corrections c
+    JOIN academic_evidence.lesson_delivery d
+      ON d.id = c.delivery_id AND d.school_id = c.school_id
+    JOIN academic_evidence.lesson_occurrences o
+      ON o.id = d.occurrence_id AND o.school_id = d.school_id
+    WHERE c.id = NEW.correction_id AND c.school_id = NEW.school_id
+    FOR UPDATE OF c;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Correction does not belong to this school'
+      USING ERRCODE = '23514';
+  END IF;
+  IF NEW.decided_by = requester THEN
+    RAISE EXCEPTION 'Correction requester cannot approve their own request'
+      USING ERRCODE = '23514';
+  END IF;
+  IF NEW.decision = 'approved' AND EXISTS (
+    SELECT 1 FROM academic_evidence.delivery_corrections c
+    WHERE c.id = NEW.correction_id
+      AND c.proposed_minutes > max_minutes
+  ) THEN
+    RAISE EXCEPTION 'Correction exceeds official lesson duration'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$;
+CREATE TRIGGER guard_correction_decision
+BEFORE INSERT ON academic_evidence.delivery_correction_decisions
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_correction_decision();
+
+CREATE OR REPLACE FUNCTION academic_evidence.guard_append_only_evidence()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $
+BEGIN
+  RAISE EXCEPTION 'Academic correction history is append-only'
+    USING ERRCODE = '23514';
+END;
+$;
+CREATE TRIGGER guard_delivery_corrections_append_only
+BEFORE UPDATE OR DELETE ON academic_evidence.delivery_corrections
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_append_only_evidence();
+CREATE TRIGGER guard_correction_decisions_append_only
+BEFORE UPDATE OR DELETE ON academic_evidence.delivery_correction_decisions
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_append_only_evidence();
+
 -- Composite tenant FKs reject cross-school plan, delivery and assessment links.
 -- Direct writes remain restricted to the trusted backend; its transactions
 -- must validate membership, actual published timetable and assessment rules.
@@ -427,6 +517,8 @@ ALTER TABLE academic_evidence.lesson_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE academic_evidence.lesson_delivery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE academic_evidence.assessment_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE academic_evidence.period_closures ENABLE ROW LEVEL SECURITY;
+ALTER TABLE academic_evidence.delivery_corrections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE academic_evidence.delivery_correction_decisions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON ALL TABLES IN SCHEMA academic_evidence FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA academic_evidence TO service_role;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA academic_evidence FROM PUBLIC, anon, authenticated;
