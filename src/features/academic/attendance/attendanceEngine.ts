@@ -34,7 +34,7 @@ export type PayrollPreview = {
 };
 
 function timestamp(value: string): number {
-  if (!/(?:Z|[+-]\\d{2}:\\d{2})$/.test(value)) {
+  if (!/(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
     throw new Error("A data deve incluir o fuso horário.");
   }
   const result = parseStrictTimestamp(value);
