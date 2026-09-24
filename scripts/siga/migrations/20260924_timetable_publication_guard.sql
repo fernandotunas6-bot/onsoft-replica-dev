@@ -3,7 +3,7 @@
 -- explicit migration policy before enabling this trigger in production.
 -- All publication paths must update academic_schedules.status transactionally.
 CREATE OR REPLACE FUNCTION private.prevent_timetable_publication_conflicts()
-RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $$
 DECLARE
   conflicting_slot uuid;
