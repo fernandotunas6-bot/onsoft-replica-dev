@@ -278,10 +278,15 @@ describe("produção vs repositório", () => {
     // O ficheiro de captura é gerado, não escrito. Se alguém o editar à mão e
     // apagar uma tabela, a divergência real volta sem o teste acima dar por ela
     // (a tabela continuaria declarada noutro ficheiro qualquer... ou não).
-    const captura = resolve(
-      REPO,
-      "supabase/migrations/20260914151906_capture_undeclared_production_tables.sql",
-    );
+    // Localizado por padrão, e não por nome fixo: a captura é regerada com um carimbo
+    // novo a cada vez, e o nome antigo (20260914151906) deixou este teste a falhar desde
+    // que ela foi regerada a 2026-09-24. Um teste que se parte sozinho ao correr o
+    // procedimento que ele próprio documenta deixa de ser lido.
+    const capturas = readdirSync(resolve(REPO, "supabase/migrations"))
+      .filter((f) => f.endsWith("_capture_undeclared_production_tables.sql"))
+      .sort();
+    expect(capturas.length, "ficheiro de captura de DDL desapareceu").toBeGreaterThan(0);
+    const captura = resolve(REPO, "supabase/migrations", capturas[capturas.length - 1]!);
     expect(existsSync(captura), "ficheiro de captura de DDL desapareceu").toBe(true);
 
     const ddl = readFileSync(captura, "utf8");
@@ -290,7 +295,9 @@ describe("produção vs repositório", () => {
         m[1].toLowerCase(),
       ),
     );
-    expect(capturadas.size).toBe(35);
+    // Limiar, não igualdade: regerar a captura pode acrescentar tabelas legitimamente, e
+    // o que este teste quer apanhar é o contrário — alguém editá-la à mão e tirar uma.
+    expect(capturadas.size).toBeGreaterThanOrEqual(35);
 
     // Tudo o que a captura declara tem de existir mesmo em produção — o
     // contrário seria declarar tabelas fantasma.
