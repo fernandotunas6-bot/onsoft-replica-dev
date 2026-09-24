@@ -145,6 +145,24 @@ export const historicoAcademicoImporter: RowImporter = {
         };
       }
 
+      const { data: beforeRow, error: beforeError } = await ctx.db
+        .from("student_academic_history")
+        .select("*")
+        .eq("school_id", ctx.schoolId)
+        .eq("student_id", student.id)
+        .eq("academic_year_label", academicYear)
+        .eq("grade_level", gradeLevel)
+        .maybeSingle();
+
+      if (beforeError || !beforeRow) {
+        return {
+          status: "error",
+          warnings: analysis.warnings,
+          errors: [`Não foi possível carregar o histórico existente antes da actualização: ${beforeError?.message ?? "registo não encontrado"}`],
+          audits: [],
+        };
+      }
+
       const { data, error } = await ctx.db
         .from("student_academic_history")
         .update(payload)
@@ -171,9 +189,10 @@ export const historicoAcademicoImporter: RowImporter = {
         audits: [
           {
             table_name: "student_academic_history",
-            target_id: data?.id ?? student.id,
+            target_id: data?.id ?? String(beforeRow.id),
             action_type: "updated",
-            after_data: payload,
+            before_data: beforeRow,
+            after_data: { ...beforeRow, ...payload },
           },
         ],
         target_record_id: data?.id ?? student.id,
@@ -196,19 +215,6 @@ export const historicoAcademicoImporter: RowImporter = {
       .single();
 
     if (error) {
-      // Tabela ainda não provisionada — degradar com aviso claro
-      if (/student_academic_history|42P01|schema cache/i.test(error.message)) {
-        return {
-          status: "imported",
-          warnings: [
-            ...analysis.warnings,
-            "Tabela student_academic_history em falta — aplique APPLY_ENROLLMENT_AND_PREMIUM.sql. Registo validado mas não persistido.",
-          ],
-          errors: [],
-          audits: [],
-          target_record_id: student.id,
-        };
-      }
       return {
         status: "error",
         warnings: analysis.warnings,
