@@ -22,6 +22,9 @@ export function detectScheduleConflicts(slots: ScheduleSlot[]): ScheduleConflict
     const left = slots[leftIndex];
     if (!left) continue;
     for (const right of slots.slice(leftIndex + 1)) {
+      // Aulas em versões distintas não coexistem por definição. A verificação
+      // de vigências entre versões publicadas pertence ao guard transacional.
+      if (left.schedule_id && right.schedule_id && left.schedule_id !== right.schedule_id) continue;
       if (!overlaps(left, right)) continue;
 
       const checks = [
