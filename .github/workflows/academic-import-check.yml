@@ -85,6 +85,9 @@ jobs:
           src/features/import/importers/notas-importer.ts
           src/features/import/importers/professores-importer.ts
           src/features/import/importers/turmas-importer.ts
+          src/features/import/importers/presencas-importer.ts
+          src/features/import/export-engine.ts
+          tests/import/governance.test.ts
           tests/academic/academic-bootstrap.test.ts
           tests/academic/academic-calendar.test.ts
           tests/import/academic-core.test.ts
