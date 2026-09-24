@@ -108,3 +108,47 @@ O contrato também exige `hire_date` no modelo humano de funcionários; não é 
 - `dependency_plan`.
 
 A chave de idempotência é validada por escola e não pode ser reutilizada para outro módulo.
+
+
+## Auditoria de campos e bidireccionalidade — 2026-09-24
+
+A auditoria campo-a-campo encontrou divergências que foram tratadas antes de considerar o intercâmbio seguro:
+
+### Correções aplicadas
+
+- **inscricoes**: o importador estava a transformar candidaturas em registos de `students`, enquanto o exportador usava `enrollment_applications`. O importador foi alinhado ao modelo real de candidaturas.
+- **presencas**: o importador estava a gravar apenas `enrollments.attendance_rate`, apesar do modelo humano pedir data, turma, disciplina e estado. Foi alinhado ao modelo SIGA real:
+  `siga_attendance_sessions` + `siga_attendance_records`.
+- **pautas** e **presencas**: alterações passaram a produzir auditoria reversível com `before_data` e `after_data`.
+- **classes, cursos, disciplinas, salas, avaliações, horários e inscrições**: inserções relevantes passaram a gerar entradas em `import_audits`.
+- **histórico académico**: actualizações agora capturam o registo anterior antes de escrever e deixam de declarar sucesso quando a persistência falha.
+- **exportação**: o motor não pode mais gerar silenciosamente um Excel parcial. Se um módulo selecionado ainda não possuir exportador bidireccional validado, a exportação é bloqueada em vez de produzir um ficheiro potencialmente enganoso.
+- **presenças** já possuem exportação validada no mesmo modelo usado pela importação.
+
+### Exportação ainda em implementação
+
+Neste momento, os seguintes módulos ainda não têm exportação bidireccional validada e, por segurança, ficam bloqueados quando selecionados:
+
+- encarregados
+- funcionários
+- classes
+- cursos
+- salas
+- horários
+- notas
+- pautas
+- dívidas
+
+Isto é intencional: **é preferível bloquear uma exportação incompleta do que entregar um ficheiro que, ao ser reimportado, perca dados ou altere a estrutura do SGA.**
+
+### Regra de ouro
+
+Nenhum campo do Excel deve ser tratado como "apenas visual". Cada campo deve ter uma destas situações documentadas:
+
+1. persistência directa;
+2. resolução para uma FK existente;
+3. geração derivada determinística;
+4. preservação em payload/metadata explicitamente documentada;
+5. rejeição explícita com motivo.
+
+Campos sem uma destas cinco situações não devem ser considerados parte do contrato Premium.
