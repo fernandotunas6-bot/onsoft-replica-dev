@@ -118,7 +118,20 @@ export const inscricoesImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: personRes.audits,
+      audits: [
+        ...personRes.audits,
+        {
+          table_name: "students",
+          target_id: String(student.id),
+          action_type: "inserted",
+          after_data: {
+            school_id: ctx.schoolId,
+            person_id: personRes.personId,
+            student_number: appNumber,
+            status: "applicant",
+          },
+        },
+      ],
       target_record_id: student.id,
     };
   },
