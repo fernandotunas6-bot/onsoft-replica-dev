@@ -32,6 +32,25 @@ describe("Motor de Importação SIGA — Schemas & Templates", () => {
     ).toThrow();
   });
 
+  it("valida o contrato premium de job: modo, formato, idempotência e manifesto", () => {
+    const parsed = createImportJobSchema.parse({
+      module: "alunos",
+      file_name: "Alunos_2026.xlsx",
+      exchange_mode: "siga_exchange",
+      source_format: "xlsx",
+      dry_run: true,
+      idempotency_key: "escola-demo:alunos:2026:sha256:abc123",
+      manifest: { version: "1.0", source: "SIGA" },
+      dependency_plan: ["pessoas", "alunos", "matriculas"],
+    });
+    expect(parsed.exchange_mode).toBe("siga_exchange");
+    expect(parsed.source_format).toBe("xlsx");
+    expect(parsed.dry_run).toBe(true);
+    expect(parsed.idempotency_key).toContain("sha256");
+    expect(parsed.manifest.version).toBe("1.0");
+    expect(parsed.dependency_plan).toHaveLength(3);
+  });
+
   it("valida o schema de commit em lote com valores por omissão seguros", () => {
     const parsed = commitImportBatchSchema.parse({
       job_id: "123e4567-e89b-12d3-a456-426614174000",

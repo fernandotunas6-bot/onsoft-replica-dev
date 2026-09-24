@@ -181,7 +181,21 @@ export const classesImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: [],
+      audits: [
+        {
+          table_name: "grade_levels",
+          target_id: String(data.id),
+          action_type: "inserted",
+          after_data: {
+            school_id: ctx.schoolId,
+            program_id: program!.id,
+            code,
+            name,
+            sequence,
+            is_active: true,
+          },
+        },
+      ],
       target_record_id: String(data.id),
     };
   },

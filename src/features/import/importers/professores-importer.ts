@@ -176,7 +176,7 @@ export const professoresImporter: RowImporter = {
       target_record_id: String(teacher.id),
       warnings: specialty
         ? [
-            `Especialidade "${specialty}" preservada no ficheiro; a atribuição à disciplina/turma é feita no módulo pedagógico.`,
+            `Especialidade "${specialty}" não foi gravada em teachers porque o schema não possui esse campo; a atribuição deve ser feita no módulo pedagógico/teacher_subjects.`,
           ]
         : [],
       errors: [],

@@ -83,14 +83,17 @@ export const turmasImporter: RowImporter = {
     const shift = normalizeShift(shiftValue);
     if (!shift) errors.push("Turno inválido. Use Manhã, Tarde ou Noite.");
 
-    const roomValue = valueOf(normalized, "room", "campus", "sala", "Sala");
+    const campusValue = valueOf(normalized, "campus", "campus_code", "campus_nome");
+    if (campusValue) {
+      const campus = uniqueExactMatch(campusValue, cache.campuses, [(r) => r.code, (r) => r.name]);
+      if (campus.ambiguous) errors.push(`Campus "${normalizeText(campusValue)}" é ambíguo.`);
+      else if (!campus.row) errors.push(`Campus "${normalizeText(campusValue)}" não encontrado nesta escola.`);
+    }
+    const roomValue = valueOf(normalized, "room", "sala", "Sala");
     if (roomValue) {
-      const room = uniqueExactMatch(roomValue, cache.campuses, [(r) => r.code, (r) => r.name]);
-      if (room.ambiguous) errors.push(`Sala/campus "${normalizeText(roomValue)}" é ambíguo.`);
-      else if (!room.row)
-        warnings.push(
-          `Sala/campus "${normalizeText(roomValue)}" não encontrado; a turma será criada sem sala.`,
-        );
+      warnings.push(
+        `Sala "${normalizeText(roomValue)}" não pertence à estrutura class_groups; será tratada no módulo salas/horarios.`,
+      );
     }
 
     if (errors.length) return { status: "error", warnings, errors };
@@ -129,9 +132,10 @@ export const turmasImporter: RowImporter = {
       (r) => r.code,
       (r) => r.name,
     ]).row!;
-    const roomValue = valueOf(normalized, "room", "campus", "sala", "Sala");
-    const campus = roomValue
-      ? uniqueExactMatch(roomValue, cache.campuses, [(r) => r.code, (r) => r.name]).row
+    const roomValue = valueOf(normalized, "room", "sala", "Sala");
+    const campusValue = valueOf(normalized, "campus", "campus_code", "campus_nome");
+    const campus = campusValue
+      ? uniqueExactMatch(campusValue, cache.campuses, [(r) => r.code, (r) => r.name]).row
       : null;
     const capacityRaw = Number(valueOf(normalized, "capacity", "capacidade", "Capacidade"));
     const capacity = Number.isInteger(capacityRaw) && capacityRaw > 0 ? capacityRaw : 30;

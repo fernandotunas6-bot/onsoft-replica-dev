@@ -216,6 +216,7 @@ export const horariosImporter: RowImporter = {
     }
 
     let classSubject = existingClassSubject;
+    const audits: Array<Record<string, unknown>> = [];
     if (!classSubject) {
       // Turma ainda não tem esta disciplina atribuída: cria a associação sem professor definido
       // (4 tempos semanais por omissão), o mesmo que `applyCurriculumToClassGroup` faz quando o
@@ -250,13 +251,42 @@ export const horariosImporter: RowImporter = {
         teacher_id: data.teacher_id ? String(data.teacher_id) : null,
       };
       cache.classSubjects.push(classSubject);
+      audits.push({
+        table_name: "class_subjects",
+        target_id: classSubject.id,
+        action_type: "inserted",
+        after_data: {
+          school_id: ctx.schoolId,
+          class_group_id: classSubject.class_group_id,
+          subject_id: classSubject.subject_id,
+          teacher_id: classSubject.teacher_id,
+          weekly_periods: 4,
+          status: "active",
+        },
+      });
     } else if (teacher && !classSubject.teacher_id) {
-      await ctx.db
+      const before = { ...classSubject };
+      const { error: teacherUpdateError } = await ctx.db
         .from("class_subjects")
         .update({ teacher_id: teacher.id, updated_by: ctx.userId })
         .eq("id", classSubject.id)
         .eq("school_id", ctx.schoolId);
+      if (teacherUpdateError) {
+        return {
+          status: "error",
+          warnings: analysis.warnings,
+          errors: [`Erro ao atribuir professor à disciplina da turma: ${teacherUpdateError.message}`],
+          audits,
+        };
+      }
       classSubject.teacher_id = teacher.id;
+      audits.push({
+        table_name: "class_subjects",
+        target_id: classSubject.id,
+        action_type: "updated",
+        before_data: before,
+        after_data: { ...before, teacher_id: teacher.id },
+      });
     }
 
     const slotKey = `${classSubject.id}:${weekday}:${startTime}`;
@@ -299,7 +329,23 @@ export const horariosImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: [],
+      audits: [
+        ...audits,
+        {
+          table_name: "timetable_slots",
+          target_id: String(data.id),
+          action_type: "inserted",
+          after_data: {
+            school_id: ctx.schoolId,
+            class_subject_id: classSubject.id,
+            weekday,
+            starts_at: startTime,
+            ends_at: endTime,
+            room,
+            status: "active",
+          },
+        },
+      ],
       target_record_id: String(data.id),
     };
   },

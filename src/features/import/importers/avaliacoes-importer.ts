@@ -272,7 +272,23 @@ export const avaliacoesImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: [],
+      audits: [
+        {
+          table_name: "grade_items",
+          target_id: String(data.id),
+          action_type: "inserted",
+          after_data: {
+            school_id: ctx.schoolId,
+            gradebook_id: gradebook.id,
+            name,
+            code,
+            kind,
+            max_score: maxScore,
+            weight: weight > 0 && weight <= 100 ? weight : 1,
+            assessed_on: assessedOn,
+          },
+        },
+      ],
       target_record_id: String(data.id),
     };
   },

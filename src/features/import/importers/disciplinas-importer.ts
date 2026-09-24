@@ -138,7 +138,20 @@ export const disciplinasImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: [],
+      audits: [
+        {
+          table_name: "subjects",
+          target_id: String(data.id),
+          action_type: "inserted",
+          after_data: {
+            school_id: ctx.schoolId,
+            code,
+            name,
+            annual_hours: annualHours,
+            status: "active",
+          },
+        },
+      ],
       target_record_id: String(data.id),
     };
   },

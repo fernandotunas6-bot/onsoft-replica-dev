@@ -67,6 +67,22 @@ export const importJobStatusOptions = [
   "rolled_back",
 ] as const;
 
+export const importExchangeModeOptions = ["human", "siga_exchange"] as const;
+export type ImportExchangeMode = (typeof importExchangeModeOptions)[number];
+
+export const importSourceFormatOptions = ["csv", "xlsx", "xls", "ods", "json"] as const;
+export type ImportSourceFormat = (typeof importSourceFormatOptions)[number];
+
+export const importValidationStageOptions = [
+  "row",
+  "reference",
+  "duplicate",
+  "business_rule",
+  "ready",
+  "committed",
+] as const;
+export type ImportValidationStage = (typeof importValidationStageOptions)[number];
+
 export type ImportJobStatus = (typeof importJobStatusOptions)[number];
 
 export const importRowStatusOptions = [
@@ -87,6 +103,13 @@ export const createImportJobSchema = z.object({
   module: z.enum(importModuleOptions),
   file_name: z.string().min(1),
   total_rows: z.number().int().nonnegative().default(0),
+  schema_version: z.string().min(1).default("1.0"),
+  exchange_mode: z.enum(importExchangeModeOptions).default("human"),
+  source_format: z.enum(importSourceFormatOptions).default("xlsx"),
+  dry_run: z.boolean().default(false),
+  idempotency_key: z.string().trim().min(1).max(200).optional(),
+  manifest: z.record(z.string(), z.unknown()).default({}),
+  dependency_plan: z.array(z.unknown()).default([]),
 });
 
 export type CreateImportJobInput = z.infer<typeof createImportJobSchema>;
@@ -169,6 +192,14 @@ export interface ImportJobRecord {
   inserted_rows: number;
   updated_rows: number;
   ignored_rows: number;
+  schema_version?: string;
+  exchange_mode?: ImportExchangeMode;
+  source_format?: ImportSourceFormat;
+  dry_run?: boolean;
+  idempotency_key?: string | null;
+  manifest?: Record<string, any>;
+  dependency_plan?: unknown[];
+  error_summary?: unknown[];
   job_metadata?: Record<string, any> | null;
   started_at?: string | null;
   completed_at?: string | null;
@@ -188,6 +219,11 @@ export interface ImportRowRecord {
   errors: string[];
   duplicate_of?: string | null;
   target_record_id?: string | null;
+  natural_key?: Record<string, any>;
+  natural_key_hash?: string | null;
+  validation_stage?: ImportValidationStage;
+  resolution?: Record<string, any>;
+  source_hash?: string | null;
   created_at: string;
 }
 
@@ -200,6 +236,6 @@ export const exportSchoolDataSchema = z.object({
   academic_year_id: z.string().uuid().optional().nullable(),
   class_group_id: z.string().uuid().optional().nullable(),
   modules: z.array(z.enum(importModuleOptions)).min(1),
-  mode: z.enum(["human", "siga_exchange"]),
+  mode: z.enum(importExchangeModeOptions),
 });
 export type ExportSchoolDataInput = z.infer<typeof exportSchoolDataSchema>;

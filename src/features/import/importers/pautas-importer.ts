@@ -135,6 +135,7 @@ export const pautasImporter: RowImporter = {
       };
     }
 
+    const before = { final_average: enrollment.final_average };
     const { error } = await ctx.db
       .from("enrollments")
       .update({ final_average: scoreNum })
@@ -155,7 +156,15 @@ export const pautasImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: [],
+      audits: [
+        {
+          table_name: "enrollments",
+          target_id: enrollment.id,
+          action_type: "updated",
+          before_data: before,
+          after_data: { final_average: scoreNum },
+        },
+      ],
       target_record_id: enrollment.id,
     };
   },
