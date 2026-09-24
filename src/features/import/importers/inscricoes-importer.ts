@@ -5,6 +5,7 @@ import { loadExistingPeople, personCandidateFromRow, resolveOrCreatePerson } fro
 type ApplicationRef = { id: string; application_number: string | null; full_name: string };
 type InscricoesCache = ImportRefCache & {
   applications: ApplicationRef[];
+  existingApplicantNumbers: Set<string>;
 };
 
 function valueOf(row: Record<string, unknown>, ...keys: string[]) {
@@ -13,6 +14,16 @@ function valueOf(row: Record<string, unknown>, ...keys: string[]) {
     if (value !== undefined && value !== null && normalizeText(value)) return value;
   }
   return null;
+}
+
+function generateApplicantNumber(existingNumbers: ReadonlySet<string>): string {
+  let candidate = "";
+  do {
+    // Mantém um identificador legível, mas sem depender do milissegundo da
+    // importação — várias linhas podem ser processadas no mesmo instante.
+    candidate = `CAND-${crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase()}`;
+  } while (existingNumbers.has(normalizeText(candidate)));
+  return candidate;
 }
 
 export const inscricoesImporter: RowImporter = {
@@ -42,6 +53,9 @@ export const inscricoesImporter: RowImporter = {
       classGroups: [],
       studentByPersonId: new Map(),
       applications,
+      existingApplicantNumbers: new Set(
+        applications.map((a) => a.application_number).filter((n): n is string => Boolean(n)),
+      ),
     } as InscricoesCache;
   },
 
@@ -81,13 +95,27 @@ export const inscricoesImporter: RowImporter = {
       return { status: "error", warnings: analysis.warnings, errors: ["Dados do candidato insuficientes."], audits: [] };
     }
 
+    // O numero e decidido — e o duplicado resolvido — antes de tocar em `people`.
+    // A ordem inversa criava a pessoa e so depois falhava na chave unica da
+    // candidatura, deixando uma pessoa orfa por cada linha repetida.
+    const appNumber =
+      normalizeText(
+        valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
+      ) || generateApplicantNumber(cache.existingApplicantNumbers);
+
+    const existing = cache.applications.find((a) => a.application_number === appNumber) ?? null;
+
+    if (existing && ctx.duplicateStrategy === "ignore") {
+      return { status: "ignored", warnings: analysis.warnings, errors: [], audits: [], target_record_id: existing.id };
+    }
+    if (existing && ctx.duplicateStrategy === "create_new") {
+      return { status: "error", warnings: analysis.warnings, errors: ["Não é permitido criar uma segunda candidatura com o mesmo número."], audits: [], target_record_id: existing.id };
+    }
+
     const personRes = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
-    const appNumber = normalizeText(
-      valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
-    );
 
     const payload = {
-      application_number: appNumber || null,
+      application_number: appNumber,
       person: {
         full_name: candidate.full_name,
         national_id: candidate.national_id || null,
@@ -100,17 +128,6 @@ export const inscricoesImporter: RowImporter = {
       course_choice: normalizeText(valueOf(normalized, "course_choice", "curso", "curso_pretendido")),
       application_date: normalizeText(valueOf(normalized, "application_date", "data_inscricao", "data")),
     };
-
-    const existing = appNumber
-      ? cache.applications.find((a) => a.application_number === appNumber) ?? null
-      : null;
-
-    if (existing && ctx.duplicateStrategy === "ignore") {
-      return { status: "ignored", warnings: analysis.warnings, errors: [], audits: personRes.audits, target_record_id: existing.id };
-    }
-    if (existing && ctx.duplicateStrategy === "create_new") {
-      return { status: "error", warnings: analysis.warnings, errors: ["Não é permitido criar uma segunda candidatura com o mesmo número."], audits: personRes.audits, target_record_id: existing.id };
-    }
 
     if (ctx.dryRun) {
       return {
@@ -189,6 +206,8 @@ export const inscricoesImporter: RowImporter = {
       application_number: appNumber,
       full_name: candidate.full_name,
     });
+    // As linhas seguintes do mesmo lote tem de ver este numero como ja usado.
+    cache.existingApplicantNumbers.add(appNumber);
 
     return {
       status: "imported",
