@@ -28,6 +28,38 @@ BEGIN
       USING ERRCODE = '23514';
   END IF;
 
+  -- Do not publish a draft containing internal overlaps, even if its slots
+  -- were inserted before the slot guard was installed.
+  IF EXISTS (
+    SELECT 1
+    FROM public.timetable_slots a
+    JOIN public.timetable_slots b
+      ON b.school_id = a.school_id
+     AND b.schedule_id = a.schedule_id
+     AND b.id > a.id
+     AND b.status = 'active'
+     AND b.weekday = a.weekday
+     AND b.starts_at < a.ends_at
+     AND a.starts_at < b.ends_at
+    JOIN public.class_subjects ac
+      ON ac.school_id = a.school_id AND ac.id = a.class_subject_id
+     AND ac.status = 'active'
+    JOIN public.class_subjects bc
+      ON bc.school_id = b.school_id AND bc.id = b.class_subject_id
+     AND bc.status = 'active'
+    WHERE a.school_id = NEW.school_id
+      AND a.schedule_id = NEW.id
+      AND a.status = 'active'
+      AND (
+        ac.class_group_id = bc.class_group_id
+        OR (ac.teacher_id IS NOT NULL AND ac.teacher_id = bc.teacher_id)
+        OR (a.room_id IS NOT NULL AND a.room_id = b.room_id)
+      )
+  ) THEN
+    RAISE EXCEPTION 'A versão contém aulas sobrepostas e não pode ser publicada'
+      USING ERRCODE = '23514';
+  END IF;
+
   -- Compare only other published, non-deleted schedules in the same school
   -- and academic year whose effective dates intersect (inclusive).
   SELECT candidate.id INTO conflicting_slot
