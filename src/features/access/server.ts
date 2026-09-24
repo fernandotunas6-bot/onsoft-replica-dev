@@ -156,6 +156,20 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       );
     }
     const admin = await loadAdminClient();
+    // Validar o cadastro antes de criar auth.users: um conflito não deve
+    // deixar conta, perfil ou membership parcialmente provisionados.
+    const inviteEmail = data.email.trim().toLowerCase();
+    const { data: existingPeople, error: existingPeopleError } = await admin
+      .from("people")
+      .select("id, user_id")
+      .eq("school_id", schoolId)
+      .ilike("email", inviteEmail);
+    if (existingPeopleError) {
+      throw publicDatabaseError(existingPeopleError, "Não foi possível validar a identidade do convite.");
+    }
+    if ((existingPeople ?? []).length > 1 || existingPeople?.[0]?.user_id) {
+      throw new Error("Pessoa já vinculada ou e-mail duplicado nesta escola; reveja o cadastro antes de criar a conta.");
+    }
 
     // Não usar inviteUserByEmail: o mailer nativo da Supabase (sem SMTP próprio)
     // envia um e-mail genérico "Supabase Auth" — proibido pela identidade
