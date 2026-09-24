@@ -13,7 +13,7 @@ export const IMPORTER_TARGET_TABLES: Record<ImportModule, readonly string[]> = {
   disciplinas: ["subjects"],
   salas: ["rooms"],
   matriculas: ["enrollments"],
-  inscricoes: ["people", "students"],
+  inscricoes: ["people", "enrollment_applications"],
   horarios: ["class_groups", "subjects", "teachers", "class_subjects", "timetable_slots"],
   notas: ["enrollments", "terms", "class_subjects", "gradebooks", "grade_items", "grade_scores"],
   avaliacoes: ["class_groups", "subjects", "class_subjects", "terms", "gradebooks", "grade_items"],
