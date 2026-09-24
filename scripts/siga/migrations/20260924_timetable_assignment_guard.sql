@@ -75,9 +75,56 @@ BEGIN
       USING ERRCODE = '23503';
   END IF;
 
+  -- A teacher/class reassignment must also respect OTHER published schedule
+  -- versions whose effective dates overlap. Compare NEW assignment values
+  -- even though the underlying row still contains OLD values in this trigger.
+  IF EXISTS (
+    SELECT 1
+    FROM public.timetable_slots AS current_slot
+    JOIN public.academic_schedules AS current_schedule
+      ON current_schedule.id = current_slot.schedule_id
+     AND current_schedule.school_id = current_slot.school_id
+     AND current_schedule.status = 'published'
+     AND current_schedule.deleted_at IS NULL
+    JOIN public.timetable_slots AS other
+      ON other.school_id = current_slot.school_id
+     AND other.status = 'active'
+     AND other.weekday = current_slot.weekday
+     AND other.starts_at < current_slot.ends_at
+     AND current_slot.starts_at < other.ends_at
+    JOIN public.class_subjects AS other_assignment
+      ON other_assignment.id = other.class_subject_id
+     AND other_assignment.school_id = other.school_id
+     AND other_assignment.status = 'active'
+    JOIN public.academic_schedules AS other_schedule
+      ON other_schedule.id = other.schedule_id
+     AND other_schedule.school_id = other.school_id
+     AND other_schedule.status = 'published'
+     AND other_schedule.deleted_at IS NULL
+     AND other_schedule.id <> current_schedule.id
+     AND other_schedule.academic_year_id = current_schedule.academic_year_id
+     AND other_schedule.valid_from <= current_schedule.valid_to
+     AND other_schedule.valid_to >= current_schedule.valid_from
+    WHERE current_slot.school_id = NEW.school_id
+      AND current_slot.class_subject_id = NEW.id
+      AND current_slot.status = 'active'
+      AND (
+        (CASE WHEN other_assignment.id = NEW.id
+          THEN NEW.class_group_id ELSE other_assignment.class_group_id END)
+            = NEW.class_group_id
+        OR (NEW.teacher_id IS NOT NULL
+          AND (CASE WHEN other_assignment.id = NEW.id
+            THEN NEW.teacher_id ELSE other_assignment.teacher_id END)
+              = NEW.teacher_id)
+      )
+  ) THEN
+    RAISE EXCEPTION 'A alteração cria conflito com outra versão publicada'
+      USING ERRCODE = '23514';
+  END IF;
+
   RETURN NEW;
 END;
-$$;
+$;
 
 REVOKE ALL ON FUNCTION private.prevent_timetable_assignment_conflicts()
   FROM PUBLIC, anon, authenticated;
