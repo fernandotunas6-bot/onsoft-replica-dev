@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS academic_evidence.delivery_correction_decisions (
 -- minutes must fit the immutable scheduled occurrence at request time.
 CREATE OR REPLACE FUNCTION academic_evidence.guard_correction_request()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
-AS $
+AS $$
 DECLARE max_minutes integer;
 DECLARE review_time timestamptz;
 BEGIN
@@ -194,14 +194,14 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 CREATE TRIGGER guard_correction_request
 BEFORE INSERT ON academic_evidence.delivery_corrections
 FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_correction_request();
 
 CREATE OR REPLACE FUNCTION academic_evidence.guard_correction_decision()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
-AS $
+AS $$
 DECLARE original_minutes integer;
 DECLARE max_minutes integer;
 DECLARE requester uuid;
@@ -234,19 +234,19 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 CREATE TRIGGER guard_correction_decision
 BEFORE INSERT ON academic_evidence.delivery_correction_decisions
 FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_correction_decision();
 
 CREATE OR REPLACE FUNCTION academic_evidence.guard_append_only_evidence()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
-AS $
+AS $$
 BEGIN
   RAISE EXCEPTION 'Academic correction history is append-only'
     USING ERRCODE = '23514';
 END;
-$;
+$$;
 CREATE TRIGGER guard_delivery_corrections_append_only
 BEFORE UPDATE OR DELETE ON academic_evidence.delivery_corrections
 FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_append_only_evidence();
