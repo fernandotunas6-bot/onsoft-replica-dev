@@ -44,6 +44,11 @@ describe("detectScheduleConflicts", () => {
     expect(detectScheduleConflicts([a, b])).toEqual([]);
   });
 
+  it("não mistura versões diferentes do horário", () => {
+    expect(detectScheduleConflicts([slot("a", { schedule_id: "v1" }), slot("b", { schedule_id: "v2" })])).toEqual([]);
+    expect(detectScheduleConflicts([slot("a", { schedule_id: "v1" }), slot("b", { schedule_id: "v1" })])).toHaveLength(3);
+  });
+
   it("não mistura dias diferentes", () => {
     expect(detectScheduleConflicts([slot("a"), slot("b", { weekday: 2 })])).toEqual([]);
   });
