@@ -13,8 +13,10 @@ export type AlignmentResult = { ready: boolean; issues: string[] };
 export function validateAssessmentPlanAlignment(input: {
   blueprint: AssessmentBlueprint; session: AssessmentSession;
   schoolId: string; periodId: string; approvedPlans: readonly LessonPlan[];
+  /** Server-verified pedagogical reconciliation for the exact published occurrence. */
+  deliveredOccurrenceIds: ReadonlySet<string>;
 }): AlignmentResult {
-  const { blueprint, session, schoolId, periodId, approvedPlans } = input;
+  const { blueprint, session, schoolId, periodId, approvedPlans, deliveredOccurrenceIds } = input;
   const issues: string[] = [];
   if (!schoolId || blueprint.schoolId !== schoolId || blueprint.periodId !== periodId ||
       blueprint.sessionId !== session.id || blueprint.classGroupId !== session.classGroupId ||
@@ -34,10 +36,12 @@ export function validateAssessmentPlanAlignment(input: {
   const relevantPlans = approvedPlans.filter((p) => p.schoolId === schoolId &&
     p.periodId === periodId && p.classGroupId === session.classGroupId &&
     p.subjectId === session.subjectId && p.status === "approved" && !!p.approvedBy?.trim() &&
-    p.date <= session.date);
+    p.date < session.date && deliveredOccurrenceIds.has(p.occurrenceId));
   const units = new Set(relevantPlans.map((p) => p.curriculumUnitId));
   const objectives = new Set(relevantPlans.flatMap((p) => [...p.objectives]));
+  if (!relevantPlans.length) issues.push("Nenhuma aula anterior à prova tem execução pedagógica confirmada.");
   if (!blueprint.curriculumUnitIds.length ||
+      new Set(blueprint.curriculumUnitIds).size !== blueprint.curriculumUnitIds.length ||
       blueprint.curriculumUnitIds.some((id) => !units.has(id))) {
     issues.push("A matriz inclui unidades sem plano aprovado anterior à prova.");
   }
@@ -52,6 +56,7 @@ export function validateAssessmentPlanAlignment(input: {
       continue;
     }
     points += question.points;
+    if (!Number.isSafeInteger(points)) issues.push("Cotação acumulada excede o limite seguro.");
   }
   if (points !== blueprint.maximumPoints) {
     issues.push("A soma das questões não corresponde à cotação da prova.");
