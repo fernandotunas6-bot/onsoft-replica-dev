@@ -5,7 +5,7 @@
 -- All assignment changes must acquire the lock, including deactivation.
 CREATE OR REPLACE FUNCTION private.prevent_timetable_assignment_conflicts()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
