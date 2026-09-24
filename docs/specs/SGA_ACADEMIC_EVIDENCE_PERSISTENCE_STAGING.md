@@ -36,3 +36,11 @@ As tabelas têm RLS activo e acesso directo negado a anon e authenticated; o ser
 - A execução registada não pode exceder os minutos da ocorrência oficial. Depois da revisão, o registo de execução fica imutável; correcções exigem um futuro fluxo de rectificação auditado, com nova versão ou evento compensatório.
 - O ensaio SQL de preparação tenta explicitamente alterar a escola do snapshot, a ocorrência de um plano, os minutos além da duração oficial e a evidência de execução já revista.
 - Estes são testes **escritos mas não executados**. A migração continua sujeita à verificação de DDL, permissões, concorrência e testes de integração numa base PostgreSQL de preparação.
+
+## Validação rigorosa de publicação e reposição
+
+- Foram corrigidos os dois delimitadores PL/pgSQL que ainda estavam malformados nas funções de identidade do plano e duração da execução.
+- A publicação de uma versão do horário rejeita sobreposições entre aulas activas do mesmo professor ou turma, com comparação por instante absoluto, evitando problemas de relógios locais. Aulas adjacentes continuam permitidas.
+- Uma aula marcada como substituída precisa de uma reposição activa na mesma versão e instituição. O vínculo é individual: não são permitidas múltiplas reposições da mesma aula nem cadeias de reposições. O estado da aula original tem de estar explicitamente marcado como substituído antes de criar a nova ocorrência.
+- O ensaio SQL tenta publicar aulas simultâneas e uma substituição órfã; ambas as operações devem falhar e os dados do ensaio são revertidos.
+- **Pendente:** testar em PostgreSQL real, adicionar regras de conflitos de salas e exames em transacção e confrontar as FKs com o esquema real do SIGA antes de qualquer deploy.
