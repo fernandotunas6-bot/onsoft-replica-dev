@@ -96,6 +96,22 @@ export function previewPayroll(
   positiveInteger(policy.monthlyBaseCents, "Salário base");
   positiveInteger(policy.monthlyContractMinutes, "Carga horária contratual");
   if (policy.monthlyContractMinutes === 0) throw new Error("A carga horária contratual não pode ser zero.");
+  const lessonIds = new Set<string>();
+  for (const entry of attendance) {
+    if (!entry.lessonId || lessonIds.has(entry.lessonId)) {
+      throw new Error("Aulas duplicadas ou sem identificação no apuramento mensal.");
+    }
+    lessonIds.add(entry.lessonId);
+    positiveInteger(entry.scheduledMinutes, "Minutos previstos");
+    positiveInteger(entry.verifiedMinutes, "Minutos confirmados");
+    positiveInteger(entry.lateMinutes, "Minutos de atraso");
+    if (entry.verifiedMinutes > entry.scheduledMinutes ||
+        (entry.status === "pending_review" && entry.verifiedMinutes !== 0) ||
+        (entry.status === "excused" && entry.verifiedMinutes !== 0) ||
+        (entry.status === "absent" && entry.verifiedMinutes !== 0)) {
+      throw new Error("Registo de presença inconsistente; requer revisão.");
+    }
+  }
   const eligible = attendance.filter((entry) => entry.status !== "excused");
   const scheduledMinutes = eligible.reduce((sum, entry) => sum + entry.scheduledMinutes, 0);
   const verifiedMinutes = eligible.reduce((sum, entry) => sum + entry.verifiedMinutes, 0);
