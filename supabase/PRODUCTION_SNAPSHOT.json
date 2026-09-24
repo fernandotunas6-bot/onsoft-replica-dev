@@ -1,5 +1,5 @@
 {
-  "capturadoEm": "2026-09-24T11:14:55.992Z",
+  "capturadoEm": "2026-09-24T12:51:41.921Z",
   "resumo": {
     "com_rls": 162,
     "funcoes_private": 96,
@@ -1140,7 +1140,8 @@
         "reversed_at",
         "reversed_by",
         "reversal_reason",
-        "created_at"
+        "created_at",
+        "external_id"
       ],
       "politicas": 1,
       "rls": true,
@@ -5582,26 +5583,18 @@
     {
       "cmd": "ALL",
       "papeis": "{authenticated}",
-      "politica": "Manage assessment items in own school",
-      "tabela": "siga_assessment_items",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
-    },
-    {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
       "politica": "Manage assigned assessment items",
       "tabela": "siga_assessment_items",
       "usando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)",
       "verificando": "current_user_can_manage_assessment_item(school_id, class_group_id, subject_id)"
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Manage assessment scores in own school",
-      "tabela": "siga_assessment_scores",
+      "politica": "Read assessment items in own school",
+      "tabela": "siga_assessment_items",
       "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "verificando": ""
     },
     {
       "cmd": "ALL",
@@ -5614,34 +5607,42 @@
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
+      "politica": "Read assessment scores in own school",
+      "tabela": "siga_assessment_scores",
+      "usando": "is_school_member(school_id)",
+      "verificando": ""
+    },
+    {
+      "cmd": "SELECT",
+      "papeis": "{authenticated}",
       "politica": "Read attendance audits in own school",
       "tabela": "siga_attendance_audits",
       "usando": "is_school_member(school_id)",
       "verificando": ""
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Manage attendance justifications in own school",
+      "politica": "Read attendance justifications in own school",
       "tabela": "siga_attendance_justifications",
       "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "verificando": ""
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Manage attendance records in own school",
+      "politica": "Read attendance records in own school",
       "tabela": "siga_attendance_records",
       "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "verificando": ""
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Manage attendance sessions in own school",
+      "politica": "Read attendance sessions in own school",
       "tabela": "siga_attendance_sessions",
       "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "verificando": ""
     },
     {
       "cmd": "SELECT",
@@ -5756,12 +5757,12 @@
       "verificando": ""
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "School members can access student academic history",
+      "politica": "School members can read student academic history",
       "tabela": "student_academic_history",
       "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "verificando": ""
     },
     {
       "cmd": "INSERT",
@@ -5812,12 +5813,12 @@
       "verificando": "(school_id = ( SELECT current_school_id() AS current_school_id))"
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "School members can access student status history",
+      "politica": "School members can read student status history",
       "tabela": "student_status_history",
       "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "verificando": ""
     },
     {
       "cmd": "INSERT",

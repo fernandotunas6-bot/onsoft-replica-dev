@@ -22,9 +22,17 @@
 -- colidem, mas o `WHERE` deixa isso explícito e mantém o índice pequeno.
 --
 -- Aditiva e idempotente. O código funciona com e sem ela: sem a coluna, o insert devolve
--- 42703 e repete-se sem ela, ficando só com a protecção contra reenvio. **Não foi
--- aplicada** — é escrita na base, decisão do dono. Depois de aplicar:
--- `npm run siga:db-snapshot`, que é contra quem os testes medem.
+-- 42703 e repete-se sem ela, ficando só com a protecção contra reenvio.
+--
+-- APLICADA à produção (xodgfmxiaunpamctfeea) em 2026-09-24, e o retrato recapturado.
+-- A garantia foi verificada na própria base, numa transacção revertida: a segunda
+-- inserção com o mesmo `external_id` devolve
+--   23505 :: duplicate key value violates unique constraint
+--            "finance_receipts_school_external_id_key"
+--   DETAIL: Key (school_id, external_id)=(..., TX-PROVA) already exists.
+-- Importa que a mensagem nomeie `external_id`: é por ela que
+-- `settleGatewayPayment` distingue esta colisão da do número de recibo, e decide entre
+-- "já liquidado" e "tentar o número seguinte".
 
 ALTER TABLE public.finance_receipts
   ADD COLUMN IF NOT EXISTS external_id text;

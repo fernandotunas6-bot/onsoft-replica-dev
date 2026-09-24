@@ -50,8 +50,18 @@
 -- encarregado precisam de ver — caso contrário partem-se ecrãs legítimos. Fica separado de
 -- propósito: esta migração resolve a escrita, que é inequívoca e não tem esse risco.
 --
--- Aditiva no efeito e idempotente. **Não foi aplicada** — é escrita na base, decisão do
--- dono. Depois de aplicar: `npm run siga:db-snapshot`, que é contra quem os testes medem.
+-- APLICADA à produção (xodgfmxiaunpamctfeea) em 2026-09-24, e o retrato recapturado.
+--
+-- Verificado na própria base, numa transacção revertida, com um membro activo a quem se
+-- retiraram todos os papéis — o caso 'Aluno/Encarregado':
+--   · lançar nota em siga_assessment_scores .... 42501 (bloqueado)
+--   · inserir em student_academic_history ...... 42501 (bloqueado)
+--   · ler siga_assessment_scores ................ continua a funcionar
+--
+-- Nota sobre o alcance real: à data da aplicação não existia na base um único membro
+-- activo sem papel de docente ou de gestão, pelo que o buraco estava **latente** e não
+-- explorado. Fechá-lo antes de existirem contas de aluno e de encarregado é precisamente
+-- o momento certo.
 
 -- Avaliações — a política estrita `Manage assigned assessment items` fica a governar a
 -- escrita, que era a intenção original do HARDEN.
