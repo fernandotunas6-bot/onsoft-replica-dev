@@ -47,12 +47,22 @@ async function assertTermOpen(
   schoolId: string,
   term: number,
 ) {
-  const { data } = await db
+  const { data, error } = await db
     .from("school_settings")
     .select("value")
     .eq("school_id", schoolId)
     .eq("domain", "pedagogy")
     .maybeSingle();
+  // O erro era descartado: se esta leitura falhasse, `pedagogy` ficava indefinido, a
+  // função retornava sem lançar, e o trimestre fechado aceitava notas. Numa verificação
+  // de bloqueio o incumprimento tem de ser fechar, não abrir — não se sabe se o período
+  // está fechado, logo não se deixa escrever.
+  if (error) {
+    throw publicDatabaseError(
+      error,
+      "Não foi possível confirmar se o período está aberto. Tente novamente.",
+    );
+  }
   const pedagogy = pedagogySettingsSchema.safeParse(data?.value ?? {}).data;
   if (pedagogy?.closedTerms.includes(term as 1 | 2 | 3)) {
     throw new Error(
