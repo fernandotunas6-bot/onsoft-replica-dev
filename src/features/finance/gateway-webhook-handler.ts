@@ -113,18 +113,44 @@ export async function settleGatewayPayment(
   const normRef = normalizePaymentReference(input.reference);
   const { data: invoice, error: invoiceError } = await db
     .from("finance_invoices")
-    .select("id, status, amount, discount_amount, penalty_amount, issued_by")
+    .select("id, status, amount, discount_amount, penalty_amount, due_date, issued_by")
     .eq("id", input.invoiceId)
     .eq("school_id", input.schoolId)
     .maybeSingle();
   if (invoiceError) throw publicDatabaseError(invoiceError, "Não foi possível ler a fatura.");
   if (!invoice) throw new Error("Fatura não encontrada para esta escola.");
   if (invoice.status === "cancelled") throw new Error("Fatura cancelada.");
+  // Mesma multa por atraso de private.register_payment (20260924143000): aplica-se uma
+  // única vez, ao primeiro pagamento registado depois da tolerância configurada em
+  // Definições > Cobrança — o gateway também é um caminho de pagamento, não só a
+  // tesouraria manual.
+  let invoicePenaltyAmount = Number(invoice.penalty_amount ?? 0);
+  if (invoicePenaltyAmount === 0 && invoice.due_date) {
+    const { data: billing } = await db
+      .from("school_settings")
+      .select("value")
+      .eq("school_id", input.schoolId)
+      .eq("domain", "billing")
+      .maybeSingle();
+    const billingValue = (billing?.value as Record<string, unknown> | null) ?? {};
+    const graceDays = Number(billingValue["grace_days"] ?? 0);
+    const lateFeePercent = Number(billingValue["late_fee_percent"] ?? 0);
+    const dueDate = new Date(`${invoice.due_date}T00:00:00Z`);
+    const graceDeadline = new Date(dueDate.getTime() + graceDays * 86_400_000);
+    if (lateFeePercent > 0 && Date.now() > graceDeadline.getTime()) {
+      invoicePenaltyAmount = Math.round(((Number(invoice.amount) * lateFeePercent) / 100) * 100) / 100;
+      await db
+        .from("finance_invoices")
+        .update({ penalty_amount: invoicePenaltyAmount })
+        .eq("school_id", input.schoolId)
+        .eq("id", input.invoiceId);
+    }
+  }
   // Mesma correção de private.register_payment (20260924135028): o saldo em aberto é
   // o valor líquido, não o bruto — sem isto uma fatura com desconto nunca chegava a
   // "paid" pagando o valor correcto, e uma com multa ficava "paid" antes de tempo.
   const invoiceAmountDue =
-    Number(invoice.amount) - Number(invoice.discount_amount ?? 0) + Number(invoice.penalty_amount ?? 0);
+    Number(invoice.amount) - Number(invoice.discount_amount ?? 0) + invoicePenaltyAmount;
   if (invoice.status === "paid") {
     return {
       alreadyPaid: true as const,
