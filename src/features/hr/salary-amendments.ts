@@ -42,3 +42,20 @@ export const listHrSalaryChangeRequests = createServerFn({ method: "GET" })
     if (error) throw publicDatabaseError(error, "Não foi possível carregar os pedidos salariais.");
     return data ?? [];
   });
+
+/** Only contracts of the active school are selectable for a salary proposal. */
+export const listHrContractsForSalaryChange = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership || !["Administrador", "Tesouraria"].includes(membership.appRole)) {
+      throw new Error("Sem permissão para consultar contratos.");
+    }
+    const db = await loadSgaAdminClient();
+    const { data, error } = await db.from("hr_contracts")
+      .select("id,employment_id,contract_number,base_salary_kz,starts_on,ends_on,status")
+      .eq("school_id", membership.schoolId).eq("status", "active")
+      .is("deleted_at", null).order("starts_on", { ascending: false }).limit(200);
+    if (error) throw publicDatabaseError(error, "Não foi possível consultar contratos.");
+    return data ?? [];
+  });
