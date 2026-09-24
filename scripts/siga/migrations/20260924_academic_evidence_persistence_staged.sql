@@ -234,6 +234,62 @@ CREATE TRIGGER guard_approved_plan
 BEFORE UPDATE OR DELETE ON academic_evidence.lesson_plans
 FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_approved_plan();
 
+-- A plan can be revised in place while unapproved, but never moved
+-- between institutions or occurrences; approval metadata is set once.
+CREATE OR REPLACE FUNCTION academic_evidence.guard_plan_identity()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $
+BEGIN
+  IF NEW.id IS DISTINCT FROM OLD.id OR NEW.school_id IS DISTINCT FROM OLD.school_id
+     OR NEW.occurrence_id IS DISTINCT FROM OLD.occurrence_id
+     OR NEW.revision IS DISTINCT FROM OLD.revision
+     OR NEW.authored_by IS DISTINCT FROM OLD.authored_by
+     OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    RAISE EXCEPTION 'Lesson plan identity cannot be reassigned'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$;
+DROP TRIGGER IF EXISTS guard_plan_identity ON academic_evidence.lesson_plans;
+CREATE TRIGGER guard_plan_identity
+BEFORE UPDATE ON academic_evidence.lesson_plans
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_plan_identity();
+
+-- A delivery review cannot claim more minutes than the scheduled occurrence,
+-- nor rebind a reviewed record to a different teacher or lesson.
+CREATE OR REPLACE FUNCTION academic_evidence.guard_delivery_duration()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $
+DECLARE scheduled_minutes integer;
+BEGIN
+  IF TG_OP = 'UPDATE' AND (
+      NEW.id IS DISTINCT FROM OLD.id OR NEW.school_id IS DISTINCT FROM OLD.school_id
+      OR NEW.occurrence_id IS DISTINCT FROM OLD.occurrence_id
+      OR NEW.created_at IS DISTINCT FROM OLD.created_at) THEN
+    RAISE EXCEPTION 'Lesson delivery identity cannot be reassigned'
+      USING ERRCODE = '23514';
+  END IF;
+  SELECT floor(extract(epoch FROM (ends_at - starts_at)) / 60)::integer
+    INTO scheduled_minutes
+    FROM academic_evidence.lesson_occurrences
+    WHERE id = NEW.occurrence_id AND school_id = NEW.school_id;
+  IF scheduled_minutes IS NULL OR NEW.delivered_minutes > scheduled_minutes THEN
+    RAISE EXCEPTION 'Delivered minutes exceed the scheduled occurrence'
+      USING ERRCODE = '23514';
+  END IF;
+  IF TG_OP = 'UPDATE' AND OLD.reviewed_at IS NOT NULL AND NEW IS DISTINCT FROM OLD THEN
+    RAISE EXCEPTION 'Reviewed delivery is immutable; use an audited correction'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$;
+DROP TRIGGER IF EXISTS guard_delivery_duration ON academic_evidence.lesson_delivery;
+CREATE TRIGGER guard_delivery_duration
+BEFORE INSERT OR UPDATE ON academic_evidence.lesson_delivery
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_delivery_duration();
+
 -- Lock published snapshots and their occurrence records against silent edits.
 CREATE OR REPLACE FUNCTION academic_evidence.guard_published_snapshot()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
@@ -241,6 +297,15 @@ AS $$
 BEGIN
   IF TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'Academic snapshot deletion is forbidden' USING ERRCODE = '23514';
+  END IF;
+  IF OLD.status = 'draft' AND (
+      NEW.id IS DISTINCT FROM OLD.id OR NEW.school_id IS DISTINCT FROM OLD.school_id
+      OR NEW.schedule_id IS DISTINCT FROM OLD.schedule_id
+      OR NEW.academic_year_id IS DISTINCT FROM OLD.academic_year_id
+      OR NEW.period_id IS DISTINCT FROM OLD.period_id
+      OR NEW.version IS DISTINCT FROM OLD.version) THEN
+    RAISE EXCEPTION 'Snapshot identity and institution cannot be reassigned'
+      USING ERRCODE = '23514';
   END IF;
   IF OLD.status = 'draft' AND NEW.status = 'draft' AND
       (NEW.published_at IS NOT NULL OR NEW.published_by IS NOT NULL) THEN
