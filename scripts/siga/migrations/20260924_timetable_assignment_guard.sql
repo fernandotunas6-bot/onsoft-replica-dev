@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION private.prevent_timetable_assignment_conflicts()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
-AS $$
+AS $assignment_guard$
 DECLARE
   conflicting_slot uuid;
 BEGIN
@@ -125,7 +125,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$assignment_guard$;
 
 REVOKE ALL ON FUNCTION private.prevent_timetable_assignment_conflicts()
   FROM PUBLIC, anon, authenticated;
