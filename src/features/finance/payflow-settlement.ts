@@ -102,7 +102,12 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
         reversal_reason: reason,
       })
       .eq("id", receipt.id)
-      .eq("school_id", input.school_id);
+      .eq("school_id", input.school_id)
+      // Filtrar pelo estado na própria condição, e não só pelo `active` calculado
+      // acima: duas entregas simultâneas do mesmo estorno passariam ambas pelo
+      // filtro em memória e a segunda sobrescreveria `reversed_at`/`reversal_reason`
+      // da primeira, apagando o rasto de quando e porquê foi anulado.
+      .eq("status", "issued");
     if (reverseError) {
       return {
         ok: false as const,
@@ -112,13 +117,27 @@ export async function applyPayflowSettlement(input: PayflowSettlementInput) {
     }
   }
 
-  if (invoice.status === "paid") {
+  // Todos os recibos activos foram estornados, logo o valor liquidado é zero e a fatura
+  // volta a `open` — é o mesmo cálculo que `private.reverse_receipt` faz
+  // (`remaining_paid <= 0 then 'open'`). Uma fatura `partially_paid` também tem de ser
+  // reaberta: deixá-la como está fazia o aluno aparecer com parte da dívida saldada por
+  // um pagamento que já não existe.
+  //
+  // `"issued"` não é um estado admitido por `finance_invoices_status_check`
+  // ('open','partially_paid','paid','cancelled') e `finance_invoices` não tem coluna
+  // `updated_at` — a versão anterior falhava sempre, e falhava *depois* de já ter
+  // estornado os recibos, deixando a fatura presa em `paid` sem recibos activos.
+  // A condição é o estado em que a fatura tem de ficar, não o que esta chamada fez: assim
+  // também repõe as faturas que a versão anterior deixou presas em `paid` com todos os
+  // recibos já estornados — nesses casos `active` vem vazio e um `active.length > 0`
+  // deixaria o estado partido para sempre.
+  if (invoice.status !== "cancelled" && invoice.status !== "open") {
     const { error: invoiceError } = await db
       .from("finance_invoices")
-      .update({ status: "issued", updated_at: now })
+      .update({ status: "open" })
       .eq("id", input.invoice_id)
       .eq("school_id", input.school_id)
-      .eq("status", "paid");
+      .neq("status", "cancelled");
     if (invoiceError) {
       return {
         ok: false as const,
