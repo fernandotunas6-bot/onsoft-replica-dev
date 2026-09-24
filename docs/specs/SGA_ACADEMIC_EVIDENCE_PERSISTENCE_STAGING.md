@@ -1,6 +1,6 @@
-# SIGA Plus — persistência académica transacional (STAGING)
+# SIGA Plus — persistência académica transacional (aplicada à base Sga)
 
-**Estado:** migração e testes SQL escritos no PR #26. **Não aplicados** a staging nem produção. Não se afirma que a migração esteja validada em PostgreSQL real.
+**Estado actualizado em 24-09-2026:** migração `academic_evidence_persistence_20260924` aplicada com sucesso à base activa Supabase **Sga** (PostgreSQL 17.6), versão de migração `20260924023635`. O ensaio SQL foi executado na base com transacção revertida por `ROLLBACK`. Esta confirmação abrange o esquema de evidências, não a integração da aplicação nem a execução das outras migrações de horários.
 
 ## Modelo de dados preparado
 A migração scripts/siga/migrations/20260924_academic_evidence_persistence_staged.sql cria o esquema isolado academic_evidence com snapshots versionados de horários, ocorrências lectivas, planos de aula revisionados, registos de execução, sessões de avaliação e fechos de período. Todas as referências cruzadas entre tabelas de evidências usam FKs compostas (id, school_id), impedindo vínculos entre escolas diferentes.
@@ -58,3 +58,11 @@ As tabelas têm RLS activo e acesso directo negado a anon e authenticated; o ser
 O gatilho `guard_correction_request` exige que a execução original tenha sido revista e limita os minutos propostos à duração real da ocorrência oficial. Esta validação ocorre antes da gravação, sem esperar pela decisão do coordenador. O teste SQL de preparação inclui uma tentativa de pedir 46 minutos para uma aula oficial de 45 minutos e espera rejeição. A decisão continua independente, com separação entre requerente e aprovador e histórico imutável.
 
 **Ainda por validar:** execução da migração e do teste numa instância PostgreSQL 15+; comportamento com permissões efectivas de `service_role`; isolamento concorrente de revisões e pedidos; ligação à autenticação institucional. Nenhum pedido de rectificação deve actualizar automaticamente pautas ou salários.
+
+## Confirmação pós-migração na base Sga — 24-09-2026
+
+- Primeiro ensaio transaccional detectou delimitadores inválidos em três funções PL/pgSQL. Foram corrigidos no repositório; o ensaio completo seguinte, com `ROLLBACK`, concluiu sem erro.
+- Aplicação por `apply_migration` concluída com `success: true`. O histórico `supabase_migrations.schema_migrations` regista `20260924023635 / academic_evidence_persistence_20260924`.
+- O script `scripts/siga/tests/academic_evidence_staging_smoke.sql` foi executado depois da aplicação com `ROLLBACK` e não devolveu erros. A execução foi feita na base activa, embora o ficheiro mantenha o nome histórico de staging.
+- Consulta de confirmação: **8 tabelas, 1 vista, 11 gatilhos próprios e RLS activo nas 8 tabelas**. Acesso ao esquema negado aos papéis `anon` e `authenticated`. Zero linhas nas tabelas `schedule_snapshots` e `delivery_corrections` após os testes.
+- **Não concluído:** integrações com as tabelas escolares existentes, serviços de publicação, provas, pautas, salários, verificação de concorrência real, permissões de negócio e as restantes migrações do projecto. A presença do esquema não significa que a aplicação já grave dados nele.
