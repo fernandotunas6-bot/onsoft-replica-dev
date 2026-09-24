@@ -3,7 +3,7 @@
 -- Existing single-column FKs still guarantee the referenced row exists.
 CREATE OR REPLACE FUNCTION private.validate_timetable_school_references()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
