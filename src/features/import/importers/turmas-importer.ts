@@ -83,13 +83,13 @@ export const turmasImporter: RowImporter = {
     const shift = normalizeShift(shiftValue);
     if (!shift) errors.push("Turno inválido. Use Manhã, Tarde ou Noite.");
 
-    const roomValue = valueOf(normalized, "room", "campus", "sala", "Sala");
+    const roomValue = valueOf(normalized, "room", "sala", "Sala");
     if (roomValue) {
       const room = uniqueExactMatch(roomValue, cache.campuses, [(r) => r.code, (r) => r.name]);
       if (room.ambiguous) errors.push(`Sala/campus "${normalizeText(roomValue)}" é ambíguo.`);
       else if (!room.row)
         warnings.push(
-          `Sala/campus "${normalizeText(roomValue)}" não encontrado; a turma será criada sem sala.`,
+          `Sala "${normalizeText(roomValue)}" não é armazenada em class_groups; importe a sala no módulo salas/horarios.`,
         );
     }
 
@@ -129,9 +129,10 @@ export const turmasImporter: RowImporter = {
       (r) => r.code,
       (r) => r.name,
     ]).row!;
-    const roomValue = valueOf(normalized, "room", "campus", "sala", "Sala");
-    const campus = roomValue
-      ? uniqueExactMatch(roomValue, cache.campuses, [(r) => r.code, (r) => r.name]).row
+    const roomValue = valueOf(normalized, "room", "sala", "Sala");
+    const campusValue = valueOf(normalized, "campus", "campus_code", "campus_nome");
+    const campus = campusValue
+      ? uniqueExactMatch(campusValue, cache.campuses, [(r) => r.code, (r) => r.name]).row
       : null;
     const capacityRaw = Number(valueOf(normalized, "capacity", "capacidade", "Capacidade"));
     const capacity = Number.isInteger(capacityRaw) && capacityRaw > 0 ? capacityRaw : 30;
