@@ -56,11 +56,19 @@ function SalaryOperationsPage() {
     onSuccess: async () => { toast.success("Alteração registada no histórico salarial."); await refresh(); },
     onError: (error) => toast.error(errorText(error)),
   });
+  const luandaParts = new Intl.DateTimeFormat("en", {
+    timeZone: "Africa/Luanda", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: string) => luandaParts.find((item) => item.type === type)?.value ?? "";
+  const targetDate = effectiveOn || `${part("year")}-${part("month")}-${part("day")}`;
   const options = (scales.data ?? []).flatMap((scale) =>
-    scale.versions.flatMap((version) => version.steps.map((step) => ({
-      id: step.id, label: `${scale.name} · ${step.category_name} · ${step.grade} · ${kwanza(Number(step.monthly_base_kz))}`,
-      amount: Number(step.monthly_base_kz),
-    }))),
+    scale.versions
+      .filter((version) => version.effective_from <= targetDate &&
+        (!version.effective_until || version.effective_until >= targetDate))
+      .flatMap((version) => version.steps.map((step) => ({
+        id: step.id, label: `${scale.name} · ${step.category_name} · ${step.grade} · ${kwanza(Number(step.monthly_base_kz))}`,
+        amount: Number(step.monthly_base_kz),
+      }))),
   );
   return <AppShell><div className="space-y-6">
     <PageHeader group="Finanças · RH" title="Alterações salariais"
@@ -85,7 +93,7 @@ function SalaryOperationsPage() {
           <Input type="number" min={0} step="0.01" value={amount} onChange={(e)=>setAmount(e.target.value)} disabled={Boolean(stepId)} />
         </label>
         <label className="space-y-1 text-sm"><span>Entrada em vigor</span>
-          <Input type="date" value={effectiveOn} onChange={(e)=>setEffectiveOn(e.target.value)} />
+          <Input type="date" value={effectiveOn} onChange={(e)=>{setEffectiveOn(e.target.value);setStepId("");setAmount("");}} />
         </label>
         <label className="space-y-1 text-sm md:col-span-2"><span>Justificação (mínimo 10 caracteres)</span>
           <textarea className="min-h-24 w-full rounded-lg border bg-background p-3" maxLength={1500}
