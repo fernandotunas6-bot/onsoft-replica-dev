@@ -163,7 +163,7 @@ BEGIN
   IF v_reviewer IS NULL OR (SELECT public.current_profile_role()) NOT IN ('Administrador','Tesouraria') THEN
     RAISE EXCEPTION 'Independent HR reviewer required';
   END IF;
-  IF p_decision NOT IN ('approved','rejected')
+  IF p_decision IS NULL OR p_decision NOT IN ('approved','rejected')
      OR p_reason IS NULL OR char_length(btrim(p_reason)) NOT BETWEEN 10 AND 1000 THEN
     RAISE EXCEPTION 'Decision and documented reason of 10-1000 characters required';
   END IF;
