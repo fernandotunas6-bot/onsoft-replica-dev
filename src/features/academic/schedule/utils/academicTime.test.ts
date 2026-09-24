@@ -79,6 +79,23 @@ describe("períodos lectivos, turnos, intervalos e catracas", () => {
     expect(overlapping.occurrences).toEqual([]);
     expect(overlapping.issues.some((issue) => issue.code === "overlapping_periods")).toBe(true);
   });
+  it("repõe a aula de segunda-feira no sábado explicitamente configurado", () => {
+    const result = planAcademicLessons({ periods: [period], shifts: [shift],
+      lessons: [lesson], recoveryDays: [{ date: "2026-09-26", followsWeekday: 1 }] });
+    expect(result.issues).toEqual([]);
+    expect(result.occurrences.map((item) => item.date)).toEqual(["2026-09-21", "2026-09-26"]);
+  });
+  it("rejeita reposições duplicadas, feriados e datas fora do período", () => {
+    const base = { periods: [period], shifts: [shift], lessons: [lesson] };
+    expect(() => planAcademicLessons({ ...base, recoveryDays: [
+      { date: "2026-09-26", followsWeekday: 1 },
+      { date: "2026-09-26", followsWeekday: 2 },
+    ] })).toThrow();
+    expect(() => planAcademicLessons({ ...base, holidays: ["2026-09-26"],
+      recoveryDays: [{ date: "2026-09-26", followsWeekday: 1 }] })).toThrow();
+    expect(() => planAcademicLessons({ ...base,
+      recoveryDays: [{ date: "2026-10-03", followsWeekday: 1 }] })).toThrow();
+  });
   it("detecta conflito real por docente, turma ou sala na mesma data", () => {
     const result = planAcademicLessons({ periods: [period], shifts: [shift],
       lessons: [lesson, { ...lesson, id: "lesson-2", classGroupId: "class-2", roomId: "room-2" }] });
