@@ -167,7 +167,7 @@ export function ScheduleWorkspace({
     () => getWeeklyScheduleCoverage(slots, classSubjects, selectedClassGroupId),
     [slots, classSubjects, selectedClassGroupId],
   );
-  const hasScheduleGaps = weeklyCoverage.some((item) => item.missingPeriods > 0);
+  const hasScheduleGaps = weeklyCoverage.some((item) => item.missingPeriods > 0 || item.excessPeriods > 0);
   const selectedConflicts = conflicts.filter((conflict) =>
     conflict.slotIds.some((slotId) => currentSlots.some((slot) => slot.id === slotId)),
   );
@@ -523,15 +523,15 @@ export function ScheduleWorkspace({
         </span>
         {viewMode === "turma" && hasScheduleGaps ? (
           <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 font-semibold text-amber-700 dark:text-amber-300">
-            {weeklyCoverage.filter((item) => item.missingPeriods > 0).length} disciplina(s) com carga semanal pendente
+            {weeklyCoverage.filter((item) => item.missingPeriods > 0 || item.excessPeriods > 0).length} disciplina(s) com carga semanal divergente
           </span>
         ) : null}
       </div>
       {viewMode === "turma" && hasScheduleGaps ? (
         <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-foreground">
-          <p className="font-semibold">Publicação bloqueada até completar a carga semanal configurada.</p>
+          <p className="font-semibold">Publicação bloqueada: ajuste os tempos semanais em falta ou em excesso.</p>
           <ul className="mt-1 list-inside list-disc text-muted-foreground">
-            {weeklyCoverage.filter((item) => item.missingPeriods > 0).map((item) => (
+            {weeklyCoverage.filter((item) => item.missingPeriods > 0 || item.excessPeriods > 0).map((item) => (
               <li key={item.subjectId}>{item.subjectName}: {item.plannedPeriods}/{item.requiredPeriods} tempos semanais.</li>
             ))}
           </ul>
