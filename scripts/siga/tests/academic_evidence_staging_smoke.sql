@@ -36,6 +36,26 @@ BEGIN
   END;
   IF NOT blocked THEN RAISE EXCEPTION 'Cross-school plan accepted'; END IF;
 
+  blocked := false;
+  BEGIN
+    INSERT INTO academic_evidence.lesson_occurrences
+      (snapshot_id, school_id, occurrence_key, teacher_id, class_group_id,
+       subject_id, lesson_date, starts_at, ends_at, replacement_of)
+    VALUES (snap, school_b, 'foreign-replacement', teacher, gen_random_uuid(),
+      gen_random_uuid(), '2026-09-24',
+      '2026-09-24 09:00:00+01', '2026-09-24 09:45:00+01', occurrence);
+  EXCEPTION WHEN foreign_key_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Cross-school replacement accepted'; END IF;
+
+  blocked := false;
+  BEGIN
+    UPDATE academic_evidence.lesson_occurrences
+      SET school_id = school_b WHERE id = occurrence;
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Occurrence school reassignment accepted'; END IF;
+
   INSERT INTO academic_evidence.lesson_plans
     (id, school_id, occurrence_id, revision, curriculum_unit_id, objectives,
      methods, criteria, authored_by, state, approved_by, approved_at)
