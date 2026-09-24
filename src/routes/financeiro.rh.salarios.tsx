@@ -34,6 +34,7 @@ function SalaryOperationsPage() {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["hr", "salary-requests"] }),
       qc.invalidateQueries({ queryKey: ["hr", "salary-amendments"] }),
+      qc.invalidateQueries({ queryKey: ["hr", "salary-contracts"] }),
     ]);
   };
   const create = useMutation({
