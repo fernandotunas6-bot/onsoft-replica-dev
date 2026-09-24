@@ -52,3 +52,9 @@ As tabelas têm RLS activo e acesso directo negado a anon e authenticated; o ser
 - A vista de consulta `approved_delivery_corrections` mostra apenas rectificações aprovadas e **não modifica automaticamente** os registos originais, notas, faltas ou vencimentos. A aplicação de efeitos exige serviço autorizado e transacção auditada próprios.
 - Pré-requisito adicional: PostgreSQL 15+ para `CREATE VIEW ... WITH (security_invoker = true)`. Validar a versão do servidor e as permissões antes de aplicar a migração. Não publicar a vista nos esquemas de acesso directo de alunos ou docentes.
 - A prova SQL de preparação verifica pedido aprovado por terceiro, rejeição de auto-aprovação e impossibilidade de alterar o histórico. Ainda não foi executada numa instância PostgreSQL.
+
+## Validação antecipada dos pedidos de rectificação
+
+O gatilho `guard_correction_request` exige que a execução original tenha sido revista e limita os minutos propostos à duração real da ocorrência oficial. Esta validação ocorre antes da gravação, sem esperar pela decisão do coordenador. O teste SQL de preparação inclui uma tentativa de pedir 46 minutos para uma aula oficial de 45 minutos e espera rejeição. A decisão continua independente, com separação entre requerente e aprovador e histórico imutável.
+
+**Ainda por validar:** execução da migração e do teste numa instância PostgreSQL 15+; comportamento com permissões efectivas de `service_role`; isolamento concorrente de revisões e pedidos; ligação à autenticação institucional. Nenhum pedido de rectificação deve actualizar automaticamente pautas ou salários.
