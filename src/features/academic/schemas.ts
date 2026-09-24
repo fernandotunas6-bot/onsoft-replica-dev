@@ -150,7 +150,15 @@ export const assessmentKindSchema = z.enum([
   "outra",
 ]);
 
-export const assessmentComponentSchema = z.enum(["MAC", "NPP", "NPT", "recurso", "exame"]);
+export const assessmentComponentSchema = z.enum([
+  "MAC",
+  "NPP",
+  "NPT",
+  "recurso",
+  "exame",
+  "pap",
+  "estagio",
+]);
 
 export const createAssessmentInputSchema = z.object({
   classGroupId: z.string().uuid(),

@@ -25,6 +25,8 @@ export type SchoolSettingsRow = {
   phone: string | null;
   email: string | null;
   address: string | null;
+  province: string | null;
+  municipality: string | null;
   academic_year: string | null;
   currency: string;
   evaluation_periods: number;
@@ -133,6 +135,8 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
         phone: data.phone,
         email: data.email,
         address: data.address,
+        province: data.province,
+        municipality: data.municipality,
         academic_year: data.academic_year,
         currency: data.currency,
         evaluation_periods: data.evaluation_periods,

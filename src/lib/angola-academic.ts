@@ -323,6 +323,8 @@ export const assessmentComponents = [
   { id: "NPT", label: "NPT · Prova trimestral" },
   { id: "recurso", label: "Recurso" },
   { id: "exame", label: "Exame" },
+  { id: "pap", label: "PAP · Prova de aptidão profissional" },
+  { id: "estagio", label: "Estágio curricular" },
 ] as const;
 
 export type AssessmentComponentId = (typeof assessmentComponents)[number]["id"];
