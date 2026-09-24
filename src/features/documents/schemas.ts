@@ -17,8 +17,16 @@ export type CreateDocumentRequestInput = z.infer<typeof createDocumentRequestInp
 
 export const updateDocumentRequestStatusInputSchema = z.object({
   requestId: z.string().uuid(),
-  /** Allowed by `document_requests_status_check`. */
-  status: z.enum(["pending_payment", "queued", "processing", "ready", "delivered", "cancelled"]),
+  /**
+   * Vocabulário da INTERFACE. O servidor traduz para o da base (`uiStatusToSga` em
+   * documents/server.ts) antes de gravar.
+   *
+   * O comentário anterior dizia "Allowed by `document_requests_status_check`" e a lista
+   * não era essa — a base admite submitted|in_review|approved|rejected|fulfilled|cancelled,
+   * e destes seis só `cancelled` coincidia. Na prática só se conseguia cancelar um pedido.
+   * `pending_payment` sai da lista: não tem correspondência nenhuma na base.
+   */
+  status: z.enum(["queued", "processing", "ready", "delivered", "rejected", "cancelled"]),
 });
 
 export type UpdateDocumentRequestStatusInput = z.infer<

@@ -276,7 +276,7 @@ function DocumentosPage() {
         data: {
           requestId: documento.id,
           status: nextStatus as
-            "pending_payment" | "queued" | "processing" | "ready" | "delivered" | "cancelled",
+            "queued" | "processing" | "ready" | "delivered" | "rejected" | "cancelled",
         },
       });
       await Promise.all([
