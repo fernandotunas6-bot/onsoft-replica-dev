@@ -19,3 +19,7 @@ Production project: `xodgfmxiaunpamctfeea`. Do not apply legacy Lovable SQL to t
 ## Next release gate
 
 Resolve the two published versions' effective-date policy; acquire per-school locks at the beginning of all timetable-write transactions; verify RLS/security-definer behavior and real concurrent transactions on a staging clone. Only then apply remaining migrations individually, verifying each trigger after installation.
+
+## Resolução posterior: datas publicadas
+
+A migração `20260924_reconcile_published_timetable_dates.sql` foi aplicada e verificada na base SGA: V1, sem aulas ativas, ficou válida apenas em 2026-09-08; V2, com duas aulas ativas, ficou válida de 2026-09-09 até ao fim do ano letivo em 2027-07-31. Ambas permanecem publicadas; nenhuma aula foi removida. O bloqueador das datas foi resolvido. Permanecem bloqueadas as migrações de concorrência, atribuições e publicação até aos testes reais de duas sessões e à revisão da ordem dos locks.
