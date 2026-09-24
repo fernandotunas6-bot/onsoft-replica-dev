@@ -42,9 +42,11 @@ export const requestHrSalaryChange = createServerFn({ method: "POST" })
       (contract.ends_on && data.effectiveOn > contract.ends_on)) {
       throw new Error("Data da alteração fora da vigência do contrato.");
     }
-    const todayLuanda = new Intl.DateTimeFormat("en-CA", {
+    const luandaParts = new Intl.DateTimeFormat("en", {
       timeZone: "Africa/Luanda", year: "numeric", month: "2-digit", day: "2-digit",
-    }).format(new Date());
+    }).formatToParts(new Date());
+    const part = (type: string) => luandaParts.find((item) => item.type === type)?.value ?? "";
+    const todayLuanda = `${part("year")}-${part("month")}-${part("day")}`;
     if (data.effectiveOn < todayLuanda) {
       throw new Error("Alterações retroactivas exigem um procedimento de rectificação.");
     }
