@@ -28,6 +28,23 @@ BEGIN
       USING ERRCODE = '23514';
   END IF;
 
+  -- Unknown dates on another published version make cross-version safety
+  -- impossible to prove. Require administrative cleanup before publishing.
+  IF EXISTS (
+    SELECT 1
+    FROM public.academic_schedules AS other
+    WHERE other.school_id = NEW.school_id
+      AND other.academic_year_id = NEW.academic_year_id
+      AND other.id <> NEW.id
+      AND other.status = 'published'
+      AND other.deleted_at IS NULL
+      AND (other.valid_from IS NULL OR other.valid_to IS NULL
+           OR other.valid_to < other.valid_from)
+  ) THEN
+    RAISE EXCEPTION 'Corrija as datas de outras versões publicadas antes de publicar'
+      USING ERRCODE = '23514';
+  END IF;
+
   -- Do not publish a draft containing internal overlaps, even if its slots
   -- were inserted before the slot guard was installed.
   IF EXISTS (
