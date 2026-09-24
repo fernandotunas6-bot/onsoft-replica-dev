@@ -117,6 +117,16 @@ describe("presença docente e apuramento mensal", () => {
     expect(previewPayroll([partial], { ...payroll, expectedLessonMinutes: undefined }).proposedDeductionCents).toBe(0);
   });
 
+  it("coloca em revisão evidência QR com data inválida sem interromper o mês", () => {
+    const invalid = event("check_in", "08:00:00");
+    const result = evaluateLessonAttendance(lesson, [
+      { ...invalid, occurredAt: "data-corrompida" }, event("check_out", "09:00:00"),
+    ], policy);
+    expect(result.status).toBe("pending_review");
+    expect(result.evidenceIds).toHaveLength(2);
+    expect(previewPayroll([result], payroll).proposedDeductionCents).toBe(0);
+  });
+
   it("rejeita datas sem fuso e carga horária mensal zero", () => {
     expect(() => evaluateLessonAttendance({ ...lesson, startsAt: "2026-09-24T08:00:00" }, [], policy)).toThrow(/fuso/);
     expect(() => previewPayroll([], { ...payroll, monthlyContractMinutes: 0 })).toThrow();
