@@ -56,3 +56,10 @@
 - `workCalendar.ts` calcula os dias úteis do mês a partir dos dias semanais institucionais, feriados e exceções; 22 dias é apenas referência de apresentação. A folha deve utilizar carga horária e calendário do contrato efetivamente aplicável.
 - O motor e o scanner são componentes preparatórios. Não há ainda endpoint de QR autenticado, driver físico de catraca, persistência RLS ou integração operacional com folha salarial. Não tratar as verificações no navegador como evidência suficiente para remuneração.
 - Pendente: ensaios de integração, testes automatizados executados, validação laboral em Angola, política de retenção e piloto em staging com equipamento real.
+
+## 8. Invariantes adicionais para implementação da API
+
+- A comparação mensal deve usar **identificadores exatos** das aulas publicadas, além da contagem. `expectedLessonIds` e `expectedLessonCount` devem vir exclusivamente de consulta autenticada ao horário oficial; parâmetros fornecidos pelo navegador não autorizam descontos. Ausência ou divergência bloqueia a proposta.
+- A deduplicação das catracas precisa de **índice UNIQUE persistente** em `(school_id, device_id, external_event_id)`, além da deteção em memória. `previouslyProcessedKeys` é apenas uma entrada auxiliar para testes ou processamento em lotes; não garante concorrência nem substitui a restrição SQL.
+- Eventos com relógio adiantado ou sincronização muito tardia permanecem em quarentena; o dispositivo não pode confirmar presença letiva. A libertação exige validação humana e auditoria.
+- A aprovação do RH deve ser uma autorização persistida e vinculada ao fecho mensal específico; o booleano do motor é apenas dado interno de simulação e não deve ser aceite diretamente de pedidos do cliente.
