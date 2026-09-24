@@ -6,6 +6,7 @@ export type WeeklyScheduleCoverage = {
   requiredPeriods: number;
   plannedPeriods: number;
   missingPeriods: number;
+  excessPeriods: number;
 };
 
 export function getWeeklyScheduleCoverage(slots: ScheduleSlot[], classSubjects: ScheduleClassSubject[], classGroupId: string): WeeklyScheduleCoverage[] {
@@ -19,10 +20,20 @@ export function getWeeklyScheduleCoverage(slots: ScheduleSlot[], classSubjects: 
   return classSubjects
     .filter((item) => item.class_group_id === classGroupId)
     .map((item) => {
-      const requiredPeriods = Math.max(0, Number(item.weekly_periods ?? 0));
+      const requiredPeriods = Number(item.weekly_periods);
       const plannedPeriods = plannedBySubject.get(item.subject_id) ?? 0;
-      return { subjectId: item.subject_id, subjectName: subjectNameById.get(item.subject_id) ?? "Disciplina", requiredPeriods, plannedPeriods, missingPeriods: Math.max(0, requiredPeriods - plannedPeriods) };
+      return {
+        subjectId: item.subject_id,
+        subjectName: subjectNameById.get(item.subject_id) ?? "Disciplina",
+        requiredPeriods,
+        plannedPeriods,
+        missingPeriods: Math.max(0, requiredPeriods - plannedPeriods),
+        excessPeriods: Math.max(0, plannedPeriods - requiredPeriods),
+      };
     })
-    .filter((item) => item.requiredPeriods > 0)
-    .sort((left, right) => right.missingPeriods - left.missingPeriods || left.subjectName.localeCompare(right.subjectName));
+    .filter((item) => Number.isSafeInteger(item.requiredPeriods) && item.requiredPeriods > 0)
+    .sort((left, right) =>
+      (right.missingPeriods + right.excessPeriods) - (left.missingPeriods + left.excessPeriods) ||
+      left.subjectName.localeCompare(right.subjectName),
+    );
 }
