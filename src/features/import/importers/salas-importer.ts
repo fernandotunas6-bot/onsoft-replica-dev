@@ -122,7 +122,20 @@ export const salasImporter: RowImporter = {
       status: "imported",
       warnings: analysis.warnings,
       errors: [],
-      audits: [],
+      audits: [
+        {
+          table_name: "rooms",
+          target_id: String(data.id),
+          action_type: "inserted",
+          after_data: {
+            school_id: ctx.schoolId,
+            code,
+            name,
+            capacity,
+            status: "active",
+          },
+        },
+      ],
       target_record_id: String(data.id),
     };
   },
