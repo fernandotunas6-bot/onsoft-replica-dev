@@ -24,6 +24,7 @@ export type PayrollPolicy = {
   deductionEnabled: boolean; approvedByHr: boolean;
   expectedLessonCount?: number; // supplied by the authoritative published timetable
   expectedLessonIds?: readonly string[]; // authoritative lesson identities, not just count
+  expectedLessonMinutes?: Readonly<Record<string, number>>; // authoritative durations
 };
 export type PayrollPreview = {
   scheduledMinutes: number; verifiedMinutes: number; unverifiedMinutes: number;
@@ -100,10 +101,14 @@ export function previewPayroll(
   if (policy.monthlyContractMinutes === 0) throw new Error("A carga horária contratual não pode ser zero.");
   if (policy.expectedLessonCount !== undefined) positiveInteger(policy.expectedLessonCount, "Número de aulas previstas");
   const expectedIds = policy.expectedLessonIds;
+  const expectedMinutes = policy.expectedLessonMinutes;
+  const invalidExpectedMinutes = expectedIds === undefined || expectedMinutes === undefined ||
+    Object.keys(expectedMinutes ?? {}).length !== (expectedIds?.length ?? 0) ||
+    expectedIds?.some((id) => !Number.isSafeInteger(expectedMinutes?.[id]) || (expectedMinutes?.[id] ?? 0) <= 0) === true;
   const invalidExpectedIds = expectedIds === undefined || expectedIds.some((id) => !id) ||
     (expectedIds !== undefined && new Set(expectedIds).size !== expectedIds.length);
   const actualIds = new Set(attendance.map((entry) => entry.lessonId));
-  const incompleteRoster = invalidExpectedIds || policy.expectedLessonCount === undefined ||
+  const incompleteRoster = invalidExpectedIds || invalidExpectedMinutes || policy.expectedLessonCount === undefined ||
     policy.expectedLessonCount !== attendance.length || expectedIds?.length !== attendance.length ||
     expectedIds?.some((id) => !actualIds.has(id)) === true;
   const lessonIds = new Set<string>();
@@ -113,6 +118,10 @@ export function previewPayroll(
     }
     lessonIds.add(entry.lessonId);
     positiveInteger(entry.scheduledMinutes, "Minutos previstos");
+    if (expectedMinutes !== undefined && Object.hasOwn(expectedMinutes, entry.lessonId) &&
+        entry.scheduledMinutes !== expectedMinutes[entry.lessonId]) {
+      throw new Error("Duração da aula diverge do horário oficial.");
+    }
     positiveInteger(entry.verifiedMinutes, "Minutos confirmados");
     positiveInteger(entry.lateMinutes, "Minutos de atraso");
     if (entry.verifiedMinutes > entry.scheduledMinutes ||
