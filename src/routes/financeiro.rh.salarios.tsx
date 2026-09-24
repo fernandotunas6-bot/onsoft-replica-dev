@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { kwanza } from "@/lib/currency";
 import { requestHrSalaryChange, reviewHrSalaryChange } from "@/features/hr/salary-changes";
-import { applyApprovedHrSalaryChange, listHrSalaryChangeRequests, listHrContractsForSalaryChange } from "@/features/hr/salary-amendments";
+import { applyApprovedHrSalaryChange, listHrSalaryChangeRequests, listHrContractsForSalaryChange, listHrSalaryAmendments } from "@/features/hr/salary-amendments";
 import { listApprovedSalaryScales } from "@/features/hr/salary-catalog";
 
 export const Route = createFileRoute("/financeiro/rh/salarios")({
@@ -29,7 +29,13 @@ function SalaryOperationsPage() {
   const contracts = useQuery({ queryKey: ["hr", "salary-contracts"], queryFn: () => listHrContractsForSalaryChange(), retry: false });
   const requests = useQuery({ queryKey: ["hr", "salary-requests"], queryFn: () => listHrSalaryChangeRequests(), retry: false });
   const scales = useQuery({ queryKey: ["hr", "salary-scales"], queryFn: () => listApprovedSalaryScales(), retry: false });
-  const refresh = () => qc.invalidateQueries({ queryKey: ["hr", "salary-requests"] });
+  const ledger = useQuery({ queryKey: ["hr", "salary-amendments"], queryFn: () => listHrSalaryAmendments(), retry: false });
+  const refresh = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["hr", "salary-requests"] }),
+      qc.invalidateQueries({ queryKey: ["hr", "salary-amendments"] }),
+    ]);
+  };
   const create = useMutation({
     mutationFn: () => requestHrSalaryChange({ data: {
       contractId, requestedStepId: stepId || null,
@@ -110,6 +116,25 @@ function SalaryOperationsPage() {
           </div>}
           {r.review_reason && <p className="mt-2 text-xs text-muted-foreground">Decisão: {r.review_reason}</p>}
         </div>)}</div>}
+    </Panel>
+    <Panel title="Histórico salarial auditado" description="Registos imutáveis de alterações efectivamente aplicadas.">
+      {ledger.isLoading ? <p className="text-sm text-muted-foreground">A carregar histórico…</p>
+      : ledger.isError ? <p className="text-sm text-destructive">{errorText(ledger.error)}</p>
+      : (ledger.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Ainda não existem alterações aplicadas.</p>
+      : <div className="overflow-x-auto"><table className="w-full text-sm">
+        <thead><tr className="border-b text-left text-muted-foreground">
+          <th className="py-3 pr-4">Contrato</th><th className="py-3 pr-4">Vigência</th>
+          <th className="py-3 pr-4">Anterior</th><th className="py-3 pr-4">Novo</th>
+          <th className="py-3">Registado</th>
+        </tr></thead>
+        <tbody>{(ledger.data ?? []).map((entry) => <tr key={entry.id} className="border-b last:border-0">
+          <td className="py-3 pr-4 font-mono text-xs">{entry.contract_id.slice(0, 8)}</td>
+          <td className="py-3 pr-4">{entry.effective_on}</td>
+          <td className="py-3 pr-4">{kwanza(Number(entry.previous_base_salary_kz))}</td>
+          <td className="py-3 pr-4 font-semibold">{kwanza(Number(entry.new_base_salary_kz))}</td>
+          <td className="py-3">{new Date(entry.created_at).toLocaleDateString("pt-AO")}</td>
+        </tr>)}</tbody>
+      </table></div>}
     </Panel>
   </div></AppShell>;
 }
