@@ -163,6 +163,17 @@ describe("presença docente e apuramento mensal", () => {
     expect(result.payableBaseCents).toBe(0);
   });
 
+  it("rejeita datas civis impossíveis nos horários e coloca QR inválido em revisão", () => {
+    expect(() => evaluateLessonAttendance({ ...lesson,
+      startsAt: "2026-09-31T08:00:00+01:00" }, [], policy)).toThrow(/Data inválida/);
+    const invalid = evaluateLessonAttendance(lesson, [
+      { ...event("check_in", "08:00:00"), occurredAt: "2026-02-29T08:00:00+01:00" },
+      event("check_out", "09:00:00"),
+    ], policy);
+    expect(invalid.status).toBe("pending_review");
+    expect(previewPayroll([invalid], payroll).proposedDeductionCents).toBe(0);
+  });
+
   it("rejeita datas sem fuso e carga horária mensal zero", () => {
     expect(() => evaluateLessonAttendance({ ...lesson, startsAt: "2026-09-24T08:00:00" }, [], policy)).toThrow(/fuso/);
     expect(() => previewPayroll([], { ...payroll, monthlyContractMinutes: 0 })).toThrow();
