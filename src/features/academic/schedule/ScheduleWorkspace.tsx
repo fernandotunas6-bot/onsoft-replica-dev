@@ -37,6 +37,7 @@ import type {
   ScheduleTeacher,
 } from "./types";
 import { detectScheduleConflicts } from "./utils/conflicts";
+import { assertValidScheduleTime, assertNoScheduleConflict } from "./utils/validation";
 import { toast } from "sonner";
 
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"] as const;
@@ -195,12 +196,17 @@ export function ScheduleWorkspace({
     const roomLabel = resolvedRoom?.name || values["rotulo"]?.trim() || "Sala";
     const virtualRoom = virtualRooms.find((item) => item.label === values["salaVirtual"]);
 
+    const startsAt = values["inicio"] ?? "";
+    const endsAt = values["fim"] ?? "";
+    assertValidScheduleTime(weekday, startsAt, endsAt);
+    assertNoScheduleConflict(slots, { class_group_id: classGroup.id, teacher_id: resolvedTeacher?.id ?? null, room_id: resolvedRoom?.id ?? null, weekday, starts_at: startsAt, ends_at: endsAt });
+
     await onCreateSlot({
       classGroupId: classGroup.id,
       subjectId: subject.id,
       weekday,
-      startsAt: values["inicio"] ?? "",
-      endsAt: values["fim"] ?? "",
+      startsAt,
+      endsAt,
       teacherId: resolvedTeacher?.id ?? null,
       roomId: resolvedRoom?.id ?? null,
       label: virtualRoom ? `${roomLabel} · ${virtualRoom.url}` : roomLabel,
@@ -223,6 +229,11 @@ export function ScheduleWorkspace({
     );
     const roomLabel = resolvedRoom?.name || values["rotulo"]?.trim() || slot.label || "Sala";
 
+    const startsAt = values["inicio"] ?? "";
+    const endsAt = values["fim"] ?? "";
+    assertValidScheduleTime(weekday, startsAt, endsAt);
+    assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: resolvedTeacher?.id ?? null, room_id: resolvedRoom?.id ?? null, weekday, starts_at: startsAt, ends_at: endsAt }, slot.id);
+
     await onUpdateSlot({
       slotId: slot.id,
       weekday,
@@ -242,6 +253,8 @@ export function ScheduleWorkspace({
     const weekday = weekdayByLabel.get(values["dia"] ?? "");
     if (!weekday) throw new Error("Seleccione o dia.");
 
+    assertValidScheduleTime(weekday, slot.starts_at, slot.ends_at);
+    assertNoScheduleConflict(slots, { class_group_id: slot.class_group_id, teacher_id: slot.teacher_id, room_id: slot.room_id ?? null, weekday, starts_at: slot.starts_at, ends_at: slot.ends_at });
     await onCreateSlot({
       classGroupId: slot.class_group_id,
       subjectId: slot.subject_id,
