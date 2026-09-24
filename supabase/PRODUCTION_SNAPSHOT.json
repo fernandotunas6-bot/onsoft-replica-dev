@@ -1,9 +1,9 @@
 {
-  "capturadoEm": "2026-09-24T13:48:54.748Z",
+  "capturadoEm": "2026-09-24T20:13:53.414Z",
   "resumo": {
     "com_rls": 162,
     "funcoes_private": 101,
-    "politicas": 297,
+    "politicas": 291,
     "tabelas": 162,
     "triggers": 174
   },
@@ -1187,7 +1187,7 @@
         "created_by",
         "created_at"
       ],
-      "politicas": 6,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "grade_items"
@@ -1230,7 +1230,7 @@
         "pending_requested_by",
         "pending_requested_at"
       ],
-      "politicas": 6,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "grade_scores"
@@ -1306,7 +1306,7 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 6,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "gradebooks"
@@ -4381,28 +4381,12 @@
       "verificando": ""
     },
     {
-      "cmd": "INSERT",
-      "papeis": "{authenticated}",
-      "politica": "Academic create grade items",
-      "tabela": "grade_items",
-      "usando": "",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Academic read grade items",
       "tabela": "grade_items",
       "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM ((gradebooks gb\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gb.id = grade_items.gradebook_id) AND (gb.school_id = grade_items.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
       "verificando": ""
-    },
-    {
-      "cmd": "UPDATE",
-      "papeis": "{authenticated}",
-      "politica": "Academic update grade items",
-      "tabela": "grade_items",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
     },
     {
       "cmd": "INSERT",
@@ -4461,28 +4445,12 @@
       "verificando": ""
     },
     {
-      "cmd": "INSERT",
-      "papeis": "{authenticated}",
-      "politica": "Academic create grade scores",
-      "tabela": "grade_scores",
-      "usando": "",
-      "verificando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Academic read grade scores",
       "tabela": "grade_scores",
       "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
       "verificando": ""
-    },
-    {
-      "cmd": "UPDATE",
-      "papeis": "{authenticated}",
-      "politica": "Academic update grade scores",
-      "tabela": "grade_scores",
-      "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
-      "verificando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (((grade_items gi\n     JOIN gradebooks gb ON (((gb.id = gi.gradebook_id) AND (gb.school_id = gi.school_id))))\n     JOIN class_subjects cs ON (((cs.id = gb.class_subject_id) AND (cs.school_id = gb.school_id))))\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((gi.id = grade_scores.grade_item_id) AND (gi.school_id = grade_scores.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))"
     },
     {
       "cmd": "INSERT",
@@ -4549,28 +4517,12 @@
       "verificando": "(private.is_aal2() AND (updated_by = ( SELECT auth.uid() AS uid)))"
     },
     {
-      "cmd": "INSERT",
-      "papeis": "{authenticated}",
-      "politica": "Academic create gradebooks",
-      "tabela": "gradebooks",
-      "usando": "",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Academic read gradebooks",
       "tabela": "gradebooks",
       "usando": "(is_school_member(school_id) AND (( SELECT can_manage_students() AS can_manage_students) OR (EXISTS ( SELECT 1\n   FROM (class_subjects cs\n     JOIN teachers t ON (((t.id = cs.teacher_id) AND (t.school_id = cs.school_id))))\n  WHERE ((cs.id = gradebooks.class_subject_id) AND (cs.school_id = gradebooks.school_id) AND (cs.status = 'active'::text) AND (t.user_id = ( SELECT auth.uid() AS uid)))))))",
       "verificando": ""
-    },
-    {
-      "cmd": "UPDATE",
-      "papeis": "{authenticated}",
-      "politica": "Academic update gradebooks",
-      "tabela": "gradebooks",
-      "usando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))",
-      "verificando": "(is_school_member(school_id) AND ( SELECT can_manage_students() AS can_manage_students))"
     },
     {
       "cmd": "INSERT",
