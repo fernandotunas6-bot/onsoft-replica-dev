@@ -99,3 +99,19 @@ export const listHrSalaryAmendments = createServerFn({ method: "GET" })
     if (error) throw publicDatabaseError(error, "Não foi possível consultar o histórico salarial.");
     return data ?? [];
   });
+
+/** Used only to present actions permitted to the current school member.
+ * Database and server endpoints continue enforcing independent authorization. */
+export const getHrSalaryWorkflowPermissions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership || !["Administrador", "Tesouraria"].includes(membership.appRole)) {
+      throw new Error("Sem permissão para gerir remunerações.");
+    }
+    return {
+      actorId: context.userId,
+      canApply: membership.appRole === "Administrador",
+      canReview: true,
+    };
+  });
