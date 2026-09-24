@@ -190,7 +190,7 @@ export function TeacherAttendancePanel({
       } else {
         setScanMode("check_in");
         toast.success("Saída confirmada", {
-          description: `Presença validada automaticamente com confiança ${assurance.score}/100 e elegível para remuneração.`,
+          description: `Saída registada com confiança ${assurance.score}/100. A remuneração depende da validação do RH.`,
         });
       }
       setToken("");
