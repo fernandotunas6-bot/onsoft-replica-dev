@@ -63,3 +63,9 @@
 - A deduplicação das catracas precisa de **índice UNIQUE persistente** em `(school_id, device_id, external_event_id)`, além da deteção em memória. `previouslyProcessedKeys` é apenas uma entrada auxiliar para testes ou processamento em lotes; não garante concorrência nem substitui a restrição SQL.
 - Eventos com relógio adiantado ou sincronização muito tardia permanecem em quarentena; o dispositivo não pode confirmar presença letiva. A libertação exige validação humana e auditoria.
 - A aprovação do RH deve ser uma autorização persistida e vinculada ao fecho mensal específico; o booleano do motor é apenas dado interno de simulação e não deve ser aceite diretamente de pedidos do cliente.
+
+## 9. Integridade das durações e eventos inválidos
+
+- A folha mensal deve comparar **IDs, quantidade e duração oficial de cada aula** com uma versão imutável do horário publicado. `expectedLessonMinutes` e os restantes parâmetros de conferência devem ser gerados exclusivamente no servidor; dados recebidos do navegador nunca autorizam descontos.
+- QR validado com timestamp inválido deve ficar `pending_review`, preservando IDs das evidências para auditoria; não deve interromper o apuramento de outros docentes ou originar desconto.
+- A simulação atual **não prova** que um docente lecionou efetivamente; a presença QR é evidência administrativa e deve ser complementada por supervisão institucional, substituições, justificações e contestação. Qualquer desconto exige enquadramento jurídico/contratual e aprovação efetiva de RH na base de dados.
