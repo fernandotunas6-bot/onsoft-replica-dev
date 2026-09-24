@@ -2,202 +2,273 @@
 
 **Data:** 2026-09-24 · **Âmbito:** apenas a área 6 · **Código não alterado.**
 
-Evidência: `supabase/PRODUCTION_SNAPSHOT.json` recapturado hoje e consultas em
-leitura à produção ligada. Código: `src/features/finance/` (server, webhooks,
-PayFlow), RPCs `private.*` capturadas em
-`supabase/migrations/20260908210000_capture_all_db_functions.sql`.
+Retrato de produção: `supabase/PRODUCTION_SNAPSHOT.json` de 2026-09-24T11:14:55Z
+(commit `573cb2f`); DDL real em
+`supabase/migrations/20260924005132_capture_undeclared_production_tables.sql`.
+
+Testes da área: `tests/finance/` (7), `tests/integrations/gateway-webhook-key.test.ts`,
+`tests/angola/finance-print.test.ts`, `tests/intelligence/finance/` (2),
+`tests/routes/financeiro*.test.tsx` (6). **67 testes, todos a passar.**
+Cobrem esquemas, métricas, telemetria, alertas e SAF-T. **Nenhum exercita a liquidação
+de um pagamento.** `settleGatewayPayment` e `runFinanceGatewayWebhook` têm zero
+ocorrências em `tests/`.
 
 ---
 
-## O desenho de base está certo: o dinheiro escreve-se por RPC, não por RLS
+## Nota de leitura: há dois caminhos para o mesmo dinheiro
 
-`fee_plans`, `fee_items`, `finance_contracts`, `finance_invoices`,
-`finance_receipts` e `siga_cash_expenses` têm RLS activo e **apenas políticas de
-SELECT**. Sem política de escrita, `INSERT`/`UPDATE`/`DELETE` são negados ao papel
-`authenticated`: a escrita só entra por funções `SECURITY DEFINER`. É uma decisão
-correcta e rara — falha fechada por omissão.
+Quase todos os achados desta área nascem daqui. A mesma operação — dar uma fatura por paga
+— tem duas implementações com garantias muito diferentes:
 
-As quatro RPCs centrais são de boa qualidade. `private.register_payment`:
-
-```
-if auth.uid() is null or not is_aal2()
-   or not has_permission(school, 'finance.payments.create') → 42501
-select * from finance_invoices where status in ('open','partially_paid') FOR UPDATE
-select sum(amount) from finance_receipts where status='issued'   -- sob o bloqueio
-if already_paid + amount > invoice.amount → recusa
-receipt_number := private.next_document_number(school, 'receipt')
-```
-
-Tranca a fatura, recalcula o pago sob o bloqueio, recusa o excesso e tira o
-número da sequência oficial. `private.reverse_receipt` é igualmente rigorosa:
-`is_aal2()`, permissão `finance.payments.reverse`, motivo obrigatório de pelo
-menos 5 caracteres, `FOR UPDATE` no recibo **e** na fatura, e grava
-`reversed_at`/`reversed_by`/`reversal_reason`. (Contraste com a área 5, onde
-`reopen_gradebook` exige um motivo e o deita fora.)
-
-**O problema não é o desenho. É que o caminho do gateway não passa por ele.**
-
-## 6.4 e 6.5 Gateways, webhooks e idempotência
-
-`applyPayflowSettlement` autentica bem o webhook — chave Bearer de pelo menos 24
-caracteres comparada com `timingSafeEqual`. Depois chama `settleGatewayPayment`
-com o **cliente de serviço** (`loadSgaAdminClient`).
-
-**Achado (P0): a RPC segura nunca corre no caminho do gateway.** Com o cliente de
-serviço não há sessão, logo `auth.uid()` é nulo e `register_payment` levanta
-`42501`. O handler apanha esse erro e cai num caminho alternativo
-(`gateway-webhook-handler.ts:146-243`) que reimplementa a liquidação sem nenhuma
-das protecções:
-
-| | `register_payment` | Caminho alternativo |
+| | **Caminho da tesouraria** (humano) | **Caminho do gateway** (automático) |
 |---|---|---|
-| Bloqueio da fatura | `FOR UPDATE` | nenhum |
-| Tecto de pagamento | recusa acima do saldo | **não verifica** |
-| Número do recibo | `next_document_number` | contagem em JS, com retentativa |
-| Autor do recibo | `auth.uid()` | ver achado abaixo |
+| Entrada | `recordInvoicePayment` | `runFinanceGatewayWebhook`, `applyPayflowSettlement` |
+| Cliente | sessão do utilizador | service_role |
+| Executa | RPC `register_payment` | fallback em TypeScript |
+| Tranca a fatura | **sim** (`FOR UPDATE`) | não |
+| Recusa pagamento a mais | **sim** | **não** |
+| Exige 2FA + `finance.payments.create` | **sim** | n/a |
+| Numeração | `next_document_number` (contador trancado) | contagem + retry |
+| `received_by` | `auth.uid()` | membro arbitrário (ver 6.7) |
 
-O `alreadyPaid` é lido com um `select` simples e usado só para escolher a
-etiqueta de estado (`paid` ou `partially_paid`) — nunca para recusar. Duas
-entregas simultâneas do mesmo evento leem ambas o mesmo total e ambas inserem.
+O caminho humano está **bem feito**. O caminho que trata do dinheiro real, sem ninguém a
+ver, é o desprotegido.
 
-**Achado (P0): não existe chave de idempotência em lado nenhum.**
-`finance_gateway_webhook_events` tem coluna `external_id`, e ela é escrita **só na
-telemetria** (`gateway-webhook-telemetry.ts:55`) — nunca lida. O `payment_id` que
-o PayFlow envia é passado como `reference` e nunca comparado com liquidações
-anteriores. A única defesa é o `return` antecipado quando a fatura já está `paid`.
+---
 
-Consequência, exactamente o cenário 4 do plano de testes:
+## 6.1 Planos de propinas, matrículas, emolumentos, descontos, bolsas e multas
 
-- **Repetir a confirmação de um pagamento integral** → a fatura já está `paid`,
-  devolve `alreadyPaid: true`. **Protegido.**
-- **Repetir a confirmação de um pagamento parcial** → a fatura está
-  `partially_paid`, não há tecto, insere um segundo recibo. **Pagamento duplicado
-  aceite**, e o total dos recibos pode ultrapassar o valor da fatura.
+**Estrutura presente; quase todos os valores estão fixos a zero.**
 
-**Achado agravante (P1): a única restrição que apanharia o duplicado é
-deliberadamente contornada.** `finance_receipts` tem `UNIQUE (school_id,
-receipt_number)`. O caminho alternativo gera `REC-AAAA/NNNN` e, ao colidir com
-`23505`, **incrementa a sequência e volta a tentar** (5 vezes). O comentário
-explica que é para o caso de dois webhooks chegarem ao mesmo tempo — resolve a
-colisão de numeração e, ao resolvê-la, garante que o segundo pagamento entra.
+`fee_plans` → `fee_items` (`kind`, `code`, `amount`, `frequency`, `is_active`) existem, e
+`finance_contracts` liga a matrícula ao plano. Mas:
 
-Nota de justiça: a confirmação manual (`confirmManualMulticaixaPayment`) também
-não é idempotente para pagamentos parciais. Constrói um número
-`MCX-CONF-<referência>` que parece uma chave de idempotência, mas
-`recordInvoicePayment` **ignora-o** — usa-o só como nota no arquivo, e o número
-oficial vem de `register_payment`. A diferença é que aí o tecto da RPC impede pelo
-menos que o total ultrapasse a fatura.
+- **Emolumentos:** só há dois `kind` semeados — `tuition` e `enrollment`
+  (`fee-plan-defaults.ts`). Não há catálogo de emolumentos.
+- **Descontos (P1):** `finance_contracts.discount_percentage` é escrito **sempre a 0**
+  (`server.ts:1006`) e **nunca é lido** em lado nenhum (`grep` em todo o `src/`).
+  `finance_invoices.discount_amount` é escrito **sempre a 0** (`server.ts:1055`).
+- **Bolsas:** zero ocorrências de `bolsa`/`scholarship` no módulo financeiro. Não existe.
+- **Multas (P1):** `finance_invoices.penalty_amount` é escrito **sempre a 0**
+  (`server.ts:1057`). Não há cálculo de mora, nem sequer uma regra de dias de atraso.
+  As duas referências restantes são mensagens de erro a pedir a aplicação de um script SQL
+  (`faturas.tsx:798`, `financeiro.tsx:835`).
 
-**Achado (P1): o recibo pode ficar atribuído a um utilizador de outra escola.**
-No caminho alternativo, `received_by` é preenchido por tentativas sucessivas
-(`gateway-webhook-handler.ts:156-176`): `invoice.issued_by`, depois um membro da
-escola, e por fim:
+**Achado (P2): o preço do plano não é aplicado.** `issueInvoice` vai buscar o item de taxa
+com `select("id, name, amount")` (`server.ts:1021`) e usa **só o `id`**. O valor da fatura
+é `data.amount`, o que o cliente enviou (`:1054`). O plano de propinas serve para escolher
+uma linha, não para determinar quanto se cobra — dois alunos do mesmo plano podem receber
+faturas de valores diferentes sem que nada o assinale.
 
-```ts
-const { data: anyMember } = await db
-  .from("school_memberships")
-  .select("user_id")
-  .limit(1)          // ← sem .eq("school_id", ...)
-  .maybeSingle();
-```
-
-Sem filtro de escola. Numa base multi-tenant com 94 contas activas, o recibo de
-uma escola pode ficar assinado por um utilizador de outra. É simultaneamente uma
-fuga do limite de tenant para dentro do registo financeiro e um autor falso num
-documento com valor fiscal.
-
-## 6.1 Planos de propinas, emolumentos, descontos, bolsas e multas
-
-**Implementado, menos as bolsas.** `fee_plans` + `fee_items` (`kind`,
-`frequency`, `amount`, `currency_code`); descontos em
-`finance_contracts.discount_percentage` e
-`school_billing_settings.sibling_discount_percent`; multas por
-`school_billing_settings.late_fee_percent` + `grace_days`, materializadas em
-`finance_invoices.penalty_amount`.
-
-**Achado (P2): não há bolsa como conceito.** Não existe tabela de bolsas. Uma
-bolsa tem de ser expressa como percentagem de desconto no contrato, o que perde
-quem a atribuiu, com que critério, e até quando é válida. Para uma escola com
-bolsas de mérito ou sociais, isto não é registável.
+**Achado (P3, latente): `register_payment` ignora o desconto.** A validação é
+`already_paid + target_amount > selected_invoice.amount`, e o estado passa a `paid` quando
+os recibos atingem `amount` — não `amount - discount_amount`. Se algum dia um desconto for
+gravado, a fatura descontada nunca fecha: o aluno paga o valor com desconto e a fatura fica
+`partially_paid` para sempre. Hoje não acontece **porque o desconto é sempre 0** — é dívida
+latente, não defeito activo, mas é a razão pela qual implementar descontos não é uma
+alteração de uma linha.
 
 ## 6.2 Contratos, faturas, referências e planos de pagamento
 
-**Implementado.** `create_financial_contract` (RPC), `issueInvoice`,
-`generateInvoicePaymentReference`, `createPaymentPlan`/`cancelPaymentPlan`.
-Existe até exportação SAF-T AO (`exportSaftAoXml`), que é o requisito fiscal
-angolano.
+**Implementado.** `issueInvoice` cria contrato quando falta, resolve o item de taxa, calcula
+o mês de competência e numera no servidor (nunca aceitando numeração do cliente — decisão
+correcta e comentada em `:1032`). `generateInvoicePaymentReference` produz referência
+Multicaixa via `emiss-multicaixa.ts` e opções de carteira móvel.
+`createPaymentPlan`/`cancelPaymentPlan` gerem `finance_payment_plans`.
 
-**Achado (P2): três caminhos de numeração, duas autoridades diferentes.**
-`document_sequences` existe e está semeada para **90 escolas**, com séries para
-`invoice`, `receipt`, `credit_note`, `certificate`, `declaration`, `expense`,
-`term`, `transfer`. `register_payment` usa-a (`next_document_number`). Mas
-`issueInvoice` (`server.ts:1035-1071`) e o caminho alternativo do webhook contam
-linhas em JS (`count(*)` com `LIKE 'FT-2026/%'`) e avançam em colisão. Num
-documento com valor fiscal, a numeração devia ter uma única autoridade — e ela já
-existe na base.
+**Achado (P1): existem duas séries de recibos na mesma escola.**
 
-A série `credit_note` está semeada e **não encontrei implementação de nota de
-crédito**. `cancel_invoice` anula a fatura no sítio. Para uma fatura já emitida, a
-prática fiscal pede nota de crédito, não anulação retroactiva. **P2**, ou por
-implementar, ou uma decisão que não está registada.
+| Caminho | Formato | Origem do número |
+|---|---|---|
+| Tesouraria (`register_payment`) | `REC-0001` | `private.next_document_number` — contador em `document_sequences`, com `FOR UPDATE` |
+| Gateway (fallback do webhook) | `REC-2026/0001` | `count(*)` sobre `LIKE 'REC-2026/%'` + retry no 23505 |
+
+São **formatos diferentes** e **contadores independentes**: a contagem do gateway filtra por
+`REC-AAAA/%` e portanto nunca vê os recibos `REC-NNNN` da tesouraria, e não faz avançar
+`document_sequences`. Para uma série documental fiscal — e há exportação SAF-T AO neste
+módulo — duas séries paralelas para o mesmo tipo de documento é um problema de conformidade,
+não de arrumação. `saft-validator.ts` não verifica continuidade de numeração (`grep` por
+`sequen|continu|gap|numera`: nada).
+
+As faturas seguem o mesmo padrão de contagem (`FT-AAAA/NNNN`, `:1035-1041`) em vez de
+`next_document_number`, que só é usado pelo caminho da tesouraria.
 
 ## 6.3 Pagamentos parciais, integrais, antecipados e em atraso
 
-**Implementado.** `register_payment` aceita parcelas, soma os recibos emitidos e
-decide `partially_paid` ou `paid`; `finance_invoices.due_date` com
-`grace_days`/`late_fee_percent` cobre o atraso. Antecipados: `finance_payment_plans`
-tem `installments` e `scheduled`.
+**Implementado no caminho da tesouraria.** `register_payment` soma os recibos emitidos,
+recusa exceder o saldo em aberto e decide `paid` vs `partially_paid`. É a implementação
+correcta.
 
-## 6.6 Reconciliação
+No caminho do gateway o mesmo cálculo existe mas **só decide o estado — não recusa nada**
+(`gateway-webhook-handler.ts:230-231`). Ver 6.5.
 
-**Não implementado.** Procurei `reconcil` em todo o `src/`: as únicas ocorrências
-são de presenças e de horários (`CampusAttendanceReconciliationPanel`,
-`lessonPlanReconciliation`). **Não existe reconciliação financeira** entre
-transações do gateway, faturas, contas de aluno e movimentos de caixa.
+Pagamento antecipado e em atraso: `due_date` existe e os relatórios distinguem vencido de
+por vencer; não há tratamento específico de antecipação (nem penalização por atraso, ver 6.1).
 
-`finance_gateway_webhook_events` guarda o que o gateway disse e `finance_receipts`
-guarda o que o SIGA registou — mas nada compara os dois. Um webhook perdido, um
-recibo duplicado ou um valor divergente não são detectáveis por nenhum ecrã.
-**P1**, e é o controlo que apanharia os P0 acima em produção.
+## 6.4 Integração com prestadores efectivamente configurados, incluindo webhooks
 
-## 6.7 Anulação, estorno, reembolso e correcções
+**Implementado, com duas integrações reais e uma boa disciplina de segredos.**
 
-**Implementado e rastreável.** `cancel_invoice` (permissão
-`finance.invoices.cancel`, grava `cancelled_at`/`cancelled_by`/
-`cancellation_reason`), `reverse_receipt` (descrita acima),
-`reverseCashEntry` para despesas de caixa (`reversal_reason`, `reversed_at`,
-`reversed_by`). `finance_invoice_events` regista as transições de estado.
+Provedores: `multicaixa_express` e `unitel_money`, resolvidos por API key contra
+`school_integrations` com `status in ('configured','connected')`. Há ainda a integração
+PayFlow, com o seu próprio webhook (`applyPayflowSettlement`).
 
-**Achado (P1): o registo de eventos da fatura pode ser forjado.**
-`finance_invoice_events` é a única tabela financeira com política de **INSERT**, e
-a verificação é apenas `school_id = current_school_id()` — sem permissão, sem MFA,
-sem validar que a transição corresponde a alguma coisa que aconteceu. Qualquer
-membro autenticado da escola pode inserir eventos arbitrários na trilha de
-auditoria das faturas.
+O que está bem feito e merece registo:
 
-O mesmo padrão em `finance_payment_plans`: política única `FOR ALL` com
-`is_school_member(school_id)`. Qualquer membro activo cria, altera ou apaga planos
-de pagamento — incluindo a `reference` que o gateway usa para reconhecer o
-pagamento.
+- a chave de modo dev **não tem valor por omissão** e é recusada se `NODE_ENV=production`
+  (`:37-43`) — o comentário explica porquê, e a razão é correcta;
+- comparação de chaves com `timingSafeEqual`, não `===`;
+- **limite de pedidos** no webhook (30 / 5 min por IP), precisamente porque
+  `resolveGatewaySchoolByApiKey` compara contra as chaves de todas as escolas e seria um
+  oráculo de força bruta (`:420-425`);
+- uma liquidação falhada é reportada por `reportSigaError` em vez de morrer no 502
+  (`:400-410`) — "dinheiro que o provedor recebeu e o SIGA não registou".
 
-## 6.8 Fecho de caixa, relatórios e segregação de funções
+**Nota de honestidade do próprio código:** `confirmManualMulticaixaPayment` documenta que
+"não existe integração real com um webhook EMIS" (`server.ts:938-941`) e que quem confirma
+está a atestar que viu o comprovativo. A verificação 6.4 pede provedores *efectivamente*
+configurados — o estado real é: canal EMIS por confirmação manual, PayFlow por webhook.
 
-**Parcialmente implementado.** Há `listCashEntries`, `recordCashExpense`,
-`reverseCashEntry`, `getFinanceReporting` e a exportação SAF-T. **Não encontrei
-fecho de caixa** — nenhuma função, tabela ou ecrã que feche um período de caixa,
-apure o saldo e o bloqueie. **P2.**
+## 6.5 Idempotência e prevenção de pagamentos, recibos ou cobranças duplicados
 
-**Achado (P1): não há segregação de funções na tesouraria.** As permissões estão
-semeadas (2314 concessões em produção) e o papel `treasury` detém, em conjunto:
-`finance.payments.create`, `finance.payments.reverse`, `finance.invoices.cancel` e
-`finance.settings.manage`. A mesma pessoa regista o pagamento, estorna-o, anula a
-fatura e altera as regras de cobrança, sem segundo par de olhos em nenhum passo.
-Não existe papel de aprovador nem fluxo de autorização — ao contrário do que a
-área 5 tem para notas (`review_grade_change`).
+**Achado (P0): não há chave de idempotência. A única defesa é o estado da fatura, e não chega.**
 
-`guardian` tem `finance.contracts.read` e `finance.invoices.read`, o que está
-certo para o portal do encarregado. `student`, `teacher` e `secretary` não têm
-permissões financeiras.
+Toda a idempotência do caminho do gateway é esta linha
+(`gateway-webhook-handler.ts:123-130`):
+
+```ts
+if (invoice.status === "paid") return { alreadyPaid: true, … };
+```
+
+Três buracos, por ordem de gravidade:
+
+**a) Pagamentos parciais não são cobertos.** Se a fatura ficou `partially_paid`, uma segunda
+entrega do **mesmo** evento não bate na guarda e emite **um segundo recibo**. O fallback
+calcula `alreadyPaid` (`:155-161`) e usa-o **apenas para escolher o estado**
+(`:230-231`) — nunca para recusar. Ao contrário de `register_payment`, que levanta
+excepção quando `already_paid + amount > invoice.amount`.
+
+**b) O `external_id` é recolhido e nunca usado.** O webhook recebe-o, passa-o a
+`settleGatewayPayment` — e a função **não o usa no corpo** (só existe na assinatura,
+`:112`). É gravado em `finance_gateway_webhook_events.external_id` para telemetria
+(`gateway-webhook-telemetry.ts:55`) e mais nada. Não há índice único sobre ele, nem sobre
+`(school_id, invoice_id, external_id)` em `finance_receipts` — cujas únicas restrições de
+unicidade são `(school_id, id)` e `(school_id, receipt_number)`. O mesmo vale para o
+`payment_id` do PayFlow, que é validado (`min(6).max(80)`) e depois passa como `reference`,
+servindo só para casar planos de pagamento.
+
+**c) Duas entregas simultâneas passam ambas.** É um `SELECT` seguido de `INSERT` sem
+transacção nem bloqueio. `register_payment` resolve isto com `FOR UPDATE`; o fallback não
+tem equivalente. O código **sabe** que há concorrência — o retry no 23505 da numeração diz
+textualmente "dois webhooks podem chegar ao mesmo tempo" (`:186-187`) — mas essa defesa
+protege o *número do recibo*, não o *pagamento*: o retry limita-se a procurar o próximo
+número livre e insere na mesma.
+
+**E o fallback corre sempre.** `register_payment` exige `auth.uid()` não nulo e `is_aal2()`.
+Num webhook servidor-a-servidor com service_role, `auth.uid()` é nulo — portanto a RPC
+levanta **sempre** `42501`, o `catch` casa com o regex `/aal2|42501|autorização|permission/i`
+(`:147`) e o caminho protegido **nunca se executa para dinheiro de gateway**. O comentário
+em `:180-186` confirma que já sabiam que esta chamada falhava sempre.
+
+Efeito prático, e é exactamente o cenário 4 do plano de testes: **reenviar a mesma
+confirmação sobre uma fatura parcialmente paga cria um segundo recibo, e o total recebido
+passa a exceder a fatura.**
+
+Um segundo efeito do mesmo regex: se a RPC falhar por um motivo de autorização **legítimo**,
+o código não recusa — desce ao fallback e liquida à mesma, sem verificação nenhuma.
+
+## 6.6 Reconciliação entre transações, faturas, contas de alunos e movimentos
+
+**Parcialmente implementado.** `finance_gateway_webhook_events` regista cada entrega
+(canal, `http_status`, `ok`, `message`, `reference`, `invoice_id`, `amount`, `provider`,
+`dev_mode`, `external_id`), e `listGatewayWebhookEvents` expõe-nos. Há métricas e alerta de
+taxa de falha (`gateway-webhook-metrics.ts`, `gateway-failure-rate-alert.ts`). Os relatórios
+financeiros existem (`getFinanceReporting`).
+
+**Não existe reconciliação propriamente dita:** nenhuma rotina confronta os eventos do
+gateway com os recibos emitidos para apontar o que o provedor confirmou e o SIGA não
+registou (ou o contrário). Com a idempotência de 6.5 em aberto, é precisamente a peça que
+apanharia o recibo duplicado — e não está lá.
+
+A reconciliação está ainda comprometida pelo achado seguinte: um recibo estornado não
+repõe o estado da fatura, pelo que o saldo do aluno deixa de fechar com a soma dos recibos.
+
+## 6.7 Anulação, estorno, reembolso e correções com autorização e rastreabilidade
+
+**Achado (P1): existe `reverse_receipt` em produção, bem feita, e a aplicação não a chama.**
+
+`private.reverse_receipt` exige `finance.payments.reverse` **e** AAL2, exige motivo com ≥5
+caracteres, tranca o recibo (`FOR UPDATE`), grava `reversed_by = auth.uid()` e — o essencial
+— **recalcula o estado da fatura** (`open` / `partially_paid` / `paid`) a partir dos recibos
+que sobram. Chamadas na aplicação: **zero**. O mesmo para `cancel_invoice` e
+`next_document_number`.
+
+O que a aplicação faz em vez disso, em `reverseCashEntry` (`server.ts:1171-1213`): um
+`UPDATE` directo a `finance_receipts` com o cliente de serviço. As quatro consequências:
+
+1. **Sem `finance.payments.reverse` e sem 2FA.** Só o papel `Administrador`/`Tesouraria`.
+   Registar um pagamento exige segundo factor; anulá-lo não exige nenhum.
+2. **Sem filtro `status = 'issued'`.** O ramo das despesas tem `.eq("status","posted")`
+   (`:1204`); o dos recibos não tem. Um recibo já estornado pode ser estornado outra vez,
+   **sobrescrevendo `reversed_at`, `reversed_by` e `reversal_reason`** — apaga-se o registo
+   de quem anulou e porquê, que é justamente a rastreabilidade que esta verificação pede.
+3. **A fatura não é actualizada.** Nenhum `UPDATE` a `finance_invoices`, e **não há trigger
+   que o faça** — os únicos triggers em `finance_receipts` são `audit_row_change` e nada
+   mais. Estornar o único recibo de uma fatura paga deixa-a em `paid` com zero recibos
+   activos: o aluno deve dinheiro que o sistema dá por liquidado.
+4. **Fica presa.** Nesse estado, `cancelInvoice` recusa ("Não é possível cancelar uma fatura
+   já liquidada"), `register_payment` só aceita `status in ('open','partially_paid')` e a
+   guarda do webhook (`status === 'paid'`) engole silenciosamente qualquer pagamento futuro.
+
+**Achado (P0): o estorno do PayFlow não pode funcionar — falha por duas razões independentes.**
+
+`applyPayflowSettlement`, no ramo `payment.refunded` (`payflow-settlement.ts:117-125`),
+reverte os recibos e depois tenta reabrir a fatura com:
+
+```ts
+.update({ status: "issued", updated_at: now })
+```
+
+- `finance_invoices_status_check` admite **apenas** `open`, `partially_paid`, `paid`,
+  `cancelled`. **`"issued"` não existe** → violação de CHECK (23514).
+- `finance_invoices` **não tem coluna `updated_at`** (confirmado no retrato e no DDL) →
+  42703.
+
+Qualquer uma das duas basta. E a ordem das operações torna o efeito permanente: os recibos
+**já foram revertidos** quando o `UPDATE` rebenta, e a função devolve 500. Não há transacção.
+O PayFlow repete; na repetição, a guarda de idempotência
+(`active.length === 0 && invoice.status !== "paid"`, `:83`) não dispara — porque a fatura
+continua em `paid` — e volta a rebentar no mesmo sítio. **Fatura permanentemente em `paid`,
+todos os recibos estornados, e o webhook em erro para sempre.**
+
+O ramo também não grava `reversed_by` (aceitável num webhook sem utilizador, mas o rasto
+fica sem actor).
+
+**O que está bem:** `cancelInvoice` recusa faturas pagas e faturas com recibos activos, e
+exige motivo (com `CHECK` de 5–300 caracteres na base). `audit_row_change` está activo em
+`finance_contracts`, `finance_invoices` e `finance_receipts`. As colunas de rasto
+(`cancelled_by`, `reversed_by`, `reversal_reason`) existem e têm restrições coerentes.
+
+## 6.8 Fecho de caixa, relatórios financeiros e segregação de funções
+
+**Relatórios: implementados.** `getFinanceReporting`, `listCashEntries`, `recordCashExpense`
+(`siga_cash_expenses`, com `document_number`, `category`, `method`, estorno e auditoria de
+`updated_by`), gráficos e exportação SAF-T AO (`saft-generator.ts`, `saft-validator.ts`,
+`exportSaftAoXml`).
+
+**Achado (P1): não há fecho de caixa.** Procurado por `fecho`, `closeCash`, `cash_clos`,
+`daily_close` em todo o `src/`: os únicos acertos são o fecho de trimestre **académico**.
+Não existe tabela, função ou ecrã de fecho diário de tesouraria — nem no esquema (162
+tabelas) nem no código. A verificação pede-o explicitamente.
+
+**Achado (P1): não há segregação de funções.** `recordInvoicePayment`, `reverseCashEntry`,
+`cancelInvoice` e `recordCashExpense` aceitam todas o mesmo par `["Administrador",
+"Tesouraria"]`. Quem recebe o dinheiro pode anulá-lo, sozinho e sem segundo factor.
+
+A base **foi desenhada para o contrário**: `finance.payments.create` e
+`finance.payments.reverse` são permissões distintas, precisamente para poderem viver em
+pessoas diferentes. Como o estorno não passa por `reverse_receipt` (6.7), a distinção nunca
+é consultada — as duas permissões existem no modelo e nenhuma decisão depende delas.
 
 ---
 
@@ -205,22 +276,52 @@ permissões financeiras.
 
 | Sev. | Achado | Evidência |
 |---|---|---|
-| **P0** | O caminho do gateway nunca usa `register_payment`: sem bloqueio da fatura e sem tecto de pagamento | `gateway-webhook-handler.ts:146-243` |
-| **P0** | Nenhuma chave de idempotência: repetir a confirmação de um pagamento **parcial** cria um segundo recibo | `external_id` só escrito na telemetria |
-| **P1** | A `UNIQUE (school_id, receipt_number)` que apanharia o duplicado é contornada com retentativa | `gateway-webhook-handler.ts:197-222` |
-| **P1** | `received_by` pode vir de outra escola — `school_memberships` sem filtro de `school_id` | `gateway-webhook-handler.ts:169-176` |
-| **P1** | Sem reconciliação financeira: nada compara o gateway com os recibos | 0 ocorrências em `src/` |
-| **P1** | `finance_invoice_events` aceita INSERT só com `school_id = current_school_id()` — trilha forjável | `pg_policies` |
-| **P1** | `finance_payment_plans`: `FOR ALL` com `is_school_member` | `pg_policies` |
-| **P1** | `treasury` acumula criar, estornar, anular e configurar — sem aprovador | 2314 concessões em produção |
-| **P2** | Numeração fiscal com duas autoridades: `document_sequences` existe e `issueInvoice` não a usa | 90 escolas semeadas |
-| **P2** | Sem fecho de caixa | ausência |
-| **P2** | Sem bolsas como conceito; só percentagem de desconto | esquema |
-| **P2** | Série `credit_note` semeada, sem nota de crédito implementada | `document_sequences` |
+| **P0** | Sem chave de idempotência: reenviar a confirmação sobre fatura parcialmente paga cria segundo recibo; `external_id`/`payment_id` recolhidos e nunca usados; sem unicidade na base | `gateway-webhook-handler.ts:123-130`, `:112`; restrições de `finance_receipts` |
+| **P0** | Estorno PayFlow impossível: escreve `status:"issued"` (fora do CHECK) e `updated_at` (coluna inexistente), **depois** de já ter revertido os recibos, sem transacção — e repete-se para sempre | `payflow-settlement.ts:117-125` vs DDL |
+| **P0/P1** | Todo o dinheiro de gateway corre no fallback sem tranca e sem recusa de excesso: `register_payment` exige `auth.uid()`, que num webhook é nulo | `:147`, `:180-186` |
+| **P1** | `reverse_receipt` (com permissão, 2FA, motivo e recálculo do estado) nunca é chamada; `reverseCashEntry` faz `UPDATE` directo | 0 chamadas; `server.ts:1171-1213` |
+| **P1** | Estorno não repõe o estado da fatura e não há trigger que o faça — fatura fica `paid` sem recibos activos e não aceita novo pagamento | triggers de `finance_receipts` |
+| **P1** | Recibo já estornado pode ser estornado de novo, apagando `reversed_by`/`reversal_reason` | falta `.eq("status","issued")` |
+| **P1** | Duas séries de recibos com formatos e contadores independentes (`REC-0001` vs `REC-2026/0001`) | `next_document_number` vs `:183-199` |
+| **P1** | Sem fecho de caixa | `grep` em `src/` e no esquema |
+| **P1** | Sem segregação de funções: quem recebe pode estornar, sem 2FA; `finance.payments.create`/`.reverse` nunca são consultadas | papéis idênticos nas 4 funções |
+| **P1** | Descontos, bolsas e multas não implementados — `discount_percentage`, `discount_amount` e `penalty_amount` fixos a 0 | `server.ts:1006`, `:1055-1057` |
+| **P2** | `issueInvoice` ignora o preço do item de taxa e aceita o valor do cliente | `:1021` vs `:1054` |
+| **P2** | Sem reconciliação entre eventos do gateway e recibos | `listGatewayWebhookEvents` só lista |
+| **P3** | `register_payment` compara com `amount`, não `amount - discount_amount` (latente: desconto é sempre 0) | corpo capturado |
+| **P3** | `confirmManualMulticaixaPayment` e `generateInvoicePaymentReference` com validador de passagem, sem zod | `server.ts:846`, `:809` |
 
-**A ordem que proponho:** os dois P0 são um só trabalho — dar ao webhook um
-caminho autenticado que chegue a `register_payment` (um actor de serviço com a
-permissão, em vez do `catch` que a contorna), e uma restrição única sobre
-`(school_id, provider, external_id)` que torne a repetição impossível na base e
-não no código. Depois a reconciliação, que é o que teria mostrado o problema sem
-ser preciso auditá-lo.
+### O que está bem, e vale dizer
+
+`private.register_payment` é a peça mais bem escrita que encontrei nesta auditoria até
+agora: autenticação, 2FA, permissão granular, validação de método e valor, `FOR UPDATE` na
+fatura, recusa de pagamento acima do saldo, numeração por contador trancado e
+`received_by = auth.uid()`. `reverse_receipt` é do mesmo nível. O caminho da tesouraria
+usa-as correctamente, e `recordInvoicePayment` até comenta porquê corre no cliente da sessão
+em vez do de serviço.
+
+A disciplina do webhook também é boa: sem chave por omissão, `timingSafeEqual`, limite de
+pedidos contra força bruta de API keys, e erros de liquidação reportados em vez de
+engolidos.
+
+**O problema não é falta de competência — é que as duas funções boas não são alcançáveis
+pelo caminho que trata do dinheiro real**, e o substituto escrito à pressa perdeu a tranca,
+a recusa de excesso, a numeração e o actor.
+
+### Ordem sugerida
+
+1. **`external_id` / `payment_id` como chave de idempotência**, com índice único em
+   `finance_receipts` — é o que impede o recibo duplicado, e é uma migração pequena.
+2. **Corrigir o estorno PayFlow** (`"issued"` → `"open"`, remover `updated_at`) e pô-lo
+   numa transacção. Hoje está garantidamente partido.
+3. **Dar ao webhook um caminho trancado**: uma variante de `register_payment` que aceite
+   actor de sistema em vez de `auth.uid()`, para o gateway deixar de correr no fallback.
+4. Passar `reverseCashEntry` a chamar `reverse_receipt`. Resolve de uma vez o estado da
+   fatura, a permissão granular, o 2FA e o duplo estorno.
+5. Unificar a numeração em `next_document_number`.
+6. Fecho de caixa e segregação de funções.
+7. Descontos, bolsas e multas — e, ao implementá-los, corrigir a comparação com
+   `amount - discount_amount`.
+
+Os pontos 1 a 4 são de dinheiro e de conformidade fiscal. Os restantes são funcionalidade
+em falta e podem seguir a cadência normal.
