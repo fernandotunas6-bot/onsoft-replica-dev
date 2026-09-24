@@ -23,6 +23,7 @@ export type PayrollPolicy = {
   currency: "AOA"; monthlyBaseCents: number; monthlyContractMinutes: number;
   deductionEnabled: boolean; approvedByHr: boolean;
   expectedLessonCount?: number; // supplied by the authoritative published timetable
+  expectedLessonIds?: readonly string[]; // authoritative lesson identities, not just count
 };
 export type PayrollPreview = {
   scheduledMinutes: number; verifiedMinutes: number; unverifiedMinutes: number;
@@ -98,7 +99,13 @@ export function previewPayroll(
   positiveInteger(policy.monthlyContractMinutes, "Carga horária contratual");
   if (policy.monthlyContractMinutes === 0) throw new Error("A carga horária contratual não pode ser zero.");
   if (policy.expectedLessonCount !== undefined) positiveInteger(policy.expectedLessonCount, "Número de aulas previstas");
-  const incompleteRoster = policy.expectedLessonCount === undefined || policy.expectedLessonCount !== attendance.length;
+  const expectedIds = policy.expectedLessonIds;
+  const invalidExpectedIds = expectedIds === undefined || expectedIds.some((id) => !id) ||
+    (expectedIds !== undefined && new Set(expectedIds).size !== expectedIds.length);
+  const actualIds = new Set(attendance.map((entry) => entry.lessonId));
+  const incompleteRoster = invalidExpectedIds || policy.expectedLessonCount === undefined ||
+    policy.expectedLessonCount !== attendance.length || expectedIds?.length !== attendance.length ||
+    expectedIds?.some((id) => !actualIds.has(id)) === true;
   const lessonIds = new Set<string>();
   for (const entry of attendance) {
     if (!entry.lessonId || lessonIds.has(entry.lessonId)) {
