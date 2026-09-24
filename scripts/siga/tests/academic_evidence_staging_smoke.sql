@@ -77,6 +77,37 @@ BEGIN
   VALUES (school_a, occurrence, plan, 45, '["fractions"]'::jsonb,
     '["qr-in","qr-out"]'::jsonb, 'delivered', reviewer, now());
 
+  blocked := false;
+  BEGIN
+    UPDATE academic_evidence.schedule_snapshots SET school_id = school_b WHERE id = snap;
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Snapshot school reassignment accepted'; END IF;
+
+  blocked := false;
+  BEGIN
+    UPDATE academic_evidence.lesson_plans SET occurrence_id = gen_random_uuid()
+      WHERE id = plan;
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Plan occurrence reassignment accepted'; END IF;
+
+  blocked := false;
+  BEGIN
+    UPDATE academic_evidence.lesson_delivery SET delivered_minutes = 46
+      WHERE occurrence_id = occurrence;
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Delivery exceeded scheduled 45 minutes'; END IF;
+
+  blocked := false;
+  BEGIN
+    UPDATE academic_evidence.lesson_delivery SET evidence_ids = '["tampered"]'::jsonb
+      WHERE occurrence_id = occurrence;
+  EXCEPTION WHEN check_violation THEN blocked := true;
+  END;
+  IF NOT blocked THEN RAISE EXCEPTION 'Reviewed delivery mutated'; END IF;
+
   UPDATE academic_evidence.schedule_snapshots
     SET status = 'published', published_at = now(), published_by = reviewer
     WHERE id = snap;
