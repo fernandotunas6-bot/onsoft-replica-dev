@@ -313,18 +313,69 @@ ALTER TABLE public.staff_module_grants FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.staff_module_grants TO authenticated;
 GRANT ALL ON public.staff_module_grants TO service_role;
 
+-- Estas duas politicas tinham aqui o nome certo e a condicao errada: davam
+-- leitura e escrita a qualquer membro da escola, quando `staff_module_grants`
+-- decide que modulos cada funcionario ve -- qualquer pessoa concedia modulos a si
+-- propria. `HARDEN_TENANT_ISOLATION.sql:162-190` sempre criou a versao correcta,
+-- com verificacao de papel; correr este script a seguir desfazia-a, e foi o que a
+-- producao ficou a ter. Ver 20260924170000, que e a versao numerada e definitiva.
+--
+-- Aqui ficam com a mesma forma da migracao, para que correr o APPLY deixe de
+-- reabrir o buraco.
 DROP POLICY IF EXISTS "Read own or admin staff grants" ON public.staff_module_grants;
-CREATE POLICY "Read own or admin staff grants"
+DROP POLICY IF EXISTS staff_module_grants_select_own_or_admin ON public.staff_module_grants;
+CREATE POLICY staff_module_grants_select_own_or_admin
   ON public.staff_module_grants
   FOR SELECT TO authenticated
-  USING (public.is_school_member(school_id));
+  USING (
+    public.is_school_member(school_id)
+    AND (
+      user_id = (SELECT auth.uid())
+      OR public.current_school_role_is(
+        ARRAY['owner','admin','administrator','administrador','diretor geral','director geral']::text[]
+      )
+    )
+  );
 
 DROP POLICY IF EXISTS "Admins manage staff grants" ON public.staff_module_grants;
-CREATE POLICY "Admins manage staff grants"
+DROP POLICY IF EXISTS staff_module_grants_insert_admin ON public.staff_module_grants;
+DROP POLICY IF EXISTS staff_module_grants_update_admin ON public.staff_module_grants;
+DROP POLICY IF EXISTS staff_module_grants_delete_admin ON public.staff_module_grants;
+CREATE POLICY staff_module_grants_insert_admin
   ON public.staff_module_grants
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.is_school_member(school_id)
+    AND public.current_school_role_is(
+      ARRAY['owner','admin','administrator','administrador','diretor geral','director geral']::text[]
+    )
+  );
+
+CREATE POLICY staff_module_grants_update_admin
+  ON public.staff_module_grants
+  FOR UPDATE TO authenticated
+  USING (
+    public.is_school_member(school_id)
+    AND public.current_school_role_is(
+      ARRAY['owner','admin','administrator','administrador','diretor geral','director geral']::text[]
+    )
+  )
+  WITH CHECK (
+    public.is_school_member(school_id)
+    AND public.current_school_role_is(
+      ARRAY['owner','admin','administrator','administrador','diretor geral','director geral']::text[]
+    )
+  );
+
+CREATE POLICY staff_module_grants_delete_admin
+  ON public.staff_module_grants
+  FOR DELETE TO authenticated
+  USING (
+    public.is_school_member(school_id)
+    AND public.current_school_role_is(
+      ARRAY['owner','admin','administrator','administrador','diretor geral','director geral']::text[]
+    )
+  );
 
 CREATE TABLE IF NOT EXISTS public.calendar_feed_tokens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1699,11 +1750,14 @@ GRANT ALL ON public.school_invitations TO service_role;
 ALTER TABLE public.school_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.school_invitations FORCE ROW LEVEL SECURITY;
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260924170000. `school_invitations` tem uma
+-- coluna `role_code`. Com escrita por simples pertenca a escola, qualquer membro
+-- criava um convite `role_code = 'owner'` e aceitava-o a seguir. A aplicacao so
+-- lhe toca com `loadAdminClient()`, que ignora RLS -- nao perde nada.
 DROP POLICY IF EXISTS "Manage invitations in own school" ON public.school_invitations;
 CREATE POLICY "Manage invitations in own school" ON public.school_invitations
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- 7. Funções Utilitárias de Segurança / RLS
 CREATE OR REPLACE FUNCTION public.is_school_member(p_school_id uuid)

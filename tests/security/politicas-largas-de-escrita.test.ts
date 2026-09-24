@@ -27,20 +27,17 @@ const REPO = resolve(__dirname, "../..");
  * análise que as sete já fechadas exigiram: *quem escreve nesta tabela, e por que client?*
  * Se for sempre service_role, a política passa a `FOR SELECT` e o buraco fecha.
  *
- * **Esta lista só pode encolher.** Pertencem a áreas ainda não auditadas — `school_invitations`
- * é a que mais preocupa à primeira vista.
+ * **Esta lista só pode encolher.** Pertencem a áreas ainda não auditadas.
  */
 const POR_FECHAR = new Set([
   "finance_payment_plans",
   "rooms",
   "school_integrations",
-  "school_invitations",
   "siga_access_cards",
   "siga_access_logs",
   "siga_lesson_plan_components",
   "siga_lesson_plans",
   "siga_turnstile_devices",
-  "staff_module_grants",
 ]);
 
 /** Fechadas em 20260924123000. Voltar a abri-las é o que este teste existe para apanhar. */
@@ -57,6 +54,11 @@ const JA_FECHADAS = [
   //   siga_files       → 20260924072000 (biblioteca de ficheiros da escola)
   "person_documents",
   "siga_files",
+  // Caminhos de escalada, fechados em 20260924170000:
+  //   school_invitations  → `role_code` num convite que qualquer membro criava
+  //   staff_module_grants → qualquer membro concedia modulos a si proprio
+  "school_invitations",
+  "staff_module_grants",
 ];
 
 const PADRAO =

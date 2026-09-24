@@ -1,9 +1,9 @@
 {
-  "capturadoEm": "2026-09-24T20:17:47.564Z",
+  "capturadoEm": "2026-09-24T20:23:43.764Z",
   "resumo": {
     "com_rls": 162,
-    "funcoes_private": 101,
-    "politicas": 290,
+    "funcoes_private": 94,
+    "politicas": 292,
     "tabelas": 162,
     "triggers": 174
   },
@@ -3289,7 +3289,7 @@
         "created_by",
         "updated_by"
       ],
-      "politicas": 2,
+      "politicas": 4,
       "rls": true,
       "rls_forcada": true,
       "tabela": "staff_module_grants"
@@ -5381,12 +5381,12 @@
       "verificando": "is_school_member(school_id)"
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Manage invitations in own school",
+      "politica": "Read invitations with membership permission",
       "tabela": "school_invitations",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "usando": "private.has_permission(school_id, 'rbac.memberships.read'::text)",
+      "verificando": ""
     },
     {
       "cmd": "SELECT",
@@ -5693,20 +5693,36 @@
       "verificando": "is_school_member(school_id)"
     },
     {
-      "cmd": "ALL",
+      "cmd": "DELETE",
       "papeis": "{authenticated}",
-      "politica": "Admins manage staff grants",
+      "politica": "staff_module_grants_delete_admin",
       "tabela": "staff_module_grants",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
+      "verificando": ""
+    },
+    {
+      "cmd": "INSERT",
+      "papeis": "{authenticated}",
+      "politica": "staff_module_grants_insert_admin",
+      "tabela": "staff_module_grants",
+      "usando": "",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))"
     },
     {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Read own or admin staff grants",
+      "politica": "staff_module_grants_select_own_or_admin",
       "tabela": "staff_module_grants",
-      "usando": "is_school_member(school_id)",
+      "usando": "(is_school_member(school_id) AND ((user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_app_role(school_id) = 'Administrador'::text)))",
       "verificando": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "papeis": "{authenticated}",
+      "politica": "staff_module_grants_update_admin",
+      "tabela": "staff_module_grants",
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
+      "verificando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))"
     },
     {
       "cmd": "SELECT",
@@ -6155,44 +6171,8 @@
       "security_definer": false
     },
     {
-      "args": "target_school_id uuid, education_level_codes text[], program_code text, program_name text, grade_code text, grade_name text, academic_year_name text, year_starts_on date, year_ends_on date, period_model text, grade_minimum numeric, grade_maximum numeric, grade_passing numeric, grade_decimals smallint",
-      "funcao": "configure_academic_structure",
-      "schema": "private",
-      "security_definer": true
-    },
-    {
-      "args": "target_school_id uuid, continuous_weight_value numeric, exam_weight_value numeric, passing_grade_value numeric, maximum_absence_value numeric, rounding_method_value text, require_change_approval boolean, lock_after_publication_value boolean",
-      "funcao": "configure_assessment_rules",
-      "schema": "private",
-      "security_definer": true
-    },
-    {
       "args": "target_school_id uuid, target_class_group_id uuid, target_subject_id uuid, target_teacher_id uuid, target_weekly_periods integer",
       "funcao": "configure_class_subject",
-      "schema": "private",
-      "security_definer": true
-    },
-    {
-      "args": "target_school_id uuid, requested_module_codes text[]",
-      "funcao": "configure_default_modules",
-      "schema": "private",
-      "security_definer": true
-    },
-    {
-      "args": "target_school_id uuid, enrollment_amount_value numeric, tuition_amount_value numeric, due_day_value smallint, penalty_kind_value text, penalty_value numeric, maximum_discount_value numeric, invoice_prefix_value text, receipt_prefix_value text",
-      "funcao": "configure_financial_plan",
-      "schema": "private",
-      "security_definer": true
-    },
-    {
-      "args": "target_school_id uuid, primary_color text, secondary_color text, contrast_color text, school_logo_path text, campus_code text, campus_name text, campus_province text, campus_municipality text, campus_address text, official_reference text",
-      "funcao": "configure_school_identity_campus",
-      "schema": "private",
-      "security_definer": true
-    },
-    {
-      "args": "target_school_id uuid, school_name text, school_nif text, school_email text, school_phone text, school_province text, school_municipality text, school_address text",
-      "funcao": "configure_school_owner",
       "schema": "private",
       "security_definer": true
     },
@@ -6293,20 +6273,8 @@
       "security_definer": true
     },
     {
-      "args": "target_school_id uuid, schedule_demo_seed boolean",
-      "funcao": "finalize_installation",
-      "schema": "private",
-      "security_definer": true
-    },
-    {
       "args": "target_school_id uuid, permission_code text",
       "funcao": "has_permission",
-      "schema": "private",
-      "security_definer": true
-    },
-    {
-      "args": "target_school_id uuid",
-      "funcao": "installer_database_health",
       "schema": "private",
       "security_definer": true
     },
@@ -6557,6 +6525,12 @@
       "security_definer": true
     },
     {
+      "args": "p_school_id uuid",
+      "funcao": "sga_app_role",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "",
       "funcao": "sga_delete_actor_id",
       "schema": "private",
@@ -6773,44 +6747,8 @@
       "security_definer": false
     },
     {
-      "args": "school_id uuid, level_codes text[], program_code text, program_name text, grade_code text, grade_name text, year_name text, starts_on date, ends_on date, terms_model text, minimum_grade numeric, maximum_grade numeric, passing_grade numeric, decimal_places integer",
-      "funcao": "configure_academic_structure",
-      "schema": "public",
-      "security_definer": false
-    },
-    {
-      "args": "school_id uuid, continuous_weight numeric, exam_weight numeric, passing_grade numeric, maximum_absence_percentage numeric, rounding_method text, require_change_approval boolean, lock_after_publication boolean",
-      "funcao": "configure_assessment_rules",
-      "schema": "public",
-      "security_definer": false
-    },
-    {
       "args": "school_id uuid, class_group_id uuid, subject_id uuid, teacher_id uuid, weekly_periods integer",
       "funcao": "configure_class_subject",
-      "schema": "public",
-      "security_definer": false
-    },
-    {
-      "args": "school_id uuid, module_codes text[]",
-      "funcao": "configure_default_modules",
-      "schema": "public",
-      "security_definer": false
-    },
-    {
-      "args": "school_id uuid, enrollment_amount numeric, tuition_amount numeric, due_day integer, penalty_kind text, penalty_value numeric, maximum_discount_percentage numeric, invoice_prefix text, receipt_prefix text",
-      "funcao": "configure_financial_plan",
-      "schema": "public",
-      "security_definer": false
-    },
-    {
-      "args": "school_id uuid, primary_color text, secondary_color text, contrast_color text, logo_path text, campus_code text, campus_name text, campus_province text, campus_municipality text, campus_address text, official_reference text",
-      "funcao": "configure_school_identity_campus",
-      "schema": "public",
-      "security_definer": false
-    },
-    {
-      "args": "school_id uuid, name text, nif text, email text, phone text, province text, municipality text, address text",
-      "funcao": "configure_school_owner",
       "schema": "public",
       "security_definer": false
     },
@@ -6907,12 +6845,6 @@
     {
       "args": "school_id uuid, student_id uuid, class_group_id uuid, enrolled_on date",
       "funcao": "enroll_student",
-      "schema": "public",
-      "security_definer": false
-    },
-    {
-      "args": "school_id uuid, schedule_demo_seed boolean",
-      "funcao": "finalize_installation",
       "schema": "public",
       "security_definer": false
     },
@@ -7207,12 +7139,6 @@
     {
       "args": "",
       "funcao": "hr_validate_salary_change_request",
-      "schema": "public",
-      "security_definer": false
-    },
-    {
-      "args": "school_id uuid",
-      "funcao": "installer_database_health",
       "schema": "public",
       "security_definer": false
     },

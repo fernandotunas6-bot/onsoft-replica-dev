@@ -400,8 +400,11 @@ GRANT ALL ON public.school_invitations TO service_role;
 ALTER TABLE public.school_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.school_invitations FORCE ROW LEVEL SECURITY;
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260924170000. `school_invitations` tem uma
+-- coluna `role_code`. Com escrita por simples pertenca a escola, qualquer membro
+-- criava um convite `role_code = 'owner'` e aceitava-o a seguir. A aplicacao so
+-- lhe toca com `loadAdminClient()`, que ignora RLS -- nao perde nada.
 DROP POLICY IF EXISTS "Manage invitations in own school" ON public.school_invitations;
 CREATE POLICY "Manage invitations in own school" ON public.school_invitations
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
