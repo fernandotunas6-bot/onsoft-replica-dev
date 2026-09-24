@@ -178,6 +178,9 @@ export function ScheduleWorkspace({
       throw new Error("Seleccione turma, disciplina e dia da semana.");
     }
 
+    const classVersions = new Set(slots.filter((item) => item.class_group_id === classGroup.id).map((item) => item.schedule_id ?? "__legacy__"));
+    if (classVersions.size > 1) throw new Error("Existem várias versões da turma. Seleccione uma versão antes de adicionar aulas.");
+
     const teacherOpt = values["professor"];
     const resolvedTeacher = teachers.find((t) => optionLabel(t.id, t.name) === teacherOpt);
 
