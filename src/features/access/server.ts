@@ -848,7 +848,7 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     // 3.1. Validar correspondência do destinatário (anti-sequestro de convite)
     const userEmail = (context.claims?.email as string | undefined)?.toLowerCase().trim();
     const invitedEmail = (invitation.email as string).toLowerCase().trim();
-    if (userEmail && userEmail !== invitedEmail) {
+    if (!userEmail || userEmail !== invitedEmail) {
       throw new Error(
         `Este convite foi emitido para ${invitedEmail}. A sessão actual (${userEmail}) não corresponde ao destinatário do convite.`,
       );
@@ -911,16 +911,34 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
         );
     }
 
-    // 6. Ligar people.user_id por email (idempotente)
-    try {
-      await admin
+    // 6. Vincular somente uma pessoa identificada pelo email do convite.
+    const { data: invitePeople, error: invitePeopleError } = await admin
+      .from("people")
+      .select("id, user_id")
+      .eq("school_id", schoolId)
+      .ilike("email", invitedEmail);
+    if (invitePeopleError) {
+      throw publicDatabaseError(invitePeopleError, "Não foi possível validar a identidade do convite.");
+    }
+    if ((invitePeople ?? []).length > 1) {
+      throw new Error("E-mail associado a múltiplas pessoas nesta escola; reveja o cadastro.");
+    }
+    const invitePerson = invitePeople?.[0];
+    if (invitePerson?.user_id && String(invitePerson.user_id) !== userId) {
+      throw new Error("Pessoa já vinculada a outra conta; reveja o cadastro.");
+    }
+    if (invitePerson && !invitePerson.user_id) {
+      const { data: linked, error: linkError } = await admin
         .from("people")
         .update({ user_id: userId })
+        .eq("id", invitePerson.id)
         .eq("school_id", schoolId)
-        .ilike("email", invitedEmail)
-        .is("user_id", null);
-    } catch {
-      // Não crítico — falha silenciosa se people não tiver coluna email ou user_id
+        .is("user_id", null)
+        .select("id")
+        .maybeSingle();
+      if (linkError || !linked?.id) {
+        throw new Error("Não foi possível vincular a pessoa ao login.");
+      }
     }
 
     // 7. Marcar como aceite
