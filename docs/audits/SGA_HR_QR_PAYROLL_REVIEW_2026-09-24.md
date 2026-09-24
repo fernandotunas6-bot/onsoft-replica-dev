@@ -18,7 +18,7 @@
 - Emissão falha se a revogação da sessão anterior devolver erro; vínculo `teachers.user_id` atribuído a outro utilizador não é reutilizado, e o backfill verifica a atualização.
 - `20260924_hr_qr_active_session_guard_staged.sql`: índice único parcial para apenas uma sessão activa por escola, ocorrência e operação. Exige preflight e teste concorrente antes de aplicar.
 - `20260924_hr_qr_payroll_review_gate_staged.sql`: substituição completa da RPC, obtida da definição efectiva na base e modificada para exigir assurance recente do próprio docente e horário oficial publicado nas aulas programadas; deixa o check-out em `pending_review`, sem criar compensação aprovada automaticamente. Inclui verificação de hash da definição actual e aborta se a RPC tiver mudado desde a captura; **não foi executada**.
-- O portal deixa de anunciar elegibilidade salarial antes da revisão do RH e usa a data civil `Africa/Luanda` para destacar aulas do dia.
+- O domínio passa a manter a compensação `pending` qualquer que seja a pontuação do assurance QR. O portal deixa de anunciar elegibilidade salarial antes da revisão do RH e usa a data civil `Africa/Luanda` para destacar aulas do dia.
 
 ## Confirmação salarial independente
 
@@ -35,7 +35,7 @@ O provisionamento de contas e a aceitação de convites também foram endurecido
 5. Conciliar `hr_teacher_lesson_occurrences` com o horário publicado e com `academic_evidence` sem duplicar IDs nem QR; depois testar ponta a ponta no portal e em folha mensal. A migração de evidência ainda é um modelo separado e não está ligada a este fluxo.
 6. Nunca activar descontos automáticos por QR ausente, catraca isolada ou 22 dias fixos. O fecho financeiro só deve usar calendário contratual, revisões concluídas e autorização RH persistida.
 
-**Estado:** correções no PR em rascunho; produção preservada; teste SQL real, integração e revisão jurídica/laboral ainda pendentes.
+**Estado:** correções no PR em rascunho; produção preservada. A Sga tem apenas a branch principal; outro projeto está inactivo. Não há clone de teste PostgreSQL disponível, por isso as três migrations preparadas não foram aplicadas nem ensaiadas. Teste SQL real, integração, aprovação RH e revisão jurídica/laboral continuam pendentes.
 
 ## Identidade docente — impacto medido
 
