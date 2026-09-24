@@ -120,6 +120,9 @@ export function planAcademicLessons(input: {
   periods: readonly AcademicPeriod[]; shifts: readonly AcademicShift[];
   lessons: readonly PlannedLesson[]; holidays?: readonly string[];
   excludedDates?: readonly string[]; extraTeachingDates?: readonly string[];
+  /** Explicit recovery-day mapping: a Saturday can follow Monday's timetable.
+   * Dates must be in the same academic period as their source weekday. */
+  recoveryDays?: readonly { date: string; followsWeekday: number }[];
   maxOccurrences?: number;
 }): PlanningResult {
   const issues = validateAcademicPeriods(input.periods);
@@ -141,6 +144,20 @@ export function planAcademicLessons(input: {
     if (!input.periods.some((p) => p.startsOn <= date && date <= p.endsOn)) {
       throw new Error("Dia lectivo extraordinário fora dos períodos configurados.");
     }
+  }
+  const recovery = new Map<string, number>();
+  for (const replacement of input.recoveryDays ?? []) {
+    parseCivilDate(replacement.date);
+    if (!Number.isInteger(replacement.followsWeekday) || replacement.followsWeekday < 1 ||
+        replacement.followsWeekday > 7 || recovery.has(replacement.date) ||
+        holidays.has(replacement.date) || excluded.has(replacement.date) ||
+        !input.periods.some((p) => p.startsOn <= replacement.date && replacement.date <= p.endsOn)) {
+      throw new Error("Reposição lectiva inválida, repetida, excluída ou fora do período.");
+    }
+    recovery.set(replacement.date, replacement.followsWeekday);
+  }
+  if ([...recovery.keys()].some((date) => extra.has(date))) {
+    throw new Error("Um dia não pode ter duas regras extraordinárias.");
   }
   const max = input.maxOccurrences ?? 10000;
   if (!Number.isSafeInteger(max) || max < 1 || max > 100000) throw new Error("Limite de ocorrências inválido.");
@@ -167,8 +184,10 @@ export function planAcademicLessons(input: {
     for (let day = parseCivilDate(period.startsOn); day <= parseCivilDate(period.endsOn); day += 86400000) {
       const date = civil(day);
       if (holidays.has(date) || excluded.has(date)) continue;
-      if (isoWeekday(day) !== lesson.weekday) continue;
-      if (!extra.has(date) && !period.teachingDays.includes(isoWeekday(day))) continue;
+      const replacementWeekday = recovery.get(date);
+      if ((replacementWeekday ?? isoWeekday(day)) !== lesson.weekday) continue;
+      if (replacementWeekday === undefined && !extra.has(date) &&
+          !period.teachingDays.includes(isoWeekday(day))) continue;
       if (occurrences.length >= max) throw new Error("Limite de aulas excedido; reduza o período.");
       occurrences.push({ ...lesson, date, startsAtLocal: date + "T" + lesson.start,
         endsAtLocal: date + "T" + lesson.end });
