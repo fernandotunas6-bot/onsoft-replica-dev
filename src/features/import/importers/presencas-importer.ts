@@ -119,6 +119,9 @@ export const presencasImporter: RowImporter = {
     )!;
     const status = parseStatus(valueOf(normalized, "status", "estado", "presenca"))!;
     const reason = normalizeText(valueOf(normalized, "reason", "motivo", "justificacao", "justificação", "observacao", "observação"));
+    const timetableSlotId = normalizeText(valueOf(normalized, "timetable_slot_id", "slot_id", "horario_id")) || null;
+    const periodRaw = Number(valueOf(normalized, "period_number", "periodo", "período"));
+    const periodNumber = Number.isInteger(periodRaw) && periodRaw > 0 ? periodRaw : null;
 
     const student = resolveStudent(identifier, cache.students).row!;
     const group = resolveClassGroup(groupValue, cache.groups).row!;
@@ -161,21 +164,31 @@ export const presencasImporter: RowImporter = {
       };
     }
 
-    const { data: existingSession, error: sessionLookupError } = await ctx.db
+    let sessionQuery = ctx.db
       .from("siga_attendance_sessions")
-      .select("id, status")
+      .select("id, status, timetable_slot_id, period_number")
       .eq("school_id", ctx.schoolId)
       .eq("class_group_id", group.id)
       .eq("subject_id", subject.id)
-      .eq("lesson_date", attendanceDate)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .eq("lesson_date", attendanceDate);
+    if (timetableSlotId) sessionQuery = sessionQuery.eq("timetable_slot_id", timetableSlotId);
+    if (periodNumber) sessionQuery = sessionQuery.eq("period_number", periodNumber);
+    const { data: sessionCandidates, error: sessionLookupError } = await sessionQuery
+      .order("created_at", { ascending: true });
 
     if (sessionLookupError) {
       return { status: "error", warnings: [], errors: [`Não foi possível resolver a sessão de presença: ${sessionLookupError.message}`], audits: [] };
     }
+    if (!timetableSlotId && !periodNumber && (sessionCandidates ?? []).length > 1) {
+      return {
+        status: "error",
+        warnings: [],
+        errors: ["Existem várias sessões para a mesma turma/disciplina/data; informe timetable_slot_id ou period_number para evitar misturar presenças."],
+        audits: [],
+      };
+    }
 
+    const existingSession = sessionCandidates?.[0] ?? null;
     let sessionId = existingSession?.id ? String(existingSession.id) : null;
     const audits: Array<Record<string, unknown>> = [];
 
@@ -199,7 +212,8 @@ export const presencasImporter: RowImporter = {
           subject_id: subject.id,
           teacher_id: classSubject.teacher_id ?? null,
           lesson_date: attendanceDate,
-          period_number: 1,
+          timetable_slot_id: timetableSlotId,
+          period_number: periodNumber,
           status: "pending",
           created_by: ctx.userId,
           updated_by: ctx.userId,
@@ -223,7 +237,8 @@ export const presencasImporter: RowImporter = {
           subject_id: subject.id,
           teacher_id: classSubject.teacher_id ?? null,
           lesson_date: attendanceDate,
-          period_number: 1,
+          timetable_slot_id: timetableSlotId,
+          period_number: periodNumber,
           status: "pending",
         },
       });
