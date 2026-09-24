@@ -247,20 +247,38 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       });
     }
 
-    // Vinculação idempotente com o registo de pessoa (se já existir na escola com este email)
-    try {
-      const { data: existingPerson } = await admin
+    // Professores são vinculados em ensureTeacherHrRecord. Outras pessoas só
+    // recebem o vínculo quando a identidade existente não pertence a outro login.
+    if (data.cargo !== "Professor") {
+      const normalizedEmail = data.email.trim().toLowerCase();
+      const { data: matchingPeople, error: personLookupError } = await admin
         .from("people")
-        .select("id")
+        .select("id, user_id")
         .eq("school_id", schoolId)
-        .eq("email", data.email.trim().toLowerCase())
-        .maybeSingle();
-
-      if (existingPerson?.id) {
-        await admin.from("people").update({ user_id: userId }).eq("id", existingPerson.id);
+        .ilike("email", normalizedEmail);
+      if (personLookupError) {
+        throw publicDatabaseError(personLookupError, "Não foi possível validar a identidade da pessoa.");
       }
-    } catch {
-      // Falha não impeditiva na vinculação biográfica
+      if ((matchingPeople ?? []).length > 1) {
+        throw new Error("E-mail associado a múltiplas pessoas nesta escola; reveja o cadastro.");
+      }
+      const person = matchingPeople?.[0];
+      if (person?.user_id && String(person.user_id) !== userId) {
+        throw new Error("Pessoa já vinculada a outra conta; reveja o cadastro.");
+      }
+      if (person && !person.user_id) {
+        const { data: linked, error: linkError } = await admin
+          .from("people")
+          .update({ user_id: userId })
+          .eq("id", person.id)
+          .eq("school_id", schoolId)
+          .is("user_id", null)
+          .select("id")
+          .maybeSingle();
+        if (linkError || !linked?.id) {
+          throw new Error("Não foi possível vincular a pessoa ao login.");
+        }
+      }
     }
 
     // Entrega do link de acesso por e-mail institucional (best-effort: a conta
