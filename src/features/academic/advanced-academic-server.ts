@@ -843,14 +843,21 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
         (plannedByClassSubject.get(String(slot.class_subject_id)) ?? 0) + 1,
       );
     }
-    const incomplete = classSubjects.filter((item) => {
-      const required = Number(item.weekly_periods ?? 0);
-      return Number.isFinite(required) && required > 0 &&
-        (plannedByClassSubject.get(String(item.id)) ?? 0) < required;
+    const invalidWorkload = classSubjects.filter((item) => {
+      const required = Number(item.weekly_periods);
+      return !Number.isSafeInteger(required) || required <= 0;
     });
-    if (incomplete.length > 0) {
+    if (invalidWorkload.length > 0) {
       throw new Error(
-        `Existem ${incomplete.length} disciplina(s) com carga semanal incompleta. Complete os tempos configurados antes de publicar.`,
+        `Configure uma carga semanal válida para ${invalidWorkload.length} disciplina(s) antes de publicar.`,
+      );
+    }
+    const mismatchedWorkload = classSubjects.filter((item) =>
+      (plannedByClassSubject.get(String(item.id)) ?? 0) !== Number(item.weekly_periods),
+    );
+    if (mismatchedWorkload.length > 0) {
+      throw new Error(
+        `Existem ${mismatchedWorkload.length} disciplina(s) com tempos semanais em falta ou em excesso. Corrija antes de publicar.`,
       );
     }
     if ((slots ?? []).length === 0) {
