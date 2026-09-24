@@ -152,3 +152,25 @@ Nenhum campo do Excel deve ser tratado como "apenas visual". Cada campo deve ter
 5. rejeição explícita com motivo.
 
 Campos sem uma destas cinco situações não devem ser considerados parte do contrato Premium.
+
+
+### Segunda ronda — exportação validada (2026-09-24)
+
+Foram adicionados exportadores bidireccionais validados para:
+
+- `funcionarios` → `people` + `hr_employments` + `hr_positions` + `hr_departments`;
+- `classes` → `grade_levels` + referência a `programs`;
+- `salas` → `rooms` + referência a `campuses`;
+- `horarios` → `timetable_slots` + resolução de turma/disciplina/docente/sala;
+- `dividas` → `finance_invoices` + resolução de contrato/aluno/item financeiro.
+
+Os destinos acima foram marcados como `export_policy=controlled` no catálogo.
+
+**Cursos e notas continuam deliberadamente bloqueados para exportação Premium bidireccional.**
+
+- Cursos: o importador aceita `duration_years`, mas `programs` não possui uma coluna equivalente persistível no modelo actual. Exportar como se fosse reversível perderia informação.
+- Notas: o modelo de notas é composto por `gradebooks`, `grade_items` e `grade_scores`; o formato humano actual do importador trabalha com MAC/NPP/NPT/grade. O exportador recém-auditado por linha de avaliação não é ainda um espelho semântico desses campos. Portanto continua bloqueado até ser criada a reconciliação correcta.
+
+**Pautas também permanecem bloqueadas.** O importador actual só persiste `enrollments.final_average`, enquanto o contrato humano de pautas declara campos por disciplina/ano/exame/decisão. A base possui estruturas mais ricas (`grade_sheets`, `grade_sheet_rows`, `report_cards`), mas não será feita uma escolha arbitrária entre elas. A próxima etapa deve definir a fonte oficial de pauta e só então liberar o intercâmbio.
+
+Esta decisão é intencional: **nenhum exportador é considerado bidireccional apenas porque consegue gerar um Excel; ele precisa conseguir preservar semanticamente todos os campos que o importador aceita.**
