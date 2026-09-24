@@ -341,12 +341,13 @@ ALTER TABLE public.siga_access_logs FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT ON public.siga_access_logs TO authenticated;
 GRANT ALL ON public.siga_access_logs TO service_role;
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260924180000. Um registo de passagem na
+-- catraca nao se altera nem se apaga pelo browser. A aplicacao so escreve aqui com
+-- `loadSgaAdminClient()`.
 DROP POLICY IF EXISTS "Access logs in own school" ON public.siga_access_logs;
-CREATE POLICY "Access logs in own school"
-  ON public.siga_access_logs
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+CREATE POLICY "Access logs in own school" ON public.siga_access_logs
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- Smoke: deve listar as 5 tabelas alvo (+ relacionadas de presença)
 SELECT c.relname AS tabela

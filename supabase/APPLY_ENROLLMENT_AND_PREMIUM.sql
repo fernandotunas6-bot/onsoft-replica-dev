@@ -967,12 +967,11 @@ ALTER TABLE public.siga_lesson_plan_components FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.siga_lesson_plan_components TO authenticated;
 GRANT ALL ON public.siga_lesson_plan_components TO service_role;
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260924180000. Escrita so por `service_role`.
 DROP POLICY IF EXISTS "Manage lesson plan components in own school" ON public.siga_lesson_plan_components;
-CREATE POLICY "Manage lesson plan components in own school"
-  ON public.siga_lesson_plan_components
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+CREATE POLICY "Manage lesson plan components in own school" ON public.siga_lesson_plan_components
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- Liga os itens do Centro de Avaliação gerados por um Plano de Aula de volta à
 -- definição que os originou, para conseguir sincronizar (criar/remover) quando o
@@ -1579,12 +1578,13 @@ ALTER TABLE public.siga_access_logs FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT ON public.siga_access_logs TO authenticated;
 GRANT ALL ON public.siga_access_logs TO service_role;
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260924180000. Um registo de passagem na
+-- catraca nao se altera nem se apaga pelo browser. A aplicacao so escreve aqui com
+-- `loadSgaAdminClient()`.
 DROP POLICY IF EXISTS "Access logs in own school" ON public.siga_access_logs;
-CREATE POLICY "Access logs in own school"
-  ON public.siga_access_logs
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+CREATE POLICY "Access logs in own school" ON public.siga_access_logs
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 -- ---------------------------------------------------------------------------
 -- MULTI-TENANT & RBAC ENTERPRISE: Memberships, Papéis, Permissões e Convites

@@ -1,5 +1,5 @@
 {
-  "capturadoEm": "2026-09-24T20:23:43.764Z",
+  "capturadoEm": "2026-09-24T20:30:19.855Z",
   "resumo": {
     "com_rls": 162,
     "funcoes_private": 94,
@@ -5509,12 +5509,12 @@
       "verificando": "is_school_member(school_id)"
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Access logs in own school",
       "tabela": "siga_access_logs",
       "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "verificando": ""
     },
     {
       "cmd": "ALL",
@@ -5669,12 +5669,12 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))"
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Manage lesson plan components in own school",
       "tabela": "siga_lesson_plan_components",
       "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "verificando": ""
     },
     {
       "cmd": "ALL",

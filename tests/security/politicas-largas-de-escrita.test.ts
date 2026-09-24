@@ -34,8 +34,6 @@ const POR_FECHAR = new Set([
   "rooms",
   "school_integrations",
   "siga_access_cards",
-  "siga_access_logs",
-  "siga_lesson_plan_components",
   "siga_lesson_plans",
   "siga_turnstile_devices",
 ]);
@@ -59,6 +57,9 @@ const JA_FECHADAS = [
   //   staff_module_grants → qualquer membro concedia modulos a si proprio
   "school_invitations",
   "staff_module_grants",
+  // Sem escrita pela sessão, logo `ALL → SELECT` bastou (20260924180000):
+  "siga_access_logs",
+  "siga_lesson_plan_components",
 ];
 
 const PADRAO =
