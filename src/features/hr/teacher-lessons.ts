@@ -526,7 +526,7 @@ export const createTeacherLessonQr = createServerFn({ method: "POST" })
       throw new Error("O professor já efectuou o check-out desta aula.");
     }
 
-    await db
+    const { error: revokeError } = await db
       .from("hr_teacher_qr_sessions")
       .update({
         status: "revoked",
@@ -537,6 +537,9 @@ export const createTeacherLessonQr = createServerFn({ method: "POST" })
       .eq("occurrence_id", data.occurrenceId)
       .eq("purpose", data.purpose)
       .eq("status", "active");
+    if (revokeError) {
+      throw publicDatabaseError(revokeError, "Não foi possível revogar o QR anterior.");
+    }
 
     const token = randomBytes(32).toString("base64url");
     const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
