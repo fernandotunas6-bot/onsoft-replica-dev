@@ -168,6 +168,37 @@ CREATE TABLE IF NOT EXISTS academic_evidence.delivery_correction_decisions (
   UNIQUE (id, school_id)
 );
 
+-- A correction can only challenge a reviewed delivery, and its proposed
+-- minutes must fit the immutable scheduled occurrence at request time.
+CREATE OR REPLACE FUNCTION academic_evidence.guard_correction_request()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $
+DECLARE max_minutes integer;
+DECLARE review_time timestamptz;
+BEGIN
+  SELECT d.reviewed_at,
+         floor(extract(epoch FROM (o.ends_at - o.starts_at)) / 60)::integer
+    INTO review_time, max_minutes
+    FROM academic_evidence.lesson_delivery d
+    JOIN academic_evidence.lesson_occurrences o
+      ON o.id = d.occurrence_id AND o.school_id = d.school_id
+    WHERE d.id = NEW.delivery_id AND d.school_id = NEW.school_id
+    FOR SHARE OF d;
+  IF NOT FOUND OR review_time IS NULL THEN
+    RAISE EXCEPTION 'Only reviewed delivery can be corrected'
+      USING ERRCODE = '23514';
+  END IF;
+  IF NEW.proposed_minutes > max_minutes THEN
+    RAISE EXCEPTION 'Correction exceeds the official lesson duration'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$;
+CREATE TRIGGER guard_correction_request
+BEFORE INSERT ON academic_evidence.delivery_corrections
+FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_correction_request();
+
 CREATE OR REPLACE FUNCTION academic_evidence.guard_correction_decision()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
 AS $
