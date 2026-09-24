@@ -18,7 +18,7 @@ export const IMPORTER_TARGET_TABLES: Record<ImportModule, readonly string[]> = {
   notas: ["enrollments", "terms", "class_subjects", "gradebooks", "grade_items", "grade_scores"],
   avaliacoes: ["class_groups", "subjects", "class_subjects", "terms", "gradebooks", "grade_items"],
   pautas: ["enrollments"],
-  presencas: ["enrollments"],
+  presencas: ["siga_attendance_sessions", "siga_attendance_records"],
   propinas: ["school_billing_settings"],
   pagamentos: ["finance_invoices", "finance_receipts"],
   dividas: ["finance_contracts", "finance_invoices"],
