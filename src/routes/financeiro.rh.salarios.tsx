@@ -70,7 +70,7 @@ function SalaryOperationsPage() {
         <label className="space-y-1 text-sm"><span>Contrato</span>
           <select aria-label="Contrato" className="h-10 w-full rounded-lg border bg-background px-3" value={contractId} onChange={(e) => setContractId(e.target.value)}>
             <option value="">Seleccione um contrato</option>
-            {(contracts.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.contract_number || c.id} · {kwanza(Number(c.base_salary_kz))}</option>)}
+            {(contracts.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.contract_number || c.id} · Vigente: {kwanza(Number(c.effective_base_salary_kz))}</option>)}
           </select>
         </label>
         <label className="space-y-1 text-sm"><span>Escalão aprovado (opcional)</span>
