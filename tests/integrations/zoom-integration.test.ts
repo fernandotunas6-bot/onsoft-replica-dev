@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { meetingRoomLink } from "@/features/integrations/actions";
 
 const migration = readFileSync(
-  resolve(__dirname, "../../supabase/migrations/20260924090000_reconcile_zoom_lesson_meetings.sql"),
+  resolve(__dirname, "../../supabase/migrations/20260924004749_reconcile_zoom_lesson_meetings.sql"),
   "utf8",
 );
 const zoomServer = readFileSync(resolve(__dirname, "../../src/features/integrations/zoom.ts"), "utf8");
