@@ -54,7 +54,7 @@
 
 - O motor `attendanceEngine.ts` trata leituras QR duplicadas ou contraditórias, saída anterior à entrada, duração superior a 24 horas e eventos fora da janela como `pending_review`; chegadas tardias dentro da aula continuam elegíveis para apuramento de atraso ou permanência parcial.
 - `workCalendar.ts` calcula os dias úteis do mês a partir dos dias semanais institucionais, feriados e exceções; 22 dias é apenas referência de apresentação. A folha deve utilizar carga horária e calendário do contrato efetivamente aplicável.
-- O motor e o scanner são componentes preparatórios. Não há ainda endpoint de QR autenticado, driver físico de catraca, persistência RLS ou integração operacional com folha salarial. Não tratar as verificações no navegador como evidência suficiente para remuneração.
+- O motor de prévia deste documento é preparatório. O SIGA já possui server functions de QR autenticadas e persistência RH próprias; falta confirmar a ligação segura ao novo esquema de evidência, publicação do horário e fecho salarial. Não tratar verificações no navegador como evidência suficiente para remuneração.
 - Pendente: ensaios de integração, testes automatizados executados, validação laboral em Angola, política de retenção e piloto em staging com equipamento real.
 
 ## 8. Invariantes adicionais para implementação da API
