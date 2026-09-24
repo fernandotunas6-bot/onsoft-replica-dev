@@ -66,3 +66,12 @@ O gatilho `guard_correction_request` exige que a execução original tenha sido 
 - O script `scripts/siga/tests/academic_evidence_staging_smoke.sql` foi executado depois da aplicação com `ROLLBACK` e não devolveu erros. A execução foi feita na base activa, embora o ficheiro mantenha o nome histórico de staging.
 - Consulta de confirmação: **8 tabelas, 1 vista, 11 gatilhos próprios e RLS activo nas 8 tabelas**. Acesso ao esquema negado aos papéis `anon` e `authenticated`. Zero linhas nas tabelas `schedule_snapshots` e `delivery_corrections` após os testes.
 - **Não concluído:** integrações com as tabelas escolares existentes, serviços de publicação, provas, pautas, salários, verificação de concorrência real, permissões de negócio e as restantes migrações do projecto. A presença do esquema não significa que a aplicação já grave dados nele.
+
+## Segunda migração aplicada — integridade da revisão (24-09-2026)
+
+- Migração `academic_evidence_integrity_followup_20260924` aplicada com sucesso à base Sga PostgreSQL 17.6. Os dois testes SQL (`academic_evidence_staging_smoke.sql` e `academic_evidence_integrity_followup_smoke.sql`) foram executados na base activa, cada um com `ROLLBACK`, sem erros.
+- Aprovadores de planos de aula têm de ser diferentes dos autores; planos aprovados exigem objectivos, métodos e critérios não vazios. Aulas declaradas como ministradas exigem minutos positivos, conteúdos, evidências e revisão.
+- Avaliações aprovadas só são admitidas quando o snapshot do horário já está publicado. Identidade e dados de avaliações aprovadas ficam imutáveis; apenas a passagem aprovada → publicada é permitida.
+- **Fecho de período bloqueado por defeito**: enquanto reclamações de notas, conflitos de exames e assinaturas institucionais não estiverem integrados no mesmo serviço transaccional, não é permitido inserir, actualizar ou eliminar um fecho. Isto impede declarar um fecho sem verificação das fontes oficiais.
+- Consulta posterior confirmou **15 gatilhos próprios**, migração registada e zero registos nas tabelas de planos e fechos após os testes. Os dados de ensaio foram revertidos.
+- Pendente: construir o adaptador transaccional entre o esquema de evidências e as tabelas reais de turmas, disciplinas, matrículas, avaliações e reclamações; testar concorrência e autorização de negócio. Não retirar o bloqueio do fecho antes disso.
