@@ -1283,13 +1283,14 @@ export async function ensureTeacherHrRecord(input: {
 }) {
   const db = await loadSgaAdminClient();
   const email = input.email.trim().toLowerCase();
-  const { data: people } = await db
+  if (!email) throw new Error("É necessário um e-mail institucional para vincular o professor.");
+  const { data: people, error: peopleError } = await db
     .from("people")
-     .select("id, email, full_name, user_id")
-    .eq("school_id", input.schoolId);
-  const matchingPeople = email
-    ? (people ?? []).filter((row) => String(row.email ?? "").toLowerCase() === email)
-    : [];
+    .select("id, email, full_name, user_id")
+    .eq("school_id", input.schoolId)
+    .ilike("email", email);
+  if (peopleError) throw publicDatabaseError(peopleError, "Não foi possível validar a identidade do professor.");
+  const matchingPeople = (people ?? []).filter((row) => String(row.email ?? "").toLowerCase() === email);
   if (matchingPeople.length > 1) {
     throw new Error("E-mail associado a múltiplas pessoas nesta escola; reveja o cadastro.");
   }
@@ -1311,7 +1312,7 @@ export async function ensureTeacherHrRecord(input: {
         created_by: input.actorId,
         updated_by: input.actorId,
       })
-       .select("id, email, full_name, user_id")
+      .select("id, email, full_name, user_id")
       .single();
     if (created.error) {
       throw publicDatabaseError(created.error, "Não foi possível criar a pessoa do professor.");
@@ -1333,12 +1334,13 @@ export async function ensureTeacherHrRecord(input: {
     }
   }
 
-  const { data: existing } = await db
+  const { data: existing, error: teacherLookupError } = await db
     .from("teachers")
     .select("id, user_id")
     .eq("school_id", input.schoolId)
     .eq("person_id", person.id)
     .maybeSingle();
+  if (teacherLookupError) throw publicDatabaseError(teacherLookupError, "Não foi possível validar a ficha docente.");
 
   if (existing?.user_id && String(existing.user_id) !== input.userId) {
     throw new Error("Professor já vinculado a outra conta; reveja o cadastro.");
@@ -1355,6 +1357,7 @@ export async function ensureTeacherHrRecord(input: {
       .insert({
         school_id: input.schoolId,
         person_id: person.id,
+        user_id: input.userId,
         employee_number: `DOC-${seq}`,
         hired_on: new Date().toISOString().slice(0, 10),
         employment_type: "permanent",
