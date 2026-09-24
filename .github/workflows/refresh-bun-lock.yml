@@ -19,8 +19,17 @@ jobs:
         with:
           bun-version: latest
       - name: Regenerate lockfile
-        run: bun install
+        id: install
+        continue-on-error: true
+        run: bun install 2>&1 | tee lock-refresh.log
+      - name: Upload diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lock-refresh-diagnostic
+          path: lock-refresh.log
       - name: Commit lockfile
+        if: steps.install.outcome == 'success'
         run: |
           if git diff --quiet -- bun.lock; then
             echo "bun.lock already synchronized"
@@ -31,3 +40,6 @@ jobs:
           git add bun.lock
           git commit -m "chore(deps): refresh bun lockfile"
           git push
+      - name: Fail when install failed
+        if: steps.install.outcome != 'success'
+        run: exit 1
