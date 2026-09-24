@@ -26,7 +26,7 @@ async function requireHrWriter(userId: string) {
 /** Creates a proposal only; contract and payroll remain unchanged. */
 export const requestHrSalaryChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(salaryRequestSchema)
+  .validator((input: unknown) => salaryRequestSchema.parse(input))
   .handler(async ({ context, data }) => {
     const membership = await requireHrWriter(context.userId);
     const db = await loadSgaAdminClient();
@@ -55,7 +55,7 @@ export const requestHrSalaryChange = createServerFn({ method: "POST" })
 /** Review is separate from applying the new remuneration to a contract. */
 export const reviewHrSalaryChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(reviewSchema)
+  .validator((input: unknown) => reviewSchema.parse(input))
   .handler(async ({ context, data }) => {
     const membership = await requireHrWriter(context.userId);
     const db = await loadSgaAdminClient();
