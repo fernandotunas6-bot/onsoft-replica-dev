@@ -59,9 +59,22 @@ export function evaluateLessonAttendance(
   const base = { lessonId: lesson.id, scheduledMinutes, verifiedMinutes: 0, lateMinutes: 0, evidenceIds: [] as string[], reasons: [] as string[] };
   if (lesson.cancelled) return { ...base, status: "excused", reasons: ["Aula cancelada; não gera falta."] };
   if (excused) return { ...base, status: "excused", reasons: ["Justificação registada; aguarda política de remuneração."] };
-  const relevant = events.filter((event) =>
+  const scopedEvents = events.filter((event) =>
     event.lessonId === lesson.id && event.teacherId === lesson.teacherId &&
-    event.schoolId === lesson.schoolId && event.verified &&
+    event.schoolId === lesson.schoolId,
+  );
+  // JSON from a device can bypass TypeScript types. A malformed verified
+  // event must be reviewed, rather than silently counted as QR evidence.
+  if (scopedEvents.some((event) =>
+    typeof event.verified !== "boolean" ||
+    !["gate", "lesson_qr", "manual"].includes(event.evidence) ||
+    !["check_in", "check_out"].includes(event.kind))) {
+    return { ...base, status: "pending_review",
+      evidenceIds: scopedEvents.map((event) => event.id),
+      reasons: ["Formato de evidência inválido; requer revisão."] };
+  }
+  const relevant = scopedEvents.filter((event) =>
+    event.verified === true &&
     (!policy.requireVerifiedQr || event.evidence === "lesson_qr"),
   );
   // Malformed evidence is quarantined instead of crashing the whole payroll run.
