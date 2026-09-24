@@ -50,6 +50,7 @@ export function evaluateLessonAttendance(
   const start = timestamp(lesson.startsAt);
   const end = timestamp(lesson.endsAt);
   if (end <= start) throw new Error("A aula deve terminar depois de começar.");
+  if (end - start > 24 * 60 * 60 * 1000) throw new Error("Duração da aula superior a 24 horas.");
   const scheduledMinutes = Math.ceil((end - start) / 60000);
   const base = { lessonId: lesson.id, scheduledMinutes, verifiedMinutes: 0, lateMinutes: 0, evidenceIds: [] as string[], reasons: [] as string[] };
   if (lesson.cancelled) return { ...base, status: "excused", reasons: ["Aula cancelada; não gera falta."] };
@@ -59,12 +60,25 @@ export function evaluateLessonAttendance(
     event.schoolId === lesson.schoolId && event.verified &&
     (!policy.requireVerifiedQr || event.evidence === "lesson_qr"),
   ).sort((a, b) => timestamp(a.occurredAt) - timestamp(b.occurredAt));
-  const checkIn = relevant.find((event) => event.kind === "check_in");
-  if (!checkIn) return { ...base, status: "pending_review", reasons: ["Sem entrada validada; confirmar antes de apurar falta."] };
+  const checkIns = relevant.filter((event) => event.kind === "check_in");
+  if (checkIns.length === 0) return { ...base, status: "pending_review", reasons: ["Sem entrada validada; confirmar antes de apurar falta."] };
+  const checkOuts = relevant.filter((event) => event.kind === "check_out");
+  // Conflicting or repeated scans are reviewed rather than selecting a favorable
+  // pair; the backend must also enforce unique one-time challenges.
+  if (checkIns.length !== 1 || checkOuts.length !== 1) {
+    return { ...base, status: "pending_review", evidenceIds: relevant.map((event) => event.id),
+      reasons: ["Leituras duplicadas ou contraditórias; requer revisão."] };
+  }
+  const checkIn = checkIns[0];
+  const checkOut = checkOuts[0];
   const inTime = timestamp(checkIn.occurredAt);
-  const checkOut = relevant.find((event) => event.kind === "check_out" && timestamp(event.occurredAt) > inTime);
-  if (!checkOut) return { ...base, status: "pending_review", evidenceIds: [checkIn.id], reasons: ["Falta confirmação de saída."] };
   const outTime = timestamp(checkOut.occurredAt);
+  if (outTime <= inTime) return { ...base, status: "pending_review",
+    evidenceIds: [checkIn.id, checkOut.id], reasons: ["Saída anterior ou igual à entrada."] };
+  if (inTime < start - policy.graceMinutes * 60000 || outTime > end + policy.graceMinutes * 60000) {
+    return { ...base, status: "pending_review", evidenceIds: [checkIn.id, checkOut.id],
+      reasons: ["Leitura fora da janela permitida; requer revisão."] };
+  }
   const boundedStart = Math.max(start, inTime);
   const boundedEnd = Math.min(end, outTime);
   const verifiedMinutes = Math.max(0, Math.floor((boundedEnd - boundedStart) / 60000));
