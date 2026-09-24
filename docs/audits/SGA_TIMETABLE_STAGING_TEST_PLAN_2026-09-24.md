@@ -55,3 +55,7 @@ As cinco funções de integridade usam `SECURITY DEFINER` com `search_path = ''`
 ## Gate de implantação
 
 Não ativar enquanto não forem aprovados testes reais de concorrência, permissões RLS, publicação e tratamento das duas versões publicadas sem datas válidas. O bloqueio consultivo dentro de um trigger `BEFORE UPDATE` pode ser adquirido após o bloqueio da linha; isto pode causar deadlocks em transações concorrentes que alteram atribuições e aulas. Se os testes demonstrarem esse risco, mover a aquisição do bloqueio para o início das transações de escrita, antes dos updates, e restringir os caminhos de escrita direta.
+
+## Testes estáticos sem serviços externos
+
+Executar na raiz: `node --test scripts/siga/timetable-migration-static.test.mjs`. Este teste verifica delimitadores SQL, configuração `SECURITY DEFINER`, `search_path`, revogações, triggers, bloqueios e validações de publicação. Não substitui `psql` em staging nem os testes concorrentes com duas conexões. A publicação também falha se houver outra versão publicada do mesmo ano escolar sem datas válidas.
