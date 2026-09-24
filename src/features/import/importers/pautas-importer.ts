@@ -135,6 +135,7 @@ export const pautasImporter: RowImporter = {
       };
     }
 
+    const before = { final_average: enrollment.final_average };
     const { error } = await ctx.db
       .from("enrollments")
       .update({ final_average: scoreNum })
