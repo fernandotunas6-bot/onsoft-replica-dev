@@ -180,8 +180,11 @@ export async function resolveUserLinkedEntities(
           class_group_id: en?.class_group_id ?? null,
           class_name: cg?.name ?? null,
           course_name: null,
-          attendance_rate: en?.attendance_rate ? Number(en.attendance_rate) : null,
-          average_grade: en?.final_average ? Number(en.final_average) : null,
+          // `?:` sobre um número trata 0 como ausente: um aluno com média 0 ou com
+          // assiduidade 0% aparecia no portal como "sem dados", que é precisamente o
+          // contrário do que esses dois valores significam. Comparar com null.
+          attendance_rate: en?.attendance_rate == null ? null : Number(en.attendance_rate),
+          average_grade: en?.final_average == null ? null : Number(en.final_average),
         });
       }
     }
