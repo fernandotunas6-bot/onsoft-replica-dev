@@ -155,8 +155,13 @@ export function planAcademicLessons(input: {
     }
     const [start, end] = interval(lesson);
     const [entry, exit] = interval({ start: shift.entry, end: shift.exit });
-    if (start < entry || end > exit || shift.breaks.some((b) => overlap(lesson, b))) {
-      issues.push({ code: "lesson_outside_teaching_window", message: "Aula fora do turno ou durante um intervalo.", ids: [lesson.id] });
+    const matchesLessonBlock = shift.lessons.some((block) => {
+      const [blockStart, blockEnd] = interval(block);
+      return start >= blockStart && end <= blockEnd;
+    });
+    if (start < entry || end > exit || shift.breaks.some((b) => overlap(lesson, b)) ||
+        !matchesLessonBlock) {
+      issues.push({ code: "lesson_outside_teaching_window", message: "Aula fora de um bloco lectivo válido ou durante um intervalo.", ids: [lesson.id] });
       continue;
     }
     for (let day = parseCivilDate(period.startsOn); day <= parseCivilDate(period.endsOn); day += 86400000) {
