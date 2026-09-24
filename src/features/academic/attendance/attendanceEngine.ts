@@ -90,7 +90,7 @@ export function previewPayroll(
     .reduce((sum, entry) => sum + entry.scheduledMinutes, 0);
   const missingMinutes = resolved.reduce((sum, entry) =>
     sum + Math.max(0, entry.scheduledMinutes - entry.verifiedMinutes), 0);
-  const proposedDeductionCents = policy.deductionEnabled && policy.approvedByHr
+  const proposedDeductionCents = policy.deductionEnabled && policy.approvedByHr && unverifiedMinutes === 0
     ? Math.min(policy.monthlyBaseCents,
         Math.round(policy.monthlyBaseCents * missingMinutes / policy.monthlyContractMinutes))
     : 0;
