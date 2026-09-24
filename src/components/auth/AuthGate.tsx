@@ -182,22 +182,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
           return;
         }
 
-        if (AUTH_DISABLED) {
-          const tokens = await ensureDevBypassSession();
-          if (!active) return;
-          const { data: setData, error: setError } = await supabase.auth.setSession({
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-          });
-          if (setError) throw setError;
-          if (setData.session) {
-            localStorage.setItem(activityKey(setData.session.user.id), String(Date.now()));
-            setSession(setData.session);
-          }
-          setChecking(false);
-          return;
-        }
-
         setSession(null);
         setChecking(false);
       } catch (bootstrapError) {

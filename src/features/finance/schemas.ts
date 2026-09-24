@@ -57,7 +57,12 @@ export type RecordCashExpenseInput = z.infer<typeof recordCashExpenseInputSchema
 
 export const reverseCashEntryInputSchema = z.object({
   cashEntryId: z.string().uuid(),
-  reason: z.string().trim().min(3).max(500),
+  // 5..300 é o que `finance_receipts_reversal_reason_check` admite, e o mínimo de 5 é
+  // também o que `private.reverse_receipt` exige. Com os limites anteriores (3..500), um
+  // motivo curto ou longo demais passava a validação e só rebentava na base, com uma
+  // mensagem que não dizia ao utilizador o que corrigir. As despesas de caixa não têm
+  // restrição própria, pelo que o intervalo mais apertado dos dois serve para ambas.
+  reason: z.string().trim().min(5).max(300),
 });
 
 export type ReverseCashEntryInput = z.infer<typeof reverseCashEntryInputSchema>;

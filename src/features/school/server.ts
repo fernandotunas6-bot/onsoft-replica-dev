@@ -143,6 +143,10 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
     phone: (school.phone as string | null) ?? null,
     email: (school.email as string | null) ?? null,
     address: (school.address as string | null) ?? null,
+    // A consulta acima ja os trazia; o cabecalho da pauta oficial nomeia a
+    // provincia e o municipio, e sem estes dois campos saia vazio.
+    province: (school.province as string | null) ?? null,
+    municipality: (school.municipality as string | null) ?? null,
     academic_year:
       (academicValue["academic_year"] as string | undefined) ??
       (activeYear?.name as string | undefined) ??

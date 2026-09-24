@@ -1178,20 +1178,66 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: receipt, error } = await db
+    // Saber primeiro de que tipo é o movimento, para não confundir "não é um recibo" com
+    // "recibo já estornado" — a RPC devolve a mesma mensagem nos dois casos.
+    const { data: existente, error: leituraError } = await db
       .from("finance_receipts")
-      .update({
-        status: "reversed",
-        reversed_at: new Date().toISOString(),
-        reversed_by: context.userId,
-        reversal_reason: data.reason,
-      })
+      .select("id")
       .eq("id", data.cashEntryId)
       .eq("school_id", membership.schoolId)
-      .select("*")
       .maybeSingle();
-    if (error) throw publicDatabaseError(error, "Não foi possível anular o lançamento.");
-    if (receipt) return receipt;
+    if (leituraError) {
+      throw publicDatabaseError(leituraError, "Não foi possível localizar o lançamento.");
+    }
+
+    if (existente?.id) {
+      // `reverse_receipt` tranca o recibo, exige `finance.payments.reverse` e 2FA, obriga a
+      // motivo, e — o essencial — **recalcula o estado da fatura** a partir dos recibos que
+      // sobram. O `UPDATE` directo que aqui estava não fazia nada disto: não havia trigger
+      // que repusesse a fatura, pelo que estornar o único recibo de uma fatura paga deixava-a
+      // em `paid` sem recibos activos. Nesse estado o aluno devia dinheiro que o sistema dava
+      // por liquidado, `cancelInvoice` recusava-se a cancelá-la e `register_payment` não
+      // aceitava novo pagamento (só actua sobre `open`/`partially_paid`).
+      //
+      // Faltava-lhe também o filtro `status = 'issued'`: um recibo já estornado podia ser
+      // estornado outra vez, sobrescrevendo `reversed_at`/`reversed_by`/`reversal_reason` e
+      // apagando o rasto de quem anulou e porquê.
+      //
+      // Corre no client da SESSÃO, e não no de serviço, para `auth.uid()` e `is_aal2()`
+      // resolverem — tal como `recordInvoicePayment` faz com `register_payment`.
+      // `src/integrations/supabase/types.ts` está dessincronizado da produção neste ponto:
+      // declara `reverse_cash_entry(p_cash_entry_id, p_reason)`, que **não existe** em
+      // produção, e omite `reverse_receipt(school_id, receipt_id, reason)`, que existe
+      // (confirmado em PRODUCTION_SNAPSHOT.json e no corpo capturado em
+      // 20260908210000_capture_all_db_functions.sql). Até os tipos serem regerados contra a
+      // base real, a chamada vai destipada — como `sga-grades.ts` já faz pela mesma razão.
+      const rpc = context.supabase.rpc.bind(context.supabase) as unknown as (
+        nome: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { code?: string; message: string } | null }>;
+      const { data: outcome, error } = await rpc("reverse_receipt", {
+        school_id: membership.schoolId,
+        receipt_id: data.cashEntryId,
+        reason: data.reason,
+      });
+      if (error) {
+        if (error.code === "42501" || /is_aal2|autorização/i.test(error.message ?? "")) {
+          throw new Error(
+            "Esta conta precisa de verificação em duas etapas (2FA) activa e da permissão de estorno para anular recibos.",
+          );
+        }
+        throw publicDatabaseError(error, "Não foi possível anular o lançamento.");
+      }
+      const resultado = outcome as { receiptId: string; invoiceStatus: string };
+
+      const { data: receipt } = await db
+        .from("finance_receipts")
+        .select("*")
+        .eq("id", data.cashEntryId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      return { ...(receipt ?? { id: resultado.receiptId }), invoice_status: resultado.invoiceStatus };
+    }
 
     const { data: expense, error: expenseError } = await db
       .from("siga_cash_expenses")
