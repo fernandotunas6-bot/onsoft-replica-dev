@@ -223,6 +223,20 @@ CREATE TRIGGER guard_correction_decisions_append_only
 BEFORE UPDATE OR DELETE ON academic_evidence.delivery_correction_decisions
 FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_append_only_evidence();
 
+-- Read-only audit projection; never mutates the reviewed original.
+-- A downstream payroll/grade workflow must explicitly adopt a correction
+-- under its own authorization, never infer it from this view alone.
+CREATE OR REPLACE VIEW academic_evidence.approved_delivery_corrections
+WITH (security_invoker = true) AS
+SELECT c.id AS correction_id, c.school_id, c.delivery_id,
+       c.proposed_minutes, c.proposed_curriculum_units, c.proposed_evidence_ids,
+       c.reason, c.requested_by, c.created_at,
+       d.decided_by, d.decided_at, d.decision_reason
+FROM academic_evidence.delivery_corrections c
+JOIN academic_evidence.delivery_correction_decisions d
+  ON d.correction_id = c.id AND d.school_id = c.school_id
+WHERE d.decision = 'approved';
+
 -- Composite tenant FKs reject cross-school plan, delivery and assessment links.
 -- Direct writes remain restricted to the trusted backend; its transactions
 -- must validate membership, actual published timetable and assessment rules.
@@ -521,6 +535,8 @@ ALTER TABLE academic_evidence.delivery_corrections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE academic_evidence.delivery_correction_decisions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON ALL TABLES IN SCHEMA academic_evidence FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA academic_evidence TO service_role;
+REVOKE INSERT, UPDATE, DELETE ON academic_evidence.approved_delivery_corrections FROM service_role;
+GRANT SELECT ON academic_evidence.approved_delivery_corrections TO service_role;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA academic_evidence FROM PUBLIC, anon, authenticated;
 -- No DELETE grant. Backend must never accept school_id from an unverified client.
 COMMIT;
