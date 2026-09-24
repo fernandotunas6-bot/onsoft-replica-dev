@@ -148,6 +148,13 @@ CREATE OR REPLACE FUNCTION academic_evidence.guard_snapshot_publication()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
 AS $
 BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.status <> 'draft' THEN
+      RAISE EXCEPTION 'New academic snapshots must begin as drafts'
+        USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+  END IF;
   IF NEW.status = 'published' AND OLD.status = 'draft' THEN
     IF NOT EXISTS (
       SELECT 1 FROM pg_catalog.pg_timezone_names WHERE name = NEW.time_zone
@@ -176,7 +183,7 @@ $;
 DROP TRIGGER IF EXISTS guard_snapshot_publication
   ON academic_evidence.schedule_snapshots;
 CREATE TRIGGER guard_snapshot_publication
-BEFORE UPDATE OF status ON academic_evidence.schedule_snapshots
+BEFORE INSERT OR UPDATE OF status ON academic_evidence.schedule_snapshots
 FOR EACH ROW EXECUTE FUNCTION academic_evidence.guard_snapshot_publication();
 
 -- A delivery record must point to the plan for its own occurrence.
@@ -254,15 +261,21 @@ RETURNS trigger LANGUAGE plpgsql SET search_path = ''
 AS $$
 DECLARE parent_status text;
 BEGIN
-  SELECT status INTO parent_status FROM academic_evidence.schedule_snapshots
-    WHERE id = COALESCE(NEW.snapshot_id, OLD.snapshot_id) FOR UPDATE;
+  IF TG_OP = 'DELETE' THEN
+    SELECT status INTO parent_status FROM academic_evidence.schedule_snapshots
+      WHERE id = OLD.snapshot_id FOR UPDATE;
+  ELSE
+    SELECT status INTO parent_status FROM academic_evidence.schedule_snapshots
+      WHERE id = NEW.snapshot_id FOR UPDATE;
+  END IF;
   IF parent_status IS DISTINCT FROM 'draft' THEN
     RAISE EXCEPTION 'Published academic occurrences are immutable'
       USING ERRCODE = '23514';
   END IF;
-  RETURN COALESCE(NEW, OLD);
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
 END;
-$$;
+$;
 DROP TRIGGER IF EXISTS guard_occurrence_mutation
   ON academic_evidence.lesson_occurrences;
 CREATE TRIGGER guard_occurrence_mutation
