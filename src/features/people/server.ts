@@ -1320,6 +1320,17 @@ export async function ensureTeacherHrRecord(input: {
     person = created.data;
   }
 
+  const { data: existing, error: teacherLookupError } = await db
+    .from("teachers")
+    .select("id, user_id")
+    .eq("school_id", input.schoolId)
+    .eq("person_id", person.id)
+    .maybeSingle();
+  if (teacherLookupError) throw publicDatabaseError(teacherLookupError, "Não foi possível validar a ficha docente.");
+
+  if (existing?.user_id && String(existing.user_id) !== input.userId) {
+    throw new Error("Professor já vinculado a outra conta; reveja o cadastro.");
+  }
   if (!person.user_id) {
     const { data: linkedPerson, error: linkError } = await db
       .from("people")
@@ -1334,17 +1345,6 @@ export async function ensureTeacherHrRecord(input: {
     }
   }
 
-  const { data: existing, error: teacherLookupError } = await db
-    .from("teachers")
-    .select("id, user_id")
-    .eq("school_id", input.schoolId)
-    .eq("person_id", person.id)
-    .maybeSingle();
-  if (teacherLookupError) throw publicDatabaseError(teacherLookupError, "Não foi possível validar a ficha docente.");
-
-  if (existing?.user_id && String(existing.user_id) !== input.userId) {
-    throw new Error("Professor já vinculado a outra conta; reveja o cadastro.");
-  }
   let teacherId = existing?.id ? String(existing.id) : null;
   if (!teacherId) {
     const { count } = await db
