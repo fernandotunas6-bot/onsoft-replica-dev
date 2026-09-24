@@ -32,6 +32,12 @@ describe("eventos de catracas", () => {
     expect(result.rejected).toHaveLength(1);
     expect(result.accepted).toHaveLength(1);
   });
+  it("impede repetição de evento de lote anterior", () => {
+    const key = JSON.stringify([base.deviceId, base.externalEventId]);
+    const result = reconcileGateEvents([base], "school-1", devices, 5, new Set([key]));
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejected[0].reason).toMatch(/duplicado/);
+  });
   it("coloca em quarentena eventos offline com mais de 24 horas", () => {
     const result = reconcileGateEvents([{ ...base, receivedAt: "2026-09-26T08:01:00+01:00" }], "school-1", devices);
     expect(result.accepted).toHaveLength(0);
