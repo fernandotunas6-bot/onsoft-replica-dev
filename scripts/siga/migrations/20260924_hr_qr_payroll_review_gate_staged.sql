@@ -53,6 +53,19 @@ BEGIN
   FROM public.teachers
   WHERE id = v_occ.teacher_id AND school_id = v_occ.school_id AND status = 'active';
   IF v_teacher_user IS DISTINCT FROM v_user_id THEN RAISE EXCEPTION 'QR challenge belongs to another teacher'; END IF;
+  -- The public RPC is callable independently of the server function. Require
+  -- fresh assurance from the same teacher, school, occurrence and operation.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.hr_attendance_assurance_evidence a
+    WHERE a.school_id=v_occ.school_id AND a.occurrence_id=v_occ.id
+      AND a.purpose=v_session.purpose AND a.actor_user_id=v_user_id
+      AND a.qr_valid AND a.identity_valid AND a.time_valid
+      AND a.decision IN ('auto_approve','review')
+      AND a.captured_at BETWEEN v_now - interval '2 minutes' AND v_now
+  ) THEN
+    RAISE EXCEPTION 'Recent valid attendance assurance required';
+  END IF;
+
 
   IF v_session.purpose = 'check_in' THEN
     IF v_occ.actual_started_at IS NOT NULL THEN RAISE EXCEPTION 'Teacher already checked in for this lesson'; END IF;
