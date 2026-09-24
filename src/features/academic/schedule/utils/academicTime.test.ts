@@ -64,6 +64,21 @@ describe("períodos lectivos, turnos, intervalos e catracas", () => {
       lessons: [lesson], extraTeachingDates: ["2026-09-26"] });
     expect(result.occurrences.map((item) => item.date)).toEqual(["2026-09-21"]);
   });
+  it("recusa aulas em lacunas entre blocos e fora do período", () => {
+    const gap = planAcademicLessons({ periods: [period], shifts: [shift],
+      lessons: [{ ...lesson, start: "11:25", end: "12:00" }] });
+    expect(gap.issues.some((issue) => issue.code === "lesson_outside_teaching_window")).toBe(true);
+    expect(gap.occurrences).toEqual([]);
+    expect(() => planAcademicLessons({ periods: [period], shifts: [shift],
+      lessons: [lesson], extraTeachingDates: ["2026-10-03"] })).toThrow(/fora dos períodos/);
+  });
+  it("não expande períodos sobrepostos nem turnos inválidos", () => {
+    const overlapping = planAcademicLessons({ periods: [period,
+      { ...period, id: "p2", startsOn: "2026-09-25", endsOn: "2026-09-30" }],
+      shifts: [shift], lessons: [lesson] });
+    expect(overlapping.occurrences).toEqual([]);
+    expect(overlapping.issues.some((issue) => issue.code === "overlapping_periods")).toBe(true);
+  });
   it("detecta conflito real por docente, turma ou sala na mesma data", () => {
     const result = planAcademicLessons({ periods: [period], shifts: [shift],
       lessons: [lesson, { ...lesson, id: "lesson-2", classGroupId: "class-2", roomId: "room-2" }] });
