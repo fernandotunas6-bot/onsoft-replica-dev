@@ -30,7 +30,7 @@ jobs:
           bun-version: latest
 
       - name: Instalar dependências
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Auditoria de segurança
         run: |
@@ -60,7 +60,7 @@ jobs:
           bun-version: latest
 
       - name: Instalar dependências
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Checklist de estilo (IconChip / MediaFrame / paleta)
         env:
@@ -112,7 +112,7 @@ jobs:
 
       - name: Instalar dependências
         run: |
-          bun install
+          bun install --frozen-lockfile
           python -m pip install --requirement requirements-dev.txt
           python -m playwright install --with-deps chromium
 
@@ -147,7 +147,7 @@ jobs:
           bun-version: latest
 
       - name: Instalar dependências
-        run: bun install
+        run: bun install --frozen-lockfile
 
       # Medir o build de produção: o servidor de desenvolvimento não é minificado
       # e produz métricas irreais (LCP > 20 s), tornando o gate inútil.
@@ -188,7 +188,7 @@ jobs:
 
       - name: Instalar dependências
         run: |
-          bun install
+          bun install --frozen-lockfile
           python -m pip install --upgrade pip
           python -m pip install --requirement requirements-dev.txt
           python -m playwright install --with-deps chromium
@@ -241,7 +241,7 @@ jobs:
 
       - name: Instalar dependências (raiz + painéis)
         run: |
-          bun install
+          bun install --frozen-lockfile
           npm ci --prefix painel/web
           npm ci --prefix painel/admin
           npm ci --prefix painel/docs
