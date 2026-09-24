@@ -59,6 +59,29 @@ describe("presença docente e apuramento mensal", () => {
     expect(preview.requiresHrApproval).toBe(true);
   });
 
+  it("exige revisão de scans duplicados e saída anterior à entrada", () => {
+    const duplicate = evaluateLessonAttendance(lesson, [
+      event("check_in", "08:00:00", "in-1"), event("check_in", "08:01:00", "in-2"),
+      event("check_out", "09:00:00"),
+    ], policy);
+    expect(duplicate.status).toBe("pending_review");
+    const reversed = evaluateLessonAttendance(lesson, [
+      event("check_in", "08:30:00"), event("check_out", "08:20:00"),
+    ], policy);
+    expect(reversed.status).toBe("pending_review");
+  });
+  it("não aceita leitura fora da janela e permite chegada tardia durante a aula", () => {
+    expect(evaluateLessonAttendance(lesson, [
+      event("check_in", "07:00:00"), event("check_out", "09:00:00"),
+    ], policy).status).toBe("pending_review");
+    expect(evaluateLessonAttendance(lesson, [
+      event("check_in", "08:30:00"), event("check_out", "09:00:00"),
+    ], policy).status).toBe("partial");
+  });
+  it("recusa aulas com duração superior a 24 horas", () => {
+    expect(() => evaluateLessonAttendance({ ...lesson, endsAt: "2026-09-26T09:00:00+01:00" }, [], policy)).toThrow(/24 horas/);
+  });
+
   it("rejeita datas sem fuso e carga horária mensal zero", () => {
     expect(() => evaluateLessonAttendance({ ...lesson, startsAt: "2026-09-24T08:00:00" }, [], policy)).toThrow(/fuso/);
     expect(() => previewPayroll([], { ...payroll, monthlyContractMinutes: 0 })).toThrow();
