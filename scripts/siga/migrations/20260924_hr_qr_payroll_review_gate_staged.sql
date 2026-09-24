@@ -67,6 +67,23 @@ BEGIN
   END IF;
 
 
+  IF v_occ.occurrence_kind = 'scheduled' AND NOT EXISTS (
+    SELECT 1
+    FROM public.timetable_slots ts
+    JOIN public.academic_schedules sch
+      ON sch.id=ts.schedule_id AND sch.school_id=ts.school_id
+    WHERE ts.id=v_occ.timetable_slot_id
+      AND ts.school_id=v_occ.school_id
+      AND ts.class_subject_id=v_occ.class_subject_id
+      AND ts.status='active' AND sch.status='published'
+      AND sch.valid_from IS NOT NULL AND sch.valid_to IS NOT NULL
+      AND v_occ.lesson_date BETWEEN sch.valid_from AND sch.valid_to
+      AND ts.starts_at=v_occ.scheduled_starts_at
+      AND ts.ends_at=v_occ.scheduled_ends_at
+  ) THEN
+    RAISE EXCEPTION 'Scheduled QR attendance requires the published official timetable';
+  END IF;
+
   IF v_session.purpose = 'check_in' THEN
     IF v_occ.actual_started_at IS NOT NULL THEN RAISE EXCEPTION 'Teacher already checked in for this lesson'; END IF;
     UPDATE public.hr_teacher_lesson_occurrences
