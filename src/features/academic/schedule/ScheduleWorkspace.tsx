@@ -99,16 +99,15 @@ export function ScheduleWorkspace({
 
   // Seleções ativas por modo
   const selectedClassGroupId =
-    classGroupId ||
-    slots.find((slot) => slot.class_group_id)?.class_group_id ||
+    (classGroupId && classGroups.some((group) => group.id === classGroupId) ? classGroupId : "") ||
     classGroups[0]?.id ||
     "";
   const selectedClassGroup = classGroups.find((group) => group.id === selectedClassGroupId);
 
-  const selectedTeacherId = teacherId || teachers[0]?.id || "";
+  const selectedTeacherId = teachers.some((teacher) => teacher.id === teacherId) ? teacherId : teachers[0]?.id || "";
   const selectedTeacher = teachers.find((t) => t.id === selectedTeacherId);
 
-  const selectedRoomId = roomId || rooms[0]?.id || "";
+  const selectedRoomId = rooms.some((room) => room.id === roomId) ? roomId : rooms[0]?.id || "";
   const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
 
   // Filtrar slots conforme modo de visualização
@@ -142,7 +141,11 @@ export function ScheduleWorkspace({
       .some((value) => String(value).toLocaleLowerCase().includes(normalizedQuery));
   });
 
-  const conflicts = useMemo(() => detectScheduleConflicts(slots), [slots]);
+  const conflicts = useMemo(() => detectScheduleConflicts(slots.filter((slot) =>
+    currentSlots.some((visible) => visible.id === slot.id ||
+      (visible.schedule_id != null && visible.schedule_id === slot.schedule_id) ||
+      (visible.schedule_id == null && slot.schedule_id == null)),
+  )), [slots, currentSlots]);
   const selectedConflicts = conflicts.filter((conflict) =>
     conflict.slotIds.some((slotId) => currentSlots.some((slot) => slot.id === slotId)),
   );
@@ -266,7 +269,7 @@ export function ScheduleWorkspace({
     setPublishing(true);
     try {
       await onPublishSchedule(selectedClassGroupId);
-      toast.success("Horário publicado e sincronizado com o Calendário Escolar!");
+      toast.success("Horário publicado com sucesso.");
     } catch (err: any) {
       toast.error(err.message || "Erro ao publicar horário.");
     } finally {
