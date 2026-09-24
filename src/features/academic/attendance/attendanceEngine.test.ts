@@ -127,6 +127,15 @@ describe("presença docente e apuramento mensal", () => {
     expect(previewPayroll([result], payroll).proposedDeductionCents).toBe(0);
   });
 
+  it("recusa estados desconhecidos vindos da API antes do desconto", () => {
+    const invalid = {
+      lessonId: "lesson-1", status: "confirmada" as "present",
+      scheduledMinutes: 60, verifiedMinutes: 0, lateMinutes: 0,
+      evidenceIds: [], reasons: [],
+    };
+    expect(() => previewPayroll([invalid], payroll)).toThrow(/Estado de presença inválido/);
+  });
+
   it("arredonda descontos em cêntimos sem perder precisão monetária", () => {
     const partial = {
       lessonId: "lesson-1", status: "partial" as const,
