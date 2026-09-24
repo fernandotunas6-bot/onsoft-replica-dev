@@ -1,8 +1,8 @@
 {
-  "capturadoEm": "2026-09-24T13:31:02.075Z",
+  "capturadoEm": "2026-09-24T13:48:54.748Z",
   "resumo": {
     "com_rls": 162,
-    "funcoes_private": 100,
+    "funcoes_private": 101,
     "politicas": 297,
     "tabelas": 162,
     "triggers": 174
@@ -6651,6 +6651,12 @@
     {
       "args": "target_school_id uuid, target_gradebook_id uuid",
       "funcao": "submit_gradebook",
+      "schema": "private",
+      "security_definer": false
+    },
+    {
+      "args": "p_room text",
+      "funcao": "timetable_room_is_explicit",
       "schema": "private",
       "security_definer": false
     },
