@@ -36,12 +36,9 @@ export function reconcileGateEvents(
       rejected.push({ event, reason: "Evento duplicado." });
       continue;
     }
-    seen.add(key);
-    const occurred = Date.parse(event.occurredAt);
-    const received = Date.parse(event.receivedAt);
-    if (!Number.isFinite(occurred) || !Number.isFinite(received) ||
-        !/(?:Z|[+-]\d\d:\d\d)$/.test(event.occurredAt) ||
-        !/(?:Z|[+-]\d\d:\d\d)$/.test(event.receivedAt)) {
+    const occurred = validTimestamp(event.occurredAt);
+    const received = validTimestamp(event.receivedAt);
+    if (occurred === null || received === null) {
       rejected.push({ event, reason: "Timestamp inválido ou sem fuso horário." });
       continue;
     }
