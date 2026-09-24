@@ -148,9 +148,12 @@ export function previewPayroll(
     .reduce((sum, entry) => sum + entry.scheduledMinutes, 0);
   const missingMinutes = resolved.reduce((sum, entry) =>
     sum + Math.max(0, entry.scheduledMinutes - entry.verifiedMinutes), 0);
+  // Money remains integer cents. BigInt prevents precision loss when the
+  // salary and scheduled minutes are both large; half-cents round up.
+  const cappedMissingMinutes = Math.min(missingMinutes, policy.monthlyContractMinutes);
   const proposedDeductionCents = policy.deductionEnabled && policy.approvedByHr && !incompleteRoster && unverifiedMinutes === 0
-    ? Math.min(policy.monthlyBaseCents,
-        Math.round(policy.monthlyBaseCents * missingMinutes / policy.monthlyContractMinutes))
+    ? Number((BigInt(policy.monthlyBaseCents) * BigInt(cappedMissingMinutes)
+        + BigInt(policy.monthlyContractMinutes) / 2n) / BigInt(policy.monthlyContractMinutes))
     : 0;
   return { scheduledMinutes, verifiedMinutes, unverifiedMinutes, proposedDeductionCents,
     payableBaseCents: policy.monthlyBaseCents - proposedDeductionCents,
