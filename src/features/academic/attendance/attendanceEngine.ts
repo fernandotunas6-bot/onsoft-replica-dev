@@ -125,6 +125,11 @@ export function previewPayroll(
       throw new Error("Aulas duplicadas ou sem identificação no apuramento mensal.");
     }
     lessonIds.add(entry.lessonId);
+    // API payloads have no TypeScript types at runtime. Unknown states must
+    // never fall through to the financially resolved branch.
+    if (!["present", "late", "partial", "absent", "excused", "pending_review"].includes(entry.status)) {
+      throw new Error("Estado de presença inválido; requer revisão.");
+    }
     positiveInteger(entry.scheduledMinutes, "Minutos previstos");
     if (expectedMinutes !== undefined && Object.hasOwn(expectedMinutes, entry.lessonId) &&
         entry.scheduledMinutes !== expectedMinutes[entry.lessonId]) {
