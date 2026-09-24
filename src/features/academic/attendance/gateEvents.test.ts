@@ -38,6 +38,19 @@ describe("eventos de catracas", () => {
     expect(result.accepted).toHaveLength(0);
     expect(result.rejected[0].reason).toMatch(/duplicado/);
   });
+  it("aceita retransmissão corrigida após alerta de relógio", () => {
+    const skewed = { ...base, occurredAt: "2026-09-24T09:00:00+01:00" };
+    const result = reconcileGateEvents([skewed, base, base], "school-1", devices);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.accepted).toHaveLength(1);
+    expect(result.rejected).toHaveLength(1);
+    expect(result.rejected[0].reason).toMatch(/duplicado/);
+  });
+  it("rejeita tolerância de relógio desmedida ou fracionária", () => {
+    expect(() => reconcileGateEvents([base], "school-1", devices, 1000000000000000)).toThrow();
+    expect(() => reconcileGateEvents([base], "school-1", devices, 1.5)).toThrow();
+  });
+
   it("coloca em quarentena eventos offline com mais de 24 horas", () => {
     const result = reconcileGateEvents([{ ...base, receivedAt: "2026-09-26T08:01:00+01:00" }], "school-1", devices);
     expect(result.accepted).toHaveLength(0);
