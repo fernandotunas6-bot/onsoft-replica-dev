@@ -17,9 +17,19 @@ export function validateAssessmentCalendar(input: {
   windows: readonly AssessmentWindow[]; sessions: readonly AssessmentSession[];
   blockedDates?: readonly string[];
   maximumExamsPerClassPerDay?: number;
+  /** Verified official rules for the relevant school year and subsystem. */
+  nationalExamGrades?: readonly number[];
+  /** Published teaching slots, including any approved rescheduling. */
+  teachingSlots?: readonly { id: string; date: string; startsAt: string; endsAt: string;
+    classGroupId: string; roomId?: string; teacherId?: string }[];
 }): AssessmentIssue[] {
   const issues: AssessmentIssue[] = [];
   const max = input.maximumExamsPerClassPerDay ?? 2;
+  const nationalGrades = input.nationalExamGrades;
+  if (nationalGrades && (new Set(nationalGrades).size !== nationalGrades.length ||
+      nationalGrades.some((g) => !Number.isInteger(g) || g < 1 || g > 12))) {
+    throw new Error("Configuração oficial de exames nacionais inválida.");
+  }
   if (!Number.isSafeInteger(max) || max < 1 || max > 6) throw new Error("Limite diário inválido.");
   const periods = new Map(input.periods.map((p) => [p.id, p]));
   const windows = new Map(input.windows.map((w) => [w.id, w]));
@@ -43,8 +53,10 @@ export function validateAssessmentCalendar(input: {
     if (window.allowedGrades?.some((g) => !Number.isInteger(g) || g < 1 || g > 12)) {
       throw new Error("Classes permitidas inválidas.");
     }
-    if (window.kind === "national_exam" && window.allowedGrades?.some((g) => ![6, 9, 12].includes(g))) {
-      issues.push({ code: "national_exam_grade", ids: [window.id], message: "Classe não elegível para exame nacional do ensino geral." });
+    if (window.kind === "national_exam" && (!nationalGrades?.length ||
+        !window.allowedGrades?.length || window.allowedGrades.some((g) => !nationalGrades.includes(g)))) {
+      issues.push({ code: "national_exam_grade", ids: [window.id],
+        message: "Elegibilidade do exame nacional não confirmada para o ano e subsistema." });
     }
   }
   const byClassDay = new Map<string, AssessmentSession[]>();
@@ -81,6 +93,23 @@ export function validateAssessmentCalendar(input: {
           a.invigilatorIds.some((id) => b.invigilatorIds.includes(id))) {
         issues.push({ code: "assessment_collision", ids: [a.id, b.id],
           message: "Sobreposição de turma, sala ou vigilante." });
+      }
+    }
+  }
+  for (const slot of input.teachingSlots ?? []) {
+    parseCivilDate(slot.date);
+    if (!slot.id || !slot.classGroupId || parseLocalMinute(slot.endsAt) <= parseLocalMinute(slot.startsAt)) {
+      throw new Error("Aula publicada inválida para conciliação de exames.");
+    }
+    for (const exam of input.sessions) {
+      if (exam.date !== slot.date ||
+          parseLocalMinute(exam.startsAt) >= parseLocalMinute(slot.endsAt) ||
+          parseLocalMinute(slot.startsAt) >= parseLocalMinute(exam.endsAt)) continue;
+      if (exam.classGroupId === slot.classGroupId ||
+          (exam.roomId && slot.roomId && exam.roomId === slot.roomId) ||
+          (slot.teacherId && exam.invigilatorIds.includes(slot.teacherId))) {
+        issues.push({ code: "exam_lesson_collision", ids: [exam.id, slot.id],
+          message: "Exame sobrepõe aula publicada, sala ou serviço docente." });
       }
     }
   }
