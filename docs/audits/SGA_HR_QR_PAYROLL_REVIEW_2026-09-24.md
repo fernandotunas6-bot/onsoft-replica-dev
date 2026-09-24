@@ -30,3 +30,7 @@
 6. Nunca activar descontos automáticos por QR ausente, catraca isolada ou 22 dias fixos. O fecho financeiro só deve usar calendário contratual, revisões concluídas e autorização RH persistida.
 
 **Estado:** correções no PR em rascunho; produção preservada; teste SQL real, integração e revisão jurídica/laboral ainda pendentes.
+
+## Identidade docente — impacto medido
+
+Consulta de leitura à Sga encontrou **7 docentes activos sem `teachers.user_id` nem `people.user_id`**, zero docentes ligados directamente e zero vinculáveis pelo `people.user_id`. Remover a associação automática baseada apenas em e-mail fecha um atalho de identidade, mas esses sete cadastros precisam de vínculo de login feito pela administração e confirmado antes de usar QR. A emissão para secretaria continua possível; o resgate por docente permanece bloqueado até existir vínculo explícito. Não preencher IDs por aproximação de nome ou e-mail.
