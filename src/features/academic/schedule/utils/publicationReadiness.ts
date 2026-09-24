@@ -27,6 +27,8 @@ export function schedulePublicationReadiness(input: {
   if (!group) issues.push({ code: "class", message: "Seleccione uma turma válida." });
   if (versionIds.size > 1) issues.push({ code: "version", message: "Existem várias versões desta turma. Seleccione uma versão antes de publicar." });
   if (own.length === 0) issues.push({ code: "empty", message: "Adicione pelo menos uma aula antes de publicar." });
+  if (own.length > 0 && own.every((slot) => slot.schedule_id == null))
+    issues.push({ code: "version", message: "Associe as aulas a uma versão identificada do horário antes de publicar." });
   const knownSubjects = new Set(subjects.map((item) => item.id));
   const knownTeachers = new Set(teachers.map((item) => item.id));
   const roomById = new Map(rooms.map((item) => [item.id, item]));
