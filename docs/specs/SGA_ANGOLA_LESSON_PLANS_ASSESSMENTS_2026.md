@@ -41,3 +41,10 @@ Separar três indicadores: (1) presença administrativa do docente; (2) execuç�
 
 ## 5. Controlo de produção pendente
 Criar tabelas multi-tenant com school_id, academic_year_id, period_id, published_schedule_version, subject_id, curriculum_version e trilho de auditoria. A API deve aplicar autorização por perfil, RLS e transações para publicação e fecho. Integrar os motores lessonPlanReconciliation.ts e assessmentCalendar.ts com a UI e persistência. Executar Vitest, typecheck, build, testes de integração e de concorrência antes de activar funcionalidades ou migrar produção.
+
+
+## 6. Integração incremental realizada no PR
+- O calendário de provas compara sessões com aulas publicadas na mesma data e detecta sobreposições de turma, sala e professor vigilante. A regra de exame nacional passou a receber a lista de classes elegíveis de configuração oficial versionada: na ausência dessa lista, a publicação fica bloqueada. O exemplo 6.ª/9.ª/12.ª no texto anterior não substitui os editais e a norma aplicável.
+- A matriz de avaliação associa a prova a escola, período, turma, disciplina, unidades curriculares, objectivos, questões e cotação. Exige aprovação pedagógica e planos aprovados **anteriores à data da prova**. Divergências impedem marcar a matriz como pronta.
+- A matriz e os planos são validações pedagógicas preliminares: falta associar a execução real de cada aula, acomodações individuais, critérios de avaliação por subsistema e normas específicas de cada exame. Não usar esta verificação isoladamente para reprovar alunos, sancionar docentes ou publicar notas.
+- Para evitar falsos conflitos, uma prova substitutiva só pode retirar aulas da grelha publicada mediante alteração versionada e auditada. O motor actual sinaliza a colisão, não efectua automaticamente a substituição.
