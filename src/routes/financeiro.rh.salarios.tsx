@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { kwanza } from "@/lib/currency";
 import { requestHrSalaryChange, reviewHrSalaryChange } from "@/features/hr/salary-changes";
-import { applyApprovedHrSalaryChange, listHrSalaryChangeRequests, listHrContractsForSalaryChange, listHrSalaryAmendments } from "@/features/hr/salary-amendments";
+import { applyApprovedHrSalaryChange, listHrSalaryChangeRequests, listHrContractsForSalaryChange, listHrSalaryAmendments, getHrSalaryWorkflowPermissions } from "@/features/hr/salary-amendments";
 import { listApprovedSalaryScales } from "@/features/hr/salary-catalog";
 
 export const Route = createFileRoute("/financeiro/rh/salarios")({
@@ -26,6 +26,11 @@ function SalaryOperationsPage() {
   const [effectiveOn, setEffectiveOn] = useState("");
   const [reason, setReason] = useState("");
   const [reviewReasons, setReviewReasons] = useState<Record<string, string>>({});
+  const permissions = useQuery({
+    queryKey: ["hr", "salary-workflow-permissions"],
+    queryFn: () => getHrSalaryWorkflowPermissions(),
+    retry: false,
+  });
   const contracts = useQuery({ queryKey: ["hr", "salary-contracts"], queryFn: () => listHrContractsForSalaryChange(), retry: false });
   const requests = useQuery({ queryKey: ["hr", "salary-requests"], queryFn: () => listHrSalaryChangeRequests(), retry: false });
   const scales = useQuery({ queryKey: ["hr", "salary-scales"], queryFn: () => listApprovedSalaryScales(), retry: false });
@@ -104,6 +109,8 @@ function SalaryOperationsPage() {
         onClick={()=>create.mutate()}>{create.isPending?"A registar…":"Submeter pedido"}</Button></div>
     </Panel>
     <Panel title="Pedidos e aprovações" description="Cada etapa exige um utilizador diferente. Os pedidos aprovados não modificam directamente contratos históricos.">
+      {permissions.isError && <p className="mb-3 text-sm text-destructive">{errorText(permissions.error)}</p>}
+      {permissions.data && !permissions.data.canApply && <p className="mb-3 text-xs text-muted-foreground">A aplicação final está reservada a um administrador diferente do requerente e do revisor.</p>}
       {requests.isLoading ? <p className="text-sm text-muted-foreground">A carregar pedidos…</p>
       : requests.isError ? <p className="text-sm text-destructive">{errorText(requests.error)}</p>
       : (requests.data ?? []).length===0 ? <p className="text-sm text-muted-foreground">Não existem pedidos nesta escola.</p>
@@ -112,10 +119,14 @@ function SalaryOperationsPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div><p className="font-semibold">{kwanza(Number(r.proposed_base_salary_kz))}</p>
               <p className="text-sm text-muted-foreground">Vigência: {r.effective_on} · Estado: {r.status}</p></div>
-            {r.status==="approved" && <Button size="sm" disabled={apply.isPending} onClick={()=>apply.mutate(r.id)}>Aplicar alteração</Button>}
+            {r.status==="approved" && permissions.data?.canApply &&
+              r.requested_by!==permissions.data.actorId && r.reviewed_by!==permissions.data.actorId &&
+              <Button size="sm" disabled={apply.isPending} onClick={()=>apply.mutate(r.id)}>Aplicar alteração</Button>}
           </div>
           <p className="mt-2 text-sm">{r.reason}</p>
-          {r.status==="pending" && <div className="mt-3 flex flex-wrap gap-2">
+          {r.status==="pending" && permissions.data?.canReview &&
+            r.requested_by!==permissions.data.actorId &&
+            <div className="mt-3 flex flex-wrap gap-2">
             <Input aria-label="Fundamentação da decisão" placeholder="Fundamentação da decisão (mín. 10 caracteres)"
               value={reviewReasons[r.id]??""} onChange={(e)=>setReviewReasons((old)=>({...old,[r.id]:e.target.value}))} />
             <Button size="sm" disabled={review.isPending || (reviewReasons[r.id]??"").trim().length<10}
