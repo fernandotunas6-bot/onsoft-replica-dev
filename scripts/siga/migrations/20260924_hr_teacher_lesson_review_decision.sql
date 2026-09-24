@@ -148,7 +148,7 @@ BEGIN
 
   RETURN v_event_id;
 END;
-$function$
+$function$;
 
 CREATE FUNCTION public.hr_review_teacher_lesson(
   p_occurrence_id uuid, p_decision text, p_payable_quantity numeric, p_reason text
