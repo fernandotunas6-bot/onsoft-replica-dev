@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import type {
   ScheduleClassGroup,
+  ScheduleClassSubject,
   ScheduleRoom,
   ScheduleSlot,
   ScheduleSlotInput,
@@ -66,6 +67,7 @@ export function ScheduleWorkspace({
   scheduleAvailable,
   classGroups,
   subjects,
+  classSubjects = [],
   rooms = [],
   teachers = [],
   slots,
@@ -81,6 +83,7 @@ export function ScheduleWorkspace({
   scheduleAvailable: boolean;
   classGroups: ScheduleClassGroup[];
   subjects: ScheduleSubject[];
+  classSubjects?: ScheduleClassSubject[];
   rooms?: ScheduleRoom[];
   teachers?: ScheduleTeacher[];
   slots: ScheduleSlot[];
@@ -152,7 +155,7 @@ export function ScheduleWorkspace({
 
   const rows = gridRows(visibleSlots);
   const visibleWeekdays = weekdays.slice(0, visibleSlots.some((slot) => slot.weekday > 5) ? 7 : 5);
-  const publication = schedulePublicationReadiness({ classGroupId: selectedClassGroupId, slots, classGroups, subjects, teachers, rooms });
+  const publication = schedulePublicationReadiness({ classGroupId: selectedClassGroupId, slots, classGroups, subjects, teachers, rooms, classSubjects });
 
   const classGroupOptions = classGroups.map((group) => optionLabel(group.id, group.name));
   const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));

@@ -56,6 +56,7 @@ type TeacherAssignment = {
   class_group_id: string;
   subject_id: string;
   teacher_id: string;
+  weekly_periods: number | null;
 };
 
 type TeacherScope = {
@@ -182,7 +183,7 @@ async function resolveTeacherScope(
 
   const { data: assignmentRows, error: assignmentError } = await db
     .from("class_subjects")
-    .select("id, class_group_id, subject_id, teacher_id")
+    .select("id, class_group_id, subject_id, teacher_id, weekly_periods")
     .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("status", "active");
@@ -198,6 +199,7 @@ async function resolveTeacherScope(
     class_group_id: String(row.class_group_id),
     subject_id: String(row.subject_id),
     teacher_id: String(row.teacher_id),
+    weekly_periods: row.weekly_periods == null ? null : Number(row.weekly_periods),
   }));
   const classGroupIds = [...new Set(assignments.map((row) => row.class_group_id))];
   const subjectIds = [...new Set(assignments.map((row) => row.subject_id))];
@@ -689,7 +691,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const { data: timetableSlots, error: scheduleError } = visibleClassSubjectIds.length
       ? await db
           .from("timetable_slots")
-          .select("id, class_subject_id, weekday, starts_at, ends_at, room, status")
+          .select("id, class_subject_id, weekday, starts_at, ends_at, room, room_id, notes, status")
           .eq("school_id", membership.schoolId)
           .in("class_subject_id", visibleClassSubjectIds)
           .eq("status", "active")
@@ -880,6 +882,9 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const classSubjects = assignments.map((assignment) => ({
       class_group_id: assignment.class_group_id,
       subject_id: assignment.subject_id,
+      // Sem a carga semanal, a verificacao de publicacao nao tem com o que comparar
+      // e deixa passar um horario incompleto na vista do docente.
+      weekly_periods: assignment.weekly_periods ?? null,
       subject_name: String(subjectById.get(assignment.subject_id)?.name ?? "Disciplina"),
       teacher_id: scope.teacherId,
       teacher_name: scope.teacherName || null,
@@ -897,7 +902,12 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         ends_at: String(slot.ends_at ?? ""),
         subject_id: assignment?.subject_id ?? null,
         teacher_id: scope.teacherId,
+        // Os mesmos campos que `server-legacy` devolve: a vista do docente e a da
+        // secretaria leem o mesmo tipo e nao podem divergir na sala nem nas notas.
+        room_id: slot.room_id ? String(slot.room_id) : null,
+        room_name: slot.room ? String(slot.room) : null,
         label: slot.room ? String(slot.room) : null,
+        notes: slot.notes ? String(slot.notes) : null,
         subject_name: subject?.name ? String(subject.name) : null,
         display_label: String(subject?.name ?? slot.room ?? "—"),
         class_group_name: String(group?.name ?? "—"),

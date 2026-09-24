@@ -1,5 +1,5 @@
 import { normalizeText } from "../engine/normalize";
-import type { ImportRefCache, RowImporter } from "../engine/types";
+import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadClassSubjectRefs,
   loadTeacherRefs,
@@ -9,12 +9,21 @@ import {
 } from "./academic-core";
 
 type Ref = { id: string; code: string; name: string };
+type ScheduledSlot = {
+  classGroupId: string;
+  teacherId: string | null;
+  weekday: number;
+  startsAt: number;
+  endsAt: number;
+  room: string;
+};
 type HorariosCache = ImportRefCache & {
   classGroups: Ref[];
   subjects: Ref[];
   teachers: TeacherRef[];
   classSubjects: ClassSubjectRef[];
   existingSlots: Set<string>; // key: `${class_subject_id}:${weekday}:${starts_at}`
+  scheduledSlots: ScheduledSlot[];
 };
 
 function valueOf(row: Record<string, unknown>, ...keys: string[]) {
@@ -35,6 +44,30 @@ function parseWeekday(val: unknown): number | null {
   if (norm.includes("sabado") || norm.includes("sábado") || norm === "6" || norm === "sab")
     return 6;
   return null;
+}
+
+function parseTimeToMinutes(value: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value.trim());
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return hours * 60 + minutes;
+}
+
+function timeKey(value: string): string {
+  const minutes = parseTimeToMinutes(value);
+  if (minutes === null) return normalizeText(value);
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+function intervalsOverlap(
+  startsAt: number,
+  endsAt: number,
+  otherStartsAt: number,
+  otherEndsAt: number,
+): boolean {
+  return startsAt < otherEndsAt && otherStartsAt < endsAt;
 }
 
 function classSubjectKey(classGroupId: string, subjectId: string) {
@@ -64,7 +97,7 @@ export const horariosImporter: RowImporter = {
       loadClassSubjectRefs(ctx.db, ctx.schoolId),
       ctx.db
         .from("timetable_slots")
-        .select("class_subject_id, weekday, starts_at")
+        .select("class_subject_id, weekday, starts_at, ends_at, room")
         .eq("school_id", ctx.schoolId),
     ]);
 
@@ -76,9 +109,24 @@ export const horariosImporter: RowImporter = {
 
     const existingSlots = new Set(
       (slotRows.data ?? []).map(
-        (r) => `${r.class_subject_id}:${r.weekday}:${normalizeText(r.starts_at)}`,
+        (r) => `${r.class_subject_id}:${r.weekday}:${timeKey(String(r.starts_at ?? ""))}`,
       ),
     );
+    const classSubjectById = new Map(classSubjects.map((row) => [row.id, row]));
+    const scheduledSlots: ScheduledSlot[] = (slotRows.data ?? []).flatMap((row) => {
+      const classSubject = classSubjectById.get(String(row.class_subject_id));
+      const startsAt = parseTimeToMinutes(String(row.starts_at ?? ""));
+      const endsAt = parseTimeToMinutes(String(row.ends_at ?? ""));
+      if (!classSubject || startsAt === null || endsAt === null || endsAt <= startsAt) return [];
+      return [{
+        classGroupId: classSubject.class_group_id,
+        teacherId: classSubject.teacher_id,
+        weekday: Number(row.weekday),
+        startsAt,
+        endsAt,
+        room: normalizeText(row.room) || "A definir",
+      }];
+    });
 
     return {
       existingPeople: [],
@@ -96,6 +144,7 @@ export const horariosImporter: RowImporter = {
       teachers,
       classSubjects,
       existingSlots,
+      scheduledSlots,
     } as HorariosCache;
   },
 
@@ -116,6 +165,14 @@ export const horariosImporter: RowImporter = {
     if (!weekday) errors.push("Dia da semana inválido (ex: Segunda-feira, Terça-feira...).");
     if (!startTime) errors.push("Hora de início é obrigatória (ex: 07:30).");
     if (!endTime) errors.push("Hora de fim é obrigatória (ex: 08:15).");
+
+    const startMinutes = startTime ? parseTimeToMinutes(startTime) : null;
+    const endMinutes = endTime ? parseTimeToMinutes(endTime) : null;
+    if (startTime && startMinutes === null) errors.push("Hora de início inválida (use HH:MM).");
+    if (endTime && endMinutes === null) errors.push("Hora de fim inválida (use HH:MM).");
+    if (startMinutes !== null && endMinutes !== null && endMinutes <= startMinutes) {
+      errors.push("A hora de fim deve ser posterior à hora de início.");
+    }
 
     if (errors.length) return { status: "error", warnings, errors };
 
@@ -152,13 +209,40 @@ export const horariosImporter: RowImporter = {
       subjMatch.row!.id,
       cache.classSubjects,
     );
-    if (classSubject && cache.existingSlots.has(`${classSubject.id}:${weekday}:${startTime}`)) {
+    const teacher = teacherVal
+      ? uniqueExactMatch(teacherVal, cache.teachers, [
+          (t) => t.employee_number,
+          (t) => t.national_id,
+        ]).row
+      : null;
+    if (teacher && classSubject?.teacher_id && classSubject.teacher_id !== teacher.id) {
+      errors.push("A disciplina já está atribuída a outro professor nesta turma.");
+    }
+    if (errors.length) return { status: "error", warnings, errors };
+
+    const startTimeKey = timeKey(startTime);
+    if (classSubject && cache.existingSlots.has(`${classSubject.id}:${weekday}:${startTimeKey}`)) {
       return {
         status: "duplicate",
         warnings: ["Já existe uma aula agendada para esta turma neste dia e horário."],
         errors: [],
         duplicate_of: slotKey,
       };
+    }
+
+    const requestedRoom = normalizeText(valueOf(normalized, "room", "sala")) || "A definir";
+    const teacherId = teacher?.id ?? classSubject?.teacher_id ?? null;
+    const scheduleConflict = cache.scheduledSlots.find(
+      (slot) =>
+        slot.weekday === weekday &&
+        intervalsOverlap(startMinutes!, endMinutes!, slot.startsAt, slot.endsAt) &&
+        (slot.classGroupId === groupMatch.row!.id ||
+          (teacherId !== null && slot.teacherId === teacherId) ||
+          (requestedRoom !== "A definir" && slot.room === requestedRoom)),
+    );
+    if (scheduleConflict) {
+      errors.push("Conflito de horário: turma, professor ou sala já está ocupado neste intervalo.");
+      return { status: "error", warnings, errors };
     }
 
     return { status: "valid", warnings, errors: [] };
@@ -196,14 +280,14 @@ export const horariosImporter: RowImporter = {
     if (ctx.dryRun) {
       if (
         existingClassSubject &&
-        cache.existingSlots.has(`${existingClassSubject.id}:${weekday}:${startTime}`)
+        cache.existingSlots.has(`${existingClassSubject.id}:${weekday}:${timeKey(startTime)}`)
       ) {
         return {
           status: "duplicate",
           warnings: analysis.warnings,
           errors: [],
           audits: [],
-          target_record_id: `${existingClassSubject.id}:${weekday}:${startTime}`,
+          target_record_id: `${existingClassSubject.id}:${weekday}:${timeKey(startTime)}`,
         };
       }
       return {
@@ -216,7 +300,7 @@ export const horariosImporter: RowImporter = {
     }
 
     let classSubject = existingClassSubject;
-    const audits: Array<Record<string, unknown>> = [];
+    const audits: AuditEntry[] = [];
     if (!classSubject) {
       // Turma ainda não tem esta disciplina atribuída: cria a associação sem professor definido
       // (4 tempos semanais por omissão), o mesmo que `applyCurriculumToClassGroup` faz quando o
@@ -287,9 +371,19 @@ export const horariosImporter: RowImporter = {
         before_data: before,
         after_data: { ...before, teacher_id: teacher.id },
       });
+    } else if (teacher && classSubject.teacher_id !== teacher.id) {
+      // Uma folha de horários não pode transferir uma disciplina de docente sem
+      // que ninguém repare: a substituição tem o seu próprio fluxo.
+      return {
+        status: "error",
+        warnings: analysis.warnings,
+        errors: ["A disciplina já está atribuída a outro professor nesta turma."],
+        audits,
+      };
     }
 
-    const slotKey = `${classSubject.id}:${weekday}:${startTime}`;
+    const startTimeKey = timeKey(startTime);
+    const slotKey = `${classSubject.id}:${weekday}:${startTimeKey}`;
     if (cache.existingSlots.has(slotKey)) {
       return {
         status: "duplicate",
@@ -306,8 +400,8 @@ export const horariosImporter: RowImporter = {
         school_id: ctx.schoolId,
         class_subject_id: classSubject.id,
         weekday,
-        starts_at: startTime,
-        ends_at: endTime,
+        starts_at: timeKey(startTime),
+        ends_at: timeKey(endTime),
         room,
         status: "active",
         created_by: ctx.userId,
@@ -325,6 +419,14 @@ export const horariosImporter: RowImporter = {
     }
 
     cache.existingSlots.add(slotKey);
+    cache.scheduledSlots.push({
+      classGroupId: group.id,
+      teacherId: classSubject.teacher_id,
+      weekday,
+      startsAt: parseTimeToMinutes(startTime)!,
+      endsAt: parseTimeToMinutes(endTime)!,
+      room,
+    });
     return {
       status: "imported",
       warnings: analysis.warnings,

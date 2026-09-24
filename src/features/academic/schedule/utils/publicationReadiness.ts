@@ -1,9 +1,10 @@
-import type { ScheduleClassGroup, ScheduleRoom, ScheduleSlot, ScheduleSubject, ScheduleTeacher } from "../types";
+import type { ScheduleClassGroup, ScheduleClassSubject, ScheduleRoom, ScheduleSlot, ScheduleSubject, ScheduleTeacher } from "../types";
 import { detectScheduleConflicts } from "./conflicts";
 import { assertValidScheduleTime } from "./validation";
+import { getWeeklyScheduleCoverage } from "./workload";
 
 export type PublicationIssue = {
-  code: "empty" | "subject" | "teacher" | "room" | "class" | "capacity" | "time" | "conflict" | "version";
+  code: "empty" | "subject" | "teacher" | "room" | "class" | "capacity" | "time" | "conflict" | "version" | "workload";
   message: string;
   slotId?: string;
 };
@@ -15,8 +16,9 @@ export function schedulePublicationReadiness(input: {
   subjects: ScheduleSubject[];
   teachers: ScheduleTeacher[];
   rooms: ScheduleRoom[];
+  classSubjects?: ScheduleClassSubject[];
 }): { ready: boolean; issues: PublicationIssue[]; lessonCount: number; teacherCount: number; roomCount: number } {
-  const { classGroupId, slots, classGroups, subjects, teachers, rooms } = input;
+  const { classGroupId, slots, classGroups, subjects, teachers, rooms, classSubjects = [] } = input;
   const classSlots = slots.filter((slot) => slot.class_group_id === classGroupId);
   const versionIds = new Set(classSlots.map((slot) => slot.schedule_id ?? "__legacy__"));
   // Publishing by class alone is ambiguous if multiple timetable versions are loaded.
@@ -62,6 +64,15 @@ export function schedulePublicationReadiness(input: {
   );
   for (const conflict of relatedConflicts)
     issues.push({ code: "conflict", message: conflict.message });
+  // `class_subjects.weekly_periods` e a carga contratada da disciplina. Publicar
+  // um horario que nao a cumpre -- a menos ou a mais -- e publicar um horario errado.
+  for (const coverage of getWeeklyScheduleCoverage(slots, classSubjects, classGroupId)) {
+    if (coverage.missingPeriods === 0 && coverage.excessPeriods === 0) continue;
+    issues.push({
+      code: "workload",
+      message: `${coverage.subjectName}: ${coverage.plannedPeriods} de ${coverage.requiredPeriods} tempos semanais.`,
+    });
+  }
   return {
     ready: issues.length === 0,
     issues,
