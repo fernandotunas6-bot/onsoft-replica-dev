@@ -135,6 +135,7 @@ export const presencasImporter: RowImporter = {
       };
     }
 
+    const before = { attendance_rate: enrollment.attendance_rate };
     const { error } = await ctx.db
       .from("enrollments")
       .update({ attendance_rate: rateNum })
