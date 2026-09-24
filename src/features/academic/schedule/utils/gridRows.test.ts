@@ -28,6 +28,14 @@ describe("gridRows", () => {
     expect(rows).toHaveLength(2);
   });
 
+  it("preserva aulas ao sábado e domingo", () => {
+    const rows = gridRows([slot("sabado", 6), slot("domingo", 7)]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.cells).toHaveLength(7);
+    expect(rows[0]?.cells[5]?.id).toBe("sabado");
+    expect(rows[0]?.cells[6]?.id).toBe("domingo");
+  });
+
   it("devolve uma grelha vazia quando não há aulas", () => {
     expect(gridRows([])).toEqual([]);
   });
