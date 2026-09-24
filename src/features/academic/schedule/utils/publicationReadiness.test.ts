@@ -52,4 +52,11 @@ describe("schedulePublicationReadiness", () => {
     expect(result.lessonCount).toBe(1);
     expect(result.ready).toBe(true);
   });
+  it("não considera colisão entre versões distintas da mesma turma", () => {
+    const oldVersion: ScheduleSlot = { ...slot, id: "old", schedule_id: "version-1" };
+    const newVersion: ScheduleSlot = { ...slot, id: "new", schedule_id: "version-2" };
+    const result = schedulePublicationReadiness({ ...base, slots: [oldVersion, newVersion] });
+    expect(result.issues.map((issue) => issue.code)).not.toContain("conflict");
+  });
+
 });
