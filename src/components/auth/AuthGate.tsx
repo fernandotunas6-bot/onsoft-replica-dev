@@ -469,7 +469,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         </section>
 
         <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-7 shadow-sm sm:p-9">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]">
             {installPrompt && (
               <div className="mb-6 flex flex-col items-center justify-center text-center pb-4 border-b border-border">
                 <Button
