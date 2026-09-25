@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createWorkspaceApi } from "@/integrations/google/workspace-api";
 import type { WorkspaceService } from "@/integrations/google/workspace-services";
 
