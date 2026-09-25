@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getFinanceReporting, listCashEntries, listInvoices } from "@/features/finance/server";
 import { cn } from "@/lib/utils";
+import { AppyPayPanel, ChargeInvoiceButton, useAppyPayStatus } from "@/features/finance/AppyPayPanel";
 
 export const Route = createFileRoute("/tesouraria")({
   head: () => ({
@@ -65,6 +66,8 @@ function TreasuryPage() {
     retry: false,
   });
   const [onlyOverdue, setOnlyOverdue] = useState(false);
+  const appy = useAppyPayStatus();
+  const canCharge = Boolean(appy.data?.configured);
 
   const summary = reporting.data?.summary;
   const monthly = reporting.data?.monthly ?? [];
@@ -217,6 +220,7 @@ function TreasuryPage() {
                     <th className="py-2 pr-3">Aluno</th>
                     <th className="py-2 pr-3">Vencimento</th>
                     <th className="py-2 text-right">Em dívida</th>
+                    {canCharge ? <th className="py-2 pl-3" /> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -229,6 +233,11 @@ function TreasuryPage() {
                         {i.overdue ? " · em atraso" : ""}
                       </td>
                       <td className="py-2 text-right font-medium">{kz(i.balance)}</td>
+                      {canCharge ? (
+                        <td className="py-2 pl-3 text-right">
+                          <ChargeInvoiceButton invoiceId={i.id} studentName={i.student_name} balance={i.balance} />
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
@@ -236,6 +245,8 @@ function TreasuryPage() {
             </div>
           )}
         </Panel>
+
+        <AppyPayPanel />
 
         <Panel
           title="Últimos movimentos de caixa"
