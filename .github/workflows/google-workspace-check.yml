@@ -64,6 +64,7 @@ jobs:
           tests/integrations/google-workspace-api.test.ts
           tests/integrations/google-workspace-oauth.test.ts
           tests/integrations/google-workspace-security.test.ts
+          tests/integrations/google-workspace-rate-limit.test.ts
           tests/security/google-email-auth-contracts.test.ts
 
       - name: Production build
