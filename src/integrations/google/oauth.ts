@@ -45,11 +45,19 @@ export function buildGoogleAuthUrl(_options?: {
 
 let workspaceToken: GoogleOAuthToken | null = null;
 
-/**
- * Saves Google OAuth tokens in client storage or memory.
- */
+// Purge bearer tokens persisted by earlier Workspace builds.
+function purgeLegacyTokenStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem("siga_google_workspace_token");
+    window.localStorage.removeItem("siga_google_workspace_oauth_token");
+  } catch { /* Storage may be disabled. */ }
+}
+purgeLegacyTokenStorage();
+
 /** Short-lived in-memory compatibility only; never persist provider tokens in localStorage. */
 export function saveGoogleOAuthToken(token: GoogleOAuthToken): void {
+  purgeLegacyTokenStorage();
   workspaceToken = { ...token };
 }
 
@@ -63,6 +71,7 @@ export function getStoredGoogleOAuthToken(): GoogleOAuthToken | null {
 
 export function clearGoogleOAuthToken(): void {
   workspaceToken = null;
+  purgeLegacyTokenStorage();
 }
 
 /**
