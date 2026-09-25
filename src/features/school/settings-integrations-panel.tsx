@@ -30,7 +30,7 @@ import {
   upsertSchoolIntegration,
   type SchoolIntegrationSummary,
 } from "@/features/integrations/server";
-import { gatewayWebhookPreviousKeyActive } from "@/features/integrations/gateway-webhook-key";
+
 import { GoogleWorkspaceConnectCard } from "./GoogleWorkspaceConnectCard";
 import {
   AlertDialog,
@@ -58,8 +58,9 @@ function GatewayWebhookHint({
   const [rotating, setRotating] = useState(false);
   const isGateway = provider === "multicaixa_express" || provider === "unitel_money";
   const [newWebhookKey, setNewWebhookKey] = useState("");
-  const previousActive = gatewayWebhookPreviousKeyActive(config);
   const previousExpires = String(config.webhookApiKeyPreviousExpiresAt ?? "");
+  const previousActive = hasWebhookSecret && Number.isFinite(Date.parse(previousExpires)) &&
+    Date.parse(previousExpires) > Date.now();
 
   const eventsQuery = useQuery({
     queryKey: ["gateway-webhook-events", provider],
