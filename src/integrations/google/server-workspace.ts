@@ -1,6 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { disconnectedWorkspaceStatus, unavailableWorkspaceOperation } from "./workspace-security";
+import type { WorkspaceService } from "./workspace-services";
+
+async function scopedApi(userId: string) {
+  const { resolveSgaMembershipAdmin } = await import("@/integrations/supabase/sga-admin");
+  const membership = await resolveSgaMembershipAdmin(userId);
+  if (!membership) throw new Error("Não existe escola activa associada.");
+  const { getWorkspaceAccessToken } = await import("./workspace-vault.server");
+  const { createWorkspaceApi } = await import("./workspace-api");
+  return { membership, api: createWorkspaceApi((service: WorkspaceService) =>
+    getWorkspaceAccessToken(userId, membership.schoolId, service)) };
+}
+
 
 export interface GoogleConnectionStatus {
   connected: boolean;
