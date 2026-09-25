@@ -80,7 +80,7 @@ export const reviewSchoolAccessRequest=createServerFn({method:"POST"})
   if(data.decision==="approved"){
    // Aprovação inicial: permite iniciar o cadastro, sem criar membership nem matrícula.
    const {error}=await db.from("school_access_requests").update({
-    status:"approved",review_note:data.note||null,reviewed_by:context.userId,
+    status:"preapproved",review_note:data.note||null,reviewed_by:context.userId,
     reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()
    }).eq("id",request.id).eq("school_id",membership.schoolId)
     .in("status",["pending","under_review","needs_information"]);
@@ -143,9 +143,9 @@ export const getApprovedEnrollmentForm=createServerFn({method:"GET"})
  .handler(async({data,context})=>{
   const db=await loadSgaAdminClient();
   const {data:request,error}=await db.from("school_access_requests")
-   .select("school_id,status,requested_role").eq("id",data.requestId)
+   .select("school_id,status,requested_role,enrollment_application_id").eq("id",data.requestId)
    .eq("user_id",context.userId).maybeSingle();
-  if(error||!request||request.status!=="approved"||request.requested_role!=="student")
+  if(error||!request||request.status!=="preapproved"||request.enrollment_application_id||request.requested_role!=="student")
    throw new Error("O cadastro só fica disponível depois da autorização da secretaria.");
   const {data:form,error:formError}=await db.from("enrollment_forms")
    .select("id,slug,title,visible_fields,is_open,school_id")
@@ -162,9 +162,9 @@ export const submitApprovedSchoolEnrollment=createServerFn({method:"POST"})
  .handler(async({data,context})=>{
   const db=await loadSgaAdminClient();
   const {data:request,error}=await db.from("school_access_requests")
-   .select("id,school_id,status").eq("id",data.requestId)
+   .select("id,school_id,status,enrollment_application_id").eq("id",data.requestId)
    .eq("user_id",context.userId).maybeSingle();
-  if(error||!request||request.status!=="approved")
+  if(error||!request||request.status!=="preapproved"||request.enrollment_application_id)
    throw new Error("A sua escola ainda não autorizou a candidatura.");
   const {data:form}=await db.from("enrollment_forms").select("slug")
    .eq("school_id",request.school_id).eq("slug",data.enrollment.slug)
