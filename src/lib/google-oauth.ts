@@ -31,6 +31,15 @@ export const GOOGLE_OAUTH_SCOPES = [
 
 const GOOGLE_TOKEN_STORAGE_KEY = "siga_google_workspace_oauth_token";
 
+function purgeLegacyTokenStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(GOOGLE_TOKEN_STORAGE_KEY);
+    window.localStorage.removeItem("siga_google_workspace_token");
+  } catch { /* Storage may be disabled. */ }
+}
+purgeLegacyTokenStorage();
+
 /**
  * Builds Google OAuth 2.0 authorization URL using configured client ID.
  */
@@ -58,7 +67,7 @@ function getStorage() {
 }
 
 /**
- * Stores Google OAuth token into localStorage without affecting Supabase auth.
+ * Stores only a transient in-memory Workspace token, never the Supabase session.
  */
 export function saveGoogleOAuthToken(token: GoogleOAuthSession): void {
   try {
