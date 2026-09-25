@@ -180,13 +180,27 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
       return data;
     },
     async tasksList() {
+      const lists = await request<{ items?: Array<{ id: string }> }>(
+        "tasks", `${BASE.tasks}/users/@me/lists?maxResults=1`);
+      const listId = lists.items?.[0]?.id;
+      if (!listId) return [];
       const data = await request<{ items?: JsonObject[] }>(
-        "tasks", `${BASE.tasks}/lists/@default/tasks?maxResults=100`);
+        "tasks", `${BASE.tasks}/lists/${enc(listId)}/tasks?maxResults=100`);
       return data.items ?? [];
     },
     async tasksCreate(title: string, notes?: string) {
+      const lists = await request<{ items?: Array<{ id: string }> }>(
+        "tasks", `${BASE.tasks}/users/@me/lists?maxResults=1`);
+      let listId = lists.items?.[0]?.id;
+      if (!listId) {
+        const created = await request<{ id: string }>("tasks",
+          `${BASE.tasks}/users/@me/lists`, {
+            method: "POST", body: JSON.stringify({ title: "SIGA" }),
+          });
+        listId = requiredId(created, "a lista Google Tasks");
+      }
       const data = await request<{ id: string; title?: string }>(
-        "tasks", `${BASE.tasks}/lists/@default/tasks`, {
+        "tasks", `${BASE.tasks}/lists/${enc(listId)}/tasks`, {
           method: "POST", body: JSON.stringify({ title, notes }),
         });
       requiredId(data, "a criação da tarefa");
