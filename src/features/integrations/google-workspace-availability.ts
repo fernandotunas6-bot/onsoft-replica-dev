@@ -4,5 +4,5 @@
  * merchant ID or a login via Supabase Auth.
  */
 export function isPendingWorkspaceProvider(provider: string): boolean {
-  return provider === "gmail_workspace" || provider === "google_calendar";
+  return provider === "gmail_workspace" || provider === "google_calendar" || provider === "google_classroom";
 }
