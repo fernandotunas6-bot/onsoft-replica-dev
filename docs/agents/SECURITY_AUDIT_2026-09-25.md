@@ -82,6 +82,13 @@ qualquer aluno podia escrever directamente pela API REST do Supabase.
   pessoa pertencer só a esta escola e não for administradora em nenhuma. A suspensão só bloqueia
   a conta toda se a pessoa não tiver outras escolas activas; caso contrário, suspende só nesta.
   Protegido por `tests/access/cross-school-account-actions.test.ts`.
+- **Link de acesso copiado (`resendSystemInvite`).** Devolvia ao ecrã um link de recuperação que
+  abre a conta a quem o tiver. Qualquer pessoa da **Secretaria** conseguia assim entrar na conta
+  de um **Administrador** da mesma escola, e em contas de outras escolas. Agora: administradores
+  (em qualquer escola) e contas com outra escola activa só por "Enviar E-mail"; a Secretaria não
+  copia links de pessoal administrativo; cada cópia fica registada em `audit_logs`.
+- **Cargo global (`updateSystemAccountCargo`).** Só um Administrador altera quem é administrador
+  noutra escola. O `profiles.cargo` global só muda se a pessoa não tiver outras escolas activas.
 - **Revisto e sem alteração:** webhook AppyPay (token secreto, parâmetros limpos,
   confirmação junto da AppyPay); funções públicas de matrícula, recuperação de senha, link
   mágico e registo (todas com limite de pedidos).

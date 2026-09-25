@@ -403,6 +403,15 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!role?.id) throw new Error(`Papel SGA em falta para ${data.cargo}.`);
 
+    // O cargo do perfil é global (vale em todas as escolas da pessoa); o papel
+    // desta escola vive em member_roles. Quem é administrador noutra escola só
+    // é alterado por um Administrador, e o cargo global só muda se a pessoa não
+    // tiver outras escolas activas.
+    const access = await otherSchoolAccess(admin, data.userId, schoolId);
+    if (access.adminAnywhere && !isAdministrator) {
+      throw new Error("Apenas Administradores podem alterar contas de outros Administradores.");
+    }
+
     await admin.from("member_roles").delete().eq("membership_id", membership.id);
     await admin.from("member_roles").insert({
       school_id: schoolId,
@@ -410,12 +419,14 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
       role_id: role.id,
     });
 
-    const { error: profileError } = await admin
-      .from("profiles")
-      .update({ cargo: data.cargo })
-      .eq("id", data.userId);
-    if (profileError) {
-      throw publicDatabaseError(profileError, "Papel SGA actualizado, mas falhou o perfil.");
+    if (!access.hasOtherActiveSchools) {
+      const { error: profileError } = await admin
+        .from("profiles")
+        .update({ cargo: data.cargo })
+        .eq("id", data.userId);
+      if (profileError) {
+        throw publicDatabaseError(profileError, "Papel SGA actualizado, mas falhou o perfil.");
+      }
     }
 
     if (data.cargo === "Professor") {
@@ -492,7 +503,7 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
   .validator((input: unknown) => resendSystemInviteInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const { schoolId } = await requireAdminContext(context);
+    const { schoolId, isAdministrator } = await requireAdminContext(context);
     if (data.userId === context.userId) {
       throw new Error("Use Alterar senha para a sua própria conta.");
     }
@@ -507,6 +518,35 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
       throw publicDatabaseError(membershipError, "Não foi possível validar a conta.");
     }
     if (!membership) throw new Error("Conta não encontrada nesta escola.");
+
+    // O link devolvido aqui abre a conta a quem o tiver: copiá-lo equivale a
+    // entrar na conta da pessoa. Por isso, fora destes casos, só "Enviar
+    // E-mail" (o link vai para a caixa da própria pessoa).
+    const access = await otherSchoolAccess(admin, data.userId, schoolId);
+    if (access.adminAnywhere) {
+      throw new Error("Para contas de administrador, use Enviar E-mail.");
+    }
+    if (access.hasOtherActiveSchools) {
+      throw new Error("Esta conta também dá acesso a outra escola. Use Enviar E-mail.");
+    }
+    if (!isAdministrator) {
+      const { data: targetRoles } = await admin
+        .from("member_roles")
+        .select("roles(code)")
+        .eq("membership_id", membership.id);
+      const staffCodes = [
+        ...mapAppRoleToSgaCodes("Secretaria"),
+        ...mapAppRoleToSgaCodes("Tesouraria"),
+      ];
+      const isStaff = ((targetRoles ?? []) as Array<{ roles?: { code?: string } | null }>).some(
+        (r) => staffCodes.includes(String(r.roles?.code ?? "").toLowerCase()),
+      );
+      if (isStaff) {
+        throw new Error(
+          "Só um Administrador pode copiar o link de acesso de pessoal administrativo. Use Enviar E-mail.",
+        );
+      }
+    }
 
     const { data: authData, error: userError } = await admin.auth.admin.getUserById(data.userId);
     if (userError) throw new Error(userError.message || "Não foi possível ler o utilizador.");
@@ -523,6 +563,18 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
     }
     const actionLink = linkData.properties?.action_link;
     if (!actionLink) throw new Error("O servidor não devolveu um link de acesso.");
+    try {
+      await admin.from("audit_logs").insert({
+        school_id: schoolId,
+        actor_user_id: context.userId,
+        action: "access.link_copied",
+        entity_type: "auth_user",
+        entity_id: data.userId,
+        metadata: { kind },
+      });
+    } catch (auditError) {
+      console.error("[resendSystemInvite] audit_logs insert failed:", auditError);
+    }
     return { email, kind, actionLink };
   });
 
