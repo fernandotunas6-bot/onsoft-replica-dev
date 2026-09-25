@@ -19,3 +19,11 @@
 - [ ] 4. Pagamentos AppyPay: webhook real + conciliação facturas/transacções/contas (outros gateways no futuro) — código pronto; falta: chaves AppyPay da escola
 
 - [ ] 5. Publicar e ligar app.portal-siga.com (Cloudflare) — sessões e IA sem localhost
+
+## Volta 2026-09-25 (3) — Google Workspace por utilizador + construtor inteligente de horários
+- [ ] 1. Base de dados: turnos/blocos, versões de horário com modelo por período, disponibilidade docente, RPCs atómicos (Lovable Cloud + SQL para o SGA)
+- [ ] 2. Motor de sugestão de horários (determinístico, testado): cargas semanais, conflitos de professor/sala/turma, distribuição, continuidade com o período anterior
+- [ ] 3. Construtor de horários (/horarios): grelha editável, sugestões, guardar modelo do período, sugerir para o período seguinte com pequenas alterações, IA para afinar
+- [ ] 4. Ligações Google por utilizador (Gmail, Calendar, Drive, Sheets) + Excel: página /workspace, ligação por utilizador via gateway, painéis rápidos, horário → Google Calendar
+- [ ] 5. Google Maps na escola (morada, mapa) — depende de ligar o conector Google Maps
+- [ ] 6. Pedir ao utilizador os clientes OAuth (cartões de ligação) e testar ao vivo
