@@ -5,7 +5,7 @@ import { Building2,GraduationCap,ShieldCheck,ArrowRight,Search,Send,CheckCircle2
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { listAvailableSchools,listMySchoolAccessRequests,submitSchoolAccessRequest,getApprovedEnrollmentForm } from "@/features/access/institutional-requests.server";
+import { listAvailableSchools,listMySchoolAccessRequests,submitSchoolAccessRequest,getApprovedEnrollmentForm,getMyInstitutionalCredentials } from "@/features/access/institutional-requests.server";
 import { toast } from "sonner";
 
 export const Route=createFileRoute("/boas-vindas")({component:InstitutionalWelcome});
@@ -19,6 +19,7 @@ function InstitutionalWelcome(){
  const [fullName,setFullName]=useState("");
  const [requestedRole,setRequestedRole]=useState<"student"|"teacher"|"guardian"|"user">("student");
  const [busy,setBusy]=useState(false);
+ const credentials=useQuery({queryKey:["institutional","credentials",account.schoolId],queryFn:()=>getMyInstitutionalCredentials(),enabled:Boolean(account.schoolId)});
  const [openingEnrollment,setOpeningEnrollment]=useState<string|null>(null);
  const startEnrollment=async(requestId:string)=>{
    setOpeningEnrollment(requestId);
@@ -32,7 +33,18 @@ function InstitutionalWelcome(){
  const requests=useQuery({queryKey:["institutional","mine"],queryFn:()=>listMySchoolAccessRequests()});
  const filtered=(schools.data??[]).filter(s=>[s.name,s.public_code,s.province].some(v=>String(v??"").toLowerCase().includes(search.toLowerCase())));
  if(account.profile.isPending)return <main className="min-h-screen grid place-items-center">A confirmar a sua conta…</main>;
- if(account.schoolId)return <main className="min-h-screen grid place-items-center p-6"><div className="rounded-3xl border bg-card p-8 text-center"><CheckCircle2 className="mx-auto size-10 text-green-600"/><h1 className="mt-3 text-xl font-bold">Escola confirmada</h1><Button className="mt-4" onClick={()=>void navigate({to:"/"})}>Abrir o meu painel</Button></div></main>;
+ if(account.schoolId)return <main className="grid min-h-screen place-items-center bg-gradient-to-br from-blue-50 to-slate-100 p-6"><section className="w-full max-w-lg rounded-3xl border bg-white p-8 shadow-xl">
+  <CheckCircle2 className="size-12 text-emerald-600"/><h1 className="mt-4 text-3xl font-extrabold">Escola confirmada</h1>
+  <p className="mt-2 text-sm text-slate-600">O vínculo institucional está activo. Use os dados abaixo para os próximos acessos.</p>
+  {credentials.data?<dl className="mt-6 space-y-3 rounded-2xl bg-blue-50 p-5 text-sm">
+   <div><dt className="text-slate-500">Escola</dt><dd className="font-semibold">{credentials.data.schoolName}</dd></div>
+   <div><dt className="text-slate-500">Código institucional</dt><dd className="font-semibold">{credentials.data.schoolCode??"Consulte a secretaria"}</dd></div>
+   <div><dt className="text-slate-500">Número de estudante</dt><dd className="font-semibold">{credentials.data.studentNumber}</dd></div>
+   {credentials.data.biMasked?<div><dt className="text-slate-500">B.I. associado</dt><dd className="font-semibold">{credentials.data.biMasked}</dd></div>:null}
+   <p className="border-t border-blue-200 pt-3 text-xs text-slate-600">{credentials.data.passwordInstruction} Por segurança, nenhuma senha é enviada em texto simples.</p>
+  </dl>:null}
+  <Button className="mt-6 w-full rounded-xl" onClick={()=>void navigate({to:"/"})}>Abrir o meu painel</Button>
+ </section></main>;
  const send=async(e:FormEvent)=>{
   e.preventDefault();setBusy(true);
   try{
