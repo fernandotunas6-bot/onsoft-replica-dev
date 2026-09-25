@@ -112,3 +112,36 @@ export const reviewSchoolAccessRequest=createServerFn({method:"POST"})
   }).then(({error})=>{if(error)console.warn("[school-access] notification unavailable",error.code)});
   return {status:data.decision};
  });
+
+export const listMatchingPeopleForAccessRequest=createServerFn({method:"GET"})
+ .middleware([requireSupabaseAuth])
+ .validator((input:unknown)=>z.object({requestId:z.string().uuid()}).parse(input))
+ .handler(async({data,context})=>{
+  const membership=await requireSecretary(context.userId);
+  const db=await loadSgaAdminClient();
+  const {data:request}=await db.from("school_access_requests")
+   .select("national_id,institutional_id").eq("id",data.requestId)
+   .eq("school_id",membership.schoolId).maybeSingle();
+  if(!request)throw new Error("Solicitação não encontrada.");
+  const found=new Map<string,{id:string;full_name:string;national_id:string|null}>();
+  if(request.national_id){
+   const {data:people,error}=await db.from("people").select("id,full_name,national_id")
+    .eq("school_id",membership.schoolId).is("deleted_at",null)
+    .eq("national_id",request.national_id).limit(10);
+   if(error)throw publicDatabaseError(error,"Não foi possível procurar o cadastro.");
+   for(const person of people??[])found.set(person.id,person);
+  }
+  if(request.institutional_id){
+   const [{data:students},{data:teachers}]=await Promise.all([
+    db.from("students").select("person_id").eq("school_id",membership.schoolId).eq("student_number",request.institutional_id).limit(10),
+    db.from("teachers").select("person_id").eq("school_id",membership.schoolId).eq("employee_number",request.institutional_id).limit(10)
+   ]);
+   const ids=[...new Set([...(students??[]),...(teachers??[])].map(x=>x.person_id))];
+   if(ids.length){
+    const {data:people}=await db.from("people").select("id,full_name,national_id")
+     .eq("school_id",membership.schoolId).is("deleted_at",null).in("id",ids);
+    for(const person of people??[])found.set(person.id,person);
+   }
+  }
+  return [...found.values()];
+ });
