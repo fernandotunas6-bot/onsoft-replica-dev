@@ -24,14 +24,14 @@ describe("Google Workspace write rate limits", () => {
     }
   });
 
-  it("isolates the counter by school and action", () => {
+  it("cannot bypass the Gmail quota by switching schools, but actions stay independent", () => {
     const userId = "user-isolated";
     for (let i = 0; i < 20; i++) {
       assertWorkspaceWriteRateLimit({ userId, schoolId: "school-a", action: "gmail.send" });
     }
     expect(() => assertWorkspaceWriteRateLimit({
       userId, schoolId: "school-b", action: "gmail.send",
-    })).not.toThrow();
+    })).toThrow("Limite temporário");
     expect(() => assertWorkspaceWriteRateLimit({
       userId, schoolId: "school-a", action: "calendar.create",
     })).not.toThrow();
