@@ -136,10 +136,7 @@ export function calculateTrimesterAverage(
   const normNpt = normalizeScore(npt);
   const normNpp = normalizeScore(npp);
 
-  // MT = (MAC + NPP + NPT) / 3 quando há as três; sem NPP, (MAC + NPT) / 2.
-  if (normMac !== null && normNpp !== null && normNpt !== null) {
-    return Math.round(((normMac + normNpp + normNpt) / 3 + Number.EPSILON) * 10) / 10;
-  }
+  // Decreto 424/25: MT = (MACT + NPT) / 2. A NPP já entra na MACT.
   if (normMac !== null && normNpt !== null) {
     return Math.round(((normMac + normNpt) / 2 + Number.EPSILON) * 10) / 10;
   }
