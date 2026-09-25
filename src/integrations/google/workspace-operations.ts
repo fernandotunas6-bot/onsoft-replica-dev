@@ -9,6 +9,8 @@ const identifier = z.string().trim().min(1).max(200);
 const email = z.string().trim().email().max(254);
 const operation = z.discriminatedUnion("action", [
   school.extend({ action: z.literal("drive.list"), pageSize: z.number().int().min(1).max(100).optional() }),
+  school.extend({ action: z.literal("drive.page"), pageSize: z.number().int().min(1).max(100).optional(),
+    pageToken: z.string().trim().min(1).max(512).optional() }),
   school.extend({ action: z.literal("drive.folder"), name: short, parentId: identifier.optional() }),
   school.extend({ action: z.literal("drive.text"), name: short, text: z.string().max(300_000), parentId: identifier.optional() }),
   school.extend({ action: z.literal("docs.create"), title: short,
@@ -77,6 +79,7 @@ export const executeGoogleWorkspaceOperation = createServerFn({ method: "POST" }
     const api = createWorkspaceApi(tokenFor);
     switch (data.action) {
       case "drive.list": return api.driveList(data.pageSize);
+      case "drive.page": return api.drivePage(data.pageSize, data.pageToken);
       case "drive.folder": return api.driveFolder(data.name, data.parentId);
       case "drive.text": return api.driveTextFile(data.name, data.text, data.parentId);
       case "docs.create": return api.docsCreate(data.title, data.text);
