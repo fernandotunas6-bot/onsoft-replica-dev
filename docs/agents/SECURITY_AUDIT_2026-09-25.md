@@ -170,5 +170,14 @@ que a conta era membro da escola, e alunos e encarregados também são membros.
 - **Planos de aula:** alunos e encarregados só vêem os publicados.
 - **Documentos:** alunos e encarregados só vêem os pedidos e a lista dos seus alunos.
 
+- **Folha de chamada:** qualquer membro abria a lista de presenças de qualquer turma, e podia
+  abrir sessões para turmas de outra escola (o id não era verificado). Passa a exigir o corpo
+  docente, e a turma e a disciplina têm de ser desta escola. Ao gravar a chamada, só entram
+  alunos matriculados nessa turma.
+
+**Revisto sem alteração:** mensagens directas (já filtradas por remetente/destinatário),
+definições da escola (os dados bancários são os que os encarregados usam para pagar),
+estado das integrações (não devolve chaves).
+
 **Por decidir:** `listTeachers` devolve e-mail e telefone dos professores a qualquer membro.
 Pode ser intencional (contacto com o professor).

@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
+  requireSgaWriterFor,
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
@@ -289,8 +290,12 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
   .validator((input: unknown) => getAttendanceCallSheetInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    // A folha de chamada lista a turma inteira: é do corpo docente, não dos alunos.
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
     const db = await loadSgaAdminClient();
 
     let sessionRow: {
@@ -327,6 +332,23 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
       sessionRow = s;
 
       if (!sessionRow) {
+        // Só se abre sessão para uma turma e disciplina desta escola.
+        const [{ data: ownGroup }, { data: ownSubject }] = await Promise.all([
+          db
+            .from("class_groups")
+            .select("id")
+            .eq("id", data.classGroupId)
+            .eq("school_id", membership.schoolId)
+            .maybeSingle(),
+          db
+            .from("subjects")
+            .select("id")
+            .eq("id", data.subjectId)
+            .eq("school_id", membership.schoolId)
+            .maybeSingle(),
+        ]);
+        if (!ownGroup || !ownSubject) throw new Error("Turma ou disciplina não encontrada.");
+
         const { data: created } = await db
           .from("siga_attendance_sessions")
           .insert({
@@ -442,6 +464,19 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       if (linked.teacher_id && session.teacher_id && linked.teacher_id !== session.teacher_id) {
         throw new Error("Não tem permissão para realizar a chamada de outro professor.");
       }
+    }
+
+    // Só alunos matriculados nesta turma entram na chamada.
+    const { data: classEnrollments } = await db
+      .from("enrollments")
+      .select("student_id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", session.class_group_id)
+      .in("status", ["active", "pending"]);
+    const enrolled = new Set((classEnrollments ?? []).map((row) => String(row.student_id)));
+    const outsiders = data.records.filter((item) => !enrolled.has(item.studentId));
+    if (outsiders.length) {
+      throw new Error("A chamada inclui alunos que não estão matriculados nesta turma.");
     }
 
     for (const item of data.records) {

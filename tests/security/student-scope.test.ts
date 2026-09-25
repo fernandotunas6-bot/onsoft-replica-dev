@@ -98,6 +98,16 @@ describe("leituras da escola inteira só para o pessoal", () => {
       /isLessonPlanStaff\(/,
     ],
     ["src/features/communications/server.ts", ["listSchoolAnnouncements"], /"teaching_staff"/],
+    [
+      "src/features/pedagogica/attendance-server.ts",
+      ["getAttendanceCallSheet"],
+      /requireSgaWriterFor\("pedagogica"/,
+    ],
+    [
+      "src/features/pedagogica/attendance-server.ts",
+      ["submitAttendanceCallBatch"],
+      /não estão matriculados nesta turma/,
+    ],
   ];
   for (const [path, names, guard] of cases) {
     const source = read(path);
