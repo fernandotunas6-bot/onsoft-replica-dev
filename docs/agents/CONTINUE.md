@@ -111,7 +111,11 @@ tocar em cada ecrã.
 
 ### Por fazer (bloqueia o deploy desta funcionalidade)
 
-- **Aplicar `20260925090000_school_access_requests.sql`** (também no fim de
+- ~~Aplicar `20260925090000_school_access_requests.sql`~~ — **aplicada pelo utilizador no
+  SQL Editor a 2026-09-25** (não verificada pelo agente, que não tinha acesso à base). Falta
+  recapturar `supabase/PRODUCTION_SNAPSHOT.json` e só então retirar `school_access_requests`
+  de `TABELAS_AUSENTES_DA_PRODUCAO`; antes disso o teste de entradas obsoletas continua
+  correcto com ela lá. Texto original: aplicar `20260925090000_school_access_requests.sql` (também no fim de
   `APPLY_ENROLLMENT_AND_PREMIUM.sql`). Depois, retirar `school_access_requests` de
   `TABELAS_AUSENTES_DA_PRODUCAO` em `tests/security/production-snapshot.test.ts` e
   actualizar o retrato. Sem a tabela, o painel e a fila dizem que os pedidos não estão
