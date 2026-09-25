@@ -36,6 +36,9 @@ export interface RequestOtpResult {
 // Cooldown de 60s entre envios para o mesmo identificador; máx 5 envios por hora
 const OTP_HOURLY_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 5 };
 const OTP_COOLDOWN_RATE_LIMIT = { windowMs: 60 * 1000, max: 1 };
+// Por IP, qualquer destino: sem isto, variar o e-mail/telefone disparava
+// códigos sem limite a partir do mesmo IP (custo de SMS/WhatsApp e assédio).
+const OTP_IP_HOURLY_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 20 };
 
 export class OtpDispatcher {
   private adapters: Map<OtpChannel, IMessageDeliveryAdapter> = new Map();
@@ -91,6 +94,17 @@ export class OtpDispatcher {
         targetIdentifier: normalizedIdentifier,
         cooldownSeconds: 60,
         error: "Por favor, aguarde 60 segundos antes de solicitar um novo código.",
+      };
+    }
+
+    // IP desconhecido não entra: uma chave comum a todos bloquearia toda a gente.
+    const ipKey = ip !== "unknown" ? `otp_ip_hourly:${ip}` : null;
+    if (ipKey && !checkRateLimit([ipKey], OTP_IP_HOURLY_RATE_LIMIT)) {
+      return {
+        success: false,
+        targetIdentifier: normalizedIdentifier,
+        cooldownSeconds: 3600,
+        error: "Limite de solicitações de verificação atingido para esta hora. Tente mais tarde.",
       };
     }
 
@@ -188,6 +202,7 @@ export class OtpDispatcher {
     // 4. Regista tentativa bem-sucedida nos contadores de rate limit
     recordRateLimitAttempt([cooldownKey], OTP_COOLDOWN_RATE_LIMIT);
     recordRateLimitAttempt([hourlyKey], OTP_HOURLY_RATE_LIMIT);
+    if (ipKey) recordRateLimitAttempt([ipKey], OTP_IP_HOURLY_RATE_LIMIT);
 
     return {
       success: true,

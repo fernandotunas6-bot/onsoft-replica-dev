@@ -118,3 +118,50 @@ describe("OtpDispatcher", () => {
     expect(result.channelUsed).toBe("sms");
   });
 });
+
+describe("OtpDispatcher — limite por IP", () => {
+  const okAdapter: IMessageDeliveryAdapter = {
+    channel: "email",
+    providerName: "mock_email",
+    sendCode: async (): Promise<OtpDeliveryResult> => ({
+      success: true,
+      channel: "email",
+      provider: "mock_email",
+      externalMessageId: "ok",
+    }),
+  };
+
+  it("recusa o 21.º envio por hora do mesmo IP, mesmo variando o destino", async () => {
+    const dispatcher = new OtpDispatcher([okAdapter]);
+    const ip = "198.51.100.77";
+    for (let i = 0; i < 20; i += 1) {
+      const sent = await dispatcher.requestOtp({
+        targetIdentifier: `pessoa${i}@exemplo.ao`,
+        purpose: "login_2fa",
+        preferredChannel: "email",
+        requestedIp: ip,
+      });
+      expect(sent.success, `envio ${i + 1}`).toBe(true);
+    }
+    const blocked = await dispatcher.requestOtp({
+      targetIdentifier: "outra@exemplo.ao",
+      purpose: "login_2fa",
+      preferredChannel: "email",
+      requestedIp: ip,
+    });
+    expect(blocked.success).toBe(false);
+    expect(blocked.cooldownSeconds).toBe(3600);
+  });
+
+  it("não aplica o limite por IP quando o IP é desconhecido", async () => {
+    const dispatcher = new OtpDispatcher([okAdapter]);
+    for (let i = 0; i < 25; i += 1) {
+      const sent = await dispatcher.requestOtp({
+        targetIdentifier: `anon${i}@exemplo.ao`,
+        purpose: "login_2fa",
+        preferredChannel: "email",
+      });
+      expect(sent.success, `envio ${i + 1}`).toBe(true);
+    }
+  });
+});

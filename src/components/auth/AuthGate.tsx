@@ -26,7 +26,6 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureDevBypassSession } from "@/features/auth/dev-bypass.server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,8 +34,6 @@ import { PageLoading } from "@/components/ui/page-loading";
 const AuthSessionContext = createContext<Session | null>(null);
 const IDLE_TIMEOUT_MS = 30 * 60_000;
 const ACTIVITY_WRITE_INTERVAL_MS = 15_000;
-const LOGIN_REQUIRED = true;
-const AUTH_DISABLED = !LOGIN_REQUIRED && import.meta.env["VITE_AUTH_DISABLED"] === "true";
 const REMEMBERED_EMAIL_KEY = "portal:login-email";
 
 const activityKey = (userId: string) => `portal:last-activity:${userId}`;
@@ -133,38 +130,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
           return;
         }
 
-        if (AUTH_DISABLED) {
-          try {
-            const { data: adminLogin, error: autoLoginError } =
-              await supabase.auth.signInWithPassword({
-                email: "admin@escola.ao",
-                password: "Admin@Escola2026!",
-              });
-            if (!autoLoginError && adminLogin?.session) {
-              localStorage.setItem(activityKey(adminLogin.session.user.id), String(Date.now()));
-              setSession(adminLogin.session);
-              setChecking(false);
-              return;
-            }
-          } catch {
-            // fallback to dev bypass tokens
-          }
-
-          const tokens = await ensureDevBypassSession();
-          if (!active) return;
-          const { data: setData, error: setError } = await supabase.auth.setSession({
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-          });
-          if (setError) throw setError;
-          if (setData.session) {
-            localStorage.setItem(activityKey(setData.session.user.id), String(Date.now()));
-            setSession(setData.session);
-          }
-          setChecking(false);
-          return;
-        }
-
         setSession(null);
         setChecking(false);
       } catch (bootstrapError) {
@@ -210,7 +175,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!session || AUTH_DISABLED) return;
+    if (!session) return;
 
     const key = activityKey(session.user.id);
     let lastWrite = 0;
