@@ -17,3 +17,5 @@
 - [x] 2. Tesouraria: fluxo de caixa, facturas pendentes, relatórios (só Tesouraria)
 - [x] 3. Alunos em risco: acompanhamento com histórico de intervenções e progresso
 - [ ] 4. Pagamentos AppyPay: webhook real + conciliação facturas/transacções/contas (outros gateways no futuro) — código pronto; falta: chaves AppyPay da escola
+
+- [ ] 5. Publicar e ligar app.portal-siga.com (Cloudflare) — sessões e IA sem localhost
