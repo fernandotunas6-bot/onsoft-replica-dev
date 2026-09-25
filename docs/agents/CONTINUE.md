@@ -131,11 +131,13 @@ tocar em cada ecrã.
 
 ### Achados por decidir, não tocados
 
-- `resolveBiToEmailFn` (login por B.I.) é público e **devolve o e-mail** associado a um
-  B.I. (10 consultas/min por IP). Não dá acesso sem a senha, mas permite descobrir e-mails
-  a partir de B.I.s. Correcção possível: fazer o `signInWithPassword` no servidor e
-  devolver só a sessão. Não foi feito porque os limites de taxa do Supabase Auth passariam
-  a contar pelo IP do worker, partilhado por todos.
+- **Login por B.I. (resolvido, 2026-09-25):** `resolveBiToEmailFn` devolvia o e-mail de
+  qualquer B.I. Passou a `signInWithIdentifierFn`: o servidor verifica a senha no Supabase
+  Auth (`grant_type=password`) e devolve só a sessão. **Antes de juntar ao `main`:** os
+  logins por B.I. passam a chegar ao Supabase a partir do worker, e o limite
+  "Sign-ups and sign-ins" do Supabase (Authentication → Rate limits) conta por IP.
+  Subir esse limite, ou todos os logins por B.I. partilham a mesma quota. O login por
+  e-mail continua directo do browser.
 - O limite de taxa é em memória, por isolado (ver `src/lib/rate-limit.ts`).
 
 ## Estado (2026-09-20)

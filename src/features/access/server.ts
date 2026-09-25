@@ -15,7 +15,7 @@ import {
   sendResendEmail,
 } from "@/features/integrations/resend-client";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
-import { resolveBiToEmailInputSchema } from "./bi-login";
+import { signInWithIdentifierInputSchema } from "./bi-login";
 import {
   inviteUserInputSchema,
   resendSystemInviteInputSchema,
@@ -654,8 +654,16 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
     return { email, kind };
   });
 
-export const resolveBiToEmailFn = createServerFn({ method: "POST" })
-  .validator((input: unknown) => resolveBiToEmailInputSchema.parse(input))
+/**
+ * Login por B.I. (ou telefone) e senha, feito no servidor.
+ *
+ * Antes, o browser pedia o e-mail associado a um B.I. e depois entrava com ele:
+ * qualquer pessoa descobria o e-mail de quem tivesse o B.I. Agora o e-mail
+ * nunca sai do servidor. Só a sessão volta, e só com a senha certa; um B.I.
+ * desconhecido e uma senha errada dão a mesma resposta.
+ */
+export const signInWithIdentifierFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => signInWithIdentifierInputSchema.parse(input))
   .handler(async ({ data }) => {
     const ip =
       (typeof getRequestIP === "function" ? getRequestIP({ xForwardedFor: true }) : null) ??
@@ -665,15 +673,15 @@ export const resolveBiToEmailFn = createServerFn({ method: "POST" })
       !isRateLimitBypassed(rateLimitKey) &&
       !checkRateLimit([rateLimitKey], BI_LOOKUP_RATE_LIMIT)
     ) {
-      throw new Error(
-        "Muitas tentativas de consulta a partir deste endereço IP. Tente novamente mais tarde.",
-      );
+      return { ok: false as const, error: "rate_limited" as const };
     }
     recordRateLimitAttempt([rateLimitKey], BI_LOOKUP_RATE_LIMIT);
 
-    const { resolveBiOrEmailToUserEmail } = await import("./bi-login");
-    const resolvedEmail = await resolveBiOrEmailToUserEmail(data.identifier);
-    return { email: resolvedEmail };
+    const { resolveBiOrEmailToUserEmail, passwordGrant } = await import("./bi-login");
+    const email = await resolveBiOrEmailToUserEmail(data.identifier);
+    if (!email.includes("@")) return { ok: false as const, error: "invalid_credentials" as const };
+
+    return passwordGrant(email, data.password);
   });
 
 export const resetStaffPasswordDirect = createServerFn({ method: "POST" })

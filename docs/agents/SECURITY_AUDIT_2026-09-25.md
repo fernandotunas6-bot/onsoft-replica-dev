@@ -96,8 +96,11 @@ qualquer aluno podia escrever directamente pela API REST do Supabase.
 - **Revisto e sem alteração:** webhook AppyPay (token secreto, parâmetros limpos,
   confirmação junto da AppyPay); funções públicas de matrícula, recuperação de senha, link
   mágico e registo (todas com limite de pedidos).
-- **Por decidir:** `resolveBiToEmailFn` devolve o e-mail associado a um B.I. (ver
-  `CONTINUE.md`).
+- **Login por B.I. revelava o e-mail.** `resolveBiToEmailFn` era público e devolvia o e-mail
+  de qualquer B.I. ou telefone. Agora `signInWithIdentifierFn` verifica a senha no servidor e
+  devolve só a sessão; B.I. desconhecido e senha errada dão a mesma resposta. Protegido por
+  `tests/access/bi-login.test.ts`. **Antes de publicar:** subir o limite "Sign-ups and
+  sign-ins" do Supabase Auth (ver `CONTINUE.md`).
 
 ## Permissões por módulo só no browser
 

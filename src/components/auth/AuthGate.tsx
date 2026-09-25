@@ -60,6 +60,27 @@ function mapSignInError(message: string) {
   return "Não foi possível iniciar sessão. Tente novamente.";
 }
 
+const identifierSignInErrors = {
+  invalid_credentials: "Invalid login credentials",
+  email_not_confirmed: "Email not confirmed",
+  rate_limited: "Too many requests",
+  unavailable: "network",
+} as const;
+
+/** Entra com B.I./telefone pelo servidor e instala a sessão devolvida. */
+async function signInWithIdentifier(identifier: string, password: string) {
+  const { signInWithIdentifierFn } = await import("@/features/access/server");
+  const result = await signInWithIdentifierFn({ data: { identifier, password } });
+  if (!result.ok) {
+    return { data: { user: null }, error: { message: identifierSignInErrors[result.error] } };
+  }
+  const { data, error } = await supabase.auth.setSession({
+    access_token: result.accessToken,
+    refresh_token: result.refreshToken,
+  });
+  return { data: { user: data.user }, error: error ? { message: error.message } : null };
+}
+
 export function useAuthSession(): Session | null {
   return useContext(AuthSessionContext);
 }
@@ -238,21 +259,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setSubmitting(true);
     setError(null);
     setInfo(null);
-    let email = inputIdentifier.trim().toLowerCase();
+    const email = inputIdentifier.trim().toLowerCase();
     try {
-      if (!email.includes("@") && email.length >= 3) {
-        const { resolveBiToEmailFn } = await import("@/features/access/server");
-        const resolved = await resolveBiToEmailFn({ data: { identifier: inputIdentifier.trim() } });
-        email = resolved.email;
-      }
-
       if (options?.remember) localStorage.setItem(REMEMBERED_EMAIL_KEY, inputIdentifier.trim());
       else localStorage.removeItem(REMEMBERED_EMAIL_KEY);
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // B.I. ou telefone: a senha é verificada no servidor, e o e-mail da
+      // conta nunca chega ao browser.
+      const { data, error: signInError } = email.includes("@")
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await signInWithIdentifier(inputIdentifier.trim(), password);
       if (!signInError) {
         if (data.user) localStorage.setItem(activityKey(data.user.id), String(Date.now()));
         const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
