@@ -23,7 +23,7 @@ export const verifyInstitutionalAccessFn = createServerFn({ method: "POST" })
     const [{ data: memberships, error: membershipError }, { data: platformAdmins, error: adminError }] =
       await Promise.all([
         db.from("school_memberships")
-          .select("id")
+          .select("id, school_id")
           .eq("user_id", context.userId)
           .eq("status", "active")
           .limit(1),
@@ -42,7 +42,27 @@ export const verifyInstitutionalAccessFn = createServerFn({ method: "POST" })
       throw new Error("Não foi possível verificar as permissões desta conta.");
     }
 
-    if (hasInstitutionalAccess(memberships?.length ?? 0, platformAdmins?.length ?? 0)) {
+    // Membership alone is insufficient: suspended or closed institutions
+    // cannot grant an active SIGA portal session.
+    let activeSchoolCount = 0;
+    const schoolIds = [...new Set((memberships ?? []).map((member) => member.school_id))];
+    if (schoolIds.length > 0) {
+      const { data: activeSchools, error: schoolsError } = await db
+        .from("schools")
+        .select("id")
+        .in("id", schoolIds)
+        .eq("status", "active")
+        .limit(1);
+      if (schoolsError) {
+        console.error("[InstitutionalAccess] School status lookup failed", {
+          code: schoolsError.code,
+        });
+        throw new Error("Não foi possível confirmar o estado da instituição.");
+      }
+      activeSchoolCount = activeSchools?.length ?? 0;
+    }
+
+    if (hasInstitutionalAccess(activeSchoolCount, platformAdmins?.length ?? 0)) {
       return { authorized: true, reason: "authorized" };
     }
 
