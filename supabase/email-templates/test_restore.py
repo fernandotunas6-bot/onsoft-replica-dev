@@ -22,6 +22,26 @@ class SnapshotValidation(unittest.TestCase):
             }), encoding="utf-8")
             self.assertEqual(len(restore.load_snapshot(p)), 3)
 
+    def test_accepts_notification_backup_and_flags(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "notification-backup.json"
+            p.write_text(json.dumps({
+                "mailer_subjects_identity_linked_notification": "Previous alert",
+                "mailer_templates_identity_linked_notification_content": "<h2>Previous</h2>",
+                "mailer_notifications_identity_linked_enabled": False,
+                "mailer_notifications_mfa_factor_enrolled_enabled": True,
+            }), encoding="utf-8")
+            self.assertEqual(len(restore.load_snapshot(p)), 4)
+
+    def test_rejects_nonboolean_notification_enablement(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "notification-bad.json"
+            p.write_text(json.dumps({
+                "mailer_notifications_identity_linked_enabled": "false",
+            }), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                restore.load_snapshot(p)
+
     def test_rejects_secret_or_unknown_fields(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "unsafe.json"
