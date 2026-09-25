@@ -136,11 +136,12 @@ export function calculateTrimesterAverage(
   const normNpt = normalizeScore(npt);
   const normNpp = normalizeScore(npp);
 
-  if (normMac !== null && normNpt !== null) {
-    return Math.round(((normMac + normNpt) / 2 + Number.EPSILON) * 10) / 10;
-  }
+  // MT = (MAC + NPP + NPT) / 3 quando há as três; sem NPP, (MAC + NPT) / 2.
   if (normMac !== null && normNpp !== null && normNpt !== null) {
     return Math.round(((normMac + normNpp + normNpt) / 3 + Number.EPSILON) * 10) / 10;
+  }
+  if (normMac !== null && normNpt !== null) {
+    return Math.round(((normMac + normNpt) / 2 + Number.EPSILON) * 10) / 10;
   }
   if (normMac !== null) return normMac;
   if (normNpt !== null) return normNpt;
