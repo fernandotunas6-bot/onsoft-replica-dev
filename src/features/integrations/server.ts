@@ -14,6 +14,7 @@ import {
   type CatalogIntegrationId,
 } from "./catalog";
 import { capabilityIdsFor, installPackageFor, parseGrantedCapabilities } from "./install";
+import { isPendingWorkspaceProvider } from "./google-workspace-availability";
 import { generateWebhookApiKey, buildRotatedWebhookConfig } from "./gateway-webhook-key";
 import {
   normalizeResendRecipients,
@@ -73,9 +74,10 @@ function integrationPublicRow(
   const config = readJsonObject(stored?.config);
   return {
     ...item,
-    status: stored?.status ?? "disconnected",
+    // Configured merchant fields do not establish OAuth token possession.
+    status: isPendingWorkspaceProvider(item.id) ? "disconnected" : stored?.status ?? "disconnected",
     config,
-    grantedCapabilities: parseGrantedCapabilities(config),
+    grantedCapabilities: isPendingWorkspaceProvider(item.id) ? [] : parseGrantedCapabilities(config),
     updatedAt: stored?.updated_at ?? null,
   };
 }
@@ -127,8 +129,10 @@ export const listInstalledCapabilities = createServerFn({ method: "GET" })
         const stored = byProvider.get(item.id);
         return {
           id: item.id,
-          status: stored?.status ?? "disconnected",
-          grantedCapabilities: parseGrantedCapabilities(readJsonObject(stored?.config)),
+          status: isPendingWorkspaceProvider(item.id) ? "disconnected" : stored?.status ?? "disconnected",
+          grantedCapabilities: isPendingWorkspaceProvider(item.id)
+            ? []
+            : parseGrantedCapabilities(readJsonObject(stored?.config)),
         };
       });
     } catch {
@@ -148,6 +152,11 @@ export const upsertSchoolIntegration = createServerFn({ method: "POST" })
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
+    }
+    if (isPendingWorkspaceProvider(data.provider)) {
+      throw new Error(
+        "Google Workspace requer autorização independente e cofre seguro de tokens. Ligação indisponível.",
+      );
     }
     const db = await loadSgaAdminClient();
     const existing = await readIntegrationConfig(db, membership.schoolId, data.provider);
@@ -179,6 +188,11 @@ export const installSchoolIntegration = createServerFn({ method: "POST" })
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
+    }
+    if (isPendingWorkspaceProvider(data.provider)) {
+      throw new Error(
+        "Google Workspace requer autorização independente e cofre seguro de tokens. Ligação indisponível.",
+      );
     }
     const pack = installPackageFor(data.provider);
     if (!pack) throw new Error("Pacote de instalação em falta.");
