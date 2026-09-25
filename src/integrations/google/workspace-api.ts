@@ -41,16 +41,16 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
     // No arbitrary URLs or redirects can be supplied by app users.
     const token = await tokenFor(service);
     if (!token) throw new Error("Autorização Google em falta.");
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${token}`);
+    headers.set("Accept", "application/json");
+    if (init.body && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
     const response = await fetcher(endpoint, {
       ...init,
       redirect: "error",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-        ...(init.body && !(init.headers && new Headers(init.headers).has("Content-Type"))
-          ? { "Content-Type": "application/json" } : {}),
-        ...(init.headers ?? {}),
-      },
+      headers,
     });
     if (!response.ok) {
       if (response.status === 401) throw new Error("Autorização Google expirada ou revogada.");
