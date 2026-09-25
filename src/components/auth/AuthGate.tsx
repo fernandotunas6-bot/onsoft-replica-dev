@@ -388,6 +388,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     setSubmitting(true);
     try {
+      // Preferência: e-mail do SIGA via Resend (como recuperação e link mágico).
+      const { requestSignupFn } = await import("@/features/auth/signup-server");
+      const viaSiga = await requestSignupFn({ data: { fullName, email, password } });
+      if (viaSiga.handled) {
+        setMode("signin");
+        setInfo(viaSiga.message);
+        return;
+      }
+      // Sem Resend configurado: mailer nativo do Supabase ("Confirm signup").
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -411,8 +420,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
           "Se este e-mail ainda não tiver conta, enviámos um link de confirmação. Confirme-o e depois inicie sessão.",
         );
       }
-    } catch {
-      setError("Não foi possível contactar o serviço de autenticação.");
+    } catch (signUpFailure) {
+      setError(
+        signUpFailure instanceof Error && signUpFailure.message
+          ? signUpFailure.message
+          : "Não foi possível contactar o serviço de autenticação.",
+      );
     } finally {
       setSubmitting(false);
     }

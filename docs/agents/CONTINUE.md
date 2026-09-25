@@ -84,6 +84,22 @@ e-mail mesmo sem confirmação. Agora só usa e-mail confirmado (`email_confirme
 **Os testes de esquema apanharam três colunas que não existem em produção**, já corrigidas
 antes do commit: `schools.short_name`, `schools.deleted_at` e `students.registration_number`.
 
+**E-mails de autenticação (2026-09-25, 2.º commit):** o registo de conta passou a usar o
+mesmo caminho que a recuperação de senha, o link mágico e o convite. `requestSignupFn`
+(`signup-server.ts`) gera o link com `generateLink({ type: "signup" })` e envia o modelo
+`signup-confirm` pelo Resend. Se o envio falhar, a conta criada é apagada. O mailer nativo
+do Supabase ("Confirm signup") só é usado se `RESEND_API_KEY` faltar. Por isso, **os modelos
+do painel do Supabase quase não são usados em produção**: o SIGA gera os seus próprios
+e-mails.
+
+**Google:** o login usa o provider Google do Supabase. No Google Cloud, o URI de
+redireccionamento é só `https://xodgfmxiaunpamctfeea.supabase.co/auth/v1/callback`.
+`firebase-applet-config.json → oAuthClientId` passou do cliente de outro projecto
+(`445079520865-…`, que era o valor por omissão) para o cliente do projecto
+`siga-plus-509706`. É usado pelo fluxo Workspace de `src/lib/google-oauth.ts`, que ainda
+nenhum ecrã chama. Quando for ligado, o seu redirect `<origem>/configuracoes` terá de ser
+acrescentado no Google Cloud.
+
 ### Por fazer (bloqueia o deploy desta funcionalidade)
 
 - **Aplicar `20260925090000_school_access_requests.sql`** (também no fim de
