@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
@@ -13,6 +13,8 @@ import { listPedagogicalWorkspace, type PedagogicalWorkspace } from "@/features/
 import { analyzeStudentRisk, type RiskAnalysis } from "@/features/ai-assist/ai-assist.functions";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
+import { saveRiskAnalysis } from "@/features/ai-assist/risk-followup.functions";
+import { RiskFollowup, riskCasesKey } from "@/features/ai-assist/RiskFollowup";
 
 export const Route = createFileRoute("/pedagogica_/risco")({
   head: () => ({
@@ -60,6 +62,8 @@ function RiskPage() {
   const [history, setHistory] = useState("");
   const effectiveClass = classId || classGroups[0]?.id || "";
   const analyze = useServerFn(analyzeStudentRisk);
+  const saveAnalysis = useServerFn(saveRiskAnalysis);
+  const queryClient = useQueryClient();
 
   const students = useMemo(() => {
     const map = new Map<
@@ -92,6 +96,31 @@ function RiskPage() {
           students,
         },
       }),
+    onSuccess: async (result) => {
+      const avgBy = new Map(
+        students.map((s) => [
+          s.enrollment_id,
+          s.grades.length ? s.grades.reduce((a, g) => a + g.average, 0) / s.grades.length : null,
+        ]),
+      );
+      const flagged = result.students.filter((s) => avgBy.has(s.enrollment_id));
+      if (!flagged.length) return;
+      await saveAnalysis({
+        data: {
+          classGroupId: effectiveClass,
+          classGroupName: classGroups.find((c) => c.id === effectiveClass)?.name ?? "Turma",
+          students: flagged.map((s) => ({
+            enrollment_id: s.enrollment_id,
+            name: s.name,
+            risk: s.risk,
+            reasons: (s.reasons ?? []).slice(0, 10),
+            interventions: (s.interventions ?? []).slice(0, 10),
+            average: avgBy.get(s.enrollment_id) ?? null,
+          })),
+        },
+      }).catch(() => undefined);
+      queryClient.invalidateQueries({ queryKey: riskCasesKey });
+    },
   });
 
   return (
@@ -204,10 +233,13 @@ function RiskPage() {
               </div>
             )}
             <p className="mt-4 text-xs text-muted-foreground">
-              Sugestões geradas por IA — confirme sempre com o conselho de turma.
+              Sugestões geradas por IA — confirme sempre com o conselho de turma. Os alunos sinalizados
+              ficam guardados no acompanhamento abaixo.
             </p>
           </Panel>
         ) : null}
+
+        <RiskFollowup />
       </div>
     </AppShell>
   );

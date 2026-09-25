@@ -23,7 +23,7 @@ export const accessModules = [
   {
     key: "financeiro",
     label: "Financeiro",
-    prefixes: ["/financeiro", "/faturas", "/relatorios/financeiros"],
+    prefixes: ["/financeiro", "/faturas", "/relatorios/financeiros", "/tesouraria"],
   },
   {
     key: "pedagogica",
@@ -53,6 +53,7 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   { prefixes: ["/alumni"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/acessos", "/catracas"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/configuracoes"], roles: ["Administrador"] },
+  { prefixes: ["/tesouraria"], roles: ["Administrador", "Tesouraria"] },
   {
     prefixes: ["/faturas", "/relatorios/financeiros"],
     roles: ["Administrador", "Tesouraria"],

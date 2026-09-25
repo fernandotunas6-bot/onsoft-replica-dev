@@ -2486,6 +2486,86 @@ export type Database = {
           },
         ]
       }
+      payment_gateway_charges: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          last_webhook_at: string | null
+          merchant_transaction_id: string
+          method: string
+          phone_number: string | null
+          provider: string
+          provider_charge_id: string | null
+          raw_last_payload: Json | null
+          receipt_number: string | null
+          reconciled_at: string | null
+          reference_entity: string | null
+          reference_number: string | null
+          school_id: string
+          status: string
+          status_message: string | null
+          student_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id: string
+          last_webhook_at?: string | null
+          merchant_transaction_id: string
+          method: string
+          phone_number?: string | null
+          provider?: string
+          provider_charge_id?: string | null
+          raw_last_payload?: Json | null
+          receipt_number?: string | null
+          reconciled_at?: string | null
+          reference_entity?: string | null
+          reference_number?: string | null
+          school_id: string
+          status?: string
+          status_message?: string | null
+          student_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          last_webhook_at?: string | null
+          merchant_transaction_id?: string
+          method?: string
+          phone_number?: string | null
+          provider?: string
+          provider_charge_id?: string | null
+          raw_last_payload?: Json | null
+          receipt_number?: string | null
+          reconciled_at?: string | null
+          reference_entity?: string | null
+          reference_number?: string | null
+          school_id?: string
+          status?: string
+          status_message?: string | null
+          student_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_gateway_charges_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -4235,6 +4315,122 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
+      student_risk_cases: {
+        Row: {
+          baseline_average: number | null
+          class_group_id: string | null
+          class_group_name: string | null
+          created_at: string
+          created_by: string | null
+          enrollment_id: string
+          id: string
+          latest_average: number | null
+          reasons: Json
+          risk_level: string
+          school_id: string
+          status: string
+          student_name: string
+          suggested_interventions: Json
+          updated_at: string
+        }
+        Insert: {
+          baseline_average?: number | null
+          class_group_id?: string | null
+          class_group_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id: string
+          id?: string
+          latest_average?: number | null
+          reasons?: Json
+          risk_level?: string
+          school_id: string
+          status?: string
+          student_name: string
+          suggested_interventions?: Json
+          updated_at?: string
+        }
+        Update: {
+          baseline_average?: number | null
+          class_group_id?: string | null
+          class_group_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id?: string
+          id?: string
+          latest_average?: number | null
+          reasons?: Json
+          risk_level?: string
+          school_id?: string
+          status?: string
+          student_name?: string
+          suggested_interventions?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_risk_cases_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_risk_interventions: {
+        Row: {
+          average_snapshot: number | null
+          case_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          kind: string
+          outcome: string | null
+          risk_level: string | null
+          school_id: string
+        }
+        Insert: {
+          average_snapshot?: number | null
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          kind?: string
+          outcome?: string | null
+          risk_level?: string | null
+          school_id: string
+        }
+        Update: {
+          average_snapshot?: number | null
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          kind?: string
+          outcome?: string | null
+          risk_level?: string | null
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_risk_interventions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "student_risk_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_risk_interventions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
           },
         ]
       }
