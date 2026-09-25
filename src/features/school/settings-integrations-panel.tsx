@@ -15,6 +15,7 @@ import {
 } from "@/lib/ecosystem-urls";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { groupCatalogItems, integrationFieldHints } from "@/features/integrations/catalog";
+import { isPendingWorkspaceProvider } from "@/features/integrations/google-workspace-availability";
 import { InstallConsentModal } from "@/features/integrations/InstallConsentModal";
 import { ZoomIntegrationCard } from "@/features/integrations/ZoomIntegrationCard";
 import { installPackageFor } from "@/features/integrations/install";
@@ -272,7 +273,8 @@ function AcademicIntegrationsCatalog() {
               const hints = integrationFieldHints[item.id];
               const config = item.config ?? {};
               const pack = installPackageFor(item.id);
-              const installed = item.status !== "disconnected";
+              const workspacePending = isPendingWorkspaceProvider(item.id);
+              const installed = !workspacePending && item.status !== "disconnected";
               return (
                 <li
                   key={item.id}
@@ -288,10 +290,14 @@ function AcademicIntegrationsCatalog() {
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
-                      <Badge variant={item.status === "disconnected" ? "secondary" : "default"}>
-                        {integrationStatusLabel(item.status)}
+                      <Badge variant={workspacePending || item.status === "disconnected" ? "secondary" : "default"}>
+                        {workspacePending ? "Pendente de consentimento" : integrationStatusLabel(item.status)}
                       </Badge>
-                      {installed ? (
+                      {workspacePending ? (
+                        <span className="text-[11px] font-medium text-muted-foreground">
+                          Ligação em preparação
+                        </span>
+                      ) : installed ? (
                         <button
                           type="button"
                           className="text-[11px] font-semibold text-destructive hover:underline"
@@ -332,7 +338,13 @@ function AcademicIntegrationsCatalog() {
                         .join(" · ")}
                     </p>
                   ) : null}
-                  {item.id === "zoom" ? (
+                  {workspacePending ? (
+                    <p className="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      A ligação exige consentimento Google independente do login SIGA,
+                      autorização por serviço e tokens protegidos no servidor.
+                      Nenhuma operação Gmail ou Calendar está activa.
+                    </p>
+                  ) : item.id === "zoom" ? (
                     <ZoomIntegrationCard item={item} />
                   ) : (
                     <form
