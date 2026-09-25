@@ -120,6 +120,13 @@
       "when": 1789719288522,
       "tag": "0016_people_contact_compat_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790347786722,
+      "tag": "0017_revoke_anon_security_definer",
+      "breakpoints": true
     }
   ]
 }
