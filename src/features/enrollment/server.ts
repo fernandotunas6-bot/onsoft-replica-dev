@@ -291,6 +291,8 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       .eq("school_id",membership.schoolId)
       .eq("enrollment_application_id",data.applicationId).maybeSingle();
     if(linkedError)throw publicDatabaseError(linkedError,"Não foi possível verificar o vínculo institucional.");
+    if(linkedAccessRequest&&data.decision==="accepted"&&context.claims["aal"]!=="aal2")
+      throw new Error("Para validar esta matrícula institucional, active a autenticação multifator e volte a entrar.");
     if(linkedAccessRequest&&data.decision==="accepted"&&!data.classGroupId)
       throw new Error("Confirme a turma do candidato antes de activar as credenciais institucionais.");
     // Confirme a turma e o ano antes de criar qualquer Pessoa/Aluno;
@@ -434,6 +436,12 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         },
       );
       if (registerError) {
+        // A nova matrícula com portal vinculado nunca usa números aleatórios nem
+        // contorna a autorização AAL2 da RPC oficial. A secretaria pode regularizar a
+        // Pessoa criada nesta tentativa antes de voltar a processar a candidatura.
+        if(linkedAccessRequest){
+          throw publicDatabaseError(registerError,"O registo oficial do estudante falhou. Verifique MFA e permissões; o acesso não foi activado.");
+        }
         if (
           registerError.code === "42501" ||
           /is_aal2|autorização|permission denied/i.test(registerError.message ?? "")
@@ -485,6 +493,9 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           enrolled_on: new Date().toISOString().slice(0, 10),
         });
         if (enrollError) {
+          if(linkedAccessRequest){
+            throw publicDatabaseError(enrollError,"Não foi possível confirmar a turma com a RPC académica oficial. O acesso institucional permanece pendente.");
+          }
           if (
             enrollError.code === "42501" ||
             /is_aal2|autorização|permission denied/i.test(enrollError.message ?? "")
