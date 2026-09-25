@@ -80,7 +80,23 @@ export interface GoogleStudentWelcomeEmailInput {
 export const triggerStudentWelcomeEmailServerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleStudentWelcomeEmailInput) => data)
-  .handler(async (): Promise<{ success: boolean; message: string }> => unavailableWorkspaceOperation());
+  .handler(async ({ data, context }): Promise<{ success: boolean; message: string }> => {
+    if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
+    if (!data.recipientEmail?.includes("@") || !data.studentName?.trim()) {
+      throw new Error("Dados do destinatário inválidos.");
+    }
+    const { api, membership } = await scopedApi(context.userId);
+    const body = [
+      `Olá, ${data.studentName}.`,
+      `Confirmamos a sua matrícula em ${membership.schoolName ?? "a escola"}.`,
+      `Número de processo: ${data.studentNumber}.`,
+      data.turmaName ? `Turma: ${data.turmaName}` : "",
+      data.academicYear ? `Ano lectivo: ${data.academicYear}` : "",
+      "Consulte o portal SIGA para mais informações.",
+    ].filter(Boolean).join("\\n");
+    const sent = await api.gmailSend(data.recipientEmail, "Confirmação de matrícula — SIGA", body);
+    return { success: true, message: `Gmail confirmou o envio: ${sent.id}` };
+  });
 
 export const getGoogleWorkspaceStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
