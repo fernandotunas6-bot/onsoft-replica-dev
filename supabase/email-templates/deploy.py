@@ -6,6 +6,7 @@ SUPABASE_ACCESS_TOKEN environment variable; never paste it into source code.
 Requires Python 3.10+ (stdlib only). Run from any working directory.
 """
 import argparse
+from datetime import datetime, timezone
 import json
 import os
 import sys
@@ -65,12 +66,31 @@ def build_payload():
     return data
 
 
+def backup_existing(current, keys, directory):
+    """Write only existing template fields (never SMTP credentials or access tokens).
+
+    The backup is created exclusively on the operator's local machine, with
+    restrictive permissions; do not commit it to source control.
+    """
+    root = Path(directory).expanduser().resolve()
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    snapshot = {key: current[key] for key in keys if key in current}
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    target = root / f"siga-auth-email-templates-{timestamp}.json"
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        json.dump(snapshot, handle, ensure_ascii=False, indent=2)
+        handle.write("\\n")
+    return target
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="Write six templates to project auth config")
     parser.add_argument("--secure-email", action="store_true", help="Also enforce email confirmation and secure email change")
     parser.add_argument("--check", action="store_true", help="Read-only comparison with live Auth configuration")
     parser.add_argument("--confirm-production", action="store_true", help="Acknowledge production changes before --apply")
+    parser.add_argument("--backup-dir", type=Path, help="Required for --apply: local directory for private previous-template backup")
     args = parser.parse_args()
     payload = build_payload()
     if args.secure_email:
@@ -81,6 +101,8 @@ def main():
         parser.error("--check and --apply cannot be combined")
     if args.apply and not args.confirm_production:
         parser.error("--apply requires --confirm-production")
+    if args.apply and not args.backup_dir:
+        parser.error("--apply requires --backup-dir to preserve existing template configuration")
     if not args.apply and not args.check:
         print("Dry run complete. No network request or production change performed.")
         return 0
@@ -98,6 +120,12 @@ def main():
     if args.check:
         print("Read-only check complete: server configuration differs. No production change performed.")
         return 1
+    try:
+        backup = backup_existing(current, payload.keys(), args.backup_dir)
+    except OSError:
+        print("Cannot create private local backup. No production changes made.", file=sys.stderr)
+        return 2
+    print(f"Previous selected fields backed up locally at: {backup}")
     request("PATCH", token, changed)
     verified = request("GET", token)
     mismatches = [key for key, value in payload.items() if verified.get(key) != value]
