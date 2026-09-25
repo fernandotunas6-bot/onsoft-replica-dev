@@ -1,3 +1,8 @@
+import {
+  SESSION_EXPIRED_MESSAGE,
+  consumeSessionExpiredFlag,
+  reportPossibleSessionError,
+} from "@/lib/session-expiry";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import {
@@ -185,13 +190,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN" && nextSession) {
         localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
       }
+      if (event === "SIGNED_OUT" && consumeSessionExpiredFlag()) {
+        setError(SESSION_EXPIRED_MESSAGE);
+      }
       setSession(nextSession);
       setChecking(false);
       setSubmitting(false);
     });
+    // Erros de sessão não tratados (ex.: server function chamada num evento).
+    const onRejection = (event: PromiseRejectionEvent) => {
+      if (reportPossibleSessionError(event.reason)) event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", onRejection);
     return () => {
       active = false;
       data.subscription.unsubscribe();
+      window.removeEventListener("unhandledrejection", onRejection);
     };
   }, []);
 

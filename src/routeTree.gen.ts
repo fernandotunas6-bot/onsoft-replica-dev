@@ -42,9 +42,11 @@ import { Route as AuthEmailChangeRouteImport } from './routes/auth.email-change'
 import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
+import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
+import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
@@ -256,6 +258,12 @@ const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
   path: '/ics',
   getParentRoute: () => CalendarioRoute,
 } as any)
+const ConfiguracoesDiagnosticoRoute =
+  ConfiguracoesDiagnosticoRouteImport.update({
+    id: '/configuracoes_/diagnostico',
+    path: '/configuracoes/diagnostico',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ConviteTokenRoute = ConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
@@ -269,6 +277,11 @@ const FinanceiroRhRoute = FinanceiroRhRouteImport.update({
 const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   id: '/matricula/$slug',
   path: '/matricula/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedagogicaRiscoRoute = PedagogicaRiscoRouteImport.update({
+  id: '/pedagogica_/risco',
+  path: '/pedagogica/risco',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PessoasIndexRoute = PessoasIndexRouteImport.update({
@@ -542,9 +555,11 @@ export interface FileRoutesByFullPath {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -625,9 +640,11 @@ export interface FileRoutesByTo {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -709,9 +726,11 @@ export interface FileRoutesById {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
+  '/pedagogica_/risco': typeof PedagogicaRiscoRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -794,9 +813,11 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/configuracoes/diagnostico'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -877,9 +898,11 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/configuracoes/diagnostico'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -960,9 +983,11 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/configuracoes_/diagnostico'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
+    | '/pedagogica_/risco'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1034,8 +1059,10 @@ export interface RootRouteChildren {
   AuthEmailChangeRoute: typeof AuthEmailChangeRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
+  PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
   ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
@@ -1299,6 +1326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarioIcsRouteImport
       parentRoute: typeof CalendarioRoute
     }
+    '/configuracoes_/diagnostico': {
+      id: '/configuracoes_/diagnostico'
+      path: '/configuracoes/diagnostico'
+      fullPath: '/configuracoes/diagnostico'
+      preLoaderRoute: typeof ConfiguracoesDiagnosticoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/convite/$token': {
       id: '/convite/$token'
       path: '/convite/$token'
@@ -1318,6 +1352,13 @@ declare module '@tanstack/react-router' {
       path: '/matricula/$slug'
       fullPath: '/matricula/$slug'
       preLoaderRoute: typeof MatriculaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/risco': {
+      id: '/pedagogica_/risco'
+      path: '/pedagogica/risco'
+      fullPath: '/pedagogica/risco'
+      preLoaderRoute: typeof PedagogicaRiscoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pessoas/': {
@@ -1829,8 +1870,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthEmailChangeRoute: AuthEmailChangeRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
+  ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
+  PedagogicaRiscoRoute: PedagogicaRiscoRoute,
   ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,

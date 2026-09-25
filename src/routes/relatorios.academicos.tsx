@@ -26,6 +26,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { cn } from "@/lib/utils";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { exportCsv, type CsvValue } from "@/lib/export-csv";
+import { PautaExportDialog } from "@/features/academic/PautaExportDialog";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
@@ -296,6 +297,11 @@ function RelatoriosAcademicos() {
           actions={
             <>
               <DocHelpButton title="Navegação — Relatórios académicos" />
+              <PautaExportDialog
+                termGrades={termGradesAll}
+                classGroups={classGroups}
+                disabled={!canRead || termGradesAll.length === 0}
+              />
               <Button
                 variant="outline"
                 className="gap-2"
