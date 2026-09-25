@@ -40,6 +40,11 @@ export interface GoogleCalendarEventInput {
   endDateTime: string;
   location?: string;
   attendees?: string[];
+  recurrence?: string[];
+  reminders?: {
+    useDefault: boolean;
+    overrides?: Array<{ method: "email" | "popup"; minutes: number }>;
+  };
 }
 
 export interface GoogleGmailSendInput {
@@ -99,6 +104,14 @@ const calendarEventSchema = z.object({
   endDateTime: z.string().datetime({ offset: true }),
   location: optionalText(500),
   attendees: z.array(email).max(50).optional(),
+  recurrence: z.array(z.string().trim().min(1).max(500)).max(5).optional(),
+  reminders: z.object({
+    useDefault: z.boolean(),
+    overrides: z.array(z.object({
+      method: z.enum(["email", "popup"]),
+      minutes: z.number().int().min(0).max(40320),
+    })).max(5).optional(),
+  }).optional(),
 });
 
 const gmailSchema = z.object({
@@ -183,11 +196,34 @@ export const syncCalendarEvent = createServerFn({ method: "POST" })
       title: data.title, start: data.startDateTime,
       end: data.endDateTime, description: data.description,
       location: data.location, attendees: data.attendees,
+      recurrence: data.recurrence, reminders: data.reminders,
     });
     return { success: true, eventId: event.id,
       message: "Google Calendar confirmou a criação do evento." };
   });
 
+export const listGoogleCalendarEventsServerFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((raw: unknown) => z.object({
+    timeMin: z.string().datetime({ offset: true }).optional(),
+    maxResults: z.number().int().min(1).max(100).optional(),
+  }).parse(raw ?? {}))
+  .handler(async ({ data, context }) => {
+    if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
+    const { api } = await scopedApi(context.userId);
+    const items = await api.calendarList(data.timeMin ?? new Date().toISOString());
+    return { success: true, items: items.slice(0, data.maxResults ?? 20) };
+  });
+
+export const deleteGoogleCalendarEventServerFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((raw: unknown) => z.object({ eventId: z.string().trim().min(1).max(500) }).parse(raw))
+  .handler(async ({ data, context }) => {
+    if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
+    const { api } = await scopedApi(context.userId, "calendar.delete");
+    await api.calendarDelete(data.eventId);
+    return { success: true };
+  });
 export const sendGmailNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((raw: unknown) => gmailSchema.parse(raw))
