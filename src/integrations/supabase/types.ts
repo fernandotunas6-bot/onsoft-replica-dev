@@ -126,6 +126,11 @@ export type Database = {
           deleted_at: string | null
           id: string
           name: string
+          metrics: Json
+          shift_id: string | null
+          snapshot: Json
+          source: string
+          term: number | null
           notes: string | null
           published_at: string | null
           published_by: string | null
@@ -146,6 +151,11 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name: string
+          metrics?: Json
+          shift_id?: string | null
+          snapshot?: Json
+          source?: string
+          term?: number | null
           notes?: string | null
           published_at?: string | null
           published_by?: string | null
@@ -166,6 +176,11 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name?: string
+          metrics?: Json
+          shift_id?: string | null
+          snapshot?: Json
+          source?: string
+          term?: number | null
           notes?: string | null
           published_at?: string | null
           published_by?: string | null
@@ -10245,6 +10260,20 @@ export type Database = {
           title: string
         }
         Returns: Json
+      }
+      apply_timetable_plan_guarded: {
+        Args: {
+          p_actor: string
+          p_class_group_id: string
+          p_schedule_id?: string | null
+          p_school_id: string
+          p_slots: Json
+        }
+        Returns: number
+      }
+      ensure_school_shift_defaults: {
+        Args: { p_school_id: string }
+        Returns: number
       }
       create_timetable_slot_guarded: {
         Args: {
