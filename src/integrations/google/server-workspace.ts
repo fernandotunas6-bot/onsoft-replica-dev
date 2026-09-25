@@ -238,7 +238,7 @@ export const createGoogleTask = createServerFn({ method: "POST" })
     if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
     if (!data.title?.trim()) throw new Error("Título da tarefa obrigatório.");
     const { api } = await scopedApi(context.userId, "tasks.create");
-    const task = await api.tasksCreate(data.title, data.notes);
+    const task = await api.tasksCreate(data.title, data.notes, data.due);
     return { success: true, taskId: task.id,
       message: "Google Tasks confirmou a criação da tarefa." };
   });
