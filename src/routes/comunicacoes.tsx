@@ -10,6 +10,7 @@ import {
   FileDown,
   FileText,
   Mail,
+  MessageCircle,
   MessageSquare,
   Monitor,
   Pencil,
@@ -105,6 +106,7 @@ type AnnouncementExportRow = {
 
 const canalIcon = {
   sms: MessageSquare,
+  whatsapp: MessageCircle,
   email: Mail,
   portal: Monitor,
 } as const;
