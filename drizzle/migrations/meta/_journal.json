@@ -120,6 +120,48 @@
       "when": 1789719288522,
       "tag": "0016_people_contact_compat_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790347786722,
+      "tag": "0017_revoke_anon_security_definer",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790350380028,
+      "tag": "0018_academic_integrity_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790350508844,
+      "tag": "0019_student_risk_followups",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790350666410,
+      "tag": "0020_appypay_charges",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790353108328,
+      "tag": "0021_lesson_plans_and_subject_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790354505516,
+      "tag": "0022_timetable_builder_shifts_versions",
+      "breakpoints": true
     }
   ]
 }

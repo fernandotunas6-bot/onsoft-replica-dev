@@ -562,3 +562,25 @@ summary,
     background-color: transparent !important;
   }
 }
+
+/* PWA mobile — comportamento nativo (estilo Lovable): áreas seguras, sem zoom iOS, sem realce ao toque */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    overscroll-behavior-y: none;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  @media (max-width: 767px) {
+    input, select, textarea { font-size: 16px; }
+    button, a, [role="button"] { touch-action: manipulation; }
+  }
+  @media (display-mode: standalone) {
+    body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); user-select: none; }
+    input, textarea, [contenteditable="true"] { user-select: text; }
+  }
+}

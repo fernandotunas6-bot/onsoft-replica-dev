@@ -250,6 +250,31 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const subjectsMissing = Boolean(subjects.error);
     const filteredGroupIds = (groups.data ?? []).map((group: { id: string }) => group.id);
 
+    const classSubjectsChain = (async () => {
+      const { data: classSubjectsData } = filteredGroupIds.length
+        ? await db
+            .from("class_subjects")
+            .select("id, class_group_id, subject_id, teacher_id, weekly_periods, status")
+            .in("class_group_id", filteredGroupIds)
+            .eq("status", "active")
+        : { data: [] as Array<Record<string, unknown>> };
+      const ids = (classSubjectsData ?? []).map((row: Record<string, unknown>) =>
+        String(row["id"]),
+      );
+      const { data: slots, error: slotsError } = ids.length
+        ? await db
+            .from("timetable_slots")
+            .select("id, class_subject_id, weekday, starts_at, ends_at, room, status")
+            .in("class_subject_id", ids)
+            .eq("status", "active")
+            .order("starts_at")
+            .limit(500)
+        : { data: [] as Array<Record<string, unknown>>, error: null };
+      return { data: classSubjectsData, timetableSlots: slots, scheduleError: slotsError };
+    })();
+    // Evita rejeição não tratada se falhar antes de ser aguardado.
+    classSubjectsChain.catch(() => undefined);
+
     let enrollments =
       yearFilter && filteredGroupIds.length === 0
         ? { data: [] as Array<Record<string, unknown>>, error: null }
@@ -280,26 +305,8 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       throw publicDatabaseError(enrollments.error, "Não foi possível carregar as matrículas.");
     }
 
-    const { data: classSubjects } = filteredGroupIds.length
-      ? await db
-          .from("class_subjects")
-          .select("id, class_group_id, subject_id, teacher_id, weekly_periods, status")
-          .in("class_group_id", filteredGroupIds)
-          .eq("status", "active")
-      : { data: [] as Array<Record<string, unknown>> };
-
-    const classSubjectIds = (classSubjects ?? []).map((row: Record<string, unknown>) =>
-      String(row["id"]),
-    );
-    const { data: timetableSlots, error: scheduleError } = classSubjectIds.length
-      ? await db
-          .from("timetable_slots")
-          .select("id, class_subject_id, weekday, starts_at, ends_at, room, status")
-          .in("class_subject_id", classSubjectIds)
-          .eq("status", "active")
-          .order("starts_at")
-          .limit(500)
-      : { data: [] as Array<Record<string, unknown>>, error: null };
+    // Disciplinas/horários não dependem das matrículas: correm em paralelo com as notas.
+    const { data: classSubjects, timetableSlots, scheduleError } = await classSubjectsChain;
 
     const scheduleMissing = Boolean(scheduleError);
     const enrollmentIds = (enrollments.data ?? []).map((row) => String(row.id));
@@ -356,10 +363,6 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       return Math.round((sum / values.length) * 10) / 10;
     };
 
-    console.log(
-      "[DBG3] groups",
-      JSON.stringify([...gradeAveragesByGroup.entries()].map(([k, v]) => [k, v.length])),
-    );
 
     const programById = new Map(
       (programs.data ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),

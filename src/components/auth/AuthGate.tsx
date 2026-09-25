@@ -1,4 +1,11 @@
 import {
+  SESSION_EXPIRED_MESSAGE,
+  consumeSessionExpiredFlag,
+  reportPossibleSessionError,
+} from "@/lib/session-expiry";
+import { AuthHeroSlides } from "./AuthHeroSlides";
+import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
+import {
   createContext,
   useContext,
   useEffect,
@@ -183,13 +190,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN" && nextSession) {
         localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
       }
+      if (event === "SIGNED_OUT" && consumeSessionExpiredFlag()) {
+        setError(SESSION_EXPIRED_MESSAGE);
+      }
       setSession(nextSession);
       setChecking(false);
       setSubmitting(false);
     });
+    // Erros de sessão não tratados (ex.: server function chamada num evento).
+    const onRejection = (event: PromiseRejectionEvent) => {
+      if (reportPossibleSessionError(event.reason)) event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", onRejection);
     return () => {
       active = false;
       data.subscription.unsubscribe();
+      window.removeEventListener("unhandledrejection", onRejection);
     };
   }, []);
 
@@ -445,27 +461,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   return (
     <AuthSessionContext.Provider value={null}>
-      <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="relative hidden overflow-hidden flex-col justify-between bg-primary p-12 text-primary-foreground lg:flex">
+      <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr] lg:p-2">
+        <section className="relative hidden overflow-hidden flex-col justify-between rounded-2xl border border-border/60 bg-primary p-12 text-primary-foreground shadow-sm lg:flex">
+          <AuthBackgroundVideo />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-25"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.25), transparent 45%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.15), transparent 40%)",
-            }}
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/60 to-primary/40"
           />
           <div />
-          <div className="relative max-w-xl">
-            <p className="text-xs font-semibold opacity-80">Sistema Integrado de Gestão</p>
-            <h1 className="mt-4 font-display text-4xl font-extrabold leading-tight">
-              A instituição em pleno controlo operacional.
-            </h1>
-            <p className="mt-4 max-w-lg text-sm leading-6 opacity-85">
-              Secretaria académica, estudantes, turmas, contabilidade, propinas e relatórios
-              integrados com segurança e rapidez.
-            </p>
-          </div>
+          <AuthHeroSlides />
           <div className="relative flex items-center justify-between text-xs opacity-80">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4" /> Autenticação Segura
@@ -479,7 +483,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         </section>
 
         <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-7 shadow-sm sm:p-9">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]">
             {installPrompt && (
               <div className="mb-6 flex flex-col items-center justify-center text-center pb-4 border-b border-border">
                 <Button

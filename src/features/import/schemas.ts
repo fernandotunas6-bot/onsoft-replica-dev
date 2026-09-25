@@ -198,8 +198,8 @@ export interface ImportJobRecord {
   dry_run?: boolean;
   idempotency_key?: string | null;
   manifest?: Record<string, any>;
-  dependency_plan?: unknown[];
-  error_summary?: unknown[];
+  dependency_plan?: Array<Record<string, string | number | boolean | null>>;
+  error_summary?: Array<Record<string, string | number | boolean | null>>;
   job_metadata?: Record<string, any> | null;
   started_at?: string | null;
   completed_at?: string | null;

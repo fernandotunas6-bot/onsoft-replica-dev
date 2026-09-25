@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 /**
  * As duas tabelas de `features/contacts` são o caso invertido das 35 capturadas em
- * `20260914151906_capture_undeclared_production_tables.sql`: aquelas existiam na base e
+ * `20260924005132_capture_undeclared_production_tables.sql`: aquelas existiam na base e
  * faltavam ao repositório, e o DDL foi lido do catálogo do Postgres precisamente para não
  * ser adivinhado. `contact_verification_profiles` e `user_communication_preferences` não
  * existem em lado nenhum — não há catálogo de onde as ler, e o esquema teve de ser escrito

@@ -5,11 +5,15 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0F172A",
-  "theme_color": "#C59B27",
+  "background_color": "#F8F8FA",
+  "theme_color": "#F8F8FA",
   "scope": "/",
-  "lang": "pt",
-  "categories": ["education", "productivity", "management"],
+  "lang": "pt-AO",
+  "categories": [
+    "education",
+    "productivity",
+    "management"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -35,5 +39,11 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "id": "/",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "prefer_related_applications": false
 }

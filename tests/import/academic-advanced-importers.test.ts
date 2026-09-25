@@ -5,49 +5,39 @@ import { propinasImporter } from "@/features/import/importers/propinas-importer"
 
 describe("Academic Advanced Importers (presencas, pautas, propinas)", () => {
   describe("presencasImporter", () => {
-    it("valida campos obrigatórios (aluno e assiduidade)", () => {
-      const cache = { students: [], enrollmentByStudentId: new Map() };
-      const analysis = presencasImporter.analyzeRow({}, cache as any);
+    // Presenças são importadas por sessão (turma + disciplina + data + estado),
+    // não como taxa agregada — evita misturar sessões diferentes.
+    const refs = {
+      academicYearId: "y1",
+      students: [{ id: "s1", student_number: "PROC-042", national_id: "001234LA042", status: "active", person_id: "p1" }],
+      groups: [{ id: "g1", code: "10A", name: "10ª A" }],
+      subjects: [{ id: "sub1", code: "MAT", name: "Matemática" }],
+    };
+
+    it("valida campos obrigatórios (aluno, turma, disciplina, data e estado)", () => {
+      const analysis = presencasImporter.analyzeRow({}, { ...refs, academicYearId: null } as any);
       expect(analysis.status).toBe("error");
-      expect(analysis.errors).toContain(
-        "Identificador do aluno (Nº Processo ou BI) é obrigatório.",
-      );
-      expect(analysis.errors).toContain(
-        "Taxa de assiduidade ou percentagem de presenças é obrigatória.",
-      );
+      expect(analysis.errors).toContain("Seleccione o ano lectivo antes de importar presenças.");
+      expect(analysis.errors).toContain("Identificador do aluno é obrigatório.");
+      expect(analysis.errors).toContain("Turma é obrigatória para registar a presença.");
+      expect(analysis.errors).toContain("Disciplina é obrigatória para registar a presença.");
     });
 
-    it("rejeita taxa inválida fora de 0-100", () => {
-      const cache = { students: [], enrollmentByStudentId: new Map() };
+    it("rejeita estado de presença inválido", () => {
       const analysis = presencasImporter.analyzeRow(
-        { student_identifier: "PROC-1", attendance_rate: 150 },
-        cache as any,
+        { student_identifier: "PROC-042", turma: "10A", disciplina: "MAT", data: "2026-03-02", estado: "talvez" },
+        refs as any,
       );
       expect(analysis.status).toBe("error");
-      expect(analysis.errors).toContain(
-        "Taxa de assiduidade deve ser uma percentagem válida entre 0 e 100.",
-      );
+      expect(analysis.errors.join(" ")).toMatch(/Estado de presença inválido/);
     });
 
-    it("reconhece taxa de assiduidade válida", () => {
-      const cache = {
-        students: [
-          {
-            id: "s1",
-            student_number: "PROC-042",
-            national_id: "001234LA042",
-            status: "active",
-            person_id: "p1",
-          },
-        ],
-        enrollmentByStudentId: new Map([
-          ["s1", { id: "e1", student_id: "s1", attendance_rate: 90 }],
-        ]),
-      };
+    it("reconhece presença válida", () => {
       const analysis = presencasImporter.analyzeRow(
-        { student_identifier: "PROC-042", attendance_rate: "95%" },
-        cache as any,
+        { student_identifier: "PROC-042", turma: "10A", disciplina: "MAT", data: "2026-03-02", estado: "presente" },
+        refs as any,
       );
+      expect(analysis.errors).toEqual([]);
       expect(analysis.status).toBe("valid");
     });
   });
