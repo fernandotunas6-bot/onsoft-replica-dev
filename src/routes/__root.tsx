@@ -56,7 +56,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Portal de Gestão Escolar" },
       {
         name: "description",
@@ -71,10 +71,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "theme-color", content: "#C59B27" },
+      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#F8F8FA" },
+      { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#0F172A" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "SIGA" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "SIGA Plus" },
+      { name: "format-detection", content: "telephone=no" },
     ],
     links: [
       {
