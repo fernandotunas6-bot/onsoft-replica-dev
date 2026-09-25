@@ -52,6 +52,12 @@ export const executeGoogleWorkspaceOperation = createServerFn({ method: "POST" }
     if (data.action === "calendar.create" && Date.parse(data.end) <= Date.parse(data.start)) {
       throw new Error("O fim do evento deve ser posterior ao início.");
     }
+    const { assertWorkspaceWriteRateLimit } = await import("./workspace-rate-limit.server");
+    assertWorkspaceWriteRateLimit({
+      userId: context.userId,
+      schoolId: data.schoolId,
+      action: data.action,
+    });
     // Runtime import keeps credentials and privileged database code off the client.
     const { getWorkspaceAccessToken } = await import("./workspace-vault.server");
     const { createWorkspaceApi } = await import("./workspace-api");
