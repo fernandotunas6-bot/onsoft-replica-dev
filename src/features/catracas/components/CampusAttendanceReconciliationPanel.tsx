@@ -117,7 +117,7 @@ export function CampusAttendanceReconciliationPanel() {
                   <Clock className="size-3" /> Portaria: {an.gateEntryTime}
                 </Badge>
                 {an.severity === "high" ? (
-                  <Badge variant="destructive" className="text-[10px] uppercase font-extrabold">
+                  <Badge variant="destructive" className="text-[10px] font-extrabold">
                     Alerta de Evasão
                   </Badge>
                 ) : (

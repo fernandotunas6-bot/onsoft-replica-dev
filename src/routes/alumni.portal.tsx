@@ -323,9 +323,7 @@ function AlumniPortalPage() {
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-primary">
-                          {item.opportunity_type}
-                        </p>
+                        <p className="text-xs font-bold text-primary">{item.opportunity_type}</p>
                         <h3 className="mt-1 font-bold">{item.title}</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {item.organization || "Rede Alumni"}
@@ -387,9 +385,7 @@ function AlumniPortalPage() {
             {portal.events.map((event) => (
               <Card key={event.id}>
                 <CardContent className="p-5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-primary">
-                    {event.event_type}
-                  </p>
+                  <p className="text-xs font-bold text-primary">{event.event_type}</p>
                   <h3 className="mt-1 font-bold">{event.title}</h3>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {new Date(event.starts_at).toLocaleString("pt-AO")}

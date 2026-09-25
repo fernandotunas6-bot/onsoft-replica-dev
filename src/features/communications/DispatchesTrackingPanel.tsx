@@ -261,7 +261,7 @@ export function DispatchesTrackingPanel() {
                     <td className="py-3 text-xs text-foreground font-medium">
                       {d.subjectOrTemplate || "Notificação do Sistema"}
                     </td>
-                    <td className="py-3 text-xs text-muted-foreground uppercase">{d.provider}</td>
+                    <td className="py-3 text-xs text-muted-foreground">{d.provider}</td>
                     <td className="py-3">{getStatusBadge(d.status)}</td>
                     <td className="py-3 text-right text-xs text-muted-foreground">
                       {new Date(d.createdAt).toLocaleString("pt-PT", {

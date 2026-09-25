@@ -204,9 +204,7 @@ type StudentDocumentWorkspace = {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-medium">{value}</p>
     </div>
   );
@@ -1001,7 +999,7 @@ function StudentDetail() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground">
                     Emissão e Impressão
                   </DropdownMenuLabel>
                   <DropdownMenuItem

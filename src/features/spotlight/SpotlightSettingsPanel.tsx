@@ -163,7 +163,7 @@ export function SpotlightSettingsPanel() {
                 )}
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="text-[11px] font-semibold text-muted-foreground">
                       {custom ? "Da escola" : "Catálogo"} · {kindLabel[item.kind]}
                     </p>
                     <Switch
@@ -231,7 +231,7 @@ export function SpotlightSettingsPanel() {
                     onPatch={(change) => patch(item.id, change)}
                   />
                   <div className="pt-1">
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="mb-2 text-[11px] font-semibold text-muted-foreground">
                       Pré-visualização
                     </p>
                     <SpotlightCard

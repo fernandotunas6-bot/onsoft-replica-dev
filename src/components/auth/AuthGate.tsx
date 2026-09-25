@@ -457,9 +457,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
           />
           <div />
           <div className="relative max-w-xl">
-            <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
-              Sistema Integrado de Gestão
-            </p>
+            <p className="text-xs font-semibold opacity-80">Sistema Integrado de Gestão</p>
             <h1 className="mt-4 font-display text-4xl font-extrabold leading-tight">
               A instituição em pleno controlo operacional.
             </h1>
@@ -794,7 +792,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               </form>
             ) : null}
 
-            <div className="mt-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
               ou
               <span className="h-px flex-1 bg-border" />

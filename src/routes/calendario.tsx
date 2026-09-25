@@ -618,7 +618,7 @@ function CalendarioPage() {
               onSelectDay={jumpToDay}
             />
             <aside className="space-y-3 rounded-xl border border-border bg-muted/20 p-4 shadow-card">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-semibold text-muted-foreground">
                 {selectedDay
                   ? new Date(`${selectedDay}T12:00:00`).toLocaleDateString("pt-PT", {
                       weekday: "long",
@@ -649,7 +649,7 @@ function CalendarioPage() {
               )}
               {selectedDay ? (
                 <div className="space-y-1.5 border-t border-border/60 pt-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <p className="text-[10px] font-semibold text-muted-foreground">
                     Aulas do horário
                   </p>
                   {dayLessonsQuery.isLoading ? (
@@ -819,7 +819,7 @@ function CalendarioPage() {
               ) : null}
               {monthHolidays.length ? (
                 <div>
-                  <p className="mb-1 text-[11px] font-semibold uppercase text-muted-foreground">
+                  <p className="mb-1 text-[11px] font-semibold text-muted-foreground">
                     Feriados deste mês
                   </p>
                   <ul className="space-y-1 text-xs">

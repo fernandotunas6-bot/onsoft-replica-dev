@@ -185,15 +185,15 @@ function AlumniInsightsPage() {
                     </div>
                     <div>
                       <p className="text-lg font-black">{row.total}</p>
-                      <p className="text-[10px] uppercase text-muted-foreground">Alumni</p>
+                      <p className="text-[10px] text-muted-foreground">Alumni</p>
                     </div>
                     <div>
                       <p className="text-lg font-black">{row.employed}</p>
-                      <p className="text-[10px] uppercase text-muted-foreground">Empregados</p>
+                      <p className="text-[10px] text-muted-foreground">Empregados</p>
                     </div>
                     <div>
                       <p className="text-lg font-black">{row.mentors}</p>
-                      <p className="text-[10px] uppercase text-muted-foreground">Mentores</p>
+                      <p className="text-[10px] text-muted-foreground">Mentores</p>
                     </div>
                   </div>
                 ))}
@@ -240,7 +240,7 @@ function AlumniInsightsPage() {
                       <p className="text-xs text-muted-foreground">
                         {person.phone || "Telefone não autorizado"}
                       </p>
-                      <p className="mt-2 text-[10px] font-bold uppercase text-primary">
+                      <p className="mt-2 text-[10px] font-bold text-primary">
                         {[person.graduationYear, person.province].filter(Boolean).join(" · ") ||
                           "Perfil Alumni"}
                       </p>

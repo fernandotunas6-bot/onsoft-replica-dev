@@ -86,7 +86,7 @@ function AlumniCalendarPage() {
                   className="grid gap-3 rounded-2xl border border-border/60 p-4 md:grid-cols-[160px_minmax(0,1fr)]"
                 >
                   <div>
-                    <p className="text-xs font-bold uppercase text-primary">
+                    <p className="text-xs font-bold text-primary">
                       {new Date(event.starts_at).toLocaleDateString("pt-AO")}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">

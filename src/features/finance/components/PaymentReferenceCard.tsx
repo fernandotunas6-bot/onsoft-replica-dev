@@ -112,9 +112,7 @@ export function PaymentReferenceCard({
       {/* DADOS DE REFERÊNCIA MULTICAIXA */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl border border-border bg-secondary/20">
         <div className="space-y-1">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Entidade (EMIS/RUPE)
-          </span>
+          <span className="text-xs font-semibold text-muted-foreground">Entidade (EMIS/RUPE)</span>
           <div className="flex items-center justify-between font-mono font-bold text-base bg-card px-3 py-1.5 rounded-lg border border-border">
             <span>{referenceData.entity}</span>
             <button
@@ -132,9 +130,7 @@ export function PaymentReferenceCard({
         </div>
 
         <div className="space-y-1">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Referência
-          </span>
+          <span className="text-xs font-semibold text-muted-foreground">Referência</span>
           <div className="flex items-center justify-between font-mono font-bold text-base bg-card px-3 py-1.5 rounded-lg border border-border">
             <span>{referenceData.reference}</span>
             <button
@@ -154,9 +150,7 @@ export function PaymentReferenceCard({
         </div>
 
         <div className="space-y-1">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Montante Total
-          </span>
+          <span className="text-xs font-semibold text-muted-foreground">Montante Total</span>
           <div className="flex items-center justify-between font-mono font-extrabold text-base bg-card px-3 py-1.5 rounded-lg border border-border text-primary">
             <span>{referenceData.amountFormatted}</span>
             <button
@@ -176,7 +170,7 @@ export function PaymentReferenceCard({
 
       {/* CARTEIRAS MÓVEIS (UNITEL MONEY / KWIK) */}
       <div className="space-y-3">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+        <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
           <Smartphone className="size-3.5 text-primary" />
           Carteiras Móveis e Pagamento Instantâneo
         </h4>

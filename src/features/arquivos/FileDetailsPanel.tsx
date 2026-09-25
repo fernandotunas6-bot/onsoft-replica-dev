@@ -67,9 +67,7 @@ export function FileDetailsPanel({
 
   return (
     <aside className="flex min-h-0 flex-col bg-card p-4">
-      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-        Detalhes
-      </p>
+      <p className="text-[11px] font-bold text-muted-foreground">Detalhes</p>
       {previewUrl ? (
         <MediaFrame
           src={previewUrl}
@@ -195,9 +193,7 @@ export function FileDetailsPanel({
         </div>
       </dl>
       <div className="mt-6 min-h-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-          Auditoria
-        </p>
+        <p className="text-[11px] font-bold text-muted-foreground">Auditoria</p>
         {activityLoading ? (
           <p className="mt-2 text-xs text-muted-foreground">A carregar…</p>
         ) : activityEvents.length > 0 ? (

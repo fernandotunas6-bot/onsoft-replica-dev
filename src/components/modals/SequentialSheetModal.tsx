@@ -109,9 +109,7 @@ export function SheetCell({
 }) {
   return (
     <label className={cn("block bg-card px-4 py-3", full && "sm:col-span-2")}>
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </span>
+      <span className="mb-1.5 block text-[11px] font-semibold text-muted-foreground">{label}</span>
       {children}
     </label>
   );

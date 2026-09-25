@@ -599,7 +599,7 @@ export function GradePautaSheet({
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+        <p className="text-[10px] font-bold text-muted-foreground">
           República de Angola · Ministério da Educação
         </p>
         <h3 className="mt-1 font-display text-lg font-extrabold tracking-tight">{schoolName}</h3>

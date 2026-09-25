@@ -780,9 +780,7 @@ export function DigitalIdentityPanel() {
               </div>
 
               <div className="rounded-xl border border-border bg-secondary/40 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Pré-visualização
-                </p>
+                <p className="text-[10px] font-semibold text-muted-foreground">Pré-visualização</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span
                     className="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold"

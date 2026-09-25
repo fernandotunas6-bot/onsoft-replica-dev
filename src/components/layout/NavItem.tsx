@@ -166,8 +166,6 @@ export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded
 export function NavSubheader({ title, collapsed = false }: { title: string; collapsed?: boolean }) {
   if (collapsed) return <div className="mx-3 my-3 h-px bg-sidebar-border" />;
   return (
-    <p className="px-3 pb-1 pt-4 text-[11px] font-bold uppercase leading-5 tracking-[0.5px] text-sidebar-muted">
-      {title}
-    </p>
+    <p className="px-3 pb-1 pt-4 text-[11px] font-bold leading-5 text-sidebar-muted">{title}</p>
   );
 }

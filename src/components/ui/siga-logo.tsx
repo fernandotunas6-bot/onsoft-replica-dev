@@ -167,9 +167,7 @@ export function SigaAiLoader({
         </div>
       </div>
       {label && (
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground animate-pulse">
-          {label}
-        </p>
+        <p className="text-xs font-semibold text-muted-foreground animate-pulse">{label}</p>
       )}
     </div>
   );

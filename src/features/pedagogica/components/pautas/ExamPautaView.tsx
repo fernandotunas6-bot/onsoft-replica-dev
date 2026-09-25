@@ -104,9 +104,7 @@ export function ExamPautaView({ data }: { data: ExamPautaDocument }) {
 
       <div className="mt-8 grid grid-cols-2 gap-8 text-xs">
         <div>
-          <span className="block font-bold uppercase tracking-wider text-muted-foreground">
-            JÚRI DE DEFESA / EXAME
-          </span>
+          <span className="block font-bold text-muted-foreground">JÚRI DE DEFESA / EXAME</span>
           <div className="mt-2 space-y-2 text-left pl-2">
             <p>1. Presidente: _______________________________________</p>
             <p>2. Vogal 1: ___________________________________________</p>

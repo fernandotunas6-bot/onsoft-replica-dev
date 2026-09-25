@@ -143,9 +143,7 @@ export function InstalledModuleTools({
 
   return (
     <div className="rounded-xl border border-border bg-card px-3 py-3">
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-        Funções instaladas
-      </p>
+      <p className="mb-2 text-[11px] font-bold text-muted-foreground">Funções instaladas</p>
       <div className="flex flex-wrap gap-2">
         {tools.map((tool) => (
           <button

@@ -128,9 +128,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total de Salas
-            </span>
+            <span className="text-xs font-semibold text-muted-foreground">Total de Salas</span>
             <DoorOpen className="size-5 text-primary" />
           </div>
           <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">{rooms.length}</p>
@@ -139,9 +137,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Capacidade Total
-            </span>
+            <span className="text-xs font-semibold text-muted-foreground">Capacidade Total</span>
             <Building2 className="size-5 text-success" />
           </div>
           <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
@@ -152,7 +148,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-semibold text-muted-foreground">
               Laboratórios & Oficinas
             </span>
             <Monitor className="size-5 text-primary" />
@@ -165,9 +161,7 @@ export function SalasWorkspaceTab({ canManage }: { canManage: boolean }) {
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Regra de Capacidade
-            </span>
+            <span className="text-xs font-semibold text-muted-foreground">Regra de Capacidade</span>
             <CheckCircle2 className="size-5 text-warning" />
           </div>
           <p className="mt-2 text-base font-bold tracking-tight text-foreground">

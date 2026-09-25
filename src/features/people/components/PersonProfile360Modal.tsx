@@ -496,7 +496,7 @@ export function PersonProfile360Modal({
             <TabsContent value="visao_geral" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  <span className="text-xs font-semibold text-muted-foreground block">
                     Estado de Identidade
                   </span>
                   <p className="text-sm font-semibold flex items-center gap-2">
@@ -509,7 +509,7 @@ export function PersonProfile360Modal({
                 </div>
 
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  <span className="text-xs font-semibold text-muted-foreground block">
                     Vínculo Académico
                   </span>
                   {hasStudentRole && person?.academic_summary?.active_enrollment ? (
@@ -553,7 +553,7 @@ export function PersonProfile360Modal({
                 </div>
 
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  <span className="text-xs font-semibold text-muted-foreground block">
                     Contacto para Acesso
                   </span>
                   {person?.has_contact_email ? (
@@ -813,7 +813,7 @@ export function PersonProfile360Modal({
                     {person.documents.map((doc) => (
                       <div key={doc.id} className="flex items-center justify-between p-3 text-xs">
                         <div>
-                          <p className="font-bold text-sm uppercase">
+                          <p className="font-bold text-sm">
                             {doc.document_type} — {doc.document_number}
                           </p>
                           <p className="text-muted-foreground">

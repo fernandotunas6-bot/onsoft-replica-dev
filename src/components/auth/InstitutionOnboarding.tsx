@@ -288,9 +288,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
         </header>
 
         <section className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-            Bem-vindo(a)
-          </p>
+          <p className="text-xs font-semibold text-primary">Bem-vindo(a)</p>
           <h1 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
             Olá, {displayName}. A sua conta ainda não está ligada a nenhuma escola.
           </h1>

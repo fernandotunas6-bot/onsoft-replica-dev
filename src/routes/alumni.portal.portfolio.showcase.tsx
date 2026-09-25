@@ -167,19 +167,15 @@ function AlumniPortfolioShowcasePage() {
               </p>
               <dl className="mt-9 grid max-w-3xl gap-5 border-t border-border/60 pt-6 sm:grid-cols-3">
                 <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Nome completo
-                  </dt>
+                  <dt className="text-[11px] font-semibold text-muted-foreground">Nome completo</dt>
                   <dd className="mt-2 text-sm font-semibold">{person?.full_name ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Curso
-                  </dt>
+                  <dt className="text-[11px] font-semibold text-muted-foreground">Curso</dt>
                   <dd className="mt-2 text-sm font-semibold">{profile.graduation_course || "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <dt className="text-[11px] font-semibold text-muted-foreground">
                     Grau alcançado
                   </dt>
                   <dd className="mt-2 text-sm font-semibold">{profile.graduation_grade || "—"}</dd>
@@ -308,7 +304,7 @@ function AlumniPortfolioShowcasePage() {
                     className="grid gap-7 border-t border-border/60 pt-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,.9fr)]"
                   >
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      <p className="text-xs font-semibold text-muted-foreground">
                         {String(item.item_type).replaceAll("_", " ")}
                       </p>
                       <h3 className="mt-3 text-2xl font-black sm:text-3xl">{item.title}</h3>

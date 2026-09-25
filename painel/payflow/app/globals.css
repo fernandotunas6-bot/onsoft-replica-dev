@@ -94,6 +94,10 @@
 }
 
 @theme inline {
+  /* Tipografia SIGA: pesos 400/500/600 — negrito limitado a 600 (igual ao SIGA). */
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 600;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
