@@ -416,12 +416,24 @@ ALTER TABLE public.school_integrations FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.school_integrations TO authenticated;
 GRANT ALL ON public.school_integrations TO service_role;
 
+-- `config` guarda credenciais: `webhookApiKey` e `merchantId` do Multicaixa
+-- Express e do Unitel Money. Com `FOR ALL` por simples pertenca a escola,
+-- qualquer membro lia a chave que autentica as confirmacoes de pagamento -- e
+-- podia forjar pagamentos. `HARDEN_TENANT_ISOLATION.sql:201` sempre criou a
+-- versao com verificacao de papel; correr este script a seguir desfazia-a.
+-- Ver 20260925090000, que e a versao numerada: leitura so da administracao,
+-- escrita so por `service_role`.
 DROP POLICY IF EXISTS "Manage school integrations in own school" ON public.school_integrations;
-CREATE POLICY "Manage school integrations in own school"
+DROP POLICY IF EXISTS school_integrations_select_admin ON public.school_integrations;
+CREATE POLICY school_integrations_select_admin
   ON public.school_integrations
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (
+    public.is_school_member(school_id)
+    AND public.current_school_role_is(
+      ARRAY['owner','admin','administrator','administrador','diretor geral','director geral']::text[]
+    )
+  );
 
 CREATE TABLE IF NOT EXISTS public.finance_payment_plans (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

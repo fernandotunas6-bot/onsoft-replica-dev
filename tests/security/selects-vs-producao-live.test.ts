@@ -95,8 +95,10 @@ describe.skipIf(!podeSondar)("selects do código vs. produção (ao vivo)", () =
 
     // Em série, 200+ sondas contra a produção não cabiam nos 180s e o teste
     // morria por timeout — uma guarda que nunca chega ao fim não guarda nada.
-    // Oito de cada vez chega para o tornar rápido sem parecer um ataque.
-    const CONCORRENCIA = 8;
+    // Quatro de cada vez: chega para caber com folga no prazo e não compete com
+    // `rls-live-probe`, que sonda a mesma base em paralelo — a oito, a suite
+    // chegou a falhar por isso.
+    const CONCORRENCIA = 4;
     const recusados: string[] = [];
     const fila = [...alvos];
 

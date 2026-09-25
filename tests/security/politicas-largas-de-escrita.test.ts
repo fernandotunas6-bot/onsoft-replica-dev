@@ -32,7 +32,6 @@ const REPO = resolve(__dirname, "../..");
 const POR_FECHAR = new Set([
   "finance_payment_plans",
   "rooms",
-  "school_integrations",
   "siga_lesson_plans",
 ]);
 

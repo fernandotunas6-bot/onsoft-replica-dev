@@ -1,5 +1,5 @@
 {
-  "capturadoEm": "2026-09-24T20:45:30.726Z",
+  "capturadoEm": "2026-09-25T06:25:39.587Z",
   "resumo": {
     "com_rls": 162,
     "funcoes_private": 94,
@@ -2687,7 +2687,7 @@
       "tabela": "school_integration_secrets"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -5373,12 +5373,12 @@
       "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) OR is_platform_admin())"
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Manage school integrations in own school",
+      "politica": "school_integrations_select_admin",
       "tabela": "school_integrations",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = 'Administrador'::text))",
+      "verificando": ""
     },
     {
       "cmd": "SELECT",
