@@ -172,8 +172,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
       }
     };
 
+    let sawInitialAuthEvent = false;
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" ||
+          event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+        sawInitialAuthEvent = true;
+      }
       if (event === "SIGNED_OUT") {
         ++verificationGeneration;
         setSession(null);
@@ -222,9 +227,33 @@ export function AuthGate({ children }: { children: ReactNode }) {
       );
     };
     document.addEventListener("visibilitychange", onReturnToApp);
+
+    // Supabase normally emits INITIAL_SESSION. Keep a delayed, race-safe
+    // bootstrap fallback so a missed initial event cannot leave AuthGate stuck.
+    const bootstrapFallback = window.setTimeout(() => {
+      if (!active || sawInitialAuthEvent) return;
+      void supabase.auth.getSession().then(
+        ({ data: restored, error: restoreError }) => {
+          if (!active || sawInitialAuthEvent) return;
+          if (restoreError) {
+            setError("A sessão não pôde ser restaurada. Entre novamente.");
+            setChecking(false);
+            return;
+          }
+          void validateSession(restored.session);
+        },
+        () => {
+          if (!active || sawInitialAuthEvent) return;
+          setError("A sessão não pôde ser restaurada. Entre novamente.");
+          setChecking(false);
+        },
+      );
+    }, 750);
+
     return () => {
       active = false;
       ++verificationGeneration;
+      window.clearTimeout(bootstrapFallback);
       document.removeEventListener("visibilitychange", onReturnToApp);
       data.subscription.unsubscribe();
     };
