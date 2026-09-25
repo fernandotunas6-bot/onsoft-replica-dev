@@ -32,6 +32,7 @@ import {
   type SchoolIntegrationSummary,
 } from "@/features/integrations/server";
 import { gatewayWebhookPreviousKeyActive } from "@/features/integrations/gateway-webhook-key";
+import { GoogleWorkspaceConnectCard } from "./GoogleWorkspaceConnectCard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -453,101 +454,13 @@ export function IntegrationsPanel() {
   return (
     <div className="space-y-8">
       <AcademicIntegrationsCatalog />
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
-              G
-            </span>
-            <h5 className="text-sm font-semibold text-foreground">
-              Google Workspace — ligações independentes
-            </h5>
-          </div>
-          <Badge variant="secondary">Não ligado</Badge>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Entrar no SIGA com uma conta Google não autoriza o acesso ao Gmail, Calendar ou Drive.
-          Estes serviços exigem consentimento separado e armazenamento seguro de tokens.
-          As operações Workspace permanecem desactivadas até a ligação individual estar pronta.
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-xs">
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Calendar</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Pendente — requer consentimento Calendar
-            </p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Gmail</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Pendente — requer consentimento Gmail
-            </p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Sheets</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Pendente — requer consentimento Sheets
-            </p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Drive</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Pendente — requer consentimento Drive</p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Docs</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Pendente — requer consentimento Docs</p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Tasks</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Pendente — requer consentimento Tasks</p>
-          </div>
-        </div>
-      </div>
+      <GoogleWorkspaceConnectCard />
       {installed.isInstalled("resend_email") ? (
         <p className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-xs text-muted-foreground">
-          <strong>Resend</strong> já está instalado para e-mail transaccional da escola. O Gmail
-          abaixo é opcional para contas pessoais de cada utilizador.
+          <strong>Resend</strong> permanece como serviço independente para notificações
+          transaccionais da escola. O Gmail individual requer consentimento Google próprio.
         </p>
       ) : null}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-            Gmail (por utilizador)
-          </h5>
-          <Badge variant="outline">Requer login</Badge>
-        </div>
-        <div className="flex items-start gap-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-            <Mail className="size-5" />
-          </span>
-          <div className="space-y-3 text-sm">
-            <p className="text-muted-foreground">
-              Com o Gmail ligado, cada secretária ou director envia comunicações, facturas e
-              certificados a partir do seu próprio e-mail, com histórico na caixa de saída pessoal.
-            </p>
-            <ul className="space-y-1.5 text-xs text-muted-foreground">
-              {[
-                "Envio de comunicações em nome do próprio utilizador",
-                "Anexos automáticos de facturas e declarações",
-                "Registo do envio na ficha do aluno",
-              ].map((f) => (
-                <li key={f} className="flex items-center gap-2">
-                  <Check className="size-3.5 text-success" /> {f}
-                </li>
-              ))}
-            </ul>
-            <div className="rounded-lg border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
-              A autenticação da conta SIGA não concede acesso ao Gmail pessoal. A ligação Workspace
-              depende de OAuth PKCE independente, consentimento explícito e tokens protegidos no servidor.
-              Até a implementação e validação reais, o botão permanece desactivado.
-            </div>
-            <Button disabled className="gap-2">
-              <Mail className="size-4" /> Ligar a minha conta Gmail
-            </Button>
-          </div>
-        </div>
-      </div>
-
       <Separator />
 
       <div className="space-y-3">
