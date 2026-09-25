@@ -25,8 +25,7 @@ export const verifyInstitutionalAccessFn = createServerFn({ method: "POST" })
         db.from("school_memberships")
           .select("id, school_id")
           .eq("user_id", context.userId)
-          .eq("status", "active")
-          .limit(1),
+          .eq("status", "active"),
         db.from("platform_admins")
           .select("user_id")
           .eq("user_id", context.userId)
