@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { hasInstitutionalAccess } from "./institutional-access";
 
 export interface VerifyOAuthAccountResponse {
   authorized: boolean;
@@ -13,7 +14,7 @@ export interface VerifyOAuthAccountResponse {
  * belong to an existing password account, a suspended member, or another app.
  * This guard never provisions schools, roles or memberships.
  */
-export const verifyOAuthAccountFn = createServerFn({ method: "POST" })
+export const verifyInstitutionalAccessFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<VerifyOAuthAccountResponse> => {
     if (!context?.userId) throw new Error("Unauthorized");
@@ -41,10 +42,13 @@ export const verifyOAuthAccountFn = createServerFn({ method: "POST" })
       throw new Error("Não foi possível verificar as permissões desta conta.");
     }
 
-    if ((memberships?.length ?? 0) > 0 || (platformAdmins?.length ?? 0) > 0) {
+    if (hasInstitutionalAccess(memberships?.length ?? 0, platformAdmins?.length ?? 0)) {
       return { authorized: true, reason: "authorized" };
     }
 
     // Keep the Auth identity intact. Only the local SIGA session is rejected.
     return { authorized: false, reason: "no_school_membership" };
   });
+
+/** @deprecated Prefer verifyInstitutionalAccessFn; retained for compatibility. */
+export const verifyOAuthAccountFn = verifyInstitutionalAccessFn;
