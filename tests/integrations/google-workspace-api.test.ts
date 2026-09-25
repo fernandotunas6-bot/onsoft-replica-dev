@@ -112,7 +112,12 @@ describe("Google Workspace: mocked functional integration", () => {
   it("lists and creates personal Google Tasks", async () => {
     const { api, tokens } = mockApi();
     expect(await api.tasksList()).toHaveLength(1);
-    expect((await api.tasksCreate("Preparar exame")).id).toBe("provider-confirmed-id");
+    expect((await api.tasksCreate(
+      "Preparar exame", "Rever a pauta", "2026-09-30T08:00:00+01:00",
+    )).id).toBe("provider-confirmed-id");
+    const taskBody = JSON.parse(String(calls[3].init.body));
+    expect(taskBody.notes).toBe("Rever a pauta");
+    expect(taskBody.due).toBe("2026-09-30T08:00:00+01:00");
     expect(tokens).toEqual(["tasks", "tasks", "tasks", "tasks"]);
   });
 
