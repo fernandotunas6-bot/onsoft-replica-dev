@@ -53,11 +53,13 @@ describe("Google Workspace: mocked functional integration", () => {
     expect(new Headers(calls[0].init.headers).get("Content-Type")).toContain("multipart/related");
   });
 
-  it("creates Docs and Sheets with Google-confirmed identifiers", async () => {
-    const { api, tokens } = mockApi();
-    expect((await api.docsCreate("Contrato")).documentId).toBe("google-doc-id");
+  it("creates Docs with content and Sheets with Google-confirmed identifiers", async () => {
+    const { api, tokens, calls } = mockApi();
+    expect((await api.docsCreate("Contrato", "Texto inicial")).documentId).toBe("google-doc-id");
+    expect(calls[1].url).toContain("google-doc-id:batchUpdate");
+    expect(String(calls[1].init.body)).toContain("Texto inicial");
     expect((await api.sheetsCreate("Pauta")).spreadsheetId).toBe("google-sheet-id");
-    expect(tokens).toEqual(["docs", "sheets"]);
+    expect(tokens).toEqual(["docs", "docs", "sheets"]);
   });
 
   it("appends grade data as RAW values to avoid spreadsheet formula evaluation", async () => {
@@ -76,15 +78,24 @@ describe("Google Workspace: mocked functional integration", () => {
     expect((await api.classroomInvite("course-1", "aluno@escola.ao", "STUDENT")).id)
       .toBe("provider-confirmed-id");
     expect(JSON.parse(String(calls[2].init.body)).role).toBe("STUDENT");
-    expect(tokens).toEqual(["classroom", "classroom", "classroom"]);
+    expect((await api.classroomCourseworkCreate({
+      courseId: "course-1", title: "Ficha 1", maxPoints: 20,
+    })).id).toBe("provider-confirmed-id");
+    expect(calls[3].url).toContain("/courses/course-1/courseWork");
+    expect(JSON.parse(String(calls[3].init.body)).workType).toBe("ASSIGNMENT");
+    expect(tokens).toEqual(["classroom", "classroom", "classroom", "classroom"]);
   });
 
   it("lists and creates Calendar events with the Angola timezone", async () => {
     const { api, calls } = mockApi();
     expect(await api.calendarList("2026-09-25T10:00:00+01:00")).toHaveLength(1);
     expect((await api.calendarCreate({ title: "Exame", start: "2026-09-25T10:00:00+01:00",
-      end: "2026-09-25T12:00:00+01:00" })).id).toBe("provider-confirmed-id");
-    expect(JSON.parse(String(calls[1].init.body)).start.timeZone).toBe("Africa/Luanda");
+      end: "2026-09-25T12:00:00+01:00", location: "Sala 12",
+      attendees: ["professor@escola.ao"] })).id).toBe("provider-confirmed-id");
+    const calendarBody = JSON.parse(String(calls[1].init.body));
+    expect(calendarBody.start.timeZone).toBe("Africa/Luanda");
+    expect(calendarBody.location).toBe("Sala 12");
+    expect(calendarBody.attendees).toEqual([{ email: "professor@escola.ao" }]);
   });
 
   it("sends real-formatted Gmail MIME only after the provider returns an ID", async () => {
@@ -124,7 +135,7 @@ describe("Google Workspace: mocked functional integration", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("stress-tests 1,400 mocked operations without sending messages or using real quota", async () => {
+  it("stress-tests 1,500 mocked operations without sending messages or using real quota", async () => {
     const { api, calls } = mockApi();
     const scenarios = [
       () => api.driveList(2), () => api.driveFolder("Turmas"),
@@ -133,6 +144,7 @@ describe("Google Workspace: mocked functional integration", () => {
       () => api.sheetsAppend("sheet", "A1", [["Nome"], ["Ana"]]),
       () => api.classroomList(), () => api.classroomCreate("10ª A"),
       () => api.classroomInvite("curso", "a@escola.ao", "STUDENT"),
+      () => api.classroomCourseworkCreate({ courseId: "curso", title: "Ficha" }),
       () => api.calendarList("2026-09-25T10:00:00+01:00"),
       () => api.calendarCreate({ title: "Aula", start: "2026-09-25T10:00:00+01:00",
         end: "2026-09-25T11:00:00+01:00" }),
@@ -143,7 +155,7 @@ describe("Google Workspace: mocked functional integration", () => {
       await Promise.all(scenarios.map((scenario) => scenario()));
     }
     // Tasks resolves a real list ID before each of its two operations.
-    expect(calls).toHaveLength(1_600);
+    expect(calls).toHaveLength(1_700);
     expect(calls.every(({ url }) => url.startsWith("https://"))).toBe(true);
   });
 });
