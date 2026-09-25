@@ -22,6 +22,12 @@ NOTIFICATIONS = {
                         ("{{ .Provider }}",)),
     "identity-unlinked": ("identity_unlinked", "SIGA Plus — Método de entrada removido",
                           ("{{ .Provider }}",)),
+    "phone-changed": ("phone_changed", "SIGA Plus — Número de telefone alterado",
+                      ("{{ .OldPhone }}", "{{ .Phone }}")),
+    "mfa-factor-enrolled": ("mfa_factor_enrolled", "SIGA Plus — Novo método MFA ativado",
+                           ("{{ .FactorType }}",)),
+    "mfa-factor-unenrolled": ("mfa_factor_unenrolled", "SIGA Plus — Método MFA removido",
+                             ("{{ .FactorType }}",)),
 }
 
 
@@ -46,7 +52,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="Compare selected fields, no writes")
     parser.add_argument("--apply", action="store_true", help="Update selected notification templates")
-    parser.add_argument("--enable", action="store_true", help="Enable all four notifications")
+    parser.add_argument("--enable", action="store_true", help="Enable all seven notifications")
     parser.add_argument("--smtp-verified", action="store_true",
                         help="Attest verified SMTP delivery and DNS for --enable")
     parser.add_argument("--confirm-production", action="store_true",
@@ -88,7 +94,7 @@ def main():
     if mismatches:
         print("Read-back mismatch: " + ", ".join(mismatches), file=sys.stderr)
         return 1
-    print("Four notification templates verified; enabled only when explicitly requested.")
+    print("Seven notification templates verified; enabled only when explicitly requested.")
     return 0
 
 
