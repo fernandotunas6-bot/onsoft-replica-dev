@@ -69,14 +69,11 @@ export interface GoogleStudentWelcomeEmailInput {
 }
 
 /**
- * Workspace is NOT the Google login provider. Until the separate per-user
- * authorization-code/PKCE flow and server-side encrypted token vault are
- * installed, all server-side Workspace operations must fail closed.
- *
- * In particular, a GOOGLE_CLIENT_ID environment variable does not prove that
- * any user granted Gmail, Calendar, Drive or Tasks scopes.
+ * Workspace is separate from Google sign-in. Each operation resolves the
+ * current user's active school and requires a matching encrypted OAuth grant.
+ * Report success only after Google confirms the actual operation.
+ * Authentication emails (reset and magic links) stay on branded Resend.
  */
-// Do not pretend to send messages. No email should be marked as delivered.
 export const triggerStudentWelcomeEmailServerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleStudentWelcomeEmailInput) => data)
