@@ -76,7 +76,13 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
       return { files: data.files ?? [], nextPageToken: data.nextPageToken ?? null };
     },
     async driveList(pageSize = 50): Promise<FileRecord[]> {
-      return (await this.drivePage(pageSize)).files;
+      const params = new URLSearchParams({
+        pageSize: String(Math.min(Math.max(pageSize, 1), 100)),
+        fields: "nextPageToken,files(id,name,mimeType,webViewLink)",
+        q: "trashed = false",
+      });
+      const data = await request<{ files?: FileRecord[] }>("drive", `${BASE.drive}/files?${params}`);
+      return data.files ?? [];
     },
     async driveFolder(name: string, parentId?: string): Promise<FileRecord> {
       const data = await request<FileRecord>("drive", `${BASE.drive}/files?fields=id,name,webViewLink`, {
