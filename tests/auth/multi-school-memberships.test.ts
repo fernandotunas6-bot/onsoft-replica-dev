@@ -61,9 +61,9 @@ describe("Multi-School Memberships & Roles Architecture", () => {
               select: vi.fn().mockReturnThis(),
               in: vi.fn().mockResolvedValue({
                 data: [
-                  { id: schoolAId, name: "Colégio Esperança", slug: "colegio-esperanca" },
-                  { id: schoolBId, name: "Universidade Central", slug: "universidade-central" },
-                  { id: schoolCId, name: "Escola Horizonte", slug: "escola-horizonte" },
+                  { id: schoolAId, name: "Colégio Esperança", status: "active", slug: "colegio-esperanca" },
+                  { id: schoolBId, name: "Universidade Central", status: "active", slug: "universidade-central" },
+                  { id: schoolCId, name: "Escola Horizonte", status: "active", slug: "escola-horizonte" },
                 ],
                 error: null,
               }),
@@ -148,8 +148,8 @@ describe("Multi-School Memberships & Roles Architecture", () => {
               select: vi.fn().mockReturnThis(),
               in: vi.fn().mockResolvedValue({
                 data: [
-                  { id: schoolAId, name: "Colégio Esperança", slug: "colegio-esperanca" },
-                  { id: schoolBId, name: "Universidade Central", slug: "universidade-central" },
+                  { id: schoolAId, name: "Colégio Esperança", status: "active", slug: "colegio-esperanca" },
+                  { id: schoolBId, name: "Universidade Central", status: "active", slug: "universidade-central" },
                 ],
                 error: null,
               }),
