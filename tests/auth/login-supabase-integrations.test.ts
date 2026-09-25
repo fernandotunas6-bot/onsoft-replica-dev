@@ -55,9 +55,8 @@ describe("Supabase Auth & Third-Party Integration Isolation", () => {
   });
 
   it("uses production domain https://portal-siga.com for Google OAuth redirect and welcome templates", () => {
-    const oauthUrl = getGoogleOAuthUrl();
-    expect(oauthUrl).toContain("accounts.google.com/o/oauth2/v2/auth");
-    expect(oauthUrl).toContain("client_id=");
+    // Workspace consent must never silently reuse the SIGA sign-in flow.
+    expect(() => getGoogleOAuthUrl()).toThrow("PKCE");
 
     const welcomeTemplate = buildStudentWelcomeTemplate({
       studentName: "Valentino Canguele",
