@@ -539,21 +539,37 @@ export async function listSgaTermGrades(params: {
   const { db, schoolId, enrollmentIds, limit = 200 } = params;
   if (enrollmentIds && enrollmentIds.length === 0) return [];
 
-  let scoresQuery = db
-    .from("grade_scores")
-    .select("id, grade_item_id, enrollment_id, score, status, updated_at")
-    .eq("school_id", schoolId)
-    .neq("status", "reversed")
-    .order("updated_at", { ascending: false })
-    .limit(Math.max(limit * 3, 300));
-  if (enrollmentIds?.length) scoresQuery = scoresQuery.in("enrollment_id", enrollmentIds);
-
-  const { data: scores, error } = await scoresQuery;
-  if (error) {
-    if (/schema cache|does not exist|42P01|PGRST/i.test(error.message)) return [];
-    throw publicDatabaseError(error, "Não foi possível carregar as notas.");
+  // O servidor devolve no máximo 1000 linhas por pedido: ler por páginas,
+  // senão as turmas cujas notas ficam depois da 1000ª aparecem sem média.
+  const PAGE = 1000;
+  const maxRows = Math.max(limit * 3, 300);
+  const scores: Array<{
+    id: string;
+    grade_item_id: string;
+    enrollment_id: string;
+    score: number | null;
+    status: string | null;
+    updated_at: string | null;
+  }> = [];
+  for (let from = 0; from < maxRows; from += PAGE) {
+    let scoresQuery = db
+      .from("grade_scores")
+      .select("id, grade_item_id, enrollment_id, score, status, updated_at")
+      .eq("school_id", schoolId)
+      .neq("status", "reversed")
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, Math.min(from + PAGE, maxRows) - 1);
+    if (enrollmentIds?.length) scoresQuery = scoresQuery.in("enrollment_id", enrollmentIds);
+    const { data: page, error } = await scoresQuery;
+    if (error) {
+      if (/schema cache|does not exist|42P01|PGRST/i.test(error.message)) return [];
+      throw publicDatabaseError(error, "Não foi possível carregar as notas.");
+    }
+    scores.push(...((page ?? []) as typeof scores));
+    if (!page || page.length < PAGE) break;
   }
-  if (!scores?.length) return [];
+  if (!scores.length) return [];
 
   const itemIds = [...new Set(scores.map((row: { grade_item_id: string }) => row.grade_item_id))];
   const { data: items, error: itemsError } = await db
