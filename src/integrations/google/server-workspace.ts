@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { disconnectedWorkspaceStatus, unavailableWorkspaceOperation } from "./workspace-security";
+
 import type { WorkspaceService } from "./workspace-services";
 
 async function scopedApi(userId: string) {
@@ -93,7 +93,7 @@ export const triggerStudentWelcomeEmailServerFn = createServerFn({ method: "POST
       data.turmaName ? `Turma: ${data.turmaName}` : "",
       data.academicYear ? `Ano lectivo: ${data.academicYear}` : "",
       "Consulte o portal SIGA para mais informações.",
-    ].filter(Boolean).join("\\n");
+    ].filter(Boolean).join("\n");
     const sent = await api.gmailSend(data.recipientEmail, "Confirmação de matrícula — SIGA", body);
     return { success: true, message: `Gmail confirmou o envio: ${sent.id}` };
   });
@@ -144,8 +144,8 @@ export const sendGmailNotification = createServerFn({ method: "POST" })
       throw new Error("Destinatário, assunto ou mensagem inválidos.");
     }
     const { api } = await scopedApi(context.userId);
-    const text = data.bodyHtml.replace(/<br\\s*\\/?\\s*>/gi, "\\n")
-      .replace(/<\\/p>/gi, "\\n").replace(/<[^>]*>/g, " ")
+    const text = data.bodyHtml.replace(/<br\s*\/?\s*>/gi, "\n")
+      .replace(/<\/p>/gi, "\n").replace(/<[^>]*>/g, " ")
       .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").trim();
     const message = await api.gmailSend(data.to, data.subject, text);
     return { success: true, messageId: message.id, message: "Gmail confirmou o envio." };
@@ -181,5 +181,11 @@ export const exportToGoogleSheets = createServerFn({ method: "POST" })
 export const createGoogleTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleTaskInput) => data)
-  .handler(async (): Promise<{ success: boolean; taskId?: string; message: string }> =>
-    unavailableWorkspaceOperation());
+  .handler(async ({ data, context }): Promise<{ success: boolean; taskId?: string; message: string }> => {
+    if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
+    if (!data.title?.trim()) throw new Error("Título da tarefa obrigatório.");
+    const { api } = await scopedApi(context.userId);
+    const task = await api.tasksCreate(data.title, data.notes);
+    return { success: true, taskId: task.id,
+      message: "Google Tasks confirmou a criação da tarefa." };
+  });
