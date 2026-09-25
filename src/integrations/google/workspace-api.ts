@@ -97,10 +97,19 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
       requiredId(data, "a gravação do ficheiro");
       return data;
     },
-    async docsCreate(title: string): Promise<{ documentId: string; title?: string }> {
+    async docsCreate(title: string, initialText?: string): Promise<{ documentId: string; title?: string }> {
       const data = await request<{ documentId?: string; title?: string }>("docs",
         `${BASE.docs}/documents`, { method: "POST", body: JSON.stringify({ title }) });
       if (!data.documentId) throw new Error("O Google Docs não devolveu um documento.");
+      if (initialText?.trim()) {
+        await request<JsonObject>("docs",
+          `${BASE.docs}/documents/${enc(data.documentId)}:batchUpdate`, {
+            method: "POST",
+            body: JSON.stringify({
+              requests: [{ insertText: { location: { index: 1 }, text: initialText } }],
+            }),
+          });
+      }
       return { documentId: data.documentId, title: data.title };
     },
     async sheetsCreate(title: string): Promise<{ spreadsheetId: string; spreadsheetUrl?: string }> {
@@ -145,6 +154,26 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
       requiredId(data, "o convite Classroom");
       return data;
     },
+    async classroomCourseworkCreate(input: {
+      courseId: string; title: string; description?: string; maxPoints?: number;
+      dueDate?: { year: number; month: number; day: number };
+    }) {
+      const data = await request<{ id: string; title?: string; alternateLink?: string }>(
+        "classroom", `${BASE.classroom}/courses/${enc(input.courseId)}/courseWork`, {
+          method: "POST",
+          body: JSON.stringify({
+            title: input.title,
+            description: input.description,
+            workType: "ASSIGNMENT",
+            state: "PUBLISHED",
+            assigneeMode: "ALL_STUDENTS",
+            ...(input.maxPoints !== undefined ? { maxPoints: input.maxPoints } : {}),
+            ...(input.dueDate ? { dueDate: input.dueDate } : {}),
+          }),
+        });
+      requiredId(data, "a actividade Classroom");
+      return data;
+    },
     async calendarList(timeMin: string) {
       const params = new URLSearchParams({ timeMin, maxResults: "100",
         singleEvents: "true", orderBy: "startTime" });
@@ -152,12 +181,16 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
         `${BASE.calendar}/calendars/primary/events?${params}`);
       return data.items ?? [];
     },
-    async calendarCreate(input: { title: string; start: string; end: string; description?: string }) {
+    async calendarCreate(input: {
+      title: string; start: string; end: string; description?: string;
+      location?: string; attendees?: string[];
+    }) {
       const data = await request<{ id: string; htmlLink?: string }>("calendar",
         `${BASE.calendar}/calendars/primary/events`, {
           method: "POST",
           body: JSON.stringify({
-            summary: input.title, description: input.description,
+            summary: input.title, description: input.description, location: input.location,
+            attendees: input.attendees?.map((email) => ({ email })),
             start: { dateTime: input.start, timeZone: "Africa/Luanda" },
             end: { dateTime: input.end, timeZone: "Africa/Luanda" },
           }),
