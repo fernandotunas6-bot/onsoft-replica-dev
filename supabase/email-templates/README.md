@@ -51,3 +51,17 @@ SUPABASE_ACCESS_TOKEN=... python supabase/email-templates/deploy.py --apply --co
 ```
 
 O diretório de cópias deve ficar **fora do repositório Git** e protegido por permissões de sistema. A ativação de `--secure-email` é uma operação separada que exige uma revisão dos fluxos de cadastro, OAuth e mudança de e-mail antes da publicação. Não enviar as credenciais pelo chat nem incorporá-las no workflow do GitHub.
+
+## Recuperação de modelos anteriores
+
+O backup JSON anterior é criado com permissões restritas antes de publicar os modelos. Se for necessário reverter **apenas os campos anteriormente guardados**, utilizar o novo `restore.py`. Primeiro validação local, depois comparação somente de leitura e, só após examinar o resultado, reposição com backup obrigatório da configuração atual:
+
+```bash
+python supabase/email-templates/restore.py /caminho/privado/backup.json
+python supabase/email-templates/restore.py /caminho/privado/backup.json --check
+python supabase/email-templates/restore.py /caminho/privado/backup.json --apply --confirm-production --backup-dir /outro/caminho/privado
+```
+
+Os comandos que contactam o Supabase exigem `SUPABASE_ACCESS_TOKEN` **novo, guardado exclusivamente no ambiente seguro do operador**. Os exemplos não incluem valores secretos. O restaurador aceita exclusivamente campos de assuntos, conteúdos dos seis modelos e, se existiam na cópia, as três opções de segurança explicitamente selecionadas. Recusa chaves SMTP e quaisquer campos desconhecidos.
+
+**Limitação:** se um campo não existia no retorno original da Management API, a cópia não permite apagar o campo criado entretanto nem garantir uma restauração integral dos defaults do fornecedor. Após qualquer recuperação, executar os testes de envio e autenticação.
