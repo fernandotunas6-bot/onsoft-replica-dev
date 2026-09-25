@@ -2,17 +2,17 @@ import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Mail,
-  MessageSquare,
-  Smartphone,
-  RotateCw,
+  AlertTriangle,
   CheckCircle2,
   Eye,
-  AlertTriangle,
-  XCircle,
-  Users,
-  Loader2,
+  LoaderCircle,
+  Mail,
+  MessageSquare,
   Radio,
+  RotateCw,
+  Smartphone,
+  Users,
+  XCircle,
 } from "lucide-react";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -172,7 +172,7 @@ export function DispatchesTrackingPanel() {
               className="gap-1.5 text-xs"
             >
               {isSyncing ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <LoaderCircle className="size-3.5 animate-spin" />
               ) : (
                 <Users className="size-3.5" />
               )}

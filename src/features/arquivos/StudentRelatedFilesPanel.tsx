@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderOpen, ImagePlus, Loader2, Lock } from "lucide-react";
+import { FolderOpen, ImagePlus, LoaderCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -56,7 +56,7 @@ export function StudentRelatedFilesPanel({
 
       {filesQuery.isLoading ? (
         <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" /> A carregar arquivos…
+          <LoaderCircle className="size-4 animate-spin" /> A carregar arquivos…
         </div>
       ) : files.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">

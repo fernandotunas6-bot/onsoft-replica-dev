@@ -100,6 +100,15 @@ redireccionamento é só `https://xodgfmxiaunpamctfeea.supabase.co/auth/v1/callb
 nenhum ecrã chama. Quando for ligado, o seu redirect `<origem>/configuracoes` terá de ser
 acrescentado no Google Cloud.
 
+**Ícones (2026-09-25, 3.º commit):** medição inicial de 203 ícones Lucide diferentes em 192
+ficheiros, com colisões no menu: "Gestão de Acessos" e "Pessoas" partilhavam `UserCog`,
+"Faltas" e "Auditoria" partilhavam `History`, "Académico" e "Lista de Alunos" partilhavam
+`GraduationCap`. Criado `src/lib/app-icons.ts` (módulos, acções e estados), usado por todos
+os itens de `portal-engine.ts`. Exportações "Oficial/PDF" passaram de `Award` (troféu) para
+`FileBadge`; o troféu fica só para mérito. `Loader2` foi uniformizado para `LoaderCircle`
+(mesmo glifo). O resto do código ainda importa do `lucide-react` directamente; migrar ao
+tocar em cada ecrã.
+
 ### Por fazer (bloqueia o deploy desta funcionalidade)
 
 - **Aplicar `20260925090000_school_access_requests.sql`** (também no fim de

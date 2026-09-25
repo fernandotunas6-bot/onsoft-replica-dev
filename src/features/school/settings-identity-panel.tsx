@@ -2,20 +2,19 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
   Globe,
+  LoaderCircle,
+  Lock,
   Mail,
   Palette,
   ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
-  Copy,
-  ExternalLink,
-  LoaderCircle,
   Sparkles,
-  ArrowRight,
-  Lock,
   Upload,
-  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -822,7 +821,7 @@ export function DigitalIdentityPanel() {
                   className="text-xs gap-1.5"
                 >
                   {isSavingBranding ? (
-                    <Loader2 className="size-3.5 animate-spin" />
+                    <LoaderCircle className="size-3.5 animate-spin" />
                   ) : (
                     <CheckCircle2 className="size-3.5" />
                   )}

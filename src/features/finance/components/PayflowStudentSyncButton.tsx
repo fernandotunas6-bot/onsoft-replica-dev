@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -49,7 +49,7 @@ export function PayflowStudentSyncButton({
       title={lastCode ? `Último código PayFlow: ${lastCode}` : "Sincronizar aluno com o PayFlow"}
     >
       {mutation.isPending ? (
-        <Loader2 className="size-3.5 animate-spin" />
+        <LoaderCircle className="size-3.5 animate-spin" />
       ) : (
         <PayflowBrandIcon size={14} />
       )}

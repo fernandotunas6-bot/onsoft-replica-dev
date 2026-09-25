@@ -4,22 +4,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowLeft,
-  Award,
   CalendarDays,
   Camera,
   ChevronDown,
+  FileBadge,
   FileDown,
   FilePlus2,
   FileText,
   GraduationCap,
-  Loader2,
+  LoaderCircle,
   Mail,
-  Receipt,
   MapPin,
-  Wallet,
   Pencil,
   Phone,
   QrCode,
+  Receipt,
   Smartphone,
   Trash2,
   Upload,
@@ -27,6 +26,7 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  Wallet,
 } from "lucide-react";
 
 const paymentStatusLabels: Record<string, string> = {
@@ -877,7 +877,7 @@ function StudentDetail() {
                 className="absolute -bottom-1 -right-1 size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
               >
                 {isUploadingPhoto ? (
-                  <Loader2 className="size-3.5 animate-spin" />
+                  <LoaderCircle className="size-3.5 animate-spin" />
                 ) : (
                   <Camera className="size-3.5" />
                 )}
@@ -1058,7 +1058,7 @@ function StudentDetail() {
                     }}
                     className="gap-2 cursor-pointer text-xs"
                   >
-                    <Award className="size-4 text-primary" /> Certificado de Habilitações
+                    <FileBadge className="size-4 text-primary" /> Certificado de Habilitações
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {

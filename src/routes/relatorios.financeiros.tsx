@@ -1,7 +1,14 @@
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Award, Download, FileDown, TrendingDown, TrendingUp } from "lucide-react";
+import {
+  AlertTriangle,
+  Download,
+  FileBadge,
+  FileDown,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -387,7 +394,7 @@ function RelatoriosFinanceiros() {
                 onClick={exportarCobrancaOficial}
                 disabled={cobrancaRows.length === 0}
               >
-                <Award className="size-4" /> Oficial cobrança
+                <FileBadge className="size-4" /> Oficial cobrança
               </Button>
               <Button variant="outline" className="gap-2" onClick={exportarCategoriasCsv}>
                 <Download className="size-4" /> CSV categorias
@@ -401,7 +408,7 @@ function RelatoriosFinanceiros() {
                 onClick={exportarCategoriasOficial}
                 disabled={categoriaRows.length === 0}
               >
-                <Award className="size-4" /> Oficial categorias
+                <FileBadge className="size-4" /> Oficial categorias
               </Button>
               <Button
                 variant="outline"
@@ -409,7 +416,7 @@ function RelatoriosFinanceiros() {
                 onClick={exportarOficial}
                 disabled={cobrancaRows.length === 0}
               >
-                <Award className="size-4" /> Oficial
+                <FileBadge className="size-4" /> Oficial
               </Button>
               {agtOn ? (
                 <Button

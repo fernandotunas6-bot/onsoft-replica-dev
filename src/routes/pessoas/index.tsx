@@ -3,8 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Award,
   Download,
+  FileBadge,
   FileDown,
   FileText,
   FileUp,
@@ -352,7 +352,7 @@ function PeoplePage() {
               <FileDown className="size-4" /> Prof. PDF
             </Button>
             <Button variant="outline" className="gap-2" onClick={exportarProfessoresOficial}>
-              <Award className="size-4" /> Oficial
+              <FileBadge className="size-4" /> Oficial
             </Button>
             <Button variant="outline" className="gap-2" asChild>
               <Link to="/importar" search={{ tab: "novo", modulo: "professores" }}>
@@ -762,7 +762,7 @@ function PeoplePage() {
                 onClick={exportarRegistoOficial}
                 disabled={!people.length}
               >
-                <Award className="size-3.5" /> Oficial
+                <FileBadge className="size-3.5" /> Oficial
               </Button>
             </div>
           </div>

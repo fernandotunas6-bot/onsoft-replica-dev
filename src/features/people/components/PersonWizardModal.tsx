@@ -9,7 +9,7 @@ import {
   FileCheck,
   GraduationCap,
   IdCard,
-  Loader2,
+  LoaderCircle,
   Phone,
   Search,
   ShieldCheck,
@@ -631,7 +631,7 @@ export function PersonWizardModal({
                           className="pl-8"
                         />
                         {searchingGuardian ? (
-                          <Loader2 className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+                          <LoaderCircle className="absolute right-3 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
                         ) : null}
                       </div>
                       {guardianResults.length > 0 ? (

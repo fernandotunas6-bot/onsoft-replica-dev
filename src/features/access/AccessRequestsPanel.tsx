@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Inbox, LoaderCircle, MailCheck, MailWarning, XCircle } from "lucide-react";
+import { MailCheck, MailWarning } from "lucide-react";
+import { actionIcons, moduleIcons, statusIcons } from "@/lib/app-icons";
 import { toast } from "sonner";
 import { Panel, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -223,9 +224,9 @@ function RequestRow({
               }
             >
               {review.isPending ? (
-                <LoaderCircle className="size-3.5 animate-spin" />
+                <actionIcons.loading className="size-3.5 animate-spin" />
               ) : (
-                <CheckCircle2 className="size-3.5" />
+                <statusIcons.success className="size-3.5" />
               )}
               Aprovar
             </Button>
@@ -260,7 +261,7 @@ function RequestRow({
                 review.mutate({ action: "reject", requestId: item.id, note: note.trim() })
               }
             >
-              <XCircle className="size-3.5" /> Rejeitar
+              <statusIcons.error className="size-3.5" /> Rejeitar
             </Button>
           </div>
         </div>
@@ -286,7 +287,7 @@ export function AccessRequestsPanel() {
     <Panel
       title="Solicitações de acesso"
       description="Pessoas que pediram para ser associadas à escola. A aprovação cria só o vínculo e o papel."
-      icon={Inbox}
+      icon={moduleIcons.accessRequests}
       action={
         openCount ? (
           <span className={`${badgeBase} ${toneClass.warning}`}>{openCount} em aberto</span>

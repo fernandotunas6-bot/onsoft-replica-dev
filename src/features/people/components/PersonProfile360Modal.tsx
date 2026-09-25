@@ -3,18 +3,22 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Award,
   BookOpen,
+  Building,
   Calendar,
   Camera,
+  CheckCircle2,
   Clock,
+  ExternalLink,
   FileCheck,
   FileText,
   FolderOpen,
   GraduationCap,
   History,
   IdCard,
-  Loader2,
+  LoaderCircle,
   Mail,
   MapPin,
+  MessageSquare,
   Pencil,
   Phone,
   Save,
@@ -24,13 +28,9 @@ import {
   UserCheck,
   UserPlus,
   Users,
-  Building,
-  CheckCircle2,
-  XCircle,
-  X,
-  ExternalLink,
-  MessageSquare,
   Wallet,
+  X,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ModalShell, ModalSidebar, type ModalSidebarItem } from "@/components/ui/modal-system";
@@ -352,7 +352,7 @@ export function PersonProfile360Modal({
                   className="absolute -bottom-1 -right-1 size-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center shadow hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
                 >
                   {isUploadingPhoto ? (
-                    <Loader2 className="size-3 animate-spin" />
+                    <LoaderCircle className="size-3 animate-spin" />
                   ) : (
                     <Camera className="size-3" />
                   )}
@@ -744,7 +744,7 @@ export function PersonProfile360Modal({
                       className="gap-1.5"
                     >
                       {saving ? (
-                        <Loader2 className="size-3.5 animate-spin" />
+                        <LoaderCircle className="size-3.5 animate-spin" />
                       ) : (
                         <Save className="size-3.5" />
                       )}
@@ -957,7 +957,7 @@ export function PersonProfile360Modal({
                         disabled={savingRoles}
                         onClick={() => void handleSaveRoles()}
                       >
-                        {savingRoles ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                        {savingRoles ? <LoaderCircle className="size-3.5 animate-spin" /> : null}
                         Guardar vínculos
                       </Button>
                     </div>

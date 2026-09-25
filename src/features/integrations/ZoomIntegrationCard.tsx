@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Video, CheckCircle2, Unlink, ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle2, ExternalLink, LoaderCircle, Unlink, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { startZoomOAuth, disconnectZoom } from "./zoom";
@@ -71,7 +71,11 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
             disabled={loading}
             className="text-xs text-destructive hover:bg-destructive/10 gap-1.5 self-start sm:self-auto"
           >
-            {loading ? <Loader2 className="size-3 animate-spin" /> : <Unlink className="size-3" />}
+            {loading ? (
+              <LoaderCircle className="size-3 animate-spin" />
+            ) : (
+              <Unlink className="size-3" />
+            )}
             Desconectar
           </Button>
         ) : (
@@ -83,7 +87,7 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
             className="text-xs gap-1.5 self-start sm:self-auto font-semibold"
           >
             {loading ? (
-              <Loader2 className="size-3 animate-spin" />
+              <LoaderCircle className="size-3 animate-spin" />
             ) : (
               <ExternalLink className="size-3" />
             )}

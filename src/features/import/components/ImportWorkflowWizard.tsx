@@ -1,19 +1,19 @@
 import { useMemo, useState } from "react";
 import {
-  Upload,
-  FileSpreadsheet,
-  CheckCircle,
   AlertTriangle,
-  XCircle,
-  ArrowRight,
   ArrowLeft,
-  Download,
-  Play,
-  Sparkles,
-  Edit2,
-  Save,
-  Loader2,
+  ArrowRight,
+  CheckCircle,
   Copy,
+  Download,
+  Edit2,
+  FileSpreadsheet,
+  LoaderCircle,
+  Play,
+  Save,
+  Sparkles,
+  Upload,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -461,7 +461,7 @@ export function ImportWorkflowWizard({
 
           {analyzing ? (
             <div className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card p-4 text-xs text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> A analisar o ficheiro…
+              <LoaderCircle className="size-4 animate-spin" /> A analisar o ficheiro…
             </div>
           ) : null}
 
@@ -659,8 +659,8 @@ export function ImportWorkflowWizard({
             <Button size="sm" onClick={handleProceedToStaging} disabled={staging}>
               {staging ? (
                 <>
-                  <Loader2 className="mr-1 size-3.5 animate-spin" /> A preparar {stageProgress.done}
-                  /{stageProgress.total}…
+                  <LoaderCircle className="mr-1 size-3.5 animate-spin" /> A preparar{" "}
+                  {stageProgress.done}/{stageProgress.total}…
                 </>
               ) : (
                 <>
@@ -750,7 +750,7 @@ export function ImportWorkflowWizard({
                 {loadingRows ? (
                   <tr>
                     <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
-                      <Loader2 className="mx-auto size-4 animate-spin" />
+                      <LoaderCircle className="mx-auto size-4 animate-spin" />
                     </td>
                   </tr>
                 ) : stagingRows.length === 0 ? (
@@ -889,7 +889,7 @@ export function ImportWorkflowWizard({
             </Button>
             <div className="flex items-center gap-2">
               <Button variant="secondary" size="sm" onClick={handleDryRun} disabled={dryRunning}>
-                {dryRunning ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : null}
+                {dryRunning ? <LoaderCircle className="mr-1 size-3.5 animate-spin" /> : null}
                 Simular (Dry-Run)
               </Button>
               <Button size="sm" onClick={() => setStep(6)}>

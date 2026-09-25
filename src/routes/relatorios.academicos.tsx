@@ -1,7 +1,7 @@
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Award, Download, FileDown } from "lucide-react";
+import { Award, Download, FileBadge, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
 import { AppMark } from "@/features/integrations/app-marks";
@@ -318,7 +318,7 @@ function RelatoriosAcademicos() {
                 onClick={exportarPautaOficial}
                 disabled={!canRead || termGrades.length === 0}
               >
-                <Award className="size-4" /> Oficial
+                <FileBadge className="size-4" /> Oficial
               </Button>
               {sigeOn ? (
                 <Button

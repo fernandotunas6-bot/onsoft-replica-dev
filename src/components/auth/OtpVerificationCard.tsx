@@ -8,13 +8,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  AlertCircle,
+  LoaderCircle,
   Mail,
   MessageSquare,
-  Smartphone,
-  ShieldCheck,
   RotateCw,
-  Loader2,
-  AlertCircle,
+  ShieldCheck,
+  Smartphone,
 } from "lucide-react";
 import { requestOtpVerificationFn, verifyOtpCodeFn } from "@/features/otp/server";
 
@@ -184,7 +184,7 @@ export function OtpVerificationCard({
         >
           {isVerifying ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />A verificar código...
+              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />A verificar código...
             </>
           ) : (
             "Confirmar Código"

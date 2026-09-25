@@ -20,6 +20,7 @@ Inventário: [scripts/siga/modules.json](../../../scripts/siga/modules.json).
 - Não aplicar migrações Lovable ao SGA. SQL: `npm run siga:sql`.
 - Não commitar `.env`. Não force-push (Lovable).
 - Tabelas novas: `supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql`.
+- Ícones: um conceito, um ícone. Módulos, acções e estados vêm de `src/lib/app-icons.ts` (Lucide, traço 1,8). Em chips usar `IconChip`. Exportação oficial = `actionIcons.officialExport` (não `Award`). `tests/ui/app-icons.test.ts` bloqueia colisões.
 
 ## Auto-construção
 

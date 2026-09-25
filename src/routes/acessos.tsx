@@ -2,13 +2,13 @@ import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ChevronDown,
   Download,
+  FileBadge,
   KeyRound,
   MailPlus,
   ShieldCheck,
   UserPlus,
-  Award,
-  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -420,7 +420,7 @@ function AcessosPage() {
                     disabled={!filteredAccounts.length}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Relatório Contas PDF
+                    <FileBadge className="size-3.5 text-primary" /> Relatório Contas PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarContas}
@@ -434,7 +434,7 @@ function AcessosPage() {
                     disabled={!filteredStaff.length}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Relatório Equipa PDF
+                    <FileBadge className="size-3.5 text-primary" /> Relatório Equipa PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarEquipa}

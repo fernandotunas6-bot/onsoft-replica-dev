@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Award,
   CalendarDays,
   CheckSquare,
   Download,
+  FileBadge,
   FileDown,
   Pencil,
   PieChart,
@@ -460,7 +460,7 @@ function CalendarioPage() {
                 onClick={exportarOficial}
                 disabled={!filtered.length && !holidays.length}
               >
-                <Award className="size-4" /> Oficial
+                <FileBadge className="size-4" /> Oficial
               </Button>
               <Button
                 variant="outline"

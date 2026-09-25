@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Video, Loader2, Copy, ExternalLink } from "lucide-react";
+import { Copy, ExternalLink, LoaderCircle, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { createZoomLessonMeeting, getZoomLessonMeeting } from "./zoom";
@@ -97,7 +97,7 @@ export function ZoomMeetingButton({
       title={`Entrar na aula online: ${cleanTopic}`}
     >
       {loading ? (
-        <Loader2 className="size-3.5 animate-spin" />
+        <LoaderCircle className="size-3.5 animate-spin" />
       ) : (
         <Video className="size-3.5 text-primary" />
       )}

@@ -1,24 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Building2,
-  CheckCircle2,
-  Clock3,
-  GraduationCap,
-  IdCard,
-  LoaderCircle,
-  LogOut,
-  MessageSquareReply,
-  Search,
-  Send,
-  ShieldCheck,
-  UserRoundCheck,
-  XCircle,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, LogOut, MessageSquareReply, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { toneClass } from "@/components/layout/PageHeader";
+import { IconChip } from "@/components/ui/icon-chip";
+import { SigaLogo } from "@/components/ui/siga-logo";
+import { actionIcons, moduleIcons, statusIcons } from "@/lib/app-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,31 +50,35 @@ function errorText(error: unknown, fallback: string) {
 
 function FlowStepper({ current }: { current: number }) {
   return (
-    <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold">
-      {FLOW_STEPS.map((label, index) => {
-        const done = index < current;
-        const active = index === current;
-        return (
-          <li key={label} className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : done
-                    ? "bg-primary/15 text-primary"
-                    : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {done ? <CheckCircle2 className="size-3" /> : <span>{index + 1}</span>}
-              {label}
-            </span>
-            {index < FLOW_STEPS.length - 1 ? (
-              <ArrowRight aria-hidden className="size-3 text-muted-foreground" />
-            ) : null}
-          </li>
-        );
-      })}
-    </ol>
+    <div>
+      {current >= 0 ? (
+        <p className="mb-2 text-[11px] text-muted-foreground sm:hidden">
+          Passo {current + 1} de {FLOW_STEPS.length} ·{" "}
+          <span className="font-semibold text-foreground">{FLOW_STEPS[current]}</span>
+        </p>
+      ) : null}
+      <ol className="grid grid-cols-5 gap-2" aria-label="Etapas do pedido de acesso">
+        {FLOW_STEPS.map((label, index) => {
+          const reached = index <= current;
+          const active = index === current;
+          return (
+            <li key={label} aria-current={active ? "step" : undefined} className="min-w-0">
+              <span
+                aria-hidden
+                className={`block h-1 rounded-full ${reached ? "bg-primary" : "bg-border"}`}
+              />
+              <span
+                className={`mt-1.5 hidden truncate text-[11px] sm:block ${
+                  active ? "font-semibold text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 
@@ -134,7 +125,7 @@ function RequestCard({ request }: { request: MyAccessRequest }) {
 
       {request.status === "info_requested" && request.infoRequestNote ? (
         <form
-          className="mt-3 space-y-2 rounded-xl bg-primary-soft p-3"
+          className="mt-3 space-y-2 rounded-xl border border-border bg-muted/40 p-3"
           onSubmit={(event) => {
             event.preventDefault();
             action.mutate({ action: "reply", requestId: request.id, reply });
@@ -260,7 +251,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
           ? 2
           : openRequests.length
             ? 3
-            : 0;
+            : -1;
 
   const identityValid = useMemo(
     () =>
@@ -283,7 +274,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
       <div className="mx-auto w-full max-w-3xl space-y-6">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 font-display text-lg font-extrabold">
-            <GraduationCap className="size-6 text-primary" /> SIGA Plus
+            <SigaLogo size="sm" />
           </div>
           <Button
             variant="ghost"
@@ -324,7 +315,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
               href={getCreateSchoolUrl()}
               className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:border-primary/60 hover:shadow-md"
             >
-              <Building2 className="size-8 text-primary" />
+              <IconChip icon={moduleIcons.school} size="md" />
               <h2 className="mt-4 text-lg font-bold">Quero configurar uma escola</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Registe a sua instituição, escolha o plano e o subdomínio. Novas escolas passam pela
@@ -341,7 +332,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
               disabled={linkState.data?.requestsAvailable === false}
               className="group rounded-3xl border border-border bg-card p-6 text-left shadow-sm transition hover:border-primary/60 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <UserRoundCheck className="size-8 text-primary" />
+              <IconChip icon={moduleIcons.institutionalLink} size="md" />
               <h2 className="mt-4 text-lg font-bold">Já pertenço a uma escola</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Aluno, docente, funcionário ou encarregado: identifique-se e peça acesso. A
@@ -371,7 +362,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
             }}
           >
             <div className="flex items-center gap-2">
-              <IdCard className="size-5 text-primary" />
+              <IconChip icon={moduleIcons.profile} size="xs" />
               <h2 className="text-lg font-bold">Identificação institucional</h2>
             </div>
 
@@ -497,7 +488,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
         {view === "school" ? (
           <section className="space-y-5 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex items-center gap-2">
-              <Building2 className="size-5 text-primary" />
+              <IconChip icon={moduleIcons.school} size="xs" />
               <h2 className="text-lg font-bold">Seleccione a escola</h2>
             </div>
             <form className="flex gap-2" onSubmit={onSearch} role="search">
@@ -515,9 +506,9 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                 disabled={schoolQuery.trim().length < 3 || search.isPending}
               >
                 {search.isPending ? (
-                  <LoaderCircle className="size-4 animate-spin" />
+                  <actionIcons.loading className="size-4 animate-spin" />
                 ) : (
-                  <Search className="size-4" />
+                  <actionIcons.search className="size-4" />
                 )}
                 Pesquisar
               </Button>
@@ -547,7 +538,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                           </span>
                         </span>
                         {school?.id === result.id ? (
-                          <CheckCircle2 className="size-5 text-primary" />
+                          <statusIcons.success className="size-5 text-primary" />
                         ) : null}
                       </button>
                     </li>
@@ -585,7 +576,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
         {view === "confirm" && school ? (
           <section className="space-y-5 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex items-center gap-2">
-              <Send className="size-5 text-primary" />
+              <IconChip icon={Send} size="xs" />
               <h2 className="text-lg font-bold">Confirmar pedido de acesso</h2>
             </div>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -628,7 +619,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                 onClick={() => submit.mutate()}
               >
                 {submit.isPending ? (
-                  <LoaderCircle className="size-4 animate-spin" />
+                  <actionIcons.loading className="size-4 animate-spin" />
                 ) : (
                   <Send className="size-4" />
                 )}
@@ -642,9 +633,9 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
           <section className="space-y-3">
             <h2 className="flex items-center gap-2 text-sm font-bold">
               {openRequests.length ? (
-                <Clock3 className="size-4 text-primary" />
+                <statusIcons.pending className="size-4 text-primary" />
               ) : (
-                <XCircle className="size-4 text-muted-foreground" />
+                <statusIcons.info className="size-4 text-muted-foreground" />
               )}
               Os meus pedidos de acesso
             </h2>

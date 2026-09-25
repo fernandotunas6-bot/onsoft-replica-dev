@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, LoaderCircle } from "lucide-react";
 
 interface PhoneChangeModalProps {
   open: boolean;
@@ -203,14 +203,14 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
           {/* Carregando */}
           {isLoading && state.step === "requesting" && (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="size-6 animate-spin text-primary" />
+              <LoaderCircle className="size-6 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">A enviar código...</span>
             </div>
           )}
 
           {isLoading && state.step === "confirming" && (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="size-6 animate-spin text-primary" />
+              <LoaderCircle className="size-6 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">A confirmar código...</span>
             </div>
           )}
@@ -226,7 +226,7 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
                 onClick={handleRequestCode}
                 disabled={!newPhone.trim() || isLoading || (state.step === "error" && cooldown > 0)}
               >
-                {isLoading ? <Loader2 className="size-4 mr-2 animate-spin" /> : null}
+                {isLoading ? <LoaderCircle className="size-4 mr-2 animate-spin" /> : null}
                 Enviar Código
               </Button>
             </>
@@ -236,7 +236,7 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
                 Cancelar
               </Button>
               <Button onClick={handleConfirmCode} disabled={otpCode.length !== 6 || isLoading}>
-                {isLoading ? <Loader2 className="size-4 mr-2 animate-spin" /> : null}
+                {isLoading ? <LoaderCircle className="size-4 mr-2 animate-spin" /> : null}
                 Confirmar
               </Button>
             </>

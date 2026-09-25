@@ -3,14 +3,14 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import {
+  ChevronDown,
   Download,
+  FileBadge,
   FileDown,
   FileUp,
-  Award,
   Plus,
-  Sparkles,
   ShieldAlert,
-  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { AppShell } from "@/components/layout/AppShell";
@@ -658,7 +658,7 @@ function PedagogicaPage() {
                     onClick={exportarPautaOficial}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Pauta Oficial PDF
+                    <FileBadge className="size-3.5 text-primary" /> Pauta Oficial PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarPautaPdf}
@@ -676,7 +676,7 @@ function PedagogicaPage() {
                     onClick={exportarTurmasOficial}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Turmas Oficial PDF
+                    <FileBadge className="size-3.5 text-primary" /> Turmas Oficial PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarTurmasCsv}
