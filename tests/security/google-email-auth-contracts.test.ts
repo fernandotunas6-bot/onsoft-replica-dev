@@ -124,7 +124,7 @@ describe("SIGA email and OAuth security contracts across production entry points
       expect(code, path).not.toContain("getStoredGoogleOAuthToken");
       expect(code, path).not.toContain("gmail.googleapis.com");
       expect(code, path).not.toContain("www.googleapis.com/calendar/v3");
-      expect(code, path).not.toMatch(/Authorization:\s*[\`"']Bearer/);
+      expect(code, path).not.toContain("Authorization:");
     }
   });
 
