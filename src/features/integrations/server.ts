@@ -15,6 +15,7 @@ import {
 } from "./catalog";
 import { capabilityIdsFor, installPackageFor, parseGrantedCapabilities } from "./install";
 import { isPendingWorkspaceProvider } from "./google-workspace-availability";
+import { projectIntegrationConfig } from "./public-config";
 import { generateWebhookApiKey, buildRotatedWebhookConfig } from "./gateway-webhook-key";
 import {
   normalizeResendRecipients,
@@ -71,13 +72,18 @@ function integrationPublicRow(
   item: (typeof academicIntegrationCatalog)[number],
   stored?: { status?: string | null; config?: unknown; updated_at?: string | null },
 ) {
-  const config = readJsonObject(stored?.config);
+  const pending = isPendingWorkspaceProvider(item.id);
+  const rawConfig = readJsonObject(stored?.config);
+  const projection = pending
+    ? projectIntegrationConfig(item.id, {})
+    : projectIntegrationConfig(item.id, rawConfig);
   return {
     ...item,
-    // Configured merchant fields do not establish OAuth token possession.
-    status: isPendingWorkspaceProvider(item.id) ? "disconnected" : stored?.status ?? "disconnected",
-    config,
-    grantedCapabilities: isPendingWorkspaceProvider(item.id) ? [] : parseGrantedCapabilities(config),
+    // A configured merchant ID is not proof of Google OAuth consent.
+    status: pending ? "disconnected" : stored?.status ?? "disconnected",
+    config: projection.config,
+    hasStoredSecret: projection.hasStoredSecret,
+    grantedCapabilities: pending ? [] : parseGrantedCapabilities(rawConfig),
     updatedAt: stored?.updated_at ?? null,
   };
 }
@@ -167,8 +173,9 @@ export const upsertSchoolIntegration = createServerFn({ method: "POST" })
         status: data.status,
         config: {
           ...existing,
-          merchantId: data.merchantId ?? existing["merchantId"] ?? "",
-          callbackUrl: data.callbackUrl ?? existing["callbackUrl"] ?? "",
+          // A redacted blank form field means preserve the existing server secret.
+          merchantId: data.merchantId?.trim() || existing["merchantId"] || "",
+          callbackUrl: data.callbackUrl?.trim() || existing["callbackUrl"] || "",
           sandbox: data.sandbox,
         },
         updated_by: context.userId,
