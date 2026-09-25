@@ -84,17 +84,8 @@ export function buildStudentWelcomeTemplate(data: StudentEnrollmentWelcomeData):
         ${data.academicYear ? `<div class="card-row"><span class="card-label">Ano Lectivo:</span><span class="card-value">${data.academicYear}</span></div>` : ""}
       </div>
 
-      ${
-        data.temporaryPassword
-          ? `
-      <div class="creds-box">
-        <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px;">Dados de Acesso ao Portal:</h4>
-        <p style="margin: 0; font-size: 13px;"><strong>Utilizador:</strong> ${data.studentEmail}</p>
-        <p style="margin: 4px 0 0 0; font-size: 13px;"><strong>Senha Temporária:</strong> <code style="background:#dbeafe; padding:2px 6px; border-radius:4px;">${data.temporaryPassword}</code></p>
-        <p style="margin: 6px 0 0 0; font-size: 11px; color: #64748b;">(Recomendamos alterar a sua senha no primeiro acesso ao sistema.)</p>
-      </div>`
-          : ""
-      }
+      ${data.temporaryPassword ? `\n      <div class="creds-box">\n        <p style="margin:0;font-size:13px;">Por segurança, a senha não é enviada por e-mail. Utilize o fluxo seguro de definição ou recuperação de senha no portal.</p>\n      </div>` : ""}
+
 
       <div style="text-align: center;">
         <a href="${portalUrl}" class="btn">Aceder ao Portal SIGA</a>
@@ -117,7 +108,7 @@ A sua matrícula foi confirmada com sucesso em ${data.schoolName}.
 Dados da Matrícula:
 - Nº de Processo: ${data.studentNumber}
 ${data.turmaName ? `- Turma: ${data.turmaName}\n` : ""}${data.courseName ? `- Curso: ${data.courseName}\n` : ""}${data.academicYear ? `- Ano Lectivo: ${data.academicYear}\n` : ""}
-${data.temporaryPassword ? `Acesso ao Portal:\n- Utilizador: ${data.studentEmail}\n- Senha Temporária: ${data.temporaryPassword}\n` : ""}
+${data.temporaryPassword ? `Acesso ao Portal:\n- Utilizador: ${data.studentEmail}\n- Defina ou recupere a senha pelo fluxo seguro do portal.\n` : ""}
 Aceda ao portal do aluno para consultar horários, notas e pagamentos: ${portalUrl}
 
 ${data.schoolName}
