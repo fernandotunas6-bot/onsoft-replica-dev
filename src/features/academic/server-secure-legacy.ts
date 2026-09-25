@@ -568,7 +568,6 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<legacy.PedagogicalWorkspace> => {
     if (!context) throw new Error("Não autenticado.");
     const membership = await requireAcademicMembership(context.userId);
-    console.log("[DBG2] secure workspace teacherOnly", isTeacherOnly(membership));
     if (!isTeacherOnly(membership)) {
       return legacy.listPedagogicalWorkspace({ data }) as Promise<legacy.PedagogicalWorkspace>;
     }
