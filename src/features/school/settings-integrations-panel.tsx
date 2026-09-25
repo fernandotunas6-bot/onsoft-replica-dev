@@ -448,48 +448,46 @@ export function IntegrationsPanel() {
               G
             </span>
             <h5 className="text-sm font-semibold text-foreground">
-              Google Workspace & Cloud Conectados
+              Google Workspace — ligações independentes
             </h5>
           </div>
-          <Badge variant="default" className="bg-success text-success-foreground hover:bg-success">
-            Ativo (OAuth 2.0)
-          </Badge>
+          <Badge variant="secondary">Não ligado</Badge>
         </div>
         <p className="text-xs text-muted-foreground">
-          As integrações do Google Workspace (Google Calendar, Gmail, Google Drive, Google Sheets,
-          Google Docs e Google Tasks) estão habilitadas para complementar o SIGA. O Supabase
-          continua a ser a base de dados principal e oficial do sistema.
+          Entrar no SIGA com uma conta Google não autoriza o acesso ao Gmail, Calendar ou Drive.
+          Estes serviços exigem consentimento separado e armazenamento seguro de tokens.
+          As operações Workspace permanecem desactivadas até a ligação individual estar pronta.
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-xs">
           <div className="rounded-md border border-border/70 bg-card p-2">
             <span className="font-medium text-foreground">Google Calendar</span>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Sincronização de aulas e exames
+              Pendente — requer consentimento Calendar
             </p>
           </div>
           <div className="rounded-md border border-border/70 bg-card p-2">
             <span className="font-medium text-foreground">Gmail</span>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Notificações e avisos oficiais
+              Pendente — requer consentimento Gmail
             </p>
           </div>
           <div className="rounded-md border border-border/70 bg-card p-2">
             <span className="font-medium text-foreground">Google Sheets</span>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Exportação de pautas e relatórios
+              Pendente — requer consentimento Sheets
             </p>
           </div>
           <div className="rounded-md border border-border/70 bg-card p-2">
             <span className="font-medium text-foreground">Google Drive</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Dossiês e arquivo pedagógico</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Pendente — requer consentimento Drive</p>
           </div>
           <div className="rounded-md border border-border/70 bg-card p-2">
             <span className="font-medium text-foreground">Google Docs</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Declarações e minutas</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Pendente — requer consentimento Docs</p>
           </div>
           <div className="rounded-md border border-border/70 bg-card p-2">
             <span className="font-medium text-foreground">Google Tasks</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Tarefas da secretaria</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Pendente — requer consentimento Tasks</p>
           </div>
         </div>
       </div>
@@ -527,8 +525,9 @@ export function IntegrationsPanel() {
               ))}
             </ul>
             <div className="rounded-lg border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
-              Para ligar contas individuais é primeiro necessário activar as contas de utilizador do
-              sistema (login próprio de cada funcionário). Enquanto isso, o botão fica inactivo.
+              A autenticação da conta SIGA não concede acesso ao Gmail pessoal. A ligação Workspace
+              depende de OAuth PKCE independente, consentimento explícito e tokens protegidos no servidor.
+              Até a implementação e validação reais, o botão permanece desactivado.
             </div>
             <Button disabled className="gap-2">
               <Mail className="size-4" /> Ligar a minha conta Gmail
