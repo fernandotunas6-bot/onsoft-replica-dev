@@ -195,9 +195,36 @@ export function AuthGate({ children }: { children: ReactNode }) {
         });
       }
     });
+    // Revoked memberships must not stay usable indefinitely in an open tab.
+    // Revalidate on return from background even if Supabase emits no auth event.
+    let lastFocusCheck = 0;
+    const onReturnToApp = () => {
+      if (!active || document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastFocusCheck < 60_000) return;
+      lastFocusCheck = now;
+      void supabase.auth.getSession().then(
+        ({ data: restored, error: sessionError }) => {
+          if (!active) return;
+          if (sessionError) {
+            void validateSession(null);
+            setError("A sessão não pôde ser confirmada. Entre novamente.");
+            return;
+          }
+          void validateSession(restored.session);
+        },
+        () => {
+          if (!active) return;
+          void validateSession(null);
+          setError("A sessão não pôde ser confirmada. Entre novamente.");
+        },
+      );
+    };
+    document.addEventListener("visibilitychange", onReturnToApp);
     return () => {
       active = false;
       ++verificationGeneration;
+      document.removeEventListener("visibilitychange", onReturnToApp);
       data.subscription.unsubscribe();
     };
   }, []);
@@ -282,17 +309,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
         password,
       });
       if (!signInError) {
-        if (data.user) localStorage.setItem(activityKey(data.user.id), String(Date.now()));
-        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (assurance.error) throw assurance.error;
-        if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
-          const factors = await supabase.auth.mfa.listFactors();
-          const totp = factors.data?.totp[0];
-          if (totp) {
-            setMfaFactorId(totp.id);
-            setSession(null);
-            return;
-          }
+        // The shared auth-state gate checks identity, institution and MFA
+        // for password and Google alike. Do not race it with a second MFA flow.
+        if (data.user) {
+          localStorage.setItem(activityKey(data.user.id), String(Date.now()));
         }
         return;
       }
