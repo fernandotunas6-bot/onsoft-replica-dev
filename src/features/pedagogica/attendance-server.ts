@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -552,6 +553,18 @@ export const submitAttendanceJustification = createServerFn({ method: "POST" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
+    assertCanSeeStudent(await loadStudentScope(db, membership, context.userId), data.studentId);
+    // A aprovação marca este registo como justificado: tem de ser do próprio aluno.
+    if (data.attendanceRecordId) {
+      const { data: record } = await db
+        .from("siga_attendance_records")
+        .select("id")
+        .eq("id", data.attendanceRecordId)
+        .eq("school_id", membership.schoolId)
+        .eq("student_id", data.studentId)
+        .maybeSingle();
+      if (!record) throw new Error("Registo de presença não encontrado para este aluno.");
+    }
 
     const { data: justification, error } = await db
       .from("siga_attendance_justifications")
@@ -639,6 +652,9 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
       }
     } else if (membership.appRole === "Aluno") {
       if (linked.student_id) targetStudentId = linked.student_id;
+    }
+    if (targetStudentId) {
+      assertCanSeeStudent(await loadStudentScope(db, membership, context.userId), targetStudentId);
     }
 
     if (!targetStudentId) {

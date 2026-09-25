@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
+import { canSeePerson, loadStudentScope } from "@/features/students/student-scope";
 import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
+  requireSgaWriterFor,
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
@@ -390,8 +392,10 @@ export const findPersonDuplicates = createServerFn({ method: "POST" })
   .validator((input: unknown) => findPersonDuplicatesInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     const { data: people, error } = await db
@@ -464,6 +468,8 @@ export const getPerson = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível carregar a pessoa.");
     if (!person) throw new Error("Pessoa não encontrada.");
+    const scope = await loadStudentScope(db, membership, context.userId);
+    if (!canSeePerson(scope, String(person.id))) throw new Error("Pessoa não encontrada.");
     const { data: documents, error: documentsError } = await db
       .from("person_documents")
       .select("id, document_type, document_number, issued_at, expires_at, file_id, file_name")
@@ -815,8 +821,10 @@ export const listStaffDirectory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     const { data: teachers, error } = await db

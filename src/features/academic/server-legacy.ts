@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -1700,6 +1701,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
+    assertCanSeeStudent(await loadStudentScope(db, membership, context.userId), data.studentId);
 
     const { data: enrollments, error: enrollmentsError } = await db
       .from("enrollments")

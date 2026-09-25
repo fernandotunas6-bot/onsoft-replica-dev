@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
+  requireSgaWriterFor,
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
@@ -28,6 +29,7 @@ import {
 } from "./schemas";
 import { deriveAcademicStatus, deriveFinancialSnapshot, type InvoiceLike } from "./academic-status";
 import { recordStudentStatusHistory } from "./status-history";
+import { assertCanSeeStudent, loadStudentScope } from "./student-scope";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 
@@ -104,11 +106,15 @@ export const searchStudents = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
+    const scope = await loadStudentScope(db, membership, context.userId);
+    if (!scope.all && scope.studentIds.length === 0) return [];
 
-    const { data: students, error } = await db
+    let studentsQuery = db
       .from("students")
       .select("id, student_number, status, person_id, school_id, admission_date")
-      .eq("school_id", membership.schoolId)
+      .eq("school_id", membership.schoolId);
+    if (!scope.all) studentsQuery = studentsQuery.in("id", scope.studentIds);
+    const { data: students, error } = await studentsQuery
       .order("student_number")
       .range(data.offset, data.offset + data.limit - 1);
     if (error) throw publicDatabaseError(error, "Não foi possível pesquisar os alunos.");
@@ -428,6 +434,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
+    assertCanSeeStudent(await loadStudentScope(db, membership, context.userId), data.id);
     const { data: student, error: studentError } = await db
       .from("students")
       .select(
@@ -1125,8 +1132,12 @@ export const listEnrollments = createServerFn({ method: "GET" })
   .validator((input: unknown) => listEnrollmentsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Tesouraria",
+      "Professor",
+    ]);
     const db = await loadSgaAdminClient();
 
     let query = db
@@ -1434,6 +1445,7 @@ export const getStudentStatusHistory = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
+    assertCanSeeStudent(await loadStudentScope(db, membership, context.userId), data.studentId);
 
     // 1. Procurar transições em student_status_history
     const { data: historyRows } = await db

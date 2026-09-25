@@ -131,3 +131,31 @@ servidor.
 - **`src/integrations/google/server-workspace.ts`.** Respondem "enviado com sucesso" sem
   enviar nada. Hoje ninguém as importa. Não foram apagadas porque o PR #29 reescreve este
   ficheiro com a implementação real; **não as usar antes disso**.
+
+## Funções que só exigiam pertencer à escola (terceira passagem)
+
+As funções de servidor lêem com a chave de serviço, que ignora o RLS. Muitas só confirmavam
+que a conta era membro da escola, e alunos e encarregados também são membros.
+
+- **Catracas e cartões.** Um aluno podia obter o cartão virtual de outro aluno (com o segredo
+  do QR que abre a catraca), exportar os segredos de todos os cartões, ler as chaves API dos
+  dispositivos, simular leituras e ver as entradas e saídas de todos. Agora as funções da
+  escola inteira exigem Administrador ou Secretaria, e o cartão virtual só é o próprio ou o
+  dos educandos. As chaves novas de dispositivo passam de 32 para 128 bits; **as chaves
+  antigas (`KEY-` seguido de 8 caracteres) devem ser regeneradas** nos dispositivos.
+  Protegido por `tests/security/catracas-access.test.ts`.
+- **Fichas de alunos e pessoas.** `searchStudents` devolvia a qualquer membro o e-mail, o
+  telefone, o B.I. e a situação financeira de todos os alunos; `getStudentProfile`,
+  `getStudentStatusHistory`, `getStudentAcademicHistory` e `getPerson` abriam qualquer ficha.
+  A nova regra `src/features/students/student-scope.ts` dá ao pessoal (Administrador,
+  Secretaria, Tesouraria, Professor) todos os alunos, ao aluno só o seu e ao encarregado só
+  os educandos. `listEnrollments`, `findPersonDuplicates` e `listStaffDirectory` ficam só para
+  o pessoal.
+- **Justificações de faltas.** Qualquer membro submetia uma justificação em nome de qualquer
+  aluno, e podia apontá-la para o registo de presença de outro aluno (a aprovação marcava
+  esse registo como justificado). Agora o aluno tem de estar no âmbito da conta e o registo
+  tem de ser dele. Protegido por `tests/security/student-scope.test.ts`.
+
+**Por rever com o mesmo critério:** as restantes leituras que só exigem ser membro: pautas (`listTermGrades`, `listAssessments`),
+comunicações enviadas, planos de aula, documentos, analítica alumni e directório de
+professores (contactos).
