@@ -264,9 +264,9 @@ function PublicEnrollmentPage() {
                     <Input id="email" name="email" type="email" />
                   </div>
                 ) : null}
-                {hasField(form?.visible_fields, "nif") ? (
+                {(Boolean(accessRequestId) || hasField(form?.visible_fields, "nif")) ? (
                   <div className="space-y-1.5">
-                    <Label htmlFor="nif">NIF / BI</Label>
+                    <Label htmlFor="nif">B.I. / NIF (quando aplicável)</Label>
                     <AngolaIdentityField id="nif" name="nif" />
                   </div>
                 ) : null}
