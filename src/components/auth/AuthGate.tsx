@@ -129,9 +129,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
       }
 
       try {
-        const { verifyOAuthAccountFn } =
+        const { verifyInstitutionalAccessFn } =
           await import("@/features/auth/verify-oauth-account-server");
-        const result = await verifyOAuthAccountFn();
+        const result = await verifyInstitutionalAccessFn();
         if (!active || generation !== verificationGeneration) return;
         if (!result.authorized) {
           setError("A conta não tem um vínculo institucional activo. Contacte a administração.");
@@ -511,9 +511,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       }
 
                       // AAL2 alone is not a school permission: recheck server-side access.
-                      const { verifyOAuthAccountFn } =
+                      const { verifyInstitutionalAccessFn } =
                         await import("@/features/auth/verify-oauth-account-server");
-                      const decision = await verifyOAuthAccountFn();
+                      const decision = await verifyInstitutionalAccessFn();
                       if (!decision.authorized) {
                         throw new Error("A conta não tem vínculo institucional activo.");
                       }
