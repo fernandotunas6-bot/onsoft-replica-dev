@@ -113,6 +113,27 @@ describe("SIGA email and OAuth security contracts across production entry points
     expect(code).not.toContain("unavailableWorkspaceOperation()");
   });
 
+  it("routes every legacy Gmail and Calendar network path through the server vault", () => {
+    for (const path of [
+      "src/integrations/google/calendar-service.ts",
+      "src/integrations/google/gmail-service.ts",
+      "src/lib/google-calendar.ts",
+      "src/lib/google-gmail.ts",
+    ]) {
+      const code = source(path);
+      expect(code, path).not.toContain("getStoredGoogleOAuthToken");
+      expect(code, path).not.toContain("gmail.googleapis.com");
+      expect(code, path).not.toContain("www.googleapis.com/calendar/v3");
+      expect(code, path).not.toMatch(/Authorization:\s*[\`"']Bearer/);
+    }
+  });
+
+  it("never emails a temporary password through the legacy welcome template", () => {
+    const code = source("src/lib/google-gmail.ts");
+    expect(code).not.toContain("Senha Temporária:");
+    expect(code).toContain("a senha não é enviada por e-mail");
+  });
+
   it("never lets a configured merchant ID masquerade as Google authorization", () => {
     const code = source("src/features/integrations/server.ts");
     expect(code).toContain("isPendingWorkspaceProvider");
