@@ -16,7 +16,7 @@ function InstitutionalWelcome(){
  const [mode,setMode]=useState<"choose"|"join">("choose");
  const [search,setSearch]=useState("");
  const [schoolId,setSchoolId]=useState("");
- const [fullName,setFullName]=useState("");
+ const [fullName,setFullName]=useState(account.name==="Utilizador"?"":account.name);
  const [requestedRole,setRequestedRole]=useState<"student"|"teacher"|"guardian"|"user">("student");
  const [busy,setBusy]=useState(false);
  const credentials=useQuery({queryKey:["institutional","credentials",account.schoolId],queryFn:()=>getMyInstitutionalCredentials(),enabled:Boolean(account.schoolId)});
