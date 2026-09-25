@@ -1,3 +1,4 @@
+import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import {
   createContext,
   useContext,
