@@ -93,7 +93,9 @@ describe("Google Workspace: mocked functional integration", () => {
       .toBe("provider-confirmed-id");
     expect(tokens).toEqual(["gmail"]);
     const raw = JSON.parse(String(calls[0].init.body)).raw;
-    expect(Buffer.from(raw, "base64url").toString("utf8")).toContain("Bom dia");
+    const mime = Buffer.from(raw, "base64url").toString("utf8");
+    const encodedBody = mime.split("\\r\\n\\r\\n")[1]?.trim();
+    expect(Buffer.from(encodedBody ?? "", "base64").toString("utf8")).toContain("Bom dia");
   });
 
   it("lists and creates personal Google Tasks", async () => {
