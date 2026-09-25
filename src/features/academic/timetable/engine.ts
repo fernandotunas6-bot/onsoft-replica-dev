@@ -184,7 +184,10 @@ function teacherAvailable(
 ): boolean {
   if (!windows || windows.length === 0) return true;
   const dayWindows = windows.filter((w) => w.weekday === weekday);
-  if (dayWindows.length === 0) return true;
+  // Quem declara janelas de disponibilidade (positivas) só está disponível
+  // dentro delas — um dia sem janela é um dia indisponível. Só bloqueios
+  // (`available: false`) deixam o resto da semana livre.
+  if (dayWindows.length === 0) return !windows.some((w) => w.available);
   const s = toMinutes(block.startsAt);
   const e = toMinutes(block.endsAt);
   const blockedExplicitly = dayWindows.some(

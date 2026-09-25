@@ -155,6 +155,13 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
   // (`isMissingTable` em `requests-server.ts`) — não fingem que gravaram.
   // Aplicar antes do deploy e retirar daqui.
   "school_access_requests",
+  // Alunos em risco e cobranças AppyPay (2026-09-25, Lovable). Criadas por
+  // `20260925160000_academic_guards_risk_followup_appypay.sql`, que ainda não
+  // foi aplicada. Sem elas, "Alunos em risco" e AppyPay respondem com erro de
+  // tabela inexistente. Aplicar antes do deploy e retirar daqui.
+  "student_risk_cases",
+  "student_risk_interventions",
+  "payment_gateway_charges",
 ]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

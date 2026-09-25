@@ -26,16 +26,22 @@ CREATE TABLE IF NOT EXISTS public.siga_lesson_plan_components (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS siga_lesson_plan_components_plan_idx ON public.siga_lesson_plan_components (lesson_plan_id, sequence);
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.siga_lesson_plans TO authenticated;
-GRANT ALL ON public.siga_lesson_plans TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.siga_lesson_plan_components TO authenticated;
-GRANT ALL ON public.siga_lesson_plan_components TO service_role;
+-- Planos de aula: acesso só pelo servidor (lesson-plans/server.ts usa a chave de
+-- serviço depois de validar o papel). A política anterior, que existe hoje em
+-- produção, usava `is_school_member` e deixava alunos e encarregados escrever e
+-- apagar planos de aula pela API. Idempotente: a produção já tem as tabelas,
+-- as políticas e o trigger.
 ALTER TABLE public.siga_lesson_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_lesson_plans FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.siga_lesson_plan_components ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Manage lesson plans in own school" ON public.siga_lesson_plans
-  FOR ALL TO authenticated USING (public.is_school_member(school_id)) WITH CHECK (public.is_school_member(school_id));
-CREATE POLICY "Manage lesson plan components in own school" ON public.siga_lesson_plan_components
-  FOR ALL TO authenticated USING (public.is_school_member(school_id)) WITH CHECK (public.is_school_member(school_id));
+ALTER TABLE public.siga_lesson_plan_components FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.siga_lesson_plans FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.siga_lesson_plan_components FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.siga_lesson_plans TO service_role;
+GRANT ALL ON public.siga_lesson_plan_components TO service_role;
+DROP POLICY IF EXISTS "Manage lesson plans in own school" ON public.siga_lesson_plans;
+DROP POLICY IF EXISTS "Manage lesson plan components in own school" ON public.siga_lesson_plan_components;
+DROP TRIGGER IF EXISTS siga_lesson_plans_set_updated_at ON public.siga_lesson_plans;
 CREATE TRIGGER siga_lesson_plans_set_updated_at BEFORE UPDATE ON public.siga_lesson_plans
   FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
 ALTER TABLE public.siga_assessment_items ADD COLUMN IF NOT EXISTS lesson_plan_component_id uuid
@@ -47,9 +53,14 @@ CREATE OR REPLACE FUNCTION public.guard_class_subject_grade_range()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
 DECLARE v_seq int; v_from int; v_to int; v_subject text;
 BEGIN
-  SELECT coalesce(l.sequence, l.sort_order) INTO v_seq
+  -- Lido por jsonb: na base SGA `subjects` não tem grade_from/grade_to nem
+  -- `grade_levels` tem sort_order (vêm do esquema Lovable). Coluna ausente dá
+  -- NULL e a guarda não se aplica — em vez de partir cada escrita em
+  -- class_subjects com "column does not exist".
+  SELECT coalesce((to_jsonb(l)->>'sequence')::int, (to_jsonb(l)->>'sort_order')::int) INTO v_seq
   FROM class_groups g JOIN grade_levels l ON l.id = g.grade_level_id WHERE g.id = NEW.class_group_id;
-  SELECT grade_from, grade_to, name INTO v_from, v_to, v_subject FROM subjects WHERE id = NEW.subject_id;
+  SELECT (to_jsonb(s)->>'grade_from')::int, (to_jsonb(s)->>'grade_to')::int, s.name
+    INTO v_from, v_to, v_subject FROM subjects s WHERE s.id = NEW.subject_id;
   IF v_seq IS NOT NULL AND ((v_from IS NOT NULL AND v_seq < v_from) OR (v_to IS NOT NULL AND v_seq > v_to)) THEN
     RAISE EXCEPTION 'A disciplina % só é leccionada da %ª à %ª classe.', v_subject, v_from, v_to USING ERRCODE = '23514';
   END IF;
