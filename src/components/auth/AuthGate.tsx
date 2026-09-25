@@ -189,10 +189,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
             localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
           } catch { /* Storage unavailable: server still validates membership. */ }
         }
-        // Defer the server function so it can safely use the auth client.
-        queueMicrotask(() => {
+        // Supabase auth callbacks run under an auth lock. Defer all async
+        // client calls to a new task, not a microtask, to avoid deadlocks.
+        window.setTimeout(() => {
           if (active) void validateSession(nextSession);
-        });
+        }, 0);
       }
     });
     // Revoked memberships must not stay usable indefinitely in an open tab.
