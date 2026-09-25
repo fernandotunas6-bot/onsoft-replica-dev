@@ -31,8 +31,10 @@ jobs:
           python-version: '3.12'
       - name: Validate source syntax
         run: |
-          python -m py_compile supabase/email-templates/deploy.py supabase/email-templates/deploy_auth.py supabase/email-templates/test_deploy.py
+          python -m py_compile supabase/email-templates/deploy.py supabase/email-templates/deploy_auth.py supabase/email-templates/deploy_notifications.py supabase/email-templates/test_deploy.py
       - name: Run isolated unit tests
         run: python -m unittest discover -s supabase/email-templates -p 'test_*.py' -v
-      - name: Verify offline dry run
-        run: python supabase/email-templates/deploy.py
+      - name: Verify offline dry runs
+        run: |
+          python supabase/email-templates/deploy.py
+          python supabase/email-templates/deploy_notifications.py
