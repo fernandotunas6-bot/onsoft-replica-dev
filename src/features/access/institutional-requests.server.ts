@@ -107,7 +107,7 @@ export const reviewSchoolAccessRequest=createServerFn({method:"POST"})
   await db.from("notifications").insert({
    school_id:membership.schoolId,user_id:request.user_id,channel:"in_app",
    event_type:"school_access_review",title:"Actualização do pedido de acesso",
-   body:data.decision==="approved"?"A escola autorizou o início do cadastro. Preencha a candidatura; o acesso escolar só será concedido após confirmação da matrícula.":"A secretaria actualizou o seu pedido de acesso.",
+   body:data.decision==="approved"?(request.requested_role==="student"?"A escola autorizou o cadastro de candidato. Preencha a candidatura; o acesso só será concedido após confirmação da matrícula.":"A escola pré-aprovou o seu pedido. A secretaria conduzirá o cadastro e verificará os requisitos específicos do seu perfil antes de conceder acesso."):"A secretaria actualizou o seu pedido de acesso.",
    status:"pending",payload:{request_id:request.id,decision:data.decision}
   }).then(({error})=>{if(error)console.warn("[school-access] notification unavailable",error.code)});
   return {status:nextStatus};
