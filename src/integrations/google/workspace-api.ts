@@ -218,13 +218,45 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
       }
       return { deleted: true };
     },
-    async gmailSend(to: string, subject: string, bodyText: string) {
+    async gmailSend(to: string, subject: string, bodyText: string, bodyHtml?: string) {
       cleanHeader(to);
       cleanHeader(subject);
-      const raw = Buffer.from(
-        `To: ${to}\r\nSubject: =?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${Buffer.from(bodyText, "utf8").toString("base64")}\r\n`,
-        "utf8",
-      ).toString("base64url");
+      const subjectEncoded = Buffer.from(subject, "utf8").toString("base64");
+      let mime: string;
+      if (bodyHtml?.trim()) {
+        const boundary = `siga-${crypto.randomUUID()}`;
+        mime = [
+          `To: ${to}`,
+          `Subject: =?UTF-8?B?${subjectEncoded}?=`,
+          "MIME-Version: 1.0",
+          `Content-Type: multipart/alternative; boundary="${boundary}"`,
+          "",
+          `--${boundary}`,
+          "Content-Type: text/plain; charset=UTF-8",
+          "Content-Transfer-Encoding: base64",
+          "",
+          Buffer.from(bodyText, "utf8").toString("base64"),
+          `--${boundary}`,
+          "Content-Type: text/html; charset=UTF-8",
+          "Content-Transfer-Encoding: base64",
+          "",
+          Buffer.from(bodyHtml, "utf8").toString("base64"),
+          `--${boundary}--`,
+          "",
+        ].join("\r\n");
+      } else {
+        mime = [
+          `To: ${to}`,
+          `Subject: =?UTF-8?B?${subjectEncoded}?=`,
+          "MIME-Version: 1.0",
+          "Content-Type: text/plain; charset=UTF-8",
+          "Content-Transfer-Encoding: base64",
+          "",
+          Buffer.from(bodyText, "utf8").toString("base64"),
+          "",
+        ].join("\r\n");
+      }
+      const raw = Buffer.from(mime, "utf8").toString("base64url");
       const data = await request<{ id: string; threadId?: string }>(
         "gmail", `${BASE.gmail}/users/me/messages/send`, {
           method: "POST", body: JSON.stringify({ raw }),
