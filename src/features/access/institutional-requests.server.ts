@@ -4,15 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 
-const requestSchema = z.object({
- schoolId:z.string().uuid(),fullName:z.string().trim().min(3).max(160),
- nationalId:z.string().trim().max(30).optional(),institutionalId:z.string().trim().max(40).optional(),
- requestedRole:z.enum(["student","teacher","guardian","user"])
-}).refine(x=>Boolean(x.nationalId||x.institutionalId),{message:"Indique o B.I. ou identificador institucional."});
-const reviewSchema=z.object({
- requestId:z.string().uuid(),decision:z.enum(["under_review","needs_information","rejected","approved"]),
- note:z.string().trim().max(1000).optional(),personId:z.string().uuid().nullable().optional(),
-});
+import { schoolAccessRequestInputSchema as requestSchema,schoolAccessReviewInputSchema as reviewSchema } from "./institutional-schemas";
 async function requireSecretary(userId:string) {
  const membership=await resolveSgaMembershipAdmin(userId);
  if(!membership||!["Administrador","Secretaria"].includes(membership.appRole))
