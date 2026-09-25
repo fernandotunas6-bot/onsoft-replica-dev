@@ -181,3 +181,65 @@ export const submitApprovedSchoolEnrollment=createServerFn({method:"POST"})
   if(submitError)throw publicDatabaseError(submitError,"Não foi possível enviar a candidatura.");
   return {applicationId:applicationId as string,status:"enrollment_pending" as const};
  });
+
+/** Recuperação segura quando a matrícula foi aceite mas a activação do portal falhou. */
+export const finalizeConfirmedEnrollmentAccess=createServerFn({method:"POST"})
+ .middleware([requireSupabaseAuth])
+ .validator((input:unknown)=>z.object({requestId:z.string().uuid()}).parse(input))
+ .handler(async({data,context})=>{
+  const membership=await requireSecretary(context.userId);
+  const db=await loadSgaAdminClient();
+  const {data:request,error}=await db.from("school_access_requests")
+   .select("id,user_id,enrollment_application_id,status").eq("id",data.requestId)
+   .eq("school_id",membership.schoolId).maybeSingle();
+  if(error||!request||request.status!=="enrollment_pending"||!request.enrollment_application_id)
+   throw new Error("O pedido não está a aguardar confirmação de matrícula.");
+  const {data:application}=await db.from("enrollment_applications")
+   .select("id,student_id,status").eq("id",request.enrollment_application_id)
+   .eq("school_id",membership.schoolId).eq("status","accepted").maybeSingle();
+  if(!application?.student_id)throw new Error("Confirme primeiro a candidatura e a matrícula na turma.");
+  const {data:student}=await db.from("students").select("person_id,student_number")
+   .eq("id",application.student_id).eq("school_id",membership.schoolId).maybeSingle();
+  if(!student)throw new Error("Cadastro académico da matrícula não encontrado.");
+  const {error:approvalError}=await db.rpc("approve_school_access_request",{
+   p_request_id:request.id,p_reviewer_id:context.userId,p_person_id:student.person_id,
+  });
+  if(approvalError)throw publicDatabaseError(approvalError,"A matrícula está confirmada mas o acesso ainda não pôde ser activado.");
+  const {error:notifyError}=await db.from("notifications").insert({
+   school_id:membership.schoolId,user_id:request.user_id,
+   channel:"in_app",event_type:"school_access_activated",
+   title:"Credenciais institucionais activadas",
+   body:"A sua matrícula foi confirmada. Já pode entrar no portal da escola com a senha da sua conta.",
+   status:"pending",payload:{request_id:request.id,student_id:application.student_id},
+  });
+  if(notifyError)console.warn("[institutional-enrollment] notification:",notifyError.code);
+  return {status:"approved" as const,studentNumber:student.student_number};
+ });
+/** Mostra apenas identificadores próprios depois de confirmar vínculo e matrícula. */
+export const getMyInstitutionalCredentials=createServerFn({method:"GET"})
+ .middleware([requireSupabaseAuth])
+ .handler(async({context})=>{
+  const membership=await resolveSgaMembershipAdmin(context.userId);
+  if(!membership)return null;
+  const db=await loadSgaAdminClient();
+  const {data:request}=await db.from("school_access_requests")
+   .select("person_id").eq("school_id",membership.schoolId)
+   .eq("user_id",context.userId).eq("status","approved")
+   .not("person_id","is",null).order("updated_at",{ascending:false}).limit(1).maybeSingle();
+  if(!request?.person_id)return null;
+  const [{data:student},{data:person},{data:school}]=await Promise.all([
+   db.from("students").select("student_number").eq("school_id",membership.schoolId)
+    .eq("person_id",request.person_id).is("deleted_at",null).maybeSingle(),
+   db.from("people").select("national_id").eq("school_id",membership.schoolId)
+    .eq("id",request.person_id).eq("user_id",context.userId).maybeSingle(),
+   db.from("schools").select("name,public_code").eq("id",membership.schoolId).maybeSingle(),
+  ]);
+  if(!student||!person||!school)return null;
+  const bi=person.national_id??"";
+  return {
+   schoolName:school.name,schoolCode:school.public_code,
+   studentNumber:student.student_number,
+   biMasked:bi.length>4?"••••"+bi.slice(-4):null,
+   passwordInstruction:"Use a senha da sua conta SIGA Plus ou a recuperação segura de senha.",
+  };
+ });
