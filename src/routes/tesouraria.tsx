@@ -175,7 +175,7 @@ function TreasuryPage() {
 
         <Panel
           title="Facturas pendentes"
-          description={`${pending.length} facturas · ${kz(pending.reduce((s, i) => s + i.balance, 0))} por receber`}
+          description={`${pending.length} facturas · ${kz(pending.reduce((s, i) => s + i.balance, 0))} por receber (entre as 250 facturas mais recentes; o total geral está no cartão acima)`}
           action={
             <div className="flex gap-2">
               <Button variant={onlyOverdue ? "default" : "outline"} size="sm" onClick={() => setOnlyOverdue((v) => !v)}>
