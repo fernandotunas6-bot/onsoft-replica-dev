@@ -58,7 +58,21 @@ purgeLegacyTokenStorage();
 /** Short-lived in-memory compatibility only; never persist provider tokens in localStorage. */
 export function saveGoogleOAuthToken(token: GoogleOAuthToken): void {
   purgeLegacyTokenStorage();
-  workspaceToken = { ...token };
+  // Temporary backwards compatibility for callers that already hold a token.
+  // Do not accept refresh tokens in browser memory or immortal tokens.
+  const now = Date.now();
+  const expiryDate = token.expiry_date ?? now + 15 * 60_000;
+  if (!token.access_token || !Number.isFinite(expiryDate) || expiryDate <= now) {
+    workspaceToken = null;
+    return;
+  }
+  workspaceToken = {
+    access_token: token.access_token,
+    token_type: token.token_type,
+    scope: token.scope,
+    expiry_date: Math.min(expiryDate, now + 60 * 60_000),
+    ...(token.email ? { email: token.email } : {}),
+  };
 }
 
 export function getStoredGoogleOAuthToken(): GoogleOAuthToken | null {
