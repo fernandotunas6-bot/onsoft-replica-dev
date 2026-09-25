@@ -1,25 +1,41 @@
-# SIGA Plus — templates de e-mail do Supabase Auth
+# SIGA Plus — modelos de autenticação premium (Supabase Auth)
 
-Projeto: `xodgfmxiaunpamctfeea` · URL: https://portal-siga.com
+Projeto Supabase: `xodgfmxiaunpamctfeea` | Aplicação: https://portal-siga.com
 
-Os seis ficheiros HTML deste diretório são modelos para **Authentication → Email Templates** no painel Supabase. **Versionar estes ficheiros não altera os templates ativos do serviço alojado.** Os conteúdos têm de ser aplicados no Dashboard ou por uma integração de configuração autorizada. Não utilizar `execute_sql` para editar `auth.config` nem inserir segredos em SQL ou neste repositório.
+> Estes modelos estão versionados no GitHub, mas **não são instalados automaticamente no serviço Supabase hospedado**. Aplicar em Authentication → Email Templates, depois de configurar URLs e SMTP. Não armazenar passwords, secrets ou tokens pessoais neste repositório.
 
-| Template | Assunto |
-|---|---|
-| `confirm-sign-up.html` | SIGA Plus | Confirme o seu e-mail |
-| `invite-user.html` | SIGA Plus | Convite para utilizar o sistema |
-| `magic-link-or-otp.html` | SIGA Plus | Acesso temporário à sua conta |
-| `change-email-address.html` | SIGA Plus | Confirme o seu novo e-mail |
-| `reset-password.html` | SIGA Plus | Redefina a sua palavra-passe |
-| `reauthentication.html` | SIGA Plus | Código de segurança |
+## Mapa de instalação
 
-## Instalação
-1. Confirmar em Authentication → URL Configuration que o Site URL é https://portal-siga.com e adicionar apenas os redirect URLs efetivamente implementados.
-2. Confirmar que **Email** está ativo e que **Confirm email** está ligado. Não desativar novos cadastros antes de testar os fluxos de convite.
-3. Em Authentication → Email Templates, colar o assunto e o HTML de cada ficheiro na secção com o mesmo nome.
-4. Configurar SMTP autorizado com remetente verificado, SPF, DKIM e DMARC. Nunca enviar chaves ou palavras-passe SMTP para este repositório.
-5. Testar os seis fluxos numa conta de testes, incluindo ligação expirada, utilização repetida, reautenticação e recuperação de senha, antes de disponibilizar em produção.
+| Ficheiro | Modelo no painel | Assunto |
+|---|---|---|
+| `confirm-sign-up.html` | Confirm sign up | SIGA Plus — Confirme o seu e-mail |
+| `invite-user.html` | Invite user | SIGA Plus — O seu convite institucional |
+| `magic-link-or-otp.html` | Magic link / OTP | SIGA Plus — Acesso temporário à sua conta |
+| `change-email-address.html` | Change email address | SIGA Plus — Confirme o novo endereço |
+| `reset-password.html` | Reset password | SIGA Plus — Redefina a sua palavra-passe |
+| `reauthentication.html` | Reauthentication | SIGA Plus — Código de segurança |
 
-Os modelos utilizam as variáveis oficiais `{{ .ConfirmationURL }}`, `{{ .Token }}` e `{{ .NewEmail }}`. Os URLs de confirmação são gerados pelo Supabase, não por um redirecionamento fixo no HTML. O modelo de reautenticação utiliza somente `{{ .Token }}`. Se o frontend utilizar PKCE/SSR, implementar e testar as rotas de confirmação e troca de código antes de alterar os templates.
+Todos os modelos usam tabelas para ampla compatibilidade entre leitores de e-mail, estilos inline, títulos descritivos, CTA único quando aplicável e avisos de segurança. Não dependem de imagens remotas. URLs e códigos sensíveis são gerados pelo Supabase:
+- Confirmar, convite, alterar e redefinir: `{{ .ConfirmationURL }}`.
+- Link mágico/OTP: `{{ .ConfirmationURL }}` e `{{ .Token }}`; **só ativar a visualização do código se o frontend disponibilizar a introdução de OTP**.
+- Alteração de endereço: `{{ .NewEmail }}`.
+- Reautenticação: `{{ .Token }}`.
 
-A confirmação do endereço de e-mail prova controlo do endereço, não atribui instituição ou cargo. O backend deve consultar os vínculos escolares ativos e as permissões da conta.
+## Pré-requisitos críticos
+1. Authentication → URL Configuration: definir Site URL `https://portal-siga.com` e adicionar **apenas** os redirect URLs implementados. Se PKCE/SSR, validar a rota de confirmação e `exchangeCodeForSession`; não mudar templates para `TokenHash` até comprovar a implementação.
+2. Authentication → Providers: habilitar e-mail, verificar que **Confirm email** está ativado, rever rate limits e não desabilitar cadastros antes de confirmar convites, criação de utilizadores e testes. A confirmação do e-mail não implica acesso à instituição: revalidar vínculos ativos e MFA conforme perfil.
+3. Authentication → SMTP Settings: configurar um serviço SMTP transacional **com credenciais obtidas e inseridas apenas no painel/secret manager**. Dados necessários: host, porta/TLS, utilizador, password, e-mail remetente previamente verificado e nome `SIGA Plus`. O endereço `no-reply@portal-siga.com` é **proposta, não uma caixa ou domínio remetente confirmado**. Não afirmar que o SMTP está configurado até comprovar envio real.
+4. DNS: obter do provedor SMTP os registos de verificação e DKIM específicos. Verificar SPF (um único TXT SPF por nome remetente), DKIM (selector do provedor) e DMARC (iniciar com política de monitorização, quando apropriado) no DNS autoritativo. Evitar inventar valores ou adicionar registos genéricos sem conhecer o provedor.
+5. Authentication → Email Templates: colar assunto/HTML e guardar cada modelo individualmente; nunca substituir links por URLs fixos do frontend.
+6. Testar com contas de teste autorizadas: cadastro não confirmado, confirmação, convite em aberto/expirado/usado, magic link/OTP correto e incorreto, pedido de mudança de e-mail com nova confirmação, redefinição, reautenticação correta/incorreta/expirada. Validar entrega, SPF/DKIM/DMARC em cabeçalhos, redirecionamento, limites e ausência de acesso escolar sem vínculo.
+
+## Critérios de aceite
+- Testes estáticos: todos os ficheiros HTML existem, contêm `lang="pt"`, viewport, cabeçalhos, mensagens de segurança e as variáveis Supabase adequadas; os ficheiros não contêm chaves nem imagens remotas.
+- Testes reais: **não realizados até publicação no painel e configuração do SMTP**. Não tentar usar tokens de produção ou enviar e-mails reais a utilizadores sem consentimento.
+- Mudança de e-mail, alteração de password e vinculação Google exigem atenção especial: confirmar política de MFA, persistência de sessão e alterações de perfil apenas em campos permitidos.
+- Identificar a origem dos retornos do sistema: o link de verificação expira e pode dar erro quando um gateway ou scanner de e-mail o consome primeiro; não afirmar que o template resolve problemas de entrega/transporte.
+
+Referências:
+- https://supabase.com/docs/guides/auth/auth-email-templates
+- https://supabase.com/docs/guides/auth/auth-smtp
+- https://supabase.com/docs/guides/auth/redirect-urls
