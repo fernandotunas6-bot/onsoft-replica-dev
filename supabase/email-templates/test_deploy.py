@@ -48,6 +48,30 @@ class TemplateStaticTests(unittest.TestCase):
                 deploy.ROOT = old_root
 
 
+
+class NotificationStaticTests(unittest.TestCase):
+    def test_security_notifications_safe_and_well_formed(self):
+        directory = MODULE.parent / "notifications"
+        notices = {
+            "password-changed": [],
+            "email-changed": ["{{ .OldEmail }}", "{{ .Email }}"],
+            "identity-linked": ["{{ .Provider }}"],
+            "identity-unlinked": ["{{ .Provider }}"],
+        }
+        for slug, placeholders in notices.items():
+            with self.subTest(notification=slug):
+                html = (directory / f"{slug}.html").read_text(encoding="utf-8")
+                self.assertIn('lang="pt"', html)
+                self.assertIn('name="viewport"', html)
+                self.assertIn('role="presentation"', html)
+                self.assertIn('Notificação de segurança', html)
+                self.assertNotIn("<script", html.lower())
+                self.assertNotIn("sb_secret_", html)
+                self.assertNotIn("SUPABASE_ACCESS_TOKEN", html)
+                for placeholder in placeholders:
+                    self.assertIn(placeholder, html)
+
+
 class DeploymentFlowTests(unittest.TestCase):
     def run_cli(self, argv, request_side_effect=None, token="test-token-not-real"):
         stdout, stderr = io.StringIO(), io.StringIO()
