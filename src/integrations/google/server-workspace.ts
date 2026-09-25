@@ -24,6 +24,7 @@ export interface GoogleConnectionStatus {
     sheets: boolean;
     docs: boolean;
     tasks: boolean;
+    classroom: boolean;
   };
 }
 
@@ -109,6 +110,7 @@ export const getGoogleWorkspaceStatus = createServerFn({ method: "GET" })
         gmail: services.has("gmail"), calendar: services.has("calendar"),
         drive: services.has("drive"), docs: services.has("docs"),
         sheets: services.has("sheets"), tasks: services.has("tasks"),
+        classroom: services.has("classroom"),
       },
     };
   });
@@ -127,6 +129,7 @@ export const syncCalendarEvent = createServerFn({ method: "POST" })
     const event = await api.calendarCreate({
       title: data.title, start: data.startDateTime,
       end: data.endDateTime, description: data.description,
+      location: data.location, attendees: data.attendees,
     });
     return { success: true, eventId: event.id,
       message: "Google Calendar confirmou a criação do evento." };
