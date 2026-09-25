@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -33,6 +33,21 @@ export function GoogleWorkspaceConnectCard() {
     queryFn: () => getGoogleWorkspaceConnection({ data: { schoolId: schoolId! } }),
     retry: false, staleTime: 15_000,
   });
+  const grantedKey = useMemo(
+    () => [...(status.data?.services ?? [])].sort().join("|"),
+    [status.data?.services],
+  );
+  useEffect(() => {
+    if (!schoolId) {
+      setSelected([]);
+      return;
+    }
+    if (status.data?.services?.length) {
+      setSelected(status.data.services);
+    } else if (!status.isLoading) {
+      setSelected(["drive", "calendar"]);
+    }
+  }, [schoolId, grantedKey, status.isLoading]);
 
   function toggle(service: WorkspaceService) {
     setSelected((current) => current.includes(service)
@@ -112,6 +127,18 @@ export function GoogleWorkspaceConnectCard() {
           Conta autorizada: <strong>{status.data.googleEmail}</strong>
         </p>
       ) : null}
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="outline"
+          disabled={busy || selected.length === ALL_WORKSPACE_SERVICES.length}
+          onClick={() => setSelected([...ALL_WORKSPACE_SERVICES])}>
+          Selecionar todos
+        </Button>
+        <Button type="button" size="sm" variant="ghost"
+          disabled={busy || selected.length === 0}
+          onClick={() => setSelected([])}>
+          Limpar selecção
+        </Button>
+      </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {ALL_WORKSPACE_SERVICES.map((service) => (
           <label key={service}
