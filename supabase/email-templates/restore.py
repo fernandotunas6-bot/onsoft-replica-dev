@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restore prior SIGA Plus email templates from a restricted local backup.
+"""Restore prior SIGA Plus Auth and notification templates from a private backup.
 
 DRY-RUN by default. No token needed to validate a backup. For a live comparison
 use --check. A production restore requires --apply --confirm-production and a
@@ -13,13 +13,28 @@ import sys
 from pathlib import Path
 
 from deploy import TEMPLATES, backup_existing, request
+from deploy_notifications import NOTIFICATIONS
 
 ALLOWED_FIELDS = {
     field
     for kind, _ in TEMPLATES.values()
     for field in (f"mailer_subjects_{kind}", f"mailer_templates_{kind}_content")
+} | {
+    field
+    for kind, _, _ in NOTIFICATIONS.values()
+    for field in (
+        f"mailer_subjects_{kind}_notification",
+        f"mailer_templates_{kind}_notification_content",
+        f"mailer_notifications_{kind}_enabled",
+    )
 } | {"external_email_enabled", "mailer_autoconfirm", "mailer_secure_email_change_enabled"}
-SECURITY_OPTIONS = {"external_email_enabled", "mailer_autoconfirm", "mailer_secure_email_change_enabled"}
+SECURITY_OPTIONS = {
+    "external_email_enabled", "mailer_autoconfirm",
+    "mailer_secure_email_change_enabled",
+} | {
+    f"mailer_notifications_{kind}_enabled"
+    for kind, _, _ in NOTIFICATIONS.values()
+}
 
 
 def load_snapshot(path):
