@@ -38,7 +38,9 @@ const operation = z.discriminatedUnion("action", [
   school.extend({ action: z.literal("gmail.send"), to: email,
     subject: short, text: z.string().trim().min(1).max(30_000) }),
   school.extend({ action: z.literal("tasks.list") }),
-  school.extend({ action: z.literal("tasks.create"), title: short, notes: z.string().max(4000).optional() }),
+  school.extend({ action: z.literal("tasks.create"), title: short,
+    notes: z.string().max(4000).optional(),
+    due: z.string().datetime({ offset: true }).optional() }),
 ]);
 
 /** Single audited endpoint for optional, individually consented Google services.
@@ -85,6 +87,6 @@ export const executeGoogleWorkspaceOperation = createServerFn({ method: "POST" }
       });
       case "gmail.send": return api.gmailSend(data.to, data.subject, data.text);
       case "tasks.list": return api.tasksList();
-      case "tasks.create": return api.tasksCreate(data.title, data.notes);
+      case "tasks.create": return api.tasksCreate(data.title, data.notes, data.due);
     }
   });
