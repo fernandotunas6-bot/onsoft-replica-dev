@@ -119,8 +119,21 @@ export const getGoogleWorkspaceStatus = createServerFn({ method: "GET" })
 export const syncCalendarEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleCalendarEventInput) => data)
-  .handler(async (): Promise<{ success: boolean; eventId?: string; message: string }> =>
-    unavailableWorkspaceOperation());
+  .handler(async ({ data, context }): Promise<{ success: boolean; eventId?: string; message: string }> => {
+    if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
+    if (!data.title?.trim() ||
+        !Number.isFinite(Date.parse(data.startDateTime)) ||
+        Date.parse(data.endDateTime) <= Date.parse(data.startDateTime)) {
+      throw new Error("Evento ou intervalo de datas inválido.");
+    }
+    const { api } = await scopedApi(context.userId);
+    const event = await api.calendarCreate({
+      title: data.title, start: data.startDateTime,
+      end: data.endDateTime, description: data.description,
+    });
+    return { success: true, eventId: event.id,
+      message: "Google Calendar confirmou a criação do evento." };
+  });
 
 export const sendGmailNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
