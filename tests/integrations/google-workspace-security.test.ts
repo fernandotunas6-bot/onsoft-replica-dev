@@ -10,6 +10,7 @@ describe("Google Workspace separate consent", () => {
   it("blocks unimplemented Google catalog installations without affecting Resend or ICS", () => {
     expect(isPendingWorkspaceProvider("gmail_workspace")).toBe(true);
     expect(isPendingWorkspaceProvider("google_calendar")).toBe(true);
+    expect(isPendingWorkspaceProvider("google_classroom")).toBe(true);
     expect(isPendingWorkspaceProvider("resend_email")).toBe(false);
     expect(isPendingWorkspaceProvider("apple_calendar")).toBe(false);
   });
