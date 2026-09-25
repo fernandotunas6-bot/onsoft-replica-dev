@@ -48,14 +48,16 @@ import { listGatewayWebhookEvents } from "@/features/finance/server";
 function GatewayWebhookHint({
   provider,
   config,
+  hasWebhookSecret,
 }: {
   provider: string;
   config: Record<string, unknown>;
+  hasWebhookSecret: boolean;
 }) {
   const queryClient = useQueryClient();
   const [rotating, setRotating] = useState(false);
   const isGateway = provider === "multicaixa_express" || provider === "unitel_money";
-  const apiKey = String(config.webhookApiKey ?? "").trim();
+  const [newWebhookKey, setNewWebhookKey] = useState("");
   const previousActive = gatewayWebhookPreviousKeyActive(config);
   const previousExpires = String(config.webhookApiKeyPreviousExpiresAt ?? "");
 
@@ -65,11 +67,11 @@ function GatewayWebhookHint({
       listGatewayWebhookEvents({
         data: { channel: provider as "multicaixa_express" | "unitel_money", limit: 5 },
       }),
-    enabled: isGateway && Boolean(apiKey),
+    enabled: isGateway && hasWebhookSecret,
     staleTime: 30_000,
   });
 
-  if (!isGateway || !apiKey) return null;
+  if (!isGateway || !hasWebhookSecret) return null;
 
   const recentEvents = eventsQuery.data ?? [];
 
@@ -85,6 +87,7 @@ function GatewayWebhookHint({
     })
       .then((result) => {
         toast.success("Nova API key gerada — copiada para a área de transferência.");
+        setNewWebhookKey(result.webhookApiKey);
         void navigator.clipboard.writeText(result.webhookApiKey);
         return queryClient.invalidateQueries({ queryKey: ["school", "integrations"] });
       })
@@ -122,12 +125,17 @@ function GatewayWebhookHint({
         </Button>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[10px]">
-          {apiKey}
-        </code>
-        <Button type="button" size="sm" variant="outline" onClick={() => copy("API key", apiKey)}>
-          Copiar API key
-        </Button>
+        <span className="min-w-0 flex-1 text-[11px] text-muted-foreground">
+          {newWebhookKey
+            ? "Nova chave disponível apenas nesta sessão. Guarde-a agora no portal bancário."
+            : "Chave guardada no servidor; por segurança não é reenviada ao navegador."}
+        </span>
+        {newWebhookKey ? (
+          <Button type="button" size="sm" variant="outline"
+            onClick={() => copy("Nova API key", newWebhookKey)}>
+            Copiar nova chave
+          </Button>
+        ) : null}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button type="button" size="sm" variant="destructive" disabled={rotating}>
@@ -399,7 +407,8 @@ function AcademicIntegrationsCatalog() {
                       </Button>
                     </form>
                   )}
-                  <GatewayWebhookHint provider={item.id} config={config} />
+                  <GatewayWebhookHint provider={item.id} config={config}
+                    hasWebhookSecret={Boolean(item.hasStoredSecret.webhookApiKey)} />
                 </li>
               );
             })}
