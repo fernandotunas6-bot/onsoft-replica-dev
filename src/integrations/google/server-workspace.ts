@@ -3,10 +3,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import type { WorkspaceService } from "./workspace-services";
 
-async function scopedApi(userId: string) {
+async function scopedApi(userId: string, action?: string) {
   const { resolveSgaMembershipAdmin } = await import("@/integrations/supabase/sga-admin");
   const membership = await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Não existe escola activa associada.");
+  if (action) {
+    const { assertWorkspaceWriteRateLimit } = await import("./workspace-rate-limit.server");
+    assertWorkspaceWriteRateLimit({ userId, schoolId: membership.schoolId, action });
+  }
   const { getWorkspaceAccessToken } = await import("./workspace-vault.server");
   const { createWorkspaceApi } = await import("./workspace-api");
   return { membership, api: createWorkspaceApi((service: WorkspaceService) =>
@@ -83,7 +87,7 @@ export const triggerStudentWelcomeEmailServerFn = createServerFn({ method: "POST
     if (!data.recipientEmail?.includes("@") || !data.studentName?.trim()) {
       throw new Error("Dados do destinatário inválidos.");
     }
-    const { api, membership } = await scopedApi(context.userId);
+    const { api, membership } = await scopedApi(context.userId, "gmail.send");
     const body = [
       `Olá, ${data.studentName}.`,
       `Confirmamos a sua matrícula em ${membership.schoolName ?? "a escola"}.`,
@@ -125,7 +129,7 @@ export const syncCalendarEvent = createServerFn({ method: "POST" })
         Date.parse(data.endDateTime) <= Date.parse(data.startDateTime)) {
       throw new Error("Evento ou intervalo de datas inválido.");
     }
-    const { api } = await scopedApi(context.userId);
+    const { api } = await scopedApi(context.userId, "calendar.create");
     const event = await api.calendarCreate({
       title: data.title, start: data.startDateTime,
       end: data.endDateTime, description: data.description,
@@ -143,7 +147,7 @@ export const sendGmailNotification = createServerFn({ method: "POST" })
     if (!data.to?.includes("@") || !data.subject?.trim() || !data.bodyHtml?.trim()) {
       throw new Error("Destinatário, assunto ou mensagem inválidos.");
     }
-    const { api } = await scopedApi(context.userId);
+    const { api } = await scopedApi(context.userId, "gmail.send");
     const text = data.bodyHtml.replace(/<br\s*\/?\s*>/gi, "\n")
       .replace(/<\/p>/gi, "\n").replace(/<[^>]*>/g, " ")
       .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").trim();
@@ -161,7 +165,7 @@ export const exportToGoogleSheets = createServerFn({ method: "POST" })
         data.rows.some((row) => row.length !== data.headers.length)) {
       throw new Error("Relatório Sheets inválido ou demasiado extenso.");
     }
-    const { api } = await scopedApi(context.userId);
+    const { api } = await scopedApi(context.userId, "sheets.create");
     const sheet = await api.sheetsCreate(data.title);
     const expected = data.rows.length + 1;
     const appended = await api.sheetsAppend(
@@ -184,7 +188,7 @@ export const createGoogleTask = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<{ success: boolean; taskId?: string; message: string }> => {
     if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
     if (!data.title?.trim()) throw new Error("Título da tarefa obrigatório.");
-    const { api } = await scopedApi(context.userId);
+    const { api } = await scopedApi(context.userId, "tasks.create");
     const task = await api.tasksCreate(data.title, data.notes);
     return { success: true, taskId: task.id,
       message: "Google Tasks confirmou a criação da tarefa." };
