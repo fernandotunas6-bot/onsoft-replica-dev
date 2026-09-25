@@ -97,6 +97,31 @@ class RestoreWorkflow(unittest.TestCase):
             self.assertEqual(code, 1)
             self.assertEqual([call.args[0] for call in api.call_args_list], ["GET"])
 
+    def test_restores_notification_template_and_disabled_state(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "notification-original.json"
+            desired = {
+                "mailer_subjects_identity_linked_notification": "Earlier alert",
+                "mailer_notifications_identity_linked_enabled": False,
+            }
+            path.write_text(json.dumps(desired), encoding="utf-8")
+            current = {
+                "mailer_subjects_identity_linked_notification": "New alert",
+                "mailer_notifications_identity_linked_enabled": True,
+            }
+            code, _, _, api = self.run_command(
+                [str(path), "--apply", "--confirm-production",
+                 "--backup-dir", str(Path(d) / "previous-live")],
+                request_side_effect=[current, {}, desired],
+            )
+            self.assertEqual(code, 0)
+            self.assertEqual([call.args[0] for call in api.call_args_list],
+                             ["GET", "PATCH", "GET"])
+            self.assertEqual(api.call_args_list[1].args[2], desired)
+            backups = list((Path(d) / "previous-live").glob("*.json"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(json.loads(backups[0].read_text(encoding="utf-8")), current)
+
     def test_restore_changes_only_backed_up_fields_with_readback(self):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "original.json"
