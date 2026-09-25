@@ -35,7 +35,15 @@ const operation = z.discriminatedUnion("action", [
   school.extend({ action: z.literal("calendar.create"), title: short,
     start: z.string().datetime({ offset: true }), end: z.string().datetime({ offset: true }),
     description: z.string().max(4000).optional(), location: z.string().max(500).optional(),
-    attendees: z.array(email).max(50).optional() }),
+    attendees: z.array(email).max(50).optional(),
+    recurrence: z.array(z.string().trim().min(1).max(500)).max(5).optional(),
+    reminders: z.object({
+      useDefault: z.boolean(),
+      overrides: z.array(z.object({
+        method: z.enum(["email", "popup"]),
+        minutes: z.number().int().min(0).max(40320),
+      })).max(5).optional(),
+    }).optional() }),
   school.extend({ action: z.literal("gmail.send"), to: email,
     subject: short, text: z.string().trim().min(1).max(30_000) }),
   school.extend({ action: z.literal("tasks.list") }),
@@ -86,6 +94,7 @@ export const executeGoogleWorkspaceOperation = createServerFn({ method: "POST" }
       case "calendar.create": return api.calendarCreate({
         title: data.title, start: data.start, end: data.end, description: data.description,
         location: data.location, attendees: data.attendees,
+        recurrence: data.recurrence, reminders: data.reminders,
       });
       case "gmail.send": return api.gmailSend(data.to, data.subject, data.text);
       case "tasks.list": return api.tasksList();
