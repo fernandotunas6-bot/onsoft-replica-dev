@@ -79,8 +79,6 @@ export const reviewSchoolAccessRequest=createServerFn({method:"POST"})
     throw new Error("Esta solicitação já foi concluída.");
   if(data.decision==="approved"){
    // Aprovação inicial: permite iniciar o cadastro, sem criar membership nem matrícula.
-   if(request.requested_role!=="student")
-    throw new Error("Para pessoal e encarregados, use o processo específico de validação institucional.");
    const {error}=await db.from("school_access_requests").update({
     status:"approved",review_note:data.note||null,reviewed_by:context.userId,
     reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()
