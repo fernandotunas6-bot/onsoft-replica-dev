@@ -43,6 +43,67 @@ simples** no worker, não como secrets — aparecem na listagem de bindings de q
 `wrangler deploy`. A chave de serviço ignora o RLS por completo; numa base multi-inquilino
 isso é a chave do reino. Passá-las a `wrangler secret` não muda o código que as lê.
 
+## Ciclo 102 — Identidade única e vinculação institucional (2026-09-25)
+
+Uma identidade (`auth.users`), vários vínculos (`school_memberships` + `member_roles`), um
+papel por escola. O sistema passa a distinguir três situações:
+
+1. **Conta com vínculo activo:** abre o painel, como antes (escolha de escola já existia).
+2. **Conta sem vínculo:** `RouteAccessGate` mostra `InstitutionOnboarding` em vez de
+   "acesso não autorizado". Opção A → assistente WEB de criação de escola. Opção B →
+   pedido de acesso: identificação → escolha da escola → pedido → verificação → acesso.
+3. **Pessoa nova:** separador **Criar conta** no `AuthGate` (`supabase.auth.signUp`).
+   Cria só a identidade, sem vínculo. A resposta é a mesma exista ou não o e-mail.
+
+**Mudança de política, deliberada:** o login Google de uma conta sem escola **deixou de
+apagar a conta** (`verify-oauth-account-server.ts` removido). Continua sem acesso a dados:
+tudo o que exige membership é recusado no servidor. A pessoa passa a ver o painel de
+boas-vindas.
+
+**Secretaria:** painel **Solicitações de acesso** no topo de `/acessos`. Tem os estados
+pendente, em análise, informação pedida, aprovado, rejeitado e cancelado. A aprovação cria
+ou activa **só** o vínculo e o papel. Não cria matrícula, contrato nem cadastro. Só liga
+`people.user_id` quando o revisor marca a opção e o cadastro não tem conta. Regras (puras,
+em `institutional-link.ts`):
+- "Administrador" nunca se concede por pedido.
+- Secretaria/Tesouraria só se concedem por um Administrador.
+- Ninguém decide o próprio pedido.
+- Um membership `suspended` não é reactivado por aqui.
+
+Cada decisão fica em `audit_logs` (`entity_type = school_access_request`). O aviso por
+e-mail (Resend) é de melhor esforço e só corre com `RESEND_API_KEY`.
+
+**Cadastro encontrado:** só com dois factores na mesma escola (B.I. + número de
+aluno/funcionário; o encarregado usa o número do educando). O requerente nunca sabe se
+houve correspondência. A pesquisa de escola usa `name`, `commercial_name`, `public_code`
+(código da escola) e o slug do tenant, e não devolve contactos.
+
+**Também corrigido:** `resolveUserLinkedEntities` localizava a pessoa em `people` por
+e-mail mesmo sem confirmação. Agora só usa e-mail confirmado (`email_confirmed_at`).
+
+**Os testes de esquema apanharam três colunas que não existem em produção**, já corrigidas
+antes do commit: `schools.short_name`, `schools.deleted_at` e `students.registration_number`.
+
+### Por fazer (bloqueia o deploy desta funcionalidade)
+
+- **Aplicar `20260925090000_school_access_requests.sql`** (também no fim de
+  `APPLY_ENROLLMENT_AND_PREMIUM.sql`). Depois, retirar `school_access_requests` de
+  `TABELAS_AUSENTES_DA_PRODUCAO` em `tests/security/production-snapshot.test.ts` e
+  actualizar o retrato. Sem a tabela, o painel e a fila dizem que os pedidos não estão
+  activos. Não fingem.
+- **Supabase Auth:** confirmar "Confirm email" **ligado** e novos registos permitidos. A
+  ligação de identidades Google ↔ senha é automática no Supabase só para e-mails
+  verificados, e é isso que evita contas duplicadas. Não há fusão manual de contas no código.
+
+### Achados por decidir, não tocados
+
+- `resolveBiToEmailFn` (login por B.I.) é público e **devolve o e-mail** associado a um
+  B.I. (10 consultas/min por IP). Não dá acesso sem a senha, mas permite descobrir e-mails
+  a partir de B.I.s. Correcção possível: fazer o `signInWithPassword` no servidor e
+  devolver só a sessão. Não foi feito porque os limites de taxa do Supabase Auth passariam
+  a contar pelo IP do worker, partilhado por todos.
+- O limite de taxa é em memória, por isolado (ver `src/lib/rate-limit.ts`).
+
 ## Estado (2026-09-20)
 
 ## Estado (2026-09-20)

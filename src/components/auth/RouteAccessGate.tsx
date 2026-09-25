@@ -4,6 +4,7 @@ import { ShieldAlert } from "lucide-react";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { PageLoading } from "@/components/ui/page-loading";
+import { InstitutionOnboarding } from "@/components/auth/InstitutionOnboarding";
 
 export function RouteAccessGate({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -46,6 +47,12 @@ export function RouteAccessGate({ children }: { children: ReactNode }) {
         </div>
       </main>
     );
+  }
+
+  // Identidade autenticada sem nenhum vínculo activo: não há painel a abrir.
+  // Em vez de "acesso não autorizado", oferece criar escola ou pedir acesso.
+  if (account.profile.data && !account.profile.data.school_id && pathname !== "/alterar-senha") {
+    return <InstitutionOnboarding displayName={account.name} />;
   }
 
   const missingProfile = !account.profile.data && pathname !== "/alterar-senha";

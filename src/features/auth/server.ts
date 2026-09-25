@@ -256,10 +256,14 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
     let metaPhone = "";
     let emailName = "";
     let authEmail = "";
+    // Só um e-mail confirmado serve para localizar o cadastro em `people`: um
+    // e-mail por verificar pode ter sido escrito por qualquer pessoa.
+    let authEmailVerified = false;
     try {
       const { data: uData } = await db.auth.admin.getUserById(context.userId);
       const authUser = uData.user;
       authEmail = authUser?.email ?? "";
+      authEmailVerified = Boolean(authUser?.email_confirmed_at);
       metaName =
         typeof authUser?.user_metadata?.["full_name"] === "string"
           ? String(authUser.user_metadata["full_name"]).trim()
@@ -324,7 +328,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
         db,
         membership.schoolId,
         context.userId,
-        authEmail,
+        authEmailVerified ? authEmail : null,
       );
     }
 

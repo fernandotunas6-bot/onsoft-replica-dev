@@ -16,6 +16,7 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { AccessRequestsPanel } from "@/features/access/AccessRequestsPanel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
@@ -552,6 +553,8 @@ function AcessosPage() {
         />
 
         <InstalledModuleTools module="comunicacoes" />
+
+        <AccessRequestsPanel />
 
         <StatGrid
           collapsible

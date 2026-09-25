@@ -19,7 +19,6 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 import { ensureDevBypassSession } from "@/features/auth/dev-bypass.server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +74,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [mfaCode, setMfaCode] = useState("");
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
     try {
@@ -175,65 +175,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
+      // Uma conta sem vínculo escolar (ex.: primeiro login Google) entra na
+      // sessão mas não vê dados de escola nenhuma: o RouteAccessGate mostra-lhe
+      // o painel de integração institucional, e o servidor recusa tudo o que
+      // exija membership. A identidade prova QUEM é; só um vínculo aprovado
+      // decide O QUE pode ver.
       if (event === "SIGNED_IN" && nextSession) {
         localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
-
-        // Login OAuth (Google) cria a conta auth.users automaticamente para
-        // e-mails nunca vistos — ao contrário do login por senha, que só
-        // existe para contas já provisionadas por um administrador. Sem esta
-        // verificação, qualquer conta Google entraria numa sessão "limbo",
-        // sem escola associada. Só corre para sessões vindas do fluxo OAuth
-        // (marcador definido em signInWithGoogle), nunca no bootstrap normal.
-        let oauthPending = false;
-        try {
-          oauthPending = sessionStorage.getItem("siga:oauth-pending") === "1";
-        } catch {
-          oauthPending = false;
-        }
-        if (oauthPending) {
-          try {
-            sessionStorage.removeItem("siga:oauth-pending");
-          } catch {
-            /* ignore */
-          }
-          void (async () => {
-            try {
-              const { verifyOAuthAccountFn } =
-                await import("@/features/auth/verify-oauth-account-server");
-              const verification = await verifyOAuthAccountFn();
-              if (!active) return;
-              if (!verification.authorized) {
-                // O servidor já apagou a conta auth.users criada pelo OAuth —
-                // aqui só limpamos a sessão local, que ficou órfã.
-                await supabase.auth.signOut({ scope: "local" });
-                if (!active) return;
-                setSession(null);
-                setChecking(false);
-                setSubmitting(false);
-                setError(
-                  "Esta conta Google não está associada a nenhuma escola no SIGA. Peça ao administrador da sua instituição para a convidar.",
-                );
-                return;
-              }
-            } catch {
-              // Falha ao verificar associação: não deixar a sessão passar sem
-              // confirmação — mais seguro exigir novo login do que assumir.
-              if (!active) return;
-              await supabase.auth.signOut({ scope: "local" });
-              if (!active) return;
-              setSession(null);
-              setChecking(false);
-              setSubmitting(false);
-              setError("Não foi possível confirmar a conta. Tente novamente.");
-              return;
-            }
-            if (!active) return;
-            setSession(nextSession);
-            setChecking(false);
-            setSubmitting(false);
-          })();
-          return;
-        }
       }
       setSession(nextSession);
       setChecking(false);
@@ -404,24 +352,70 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     setError(null);
     setInfo(null);
-    try {
-      sessionStorage.setItem("siga:oauth-pending", "1");
-    } catch {
-      /* ignore — a verificação pós-login ainda corre no bootstrap se falhar */
-    }
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
     });
     if (oauthError) {
-      try {
-        sessionStorage.removeItem("siga:oauth-pending");
-      } catch {
-        /* ignore */
-      }
       setError("Não foi possível iniciar sessão com o Google. Tente novamente.");
     }
     // Em sucesso, o browser navega para o Google — nada mais a fazer aqui.
+  };
+
+  /**
+   * Criação de conta pela primeira vez. Cria só a identidade (auth.users) —
+   * nenhum vínculo escolar. O e-mail tem de ser confirmado antes do primeiro
+   * login, e é isso que permite ao Supabase ligar, mais tarde, a mesma pessoa
+   * pelo Google sem duplicar a conta (só liga identidades com e-mail
+   * verificado). A resposta é igual exista ou não o e-mail, para não revelar
+   * contas registadas.
+   */
+  const signUp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const fullName = String(form.get("fullName") ?? "").trim();
+    const email = String(form.get("email") ?? "")
+      .trim()
+      .toLowerCase();
+    const password = String(form.get("password") ?? "");
+    const confirm = String(form.get("confirmPassword") ?? "");
+    setError(null);
+    setInfo(null);
+    if (fullName.length < 3) return setError("Indique o nome completo.");
+    if (!email.includes("@")) return setError("Indique um endereço de e-mail válido.");
+    if (password.length < 8) return setError("A senha deve ter pelo menos 8 caracteres.");
+    if (password !== confirm) return setError("As senhas não coincidem.");
+
+    setSubmitting(true);
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      if (signUpError) {
+        setError(
+          /password/i.test(signUpError.message)
+            ? "A senha não cumpre a política de segurança. Use uma senha mais forte."
+            : mapSignInError(signUpError.message),
+        );
+        return;
+      }
+      // Com confirmação de e-mail activa não há sessão: a pessoa confirma e entra.
+      if (!data.session) {
+        setMode("signin");
+        setInfo(
+          "Se este e-mail ainda não tiver conta, enviámos um link de confirmação. Confirme-o e depois inicie sessão.",
+        );
+      }
+    } catch {
+      setError("Não foi possível contactar o serviço de autenticação.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (checking) {
@@ -489,17 +483,45 @@ export function AuthGate({ children }: { children: ReactNode }) {
             )}
 
             <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-center">
-              Iniciar sessão
+              {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
             </h2>
             <p className="mt-1.5 text-xs text-muted-foreground text-center">
-              Introduza as credenciais da conta no portal SIGA.
+              {mode === "signup"
+                ? "Uma só identidade para todas as escolas a que pertencer."
+                : "Entre com Google, e-mail ou Nº de BI."}
             </p>
-            <p className="mt-1 text-xs text-center">
-              Ainda não tem escola?{" "}
-              <a href={getCreateSchoolUrl()} className="font-semibold text-primary hover:underline">
-                Criar a minha escola
-              </a>
-            </p>
+            <div
+              role="tablist"
+              aria-label="Modo de acesso"
+              className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-xs font-semibold"
+              hidden={Boolean(mfaFactorId)}
+            >
+              {(
+                [
+                  ["signin", "Já tenho conta"],
+                  ["signup", "Criar conta"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === value}
+                  onClick={() => {
+                    setMode(value);
+                    setError(null);
+                    setInfo(null);
+                  }}
+                  className={`rounded-lg px-3 py-1.5 transition-colors ${
+                    mode === value
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
             {error ? (
               <p
@@ -596,7 +618,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               className="mt-6 space-y-4"
               onSubmit={signIn}
               aria-busy={submitting}
-              hidden={Boolean(mfaFactorId)}
+              hidden={Boolean(mfaFactorId) || mode === "signup"}
             >
               <div className="space-y-1.5">
                 <Label htmlFor="login-email" className="text-xs font-medium">
@@ -684,6 +706,81 @@ export function AuthGate({ children }: { children: ReactNode }) {
               </button>
             </form>
 
+            {mode === "signup" && !mfaFactorId ? (
+              <form className="mt-6 space-y-4" onSubmit={signUp} aria-busy={submitting}>
+                <div className="space-y-1.5">
+                  <Label htmlFor="signup-name" className="text-xs font-medium">
+                    Nome completo
+                  </Label>
+                  <Input
+                    id="signup-name"
+                    name="fullName"
+                    autoComplete="name"
+                    required
+                    minLength={3}
+                    maxLength={160}
+                    className="h-10 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="signup-email" className="text-xs font-medium">
+                    E-mail
+                  </Label>
+                  <Input
+                    id="signup-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="h-10 text-sm"
+                    placeholder="nome@exemplo.ao"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-password" className="text-xs font-medium">
+                      Senha
+                    </Label>
+                    <Input
+                      id="signup-password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-confirm" className="text-xs font-medium">
+                      Confirmar senha
+                    </Label>
+                    <Input
+                      id="signup-confirm"
+                      name="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] leading-4 text-muted-foreground">
+                  Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar a
+                  sua escola ou pedir acesso à secretaria da escola a que pertence.
+                </p>
+                <Button
+                  type="submit"
+                  className="w-full gap-2 h-10 text-sm font-semibold"
+                  disabled={submitting}
+                >
+                  {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {submitting ? "A criar conta…" : "Criar conta"}
+                </Button>
+              </form>
+            ) : null}
+
             <div className="mt-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
               ou
@@ -714,7 +811,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
                 />
               </svg>
-              Entrar com Google
+              {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
             </Button>
 
             {installPrompt && (
