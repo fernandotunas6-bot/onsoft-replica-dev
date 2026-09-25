@@ -21,6 +21,7 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 import { ensureDevBypassSession } from "@/features/auth/dev-bypass.server";
+import { shouldVerifyGoogleOAuthSession } from "@/features/auth/google-oauth-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,6 +122,30 @@ export function AuthGate({ children }: { children: ReactNode }) {
         const { data } = await supabase.auth.getSession();
         if (!active) return;
         if (data.session) {
+          if (shouldVerifyGoogleOAuthSession(data.session)) {
+            try {
+              const { verifyOAuthAccountFn } =
+                await import("@/features/auth/verify-oauth-account-server");
+              const verification = await verifyOAuthAccountFn();
+              if (!active) return;
+              if (!verification.authorized) {
+                await supabase.auth.signOut({ scope: "local" });
+                if (!active) return;
+                setSession(null);
+                setError("Esta conta não tem um vínculo institucional activo no SIGA.");
+                setChecking(false);
+                return;
+              }
+            } catch {
+              if (!active) return;
+              await supabase.auth.signOut({ scope: "local" });
+              if (!active) return;
+              setSession(null);
+              setError("Não foi possível confirmar as permissões da conta Google.");
+              setChecking(false);
+              return;
+            }
+          }
           setSession(data.session);
           setChecking(false);
           return;
@@ -190,7 +215,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         } catch {
           oauthPending = false;
         }
-        if (oauthPending) {
+        if (shouldVerifyGoogleOAuthSession(nextSession, oauthPending)) {
           try {
             sessionStorage.removeItem("siga:oauth-pending");
           } catch {
@@ -203,8 +228,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               const verification = await verifyOAuthAccountFn();
               if (!active) return;
               if (!verification.authorized) {
-                // O servidor já apagou a conta auth.users criada pelo OAuth —
-                // aqui só limpamos a sessão local, que ficou órfã.
+                // Rejeitar apenas a sessão local; nunca apagar auth.users por falta de vínculo.
                 await supabase.auth.signOut({ scope: "local" });
                 if (!active) return;
                 setSession(null);
@@ -411,7 +435,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
+      options: {
+        // Supabase handles Google's callback; return to the current SIGA origin.
+        redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+      },
     });
     if (oauthError) {
       try {
