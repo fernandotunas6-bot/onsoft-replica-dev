@@ -138,8 +138,18 @@ export const syncCalendarEvent = createServerFn({ method: "POST" })
 export const sendGmailNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleGmailSendInput) => data)
-  .handler(async (): Promise<{ success: boolean; messageId?: string; message: string }> =>
-    unavailableWorkspaceOperation());
+  .handler(async ({ data, context }): Promise<{ success: boolean; messageId?: string; message: string }> => {
+    if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
+    if (!data.to?.includes("@") || !data.subject?.trim() || !data.bodyHtml?.trim()) {
+      throw new Error("Destinatário, assunto ou mensagem inválidos.");
+    }
+    const { api } = await scopedApi(context.userId);
+    const text = data.bodyHtml.replace(/<br\\s*\\/?\\s*>/gi, "\\n")
+      .replace(/<\\/p>/gi, "\\n").replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").trim();
+    const message = await api.gmailSend(data.to, data.subject, text);
+    return { success: true, messageId: message.id, message: "Gmail confirmou o envio." };
+  });
 
 export const exportToGoogleSheets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
