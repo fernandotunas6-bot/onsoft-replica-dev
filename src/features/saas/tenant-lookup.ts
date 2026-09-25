@@ -17,6 +17,12 @@ import { validateTenantSlug, isReservedSubdomain } from "@/lib/saas/platform-dom
 const PUBLIC_TENANT_SELECT =
   "id, name, slug, status, plan_id, subscription_status, trial_ends_at, max_students, max_storage_gb, created_at, updated_at, plans(*), tenant_usage(active_students_count)" as const;
 
+/** Tabela/relação em falta no SGA (42P01 / PGRST205 / PGRST200): tratar como "sem tenant". */
+function isMissingRelationError(error: { code?: string | null } | null | undefined): boolean {
+  const code = error?.code ?? "";
+  return code === "42P01" || code === "PGRST205" || code === "PGRST200" || code === "42703";
+}
+
 function mapTenantRow(tenant: Record<string, unknown>): Tenant {
   const usage = tenant.tenant_usage as
     { active_students_count?: number }[] | { active_students_count?: number } | undefined;
@@ -34,7 +40,10 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
     .select(PUBLIC_TENANT_SELECT)
     .eq("slug", slug.trim().toLowerCase())
     .maybeSingle();
-  if (error) throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
+  if (error) {
+    if (isMissingRelationError(error)) return null;
+    throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
+  }
   if (!tenant) return null;
   return mapTenantRow(tenant as Record<string, unknown>);
 }
@@ -62,6 +71,7 @@ export async function fetchTenantBySchoolId(schoolId: string): Promise<Tenant | 
     .select("tenant_id")
     .eq("id", schoolId)
     .maybeSingle();
+  if (schoolError && isMissingRelationError(schoolError)) return null;
   if (schoolError) throw publicDatabaseError(schoolError, "Não foi possível resolver a escola.");
   if (!school?.tenant_id) return null;
 
@@ -70,7 +80,10 @@ export async function fetchTenantBySchoolId(schoolId: string): Promise<Tenant | 
     .select(PUBLIC_TENANT_SELECT)
     .eq("id", school.tenant_id)
     .maybeSingle();
-  if (error) throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
+  if (error) {
+    if (isMissingRelationError(error)) return null;
+    throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
+  }
   if (!tenant) return null;
   return mapTenantRow(tenant as Record<string, unknown>);
 }
@@ -86,7 +99,10 @@ export async function fetchTenantByHostname(hostname: string): Promise<Tenant | 
     .eq("hostname", host)
     .eq("status", "active")
     .maybeSingle();
-  if (domainErr) throw publicDatabaseError(domainErr, "Não foi possível resolver o domínio.");
+  if (domainErr) {
+    if (isMissingRelationError(domainErr)) return null;
+    throw publicDatabaseError(domainErr, "Não foi possível resolver o domínio.");
+  }
   if (!domain?.tenant_id) return null;
 
   const { data: tenant, error } = await db
@@ -94,7 +110,10 @@ export async function fetchTenantByHostname(hostname: string): Promise<Tenant | 
     .select(PUBLIC_TENANT_SELECT)
     .eq("id", domain.tenant_id)
     .maybeSingle();
-  if (error) throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
+  if (error) {
+    if (isMissingRelationError(error)) return null;
+    throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
+  }
   if (!tenant) return null;
   return mapTenantRow(tenant as Record<string, unknown>);
 }
