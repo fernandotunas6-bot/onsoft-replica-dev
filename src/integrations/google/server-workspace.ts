@@ -154,8 +154,29 @@ export const sendGmailNotification = createServerFn({ method: "POST" })
 export const exportToGoogleSheets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleSheetExportInput) => data)
-  .handler(async (): Promise<{ success: boolean; spreadsheetUrl?: string; message: string }> =>
-    unavailableWorkspaceOperation());
+  .handler(async ({ data, context }): Promise<{ success: boolean; spreadsheetUrl?: string; message: string }> => {
+    if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
+    if (!data.title?.trim() || !data.headers?.length ||
+        data.headers.length > 50 || data.rows.length > 500 ||
+        data.rows.some((row) => row.length !== data.headers.length)) {
+      throw new Error("Relatório Sheets inválido ou demasiado extenso.");
+    }
+    const { api } = await scopedApi(context.userId);
+    const sheet = await api.sheetsCreate(data.title);
+    const expected = data.rows.length + 1;
+    const appended = await api.sheetsAppend(
+      sheet.spreadsheetId, "A1", [data.headers, ...data.rows],
+    );
+    if (appended.updatedRows < expected) {
+      throw new Error("Folha criada, mas o Google não confirmou todas as linhas.");
+    }
+    return {
+      success: true,
+      spreadsheetUrl: sheet.spreadsheetUrl ??
+        `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheet.spreadsheetId)}`,
+      message: `Google Sheets confirmou ${appended.updatedRows} linhas.`,
+    };
+  });
 
 export const createGoogleTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
