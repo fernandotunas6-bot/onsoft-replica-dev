@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { submitPublicEnrollmentInputSchema } from "@/features/enrollment/schemas";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -25,7 +26,7 @@ export const listMySchoolAccessRequests=createServerFn({method:"GET"})
  .handler(async({context})=>{
   const db=await loadSgaAdminClient();
   const {data,error}=await db.from("school_access_requests")
-   .select("id,school_id,requested_role,status,review_note,created_at,schools(name)")
+   .select("id,school_id,requested_role,status,review_note,created_at,enrollment_application_id,schools(name)")
    .eq("user_id",context.userId).order("created_at",{ascending:false}).limit(30);
   if(error)throw publicDatabaseError(error,"Não foi possível consultar as suas solicitações.");
   return data??[];
@@ -59,7 +60,7 @@ export const listSchoolAccessRequests=createServerFn({method:"GET"})
   const membership=await requireSecretary(context.userId);
   const db=await loadSgaAdminClient();
   const {data,error}=await db.from("school_access_requests")
-    .select("id,school_id,full_name,national_id,institutional_id,requested_role,status,review_note,created_at,reviewed_at,person_id")
+    .select("id,school_id,full_name,national_id,institutional_id,requested_role,status,review_note,created_at,reviewed_at,person_id,enrollment_application_id")
     .eq("school_id",membership.schoolId).order("created_at",{ascending:false}).limit(100);
   if(error)throw publicDatabaseError(error,"Não foi possível consultar os pedidos.");
   return data??[];
@@ -77,16 +78,15 @@ export const reviewSchoolAccessRequest=createServerFn({method:"POST"})
   if(!["pending","under_review","needs_information"].includes(request.status))
     throw new Error("Esta solicitação já foi concluída.");
   if(data.decision==="approved"){
-   // Pessoa deve ser escolhida e confirmada pela secretaria: nunca usar correspondência automática.
-   if(!data.personId)throw new Error("Seleccione e confirme o cadastro de Pessoa antes da aprovação.");
-   const {data:person}=await db.from("people").select("id,user_id")
-    .eq("id",data.personId).eq("school_id",membership.schoolId).is("deleted_at",null).maybeSingle();
-   if(!person||person.user_id&&person.user_id!==request.user_id)
-    throw new Error("Cadastro inexistente ou já associado a outra conta.");
-   const {error}=await db.rpc("approve_school_access_request",{
-    p_request_id:data.requestId,p_reviewer_id:context.userId,p_person_id:data.personId
-   });
-   if(error)throw publicDatabaseError(error,"Não foi possível concluir a aprovação.");
+   // Aprovação inicial: permite iniciar o cadastro, sem criar membership nem matrícula.
+   if(request.requested_role!=="student")
+    throw new Error("Para pessoal e encarregados, use o processo específico de validação institucional.");
+   const {error}=await db.from("school_access_requests").update({
+    status:"approved",review_note:data.note||null,reviewed_by:context.userId,
+    reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()
+   }).eq("id",request.id).eq("school_id",membership.schoolId)
+    .in("status",["pending","under_review","needs_information"]);
+   if(error)throw publicDatabaseError(error,"Não foi possível autorizar o cadastro.");
   }else{
    const {error}=await db.from("school_access_requests").update({
     status:data.decision,review_note:data.note||null,reviewed_by:context.userId,
@@ -99,7 +99,7 @@ export const reviewSchoolAccessRequest=createServerFn({method:"POST"})
   await db.from("notifications").insert({
    school_id:membership.schoolId,user_id:request.user_id,channel:"in_app",
    event_type:"school_access_review",title:"Actualização do pedido de acesso",
-   body:data.decision==="approved"?"O acesso à instituição foi aprovado.":"A secretaria actualizou o seu pedido de acesso.",
+   body:data.decision==="approved"?"A escola autorizou o início do cadastro. Preencha a candidatura; o acesso escolar só será concedido após confirmação da matrícula.":"A secretaria actualizou o seu pedido de acesso.",
    status:"pending",payload:{request_id:request.id,decision:data.decision}
   }).then(({error})=>{if(error)console.warn("[school-access] notification unavailable",error.code)});
   return {status:data.decision};
@@ -136,4 +136,50 @@ export const listMatchingPeopleForAccessRequest=createServerFn({method:"GET"})
    }
   }
   return [...found.values()];
+ });
+
+/** Etapa 2: reutilizar o formulário académico oficial sem permitir envio antes da pré-aprovação. */
+export const getApprovedEnrollmentForm=createServerFn({method:"GET"})
+ .middleware([requireSupabaseAuth])
+ .validator((input:unknown)=>z.object({requestId:z.string().uuid()}).parse(input))
+ .handler(async({data,context})=>{
+  const db=await loadSgaAdminClient();
+  const {data:request,error}=await db.from("school_access_requests")
+   .select("school_id,status,requested_role").eq("id",data.requestId)
+   .eq("user_id",context.userId).maybeSingle();
+  if(error||!request||request.status!=="approved"||request.requested_role!=="student")
+   throw new Error("O cadastro só fica disponível depois da autorização da secretaria.");
+  const {data:form,error:formError}=await db.from("enrollment_forms")
+   .select("id,slug,title,visible_fields,is_open,school_id")
+   .eq("school_id",request.school_id).eq("is_open",true).is("deleted_at",null)
+   .order("created_at").limit(1).maybeSingle();
+  if(formError||!form)throw new Error("A escola ainda não abriu o formulário de matrícula.");
+  return form;
+ });
+export const submitApprovedSchoolEnrollment=createServerFn({method:"POST"})
+ .middleware([requireSupabaseAuth])
+ .validator((input:unknown)=>z.object({
+  requestId:z.string().uuid(),enrollment:submitPublicEnrollmentInputSchema,
+ }).parse(input))
+ .handler(async({data,context})=>{
+  const db=await loadSgaAdminClient();
+  const {data:request,error}=await db.from("school_access_requests")
+   .select("id,school_id,status").eq("id",data.requestId)
+   .eq("user_id",context.userId).maybeSingle();
+  if(error||!request||request.status!=="approved")
+   throw new Error("A sua escola ainda não autorizou a candidatura.");
+  const {data:form}=await db.from("enrollment_forms").select("slug")
+   .eq("school_id",request.school_id).eq("slug",data.enrollment.slug)
+   .eq("is_open",true).is("deleted_at",null).maybeSingle();
+  if(!form)throw new Error("Formulário não pertence à escola autorizada.");
+  const {data:applicationId,error:submitError}=await db.rpc("submit_approved_school_enrollment",{
+   p_request_id:data.requestId,p_user_id:context.userId,
+   p_payload:{
+    person:data.enrollment.person,guardianName:data.enrollment.guardianName,
+    guardianPhone:data.enrollment.guardianPhone,
+    guardianRelationship:data.enrollment.guardianRelationship,
+   },
+  });
+  if(submitError)throw publicDatabaseError(submitError,"Não foi possível enviar a candidatura.");
+  return {applicationId:applicationId as string,status:"enrollment_pending" as const};
  });
