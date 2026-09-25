@@ -145,7 +145,8 @@ export const createImportJob = createServerFn({ method: "POST" })
         .eq("school_id", membership.schoolId)
         .eq("idempotency_key", data.idempotency_key)
         .maybeSingle();
-      if (existingError) {
+      // Base ainda sem a coluna (SQL do motor de importação por aplicar): segue sem idempotência.
+      if (existingError && !isMissingColumnError(existingError)) {
         throw publicDatabaseError(existingError, "Não foi possível verificar a idempotência da importação.");
       }
       if (existing) {
@@ -156,15 +157,19 @@ export const createImportJob = createServerFn({ method: "POST" })
       }
     }
 
-    const { data: job, error } = await db
+    const baseJob = {
+      school_id: membership.schoolId,
+      academic_year_id: data.academic_year_id ?? null,
+      user_id: context.userId,
+      module: data.module,
+      file_name: data.file_name,
+      total_rows: data.total_rows,
+      status: "uploaded",
+    };
+    let { data: job, error } = await db
       .from("import_jobs")
       .insert({
-        school_id: membership.schoolId,
-        academic_year_id: data.academic_year_id ?? null,
-        user_id: context.userId,
-        module: data.module,
-        file_name: data.file_name,
-        total_rows: data.total_rows,
+        ...baseJob,
         schema_version: data.schema_version,
         exchange_mode: data.exchange_mode,
         source_format: data.source_format,
@@ -172,10 +177,13 @@ export const createImportJob = createServerFn({ method: "POST" })
         idempotency_key: data.idempotency_key ?? null,
         manifest: data.manifest,
         dependency_plan: data.dependency_plan,
-        status: "uploaded",
       })
       .select("*")
       .single();
+    if (error && isMissingColumnError(error)) {
+      // Colunas novas ainda não existem na base: grava só o essencial em vez de falhar.
+      ({ data: job, error } = await db.from("import_jobs").insert(baseJob).select("*").single());
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível criar o processo de importação.");
     return job as ImportJobRecord;
   });
@@ -716,3 +724,8 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       manifest: result.manifest as Record<string, any> | undefined,
     };
   });
+
+function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "42703" || error.code === "PGRST204" || /column .* does not exist|Could not find the .* column/i.test(error.message ?? "");
+}
