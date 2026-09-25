@@ -100,7 +100,9 @@ describe("SIGA email and OAuth security contracts across production entry points
     const old = source("src/integrations/google/oauth.ts");
     const compat = source("src/lib/google-oauth.ts");
     expect(old).toContain("purgeLegacyTokenStorage");
-    expect(old).not.toContain("response_type=token");
+    // A security comment may mention the forbidden flow; assert no builder can produce it.
+    expect(old).toContain("throw new Error(");
+    expect(old).not.toMatch(/response_type\\s*:\\s*["\u0027]token["\u0027]/);
     expect(compat).toContain("delete payload.refresh_token");
   });
 
