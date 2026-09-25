@@ -64,7 +64,7 @@ const RLS_PENDING = new Set<string>([
  * Eram 23 e a razão era sempre a mesma: existiam só na base de produção, e o
  * código alterava-as sem as saber criar. A 2026-09-14 foram capturadas 18
  * delas — o DDL real, lido do catálogo do Postgres, está em
- * `supabase/migrations/20260914151906_capture_undeclared_production_tables.sql`
+ * `supabase/migrations/20260924005132_capture_undeclared_production_tables.sql`
  * (ver `npm run siga:db-ddl`). Inclui a camada financeira completa
  * (`finance_invoices`, `finance_receipts`, `finance_contracts`, `fee_plans`,
  * `fee_items`) e `school_integration_secrets`, que antes não era possível
@@ -83,7 +83,7 @@ const RLS_PENDING = new Set<string>([
  * lados, e saíram também da lista de `production-snapshot.test.ts`.
  *
  * `assessment_rule_sets` saiu no mesmo dia, com
- * `20260916140000_assessment_rule_sets.sql`. A forma não foi adivinhada: é a que
+ * `20260924005124_assessment_rule_sets.sql`. A forma não foi adivinhada: é a que
  * `private.publish_assessment_rule_version` — função que existe em produção —
  * insere, coluna a coluna. Enquanto a migração não for aplicada, essa função e
  * `configure_assessment_rules` falham com 42P01, e uma escola nova não consegue

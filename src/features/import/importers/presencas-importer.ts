@@ -1,5 +1,5 @@
 import { normalizeDate, normalizeText } from "../engine/normalize";
-import type { ImportRefCache, RowImporter } from "../engine/types";
+import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadClassGroupRefs,
   loadStudentRefs,
@@ -190,7 +190,7 @@ export const presencasImporter: RowImporter = {
 
     const existingSession = sessionCandidates?.[0] ?? null;
     let sessionId = existingSession?.id ? String(existingSession.id) : null;
-    const audits: Array<Record<string, unknown>> = [];
+    const audits: AuditEntry[] = [];
 
     if (!sessionId) {
       if (ctx.dryRun) {
