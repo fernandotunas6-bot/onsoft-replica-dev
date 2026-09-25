@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState,type FormEvent } from "react";
 import { useQuery,useQueryClient } from "@tanstack/react-query";
 import { Building2,GraduationCap,ShieldCheck,ArrowRight,Search,Send,CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ function InstitutionalWelcome(){
  const filtered=(schools.data??[]).filter(s=>[s.name,s.public_code,s.province].some(v=>String(v??"").toLowerCase().includes(search.toLowerCase())));
  if(account.profile.isPending)return <main className="min-h-screen grid place-items-center">A confirmar a sua conta…</main>;
  if(account.schoolId)return <main className="min-h-screen grid place-items-center p-6"><div className="rounded-3xl border bg-card p-8 text-center"><CheckCircle2 className="mx-auto size-10 text-green-600"/><h1 className="mt-3 text-xl font-bold">Escola confirmada</h1><Button className="mt-4" onClick={()=>void navigate({to:"/"})}>Abrir o meu painel</Button></div></main>;
- const send=async(e:React.FormEvent)=>{
+ const send=async(e:FormEvent)=>{
   e.preventDefault();setBusy(true);
   try{
    const result=await submitSchoolAccessRequest({data:{schoolId,fullName,nationalId,institutionalId,requestedRole}});
