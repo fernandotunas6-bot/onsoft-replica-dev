@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isPendingWorkspaceProvider } from "@/features/integrations/google-workspace-availability";
 import {
   disconnectedWorkspaceStatus,
   GOOGLE_WORKSPACE_SCOPES_BY_SERVICE,
@@ -6,6 +7,12 @@ import {
 } from "@/integrations/google/workspace-security";
 
 describe("Google Workspace separate consent", () => {
+  it("blocks unimplemented Google catalog installations without affecting Resend or ICS", () => {
+    expect(isPendingWorkspaceProvider("gmail_workspace")).toBe(true);
+    expect(isPendingWorkspaceProvider("google_calendar")).toBe(true);
+    expect(isPendingWorkspaceProvider("resend_email")).toBe(false);
+    expect(isPendingWorkspaceProvider("apple_calendar")).toBe(false);
+  });
   it("never equates an authenticated SIGA session with a Workspace connection", () => {
     const status = disconnectedWorkspaceStatus();
     expect(status.connected).toBe(false);
