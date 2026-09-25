@@ -10,7 +10,7 @@ The user individually connects their own Google identity for each school through
 | Drive | List files shared with the app, create folders and text files | `drive.file` |
 | Docs | Create a document | `documents` |
 | Sheets | Create a spreadsheet and append report rows without formula evaluation | `spreadsheets` |
-| Classroom | List/create courses and invite teachers or students | `classroom.courses`, `classroom.coursework.students`, `classroom.rosters` |
+| Classroom | List/create courses and invite teachers or students | `classroom.courses`, `classroom.rosters` |
 | Calendar | List/create lessons and examinations | `calendar.events` |
 | Gmail | Send explicitly requested messages | `gmail.send` |
 | Tasks | Find task lists, list and create tasks | `tasks` |
