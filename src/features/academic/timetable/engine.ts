@@ -140,6 +140,13 @@ export function cellKey(weekday: number, startsAt: string): string {
   return `${weekday}:${startsAt.slice(0, 5)}`;
 }
 
+/** Normaliza "1:07:30:00" ou "1:07:30" para "1:07:30". */
+export function normalizeCellKey(cell: string): string {
+  const sep = cell.indexOf(":");
+  if (sep < 0) return cell;
+  return `${cell.slice(0, sep)}:${cell.slice(sep + 1, sep + 6)}`;
+}
+
 export function blockKey(weekday: number, block: number): string {
   return `${weekday}:${block}`;
 }
@@ -214,11 +221,11 @@ function buildCtx(input: EngineInput): Ctx {
   };
   const teacherBusy = new Map<string, Set<string>>();
   for (const [teacherId, cells] of Object.entries(input.teacherBusy ?? {})) {
-    teacherBusy.set(teacherId, new Set(cells.map((c) => `${c.split(":")[0]}:${c.slice(c.indexOf(":") + 1, c.indexOf(":") + 6)}`)));
+    teacherBusy.set(teacherId, new Set(cells.map(normalizeCellKey)));
   }
   const roomBusy = new Map<string, Set<string>>();
   for (const [roomId, cells] of Object.entries(input.roomBusy ?? {})) {
-    roomBusy.set(roomId, new Set(cells.map((c) => `${c.split(":")[0]}:${c.slice(c.indexOf(":") + 1, c.indexOf(":") + 6)}`)));
+    roomBusy.set(roomId, new Set(cells.map(normalizeCellKey)));
   }
   const previousByCell = new Map<string, string>();
   for (const p of input.previous ?? []) previousByCell.set(blockKey(p.weekday, p.block), p.classSubjectId);
