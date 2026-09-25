@@ -1,25 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { shouldVerifyGoogleOAuthSession } from "@/features/auth/google-oauth-session";
-import type { Session } from "@supabase/supabase-js";
+import { hasInstitutionalAccess } from "@/features/auth/institutional-access";
 
-function session(provider: string): Pick<Session, "user"> {
-  return { user: { app_metadata: { provider } } as Session["user"] };
-}
-
-describe("Google OAuth session verification", () => {
-  it("checks first sign-in when the redirect marker is present", () => {
-    expect(shouldVerifyGoogleOAuthSession(session("email"), true)).toBe(true);
+describe("SIGA institutional authorization (provider-independent)", () => {
+  it("allows active school membership for any provider", () => {
+    expect(hasInstitutionalAccess(1, 0)).toBe(true);
   });
-
-  it("checks restored Google sessions after reload", () => {
-    expect(shouldVerifyGoogleOAuthSession(session("google"))).toBe(true);
+  it("allows a platform administrator without a school membership", () => {
+    expect(hasInstitutionalAccess(0, 1)).toBe(true);
   });
-
-  it("does not subject ordinary password sessions to the Google-only gate", () => {
-    expect(shouldVerifyGoogleOAuthSession(session("email"))).toBe(false);
-  });
-
-  it("does not attempt checks before a session exists", () => {
-    expect(shouldVerifyGoogleOAuthSession(null, true)).toBe(false);
+  it("denies identities with neither school membership nor platform authorization", () => {
+    expect(hasInstitutionalAccess(0, 0)).toBe(false);
   });
 });
