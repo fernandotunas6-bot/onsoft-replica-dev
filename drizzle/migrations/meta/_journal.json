@@ -155,6 +155,13 @@
       "when": 1790353108328,
       "tag": "0021_lesson_plans_and_subject_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790354505516,
+      "tag": "0022_timetable_builder_shifts_versions",
+      "breakpoints": true
     }
   ]
 }
