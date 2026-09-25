@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { InstitutionalAccessRequestsPanel } from "@/features/access/InstitutionalAccessRequestsPanel";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -399,6 +400,7 @@ function AcessosPage() {
   return (
     <AppShell>
       <div className="space-y-6">
+        <InstitutionalAccessRequestsPanel />
         <PageHeader
           group="Gestão e Comunicação"
           title="Gestão de Acessos"

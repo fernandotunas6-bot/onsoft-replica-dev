@@ -282,6 +282,7 @@ type ApplicationListRow = {
     person?: { full_name?: string; email?: string; phone_primary?: string };
     guardianName?: string;
     guardianPhone?: string;
+    accessRequestId?: string;
   } | null;
   created_at?: string;
 };
@@ -354,7 +355,7 @@ function ApplicationRow({
   const accept = async (withClass: boolean) => {
     setBusy(true);
     try {
-      await decideEnrollmentApplication({
+      const outcome=await decideEnrollmentApplication({
         data: {
           applicationId: row.id,
           decision: "accepted",
@@ -362,7 +363,7 @@ function ApplicationRow({
         },
       });
       await refresh(
-        withClass && selected
+        row.payload?.accessRequestId && !outcome.accessProvisioned ? "Matrícula aceite; a activação do acesso institucional ainda depende da secretaria." : withClass && selected
           ? `Candidatura aceite e aluno colocado em ${selected.name ?? "turma"}.`
           : "Candidatura aceite. O aluno ficou como candidato até ser colocado numa turma.",
       );
@@ -401,6 +402,7 @@ function ApplicationRow({
     <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
       <span>
         <strong>{row.full_name}</strong>
+        {row.payload?.accessRequestId?<span className="ml-2 rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700">Pedido SIGA vinculado</span>:null}
         <span className="ml-2 text-xs text-muted-foreground">{row.status}</span>
       </span>
       {row.status === "pending" ? (
@@ -423,12 +425,12 @@ function ApplicationRow({
             type="button"
             size="sm"
             variant="outline"
-            disabled={busy}
+            disabled={busy||(Boolean(row.payload?.accessRequestId)&&classGroups.length===0)}
             onClick={() => void accept(classGroups.length > 0)}
           >
             {classGroups.length > 0 ? "Aceitar e matricular" : "Aceitar"}
           </Button>
-          {classGroups.length > 0 ? (
+          {classGroups.length > 0 && !row.payload?.accessRequestId ? (
             <Button
               type="button"
               size="sm"

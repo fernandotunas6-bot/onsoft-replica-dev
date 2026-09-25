@@ -1,5 +1,6 @@
 const PUBLIC_PREFIXES = [
   "/matricula",
+  "/registar",
   "/calendario/ics",
   "/criar-escola",
   "/saas-admin",

@@ -9,6 +9,7 @@ import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getPublicEnrollmentForm, submitPublicEnrollment } from "@/features/enrollment/server";
+import { submitApprovedSchoolEnrollment } from "@/features/access/institutional-requests.server";
 import type { EnrollmentVisibleField } from "@/features/enrollment/schemas";
 import { overlayTalao } from "@/features/documents/print-overlays";
 import { printBundledTemplate } from "@/features/documents/print-issue-loader";
@@ -37,6 +38,7 @@ function hasField(fields: unknown, name: EnrollmentVisibleField) {
 
 function PublicEnrollmentPage() {
   const { slug } = Route.useParams();
+  const [accessRequestId] = useState<string | null>(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("accessRequestId") : null);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -72,8 +74,7 @@ function PublicEnrollmentPage() {
       const fullName = String(data.get("full_name") ?? "");
       const guardianName = String(data.get("guardian_name") || "") || undefined;
       const guardianPhone = String(data.get("guardian_phone") || "") || undefined;
-      const submitted = await submitPublicEnrollment({
-        data: {
+      const enrollmentInput = {
           slug,
           person: {
             full_name: fullName,
@@ -91,11 +92,13 @@ function PublicEnrollmentPage() {
           guardianName,
           guardianPhone,
           guardianRelationship: String(data.get("guardian_relationship") || "") || undefined,
-        },
-      });
+      };
+      const submitted = accessRequestId
+        ? await submitApprovedSchoolEnrollment({data:{requestId:accessRequestId,enrollment:enrollmentInput}})
+        : await submitPublicEnrollment({data:enrollmentInput});
       setReceipt({
         fullName,
-        processNumber: submitted.processNumber,
+        processNumber: "processNumber" in submitted ? submitted.processNumber : "SIGA-" + submitted.applicationId.slice(0,8).toUpperCase(),
         ...(guardianName ? { guardianName } : {}),
         ...(guardianPhone ? { guardianPhone } : {}),
       });
@@ -157,7 +160,7 @@ function PublicEnrollmentPage() {
               <CheckCircle2 className="mx-auto size-10 text-primary" />
               <h2 className="mt-4 font-display text-2xl font-extrabold">Candidatura enviada</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                A secretaria vai rever os dados e contactá-lo para confirmar a matrícula.
+                A secretaria vai rever os documentos e confirmar a matrícula. O acesso escolar ficará disponível após a aprovação final.
               </p>
               {receipt ? (
                 <p className="mt-3 text-sm font-semibold text-foreground">
@@ -261,9 +264,9 @@ function PublicEnrollmentPage() {
                     <Input id="email" name="email" type="email" />
                   </div>
                 ) : null}
-                {hasField(form?.visible_fields, "nif") ? (
+                {(Boolean(accessRequestId) || hasField(form?.visible_fields, "nif")) ? (
                   <div className="space-y-1.5">
-                    <Label htmlFor="nif">NIF / BI</Label>
+                    <Label htmlFor="nif">B.I. / NIF (quando aplicável)</Label>
                     <AngolaIdentityField id="nif" name="nif" />
                   </div>
                 ) : null}

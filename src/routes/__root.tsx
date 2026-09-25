@@ -144,15 +144,22 @@ function RootComponent() {
               <Outlet />
             ) : (
               <AuthGate>
-                <SchoolYearProvider>
-                  <SchoolBrandAppearanceSync />
-                  <EntityFocusProvider>
-                    <RouteAccessGate>
-                      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                      <Outlet />
-                    </RouteAccessGate>
-                  </EntityFocusProvider>
-                </SchoolYearProvider>
+                {pathname === "/boas-vindas" || pathname === "/criar-escola" ? (
+                  // No-school identities must never trigger school-scoped queries
+                  // before the secretary authorizes an institutional membership.
+                  <RouteAccessGate>
+                    <Outlet />
+                  </RouteAccessGate>
+                ) : (
+                  <SchoolYearProvider>
+                    <SchoolBrandAppearanceSync />
+                    <EntityFocusProvider>
+                      <RouteAccessGate>
+                        <Outlet />
+                      </RouteAccessGate>
+                    </EntityFocusProvider>
+                  </SchoolYearProvider>
+                )}
               </AuthGate>
             )}
           </div>

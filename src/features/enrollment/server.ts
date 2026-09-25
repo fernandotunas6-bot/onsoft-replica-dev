@@ -286,6 +286,33 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       .maybeSingle();
     if (loadError) throw publicDatabaseError(loadError, "Não foi possível ler a candidatura.");
     if (!application) throw new Error("Candidatura já processada ou inexistente.");
+    const {data:linkedAccessRequest,error:linkedError}=await db
+      .from("school_access_requests").select("id,status,user_id")
+      .eq("school_id",membership.schoolId)
+      .eq("enrollment_application_id",data.applicationId).maybeSingle();
+    if(linkedError)throw publicDatabaseError(linkedError,"Não foi possível verificar o vínculo institucional.");
+    if(linkedAccessRequest&&data.decision==="accepted"&&context.claims["aal"]!=="aal2")
+      throw new Error("Para validar esta matrícula institucional, active a autenticação multifator e volte a entrar.");
+    if(linkedAccessRequest&&data.decision==="accepted"&&!data.classGroupId)
+      throw new Error("Confirme a turma do candidato antes de activar as credenciais institucionais.");
+    // Confirme a turma e o ano antes de criar qualquer Pessoa/Aluno;
+    // um grupo inexistente não pode deixar cadastros órfãos num erro tardio.
+    if(linkedAccessRequest&&data.decision==="accepted"&&data.classGroupId){
+      const {data:eligibleClass,error:classValidationError}=await db.from("class_groups")
+       .select("id,academic_year_id").eq("id",data.classGroupId)
+       .eq("school_id",membership.schoolId).maybeSingle();
+      if(classValidationError)throw publicDatabaseError(classValidationError,"Não foi possível verificar a turma.");
+      if(!eligibleClass?.academic_year_id)throw new Error("Seleccione uma turma válida com ano lectivo configurado.");
+    }
+    if(linkedAccessRequest&&data.decision==="accepted"){
+      // Uma candidatura ligada pode ser tratada uma única vez, inclusive por outro operador.
+      const {data:alreadyRegistered,error:registeredError}=await db.from("enrollment_applications")
+       .select("student_id,status").eq("id",data.applicationId).eq("school_id",membership.schoolId).maybeSingle();
+      if(registeredError)throw publicDatabaseError(registeredError,"Não foi possível verificar o estado da candidatura.");
+      if(alreadyRegistered?.student_id||alreadyRegistered?.status!=="pending")
+       throw new Error("A candidatura já foi processada ou está a ser actualizada. Recarregue a lista.");
+    }
+
 
     let studentId: string | null = null;
     if (data.decision === "accepted") {
@@ -309,6 +336,18 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       const person = payload.person ?? {};
       const fullName = String(person.full_name ?? application.full_name).trim();
       const normalizedNif = normalizePersonNif(person.nif);
+      // Uma identidade institucional já matriculada não pode gerar Pessoa/Aluno duplicados.
+      // O caso deve passar por vinculação manual da secretaria ao cadastro original.
+      if(linkedAccessRequest && normalizedNif){
+        const {data:matches,error:matchesError}=await db.from("people")
+          .select("id").eq("school_id",membership.schoolId)
+          .eq("national_id",normalizedNif).is("deleted_at",null).limit(10);
+        if(matchesError)throw publicDatabaseError(matchesError,"Não foi possível validar a identificação existente.");
+        if(matches?.length){
+          throw new Error("Já existe um cadastro com este B.I. na escola. A secretaria deve confirmar a matrícula original antes de vincular esta conta; não será criado outro aluno.");
+        }
+      }
+
       const personPayload: Record<string, unknown> = {
         school_id: membership.schoolId,
         full_name: fullName,
@@ -397,6 +436,12 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         },
       );
       if (registerError) {
+        // A nova matrícula com portal vinculado nunca usa números aleatórios nem
+        // contorna a autorização AAL2 da RPC oficial. A secretaria pode regularizar a
+        // Pessoa criada nesta tentativa antes de voltar a processar a candidatura.
+        if(linkedAccessRequest){
+          throw publicDatabaseError(registerError,"O registo oficial do estudante falhou. Verifique MFA e permissões; o acesso não foi activado.");
+        }
         if (
           registerError.code === "42501" ||
           /is_aal2|autorização|permission denied/i.test(registerError.message ?? "")
@@ -448,6 +493,9 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           enrolled_on: new Date().toISOString().slice(0, 10),
         });
         if (enrollError) {
+          if(linkedAccessRequest){
+            throw publicDatabaseError(enrollError,"Não foi possível confirmar a turma com a RPC académica oficial. O acesso institucional permanece pendente.");
+          }
           if (
             enrollError.code === "42501" ||
             /is_aal2|autorização|permission denied/i.test(enrollError.message ?? "")
@@ -487,6 +535,39 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       });
     }
 
+
+    const syncInstitutionalAccess=async()=>{
+      if(!linkedAccessRequest)return {accessProvisioned:false};
+      if(data.decision==="rejected"){
+        const {error:rejectError}=await db.from("school_access_requests")
+         .update({status:"enrollment_rejected",updated_at:new Date().toISOString()})
+         .eq("id",linkedAccessRequest.id).eq("school_id",membership.schoolId)
+         .eq("status","enrollment_pending");
+        if(rejectError)throw publicDatabaseError(rejectError,"Candidatura rejeitada, mas o pedido institucional não actualizou.");
+        return {accessProvisioned:false};
+      }
+      if(!studentId)return {accessProvisioned:false};
+      const {data:student}=await db.from("students").select("person_id,student_number")
+        .eq("id",studentId).eq("school_id",membership.schoolId).maybeSingle();
+      if(!student)return {accessProvisioned:false};
+      const {error:accessError}=await db.rpc("approve_school_access_request",{
+        p_request_id:linkedAccessRequest.id,
+        p_reviewer_id:context.userId,
+        p_person_id:student.person_id,
+      });
+      if(accessError){
+        console.error("[institutional-enrollment] Matrícula confirmada; acesso pendente:",accessError.code);
+        return {accessProvisioned:false,accessError:"Matrícula aceite. A activação do portal aguarda regularização pela secretaria."};
+      }
+      await db.from("notifications").insert({
+        school_id:membership.schoolId,user_id:linkedAccessRequest.user_id,
+        channel:"in_app",event_type:"school_access_activated",
+        title:"Matrícula confirmada e acesso activado",
+        body:"A sua escola confirmou a matrícula. Entre com a senha da sua conta e o seu identificador institucional.",
+        status:"pending",payload:{request_id:linkedAccessRequest.id,student_id:studentId}
+      }).then(({error})=>{if(error)console.warn("[institutional-enrollment] Notification unavailable:",error.code)});
+      return {accessProvisioned:true,studentNumber:student.student_number};
+    };
     const updatePayload: Record<string, unknown> = {
       status: data.decision,
       decided_at: new Date().toISOString(),
@@ -523,10 +604,12 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
             "Aluno criado, mas a candidatura não actualizou.",
           );
         }
-        return { ...fallback, studentId };
+        const access=await syncInstitutionalAccess();
+        return { ...fallback, studentId,...access };
       }
       throw publicDatabaseError(error, "Não foi possível actualizar a candidatura.");
     }
     if (!row) throw new Error("Candidatura já processada ou inexistente.");
-    return { ...row, studentId };
+    const access=await syncInstitutionalAccess();
+    return { ...row, studentId,...access };
   });

@@ -127,22 +127,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
         }
 
         if (AUTH_DISABLED) {
-          try {
-            const { data: adminLogin, error: autoLoginError } =
-              await supabase.auth.signInWithPassword({
-                email: "admin@escola.ao",
-                password: "Admin@Escola2026!",
-              });
-            if (!autoLoginError && adminLogin?.session) {
-              localStorage.setItem(activityKey(adminLogin.session.user.id), String(Date.now()));
-              setSession(adminLogin.session);
-              setChecking(false);
-              return;
-            }
-          } catch {
-            // fallback to dev bypass tokens
-          }
-
           const tokens = await ensureDevBypassSession();
           if (!active) return;
           const { data: setData, error: setError } = await supabase.auth.setSession({
@@ -203,8 +187,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               const verification = await verifyOAuthAccountFn();
               if (!active) return;
               if (!verification.authorized) {
-                // O servidor já apagou a conta auth.users criada pelo OAuth —
-                // aqui só limpamos a sessão local, que ficou órfã.
+                // Se o servidor rejeitar uma sessão, limpar apenas o estado local.
                 await supabase.auth.signOut({ scope: "local" });
                 if (!active) return;
                 setSession(null);
@@ -304,7 +287,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const performSignIn = async (
     inputIdentifier: string,
     password: string,
-    options?: { remember?: boolean },
+    options?: { remember?: boolean; schoolCode?: string },
   ) => {
     setSubmitting(true);
     setError(null);
@@ -313,7 +296,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     try {
       if (!email.includes("@") && email.length >= 3) {
         const { resolveBiToEmailFn } = await import("@/features/access/server");
-        const resolved = await resolveBiToEmailFn({ data: { identifier: inputIdentifier.trim() } });
+        const resolved = await resolveBiToEmailFn({ data: { identifier: inputIdentifier.trim(), ...(options?.schoolCode ? {schoolCode:options.schoolCode} : {}) } });
         email = resolved.email;
       }
 
@@ -352,7 +335,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     const inputIdentifier = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
     const remember = String(form.get("remember") ?? "") === "on";
-    await performSignIn(inputIdentifier, password, { remember });
+    const schoolCode = String(form.get("schoolCode") ?? "").trim();
+    await performSignIn(inputIdentifier, password, { remember,schoolCode });
   };
 
   const resetPassword = async () => {
@@ -501,6 +485,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               </a>
             </p>
 
+            <p className="mt-3 text-center text-sm"><a href="/registar" className="font-semibold text-primary hover:underline">Sou novo no SIGA — criar conta</a></p>
             {error ? (
               <p
                 role="alert"
@@ -600,7 +585,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
             >
               <div className="space-y-1.5">
                 <Label htmlFor="login-email" className="text-xs font-medium">
-                  Email ou Nº de BI / NIF
+                  Email, B.I. ou ID de estudante
                 </Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -615,6 +600,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
                     placeholder="utilizador@escola.ao ou 004212984LA042"
                   />
                 </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="login-school-code" className="text-xs font-medium">Código da escola (se entrar com ID de estudante)</Label>
+                <Input id="login-school-code" name="schoolCode" type="text" className="h-10 rounded-xl text-sm" placeholder="Código atribuído pela escola"/>
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-3">

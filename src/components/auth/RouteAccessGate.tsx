@@ -48,6 +48,11 @@ export function RouteAccessGate({ children }: { children: ReactNode }) {
     );
   }
 
+  // Uma identidade sem escola pode apenas aceder ao onboarding e à gestão da própria conta.
+  if (!account.schoolId && pathname !== "/boas-vindas" && pathname !== "/criar-escola" && pathname !== "/alterar-senha" && pathname !== "/perfil") {
+    return <main className="grid min-h-screen place-items-center bg-background p-6"><div className="max-w-md rounded-3xl border bg-card p-8 text-center shadow-xl"><h1 className="text-2xl font-bold">Bem-vindo ao SIGA Plus</h1><p className="mt-3 text-muted-foreground">Associe a sua conta a uma escola para continuar.</p><Link to="/boas-vindas" className="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground">Configurar ou procurar escola</Link></div></main>;
+  }
+
   const missingProfile = !account.profile.data && pathname !== "/alterar-senha";
   const denied = missingProfile || !canAccessPath(pathname, account.role, account.grants);
   if (denied) {

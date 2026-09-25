@@ -125,6 +125,7 @@ export function canAccessPath(
     pathname === "/alterar-senha" ||
     pathname === "/perfil" ||
     pathname === "/criar-escola" ||
+    pathname === "/boas-vindas" ||
     pathname === "/saas-admin" ||
     pathname.startsWith("/matricula") ||
     pathname.startsWith("/convite") ||
