@@ -183,7 +183,8 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
     },
     async calendarCreate(input: {
       title: string; start: string; end: string; description?: string;
-      location?: string; attendees?: string[];
+      location?: string; attendees?: string[]; recurrence?: string[];
+      reminders?: { useDefault: boolean; overrides?: Array<{ method: "email" | "popup"; minutes: number }> };
     }) {
       const data = await request<{ id: string; htmlLink?: string }>("calendar",
         `${BASE.calendar}/calendars/primary/events`, {
@@ -191,6 +192,8 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
           body: JSON.stringify({
             summary: input.title, description: input.description, location: input.location,
             attendees: input.attendees?.map((email) => ({ email })),
+            recurrence: input.recurrence,
+            reminders: input.reminders,
             start: { dateTime: input.start, timeZone: "Africa/Luanda" },
             end: { dateTime: input.end, timeZone: "Africa/Luanda" },
           }),
