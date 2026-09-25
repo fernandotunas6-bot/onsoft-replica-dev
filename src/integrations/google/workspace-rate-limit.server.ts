@@ -8,6 +8,7 @@ const WRITE_LIMITS: Record<string, number> = {
   "classroom.invite": 40,
   "classroom.coursework.create": 60,
   "calendar.create": 60,
+  "calendar.delete": 60,
   "drive.folder": 60,
   "drive.text": 60,
   "docs.create": 60,
