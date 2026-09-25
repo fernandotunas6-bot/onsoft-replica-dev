@@ -84,7 +84,21 @@ export const triggerStudentWelcomeEmailServerFn = createServerFn({ method: "POST
 
 export const getGoogleWorkspaceStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async (): Promise<GoogleConnectionStatus> => disconnectedWorkspaceStatus());
+  .handler(async ({ context }): Promise<GoogleConnectionStatus> => {
+    if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
+    const { membership } = await scopedApi(context.userId);
+    const { workspaceConnectionStatus } = await import("./workspace-vault.server");
+    const status = await workspaceConnectionStatus(context.userId, membership.schoolId);
+    const services = new Set(status.services);
+    return {
+      connected: status.connected, userEmail: status.googleEmail,
+      services: {
+        gmail: services.has("gmail"), calendar: services.has("calendar"),
+        drive: services.has("drive"), docs: services.has("docs"),
+        sheets: services.has("sheets"), tasks: services.has("tasks"),
+      },
+    };
+  });
 
 export const syncCalendarEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
