@@ -183,6 +183,7 @@ export const submitApprovedSchoolEnrollment=createServerFn({method:"POST"})
   const {data:applicationId,error:submitError}=await db.rpc("submit_approved_school_enrollment",{
    p_request_id:data.requestId,p_user_id:context.userId,
    p_payload:{
+    enrollmentFormSlug:data.enrollment.slug,
     person:data.enrollment.person,guardianName:data.enrollment.guardianName,
     guardianPhone:data.enrollment.guardianPhone,
     guardianRelationship:data.enrollment.guardianRelationship,
