@@ -29,7 +29,7 @@ const REPO = resolve(__dirname, "../..");
  *
  * **Esta lista só pode encolher.** Pertencem a áreas ainda não auditadas.
  */
-const POR_FECHAR = new Set([
+const POR_FECHAR = new Set<string>([
 ]);
 
 /** Fechadas em 20260924123000. Voltar a abri-las é o que este teste existe para apanhar. */

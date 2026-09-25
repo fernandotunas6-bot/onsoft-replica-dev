@@ -1,12 +1,10 @@
-// Tipos gerados a partir da base de produção (xodgfmxiaunpamctfeea).
-// NÃO EDITAR À MÃO. Regerar depois de cada migração aplicada:
-//
-//   npx supabase gen types typescript --linked > src/integrations/supabase/types.ts
-//   npm run siga:db-snapshot
-//
-// Editar à mão foi como este ficheiro passou a descrever 77 das 162 tabelas, a prometer
-// `reverse_cash_entry`, que não existe em produção, e a omitir `reverse_receipt`, que
-// existe — ver tests/security/types-vs-producao.test.ts.
+/**
+ * Tipos gerados a partir da produção — não editar à mão.
+ *
+ * Regenerar com `npm run siga:gen-types` depois de qualquer migração aplicada.
+ * Editar este ficheiro à mão foi como ele passou a descrever menos de metade das
+ * tabelas, dando cobertura de tipos a código que falhava em execução.
+ */
 
 export type Json =
   | string
@@ -6342,60 +6340,6 @@ export type Database = {
         }
         Relationships: []
       }
-      notification_preferences: {
-        Row: {
-          body: string | null
-          channel: string | null
-          created_at: string
-          email_enabled: boolean
-          event_type: string | null
-          id: string
-          in_app_enabled: boolean
-          payload: Json | null
-          school_id: string | null
-          sms_enabled: boolean
-          status: string | null
-          title: string | null
-          updated_at: string
-          user_id: string | null
-          whatsapp_enabled: boolean
-        }
-        Insert: {
-          body?: string | null
-          channel?: string | null
-          created_at?: string
-          email_enabled?: boolean
-          event_type?: string | null
-          id?: string
-          in_app_enabled?: boolean
-          payload?: Json | null
-          school_id?: string | null
-          sms_enabled?: boolean
-          status?: string | null
-          title?: string | null
-          updated_at?: string
-          user_id?: string | null
-          whatsapp_enabled?: boolean
-        }
-        Update: {
-          body?: string | null
-          channel?: string | null
-          created_at?: string
-          email_enabled?: boolean
-          event_type?: string | null
-          id?: string
-          in_app_enabled?: boolean
-          payload?: Json | null
-          school_id?: string | null
-          sms_enabled?: boolean
-          status?: string | null
-          title?: string | null
-          updated_at?: string
-          user_id?: string | null
-          whatsapp_enabled?: boolean
-        }
-        Relationships: []
-      }
       notifications: {
         Row: {
           announcement_id: string | null
@@ -10483,38 +10427,6 @@ export type Database = {
         Args: { gradebook_id: string; school_id: string }
         Returns: Json
       }
-      configure_academic_structure: {
-        Args: {
-          decimal_places: number
-          ends_on: string
-          grade_code: string
-          grade_name: string
-          level_codes: string[]
-          maximum_grade: number
-          minimum_grade: number
-          passing_grade: number
-          program_code: string
-          program_name: string
-          school_id: string
-          starts_on: string
-          terms_model: string
-          year_name: string
-        }
-        Returns: Json
-      }
-      configure_assessment_rules: {
-        Args: {
-          continuous_weight: number
-          exam_weight: number
-          lock_after_publication: boolean
-          maximum_absence_percentage: number
-          passing_grade: number
-          require_change_approval: boolean
-          rounding_method: string
-          school_id: string
-        }
-        Returns: Json
-      }
       configure_class_subject: {
         Args: {
           class_group_id: string
@@ -10522,53 +10434,6 @@ export type Database = {
           subject_id: string
           teacher_id: string
           weekly_periods: number
-        }
-        Returns: Json
-      }
-      configure_default_modules: {
-        Args: { module_codes: string[]; school_id: string }
-        Returns: Json
-      }
-      configure_financial_plan: {
-        Args: {
-          due_day: number
-          enrollment_amount: number
-          invoice_prefix: string
-          maximum_discount_percentage: number
-          penalty_kind: string
-          penalty_value: number
-          receipt_prefix: string
-          school_id: string
-          tuition_amount: number
-        }
-        Returns: Json
-      }
-      configure_school_identity_campus: {
-        Args: {
-          campus_address: string
-          campus_code: string
-          campus_municipality: string
-          campus_name: string
-          campus_province: string
-          contrast_color: string
-          logo_path: string
-          official_reference: string
-          primary_color: string
-          school_id: string
-          secondary_color: string
-        }
-        Returns: Json
-      }
-      configure_school_owner: {
-        Args: {
-          address: string
-          email: string
-          municipality: string
-          name: string
-          nif: string
-          phone: string
-          province: string
-          school_id: string
         }
         Returns: Json
       }
@@ -10708,10 +10573,6 @@ export type Database = {
           school_id: string
           student_id: string
         }
-        Returns: Json
-      }
-      finalize_installation: {
-        Args: { schedule_demo_seed?: boolean; school_id: string }
         Returns: Json
       }
       has_school_permission: {
@@ -11031,7 +10892,6 @@ export type Database = {
         }
         Returns: string
       }
-      installer_database_health: { Args: { school_id: string }; Returns: Json }
       is_platform_admin: { Args: never; Returns: boolean }
       is_school_member: { Args: { p_school_id: string }; Returns: boolean }
       issue_report_cards: {
@@ -11056,6 +10916,14 @@ export type Database = {
       mark_notification_read: {
         Args: { notification_id: string; school_id: string }
         Returns: Json
+      }
+      next_document_number_service: {
+        Args: {
+          default_prefix?: string
+          document_type: string
+          school_id: string
+        }
+        Returns: string
       }
       open_attendance_session: {
         Args: {
@@ -11380,16 +11248,6 @@ export type Database = {
           reason?: string
           school_id: string
           score: number
-        }
-        Returns: Json
-      }
-      upsert_notification_preferences: {
-        Args: {
-          email_enabled?: boolean
-          in_app_enabled?: boolean
-          school_id: string
-          sms_enabled?: boolean
-          whatsapp_enabled?: boolean
         }
         Returns: Json
       }
