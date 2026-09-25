@@ -11,6 +11,7 @@ export const GOOGLE_WORKSPACE_SCOPES = {
   classroom: [
     "https://www.googleapis.com/auth/classroom.courses",
     "https://www.googleapis.com/auth/classroom.coursework.students",
+    "https://www.googleapis.com/auth/classroom.rosters",
   ],
   calendar: ["https://www.googleapis.com/auth/calendar.events"],
   gmail: ["https://www.googleapis.com/auth/gmail.send"],
