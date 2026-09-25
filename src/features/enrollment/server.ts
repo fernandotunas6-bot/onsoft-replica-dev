@@ -293,6 +293,24 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
     if(linkedError)throw publicDatabaseError(linkedError,"Não foi possível verificar o vínculo institucional.");
     if(linkedAccessRequest&&data.decision==="accepted"&&!data.classGroupId)
       throw new Error("Confirme a turma do candidato antes de activar as credenciais institucionais.");
+    // Confirme a turma e o ano antes de criar qualquer Pessoa/Aluno;
+    // um grupo inexistente não pode deixar cadastros órfãos num erro tardio.
+    if(linkedAccessRequest&&data.decision==="accepted"&&data.classGroupId){
+      const {data:eligibleClass,error:classValidationError}=await db.from("class_groups")
+       .select("id,academic_year_id").eq("id",data.classGroupId)
+       .eq("school_id",membership.schoolId).maybeSingle();
+      if(classValidationError)throw publicDatabaseError(classValidationError,"Não foi possível verificar a turma.");
+      if(!eligibleClass?.academic_year_id)throw new Error("Seleccione uma turma válida com ano lectivo configurado.");
+    }
+    if(linkedAccessRequest&&data.decision==="accepted"){
+      // Uma candidatura ligada pode ser tratada uma única vez, inclusive por outro operador.
+      const {data:alreadyRegistered,error:registeredError}=await db.from("enrollment_applications")
+       .select("student_id,status").eq("id",data.applicationId).eq("school_id",membership.schoolId).maybeSingle();
+      if(registeredError)throw publicDatabaseError(registeredError,"Não foi possível verificar o estado da candidatura.");
+      if(alreadyRegistered?.student_id||alreadyRegistered?.status!=="pending")
+       throw new Error("A candidatura já foi processada ou está a ser actualizada. Recarregue a lista.");
+    }
+
 
     let studentId: string | null = null;
     if (data.decision === "accepted") {
