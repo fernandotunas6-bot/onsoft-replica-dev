@@ -23,6 +23,17 @@ function configuredEnv() {
   return { clientId, clientSecret, redirectUri };
 }
 
+/** Report deployment readiness without exposing provider credentials to browsers. */
+function workspaceServerReady(): boolean {
+  try {
+    configuredEnv();
+    const raw = process.env["GOOGLE_WORKSPACE_ENCRYPTION_KEY"]?.trim();
+    return Boolean(raw && Buffer.from(raw, "base64").byteLength === 32);
+  } catch {
+    return false;
+  }
+}
+
 async function activeMembership(userId: string, schoolId: string) {
   const db = await loadSgaAdminClient();
   const [membership, school] = await Promise.all([
@@ -166,6 +177,7 @@ export async function workspaceConnectionStatus(userId: string, schoolId: string
   if (error) throw new Error("Não foi possível consultar as ligações Google.");
   return {
     connected: Boolean(data),
+    serverReady: workspaceServerReady(),
     googleEmail: data?.account_email ?? null,
     services: allowedServicesFromScopes(data?.granted_scopes ?? []),
     connectedAt: data?.connected_at ?? null,
