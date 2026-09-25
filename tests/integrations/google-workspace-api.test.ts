@@ -100,7 +100,7 @@ describe("Google Workspace: mocked functional integration", () => {
     const { api, tokens } = mockApi();
     expect(await api.tasksList()).toHaveLength(1);
     expect((await api.tasksCreate("Preparar exame")).id).toBe("provider-confirmed-id");
-    expect(tokens).toEqual(["tasks", "tasks"]);
+    expect(tokens).toEqual(["tasks", "tasks", "tasks", "tasks"]);
   });
 
   it.each([401, 403, 429, 500])("rejects Google HTTP %s without claiming delivery", async (status) => {
@@ -140,7 +140,8 @@ describe("Google Workspace: mocked functional integration", () => {
     for (let round = 0; round < 100; round++) {
       await Promise.all(scenarios.map((scenario) => scenario()));
     }
-    expect(calls).toHaveLength(1_400);
+    // Tasks resolves a real list ID before each of its two operations.
+    expect(calls).toHaveLength(1_600);
     expect(calls.every(({ url }) => url.startsWith("https://"))).toBe(true);
   });
 });
