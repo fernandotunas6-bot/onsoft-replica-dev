@@ -342,7 +342,7 @@ function AcademicIntegrationsCatalog() {
                     <p className="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                       A ligação exige consentimento Google independente do login SIGA,
                       autorização por serviço e tokens protegidos no servidor.
-                      Nenhuma operação Gmail ou Calendar está activa.
+                      Nenhuma operação destes serviços Google está activa.
                     </p>
                   ) : item.id === "zoom" ? (
                     <ZoomIntegrationCard item={item} />
