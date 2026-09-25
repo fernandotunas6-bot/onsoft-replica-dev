@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
+import { handleSessionExpired, isSessionError } from "@/lib/session-expiry";
 
 type RouteErrorScreenProps = {
   error: Error;
@@ -11,10 +12,25 @@ type RouteErrorScreenProps = {
 /** Ecrã de erro em português. `fullPage` cobre falhas da raiz; o modo compacto fica no conteúdo da rota. */
 export function RouteErrorScreen({ error, reset, fullPage = false }: RouteErrorScreenProps) {
   const router = useRouter();
+  const sessionExpired = isSessionError(error);
   useEffect(() => {
+    if (sessionExpired) {
+      handleSessionExpired();
+      return;
+    }
     console.error(error);
     reportLovableError(error, { boundary: fullPage ? "siga_root" : "siga_route" });
-  }, [error, fullPage]);
+  }, [error, fullPage, sessionExpired]);
+
+  if (sessionExpired) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center px-4 py-10" role="status">
+        <p className="text-sm text-muted-foreground">
+          A sua sessão expirou. A abrir o ecrã de entrada…
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
