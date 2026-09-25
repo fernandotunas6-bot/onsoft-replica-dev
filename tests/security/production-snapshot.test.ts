@@ -67,7 +67,7 @@ const declaredTables = new Set(
 /**
  * Tabelas que existem em produção e não são declaradas no repositório.
  * Eram 35 a 2026-09-13. Passaram a 0 a 2026-09-14, com a captura do DDL real de
- * cada uma em `supabase/migrations/20260914151906_capture_undeclared_production_tables.sql`
+ * cada uma em `supabase/migrations/20260924005132_capture_undeclared_production_tables.sql`
  * (gerado por `npm run siga:db-ddl`, lido do catálogo do Postgres).
  *
  * Agora que está a zero, deixa de ser um travão e passa a ser uma invariante:
@@ -139,7 +139,7 @@ const ANON_POLICIES_ESPERADAS = [
  * a produção nunca teve.
  *
  * `assessment_rule_sets` (e `assessment_key_subjects`) saíram a 2026-09-20, com
- * a migração `20260916140000_assessment_rule_sets.sql` aplicada à produção. Era
+ * a migração `20260924005124_assessment_rule_sets.sql` aplicada à produção. Era
  * a entrada mais cara da lista: `gradebooks.rule_set_id` é NOT NULL e o caminho
  * legado só abre um diário com um `rule_set_id` desta tabela ou emprestado de
  * outro diário da escola — numa escola nova não havia nenhum dos dois, logo não
@@ -286,7 +286,7 @@ describe("produção vs repositório", () => {
     // (a tabela continuaria declarada noutro ficheiro qualquer... ou não).
     const captura = resolve(
       REPO,
-      "supabase/migrations/20260914151906_capture_undeclared_production_tables.sql",
+      "supabase/migrations/20260924005132_capture_undeclared_production_tables.sql",
     );
     expect(existsSync(captura), "ficheiro de captura de DDL desapareceu").toBe(true);
 
