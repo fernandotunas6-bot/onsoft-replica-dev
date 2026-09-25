@@ -20,8 +20,6 @@ import type { Session } from "@supabase/supabase-js";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
-import { ensureDevBypassSession } from "@/features/auth/dev-bypass.server";
-import { shouldVerifyGoogleOAuthSession } from "@/features/auth/google-oauth-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,155 +114,73 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let verificationGeneration = 0;
 
-    const bootstrap = async () => {
+    // Every protected session must be authorized by SIGA's server, irrespective
+    // of provider, sessionStorage markers, reloads or token refreshes.
+    // Never call Supabase auth APIs synchronously inside onAuthStateChange.
+    const validateSession = async (candidate: Session | null) => {
+      const generation = ++verificationGeneration;
+      setChecking(true);
+      setSession(null);
+      if (!candidate) {
+        setChecking(false);
+        return;
+      }
+
       try {
-        const { data } = await supabase.auth.getSession();
-        if (!active) return;
-        if (data.session) {
-          if (shouldVerifyGoogleOAuthSession(data.session)) {
-            try {
-              const { verifyOAuthAccountFn } =
-                await import("@/features/auth/verify-oauth-account-server");
-              const verification = await verifyOAuthAccountFn();
-              if (!active) return;
-              if (!verification.authorized) {
-                await supabase.auth.signOut({ scope: "local" });
-                if (!active) return;
-                setSession(null);
-                setError("Esta conta não tem um vínculo institucional activo no SIGA.");
-                setChecking(false);
-                return;
-              }
-            } catch {
-              if (!active) return;
-              await supabase.auth.signOut({ scope: "local" });
-              if (!active) return;
-              setSession(null);
-              setError("Não foi possível confirmar as permissões da conta Google.");
-              setChecking(false);
-              return;
-            }
-          }
-          setSession(data.session);
+        const { verifyOAuthAccountFn } =
+          await import("@/features/auth/verify-oauth-account-server");
+        const result = await verifyOAuthAccountFn();
+        if (!active || generation !== verificationGeneration) return;
+        if (!result.authorized) {
+          setError("A conta não tem um vínculo institucional activo. Contacte a administração.");
           setChecking(false);
+          // Only revoke this local session. Never delete an auth.users identity.
+          void supabase.auth.signOut({ scope: "local" });
           return;
         }
-
-        if (AUTH_DISABLED) {
-          try {
-            const { data: adminLogin, error: autoLoginError } =
-              await supabase.auth.signInWithPassword({
-                email: "admin@escola.ao",
-                password: "Admin@Escola2026!",
-              });
-            if (!autoLoginError && adminLogin?.session) {
-              localStorage.setItem(activityKey(adminLogin.session.user.id), String(Date.now()));
-              setSession(adminLogin.session);
-              setChecking(false);
-              return;
-            }
-          } catch {
-            // fallback to dev bypass tokens
-          }
-
-          const tokens = await ensureDevBypassSession();
-          if (!active) return;
-          const { data: setData, error: setError } = await supabase.auth.setSession({
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-          });
-          if (setError) throw setError;
-          if (setData.session) {
-            localStorage.setItem(activityKey(setData.session.user.id), String(Date.now()));
-            setSession(setData.session);
-          }
-          setChecking(false);
-          return;
-        }
-
-        setSession(null);
+        setError(null);
+        setSession(candidate);
         setChecking(false);
-      } catch (bootstrapError) {
-        if (!active) return;
-        setError(
-          bootstrapError instanceof Error
-            ? bootstrapError.message
-            : "Não foi possível iniciar o serviço de autenticação.",
-        );
+        setSubmitting(false);
+      } catch (verificationError) {
+        if (!active || generation !== verificationGeneration) return;
+        console.error("[AuthGate] Erro ao verificar autorização institucional", verificationError);
+        // Keep the Supabase identity intact and deny access on lookup failures.
+        // Reload can safely retry without losing the Google or password account.
+        setError("Não foi possível confirmar as permissões. Actualize a página para tentar novamente.");
         setChecking(false);
+        setSubmitting(false);
       }
     };
 
-    void bootstrap();
-
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
-      if (event === "SIGNED_IN" && nextSession) {
-        localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
-
-        // Login OAuth (Google) cria a conta auth.users automaticamente para
-        // e-mails nunca vistos — ao contrário do login por senha, que só
-        // existe para contas já provisionadas por um administrador. Sem esta
-        // verificação, qualquer conta Google entraria numa sessão "limbo",
-        // sem escola associada. Só corre para sessões vindas do fluxo OAuth
-        // (marcador definido em signInWithGoogle), nunca no bootstrap normal.
-        let oauthPending = false;
-        try {
-          oauthPending = sessionStorage.getItem("siga:oauth-pending") === "1";
-        } catch {
-          oauthPending = false;
-        }
-        if (shouldVerifyGoogleOAuthSession(nextSession, oauthPending)) {
-          try {
-            sessionStorage.removeItem("siga:oauth-pending");
-          } catch {
-            /* ignore */
-          }
-          void (async () => {
-            try {
-              const { verifyOAuthAccountFn } =
-                await import("@/features/auth/verify-oauth-account-server");
-              const verification = await verifyOAuthAccountFn();
-              if (!active) return;
-              if (!verification.authorized) {
-                // Rejeitar apenas a sessão local; nunca apagar auth.users por falta de vínculo.
-                await supabase.auth.signOut({ scope: "local" });
-                if (!active) return;
-                setSession(null);
-                setChecking(false);
-                setSubmitting(false);
-                setError(
-                  "Esta conta Google não está associada a nenhuma escola no SIGA. Peça ao administrador da sua instituição para a convidar.",
-                );
-                return;
-              }
-            } catch {
-              // Falha ao verificar associação: não deixar a sessão passar sem
-              // confirmação — mais seguro exigir novo login do que assumir.
-              if (!active) return;
-              await supabase.auth.signOut({ scope: "local" });
-              if (!active) return;
-              setSession(null);
-              setChecking(false);
-              setSubmitting(false);
-              setError("Não foi possível confirmar a conta. Tente novamente.");
-              return;
-            }
-            if (!active) return;
-            setSession(nextSession);
-            setChecking(false);
-            setSubmitting(false);
-          })();
-          return;
-        }
+      if (event === "SIGNED_OUT") {
+        ++verificationGeneration;
+        setSession(null);
+        setChecking(false);
+        setSubmitting(false);
+        return;
       }
-      setSession(nextSession);
-      setChecking(false);
-      setSubmitting(false);
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" ||
+          event === "TOKEN_REFRESHED" || event === "USER_UPDATED" ||
+          event === "PASSWORD_RECOVERY") {
+        if (nextSession) {
+          try {
+            localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
+          } catch { /* Storage unavailable: server still validates membership. */ }
+        }
+        // Defer the server function so it can safely use the auth client.
+        queueMicrotask(() => {
+          if (active) void validateSession(nextSession);
+        });
+      }
     });
     return () => {
       active = false;
+      ++verificationGeneration;
       data.subscription.unsubscribe();
     };
   }, []);
@@ -426,29 +342,25 @@ export function AuthGate({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    setSubmitting(true);
     setError(null);
     setInfo(null);
     try {
-      sessionStorage.setItem("siga:oauth-pending", "1");
-    } catch {
-      /* ignore — a verificação pós-login ainda corre no bootstrap se falhar */
+      // Login uses Supabase's Google provider only (openid/email/profile).
+      // Gmail, Drive and Calendar require their own explicit Workspace consent.
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      if (oauthError) throw oauthError;
+    } catch (loginError) {
+      console.error("[AuthGate] Falha ao iniciar OAuth", loginError);
+      setError("Não foi possível iniciar sessão com Google. Verifique o serviço e tente novamente.");
+    } finally {
+      setSubmitting(false);
     }
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        // Supabase handles Google's callback; return to the current SIGA origin.
-        redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-      },
-    });
-    if (oauthError) {
-      try {
-        sessionStorage.removeItem("siga:oauth-pending");
-      } catch {
-        /* ignore */
-      }
-      setError("Não foi possível iniciar sessão com o Google. Tente novamente.");
-    }
-    // Em sucesso, o browser navega para o Google — nada mais a fazer aqui.
   };
 
   if (checking) {
