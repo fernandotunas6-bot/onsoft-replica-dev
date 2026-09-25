@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--confirm-production", action="store_true")
     parser.add_argument("--secure-email", action="store_true")
+    parser.add_argument("--backup-dir", help="Private backup directory, required for --apply")
     parser.add_argument("--smtp-from-env", action="store_true")
     args = parser.parse_args()
     if args.smtp_from_env:
@@ -36,6 +37,8 @@ def main():
     ):
         if enabled:
             forwarded.append(flag)
+    if args.backup_dir:
+        forwarded.extend(["--backup-dir", args.backup_dir])
     original_argv = sys.argv
     try:
         sys.argv = forwarded
