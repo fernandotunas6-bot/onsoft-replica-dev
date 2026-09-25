@@ -122,8 +122,20 @@ chamam — `trg_notify_invoice_issued`, `trg_notify_document_issued`,
 criam linhas em `notifications` e nada mais. **Não há ponte entre `notifications` e
 `communication_dispatches`**: nada transforma um aviso em email, SMS ou WhatsApp.
 
-Consequência concreta para esta verificação: um encarregado só fica a saber de uma propina
-ou de uma falta **se entrar no portal e olhar**. Não recebe nada.
+**Correcção, de 2026-09-25 — é pior do que aqui estava escrito.** A versão original desta
+linha dizia que o encarregado "só fica a saber se entrar no portal e olhar". Isso pressupõe
+que, entrando, veria. Não vê: **a tabela `notifications` tem 16 linhas em produção e não é
+lida por nada.**
+
+Verificado à mão, depois de o inventário (`npm run siga:inventario`) a marcar como *sem
+leitor*: as únicas ocorrências de `notifications` em `src/` são um comentário sobre Firebase
+e uma variável de estado `notificationsOpen`. O painel do sino (`AppShell.tsx:487`) mostra
+duas coisas, e nenhuma vem desta tabela — `useSchoolAlerts()`, que lê `students` e produz
+alertas de configuração, e as mensagens directas por ler.
+
+Ou seja: os cinco gatilhos que escrevem avisos — factura emitida, documento emitido, pedido
+de documento, assinatura pendente, pauta — alimentam uma tabela invisível. O aviso não sai
+por email nem por SMS, e **também não aparece dentro da aplicação**.
 
 **Achado (P2): `notifications.announcement_id` nunca é escrito.** A coluna existe para
 ligar um anúncio às notificações que gerou. `grep` em `src/`: zero ocorrências fora dos
@@ -143,7 +155,7 @@ do sistema.
 | Sev. | Achado | Evidência |
 |---|---|---|
 | **P0** | Escalada de aluno a administrador por `school_invitations.role_code` — **corrigido e verificado** | prova revertida contra a produção; `3e60d0b` |
-| **P1** | Todos os avisos são in-app; nada liga `notifications` a `communication_dispatches`. O encarregado só sabe se entrar no portal | `notify_permission_holders`, canal fixo `'in_app'` |
+| **P1** | Os avisos não chegam a ninguém: `notifications` tem 16 linhas e **nenhum leitor** — nem sai por email/SMS, nem é mostrada no painel do sino | `notify_permission_holders` (canal fixo `'in_app'`); `AppShell.tsx:487` lê `useSchoolAlerts()` |
 | **P2** | `notification_preferences`: RLS sem políticas, inalcançável pelo cliente — ninguém consegue desligar um aviso | `politicas=0`, `rls=true`, 0 linhas |
 | **P2** | Dois modelos de preferências (`notification_preferences` vs `user_communication_preferences`); o que o motor lê é o que ninguém escreve | colunas das duas tabelas |
 | **P2** | `user_communication_preferences` sem leitor nenhum | `grep` em `src/` |

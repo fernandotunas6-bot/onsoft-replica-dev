@@ -38,6 +38,7 @@
     "siga:audit-provisioning": "node scripts/siga/audit-provisioning.mjs",
     "siga:rls-readiness": "node scripts/siga/rls-readiness.mjs",
     "siga:db-ddl": "node scripts/siga/capture-table-ddl.mjs",
+    "siga:inventario": "node scripts/siga/inventario-promessa-vs-produto.mjs",
     "siga:sql:verify": "node scripts/siga/print-apply-sql.mjs --verify",
     "siga:sql:patch": "node scripts/siga/print-missing-patch.mjs",
     "siga:sql:demo": "node scripts/siga/print-seed-demo.mjs",
