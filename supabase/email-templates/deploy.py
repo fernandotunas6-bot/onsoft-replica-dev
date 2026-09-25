@@ -69,13 +69,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="Write six templates to project auth config")
     parser.add_argument("--secure-email", action="store_true", help="Also enforce email confirmation and secure email change")
+    parser.add_argument("--check", action="store_true", help="Read-only comparison with live Auth configuration")
+    parser.add_argument("--confirm-production", action="store_true", help="Acknowledge production changes before --apply")
     args = parser.parse_args()
     payload = build_payload()
     if args.secure_email:
         payload.update({"external_email_enabled": True, "mailer_autoconfirm": False,
                         "mailer_secure_email_change_enabled": True})
     print(f"Validated {len(TEMPLATES)} templates for project {PROJECT_REF}.")
-    if not args.apply:
+    if args.apply and args.check:
+        parser.error("--check and --apply cannot be combined")
+    if args.apply and not args.confirm_production:
+        parser.error("--apply requires --confirm-production")
+    if not args.apply and not args.check:
         print("Dry run complete. No network request or production change performed.")
         return 0
     token = os.environ.get("SUPABASE_ACCESS_TOKEN")
@@ -89,6 +95,9 @@ def main():
     if not changed:
         print("All selected fields already match; nothing to update.")
         return 0
+    if args.check:
+        print("Read-only check complete: server configuration differs. No production change performed.")
+        return 1
     request("PATCH", token, changed)
     verified = request("GET", token)
     mismatches = [key for key, value in payload.items() if verified.get(key) != value]
