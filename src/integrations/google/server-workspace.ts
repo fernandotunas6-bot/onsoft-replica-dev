@@ -236,7 +236,7 @@ export const sendGmailNotification = createServerFn({ method: "POST" })
     const text = data.bodyHtml.replace(/<br\s*\/?\s*>/gi, "\n")
       .replace(/<\/p>/gi, "\n").replace(/<[^>]*>/g, " ")
       .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").trim();
-    const message = await api.gmailSend(data.to, data.subject, text);
+    const message = await api.gmailSend(data.to, data.subject, text, data.bodyHtml);
     return { success: true, messageId: message.id, message: "Gmail confirmou o envio." };
   });
 
