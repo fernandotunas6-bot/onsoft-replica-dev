@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { disconnectedWorkspaceStatus, unavailableWorkspaceOperation } from "./workspace-security";
 
 export interface GoogleConnectionStatus {
   connected: boolean;
@@ -63,52 +64,36 @@ export interface GoogleStudentWelcomeEmailInput {
  * In particular, a GOOGLE_CLIENT_ID environment variable does not prove that
  * any user granted Gmail, Calendar, Drive or Tasks scopes.
  */
-const WORKSPACE_NOT_CONFIGURED =
-  "Google Workspace não está ligado. É necessária autorização separada para o serviço solicitado.";
-
-const unavailable = () => ({ success: false, message: WORKSPACE_NOT_CONFIGURED });
-
 // Do not pretend to send messages. No email should be marked as delivered.
 export const triggerStudentWelcomeEmailServerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleStudentWelcomeEmailInput) => data)
-  .handler(async (): Promise<{ success: boolean; message: string }> => unavailable());
+  .handler(async (): Promise<{ success: boolean; message: string }> => unavailableWorkspaceOperation());
 
 export const getGoogleWorkspaceStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async (): Promise<GoogleConnectionStatus> => ({
-    connected: false,
-    userEmail: null,
-    services: {
-      calendar: false,
-      gmail: false,
-      drive: false,
-      sheets: false,
-      docs: false,
-      tasks: false,
-    },
-  }));
+  .handler(async (): Promise<GoogleConnectionStatus> => disconnectedWorkspaceStatus());
 
 export const syncCalendarEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleCalendarEventInput) => data)
   .handler(async (): Promise<{ success: boolean; eventId?: string; message: string }> =>
-    unavailable());
+    unavailableWorkspaceOperation());
 
 export const sendGmailNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleGmailSendInput) => data)
   .handler(async (): Promise<{ success: boolean; messageId?: string; message: string }> =>
-    unavailable());
+    unavailableWorkspaceOperation());
 
 export const exportToGoogleSheets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleSheetExportInput) => data)
   .handler(async (): Promise<{ success: boolean; spreadsheetUrl?: string; message: string }> =>
-    unavailable());
+    unavailableWorkspaceOperation());
 
 export const createGoogleTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: GoogleTaskInput) => data)
   .handler(async (): Promise<{ success: boolean; taskId?: string; message: string }> =>
-    unavailable());
+    unavailableWorkspaceOperation());
