@@ -221,7 +221,7 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
         "tasks", `${BASE.tasks}/lists/${enc(listId)}/tasks?maxResults=100`);
       return data.items ?? [];
     },
-    async tasksCreate(title: string, notes?: string) {
+    async tasksCreate(title: string, notes?: string, due?: string) {
       const lists = await request<{ items?: Array<{ id: string }> }>(
         "tasks", `${BASE.tasks}/users/@me/lists?maxResults=1`);
       let listId = lists.items?.[0]?.id;
@@ -234,7 +234,7 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
       }
       const data = await request<{ id: string; title?: string }>(
         "tasks", `${BASE.tasks}/lists/${enc(listId)}/tasks`, {
-          method: "POST", body: JSON.stringify({ title, notes }),
+          method: "POST", body: JSON.stringify({ title, notes, due }),
         });
       requiredId(data, "a criação da tarefa");
       return data;
