@@ -580,7 +580,7 @@ export const resolveBiToEmailFn = createServerFn({ method: "POST" })
     recordRateLimitAttempt([rateLimitKey], BI_LOOKUP_RATE_LIMIT);
 
     const { resolveBiOrEmailToUserEmail } = await import("./bi-login");
-    const resolvedEmail = await resolveBiOrEmailToUserEmail(data.identifier);
+    const resolvedEmail = await resolveBiOrEmailToUserEmail(data.identifier,data.schoolCode);
     return { email: resolvedEmail };
   });
 
