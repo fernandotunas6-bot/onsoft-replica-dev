@@ -69,7 +69,10 @@ export function PautaExportDialog({ termGrades, classGroups, disabled }: Props) 
 
   const columns = (chosen: Array<[string, string]>) => [
     { label: "Nº", value: (r: ReturnType<typeof buildPautaExportRows>[number]) => r.number },
-    { label: "Aluno", value: (r: ReturnType<typeof buildPautaExportRows>[number]) => r.student_name },
+    {
+      label: "Aluno",
+      value: (r: ReturnType<typeof buildPautaExportRows>[number]) => r.student_name,
+    },
     ...chosen.map(([id, name]) => ({
       label: name,
       value: (r: ReturnType<typeof buildPautaExportRows>[number]) =>
@@ -80,7 +83,10 @@ export function PautaExportDialog({ termGrades, classGroups, disabled }: Props) 
       value: (r: ReturnType<typeof buildPautaExportRows>[number]) =>
         r.average == null ? "—" : r.average.toFixed(1),
     },
-    { label: "Situação", value: (r: ReturnType<typeof buildPautaExportRows>[number]) => r.situation },
+    {
+      label: "Situação",
+      value: (r: ReturnType<typeof buildPautaExportRows>[number]) => r.situation,
+    },
   ];
 
   const onCsv = () => {

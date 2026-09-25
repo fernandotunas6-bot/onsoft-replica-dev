@@ -15,8 +15,10 @@ export class AiGatewayError extends Error {
 }
 
 function friendlyMessage(status: number, fallback: string) {
-  if (status === 402) return "Os créditos de IA do espaço de trabalho acabaram. Adicione créditos em Definições → Planos e créditos.";
-  if (status === 429) return "Demasiados pedidos à IA neste momento. Tente novamente dentro de alguns minutos.";
+  if (status === 402)
+    return "Os créditos de IA do espaço de trabalho acabaram. Adicione créditos em Definições → Planos e créditos.";
+  if (status === 429)
+    return "Demasiados pedidos à IA neste momento. Tente novamente dentro de alguns minutos.";
   if (status === 403) return "O acesso ao modelo de IA foi recusado para este espaço de trabalho.";
   if (status === 401) return "A IA não está configurada neste servidor.";
   return fallback;

@@ -18,9 +18,16 @@ export const Route = createFileRoute("/pedagogica_/risco")({
   head: () => ({
     meta: [
       { title: "Alunos em risco · SIGA Plus" },
-      { name: "description", content: "Análise com IA das notas da turma para identificar alunos em risco e sugerir intervenções." },
+      {
+        name: "description",
+        content:
+          "Análise com IA das notas da turma para identificar alunos em risco e sugerir intervenções.",
+      },
       { property: "og:title", content: "Alunos em risco · SIGA Plus" },
-      { property: "og:description", content: "Identifique alunos em risco e receba sugestões de intervenção." },
+      {
+        property: "og:description",
+        content: "Identifique alunos em risco e receba sugestões de intervenção.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -57,11 +64,19 @@ function RiskPage() {
   const students = useMemo(() => {
     const map = new Map<
       string,
-      { enrollment_id: string; name: string; grades: Array<{ subject: string; term: number; average: number }> }
+      {
+        enrollment_id: string;
+        name: string;
+        grades: Array<{ subject: string; term: number; average: number }>;
+      }
     >();
     for (const g of workspace?.termGrades ?? []) {
       if (g.class_group_id !== effectiveClass) continue;
-      const s = map.get(g.enrollment_id) ?? { enrollment_id: g.enrollment_id, name: g.student_name, grades: [] };
+      const s = map.get(g.enrollment_id) ?? {
+        enrollment_id: g.enrollment_id,
+        name: g.student_name,
+        grades: [],
+      };
       s.grades.push({ subject: g.subject_name, term: g.term, average: g.average });
       map.set(g.enrollment_id, s);
     }
@@ -109,7 +124,9 @@ function RiskPage() {
                 ))}
               </select>
               <p className="text-xs text-muted-foreground">
-                {workspaceQuery.isLoading ? "A carregar notas…" : `${students.length} alunos com notas lançadas.`}
+                {workspaceQuery.isLoading
+                  ? "A carregar notas…"
+                  : `${students.length} alunos com notas lançadas.`}
               </p>
             </div>
             <div className="grid gap-1.5">
@@ -144,24 +161,43 @@ function RiskPage() {
         {mutation.data ? (
           <Panel title="Resultado" description={mutation.data.overview}>
             {mutation.data.students.length === 0 ? (
-              <EmptyState title="Nenhum aluno em risco" description="A análise não encontrou alunos em risco alto ou médio." />
+              <EmptyState
+                title="Nenhum aluno em risco"
+                description="A análise não encontrou alunos em risco alto ou médio."
+              />
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {mutation.data.students.map((s) => (
-                  <div key={s.enrollment_id} className="rounded-xl border border-border bg-card p-4">
+                  <div
+                    key={s.enrollment_id}
+                    className="rounded-xl border border-border bg-card p-4"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-medium text-foreground">{s.name}</p>
-                      <span className={cn("rounded-full border px-2 py-0.5 text-xs font-medium", riskTone[s.risk] ?? riskTone["baixo"])}>
+                      <span
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-xs font-medium",
+                          riskTone[s.risk] ?? riskTone["baixo"],
+                        )}
+                      >
                         Risco {s.risk}
                       </span>
                     </div>
-                    <p className="mt-3 text-xs font-semibold uppercase text-muted-foreground">Motivos</p>
+                    <p className="mt-3 text-xs font-semibold uppercase text-muted-foreground">
+                      Motivos
+                    </p>
                     <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-                      {s.reasons?.map((r, i) => <li key={i}>{r}</li>)}
+                      {s.reasons?.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
                     </ul>
-                    <p className="mt-3 text-xs font-semibold uppercase text-muted-foreground">Intervenções sugeridas</p>
+                    <p className="mt-3 text-xs font-semibold uppercase text-muted-foreground">
+                      Intervenções sugeridas
+                    </p>
                     <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-                      {s.interventions?.map((r, i) => <li key={i}>{r}</li>)}
+                      {s.interventions?.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
                     </ul>
                   </div>
                 ))}

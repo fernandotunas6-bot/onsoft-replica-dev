@@ -16,9 +16,16 @@ export const Route = createFileRoute("/configuracoes_/diagnostico")({
   head: () => ({
     meta: [
       { title: "Diagnóstico de erros · SIGA Plus" },
-      { name: "description", content: "Descreva um erro e cole os registos: a IA indica causas prováveis e como corrigir." },
+      {
+        name: "description",
+        content:
+          "Descreva um erro e cole os registos: a IA indica causas prováveis e como corrigir.",
+      },
       { property: "og:title", content: "Diagnóstico de erros · SIGA Plus" },
-      { property: "og:description", content: "Diagnóstico de erros com IA para administradores escolares." },
+      {
+        property: "og:description",
+        content: "Diagnóstico de erros com IA para administradores escolares.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -44,14 +51,16 @@ const likelihoodTone: Record<string, string> = {
 
 function DiagnosticPage() {
   const account = useCurrentAccount();
-  const isAdmin = account.data?.allAppRoles?.includes("Administrador") ?? account.data?.appRole === "Administrador";
+  const isAdmin = account.role === "Administrador";
   const [page, setPage] = useState("");
   const [report, setReport] = useState("");
   const [logs, setLogs] = useState("");
   const diagnose = useServerFn(diagnoseErrorReport);
   const mutation = useMutation<ErrorDiagnosis, Error>({
     mutationFn: () =>
-      diagnose({ data: { page, report, logs: `${logs}\n\n--- Contexto ---\n${collectBrowserContext()}` } }),
+      diagnose({
+        data: { page, report, logs: `${logs}\n\n--- Contexto ---\n${collectBrowserContext()}` },
+      }),
   });
 
   return (
@@ -63,9 +72,11 @@ function DiagnosticPage() {
           description="Descreva o que aconteceu e cole as mensagens de erro. A IA indica as causas mais prováveis e o que fazer."
           icon={Stethoscope}
         />
-        {!account.isLoading && !isAdmin ? (
+        {!account.profile.isLoading && !isAdmin ? (
           <Panel title="Acesso reservado">
-            <p className="text-sm text-muted-foreground">Só administradores da escola podem usar o diagnóstico.</p>
+            <p className="text-sm text-muted-foreground">
+              Só administradores da escola podem usar o diagnóstico.
+            </p>
           </Panel>
         ) : (
           <Panel title="Relatório de erro">
@@ -78,18 +89,45 @@ function DiagnosticPage() {
             >
               <div className="grid gap-1.5 sm:max-w-md">
                 <Label htmlFor="diag-pagina">Página onde aconteceu</Label>
-                <Input id="diag-pagina" value={page} maxLength={200} onChange={(e) => setPage(e.target.value)} placeholder="Ex.: Caixa e Pagamentos" />
+                <Input
+                  id="diag-pagina"
+                  value={page}
+                  maxLength={200}
+                  onChange={(e) => setPage(e.target.value)}
+                  placeholder="Ex.: Caixa e Pagamentos"
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="diag-relatorio">O que aconteceu?</Label>
-                <Textarea id="diag-relatorio" rows={4} required minLength={10} maxLength={4000} value={report} onChange={(e) => setReport(e.target.value)} placeholder="Ex.: Ao registar um pagamento aparece 'Não foi possível guardar' e o recibo não é emitido." />
+                <Textarea
+                  id="diag-relatorio"
+                  rows={4}
+                  required
+                  minLength={10}
+                  maxLength={4000}
+                  value={report}
+                  onChange={(e) => setReport(e.target.value)}
+                  placeholder="Ex.: Ao registar um pagamento aparece 'Não foi possível guardar' e o recibo não é emitido."
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="diag-registos">Registos / mensagens de erro (opcional)</Label>
-                <Textarea id="diag-registos" rows={8} maxLength={20000} className="font-mono text-xs" value={logs} onChange={(e) => setLogs(e.target.value)} placeholder="Cole aqui a mensagem de erro ou registos copiados." />
+                <Textarea
+                  id="diag-registos"
+                  rows={8}
+                  maxLength={20000}
+                  className="font-mono text-xs"
+                  value={logs}
+                  onChange={(e) => setLogs(e.target.value)}
+                  placeholder="Cole aqui a mensagem de erro ou registos copiados."
+                />
               </div>
               <div>
-                <Button type="submit" className="gap-2" disabled={mutation.isPending || report.trim().length < 10}>
+                <Button
+                  type="submit"
+                  className="gap-2"
+                  disabled={mutation.isPending || report.trim().length < 10}
+                >
                   <Stethoscope className="size-4" />
                   {mutation.isPending ? "A analisar…" : "Diagnosticar"}
                 </Button>
@@ -107,12 +145,17 @@ function DiagnosticPage() {
           <Panel title="Diagnóstico" description={mutation.data.summary}>
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Causas prováveis</p>
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  Causas prováveis
+                </p>
                 <ul className="mt-2 space-y-3">
                   {mutation.data.causes.map((c, i) => (
                     <li key={i} className="rounded-xl border border-border p-3">
                       <p className="text-sm font-medium">
-                        {c.title} <span className={likelihoodTone[c.likelihood] ?? ""}>· probabilidade {c.likelihood}</span>
+                        {c.title}{" "}
+                        <span className={likelihoodTone[c.likelihood] ?? ""}>
+                          · probabilidade {c.likelihood}
+                        </span>
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">{c.explanation}</p>
                     </li>
@@ -120,20 +163,26 @@ function DiagnosticPage() {
                 </ul>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Como corrigir</p>
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  Como corrigir
+                </p>
                 <ul className="mt-2 space-y-3">
                   {mutation.data.fixes.map((f, i) => (
                     <li key={i} className="rounded-xl border border-border p-3">
                       <p className="text-sm font-medium">{f.title}</p>
                       <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-                        {f.steps?.map((s, j) => <li key={j}>{s}</li>)}
+                        {f.steps?.map((s, j) => (
+                          <li key={j}>{s}</li>
+                        ))}
                       </ol>
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
-            <p className="mt-4 text-xs text-muted-foreground">Diagnóstico gerado por IA — pode não ser exacto.</p>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Diagnóstico gerado por IA — pode não ser exacto.
+            </p>
           </Panel>
         ) : null}
       </div>

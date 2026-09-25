@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const FLAG_KEY = "siga:session-expired";
-export const SESSION_EXPIRED_MESSAGE = "A sua sessão expirou. Inicie sessão novamente para continuar.";
+export const SESSION_EXPIRED_MESSAGE =
+  "A sua sessão expirou. Inicie sessão novamente para continuar.";
 
 const AUTH_ERROR_PATTERN =
   /(^|\b)unauthorized\b|jwt expired|invalid jwt|refresh token|sessão (em falta|inválida|expirada)|não autenticado|auth session missing/i;
@@ -9,7 +10,8 @@ const AUTH_ERROR_PATTERN =
 export function isSessionError(error: unknown): boolean {
   if (!error) return false;
   if (error instanceof Response) return error.status === 401;
-  const status = (error as { status?: number; statusCode?: number }).status ??
+  const status =
+    (error as { status?: number; statusCode?: number }).status ??
     (error as { statusCode?: number }).statusCode;
   if (status === 401) return true;
   const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";

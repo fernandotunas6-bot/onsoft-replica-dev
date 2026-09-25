@@ -33,7 +33,7 @@ export const diagnoseErrorReport = createServerFn({ method: "POST" })
     await requireSgaWriter(context.userId, ["Administrador"]);
     const { runAiText, parseJsonObject } = await import("@/lib/ai-gateway.server");
     const text = await runAiText(
-      "És um engenheiro de suporte do SIGA Plus (sistema de gestão escolar angolano, TanStack Start + base de dados Postgres com RLS). Analisa o relatório de erro de um administrador escolar e os registos. Responde em português de Angola, linguagem simples para não programadores. Responde APENAS com JSON: {\"summary\": string, \"causes\": [{\"title\": string, \"likelihood\": \"alta\"|\"média\"|\"baixa\", \"explanation\": string}], \"fixes\": [{\"title\": string, \"steps\": string[]}]}. No máximo 4 causas e 4 soluções, ordenadas por probabilidade. Nunca peças palavras-passe nem chaves.",
+      'És um engenheiro de suporte do SIGA Plus (sistema de gestão escolar angolano, TanStack Start + base de dados Postgres com RLS). Analisa o relatório de erro de um administrador escolar e os registos. Responde em português de Angola, linguagem simples para não programadores. Responde APENAS com JSON: {"summary": string, "causes": [{"title": string, "likelihood": "alta"|"média"|"baixa", "explanation": string}], "fixes": [{"title": string, "steps": string[]}]}. No máximo 4 causas e 4 soluções, ordenadas por probabilidade. Nunca peças palavras-passe nem chaves.',
       `Página: ${data.page || "(não indicada)"}\n\nRelatório do administrador:\n${data.report}\n\nRegistos:\n${data.logs.slice(-20000) || "(sem registos)"}`,
     );
     const parsed = parseJsonObject<ErrorDiagnosis>(text);
@@ -77,7 +77,7 @@ export const analyzeStudentRisk = createServerFn({ method: "POST" })
       assiduidade: s.attendance_rate ?? null,
     }));
     const text = await runAiText(
-      "És um orientador pedagógico em Angola. Escala 0–20, aprovação a partir de 10 (Decreto Executivo 424/25). Identifica alunos em risco de insucesso a partir das médias por disciplina e trimestre, tendência entre trimestres e histórico da turma. Sugere intervenções concretas e personalizadas (tutoria, contacto com encarregado, plano de recuperação, etc.). Responde em português de Angola APENAS com JSON: {\"overview\": string, \"students\": [{\"enrollment_id\": string, \"name\": string, \"risk\": \"alto\"|\"médio\"|\"baixo\", \"reasons\": string[], \"interventions\": string[]}]}. Inclui só alunos em risco alto ou médio, ordenados do maior para o menor risco, no máximo 25.",
+      'És um orientador pedagógico em Angola. Escala 0–20, aprovação a partir de 10 (Decreto Executivo 424/25). Identifica alunos em risco de insucesso a partir das médias por disciplina e trimestre, tendência entre trimestres e histórico da turma. Sugere intervenções concretas e personalizadas (tutoria, contacto com encarregado, plano de recuperação, etc.). Responde em português de Angola APENAS com JSON: {"overview": string, "students": [{"enrollment_id": string, "name": string, "risk": "alto"|"médio"|"baixo", "reasons": string[], "interventions": string[]}]}. Inclui só alunos em risco alto ou médio, ordenados do maior para o menor risco, no máximo 25.',
       `Turma: ${data.classGroupName}\nHistórico e observações do professor:\n${data.history || "(nenhum)"}\n\nAlunos:\n${JSON.stringify(compact)}`,
     );
     const parsed = parseJsonObject<RiskAnalysis>(text);
