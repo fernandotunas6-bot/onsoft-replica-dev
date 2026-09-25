@@ -55,6 +55,7 @@ describe("funções que lêem fichas de alunos e pessoas aplicam o âmbito", () 
     ],
     ["src/features/academic/server-legacy.ts", ["getStudentAcademicHistory"]],
     ["src/features/people/server.ts", ["getPerson"]],
+    ["src/features/documents/server.ts", ["listDocumentWorkspace"]],
     [
       "src/features/pedagogica/attendance-server.ts",
       ["submitAttendanceJustification", "getStudentAttendanceHistory"],
@@ -64,6 +65,44 @@ describe("funções que lêem fichas de alunos e pessoas aplicam o âmbito", () 
     const source = read(path);
     for (const name of names) {
       it(name, () => expect(body(source, name)).toMatch(/loadStudentScope\(/));
+    }
+  }
+});
+
+describe("leituras da escola inteira só para o pessoal", () => {
+  const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
+  const body = (source: string, name: string) => {
+    const start = source.indexOf(`export const ${name} `);
+    const next = source.indexOf("export const ", start + 1);
+    return source.slice(start, next === -1 ? undefined : next);
+  };
+  const cases: Array<[string, string[], RegExp]> = [
+    [
+      "src/features/communications/dispatches-server.ts",
+      ["listSchoolCommunicationDispatches", "getCommunicationDispatchStats"],
+      /requireSgaWriterFor\(/,
+    ],
+    [
+      "src/features/alumni/operations.ts",
+      ["listAlumniSurveys", "getAlumniImpactAnalytics"],
+      /requireSgaWriterFor\(/,
+    ],
+    [
+      "src/features/academic/server-legacy.ts",
+      ["listTermGrades", "listAssessments", "getTeacherWorkspace", "listPedagogicalWorkspace"],
+      /requireAcademicManager\(/,
+    ],
+    [
+      "src/features/lesson-plans/server.ts",
+      ["listLessonPlans", "getLessonPlan"],
+      /isLessonPlanStaff\(/,
+    ],
+    ["src/features/communications/server.ts", ["listSchoolAnnouncements"], /"teaching_staff"/],
+  ];
+  for (const [path, names, guard] of cases) {
+    const source = read(path);
+    for (const name of names) {
+      it(name, () => expect(body(source, name)).toMatch(guard));
     }
   }
 });

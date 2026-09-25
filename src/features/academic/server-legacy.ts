@@ -191,8 +191,7 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
   .validator((input: unknown) => listPedagogicalWorkspaceInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }): Promise<PedagogicalWorkspace> => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const membership = await requireAcademicManager(context.userId);
     // Leituras académicas via admin: várias tabelas SGA não têm GRANT/RLS para authenticated.
     const db = await loadSgaAdminClient();
 
@@ -898,13 +897,28 @@ export const deactivateSubject = createServerFn({ method: "POST" })
     return subject;
   });
 
+/**
+ * As leituras da escola inteira desta implementação antiga. A fachada
+ * `server-secure-legacy.ts` só as chama para a Direcção/Secretaria e filtra as
+ * do professor; mas estas funções continuam acessíveis pela rede, por isso
+ * verificam o mesmo por si.
+ */
+async function requireAcademicManager(userId: string) {
+  const membership = await resolveSgaMembershipAdmin(userId);
+  if (!membership) throw new Error("Sem membership activa nesta escola.");
+  const roles = membership.allAppRoles ?? [membership.appRole];
+  if (!roles.includes("Administrador") && !roles.includes("Secretaria")) {
+    throw new Error("Sem permissão para consultar dados pedagógicos da escola inteira.");
+  }
+  return membership;
+}
+
 export const listTermGrades = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listTermGradesInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const membership = await requireAcademicManager(context.userId);
     const db = await loadSgaAdminClient();
     const rows = await listSgaTermGrades({
       db,
@@ -1134,8 +1148,7 @@ export const getTeacherWorkspace = createServerFn({ method: "GET" })
   .validator((input: unknown) => getTeacherWorkspaceInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const membership = await requireAcademicManager(context.userId);
     const db = await loadSgaAdminClient();
 
     let teacherId = data.teacherId ?? null;
@@ -1402,8 +1415,7 @@ export const listAssessments = createServerFn({ method: "GET" })
   .validator((input: unknown) => listAssessmentsInputSchema.parse(input ?? {}))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) return { available: false, items: [], scores: [] };
+    const membership = await requireAcademicManager(context.userId);
     const db = await loadSgaAdminClient();
     let query = db
       .from("siga_assessment_items")

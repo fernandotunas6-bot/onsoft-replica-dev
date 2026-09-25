@@ -221,6 +221,11 @@ async function saveComponents(
   }
 }
 
+function isLessonPlanStaff(membership: { appRole: string; allAppRoles?: string[] }) {
+  const roles = membership.allAppRoles ?? [membership.appRole];
+  return ["Administrador", "Secretaria", "Professor"].some((role) => roles.includes(role));
+}
+
 export const listLessonPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listLessonPlansInputSchema.parse(input ?? {}))
@@ -237,6 +242,8 @@ export const listLessonPlans = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId)
       .order("updated_at", { ascending: false })
       .limit(data.limit);
+    // Rascunhos são do corpo docente; alunos e encarregados só vêem os publicados.
+    if (!isLessonPlanStaff(membership)) query = query.eq("status", "published");
     if (data.classGroupId) query = query.eq("class_group_id", data.classGroupId);
     if (data.subjectId) query = query.eq("subject_id", data.subjectId);
     if (data.term) query = query.eq("term", data.term);
@@ -336,6 +343,9 @@ export const getLessonPlan = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível carregar o plano de aula.");
     if (!plan) throw new Error("Plano de aula não encontrado.");
+    if (!isLessonPlanStaff(membership) && plan.status !== "published") {
+      throw new Error("Plano de aula não encontrado.");
+    }
     const { data: components } = await db
       .from("siga_lesson_plan_components")
       .select("id, kind, name, planned_count, sequence")

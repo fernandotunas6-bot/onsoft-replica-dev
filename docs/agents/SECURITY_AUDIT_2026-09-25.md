@@ -156,6 +156,19 @@ que a conta era membro da escola, e alunos e encarregados também são membros.
   esse registo como justificado). Agora o aluno tem de estar no âmbito da conta e o registo
   tem de ser dele. Protegido por `tests/security/student-scope.test.ts`.
 
-**Por rever com o mesmo critério:** as restantes leituras que só exigem ser membro: pautas (`listTermGrades`, `listAssessments`),
-comunicações enviadas, planos de aula, documentos, analítica alumni e directório de
-professores (contactos).
+**Segunda ronda do mesmo critério:**
+
+- **Pautas e avaliações.** A fachada `academic/server-secure-legacy.ts` já filtrava por
+  professor, mas as funções antigas que ela chama (`listTermGrades`, `listAssessments`,
+  `getTeacherWorkspace`, `listPedagogicalWorkspace` em `server-legacy.ts`) continuavam
+  expostas pela rede: o módulo é carregado no browser pelos re-exports. Passam a exigir
+  Administrador ou Secretaria por si.
+- **Comunicações enviadas** (destinatários, e-mails, telefones, erros do fornecedor) e
+  **analítica/pesquisas alumni:** só Administrador e Secretaria.
+- **Comunicados:** alunos e encarregados só vêem os já enviados e não vêem os dirigidos ao
+  corpo docente.
+- **Planos de aula:** alunos e encarregados só vêem os publicados.
+- **Documentos:** alunos e encarregados só vêem os pedidos e a lista dos seus alunos.
+
+**Por decidir:** `listTeachers` devolve e-mail e telefone dos professores a qualquer membro.
+Pode ser intencional (contacto com o professor).

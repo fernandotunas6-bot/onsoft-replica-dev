@@ -49,6 +49,11 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
     if (data.status) {
       query = query.eq("status", data.status);
     }
+    // Rascunhos, agendados e avisos ao corpo docente não são para alunos e encarregados.
+    const roles: string[] = membership.allAppRoles ?? [membership.appRole];
+    if (!["Administrador", "Secretaria", "Professor"].some((role) => roles.includes(role))) {
+      query = query.eq("status", "sent").neq("audience", "teaching_staff");
+    }
 
     const { data: announcements, error } = await query;
     if (error) {
