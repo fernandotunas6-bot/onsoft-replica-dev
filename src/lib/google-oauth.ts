@@ -75,10 +75,12 @@ export function saveGoogleOAuthToken(token: GoogleOAuthSession): void {
       ? Date.now() + token.expires_in * 1000
       : token.expiry_date || Date.now() + 3600 * 1000;
 
+    // Provider refresh tokens belong in the future server-side encrypted vault.
     const payload = {
       ...token,
-      expiry_date: computedExpiry,
+      expiry_date: Math.min(computedExpiry, Date.now() + 60 * 60_000),
     };
+    delete payload.refresh_token;
     getStorage().setItem(GOOGLE_TOKEN_STORAGE_KEY, JSON.stringify(payload));
   } catch (e) {
     console.error("Failed to store Google OAuth token:", e);
