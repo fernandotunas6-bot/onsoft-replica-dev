@@ -93,23 +93,35 @@ describe.skipIf(!podeSondar)("selects do código vs. produção (ao vivo)", () =
       "nenhum select encontrado — o extractor deixou de funcionar",
     ).toBeGreaterThan(200);
 
+    // Em série, 200+ sondas contra a produção não cabiam nos 180s e o teste
+    // morria por timeout — uma guarda que nunca chega ao fim não guarda nada.
+    // Oito de cada vez chega para o tornar rápido sem parecer um ataque.
+    const CONCORRENCIA = 8;
     const recusados: string[] = [];
-    for (const { ficheiro, tabela, colunas } of alvos) {
-      const resposta = await fetch(
-        `${URL_BASE}/rest/v1/${tabela}?select=${encodeURIComponent(colunas)}&limit=0`,
-        { headers: { apikey: CHAVE as string, Authorization: `Bearer ${CHAVE}` } },
-      );
-      if (resposta.ok) continue;
-      if (AUSENCIAS_CONHECIDAS.has(tabela)) continue;
+    const fila = [...alvos];
 
-      let mensagem = await resposta.text();
-      try {
-        mensagem = JSON.parse(mensagem).message ?? mensagem;
-      } catch {
-        /* corpo não-JSON: fica como veio */
+    async function sondar() {
+      for (let alvo = fila.pop(); alvo; alvo = fila.pop()) {
+        const { ficheiro, tabela, colunas } = alvo;
+        const resposta = await fetch(
+          `${URL_BASE}/rest/v1/${tabela}?select=${encodeURIComponent(colunas)}&limit=0`,
+          { headers: { apikey: CHAVE as string, Authorization: `Bearer ${CHAVE}` } },
+        );
+        if (resposta.ok) continue;
+        if (AUSENCIAS_CONHECIDAS.has(tabela)) continue;
+
+        let mensagem = await resposta.text();
+        try {
+          mensagem = JSON.parse(mensagem).message ?? mensagem;
+        } catch {
+          /* corpo não-JSON: fica como veio */
+        }
+        recusados.push(`${ficheiro}: ${tabela}(${colunas.slice(0, 80)}) → ${mensagem.slice(0, 120)}`);
       }
-      recusados.push(`${ficheiro}: ${tabela}(${colunas.slice(0, 80)}) → ${mensagem.slice(0, 120)}`);
     }
+
+    await Promise.all(Array.from({ length: CONCORRENCIA }, sondar));
+    recusados.sort();
 
     expect(
       recusados,

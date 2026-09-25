@@ -33,9 +33,7 @@ const POR_FECHAR = new Set([
   "finance_payment_plans",
   "rooms",
   "school_integrations",
-  "siga_access_cards",
   "siga_lesson_plans",
-  "siga_turnstile_devices",
 ]);
 
 /** Fechadas em 20260924123000. Voltar a abri-las é o que este teste existe para apanhar. */
@@ -60,6 +58,11 @@ const JA_FECHADAS = [
   // Sem escrita pela sessão, logo `ALL → SELECT` bastou (20260924180000):
   "siga_access_logs",
   "siga_lesson_plan_components",
+  // Fechadas por 20260924230000, e aqui **sem** política de SELECT sequer: as duas guardam
+  // credenciais de acesso físico (`api_key` do leitor, `qr_secret`/`rfid_tag` do passe) e
+  // uma política de linha não esconde uma coluna. Toda a aplicação as lê por service_role.
+  "siga_access_cards",
+  "siga_turnstile_devices",
 ];
 
 const PADRAO =

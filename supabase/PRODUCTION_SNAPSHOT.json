@@ -1,9 +1,9 @@
 {
-  "capturadoEm": "2026-09-24T20:30:19.855Z",
+  "capturadoEm": "2026-09-24T20:45:30.726Z",
   "resumo": {
     "com_rls": 162,
     "funcoes_private": 94,
-    "politicas": 292,
+    "politicas": 290,
     "tabelas": 162,
     "triggers": 174
   },
@@ -2888,8 +2888,8 @@
       "tabela": "schools"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -2905,7 +2905,7 @@
         "created_at",
         "updated_at"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_access_cards"
@@ -3238,8 +3238,8 @@
       "tabela": "siga_lesson_plans"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
+      "anon_select": false,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -3254,7 +3254,7 @@
         "last_ping_at",
         "created_at"
       ],
-      "politicas": 1,
+      "politicas": 0,
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_turnstile_devices"
@@ -5501,14 +5501,6 @@
       "verificando": ""
     },
     {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "Access cards in own school",
-      "tabela": "siga_access_cards",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
-    },
-    {
       "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Access logs in own school",
@@ -5681,14 +5673,6 @@
       "papeis": "{authenticated}",
       "politica": "Manage lesson plans in own school",
       "tabela": "siga_lesson_plans",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
-    },
-    {
-      "cmd": "ALL",
-      "papeis": "{authenticated}",
-      "politica": "Turnstile devices in own school",
-      "tabela": "siga_turnstile_devices",
       "usando": "is_school_member(school_id)",
       "verificando": "is_school_member(school_id)"
     },

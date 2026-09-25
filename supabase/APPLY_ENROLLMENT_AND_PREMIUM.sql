@@ -1517,12 +1517,18 @@ ALTER TABLE public.siga_access_cards FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.siga_access_cards TO authenticated;
 GRANT ALL ON public.siga_access_cards TO service_role;
 
+-- SEM POLÍTICA PARA `authenticated`, de propósito. Esta tabela guarda credenciais:
+--   · siga_turnstile_devices.api_key É a autenticação do leitor físico
+--     (gate-pass-validation.ts:64 procura o dispositivo por .eq("api_key", ...));
+--   · siga_access_cards.qr_secret / rfid_tag SÃO o passe (gate-pass-validation.ts:85
+--     aceita qualquer um dos quatro identificadores como válido).
+-- Com `ALL → is_school_member`, um aluno lia o segredo de qualquer colega e passava a
+-- catraca como ele, ou forjava entradas com o api_key do leitor. Uma política de LINHA não
+-- esconde uma COLUNA, por isso nem sequer se deixa SELECT: toda a aplicação lê estas
+-- tabelas por service_role (catracas/server.ts, gate-pass-validation.ts,
+-- device-webhook-handler.ts -- 18 ocorrências, todas em loadSgaAdminClient).
+-- Ver migrations/20260924230000_close_access_card_and_device_secrets.sql.
 DROP POLICY IF EXISTS "Access cards in own school" ON public.siga_access_cards;
-CREATE POLICY "Access cards in own school"
-  ON public.siga_access_cards
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_turnstile_devices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1547,12 +1553,18 @@ ALTER TABLE public.siga_turnstile_devices FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.siga_turnstile_devices TO authenticated;
 GRANT ALL ON public.siga_turnstile_devices TO service_role;
 
+-- SEM POLÍTICA PARA `authenticated`, de propósito. Esta tabela guarda credenciais:
+--   · siga_turnstile_devices.api_key É a autenticação do leitor físico
+--     (gate-pass-validation.ts:64 procura o dispositivo por .eq("api_key", ...));
+--   · siga_access_cards.qr_secret / rfid_tag SÃO o passe (gate-pass-validation.ts:85
+--     aceita qualquer um dos quatro identificadores como válido).
+-- Com `ALL → is_school_member`, um aluno lia o segredo de qualquer colega e passava a
+-- catraca como ele, ou forjava entradas com o api_key do leitor. Uma política de LINHA não
+-- esconde uma COLUNA, por isso nem sequer se deixa SELECT: toda a aplicação lê estas
+-- tabelas por service_role (catracas/server.ts, gate-pass-validation.ts,
+-- device-webhook-handler.ts -- 18 ocorrências, todas em loadSgaAdminClient).
+-- Ver migrations/20260924230000_close_access_card_and_device_secrets.sql.
 DROP POLICY IF EXISTS "Turnstile devices in own school" ON public.siga_turnstile_devices;
-CREATE POLICY "Turnstile devices in own school"
-  ON public.siga_turnstile_devices
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_access_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
