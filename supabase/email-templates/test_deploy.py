@@ -74,6 +74,9 @@ class NotificationStaticTests(unittest.TestCase):
 
 class DeploymentFlowTests(unittest.TestCase):
     def run_cli(self, argv, request_side_effect=None, token="test-token-not-real"):
+        backup_dir = tempfile.TemporaryDirectory()
+        if "--apply" in argv and "--confirm-production" in argv and "--backup-dir" not in argv:
+            argv = [*argv, "--backup-dir", backup_dir.name]
         stdout, stderr = io.StringIO(), io.StringIO()
         with patch.object(sys, "argv", ["deploy.py", *argv]), \
              patch.dict(os.environ, {"SUPABASE_ACCESS_TOKEN": token}), \
@@ -83,6 +86,7 @@ class DeploymentFlowTests(unittest.TestCase):
                 code = deploy.main()
             except SystemExit as error:
                 code = error.code
+        backup_dir.cleanup()
         return code, stdout.getvalue(), stderr.getvalue(), requester
 
     def test_default_dry_run_never_accesses_management_api(self):
@@ -95,6 +99,15 @@ class DeploymentFlowTests(unittest.TestCase):
         code, _, error, api = self.run_cli(["--apply"])
         self.assertEqual(code, 2)
         self.assertIn("--confirm-production", error)
+        api.assert_not_called()
+
+    def test_apply_without_local_backup_is_rejected(self):
+        with patch.object(sys, "argv", ["deploy.py", "--apply", "--confirm-production"]), \
+             patch.object(deploy, "request") as api, \
+             redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as err:
+                deploy.main()
+        self.assertEqual(err.exception.code, 2)
         api.assert_not_called()
 
     def test_read_only_check_never_patches(self):
