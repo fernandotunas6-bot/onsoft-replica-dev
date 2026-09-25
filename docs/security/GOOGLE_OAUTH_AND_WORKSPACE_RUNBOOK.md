@@ -20,11 +20,29 @@ The `AuthGate` fails closed on initial/restored sessions, sign-in, refresh, prof
 
 MFA applies to both password and Google sessions when an enrolled TOTP factor requires AAL2. After completing MFA, recheck the institutional access decision before allowing the app.
 
-## Workspace: separate consent, separate backend
+## Workspace: separate consent and real Google APIs
 
-Workspace permissions are **not** login privileges. The old client-side implicit grant (`response_type=token`) is disabled in both legacy modules; incoming access-token URL fragments are rejected and bearer tokens are no longer persisted in `localStorage`. Existing server-side stub functions now return an explicit "not connected" status rather than fabricated success IDs.
+The SIGA Google login does not grant Gmail, Drive or Classroom access. An
+independent per-user/per-school OAuth PKCE flow is already implemented using
+the callback `https://portal-siga.com/api/integrations/google/callback`.
+A single-use state is bound to the authenticated Supabase session; AES-GCM
+protects the PKCE verifier and provider tokens on the server.
 
-To introduce Workspace functionality safely, implement a **separate** OAuth authorization-code + PKCE flow with a new registered callback (not the Supabase Auth callback), per-user/per-school consent and minimum scopes. Keep the verifier, state, refresh tokens and provider credentials server-side; use a server-side encrypted token store with narrow access controls, rotation, revocation and audit. Before re-enabling Gmail, Calendar and Sheets, implement the actual Google API operations and test real provider responses. Never infer "connected" from the presence of a `GOOGLE_CLIENT_ID` environment variable.
+Set `GOOGLE_WORKSPACE_CLIENT_ID`, `GOOGLE_WORKSPACE_CLIENT_SECRET`,
+`GOOGLE_WORKSPACE_REDIRECT_URI` and `GOOGLE_WORKSPACE_ENCRYPTION_KEY`
+on the SERVER. Enable the requested Google APIs and consent screen.
+The separate Google sign-in secret previously exposed must be rotated.
+
+After an individual grants the required scopes, real server operations
+are available for Drive, Docs, Sheets, Classroom, Calendar, Gmail and Tasks.
+Drive uses limited `drive.file` access; Classroom invitations require
+`classroom.rosters`. Gmail for institutional password resets and magic
+links remains on branded Resend, not a staff member's Gmail.
+
+The old browser implicit grant remains disabled. With no user consent,
+the server fails closed; a merchant ID alone cannot mark Google as connected.
+Some Google services have quotas, account eligibility and potential API
+billing: consult `docs/security/GOOGLE_WORKSPACE_TEST_PLAN.md`.
 
 ## Acceptance tests before merging
 
