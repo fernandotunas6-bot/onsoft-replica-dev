@@ -309,7 +309,7 @@ export function AccessRequestsPanel() {
                 role="tab"
                 aria-selected={filter === value}
                 onClick={() => setFilter(value)}
-                className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
+                className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
                   filter === value
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:text-foreground"
