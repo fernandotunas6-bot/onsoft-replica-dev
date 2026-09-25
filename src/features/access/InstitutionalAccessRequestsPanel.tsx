@@ -11,7 +11,7 @@ export function InstitutionalAccessRequestsPanel(){
  const [selected,setSelected]=useState<string|null>(null);
  const [note,setNote]=useState("");
  const [busy,setBusy]=useState(false);
- const requests=useQuery({queryKey:["institutional","secretary"],queryFn:()=>listSchoolAccessRequests(),retry:false});
+ const requests=useQuery({queryKey:["institutional","secretary"],queryFn:()=>listSchoolAccessRequests(),retry:false,refetchInterval:20_000});
  const current=(requests.data??[]).find(r=>r.id===selected);
  const finalize=async()=>{if(!selected)return;setBusy(true);
   try{await finalizeConfirmedEnrollmentAccess({data:{requestId:selected}});
