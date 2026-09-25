@@ -271,7 +271,10 @@ export async function saveEmailForwardingRoute(input: {
       school_id: schoolRow.id,
       source_address: institutionalEmail,
       destination_address: input.forwardTo,
-      status: "active",
+      // Só o pedido fica registado: esta função não configura a Cloudflare
+      // (isso é o endpoint REST). "active" aqui mostrava na escola um
+      // encaminhamento que ninguém tinha criado.
+      status: "pending",
       provider: "simulated",
       updated_at: new Date().toISOString(),
     },

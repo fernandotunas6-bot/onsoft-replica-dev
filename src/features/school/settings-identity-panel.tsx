@@ -267,9 +267,11 @@ export function DigitalIdentityPanel() {
         },
       });
       if (res.ok) {
-        toast.success("Encaminhamento de e-mail institucional actualizado!");
+        toast.success("Pedido de encaminhamento registado", {
+          description: "Fica activo quando a regra for configurada no e-mail da plataforma.",
+        });
         setInstitutionalEmail(res.institutionalEmail);
-        setEmailRouteActive(true);
+        setEmailRouteActive(false);
       } else {
         toast.error(res.reason || "Não foi possível guardar o e-mail.");
       }

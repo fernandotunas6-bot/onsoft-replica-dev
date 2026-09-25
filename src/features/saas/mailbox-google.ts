@@ -16,8 +16,12 @@ export async function googleCreateMailbox(config: MailboxConfig): Promise<Mailbo
   const creds = getGoogleCreds();
   if (!creds) return { ok: false, reason: "Credenciais Google Workspace em falta." };
 
-  // Simulação
-  return { ok: true, provider: "google", providerAccountId: `goid-${Date.now()}` };
+  // A chamada à Admin SDK ainda não está implementada. Responder "ok" aqui
+  // registava uma caixa de correio que não existe no Google.
+  return {
+    ok: false,
+    reason: "Criação de caixas Google Workspace ainda não está implementada.",
+  };
 }
 
 export async function googleSuspendMailbox(
@@ -26,7 +30,7 @@ export async function googleSuspendMailbox(
   const creds = getGoogleCreds();
   if (!creds) return { ok: false, reason: "Credenciais Google Workspace em falta." };
 
-  return { ok: true };
+  return { ok: false, reason: "Suspensão de caixas Google Workspace ainda não está implementada." };
 }
 
 export async function googleListMailboxes(domain: string): Promise<MailboxItem[]> {

@@ -98,3 +98,15 @@ qualquer aluno podia escrever directamente pela API REST do Supabase.
   mágico e registo (todas com limite de pedidos).
 - **Por decidir:** `resolveBiToEmailFn` devolve o e-mail associado a um B.I. (ver
   `CONTINUE.md`).
+
+## Funcionalidades simuladas apresentadas como reais
+
+- **Encaminhamento de e-mail institucional.** As definições da escola gravavam a rota como
+  `active` sem criar nada na Cloudflare, e o ecrã mostrava-a como activa. Passa a `pending`
+  até a regra existir de facto (`createEmailRoute` só marca `active` quando a Cloudflare
+  confirma).
+- **Caixas Google Workspace (`mailbox-google.ts`).** Com credenciais configuradas,
+  respondiam "caixa criada" sem chamar o Google. Agora dizem que ainda não está implementado.
+- **`src/integrations/google/server-workspace.ts`.** Respondem "enviado com sucesso" sem
+  enviar nada. Hoje ninguém as importa. Não foram apagadas porque o PR #29 reescreve este
+  ficheiro com a implementação real; **não as usar antes disso**.
