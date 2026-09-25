@@ -316,6 +316,18 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       const person = payload.person ?? {};
       const fullName = String(person.full_name ?? application.full_name).trim();
       const normalizedNif = normalizePersonNif(person.nif);
+      // Uma identidade institucional já matriculada não pode gerar Pessoa/Aluno duplicados.
+      // O caso deve passar por vinculação manual da secretaria ao cadastro original.
+      if(linkedAccessRequest && normalizedNif){
+        const {data:matches,error:matchesError}=await db.from("people")
+          .select("id").eq("school_id",membership.schoolId)
+          .eq("national_id",normalizedNif).is("deleted_at",null).limit(10);
+        if(matchesError)throw publicDatabaseError(matchesError,"Não foi possível validar a identificação existente.");
+        if(matches?.length){
+          throw new Error("Já existe um cadastro com este B.I. na escola. A secretaria deve confirmar a matrícula original antes de vincular esta conta; não será criado outro aluno.");
+        }
+      }
+
       const personPayload: Record<string, unknown> = {
         school_id: membership.schoolId,
         full_name: fullName,
