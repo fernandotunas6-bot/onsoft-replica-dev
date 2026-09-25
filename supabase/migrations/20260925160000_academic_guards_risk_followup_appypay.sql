@@ -60,7 +60,22 @@ BEFORE INSERT OR UPDATE OF starts_on, ends_on, academic_year_id ON public.terms
 FOR EACH ROW EXECUTE FUNCTION public.guard_term_within_year();
 
 REVOKE EXECUTE ON FUNCTION public.guard_timetable_slot_conflicts() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.guard_term_within_year() FROM PUBLIC, anon, authenticated;CREATE TABLE public.student_risk_cases (
+REVOKE EXECUTE ON FUNCTION public.guard_term_within_year() FROM PUBLIC, anon, authenticated;
+
+-- ── Acompanhamento de alunos em risco e cobranças AppyPay ──────────────────
+--
+-- Dados sensíveis (casos de risco de menores; telefones e valores de
+-- pagamento). O código só lhes acede pelo servidor, com a chave de serviço e
+-- depois de `requireSgaWriter` validar o papel (risk-followup.functions.ts,
+-- appypay.functions.ts, appypay-reconcile.server.ts, webhook AppyPay). Por
+-- isso não há acesso directo pela API: `is_school_member` inclui alunos e
+-- encarregados, e com ele qualquer aluno leria ou apagaria os casos de risco
+-- de toda a escola. RLS forçada e sem políticas = nega tudo a anon/authenticated.
+--
+-- Idempotente: pode correr mais do que uma vez. `set_updated_at()` não existe
+-- na base SGA; usa-se `siga_touch_updated_at()`, que já existe.
+
+CREATE TABLE IF NOT EXISTS public.student_risk_cases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
   enrollment_id uuid NOT NULL,
@@ -78,7 +93,8 @@ REVOKE EXECUTE ON FUNCTION public.guard_term_within_year() FROM PUBLIC, anon, au
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (school_id, enrollment_id)
 );
-CREATE TABLE public.student_risk_interventions (
+
+CREATE TABLE IF NOT EXISTS public.student_risk_interventions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   case_id uuid NOT NULL REFERENCES public.student_risk_cases(id) ON DELETE CASCADE,
   school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
@@ -90,19 +106,10 @@ CREATE TABLE public.student_risk_interventions (
   created_by uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_risk_interventions_case ON public.student_risk_interventions(case_id, created_at);
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.student_risk_cases TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.student_risk_interventions TO authenticated;
-GRANT ALL ON public.student_risk_cases TO service_role;
-GRANT ALL ON public.student_risk_interventions TO service_role;
-ALTER TABLE public.student_risk_cases ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.student_risk_interventions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Membros da escola gerem casos de risco" ON public.student_risk_cases
-  FOR ALL TO authenticated USING (public.is_school_member(school_id)) WITH CHECK (public.is_school_member(school_id));
-CREATE POLICY "Membros da escola gerem intervenções" ON public.student_risk_interventions
-  FOR ALL TO authenticated USING (public.is_school_member(school_id)) WITH CHECK (public.is_school_member(school_id));
-CREATE TRIGGER trg_student_risk_cases_updated BEFORE UPDATE ON public.student_risk_cases
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();CREATE TABLE public.payment_gateway_charges (
+CREATE INDEX IF NOT EXISTS idx_risk_interventions_case
+  ON public.student_risk_interventions(case_id, created_at);
+
+CREATE TABLE IF NOT EXISTS public.payment_gateway_charges (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
   provider text NOT NULL DEFAULT 'appypay',
@@ -125,12 +132,35 @@ CREATE TRIGGER trg_student_risk_cases_updated BEFORE UPDATE ON public.student_ri
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_gateway_charges_invoice ON public.payment_gateway_charges(school_id, invoice_id);
-CREATE INDEX idx_gateway_charges_status ON public.payment_gateway_charges(school_id, status);
-GRANT SELECT ON public.payment_gateway_charges TO authenticated;
-GRANT ALL ON public.payment_gateway_charges TO service_role;
+CREATE INDEX IF NOT EXISTS idx_gateway_charges_invoice
+  ON public.payment_gateway_charges(school_id, invoice_id);
+CREATE INDEX IF NOT EXISTS idx_gateway_charges_status
+  ON public.payment_gateway_charges(school_id, status);
+
+ALTER TABLE public.student_risk_cases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_risk_cases FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.student_risk_interventions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_risk_interventions FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_gateway_charges ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Membros da escola vêem cobranças" ON public.payment_gateway_charges
-  FOR SELECT TO authenticated USING (public.is_school_member(school_id));
+ALTER TABLE public.payment_gateway_charges FORCE ROW LEVEL SECURITY;
+
+REVOKE ALL ON public.student_risk_cases FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.student_risk_interventions FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.payment_gateway_charges FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.student_risk_cases TO service_role;
+GRANT ALL ON public.student_risk_interventions TO service_role;
+GRANT ALL ON public.payment_gateway_charges TO service_role;
+
+-- Versões anteriores desta migração abriam as tabelas a qualquer membro.
+DROP POLICY IF EXISTS "Membros da escola gerem casos de risco" ON public.student_risk_cases;
+DROP POLICY IF EXISTS "Membros da escola gerem intervenções" ON public.student_risk_interventions;
+DROP POLICY IF EXISTS "Membros da escola vêem cobranças" ON public.payment_gateway_charges;
+
+DROP TRIGGER IF EXISTS trg_student_risk_cases_updated ON public.student_risk_cases;
+CREATE TRIGGER trg_student_risk_cases_updated BEFORE UPDATE ON public.student_risk_cases
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+DROP TRIGGER IF EXISTS trg_gateway_charges_updated ON public.payment_gateway_charges;
 CREATE TRIGGER trg_gateway_charges_updated BEFORE UPDATE ON public.payment_gateway_charges
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.siga_touch_updated_at();
+
+NOTIFY pgrst, 'reload schema';
