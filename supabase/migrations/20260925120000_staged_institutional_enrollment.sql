@@ -6,7 +6,8 @@ alter table public.school_access_requests
 alter table public.school_access_requests
  add constraint school_access_requests_status_check
  check (status in ('pending','under_review','needs_information','approved','enrollment_pending','enrollment_rejected','rejected','cancelled'));
-create unique index if not exists school_access_requests_one_open
+drop index if exists public.school_access_requests_one_open;
+create unique index school_access_requests_one_open
  on public.school_access_requests(school_id,user_id)
  where status in ('pending','under_review','needs_information','approved','enrollment_pending');
 -- A autorização inicial não cria vínculos. Apenas candidatos pré-aprovados podem enviar matrícula.
