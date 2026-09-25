@@ -32,6 +32,7 @@ import {
 } from "@/features/integrations/server";
 
 import { GoogleWorkspaceConnectCard } from "./GoogleWorkspaceConnectCard";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,8 +50,10 @@ function GatewayWebhookHint({
   provider,
   config,
   hasWebhookSecret,
+  schoolId,
 }: {
   provider: string;
+  schoolId: string;
   config: Record<string, unknown>;
   hasWebhookSecret: boolean;
 }) {
@@ -63,12 +66,12 @@ function GatewayWebhookHint({
     Date.parse(previousExpires) > Date.now();
 
   const eventsQuery = useQuery({
-    queryKey: ["gateway-webhook-events", provider],
+    queryKey: ["gateway-webhook-events", schoolId, provider],
     queryFn: () =>
       listGatewayWebhookEvents({
         data: { channel: provider as "multicaixa_express" | "unitel_money", limit: 5 },
       }),
-    enabled: isGateway && hasWebhookSecret,
+    enabled: isGateway && hasWebhookSecret && Boolean(schoolId),
     staleTime: 30_000,
   });
 
@@ -240,9 +243,11 @@ function GatewayWebhookHint({
 
 function AcademicIntegrationsCatalog() {
   const queryClient = useQueryClient();
+  const schoolId = useCurrentAccount().schoolId;
   const [installProvider, setInstallProvider] = useState<string | null>(null);
   const catalogQuery = useQuery({
-    queryKey: ["school", "integrations"],
+    queryKey: ["school", "integrations", schoolId],
+    enabled: Boolean(schoolId),
     queryFn: () => listSchoolIntegrations() as Promise<SchoolIntegrationSummary[]>,
     retry: false,
   });
@@ -412,7 +417,8 @@ function AcademicIntegrationsCatalog() {
                       </Button>
                     </form>
                   )}
-                  <GatewayWebhookHint provider={item.id} config={config}
+                  <GatewayWebhookHint key={`${schoolId}-${item.id}`}
+                    provider={item.id} schoolId={schoolId ?? ""} config={config}
                     hasWebhookSecret={Boolean(item.hasStoredSecret.webhookApiKey)} />
                 </li>
               );
