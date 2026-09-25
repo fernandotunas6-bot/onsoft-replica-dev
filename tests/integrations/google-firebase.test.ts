@@ -9,16 +9,13 @@ import { classroomCourseHref } from "@/features/integrations/actions";
 import { getFirebaseApp, defaultFirebaseConfig } from "@/integrations/firebase/firebase";
 
 describe("Google Workspace & Firebase Integrations", () => {
-  it("builds the Google OAuth URL with proper scopes", () => {
-    const url = buildGoogleAuthUrl({
-      clientId: "test-client-id",
-      redirectUri: "https://siga.escola.ao/oauth/callback",
-    });
-
-    expect(url).toContain("accounts.google.com/o/oauth2/v2/auth");
-    expect(url).toContain("client_id=test-client-id");
-    expect(url).toContain("redirect_uri=https%3A%2F%2Fsiga.escola.ao%2Foauth%2Fcallback");
-    expect(url).toContain("scope=");
+  it("blocks the legacy implicit Workspace grant until PKCE is available", () => {
+    expect(() =>
+      buildGoogleAuthUrl({
+        clientId: "test-client-id",
+        redirectUri: "https://siga.escola.ao/oauth/callback",
+      }),
+    ).toThrow("PKCE");
     expect(GOOGLE_WORKSPACE_SCOPES).toContain("https://www.googleapis.com/auth/calendar");
     expect(GOOGLE_WORKSPACE_SCOPES).toContain("https://www.googleapis.com/auth/gmail.send");
   });
