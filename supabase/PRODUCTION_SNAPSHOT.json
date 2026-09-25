@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-09-25T06:25:39.587Z",
+  "capturadoEm": "2026-09-25T06:45:23.222Z",
   "resumo": {
-    "com_rls": 162,
+    "com_rls": 161,
     "funcoes_private": 94,
     "politicas": 290,
-    "tabelas": 162,
-    "triggers": 174
+    "tabelas": 161,
+    "triggers": 175
   },
   "tabelas": [
     {
@@ -1102,7 +1102,7 @@
       "tabela": "finance_invoices"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -2227,31 +2227,6 @@
       "tabela": "module_catalog"
     },
     {
-      "anon_select": true,
-      "auth_select": true,
-      "colunas": [
-        "id",
-        "school_id",
-        "user_id",
-        "channel",
-        "event_type",
-        "title",
-        "body",
-        "payload",
-        "status",
-        "created_at",
-        "in_app_enabled",
-        "email_enabled",
-        "sms_enabled",
-        "whatsapp_enabled",
-        "updated_at"
-      ],
-      "politicas": 0,
-      "rls": true,
-      "rls_forcada": false,
-      "tabela": "notification_preferences"
-    },
-    {
       "anon_select": false,
       "auth_select": true,
       "colunas": [
@@ -3214,7 +3189,7 @@
       "tabela": "siga_lesson_plan_components"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -4357,12 +4332,12 @@
       "verificando": ""
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
-      "politica": "Manage payment plans in own school",
+      "politica": "finance_payment_plans_select_finance",
       "tabela": "finance_payment_plans",
-      "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "usando": "(is_school_member(school_id) AND (private.sga_app_role(school_id) = ANY (ARRAY['Administrador'::text, 'Tesouraria'::text])))",
+      "verificando": ""
     },
     {
       "cmd": "SELECT",
@@ -5669,12 +5644,12 @@
       "verificando": ""
     },
     {
-      "cmd": "ALL",
+      "cmd": "SELECT",
       "papeis": "{authenticated}",
       "politica": "Manage lesson plans in own school",
       "tabela": "siga_lesson_plans",
       "usando": "is_school_member(school_id)",
-      "verificando": "is_school_member(school_id)"
+      "verificando": ""
     },
     {
       "cmd": "DELETE",
@@ -8075,6 +8050,12 @@
       "funcao_schema": "private",
       "tabela": "issued_documents",
       "trigger": "notify_document_issued"
+    },
+    {
+      "funcao": "job_cache_invalidate",
+      "funcao_schema": "cron",
+      "tabela": "job",
+      "trigger": "cron_job_cache_invalidate"
     },
     {
       "funcao": "guard_delivered_occurrence",

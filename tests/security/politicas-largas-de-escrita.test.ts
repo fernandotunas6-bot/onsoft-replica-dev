@@ -30,9 +30,6 @@ const REPO = resolve(__dirname, "../..");
  * **Esta lista só pode encolher.** Pertencem a áreas ainda não auditadas.
  */
 const POR_FECHAR = new Set([
-  "finance_payment_plans",
-  "rooms",
-  "siga_lesson_plans",
 ]);
 
 /** Fechadas em 20260924123000. Voltar a abri-las é o que este teste existe para apanhar. */
@@ -76,9 +73,27 @@ function ficheirosSql(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
+/**
+ * Migrações numeradas já aplicadas cuja política foi substituída depois. Uma
+ * migração corre uma vez: reescrevê-la não muda a produção e apaga o registo do
+ * que aconteceu. Um `APPLY_*.sql` é outra coisa — pode voltar a correr a qualquer
+ * momento, e por isso continua a ser varrido.
+ *
+ * Entrar aqui exige que a produção já tenha a forma certa — confirme no
+ * `PRODUCTION_SNAPSHOT.json` antes de acrescentar.
+ */
+const HISTORICO_SUBSTITUIDO = new Map<string, string>([
+  [
+    "supabase/migrations/20260908175000_base_rooms_table.sql",
+    "criou `Academic access in own school` FOR ALL em `rooms`; a produção tem hoje " +
+      "`Create/Read/Update rooms in own school`, por comando e com verificação de papel",
+  ],
+]);
+
 function politicasLargas() {
   const achados: Array<{ ficheiro: string; tabela: string; politica: string }> = [];
   for (const caminho of ficheirosSql(resolve(REPO, "supabase"))) {
+    if (HISTORICO_SUBSTITUIDO.has(relative(REPO, caminho))) continue;
     const fonte = readFileSync(caminho, "utf8");
     for (const m of fonte.matchAll(PADRAO)) {
       achados.push({

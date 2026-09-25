@@ -467,12 +467,22 @@ ALTER TABLE public.finance_payment_plans FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.finance_payment_plans TO authenticated;
 GRANT ALL ON public.finance_payment_plans TO service_role;
 
+-- Leitura das funcoes financeiras, escrita so `service_role`: ver 20260925100000.
+-- Esta tabela guarda, por aluno, o canal, as prestacoes, a `reference` e o estado
+-- -- ler isso de toda a escola e ver a situacao financeira de todas as familias.
+-- `HARDEN_TENANT_ISOLATION.sql:227` sempre o disse; correr este script a seguir
+-- desfazia-o.
 DROP POLICY IF EXISTS "Manage payment plans in own school" ON public.finance_payment_plans;
-CREATE POLICY "Manage payment plans in own school"
+DROP POLICY IF EXISTS finance_payment_plans_select_finance ON public.finance_payment_plans;
+CREATE POLICY finance_payment_plans_select_finance
   ON public.finance_payment_plans
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (
+    public.is_school_member(school_id)
+    AND public.current_school_role_is(
+      ARRAY['owner','admin','administrator','administrador','diretor geral','director geral','tesouraria','treasury','finance','financeiro']::text[]
+    )
+  );
 
 CREATE TABLE IF NOT EXISTS public.siga_assessment_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -943,12 +953,14 @@ ALTER TABLE public.siga_lesson_plans FORCE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.siga_lesson_plans TO authenticated;
 GRANT ALL ON public.siga_lesson_plans TO service_role;
 
+-- `FOR SELECT`, nao `FOR ALL`: ver 20260925100000. A escrita corre toda em
+-- `lesson-plans/server.ts` com `loadSgaAdminClient()`. A leitura fica por
+-- pertenca a escola -- partilhar planos entre docentes e o que se quer.
 DROP POLICY IF EXISTS "Manage lesson plans in own school" ON public.siga_lesson_plans;
 CREATE POLICY "Manage lesson plans in own school"
   ON public.siga_lesson_plans
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 CREATE TABLE IF NOT EXISTS public.siga_lesson_plan_components (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -6670,11 +6682,15 @@ GRANT ALL ON public.rooms TO service_role;
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rooms FORCE ROW LEVEL SECURITY;
 
+-- `FOR SELECT`, nao `FOR ALL`. A producao ja tem politicas por comando para
+-- `rooms` (`Create/Read/Update rooms in own school`, com verificacao de papel);
+-- este bloco recriava uma ampla com o mesmo alcance de escrita ao lado delas, e
+-- politicas permissivas combinam-se por OR -- a ampla ganharia. Correr o APPLY
+-- sobre uma base ja arrumada reabria a escrita de salas a qualquer membro.
 DROP POLICY IF EXISTS "Academic access in own school" ON public.rooms;
 CREATE POLICY "Academic access in own school" ON public.rooms
-  FOR ALL TO authenticated
-  USING (public.is_school_member(school_id))
-  WITH CHECK (public.is_school_member(school_id));
+  FOR SELECT TO authenticated
+  USING (public.is_school_member(school_id));
 
 NOTIFY pgrst, 'reload schema';
 -- >>> END 20260908175000_base_rooms_table.sql
