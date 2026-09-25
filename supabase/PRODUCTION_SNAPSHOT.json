@@ -1,11 +1,11 @@
 {
-  "capturadoEm": "2026-09-25T06:45:23.222Z",
+  "capturadoEm": "2026-09-25T11:31:04.643Z",
   "resumo": {
-    "com_rls": 161,
+    "com_rls": 164,
     "funcoes_private": 94,
     "politicas": 290,
-    "tabelas": 161,
-    "triggers": 175
+    "tabelas": 164,
+    "triggers": 174
   },
   "tabelas": [
     {
@@ -1169,6 +1169,48 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "financial_rule_sets"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "user_id",
+        "school_id",
+        "account_email",
+        "encrypted_access_token",
+        "encrypted_refresh_token",
+        "granted_scopes",
+        "expires_at",
+        "connected_at",
+        "updated_at",
+        "revoked_at",
+        "google_sub"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "google_workspace_connections"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "state_hash",
+        "user_id",
+        "school_id",
+        "encrypted_verifier",
+        "requested_services",
+        "redirect_uri",
+        "created_at",
+        "expires_at",
+        "consumed_at",
+        "session_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "google_workspace_oauth_states"
     },
     {
       "anon_select": false,
@@ -2554,6 +2596,31 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "saas_audit_logs"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "user_id",
+        "full_name",
+        "national_id",
+        "institutional_id",
+        "requested_role",
+        "status",
+        "person_id",
+        "reviewed_by",
+        "review_note",
+        "reviewed_at",
+        "created_at",
+        "updated_at",
+        "enrollment_application_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "school_access_requests"
     },
     {
       "anon_select": false,
@@ -6634,6 +6701,12 @@
       "security_definer": false
     },
     {
+      "args": "p_request_id uuid, p_reviewer_id uuid, p_person_id uuid",
+      "funcao": "approve_school_access_request",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "school_id uuid, announcement_id uuid",
       "funcao": "archive_announcement",
       "schema": "public",
@@ -7330,6 +7403,12 @@
       "security_definer": false
     },
     {
+      "args": "p_request_id uuid, p_user_id uuid, p_payload jsonb",
+      "funcao": "submit_approved_school_enrollment",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "school_id uuid, attendance_session_id uuid, submission_key text, records jsonb",
       "funcao": "submit_attendance",
       "schema": "public",
@@ -7374,12 +7453,6 @@
     {
       "args": "school_id uuid, grade_item_id uuid, enrollment_id uuid, score numeric, reason text, note text",
       "funcao": "upsert_grade_score",
-      "schema": "public",
-      "security_definer": false
-    },
-    {
-      "args": "school_id uuid, in_app_enabled boolean, email_enabled boolean, sms_enabled boolean, whatsapp_enabled boolean",
-      "funcao": "upsert_notification_preferences",
       "schema": "public",
       "security_definer": false
     },
@@ -8050,12 +8123,6 @@
       "funcao_schema": "private",
       "tabela": "issued_documents",
       "trigger": "notify_document_issued"
-    },
-    {
-      "funcao": "job_cache_invalidate",
-      "funcao_schema": "cron",
-      "tabela": "job",
-      "trigger": "cron_job_cache_invalidate"
     },
     {
       "funcao": "guard_delivered_occurrence",

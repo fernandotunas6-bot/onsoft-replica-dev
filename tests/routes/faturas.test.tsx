@@ -80,7 +80,6 @@ vi.mock("@/features/integrations/use-installed-integrations", () => ({
 const healthySchema: SchemaStatus = {
   ready: true,
   missingPenaltyAmount: false,
-  missingNotificationPreferences: false,
   missingActiveFeePlan: false,
   missingCashExpenses: false,
 };

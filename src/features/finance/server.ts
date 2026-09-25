@@ -310,51 +310,25 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
       return {
         ready: false,
         missingPenaltyAmount: true,
-        missingNotificationPreferences: false,
         missingActiveFeePlan: true,
       };
     }
     const db = await loadSgaAdminClient();
-    const [
-      { error: penaltyError },
-      { error: prefsError },
-      { error: cashExpensesError },
-      feePlanResult,
-    ] = await Promise.all([
-      db.from("finance_invoices").select("id, penalty_amount").limit(1),
-      db.from("notification_preferences").select("id").limit(1),
-      db.from("siga_cash_expenses").select("id").limit(1),
-      db
-        .from("fee_plans")
-        .select("id")
-        .eq("school_id", membership.schoolId)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle(),
-    ]);
+    const [{ error: penaltyError }, { error: cashExpensesError }, feePlanResult] =
+      await Promise.all([
+        db.from("finance_invoices").select("id, penalty_amount").limit(1),
+        db.from("siga_cash_expenses").select("id").limit(1),
+        db
+          .from("fee_plans")
+          .select("id")
+          .eq("school_id", membership.schoolId)
+          .eq("status", "active")
+          .limit(1)
+          .maybeSingle(),
+      ]);
     const missingPenaltyAmount = Boolean(
       penaltyError && /penalty_amount/i.test(penaltyError.message),
     );
-    let missingNotificationPreferences = Boolean(
-      prefsError &&
-      (/notification_preferences|schema cache|does not exist|42P01|PGRST/i.test(
-        prefsError.message,
-      ) ||
-        prefsError.code === "42P01" ||
-        prefsError.code === "PGRST205"),
-    );
-    if (!missingNotificationPreferences) {
-      const { error: colError } = await db
-        .from("notification_preferences")
-        .select("id, in_app_enabled, email_enabled, whatsapp_enabled")
-        .limit(1);
-      if (
-        colError &&
-        /in_app_enabled|email_enabled|whatsapp_enabled|column/i.test(colError.message)
-      ) {
-        missingNotificationPreferences = true;
-      }
-    }
     if (penaltyError && !missingPenaltyAmount) {
       throw publicDatabaseError(penaltyError, "Não foi possível validar o schema financeiro.");
     }
@@ -372,9 +346,8 @@ export const getFinanceSchemaStatus = createServerFn({ method: "GET" })
       throw publicDatabaseError(feePlanError, "Não foi possível validar o plano financeiro.");
     }
     return {
-      ready: !missingPenaltyAmount && !missingNotificationPreferences && !missingActiveFeePlan,
+      ready: !missingPenaltyAmount && !missingActiveFeePlan,
       missingPenaltyAmount,
-      missingNotificationPreferences,
       missingCashExpenses: isMissingSgaTable(cashExpensesError),
       missingActiveFeePlan,
     };

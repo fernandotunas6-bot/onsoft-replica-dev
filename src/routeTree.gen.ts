@@ -71,6 +71,7 @@ import { Route as FinanceiroRhFaltasRouteImport } from './routes/financeiro.rh.f
 import { Route as FinanceiroRhFolhaRouteImport } from './routes/financeiro.rh.folha'
 import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro.rh.pagamentos'
 import { Route as FinanceiroRhPresencaRouteImport } from './routes/financeiro.rh.presenca'
+import { Route as FinanceiroRhSalariosRouteImport } from './routes/financeiro.rh.salarios'
 import { Route as AlumniPortalPortfolioEducationRouteImport } from './routes/alumni.portal.portfolio.education'
 import { Route as AlumniPortalPortfolioPrintRouteImport } from './routes/alumni.portal.portfolio.print'
 import { Route as AlumniPortalPortfolioShowcaseRouteImport } from './routes/alumni.portal.portfolio.showcase'
@@ -402,6 +403,11 @@ const FinanceiroRhPresencaRoute = FinanceiroRhPresencaRouteImport.update({
   path: '/presenca',
   getParentRoute: () => FinanceiroRhRoute,
 } as any)
+const FinanceiroRhSalariosRoute = FinanceiroRhSalariosRouteImport.update({
+  id: '/salarios',
+  path: '/salarios',
+  getParentRoute: () => FinanceiroRhRoute,
+} as any)
 const AlumniPortalPortfolioEducationRoute =
   AlumniPortalPortfolioEducationRouteImport.update({
     id: '/education',
@@ -572,6 +578,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
+  '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -655,6 +662,7 @@ export interface FileRoutesByTo {
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
+  '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -739,6 +747,7 @@ export interface FileRoutesById {
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
+  '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -824,6 +833,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
+    | '/financeiro/rh/salarios'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -907,6 +917,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
+    | '/financeiro/rh/salarios'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -990,6 +1001,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
+    | '/financeiro/rh/salarios'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1502,6 +1514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceiroRhPresencaRouteImport
       parentRoute: typeof FinanceiroRhRoute
     }
+    '/financeiro/rh/salarios': {
+      id: '/financeiro/rh/salarios'
+      path: '/salarios'
+      fullPath: '/financeiro/rh/salarios'
+      preLoaderRoute: typeof FinanceiroRhSalariosRouteImport
+      parentRoute: typeof FinanceiroRhRoute
+    }
     '/alumni/portal/portfolio/education': {
       id: '/alumni/portal/portfolio/education'
       path: '/education'
@@ -1723,6 +1742,7 @@ interface FinanceiroRhRouteChildren {
   FinanceiroRhFolhaRoute: typeof FinanceiroRhFolhaRoute
   FinanceiroRhPagamentosRoute: typeof FinanceiroRhPagamentosRoute
   FinanceiroRhPresencaRoute: typeof FinanceiroRhPresencaRoute
+  FinanceiroRhSalariosRoute: typeof FinanceiroRhSalariosRoute
 }
 
 const FinanceiroRhRouteChildren: FinanceiroRhRouteChildren = {
@@ -1730,6 +1750,7 @@ const FinanceiroRhRouteChildren: FinanceiroRhRouteChildren = {
   FinanceiroRhFolhaRoute: FinanceiroRhFolhaRoute,
   FinanceiroRhPagamentosRoute: FinanceiroRhPagamentosRoute,
   FinanceiroRhPresencaRoute: FinanceiroRhPresencaRoute,
+  FinanceiroRhSalariosRoute: FinanceiroRhSalariosRoute,
 }
 
 const FinanceiroRhRouteWithChildren = FinanceiroRhRoute._addFileChildren(

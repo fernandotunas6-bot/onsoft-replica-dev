@@ -160,9 +160,8 @@ function FinanceiroPage() {
     retry: false,
   });
   const missingPenalty = Boolean(schemaQuery.data?.missingPenaltyAmount);
-  const missingPrefs = Boolean(schemaQuery.data?.missingNotificationPreferences);
   const missingActiveFeePlan = Boolean(schemaQuery.data?.missingActiveFeePlan);
-  const schemaBlocked = missingPenalty || missingPrefs;
+  const schemaBlocked = missingPenalty;
   const financeInvoiceBlocked = schemaBlocked || missingActiveFeePlan;
   const cashExpensesAvailable = schemaQuery.data ? !schemaQuery.data.missingCashExpenses : false;
   const movimentos = useMemo(
@@ -833,13 +832,6 @@ function FinanceiroPage() {
                 <>
                   {" "}
                   (<code>penalty_amount</code>)
-                </>
-              ) : null}
-              {missingPrefs ? (
-                <>
-                  {" "}
-                  (colunas em <code>notification_preferences</code>, ex. <code>in_app_enabled</code>
-                  )
                 </>
               ) : null}
               . Até lá só consegue consultar caixa existente. <SqlChecklistLink />

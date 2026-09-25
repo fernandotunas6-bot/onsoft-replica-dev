@@ -50,6 +50,10 @@ const RLS_PENDING = new Set<string>([
   "hr_payroll_items",
   "hr_payroll_runs",
   "hr_positions",
+  // Eliminada da produção pela migração 20260925090000 (docs/auditoria/08-auditoria.md,
+  // 8.5/8.6 -- RLS activa e zero políticas, 0 linhas, confundia-se com `notifications`).
+  // Fica na lista só porque o CREATE TABLE original (20260911120000) continua no
+  // histórico de migrações que este teste varre -- não se edita migração já aplicada.
   "notification_preferences",
   "school_shift_slots",
   "school_shifts",
