@@ -248,20 +248,41 @@ describe("dry run não escreve na base", () => {
     expect(writes).toEqual([]);
   });
 
-  it("presencasImporter — sem gravar a assiduidade", async () => {
-    const { client, writes } = explodingDb();
-    const enrollment = { id: "e1", student_id: "s1", attendance_rate: null };
+  it("presencasImporter — sem gravar a sessão nem a presença", async () => {
+    const { writes } = explodingDb();
+    const lookups: Record<string, unknown> = {
+      enrollments: { id: "e1" },
+      class_subjects: { id: "cs1", teacher_id: null },
+    };
+    const client = {
+      from(table: string) {
+        const deny = (op: string) => () => {
+          writes.push(`${op} ${table}`);
+          throw new Error(`ESCRITA PROIBIDA EM DRY RUN: ${op} em ${table}`);
+        };
+        const chain: Record<string, unknown> = {
+          select: () => chain, eq: () => chain, in: () => chain, limit: () => chain,
+          order: async () => ({ data: [], error: null }),
+          maybeSingle: async () => ({ data: lookups[table] ?? null, error: null }),
+          insert: deny("insert"), update: deny("update"), upsert: deny("upsert"), delete: deny("delete"),
+        };
+        return chain;
+      },
+      rpc: () => { throw new Error("RPC proibida em dry run"); },
+    };
     const cache = {
+      academicYearId: "y1",
       students: [student],
-      enrollmentByStudentId: new Map([["s1", enrollment]]),
+      groups: [{ id: "g1", code: "10A", name: "10ª A" }],
+      subjects: [{ id: "sub1", code: "MAT", name: "Matemática" }],
     };
     const res = await presencasImporter.commitRow(
-      { student_identifier: "PROC-2026-042", attendance_rate: "92%" },
-      commitContext(client) as never,
+      { student_identifier: "PROC-2026-042", turma: "10A", disciplina: "MAT", data: "2026-03-02", estado: "presente" },
+      { ...(commitContext(client) as object), academicYearId: "y1" } as never,
       cache as never,
     );
-    expect(res.status).toBe("will_update");
-    expect(enrollment.attendance_rate).toBeNull();
+    expect(res.errors).toEqual([]);
+    expect(res.status).toBe("will_insert");
     expect(writes).toEqual([]);
   });
 

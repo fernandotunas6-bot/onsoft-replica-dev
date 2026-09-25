@@ -74,6 +74,7 @@ describe("Extra Importers (dividas, funcionarios, horarios)", () => {
           id_number: "004567891HA021",
           phone: "912334455",
           role_title: "Técnico de Secretaria",
+          hire_date: "2024-02-01",
         },
         cache as any,
       );

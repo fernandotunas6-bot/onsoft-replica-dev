@@ -58,7 +58,7 @@ export const inscricoesImporter: RowImporter = {
     );
 
     if (appNumber) {
-      const existing = cache.applications.find((a) => a.application_number === appNumber);
+      const existing = (cache.applications ?? []).find((a) => a.application_number === appNumber);
       if (existing) {
         warnings.push(`Candidatura "${appNumber}" já existe no sistema; a candidatura existente será actualizada conforme a estratégia.`);
         return { status: "duplicate", warnings, errors: [], duplicate_of: existing.id };
@@ -102,7 +102,7 @@ export const inscricoesImporter: RowImporter = {
     };
 
     const existing = appNumber
-      ? cache.applications.find((a) => a.application_number === appNumber) ?? null
+      ? (cache.applications ?? []).find((a) => a.application_number === appNumber) ?? null
       : null;
 
     if (existing && ctx.duplicateStrategy === "ignore") {
@@ -184,7 +184,7 @@ export const inscricoesImporter: RowImporter = {
       return { status: "error", warnings: analysis.warnings, errors: [`Erro ao criar candidatura: ${error?.message ?? "erro desconhecido"}`], audits: personRes.audits };
     }
 
-    cache.applications.push({
+    (cache.applications ??= []).push({
       id: String(created.id),
       application_number: appNumber,
       full_name: candidate.full_name,
