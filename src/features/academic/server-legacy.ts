@@ -356,10 +356,6 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       return Math.round((sum / values.length) * 10) / 10;
     };
 
-    console.log(
-      "[DBG3] groups",
-      JSON.stringify([...gradeAveragesByGroup.entries()].map(([k, v]) => [k, v.length])),
-    );
 
     const programById = new Map(
       (programs.data ?? []).map((row: { id: string }) => [row.id, row as Record<string, unknown>]),
