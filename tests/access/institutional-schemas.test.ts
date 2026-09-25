@@ -6,8 +6,8 @@ describe("Institutional onboarding access contracts",()=>{
  it("accepts existing institutional student number without requiring a B.I.",()=>{
   expect(schoolAccessRequestInputSchema.safeParse({schoolId,fullName:"Aluno Exemplo",institutionalId:"ST123",requestedRole:"student"}).success).toBe(true);
  });
- it("rejects unidentified and empty requests",()=>{
-  expect(schoolAccessRequestInputSchema.safeParse({schoolId,fullName:"Aluno Exemplo",requestedRole:"student"}).success).toBe(false);
+ it("defer institutional identifiers until the school authorizes full registration",()=>{
+  expect(schoolAccessRequestInputSchema.safeParse({schoolId,fullName:"Aluno Exemplo",requestedRole:"student"}).success).toBe(true);
   expect(schoolAccessRequestInputSchema.safeParse({schoolId,fullName:" ",nationalId:"ABC",requestedRole:"student"}).success).toBe(false);
  });
  it("does not allow a user to request elevated secretary or administrator role",()=>{
