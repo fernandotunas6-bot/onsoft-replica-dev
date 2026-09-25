@@ -30,7 +30,7 @@ function InstitutionalWelcome(){
    finally{setOpeningEnrollment(null);}
  };
  const schools=useQuery({queryKey:["institutional","schools"],queryFn:()=>listAvailableSchools(),enabled:mode==="join"});
- const requests=useQuery({queryKey:["institutional","mine"],queryFn:()=>listMySchoolAccessRequests()});
+ const requests=useQuery({queryKey:["institutional","mine"],queryFn:()=>listMySchoolAccessRequests(),refetchInterval:15_000,refetchOnWindowFocus:true});
  const filtered=(schools.data??[]).filter(s=>[s.name,s.public_code,s.province].some(v=>String(v??"").toLowerCase().includes(search.toLowerCase())));
  if(account.profile.isPending)return <main className="min-h-screen grid place-items-center">A confirmar a sua conta…</main>;
  if(account.schoolId)return <main className="grid min-h-screen place-items-center bg-gradient-to-br from-blue-50 to-slate-100 p-6"><section className="w-full max-w-lg rounded-3xl border bg-white p-8 shadow-xl">
