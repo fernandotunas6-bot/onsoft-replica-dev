@@ -47,8 +47,9 @@ export async function startWorkspaceConsent(input: {
   const stateDigest = await sha256Base64Url(state);
   const encryptedVerifier = await encryptWorkspaceSecret(codeVerifier);
   const { error } = await db.from("google_workspace_oauth_states").insert({
-    state_digest: stateDigest, user_id: input.userId, school_id: input.schoolId,
-    session_id: input.sessionId, encrypted_code_verifier: encryptedVerifier,
+    state_hash: stateDigest, user_id: input.userId, school_id: input.schoolId,
+    session_id: input.sessionId, encrypted_verifier: encryptedVerifier,
+    redirect_uri: env.redirectUri,
     requested_services: input.services,
     expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
   });
@@ -83,11 +84,15 @@ export async function completeWorkspaceConsent(input: {
   if (!input.sessionId) throw new Error("Sessão Supabase inválida.");
   const digest = await sha256Base64Url(input.state);
   const db = await loadSgaAdminClient();
-  // Single-use OAuth state: atomic DELETE ... RETURNING prevents callback replay.
+  // Atomic consume: repeated callbacks cannot reuse a state or its verifier.
   const consumed = await db.from("google_workspace_oauth_states")
-    .delete().eq("state_digest", digest).select(
-      "user_id, school_id, session_id, encrypted_code_verifier, requested_services, expires_at",
-    ).maybeSingle();
+    .update({ consumed_at: new Date().toISOString() })
+    .eq("state_hash", digest).eq("user_id", input.userId)
+    .eq("session_id", input.sessionId)
+    .is("consumed_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .select("user_id,school_id,session_id,encrypted_verifier,requested_services,expires_at,redirect_uri")
+    .maybeSingle();
   if (consumed.error || !consumed.data) throw new Error("Autorização Google expirada ou já utilizada.");
   const transaction = consumed.data;
   if (transaction.user_id !== input.userId || transaction.session_id !== input.sessionId ||
@@ -96,10 +101,10 @@ export async function completeWorkspaceConsent(input: {
   }
   await activeMembership(input.userId, transaction.school_id);
   const env = configuredEnv();
-  const codeVerifier = await decryptWorkspaceSecret(transaction.encrypted_code_verifier);
+  const codeVerifier = await decryptWorkspaceSecret(transaction.encrypted_verifier);
   const tokens = await exchangeGoogleToken(new URLSearchParams({
     ...formCredentials(), grant_type: "authorization_code",
-    redirect_uri: env.redirectUri, code: input.code, code_verifier: codeVerifier,
+    redirect_uri: transaction.redirect_uri, code: input.code, code_verifier: codeVerifier,
   }));
   const grantedScopes = parseGrantedScopes(tokens["scope"]);
   const expected = scopesForServices(transaction.requested_services as WorkspaceService[]);
@@ -130,10 +135,10 @@ export async function completeWorkspaceConsent(input: {
   const finalScopes = grantedScopes;
   const { error } = await db.from("google_workspace_connections").upsert({
     user_id: input.userId, school_id: transaction.school_id,
-    google_sub: identity["sub"], google_email: identity["email"],
+    google_sub: identity["sub"], account_email: identity["email"],
     granted_scopes: finalScopes, encrypted_refresh_token: refresh,
     encrypted_access_token: await encryptWorkspaceSecret(tokens["access_token"]),
-    access_token_expires_at: new Date(Date.now() +
+    expires_at: new Date(Date.now() +
       (typeof tokens["expires_in"] === "number" ? tokens["expires_in"] : 3600) * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id,school_id" });
@@ -145,12 +150,12 @@ export async function completeWorkspaceConsent(input: {
 export async function workspaceConnectionStatus(userId: string, schoolId: string) {
   const db = await activeMembership(userId, schoolId);
   const { data, error } = await db.from("google_workspace_connections")
-    .select("google_email, granted_scopes, connected_at")
+    .select("account_email, granted_scopes, connected_at")
     .eq("user_id", userId).eq("school_id", schoolId).maybeSingle();
   if (error) throw new Error("Não foi possível consultar as ligações Google.");
   return {
     connected: Boolean(data),
-    googleEmail: data?.google_email ?? null,
+    googleEmail: data?.account_email ?? null,
     services: allowedServicesFromScopes(data?.granted_scopes ?? []),
     connectedAt: data?.connected_at ?? null,
   };
@@ -186,8 +191,8 @@ export async function getWorkspaceAccessToken(
   if (!required.every((scope) => (row.granted_scopes as string[]).includes(scope))) {
     throw new Error(`Autorize primeiro o serviço Google ${service}.`);
   }
-  const expires = row.access_token_expires_at
-    ? new Date(row.access_token_expires_at).getTime() : 0;
+  const expires = row.expires_at
+    ? new Date(row.expires_at).getTime() : 0;
   if (row.encrypted_access_token && expires > Date.now() + 90_000) {
     return decryptWorkspaceSecret(row.encrypted_access_token);
   }
@@ -201,7 +206,7 @@ export async function getWorkspaceAccessToken(
   }
   const fields: Record<string, unknown> = {
     encrypted_access_token: await encryptWorkspaceSecret(result["access_token"]),
-    access_token_expires_at: new Date(Date.now() +
+    expires_at: new Date(Date.now() +
       (typeof result["expires_in"] === "number" ? result["expires_in"] : 3600) * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   };
