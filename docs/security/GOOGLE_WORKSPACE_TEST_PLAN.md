@@ -10,7 +10,7 @@ The user individually connects their own Google identity for each school through
 | Drive | List files shared with the app, create folders and text files | `drive.file` |
 | Docs | Create a document | `documents` |
 | Sheets | Create a spreadsheet and append report rows without formula evaluation | `spreadsheets` |
-| Classroom | List/create courses and invite teachers or students | `classroom.courses`, `classroom.rosters` |
+| Classroom | List/create courses and invite teachers or students | `classroom.courses`, `classroom.coursework.students`, `classroom.rosters` |
 | Calendar | List/create lessons and examinations | `calendar.events` |
 | Gmail | Send explicitly requested messages | `gmail.send` |
 | Tasks | Find task lists, list and create tasks | `tasks` |
@@ -29,8 +29,8 @@ bun run lint
 bun run build
 ```
 
-The service suite performs 1,400 operations against a **mock** Google transport:
-1,600 simulated HTTP calls (Tasks resolves an actual task list). A second suite
+The service suite performs 1,500 operations against a **mock** Google transport:
+1,700 simulated HTTP calls (Tasks resolves an actual task list). A second suite
 checks all seven permission sets, OAuth authorization-code PKCE, 500 unique states,
 AES-GCM encryption, tampering and invalid credentials. Thirteen contract checks
 review password reset, magic links, email changes, Gmail/Resend separation, JWT
