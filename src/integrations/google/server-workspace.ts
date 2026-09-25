@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import type { WorkspaceService } from "./workspace-services";
@@ -73,6 +74,54 @@ export interface GoogleStudentWelcomeEmailInput {
   schoolEmail?: string;
 }
 
+const email = z.string().trim().email().max(254);
+const shortText = z.string().trim().min(1).max(200);
+const optionalText = (max: number) => z.string().trim().max(max).optional();
+
+const welcomeSchema = z.object({
+  recipientEmail: email,
+  studentName: shortText,
+  studentNumber: shortText,
+  schoolName: shortText,
+  courseName: optionalText(200),
+  gradeName: optionalText(200),
+  turmaName: optionalText(200),
+  shift: optionalText(100),
+  academicYear: optionalText(100),
+  schoolPhone: optionalText(80),
+  schoolEmail: email.optional(),
+});
+
+const calendarEventSchema = z.object({
+  title: shortText,
+  description: optionalText(4000),
+  startDateTime: z.string().datetime({ offset: true }),
+  endDateTime: z.string().datetime({ offset: true }),
+  location: optionalText(500),
+  attendees: z.array(email).max(50).optional(),
+});
+
+const gmailSchema = z.object({
+  to: email,
+  subject: shortText,
+  bodyHtml: z.string().trim().min(1).max(50_000),
+});
+
+const sheetSchema = z.object({
+  title: shortText,
+  headers: z.array(z.string().trim().min(1).max(500)).min(1).max(50),
+  rows: z.array(z.array(z.union([
+    z.string().max(20_000),
+    z.number().finite(),
+  ])).max(50)).max(500),
+});
+
+const taskSchema = z.object({
+  title: shortText,
+  notes: optionalText(4000),
+  due: z.string().datetime({ offset: true }).optional(),
+});
+
 /**
  * Workspace is separate from Google sign-in. Each operation resolves the
  * current user's active school and requires a matching encrypted OAuth grant.
@@ -81,7 +130,7 @@ export interface GoogleStudentWelcomeEmailInput {
  */
 export const triggerStudentWelcomeEmailServerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: GoogleStudentWelcomeEmailInput) => data)
+  .validator((raw: unknown) => welcomeSchema.parse(raw))
   .handler(async ({ data, context }): Promise<{ success: boolean; message: string }> => {
     if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
     if (!data.recipientEmail?.includes("@") || !data.studentName?.trim()) {
@@ -121,7 +170,7 @@ export const getGoogleWorkspaceStatus = createServerFn({ method: "GET" })
 
 export const syncCalendarEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: GoogleCalendarEventInput) => data)
+  .validator((raw: unknown) => calendarEventSchema.parse(raw))
   .handler(async ({ data, context }): Promise<{ success: boolean; eventId?: string; message: string }> => {
     if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
     if (!data.title?.trim() ||
@@ -141,7 +190,7 @@ export const syncCalendarEvent = createServerFn({ method: "POST" })
 
 export const sendGmailNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: GoogleGmailSendInput) => data)
+  .validator((raw: unknown) => gmailSchema.parse(raw))
   .handler(async ({ data, context }): Promise<{ success: boolean; messageId?: string; message: string }> => {
     if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
     if (!data.to?.includes("@") || !data.subject?.trim() || !data.bodyHtml?.trim()) {
@@ -157,7 +206,7 @@ export const sendGmailNotification = createServerFn({ method: "POST" })
 
 export const exportToGoogleSheets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: GoogleSheetExportInput) => data)
+  .validator((raw: unknown) => sheetSchema.parse(raw))
   .handler(async ({ data, context }): Promise<{ success: boolean; spreadsheetUrl?: string; message: string }> => {
     if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
     if (!data.title?.trim() || !data.headers?.length ||
@@ -184,7 +233,7 @@ export const exportToGoogleSheets = createServerFn({ method: "POST" })
 
 export const createGoogleTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: GoogleTaskInput) => data)
+  .validator((raw: unknown) => taskSchema.parse(raw))
   .handler(async ({ data, context }): Promise<{ success: boolean; taskId?: string; message: string }> => {
     if (!context?.userId) throw new Error("Sessão SIGA obrigatória.");
     if (!data.title?.trim()) throw new Error("Título da tarefa obrigatório.");
