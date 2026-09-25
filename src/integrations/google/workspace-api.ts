@@ -198,6 +198,23 @@ export function createWorkspaceApi(tokenFor: ServiceToken, fetcher: GoogleFetch 
       requiredId(data, "o evento Calendar");
       return data;
     },
+    async calendarDelete(eventId: string) {
+      const token = await tokenFor("calendar");
+      if (!token) throw new Error("Autorização Google em falta.");
+      const headers = new Headers({ Authorization: `Bearer ${token}` });
+      const response = await fetcher(
+        `${BASE.calendar}/calendars/primary/events/${enc(eventId)}`,
+        { method: "DELETE", redirect: "error", headers },
+      );
+      if (response.status === 404 || response.status === 410) return { deleted: true };
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Autorização Google expirada ou revogada.");
+        if (response.status === 403) throw new Error("A conta Google não tem permissão ou quota disponível.");
+        if (response.status === 429) throw new Error("Limite de pedidos Google atingido. Tente mais tarde.");
+        throw new Error(`Operação calendar rejeitada pelo Google (HTTP ${response.status}).`);
+      }
+      return { deleted: true };
+    },
     async gmailSend(to: string, subject: string, bodyText: string) {
       cleanHeader(to);
       cleanHeader(subject);
