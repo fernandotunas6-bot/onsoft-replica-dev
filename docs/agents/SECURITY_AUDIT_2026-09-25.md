@@ -87,6 +87,10 @@ qualquer aluno podia escrever directamente pela API REST do Supabase.
   de um **Administrador** da mesma escola, e em contas de outras escolas. Agora: administradores
   (em qualquer escola) e contas com outra escola activa só por "Enviar E-mail"; a Secretaria não
   copia links de pessoal administrativo; cada cópia fica registada em `audit_logs`.
+- **Convite com cargo de administrador (`createSchoolInvitation`).** Não verificava o papel
+  pedido: a Secretaria criava um convite `owner`/`admin` (por exemplo para um segundo e-mail
+  seu), aceitava-o e tornava-se administradora. Agora exige Administrador, como já fazia
+  `inviteSystemUser`.
 - **Cargo global (`updateSystemAccountCargo`).** Só um Administrador altera quem é administrador
   noutra escola. O `profiles.cargo` global só muda se a pessoa não tiver outras escolas activas.
 - **Revisto e sem alteração:** webhook AppyPay (token secreto, parâmetros limpos,

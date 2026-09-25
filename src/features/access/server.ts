@@ -778,7 +778,13 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
   .validator((input: unknown) => createSchoolInvitationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const { schoolId } = await requireAdminContext(context);
+    const { schoolId, isAdministrator } = await requireAdminContext(context);
+    // Igual a inviteSystemUser: só um Administrador convida administradores.
+    // Sem isto, a Secretaria criava um convite owner/admin (por exemplo para
+    // um segundo e-mail seu), aceitava-o e tornava-se administradora.
+    if (isAdministratorRole(data.roleCode) && !isAdministrator) {
+      throw new Error("Apenas um Administrador pode convidar com cargo de Administrador.");
+    }
     const admin = await loadAdminClient();
 
     const rawToken = Array.from(crypto.getRandomValues(new Uint8Array(24)))
