@@ -24,7 +24,7 @@ create index if not exists school_access_requests_user
  on public.school_access_requests(user_id,created_at desc);
 alter table public.school_access_requests enable row level security;
 -- Este fluxo usa apenas funções de servidor autenticadas. Não conceder acesso directo à tabela.
-revoke all on public.school_access_requests from anon,authenticated;
+revoke all on public.school_access_requests from public,anon,authenticated;
 grant select,insert,update on public.school_access_requests to service_role;
 -- A aprovação, vínculo, papel e estado mudam na mesma transacção.
 create or replace function public.approve_school_access_request(
@@ -46,6 +46,17 @@ begin
  if p_person_id is not null and not exists (
   select 1 from public.people p where p.id=p_person_id and p.school_id=r.school_id and p.deleted_at is null
  ) then raise exception 'Pessoa não pertence à escola'; end if;
+ if p_person_id is not null then
+  if r.requested_role='student' and not exists(
+   select 1 from public.students where school_id=r.school_id and person_id=p_person_id and deleted_at is null
+  ) then raise exception 'Cadastro seleccionado não é um aluno desta escola'; end if;
+  if r.requested_role='teacher' and not exists(
+   select 1 from public.teachers where school_id=r.school_id and person_id=p_person_id
+  ) then raise exception 'Cadastro seleccionado não é docente desta escola'; end if;
+  if r.requested_role='guardian' and not exists(
+   select 1 from public.student_guardians where school_id=r.school_id and guardian_person_id=p_person_id
+  ) then raise exception 'Cadastro não possui educando vinculado nesta escola'; end if;
+ end if;
  select id into v_role from public.roles
   where school_id=r.school_id and code=r.requested_role limit 1;
  if v_role is null then raise exception 'Papel ainda não configurado nesta escola'; end if;
