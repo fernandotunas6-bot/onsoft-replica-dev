@@ -56,6 +56,40 @@ async function requireAdminContext(context: AuthedContext) {
   };
 }
 
+/**
+ * A identidade (auth.users) é partilhada entre escolas; as memberships não.
+ * Acções sobre a conta inteira — senha, bloqueio global — só são seguras
+ * quando a pessoa não pertence a mais nenhuma escola. Caso contrário, um
+ * administrador da escola A mexia no acesso da pessoa à escola B.
+ */
+export async function otherSchoolAccess(
+  admin: Awaited<ReturnType<typeof loadAdminClient>>,
+  userId: string,
+  schoolId: string,
+) {
+  const { data: memberships } = await admin
+    .from("school_memberships")
+    .select("id, school_id, status")
+    .eq("user_id", userId);
+  const rows = (memberships ?? []) as Array<{ id: string; school_id: string; status: string }>;
+  const otherActive = rows.filter((m) => m.school_id !== schoolId && m.status === "active");
+
+  let adminAnywhere = false;
+  if (rows.length) {
+    const { data: roleRows } = await admin
+      .from("member_roles")
+      .select("roles(code)")
+      .in(
+        "membership_id",
+        rows.map((m) => m.id),
+      );
+    adminAnywhere = ((roleRows ?? []) as Array<{ roles?: { code?: string } | null }>).some((r) =>
+      isAdministratorRole(String(r.roles?.code ?? "")),
+    );
+  }
+  return { hasOtherActiveSchools: otherActive.length > 0, adminAnywhere };
+}
+
 async function loadAdminClient() {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -440,9 +474,15 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
       .eq("id", membership.id);
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado da conta.");
 
-    await admin.auth.admin.updateUserById(data.userId, {
-      ban_duration: data.disabled ? "876000h" : "none",
-    });
+    // O bloqueio de auth.users vale para todas as escolas. Com acesso activo a
+    // outra escola, suspende-se só a membership desta — as outras escolas
+    // decidem por si. Ao reactivar, o bloqueio global é levantado.
+    const access = await otherSchoolAccess(admin, data.userId, schoolId);
+    if (!data.disabled || !access.hasOtherActiveSchools) {
+      await admin.auth.admin.updateUserById(data.userId, {
+        ban_duration: data.disabled ? "876000h" : "none",
+      });
+    }
 
     return { id: data.userId, disabled: data.disabled };
   });
@@ -613,10 +653,20 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
         .select("cargo")
         .eq("id", data.userId)
         .maybeSingle();
+      const access = await otherSchoolAccess(admin, data.userId, schoolId);
 
-      if (targetProfile?.cargo && isAdministratorRole(targetProfile.cargo)) {
+      if (
+        (targetProfile?.cargo && isAdministratorRole(targetProfile.cargo)) ||
+        access.adminAnywhere
+      ) {
         throw new Error(
           "Não é permitido redefinir directamente a senha de outro Administrador. Utilize a recuperação por e-mail.",
+        );
+      }
+      // A senha vale para todas as escolas da pessoa: só esta escola não decide.
+      if (access.hasOtherActiveSchools) {
+        throw new Error(
+          "Esta conta também dá acesso a outra escola. Use a recuperação de senha por e-mail.",
         );
       }
     }

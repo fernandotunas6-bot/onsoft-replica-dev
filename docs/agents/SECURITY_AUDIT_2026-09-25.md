@@ -74,6 +74,14 @@ qualquer aluno podia escrever directamente pela API REST do Supabase.
   com senha fixa. **Verificar na produção se essa conta existe** e, se existir, apagá-la
   (Authentication → Users). Verificar também `admin@escola.ao`, cuja senha estava no código.
 - **OTP:** limite de 20 envios por hora por IP, qualquer que seja o destino.
+- **Acções sobre a conta entre escolas.** A identidade é partilhada entre escolas.
+  `resetStaffPasswordDirect` deixava um administrador da escola A mudar a senha de quem também
+  pertence à escola B, e assim tomar-lhe a conta, mesmo que fosse administrador em B: a
+  protecção usava o `cargo` global do perfil. `setSystemAccountDisabled` bloqueava a conta
+  inteira, tirando-lhe também o acesso a B. Agora a senha só é redefinida directamente se a
+  pessoa pertencer só a esta escola e não for administradora em nenhuma. A suspensão só bloqueia
+  a conta toda se a pessoa não tiver outras escolas activas; caso contrário, suspende só nesta.
+  Protegido por `tests/access/cross-school-account-actions.test.ts`.
 - **Revisto e sem alteração:** webhook AppyPay (token secreto, parâmetros limpos,
   confirmação junto da AppyPay); funções públicas de matrícula, recuperação de senha, link
   mágico e registo (todas com limite de pedidos).
