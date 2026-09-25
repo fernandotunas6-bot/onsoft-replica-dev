@@ -46,6 +46,14 @@ export async function startWorkspaceConsent(input: {
   const challenge = await sha256Base64Url(codeVerifier);
   const stateDigest = await sha256Base64Url(state);
   const encryptedVerifier = await encryptWorkspaceSecret(codeVerifier);
+  const nowIso = new Date().toISOString();
+  // Keep the OAuth transaction table small and make the most recent consent
+  // the only outstanding flow for this user/school pair.
+  await db.from("google_workspace_oauth_states")
+    .delete().lt("expires_at", nowIso);
+  await db.from("google_workspace_oauth_states")
+    .delete().eq("user_id", input.userId).eq("school_id", input.schoolId)
+    .is("consumed_at", null);
   const { error } = await db.from("google_workspace_oauth_states").insert({
     state_hash: stateDigest, user_id: input.userId, school_id: input.schoolId,
     session_id: input.sessionId, encrypted_verifier: encryptedVerifier,
@@ -143,6 +151,9 @@ export async function completeWorkspaceConsent(input: {
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id,school_id" });
   if (error) throw new Error("Não foi possível guardar a autorização Google.");
+  // The verifier and state are no longer needed after a successful exchange.
+  await db.from("google_workspace_oauth_states")
+    .delete().eq("state_hash", digest).eq("user_id", input.userId);
   return { connected: true, schoolId: transaction.school_id,
     googleEmail: identity["email"], services: allowedServicesFromScopes(finalScopes) };
 }
