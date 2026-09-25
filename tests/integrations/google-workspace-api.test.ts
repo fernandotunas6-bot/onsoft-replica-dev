@@ -98,15 +98,30 @@ describe("Google Workspace: mocked functional integration", () => {
     expect(calendarBody.attendees).toEqual([{ email: "professor@escola.ao" }]);
   });
 
-  it("sends real-formatted Gmail MIME only after the provider returns an ID", async () => {
+  it("deletes Calendar events with the vault token and treats missing events as idempotent", async () => {
+    const ok = mockApi(204, {});
+    expect(await ok.api.calendarDelete("event-1")).toEqual({ deleted: true });
+    expect(ok.tokens).toEqual(["calendar"]);
+    expect(ok.calls[0].init.method).toBe("DELETE");
+    expect(ok.calls[0].url).toContain("/events/event-1");
+
+    const missing = mockApi(404, {});
+    expect(await missing.api.calendarDelete("already-gone")).toEqual({ deleted: true });
+  });
+
+  it("sends server-built Gmail multipart HTML only after the provider returns an ID", async () => {
     const { api, calls, tokens } = mockApi();
-    expect((await api.gmailSend("destinatario@escola.ao", "Aviso", "Bom dia")).id)
-      .toBe("provider-confirmed-id");
+    expect((await api.gmailSend(
+      "destinatario@escola.ao", "Aviso", "Bom dia", "<p><strong>Bom dia</strong></p>",
+    )).id).toBe("provider-confirmed-id");
     expect(tokens).toEqual(["gmail"]);
     const raw = JSON.parse(String(calls[0].init.body)).raw;
     const mime = Buffer.from(raw, "base64url").toString("utf8");
-    const encodedBody = mime.split(String.fromCharCode(13, 10, 13, 10))[1]?.trim();
-    expect(Buffer.from(encodedBody ?? "", "base64").toString("utf8")).toContain("Bom dia");
+    expect(mime).toContain("multipart/alternative");
+    expect(mime).toContain(Buffer.from("Bom dia", "utf8").toString("base64"));
+    expect(mime).toContain(
+      Buffer.from("<p><strong>Bom dia</strong></p>", "utf8").toString("base64"),
+    );
   });
 
   it("lists and creates personal Google Tasks", async () => {
@@ -140,7 +155,7 @@ describe("Google Workspace: mocked functional integration", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("stress-tests 1,500 mocked operations without sending messages or using real quota", async () => {
+  it("stress-tests 1,600 mocked operations without sending messages or using real quota", async () => {
     const { api, calls } = mockApi();
     const scenarios = [
       () => api.driveList(2), () => api.driveFolder("Turmas"),
@@ -153,6 +168,7 @@ describe("Google Workspace: mocked functional integration", () => {
       () => api.calendarList("2026-09-25T10:00:00+01:00"),
       () => api.calendarCreate({ title: "Aula", start: "2026-09-25T10:00:00+01:00",
         end: "2026-09-25T11:00:00+01:00" }),
+      () => api.calendarDelete("evento"),
       () => api.gmailSend("a@escola.ao", "Assunto", "Aviso"),
       () => api.tasksList(), () => api.tasksCreate("Rever pauta"),
     ];
@@ -160,7 +176,7 @@ describe("Google Workspace: mocked functional integration", () => {
       await Promise.all(scenarios.map((scenario) => scenario()));
     }
     // Tasks resolves a real list ID before each of its two operations.
-    expect(calls).toHaveLength(1_700);
+    expect(calls).toHaveLength(1_800);
     expect(calls.every(({ url }) => url.startsWith("https://"))).toBe(true);
   });
 });
