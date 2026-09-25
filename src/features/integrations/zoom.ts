@@ -24,7 +24,7 @@ function basicAuth() {
 
 function redirectUri() {
   return (
-    process.env.ZOOM_REDIRECT_URI?.trim() || "https://portal-siga.com/api/integrations/zoom/callback"
+    process.env.ZOOM_REDIRECT_URI?.trim() || "https://app.portal-siga.com/api/integrations/zoom/callback"
   );
 }
 
