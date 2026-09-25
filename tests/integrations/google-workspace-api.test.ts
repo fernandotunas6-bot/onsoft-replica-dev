@@ -94,7 +94,7 @@ describe("Google Workspace: mocked functional integration", () => {
     expect(tokens).toEqual(["gmail"]);
     const raw = JSON.parse(String(calls[0].init.body)).raw;
     const mime = Buffer.from(raw, "base64url").toString("utf8");
-    const encodedBody = mime.split("\\r\\n\\r\\n")[1]?.trim();
+    const encodedBody = mime.split(String.fromCharCode(13, 10, 13, 10))[1]?.trim();
     expect(Buffer.from(encodedBody ?? "", "base64").toString("utf8")).toContain("Bom dia");
   });
 
