@@ -59,6 +59,9 @@ export function useCurrentAccount() {
       }
     },
     staleTime: 5 * 60_000,
+    // Enquanto não existir vínculo, consultar novamente para detectar aprovação da secretaria.
+    refetchInterval: (query) => query.state.data?.school_id ? false : 15_000,
+    refetchOnWindowFocus: true,
     retry: 2,
     retryDelay: (attempt) => 400 * (attempt + 1),
   });
