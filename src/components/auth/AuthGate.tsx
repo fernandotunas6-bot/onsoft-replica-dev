@@ -17,7 +17,6 @@ import {
   Smartphone,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 import { Button } from "@/components/ui/button";
