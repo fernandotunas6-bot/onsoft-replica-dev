@@ -14,7 +14,7 @@
 
 ## Authorization: always check the SIGA server
 
-The `AuthGate` fails closed on initial/restored sessions, sign-in, refresh and profile changes. It calls `verifyInstitutionalAccessFn`. A user needs a *current* `school_memberships.status='active'` or an entry in `platform_admins`. Both are server-owned database records and are checked using a server-only administrative client. Never trust Google `email`, `user_metadata`, browser `sessionStorage`, the current route or a locally remembered role for authorization. Data APIs must separately enforce institution-scoped RLS and permission checks.
+The `AuthGate` fails closed on initial/restored sessions, sign-in, refresh, profile changes and when the browser tab returns from the background. It calls `verifyInstitutionalAccessFn`. A user needs a *current* `school_memberships.status='active'` **and an active corresponding school** (`schools.status='active'`), or an entry in `platform_admins`. Both are server-owned database records and are checked using a server-only administrative client. Never trust Google `email`, `user_metadata`, browser `sessionStorage`, the current route or a locally remembered role for authorization. Data APIs must separately enforce institution-scoped RLS and permission checks.
 
 **Never automatically delete `auth.users` when membership verification fails.** A person may already have a password identity, a suspended role or access to another application. On a denied session, only local SIGA access is rejected. Never grant roles or automatically create an institution from a Google profile.
 
@@ -35,8 +35,16 @@ To introduce Workspace functionality safely, implement a **separate** OAuth auth
 5. Suspended school membership cannot read another school's data, even with a valid Google session.
 6. Reload, tab restore and token refresh require server-side authorization again.
 7. Enrolled TOTP factor must reach AAL2 for Google *and* password sign-in.
-8. Simulate failed membership lookup; protected UI remains closed. Validate server authorization and RLS independently of route guards.
-9. Workspace's legacy implicit builders are rejected; stubs do not claim to send emails or create calendar events.
+8. Simulate failed membership lookup, a suspended school and cross-school ID mismatch; protected UI remains closed. Validate server authorization and RLS independently of route guards.
+9. Workspace's legacy implicit builders are rejected; stubs do not claim to send emails or create calendar events; the UI says 'not connected'. Verify browser tokens from older builds are cleared.
 10. Rotate the leaked Google secret, configure Supabase's Google provider and verify the full real Google redirect end-to-end on a designated test account.
 
 Do not merge merely because unit tests pass: approval also requires quality gates and one real browser login with the rotated credential. No automated test in this PR rotates secrets or changes provider configuration.
+
+## Known release blocker
+
+The GitHub Actions quality and dependency audit jobs have been reported as failed with no job steps available in the accessible API response. This does **not** establish that unit tests, lint or builds passed or failed. Inspect GitHub's job/runner diagnostics or rerun the workflow when the account can execute jobs. Keep the PR in draft until the normal CI checks and end-to-end browser test pass.
+
+## Auth callback safety
+
+Supabase warns that async client calls inside `onAuthStateChange` can deadlock. Follow-up membership and MFA checks are scheduled in a new macrotask (`setTimeout(..., 0)`) rather than awaited in the callback. Subsequent events invalidate older checks using a generation counter.
