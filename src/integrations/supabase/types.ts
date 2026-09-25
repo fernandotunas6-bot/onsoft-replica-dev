@@ -52,6 +52,113 @@ export type Database = {
           },
         ]
       }
+      academic_schedules: {
+        Row: {
+          academic_year_id: string
+          class_group_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          metrics: Json
+          name: string
+          notes: string | null
+          published_at: string | null
+          published_by: string | null
+          school_id: string
+          shift_id: string | null
+          snapshot: Json
+          source: string
+          status: string
+          term: number | null
+          updated_at: string
+          updated_by: string | null
+          valid_from: string | null
+          valid_to: string | null
+          version: number
+          version_number: number
+        }
+        Insert: {
+          academic_year_id: string
+          class_group_id: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          metrics?: Json
+          name: string
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          school_id: string
+          shift_id?: string | null
+          snapshot?: Json
+          source?: string
+          status?: string
+          term?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          version?: number
+          version_number?: number
+        }
+        Update: {
+          academic_year_id?: string
+          class_group_id?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          metrics?: Json
+          name?: string
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          school_id?: string
+          shift_id?: string | null
+          snapshot?: Json
+          source?: string
+          status?: string
+          term?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          version?: number
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_schedules_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_schedules_class_group_id_fkey"
+            columns: ["class_group_id"]
+            isOneToOne: false
+            referencedRelation: "class_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_schedules_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_schedules_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "school_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academic_years: {
         Row: {
           code: string
@@ -3602,6 +3709,140 @@ export type Database = {
           },
         ]
       }
+      school_shift_slots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          ends_at: string
+          id: string
+          is_break: boolean
+          name: string
+          school_id: string
+          shift_id: string
+          slot_number: number
+          starts_at: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at: string
+          id?: string
+          is_break?: boolean
+          name: string
+          school_id: string
+          shift_id: string
+          slot_number: number
+          starts_at: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at?: string
+          id?: string
+          is_break?: boolean
+          name?: string
+          school_id?: string
+          shift_id?: string
+          slot_number?: number
+          starts_at?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_shift_slots_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_shift_slots_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "school_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_shifts: {
+        Row: {
+          active_days: number[]
+          code: string
+          color: string | null
+          created_at: string
+          created_by: string | null
+          default_break_duration: number
+          default_lesson_duration: number
+          deleted_at: string | null
+          ends_at: string
+          id: string
+          name: string
+          school_id: string
+          starts_at: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          active_days?: number[]
+          code: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_break_duration?: number
+          default_lesson_duration?: number
+          deleted_at?: string | null
+          ends_at: string
+          id?: string
+          name: string
+          school_id: string
+          starts_at: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          active_days?: number[]
+          code?: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_break_duration?: number
+          default_lesson_duration?: number
+          deleted_at?: string | null
+          ends_at?: string
+          id?: string
+          name?: string
+          school_id?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_shifts_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schools: {
         Row: {
           academic_year: string | null
@@ -4737,6 +4978,85 @@ export type Database = {
           },
         ]
       }
+      teacher_availability: {
+        Row: {
+          academic_year_id: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          ends_at: string
+          id: string
+          is_available: boolean
+          max_weekly_hours: number | null
+          notes: string | null
+          school_id: string
+          starts_at: string
+          teacher_id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+          weekday: number
+        }
+        Insert: {
+          academic_year_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at: string
+          id?: string
+          is_available?: boolean
+          max_weekly_hours?: number | null
+          notes?: string | null
+          school_id: string
+          starts_at: string
+          teacher_id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          weekday: number
+        }
+        Update: {
+          academic_year_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at?: string
+          id?: string
+          is_available?: boolean
+          max_weekly_hours?: number | null
+          notes?: string | null
+          school_id?: string
+          starts_at?: string
+          teacher_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_availability_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_availability_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_availability_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teachers: {
         Row: {
           created_at: string
@@ -4932,10 +5252,15 @@ export type Database = {
           class_subject_id: string
           created_at: string
           created_by: string | null
+          day_period_number: number | null
           ends_at: string
           id: string
+          notes: string | null
           room: string
+          room_id: string | null
+          schedule_id: string | null
           school_id: string
+          shift_id: string | null
           starts_at: string
           status: string
           updated_at: string
@@ -4946,10 +5271,15 @@ export type Database = {
           class_subject_id: string
           created_at?: string
           created_by?: string | null
+          day_period_number?: number | null
           ends_at: string
           id?: string
+          notes?: string | null
           room?: string
+          room_id?: string | null
+          schedule_id?: string | null
           school_id: string
+          shift_id?: string | null
           starts_at: string
           status?: string
           updated_at?: string
@@ -4960,10 +5290,15 @@ export type Database = {
           class_subject_id?: string
           created_at?: string
           created_by?: string | null
+          day_period_number?: number | null
           ends_at?: string
           id?: string
+          notes?: string | null
           room?: string
+          room_id?: string | null
+          schedule_id?: string | null
           school_id?: string
+          shift_id?: string | null
           starts_at?: string
           status?: string
           updated_at?: string
@@ -4979,10 +5314,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "timetable_slots_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_slots_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "academic_schedules"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "timetable_slots_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_slots_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "school_shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -5037,6 +5393,16 @@ export type Database = {
       }
     }
     Functions: {
+      apply_timetable_plan_guarded: {
+        Args: {
+          p_actor: string
+          p_class_group_id: string
+          p_schedule_id?: string
+          p_school_id: string
+          p_slots: Json
+        }
+        Returns: number
+      }
       can_manage_documents: { Args: never; Returns: boolean }
       can_manage_finance: { Args: never; Returns: boolean }
       can_manage_students: { Args: never; Returns: boolean }
@@ -5190,6 +5556,49 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_timetable_slot_guarded: {
+        Args: {
+          p_actor: string
+          p_class_group_id: string
+          p_day_period_number: number
+          p_ends_at: string
+          p_notes: string
+          p_room_id: string
+          p_room_label: string
+          p_schedule_id: string
+          p_school_id: string
+          p_shift_id: string
+          p_starts_at: string
+          p_subject_id: string
+          p_teacher_id: string
+          p_weekday: number
+        }
+        Returns: {
+          class_subject_id: string
+          created_at: string
+          created_by: string | null
+          day_period_number: number | null
+          ends_at: string
+          id: string
+          notes: string | null
+          room: string
+          room_id: string | null
+          schedule_id: string | null
+          school_id: string
+          shift_id: string | null
+          starts_at: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          weekday: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "timetable_slots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_profile_role: { Args: never; Returns: string }
       current_school_id: { Args: never; Returns: string }
       enroll_new_student: {
@@ -5233,6 +5642,10 @@ export type Database = {
           student_id: string
         }
         Returns: Json
+      }
+      ensure_school_shift_defaults: {
+        Args: { p_school_id: string }
+        Returns: number
       }
       finance_category_summary: {
         Args: never
@@ -5587,6 +6000,49 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
+      update_timetable_slot_guarded: {
+        Args: {
+          p_actor: string
+          p_day_period_number: number
+          p_ends_at: string
+          p_notes: string
+          p_room_id: string
+          p_room_label: string
+          p_schedule_id: string
+          p_school_id: string
+          p_shift_id: string
+          p_slot_id: string
+          p_starts_at: string
+          p_subject_id: string
+          p_teacher_id: string
+          p_weekday: number
+        }
+        Returns: {
+          class_subject_id: string
+          created_at: string
+          created_by: string | null
+          day_period_number: number | null
+          ends_at: string
+          id: string
+          notes: string | null
+          room: string
+          room_id: string | null
+          schedule_id: string | null
+          school_id: string
+          shift_id: string | null
+          starts_at: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          weekday: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "timetable_slots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
