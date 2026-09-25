@@ -27,8 +27,6 @@ export interface GmailSendResult {
   error?: string;
 }
 
-const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
-
 /**
  * Builds the official SIGA student welcome email HTML template.
  */
