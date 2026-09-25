@@ -3,8 +3,6 @@
  * Seamlessly manages Google permissions (Calendar, Gmail) alongside existing Supabase sessions.
  */
 
-import configJson from "../../firebase-applet-config.json";
-
 export interface GoogleOAuthSession {
   access_token: string;
   refresh_token?: string;
@@ -33,69 +31,43 @@ export const GOOGLE_OAUTH_SCOPES = [
 
 const GOOGLE_TOKEN_STORAGE_KEY = "siga_google_workspace_oauth_token";
 
+function purgeLegacyTokenStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(GOOGLE_TOKEN_STORAGE_KEY);
+    window.localStorage.removeItem("siga_google_workspace_token");
+  } catch { /* Storage may be disabled. */ }
+}
+purgeLegacyTokenStorage();
+
 /**
  * Builds Google OAuth 2.0 authorization URL using configured client ID.
  */
-export function getGoogleOAuthUrl(options?: {
+export function getGoogleOAuthUrl(_options?: {
   redirectUri?: string;
   scopes?: string[];
   state?: string;
   prompt?: string;
 }): string {
-  const clientId =
-    (configJson as { oAuthClientId?: string }).oAuthClientId ||
-    "445079520865-7jlrh1du2vjp1o1ro3p8o7ms2qo7e8b8.apps.googleusercontent.com";
-
-  const redirectUri =
-    options?.redirectUri ||
-    (typeof window !== "undefined"
-      ? `${window.location.origin}/configuracoes`
-      : "https://portal-siga.com/configuracoes");
-
-  const scopes = options?.scopes || GOOGLE_OAUTH_SCOPES;
-  const state = options?.state || `siga_auth_${Date.now()}`;
-
-  const queryParams = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: "token",
-    scope: scopes.join(" "),
-    include_granted_scopes: "true",
-    state,
-    prompt: options?.prompt || "consent",
-  });
-
-  return `https://accounts.google.com/o/oauth2/v2/auth?${queryParams.toString()}`;
+  throw new Error(
+    "OAuth Workspace implícito desactivado. Configure autorização PKCE separada no servidor.",
+  );
 }
 
 const memoryStorage: Record<string, string> = {};
 
-function getStorage():
-  | Storage
-  | {
-      getItem: (k: string) => string | null;
-      setItem: (k: string, v: string) => void;
-      removeItem: (k: string) => void;
-    } {
-  if (typeof window !== "undefined" && window.localStorage) {
-    return window.localStorage;
-  }
-  if (typeof globalThis !== "undefined" && globalThis.localStorage) {
-    return globalThis.localStorage;
-  }
+// Transient compatibility storage only. OAuth refresh tokens require a
+// server-side encrypted vault, never browser storage.
+function getStorage() {
   return {
     getItem: (k: string) => memoryStorage[k] ?? null,
-    setItem: (k: string, v: string) => {
-      memoryStorage[k] = v;
-    },
-    removeItem: (k: string) => {
-      delete memoryStorage[k];
-    },
+    setItem: (k: string, v: string) => { memoryStorage[k] = v; },
+    removeItem: (k: string) => { delete memoryStorage[k]; },
   };
 }
 
 /**
- * Stores Google OAuth token into localStorage without affecting Supabase auth.
+ * Stores only a transient in-memory Workspace token, never the Supabase session.
  */
 export function saveGoogleOAuthToken(token: GoogleOAuthSession): void {
   try {
@@ -103,10 +75,12 @@ export function saveGoogleOAuthToken(token: GoogleOAuthSession): void {
       ? Date.now() + token.expires_in * 1000
       : token.expiry_date || Date.now() + 3600 * 1000;
 
+    // Provider refresh tokens belong in the future server-side encrypted vault.
     const payload = {
       ...token,
-      expiry_date: computedExpiry,
+      expiry_date: Math.min(computedExpiry, Date.now() + 60 * 60_000),
     };
+    delete payload.refresh_token;
     getStorage().setItem(GOOGLE_TOKEN_STORAGE_KEY, JSON.stringify(payload));
   } catch (e) {
     console.error("Failed to store Google OAuth token:", e);
@@ -145,22 +119,8 @@ export function clearGoogleOAuthToken(): void {
 /**
  * Parses hash fragment from Google OAuth redirect (implicit grant).
  */
-export function parseGoogleOAuthCallback(hash: string): GoogleOAuthSession | null {
-  if (!hash || !hash.includes("access_token")) return null;
-
-  const cleanHash = hash.startsWith("#") ? hash.substring(1) : hash;
-  const params = new URLSearchParams(cleanHash);
-  const accessToken = params.get("access_token");
-
-  if (!accessToken) return null;
-
-  const session: GoogleOAuthSession = {
-    access_token: accessToken,
-    token_type: params.get("token_type") || "Bearer",
-    expires_in: params.get("expires_in") ? Number(params.get("expires_in")) : 3600,
-    scope: params.get("scope") || "",
-  };
-
-  saveGoogleOAuthToken(session);
-  return session;
+export function parseGoogleOAuthCallback(_hash: string): GoogleOAuthSession | null {
+  // Implicit-flow fragments may contain bearer tokens in the browser URL.
+  // They are deliberately rejected; use the separate Workspace PKCE flow.
+  return null;
 }

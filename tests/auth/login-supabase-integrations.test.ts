@@ -1,17 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { supabase } from "@/integrations/supabase/client";
-import { getFirebaseApp, getCrashlytics, firebaseConfig } from "@/lib/firebase";
+import { getFirebaseApp, getCrashlytics } from "@/lib/firebase";
 import {
   getGoogleOAuthUrl,
   saveGoogleOAuthToken,
   getStoredGoogleOAuthToken,
   clearGoogleOAuthToken,
 } from "@/lib/google-oauth";
-import { buildStudentWelcomeTemplate, sendWelcomeEmailOnStudentEnrolled } from "@/lib/google-gmail";
-import {
-  mapSupabaseClassToGoogleEvent,
-  createGoogleCalendarClassEvent,
-} from "@/lib/google-calendar";
+import { buildStudentWelcomeTemplate } from "@/lib/google-gmail";
+import { mapSupabaseClassToGoogleEvent } from "@/lib/google-calendar";
 
 describe("Supabase Auth & Third-Party Integration Isolation", () => {
   it("initializes Supabase client using production Supabase credentials", () => {
@@ -55,9 +52,8 @@ describe("Supabase Auth & Third-Party Integration Isolation", () => {
   });
 
   it("uses production domain https://portal-siga.com for Google OAuth redirect and welcome templates", () => {
-    const oauthUrl = getGoogleOAuthUrl();
-    expect(oauthUrl).toContain("accounts.google.com/o/oauth2/v2/auth");
-    expect(oauthUrl).toContain("client_id=");
+    // Workspace consent must never silently reuse the SIGA sign-in flow.
+    expect(() => getGoogleOAuthUrl()).toThrow("PKCE");
 
     const welcomeTemplate = buildStudentWelcomeTemplate({
       studentName: "Valentino Canguele",

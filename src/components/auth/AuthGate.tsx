@@ -17,9 +17,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureDevBypassSession } from "@/features/auth/dev-bypass.server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,80 +113,156 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let verificationGeneration = 0;
 
-    const bootstrap = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (!active) return;
-        if (data.session) {
-          setSession(data.session);
-          setChecking(false);
-          return;
-        }
-
-        if (AUTH_DISABLED) {
-          try {
-            const { data: adminLogin, error: autoLoginError } =
-              await supabase.auth.signInWithPassword({
-                email: "admin@escola.ao",
-                password: "Admin@Escola2026!",
-              });
-            if (!autoLoginError && adminLogin?.session) {
-              localStorage.setItem(activityKey(adminLogin.session.user.id), String(Date.now()));
-              setSession(adminLogin.session);
-              setChecking(false);
-              return;
-            }
-          } catch {
-            // fallback to dev bypass tokens
-          }
-
-          const tokens = await ensureDevBypassSession();
-          if (!active) return;
-          const { data: setData, error: setError } = await supabase.auth.setSession({
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-          });
-          if (setError) throw setError;
-          if (setData.session) {
-            localStorage.setItem(activityKey(setData.session.user.id), String(Date.now()));
-            setSession(setData.session);
-          }
-          setChecking(false);
-          return;
-        }
-
-        setSession(null);
+    // Every protected session must be authorized by SIGA's server, irrespective
+    // of provider, sessionStorage markers, reloads or token refreshes.
+    // Never call Supabase auth APIs synchronously inside onAuthStateChange.
+    const validateSession = async (candidate: Session | null) => {
+      const generation = ++verificationGeneration;
+      setChecking(true);
+      setSession(null);
+      if (!candidate) {
         setChecking(false);
-      } catch (bootstrapError) {
-        if (!active) return;
+        return;
+      }
+
+      try {
+        const { verifyInstitutionalAccessFn } =
+          await import("@/features/auth/verify-oauth-account-server");
+        await verifyInstitutionalAccessFn();
+        if (!active || generation !== verificationGeneration) return;
+        // Sem vínculo activo a sessão continua: o RouteAccessGate mostra o
+        // painel de integração institucional (criar escola ou pedir acesso) e
+        // o servidor recusa tudo o que exija membership. Uma falha a consultar
+        // as permissões continua a negar o acesso (catch abaixo).
+        // Require the same enrolled MFA factor for social and password login.
+        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (assurance.error) throw assurance.error;
+        if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
+          const factors = await supabase.auth.mfa.listFactors();
+          if (factors.error) throw factors.error;
+          if (!active || generation !== verificationGeneration) return;
+          const totpFactor = factors.data?.totp?.[0];
+          if (!totpFactor) throw new Error("É necessário configurar o segundo factor.");
+          setMfaFactorId(totpFactor.id);
+          setSession(null);
+          setChecking(false);
+          setSubmitting(false);
+          return;
+        }
+        if (!active || generation !== verificationGeneration) return;
+        setMfaFactorId(null);
+        setError(null);
+        setSession(candidate);
+        setChecking(false);
+        setSubmitting(false);
+      } catch (verificationError) {
+        if (!active || generation !== verificationGeneration) return;
+        console.error("[AuthGate] Erro ao verificar autorização institucional", verificationError);
+        // Keep the Supabase identity intact and deny access on lookup failures.
+        // Reload can safely retry without losing the Google or password account.
         setError(
-          bootstrapError instanceof Error
-            ? bootstrapError.message
-            : "Não foi possível iniciar o serviço de autenticação.",
+          "Não foi possível confirmar as permissões. Actualize a página para tentar novamente.",
         );
         setChecking(false);
+        setSubmitting(false);
       }
     };
 
-    void bootstrap();
-
+    let sawInitialAuthEvent = false;
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
-      // Uma conta sem vínculo escolar (ex.: primeiro login Google) entra na
-      // sessão mas não vê dados de escola nenhuma: o RouteAccessGate mostra-lhe
-      // o painel de integração institucional, e o servidor recusa tudo o que
-      // exija membership. A identidade prova QUEM é; só um vínculo aprovado
-      // decide O QUE pode ver.
-      if (event === "SIGNED_IN" && nextSession) {
-        localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
+      if (
+        event === "INITIAL_SESSION" ||
+        event === "SIGNED_IN" ||
+        event === "SIGNED_OUT" ||
+        event === "TOKEN_REFRESHED"
+      ) {
+        sawInitialAuthEvent = true;
       }
-      setSession(nextSession);
-      setChecking(false);
-      setSubmitting(false);
+      if (event === "SIGNED_OUT") {
+        ++verificationGeneration;
+        setSession(null);
+        setChecking(false);
+        setSubmitting(false);
+        return;
+      }
+      if (
+        event === "INITIAL_SESSION" ||
+        event === "SIGNED_IN" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "USER_UPDATED" ||
+        event === "PASSWORD_RECOVERY"
+      ) {
+        if (nextSession) {
+          try {
+            localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
+          } catch {
+            /* Storage unavailable: server still validates membership. */
+          }
+        }
+        // Supabase auth callbacks run under an auth lock. Defer all async
+        // client calls to a new task, not a microtask, to avoid deadlocks.
+        window.setTimeout(() => {
+          if (active) void validateSession(nextSession);
+        }, 0);
+      }
     });
+    // Revoked memberships must not stay usable indefinitely in an open tab.
+    // Revalidate on return from background even if Supabase emits no auth event.
+    let lastFocusCheck = 0;
+    const onReturnToApp = () => {
+      if (!active || document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastFocusCheck < 60_000) return;
+      lastFocusCheck = now;
+      void supabase.auth.getSession().then(
+        ({ data: restored, error: sessionError }) => {
+          if (!active) return;
+          if (sessionError) {
+            void validateSession(null);
+            setError("A sessão não pôde ser confirmada. Entre novamente.");
+            return;
+          }
+          void validateSession(restored.session);
+        },
+        () => {
+          if (!active) return;
+          void validateSession(null);
+          setError("A sessão não pôde ser confirmada. Entre novamente.");
+        },
+      );
+    };
+    document.addEventListener("visibilitychange", onReturnToApp);
+
+    // Supabase normally emits INITIAL_SESSION. Keep a delayed, race-safe
+    // bootstrap fallback so a missed initial event cannot leave AuthGate stuck.
+    const bootstrapFallback = window.setTimeout(() => {
+      if (!active || sawInitialAuthEvent) return;
+      void supabase.auth.getSession().then(
+        ({ data: restored, error: restoreError }) => {
+          if (!active || sawInitialAuthEvent) return;
+          if (restoreError) {
+            setError("A sessão não pôde ser restaurada. Entre novamente.");
+            setChecking(false);
+            return;
+          }
+          void validateSession(restored.session);
+        },
+        () => {
+          if (!active || sawInitialAuthEvent) return;
+          setError("A sessão não pôde ser restaurada. Entre novamente.");
+          setChecking(false);
+        },
+      );
+    }, 750);
+
     return () => {
       active = false;
+      ++verificationGeneration;
+      window.clearTimeout(bootstrapFallback);
+      document.removeEventListener("visibilitychange", onReturnToApp);
       data.subscription.unsubscribe();
     };
   }, []);
@@ -273,16 +347,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
         password,
       });
       if (!signInError) {
-        if (data.user) localStorage.setItem(activityKey(data.user.id), String(Date.now()));
-        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
-          const factors = await supabase.auth.mfa.listFactors();
-          const totp = factors.data?.totp[0];
-          if (totp) {
-            setMfaFactorId(totp.id);
-            setSession(null);
-            return;
-          }
+        // The shared auth-state gate checks identity, institution and MFA
+        // for password and Google alike. Do not race it with a second MFA flow.
+        if (data.user) {
+          localStorage.setItem(activityKey(data.user.id), String(Date.now()));
         }
         return;
       }
@@ -350,16 +418,27 @@ export function AuthGate({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    setSubmitting(true);
     setError(null);
     setInfo(null);
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
-    });
-    if (oauthError) {
-      setError("Não foi possível iniciar sessão com o Google. Tente novamente.");
+    try {
+      // Login uses Supabase's Google provider only (openid/email/profile).
+      // Gmail, Drive and Calendar require their own explicit Workspace consent.
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      if (oauthError) throw oauthError;
+    } catch (loginError) {
+      console.error("[AuthGate] Falha ao iniciar OAuth", loginError);
+      setError(
+        "Não foi possível iniciar sessão com Google. Verifique o serviço e tente novamente.",
+      );
+    } finally {
+      setSubmitting(false);
     }
-    // Em sucesso, o browser navega para o Google — nada mais a fazer aqui.
   };
 
   /**
@@ -586,6 +665,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
                         throw new Error("A sessão não ficou disponível após a verificação 2FA.");
                       }
 
+                      // AAL2 não é permissão de escola: confirma no servidor que a
+                      // consulta de acesso responde. Sem vínculo, a sessão segue
+                      // para o painel de integração institucional.
+                      const { verifyInstitutionalAccessFn } =
+                        await import("@/features/auth/verify-oauth-account-server");
+                      await verifyInstitutionalAccessFn();
                       localStorage.setItem(
                         activityKey(sessionData.session.user.id),
                         String(Date.now()),

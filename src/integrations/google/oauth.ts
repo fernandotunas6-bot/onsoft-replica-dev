@@ -26,86 +26,66 @@ export const GOOGLE_WORKSPACE_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
 ];
 
-const STORAGE_KEY_GOOGLE_TOKEN = "siga_google_workspace_token";
-
 /**
  * Builds the Google OAuth 2.0 authorization URL.
  */
-export function buildGoogleAuthUrl(options?: {
+export function buildGoogleAuthUrl(_options?: {
   clientId?: string;
   redirectUri?: string;
   scopes?: string[];
   state?: string;
 }): string {
-  const clientId =
-    options?.clientId ||
-    (typeof process !== "undefined" ? process.env?.["GOOGLE_CLIENT_ID"] : undefined) ||
-    "445079520865-7jlrh1du2vjp1o1ro3p8o7ms2qo7e8b8.apps.googleusercontent.com";
-
-  const redirectUri =
-    options?.redirectUri ||
-    (typeof window !== "undefined"
-      ? `${window.location.origin}/configuracoes?tab=integracoes&provider=google`
-      : "https://portal-siga.com/configuracoes");
-
-  const scopes = options?.scopes || GOOGLE_WORKSPACE_SCOPES;
-  const state = options?.state || `siga_${Date.now()}`;
-
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: "token",
-    scope: scopes.join(" "),
-    include_granted_scopes: "true",
-    state: state,
-    prompt: "consent",
-    access_type: "online",
-  });
-
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  // No response_type=token: legacy implicit grant is disabled.
+  // Workspace must use its own server-side PKCE authorization and token vault,
+  // distinct from Supabase Auth's Google sign-in callback.
+  throw new Error(
+    "A ligação Google Workspace requer OAuth PKCE e armazenamento seguro no servidor.",
+  );
 }
 
-/**
- * Saves Google OAuth tokens in client storage or memory.
- */
+let workspaceToken: GoogleOAuthToken | null = null;
+
+// Purge bearer tokens persisted by earlier Workspace builds.
+function purgeLegacyTokenStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem("siga_google_workspace_token");
+    window.localStorage.removeItem("siga_google_workspace_oauth_token");
+  } catch { /* Storage may be disabled. */ }
+}
+purgeLegacyTokenStorage();
+
+/** Short-lived in-memory compatibility only; never persist provider tokens in localStorage. */
 export function saveGoogleOAuthToken(token: GoogleOAuthToken): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY_GOOGLE_TOKEN, JSON.stringify(token));
-  } catch (err) {
-    console.warn("Could not save Google OAuth token to storage:", err);
+  purgeLegacyTokenStorage();
+  // Temporary backwards compatibility for callers that already hold a token.
+  // Do not accept refresh tokens in browser memory or immortal tokens.
+  const now = Date.now();
+  const expiryDate = token.expiry_date ?? now + 15 * 60_000;
+  if (!token.access_token || !Number.isFinite(expiryDate) || expiryDate <= now) {
+    workspaceToken = null;
+    return;
   }
+  workspaceToken = {
+    access_token: token.access_token,
+    token_type: token.token_type,
+    scope: token.scope,
+    expiry_date: Math.min(expiryDate, now + 60 * 60_000),
+    ...(token.email ? { email: token.email } : {}),
+  };
 }
 
-/**
- * Retrieves the stored Google OAuth token if valid.
- */
 export function getStoredGoogleOAuthToken(): GoogleOAuthToken | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_GOOGLE_TOKEN);
-    if (!raw) return null;
-    const token: GoogleOAuthToken = JSON.parse(raw);
-    if (token.expiry_date && Date.now() > token.expiry_date) {
-      // Expired
-      return null;
-    }
-    return token;
-  } catch {
-    return null;
+  if (!workspaceToken) return null;
+  if (workspaceToken.expiry_date && Date.now() > workspaceToken.expiry_date) {
+    workspaceToken = null;
   }
+  return workspaceToken ? { ...workspaceToken } : null;
 }
 
-/**
- * Clears stored Google OAuth credentials.
- */
 export function clearGoogleOAuthToken(): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.removeItem(STORAGE_KEY_GOOGLE_TOKEN);
-  } catch (err) {
-    console.warn("Could not clear Google OAuth token:", err);
-  }
+  workspaceToken = null;
+  purgeLegacyTokenStorage();
 }
 
 /**

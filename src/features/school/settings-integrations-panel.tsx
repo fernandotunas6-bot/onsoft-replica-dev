@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import {
 } from "@/lib/ecosystem-urls";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { groupCatalogItems, integrationFieldHints } from "@/features/integrations/catalog";
+import { isPendingWorkspaceProvider } from "@/features/integrations/google-workspace-availability";
 import { InstallConsentModal } from "@/features/integrations/InstallConsentModal";
 import { ZoomIntegrationCard } from "@/features/integrations/ZoomIntegrationCard";
 import { installPackageFor } from "@/features/integrations/install";
@@ -30,7 +30,9 @@ import {
   upsertSchoolIntegration,
   type SchoolIntegrationSummary,
 } from "@/features/integrations/server";
-import { gatewayWebhookPreviousKeyActive } from "@/features/integrations/gateway-webhook-key";
+
+import { GoogleWorkspaceConnectCard } from "./GoogleWorkspaceConnectCard";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,28 +49,35 @@ import { listGatewayWebhookEvents } from "@/features/finance/server";
 function GatewayWebhookHint({
   provider,
   config,
+  hasWebhookSecret,
+  schoolId,
 }: {
   provider: string;
+  schoolId: string;
   config: Record<string, unknown>;
+  hasWebhookSecret: boolean;
 }) {
   const queryClient = useQueryClient();
   const [rotating, setRotating] = useState(false);
   const isGateway = provider === "multicaixa_express" || provider === "unitel_money";
-  const apiKey = String(config.webhookApiKey ?? "").trim();
-  const previousActive = gatewayWebhookPreviousKeyActive(config);
+  const [newWebhookKey, setNewWebhookKey] = useState("");
   const previousExpires = String(config.webhookApiKeyPreviousExpiresAt ?? "");
+  const previousActive =
+    hasWebhookSecret &&
+    Number.isFinite(Date.parse(previousExpires)) &&
+    Date.parse(previousExpires) > Date.now();
 
   const eventsQuery = useQuery({
-    queryKey: ["gateway-webhook-events", provider],
+    queryKey: ["gateway-webhook-events", schoolId, provider],
     queryFn: () =>
       listGatewayWebhookEvents({
         data: { channel: provider as "multicaixa_express" | "unitel_money", limit: 5 },
       }),
-    enabled: isGateway && Boolean(apiKey),
+    enabled: isGateway && hasWebhookSecret && Boolean(schoolId),
     staleTime: 30_000,
   });
 
-  if (!isGateway || !apiKey) return null;
+  if (!isGateway || !hasWebhookSecret) return null;
 
   const recentEvents = eventsQuery.data ?? [];
 
@@ -84,6 +93,7 @@ function GatewayWebhookHint({
     })
       .then((result) => {
         toast.success("Nova API key gerada — copiada para a área de transferência.");
+        setNewWebhookKey(result.webhookApiKey);
         void navigator.clipboard.writeText(result.webhookApiKey);
         return queryClient.invalidateQueries({ queryKey: ["school", "integrations"] });
       })
@@ -121,12 +131,21 @@ function GatewayWebhookHint({
         </Button>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[10px]">
-          {apiKey}
-        </code>
-        <Button type="button" size="sm" variant="outline" onClick={() => copy("API key", apiKey)}>
-          Copiar API key
-        </Button>
+        <span className="min-w-0 flex-1 text-[11px] text-muted-foreground">
+          {newWebhookKey
+            ? "Nova chave disponível apenas nesta sessão. Guarde-a agora no portal bancário."
+            : "Chave guardada no servidor; por segurança não é reenviada ao navegador."}
+        </span>
+        {newWebhookKey ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => copy("Nova API key", newWebhookKey)}
+          >
+            Copiar nova chave
+          </Button>
+        ) : null}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button type="button" size="sm" variant="destructive" disabled={rotating}>
@@ -230,9 +249,11 @@ function GatewayWebhookHint({
 
 function AcademicIntegrationsCatalog() {
   const queryClient = useQueryClient();
+  const schoolId = useCurrentAccount().schoolId;
   const [installProvider, setInstallProvider] = useState<string | null>(null);
   const catalogQuery = useQuery({
-    queryKey: ["school", "integrations"],
+    queryKey: ["school", "integrations", schoolId],
+    enabled: Boolean(schoolId),
     queryFn: () => listSchoolIntegrations() as Promise<SchoolIntegrationSummary[]>,
     retry: false,
   });
@@ -268,7 +289,8 @@ function AcademicIntegrationsCatalog() {
               const hints = integrationFieldHints[item.id];
               const config = item.config ?? {};
               const pack = installPackageFor(item.id);
-              const installed = item.status !== "disconnected";
+              const workspacePending = isPendingWorkspaceProvider(item.id);
+              const installed = !workspacePending && item.status !== "disconnected";
               return (
                 <li
                   key={item.id}
@@ -284,10 +306,22 @@ function AcademicIntegrationsCatalog() {
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
-                      <Badge variant={item.status === "disconnected" ? "secondary" : "default"}>
-                        {integrationStatusLabel(item.status)}
+                      <Badge
+                        variant={
+                          workspacePending || item.status === "disconnected"
+                            ? "secondary"
+                            : "default"
+                        }
+                      >
+                        {workspacePending
+                          ? "Pendente de consentimento"
+                          : integrationStatusLabel(item.status)}
                       </Badge>
-                      {installed ? (
+                      {workspacePending ? (
+                        <span className="text-[11px] font-medium text-muted-foreground">
+                          Ligação em preparação
+                        </span>
+                      ) : installed ? (
                         <button
                           type="button"
                           className="text-[11px] font-semibold text-destructive hover:underline"
@@ -328,11 +362,17 @@ function AcademicIntegrationsCatalog() {
                         .join(" · ")}
                     </p>
                   ) : null}
-                  {item.id === "zoom" ? (
+                  {workspacePending ? (
+                    <p className="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      A ligação exige consentimento Google independente do login SIGA, autorização
+                      por serviço e tokens protegidos no servidor. Nenhuma operação destes serviços
+                      Google está activa.
+                    </p>
+                  ) : item.id === "zoom" ? (
                     <ZoomIntegrationCard item={item} />
                   ) : (
                     <form
-                      key={`${item.id}-${item.status}-${String(config["merchantId"] ?? "")}`}
+                      key={`${item.id}-${item.status}-${Boolean(item.hasStoredSecret.merchantId)}`}
                       className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
                       onSubmit={(event) => {
                         event.preventDefault();
@@ -363,7 +403,11 @@ function AcademicIntegrationsCatalog() {
                         name="merchantId"
                         aria-label={`Identificador de comerciante ${item.name}`}
                         defaultValue={String(config["merchantId"] ?? "")}
-                        placeholder={hints.merchant}
+                        placeholder={
+                          item.hasStoredSecret.merchantId
+                            ? "Credencial guardada; preencha apenas para substituir"
+                            : hints.merchant
+                        }
                         className="h-8 text-xs"
                       />
                       <Input
@@ -375,7 +419,11 @@ function AcademicIntegrationsCatalog() {
                               ? getFinanceGatewayConfirmUrl()
                               : ""),
                         )}
-                        placeholder={hints.callback}
+                        placeholder={
+                          item.hasStoredSecret.callbackUrl
+                            ? "Token guardado; preencha apenas para substituir"
+                            : hints.callback
+                        }
                         className="h-8 text-xs"
                       />
                       <Button type="submit" size="sm" variant="outline">
@@ -383,7 +431,13 @@ function AcademicIntegrationsCatalog() {
                       </Button>
                     </form>
                   )}
-                  <GatewayWebhookHint provider={item.id} config={config} />
+                  <GatewayWebhookHint
+                    key={`${schoolId}-${item.id}`}
+                    provider={item.id}
+                    schoolId={schoolId ?? ""}
+                    config={config}
+                    hasWebhookSecret={Boolean(item.hasStoredSecret.webhookApiKey)}
+                  />
                 </li>
               );
             })}
@@ -437,100 +491,13 @@ export function IntegrationsPanel() {
   return (
     <div className="space-y-8">
       <AcademicIntegrationsCatalog />
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
-              G
-            </span>
-            <h5 className="text-sm font-semibold text-foreground">
-              Google Workspace & Cloud Conectados
-            </h5>
-          </div>
-          <Badge variant="default" className="bg-success text-success-foreground hover:bg-success">
-            Ativo (OAuth 2.0)
-          </Badge>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          As integrações do Google Workspace (Google Calendar, Gmail, Google Drive, Google Sheets,
-          Google Docs e Google Tasks) estão habilitadas para complementar o SIGA. O Supabase
-          continua a ser a base de dados principal e oficial do sistema.
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-xs">
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Calendar</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Sincronização de aulas e exames
-            </p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Gmail</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Notificações e avisos oficiais
-            </p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Sheets</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Exportação de pautas e relatórios
-            </p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Drive</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Dossiês e arquivo pedagógico</p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Docs</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Declarações e minutas</p>
-          </div>
-          <div className="rounded-md border border-border/70 bg-card p-2">
-            <span className="font-medium text-foreground">Google Tasks</span>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Tarefas da secretaria</p>
-          </div>
-        </div>
-      </div>
+      <GoogleWorkspaceConnectCard />
       {installed.isInstalled("resend_email") ? (
         <p className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-xs text-muted-foreground">
-          <strong>Resend</strong> já está instalado para e-mail transaccional da escola. O Gmail
-          abaixo é opcional para contas pessoais de cada utilizador.
+          <strong>Resend</strong> permanece como serviço independente para notificações
+          transaccionais da escola. O Gmail individual requer consentimento Google próprio.
         </p>
       ) : null}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h5 className="text-xs font-bold text-muted-foreground">Gmail (por utilizador)</h5>
-          <Badge variant="outline">Requer login</Badge>
-        </div>
-        <div className="flex items-start gap-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-            <Mail className="size-5" />
-          </span>
-          <div className="space-y-3 text-sm">
-            <p className="text-muted-foreground">
-              Com o Gmail ligado, cada secretária ou director envia comunicações, facturas e
-              certificados a partir do seu próprio e-mail, com histórico na caixa de saída pessoal.
-            </p>
-            <ul className="space-y-1.5 text-xs text-muted-foreground">
-              {[
-                "Envio de comunicações em nome do próprio utilizador",
-                "Anexos automáticos de facturas e declarações",
-                "Registo do envio na ficha do aluno",
-              ].map((f) => (
-                <li key={f} className="flex items-center gap-2">
-                  <Check className="size-3.5 text-success" /> {f}
-                </li>
-              ))}
-            </ul>
-            <div className="rounded-lg border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
-              Para ligar contas individuais é primeiro necessário activar as contas de utilizador do
-              sistema (login próprio de cada funcionário). Enquanto isso, o botão fica inactivo.
-            </div>
-            <Button disabled className="gap-2">
-              <Mail className="size-4" /> Ligar a minha conta Gmail
-            </Button>
-          </div>
-        </div>
-      </div>
-
       <Separator />
 
       <div className="space-y-3">

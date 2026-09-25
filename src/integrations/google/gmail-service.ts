@@ -3,7 +3,7 @@
  * Handles official school communication, notices, and automatic student welcome emails.
  */
 
-import { getStoredGoogleOAuthToken } from "./oauth";
+import { sendGmailNotification } from "./server-workspace";
 
 export interface StudentWelcomeEmailData {
   recipientEmail: string;
@@ -25,20 +25,6 @@ export interface GmailSendResult {
   success: boolean;
   messageId?: string;
   error?: string;
-}
-
-const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
-
-/**
- * Encodes string to RFC 4648 Base64URL without padding
- */
-function base64UrlEncode(str: string): string {
-  const bytes = new TextEncoder().encode(str);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i] ?? 0);
-  }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 /**
@@ -127,77 +113,25 @@ ${data.schoolName}
 }
 
 /**
- * Sends a raw email via the Gmail API
+ * Sends through an authenticated SIGA server function. The optional token
+ * parameter remains only for source compatibility and is deliberately ignored.
  */
 export async function sendGmailMessage(
   to: string,
   subject: string,
   bodyHtml: string,
   bodyText?: string,
-  customAccessToken?: string,
+  _customAccessToken?: string,
 ): Promise<GmailSendResult> {
-  const token = customAccessToken || getStoredGoogleOAuthToken()?.access_token;
-  if (!token) {
-    return {
-      success: false,
-      error: "Google Workspace / Gmail não está autenticado.",
-    };
-  }
-
-  // Construct MIME message
-  const boundary = `siga_boundary_${Date.now()}`;
-  const utf8Subject = `=?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
-
-  const rawMessage = [
-    `To: ${to}`,
-    `Subject: ${utf8Subject}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/plain; charset=UTF-8`,
-    `Content-Transfer-Encoding: 7bit`,
-    ``,
-    bodyText || bodyHtml.replace(/<[^>]*>?/gm, ""),
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/html; charset=UTF-8`,
-    `Content-Transfer-Encoding: 7bit`,
-    ``,
-    bodyHtml,
-    ``,
-    `--${boundary}--`,
-  ].join("\r\n");
-
-  const encodedRaw = base64UrlEncode(rawMessage);
-
   try {
-    const response = await fetch(`${GMAIL_API_BASE}/send`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ raw: encodedRaw }),
+    const result = await sendGmailNotification({
+      data: { to, subject, bodyHtml: bodyHtml || bodyText || "" },
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return {
-        success: false,
-        error: `Erro na Gmail API (${response.status}): ${errorText}`,
-      };
-    }
-
-    const json = await response.json();
-    return {
-      success: true,
-      messageId: json.id,
-    };
-  } catch (err) {
+    return { success: result.success, messageId: result.messageId };
+  } catch (error) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Erro inesperado ao enviar mensagem pelo Gmail",
+      error: error instanceof Error ? error.message : "Erro ao enviar mensagem pelo Gmail",
     };
   }
 }

@@ -16,8 +16,8 @@ export async function googleCreateMailbox(config: MailboxConfig): Promise<Mailbo
   const creds = getGoogleCreds();
   if (!creds) return { ok: false, reason: "Credenciais Google Workspace em falta." };
 
-  // Simulação
-  return { ok: true, provider: "google", providerAccountId: `goid-${Date.now()}` };
+  // Admin SDK Directory API is not implemented. Never mark a mailbox as created.
+  return { ok: false, reason: "Criação Google Workspace indisponível: falta implementar o Admin SDK." };
 }
 
 export async function googleSuspendMailbox(
@@ -26,7 +26,8 @@ export async function googleSuspendMailbox(
   const creds = getGoogleCreds();
   if (!creds) return { ok: false, reason: "Credenciais Google Workspace em falta." };
 
-  return { ok: true };
+  // A locally configured service account is not proof that suspension succeeded.
+  return { ok: false, reason: "Suspensão Google Workspace indisponível: falta implementar o Admin SDK." };
 }
 
 export async function googleListMailboxes(domain: string): Promise<MailboxItem[]> {

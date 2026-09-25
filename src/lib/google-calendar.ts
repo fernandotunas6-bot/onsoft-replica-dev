@@ -3,7 +3,7 @@
  * Maps Supabase class/lesson data to automatic Google Calendar events for teachers and classes.
  */
 
-import { getStoredGoogleOAuthToken } from "./google-oauth";
+import { syncCalendarEvent } from "@/integrations/google/server-workspace";
 
 export interface SupabaseClassEventData {
   scheduleId?: string;
@@ -36,8 +36,6 @@ export interface GoogleCalendarEvent {
     overrides?: Array<{ method: string; minutes: number }>;
   };
 }
-
-const CALENDAR_BASE_URL = "https://www.googleapis.com/calendar/v3";
 
 /**
  * Maps Supabase class and timetable data to Google Calendar Event format
@@ -105,51 +103,40 @@ export function mapSupabaseClassToGoogleEvent(
 }
 
 /**
- * Creates an event in Google Calendar using stored OAuth credentials.
+ * Creates an event through the SIGA server-side Workspace vault.
+ * Browser/provider tokens are deliberately ignored.
  */
 export async function createGoogleCalendarClassEvent(
   classData: SupabaseClassEventData,
-  customAccessToken?: string,
+  _customAccessToken?: string,
 ): Promise<{ success: boolean; eventId?: string; link?: string; error?: string }> {
-  const token = customAccessToken || getStoredGoogleOAuthToken()?.access_token;
-  if (!token) {
-    return {
-      success: false,
-      error: "Sessão Google Workspace não autenticada. Conecte sua conta Google no SIGA.",
-    };
-  }
-
   const payload = mapSupabaseClassToGoogleEvent(classData);
-
   try {
-    const response = await fetch(`${CALENDAR_BASE_URL}/calendars/primary/events`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+    const result = await syncCalendarEvent({
+      data: {
+        title: payload.summary,
+        description: payload.description,
+        location: payload.location,
+        attendees: payload.attendees?.map((item) => item.email),
+        startDateTime: payload.start.dateTime,
+        endDateTime: payload.end.dateTime,
+        recurrence: payload.recurrence,
+        reminders: payload.reminders
+          ? {
+              useDefault: payload.reminders.useDefault,
+              overrides: payload.reminders.overrides?.map((item) => ({
+                method: item.method === "email" ? "email" as const : "popup" as const,
+                minutes: item.minutes,
+              })),
+            }
+          : undefined,
       },
-      body: JSON.stringify(payload),
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      return {
-        success: false,
-        error: `Google Calendar API error (${response.status}): ${errText}`,
-      };
-    }
-
-    const created = await response.json();
-    return {
-      success: true,
-      eventId: created.id,
-      link: created.htmlLink,
-    };
-  } catch (err) {
+    return { success: result.success, eventId: result.eventId };
+  } catch (error) {
     return {
       success: false,
-      error:
-        err instanceof Error ? err.message : "Erro inesperado ao criar evento no Google Calendar",
+      error: error instanceof Error ? error.message : "Erro ao criar evento no Google Calendar",
     };
   }
 }

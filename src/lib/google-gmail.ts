@@ -3,7 +3,7 @@
  * Provides automated welcome emails with student enrollment information and credentials.
  */
 
-import { getStoredGoogleOAuthToken } from "./google-oauth";
+import { sendGmailNotification } from "@/integrations/google/server-workspace";
 
 export interface StudentEnrollmentWelcomeData {
   studentId?: string;
@@ -26,20 +26,6 @@ export interface GmailSendResponse {
   success: boolean;
   messageId?: string;
   error?: string;
-}
-
-const GMAIL_MESSAGES_ENDPOINT = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
-
-/**
- * Encodes string to RFC 4648 Base64URL
- */
-function encodeBase64Url(str: string): string {
-  const bytes = new TextEncoder().encode(str);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i] ?? 0);
-  }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 /**
@@ -98,17 +84,8 @@ export function buildStudentWelcomeTemplate(data: StudentEnrollmentWelcomeData):
         ${data.academicYear ? `<div class="card-row"><span class="card-label">Ano Lectivo:</span><span class="card-value">${data.academicYear}</span></div>` : ""}
       </div>
 
-      ${
-        data.temporaryPassword
-          ? `
-      <div class="creds-box">
-        <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px;">Dados de Acesso ao Portal:</h4>
-        <p style="margin: 0; font-size: 13px;"><strong>Utilizador:</strong> ${data.studentEmail}</p>
-        <p style="margin: 4px 0 0 0; font-size: 13px;"><strong>Senha Temporária:</strong> <code style="background:#dbeafe; padding:2px 6px; border-radius:4px;">${data.temporaryPassword}</code></p>
-        <p style="margin: 6px 0 0 0; font-size: 11px; color: #64748b;">(Recomendamos alterar a sua senha no primeiro acesso ao sistema.)</p>
-      </div>`
-          : ""
-      }
+      ${data.temporaryPassword ? `\n      <div class="creds-box">\n        <p style="margin:0;font-size:13px;">Por segurança, a senha não é enviada por e-mail. Utilize o fluxo seguro de definição ou recuperação de senha no portal.</p>\n      </div>` : ""}
+
 
       <div style="text-align: center;">
         <a href="${portalUrl}" class="btn">Aceder ao Portal SIGA</a>
@@ -131,7 +108,7 @@ A sua matrícula foi confirmada com sucesso em ${data.schoolName}.
 Dados da Matrícula:
 - Nº de Processo: ${data.studentNumber}
 ${data.turmaName ? `- Turma: ${data.turmaName}\n` : ""}${data.courseName ? `- Curso: ${data.courseName}\n` : ""}${data.academicYear ? `- Ano Lectivo: ${data.academicYear}\n` : ""}
-${data.temporaryPassword ? `Acesso ao Portal:\n- Utilizador: ${data.studentEmail}\n- Senha Temporária: ${data.temporaryPassword}\n` : ""}
+${data.temporaryPassword ? `Acesso ao Portal:\n- Utilizador: ${data.studentEmail}\n- Defina ou recupere a senha pelo fluxo seguro do portal.\n` : ""}
 Aceda ao portal do aluno para consultar horários, notas e pagamentos: ${portalUrl}
 
 ${data.schoolName}
@@ -141,11 +118,12 @@ ${data.schoolName}
 }
 
 /**
- * Sends a welcome email via the Gmail API after student creation in Supabase.
+ * Sends a welcome message through the authenticated SIGA server-side Gmail
+ * integration. Any legacy custom token parameter is ignored by design.
  */
 export async function sendWelcomeEmailOnStudentEnrolled(
   studentData: StudentEnrollmentWelcomeData,
-  customAccessToken?: string,
+  _customAccessToken?: string,
 ): Promise<GmailSendResponse> {
   if (!studentData.studentEmail || !studentData.studentEmail.includes("@")) {
     return {
@@ -154,69 +132,16 @@ export async function sendWelcomeEmailOnStudentEnrolled(
     };
   }
 
-  const token = customAccessToken || getStoredGoogleOAuthToken()?.access_token;
-  if (!token) {
-    return {
-      success: false,
-      error:
-        "Sessão Google Workspace não autenticada. Autentique o Gmail nas configurações do SIGA.",
-    };
-  }
-
-  const { subject, html, text } = buildStudentWelcomeTemplate(studentData);
-  const boundary = `siga_msg_boundary_${Date.now()}`;
-  const utf8Subject = `=?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
-
-  const rawMessage = [
-    `To: ${studentData.studentEmail}`,
-    `Subject: ${utf8Subject}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/plain; charset=UTF-8`,
-    `Content-Transfer-Encoding: 7bit`,
-    ``,
-    text,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/html; charset=UTF-8`,
-    `Content-Transfer-Encoding: 7bit`,
-    ``,
-    html,
-    ``,
-    `--${boundary}--`,
-  ].join("\r\n");
-
-  const encodedPayload = encodeBase64Url(rawMessage);
-
+  const { subject, html } = buildStudentWelcomeTemplate(studentData);
   try {
-    const response = await fetch(GMAIL_MESSAGES_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ raw: encodedPayload }),
+    const result = await sendGmailNotification({
+      data: { to: studentData.studentEmail, subject, bodyHtml: html },
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return {
-        success: false,
-        error: `Gmail API error (${response.status}): ${errorText}`,
-      };
-    }
-
-    const data = await response.json();
-    return {
-      success: true,
-      messageId: data.id,
-    };
-  } catch (err) {
+    return { success: result.success, messageId: result.messageId };
+  } catch (error) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Erro ao enviar e-mail pelo Gmail",
+      error: error instanceof Error ? error.message : "Erro ao enviar e-mail pelo Gmail",
     };
   }
 }
