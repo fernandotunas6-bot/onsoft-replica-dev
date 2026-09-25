@@ -99,6 +99,18 @@ qualquer aluno podia escrever directamente pela API REST do Supabase.
 - **Por decidir:** `resolveBiToEmailFn` devolve o e-mail associado a um B.I. (ver
   `CONTINUE.md`).
 
+## Permissões por módulo só no browser
+
+As permissões por conta (Nenhum/Leitura/Escrita/Total, em Acessos) só eram respeitadas no
+browser. Com "Nenhum", a conta deixava de ver o módulo, mas continuava a chamar as funções dele
+directamente. As 176 chamadas de verificação de papel nos módulos passam a
+`requireSgaWriterFor("<módulo>", …)`, que também aplica "Nenhum" no servidor. Um teste
+estrutural impede novas funções sem esta verificação.
+
+**Por fazer:** "Leitura" continua a não impedir escritas no servidor, porque isso obriga a
+classificar cada função como leitura ou escrita. A elevação por permissão (dar acesso a quem
+não tem o papel) também não chega ao servidor.
+
 ## Funcionalidades simuladas apresentadas como reais
 
 - **Encaminhamento de e-mail institucional.** As definições da escola gravavam a rota como

@@ -18,10 +18,9 @@ export type GatewayCharge = {
 };
 
 async function treasury(userId: string) {
-  const { requireSgaWriter, loadSgaAdminClient } = await import(
-    "@/integrations/supabase/sga-admin"
-  );
-  const m = await requireSgaWriter(userId, ["Administrador", "Tesouraria"]);
+  const { requireSgaWriterFor, loadSgaAdminClient } =
+    await import("@/integrations/supabase/sga-admin");
+  const m = await requireSgaWriterFor("financeiro", userId, ["Administrador", "Tesouraria"]);
   return { schoolId: m.schoolId, db: await loadSgaAdminClient() };
 }
 
@@ -85,11 +84,12 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
     const due = Number(invoice.amount) - Number(invoice.discount_amount ?? 0);
     if (data.amount > due + 0.01) throw new Error("O valor é maior do que o total da factura.");
 
-    const { appyPayConfigured, createAppyPayCharge, newMerchantTransactionId } = await import(
-      "@/lib/appypay.server"
-    );
+    const { appyPayConfigured, createAppyPayCharge, newMerchantTransactionId } =
+      await import("@/lib/appypay.server");
     if (!appyPayConfigured()) {
-      throw new Error("A AppyPay ainda não está ligada. Peça ao administrador para guardar as chaves.");
+      throw new Error(
+        "A AppyPay ainda não está ligada. Peça ao administrador para guardar as chaves.",
+      );
     }
     const mtx = newMerchantTransactionId();
     const { data: row, error } = await db
@@ -155,14 +155,15 @@ export const reconcileOpenCharges = createServerFn({ method: "POST" })
       .in("status", ["pending", "needs_review"])
       .not("provider_charge_id", "is", null)
       .limit(50);
-    const { reconcileAppyPayCharge } = await import(
-      "@/features/finance/appypay-reconcile.server"
-    );
+    const { reconcileAppyPayCharge } = await import("@/features/finance/appypay-reconcile.server");
     let paid = 0;
     let checked = 0;
     for (const r of rows ?? []) {
       checked += 1;
-      const res = await reconcileAppyPayCharge(db, { ...r, status: r.status === "needs_review" ? "pending" : r.status }).catch(() => null);
+      const res = await reconcileAppyPayCharge(db, {
+        ...r,
+        status: r.status === "needs_review" ? "pending" : r.status,
+      }).catch(() => null);
       if (res?.status === "paid") paid += 1;
     }
     return { checked, paid };

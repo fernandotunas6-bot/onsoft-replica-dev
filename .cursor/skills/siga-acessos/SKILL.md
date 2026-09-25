@@ -16,7 +16,7 @@ description: >-
 
 ## Regras
 
-1. Grants sobrepõem o cargo. `Nenhum` bloqueia o módulo.
+1. Grants sobrepõem o cargo. `Nenhum` bloqueia o módulo — no browser (`canAccessPath`) **e no servidor**: as funções de cada módulo usam `requireSgaWriterFor("<módulo>", …)` (pasta → módulo em `tests/security/module-grant-enforcement.test.ts`). "Leitura" ainda só é aplicada no browser. A gestão de acessos fica de fora do bloqueio, para o administrador não se trancar a si próprio.
 2. Sem tabela de grants: `getCurrentAccountContext` devolve `{}`.
 3. 2FA = Supabase Auth MFA TOTP. Sem factor próprio.
 4. Só Admin gere contas e grants.

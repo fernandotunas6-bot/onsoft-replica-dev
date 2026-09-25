@@ -5,7 +5,7 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { sgaClient } from "@/integrations/supabase/sga";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -327,7 +327,7 @@ export const listFinanceStudents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => financeListInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
       "Secretaria",
@@ -546,7 +546,7 @@ export const listInvoices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => financeListInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
       "Secretaria",
@@ -660,7 +660,7 @@ export const listCashEntries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => financeListInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -747,7 +747,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordInvoicePaymentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -809,7 +809,7 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
   .validator((data: { invoiceId: string; amount: number }) => data)
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
       "Secretaria",
@@ -848,7 +848,7 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -891,7 +891,7 @@ export const cancelInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => cancelInvoiceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -948,7 +948,7 @@ export const issueInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => issueInvoiceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
       "Secretaria",
@@ -1125,7 +1125,7 @@ export const recordCashExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordCashExpenseInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -1172,7 +1172,7 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => reverseCashEntryInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -1216,7 +1216,7 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createPaymentPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -1298,7 +1298,7 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
 export const listPaymentPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -1341,7 +1341,7 @@ export const listGatewayWebhookEvents = createServerFn({ method: "GET" })
       .parse(input ?? {});
   })
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -1369,7 +1369,7 @@ export const cancelPaymentPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => cancelPaymentPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -1452,7 +1452,7 @@ async function loadFeePlanSettingsForSchool(schoolId: string) {
 export const listFeePlanSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
       "Secretaria",
@@ -1464,7 +1464,7 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => upsertFeePlanSettingsInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -1582,7 +1582,7 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
   .validator((input: unknown) => generateSaftInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Tesouraria",
@@ -1739,7 +1739,7 @@ export const createPayflowAdminLaunch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
       "Secretaria",
@@ -1814,7 +1814,7 @@ export const syncStudentToPayflow = createServerFn({ method: "POST" })
   .validator((input: unknown) => syncStudentToPayflowInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
       "Secretaria",
@@ -1834,7 +1834,7 @@ export const syncSchoolBankToPayflow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);

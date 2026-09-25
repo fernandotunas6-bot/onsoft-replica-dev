@@ -91,3 +91,65 @@ export async function resolveSgaMembershipAdmin(
 ): Promise<SgaMembershipContext | null> {
   return resolveMembershipForRequest(userId, preferredSchoolId);
 }
+
+/** Chaves de módulo das permissões por conta (`staff_module_grants.module_key`). */
+export type ModuleGrantKey =
+  "pessoas" | "financeiro" | "pedagogica" | "gestao" | "arquivos" | "importacao";
+
+const MODULE_LABELS: Record<ModuleGrantKey, string> = {
+  pessoas: "Pessoas",
+  financeiro: "Financeiro",
+  pedagogica: "Pedagógica",
+  gestao: "Gestão",
+  arquivos: "Arquivos",
+  importacao: "Importar Dados",
+};
+
+/**
+ * Aplica no servidor o bloqueio "Nenhum" das permissões por módulo. Até aqui
+ * só o browser o respeitava (canAccessPath): a conta deixava de ver o módulo,
+ * mas continuava a chamar as funções dele directamente.
+ *
+ * Só bloqueia — não eleva: quem não tem o papel continua recusado por
+ * requireSgaWriter. "Leitura" ainda não impede escritas no servidor.
+ */
+export async function assertModuleNotBlocked(
+  schoolId: string,
+  userId: string,
+  moduleKey: ModuleGrantKey,
+): Promise<void> {
+  const db = await loadSgaAdminClient();
+  const { data, error } = await db
+    .from("staff_module_grants")
+    .select("level")
+    .eq("school_id", schoolId)
+    .eq("user_id", userId)
+    .eq("module_key", moduleKey)
+    .maybeSingle();
+  // Tabela ausente (SQL por aplicar) = sem sobreposições, como em getCurrentAccountContext.
+  if (error) return;
+  if (data?.level === "Nenhum") {
+    throw new Error(`O acesso ao módulo ${MODULE_LABELS[moduleKey]} foi retirado a esta conta.`);
+  }
+}
+
+/** requireSgaWriter + bloqueio do módulo. Mesmos argumentos, com o módulo à frente. */
+export async function requireSgaWriterFor(
+  moduleKey: ModuleGrantKey,
+  clientOrUserId: SupabaseClient | string,
+  userIdOrRoles?: string | ApplicationRole[],
+  rolesOrPreferred?: ApplicationRole[] | string | null,
+  preferredSchoolIdArg?: string | null,
+): Promise<SgaMembershipContext> {
+  const membership = await (
+    requireSgaWriter as (
+      a: SupabaseClient | string,
+      b?: string | ApplicationRole[],
+      c?: ApplicationRole[] | string | null,
+      d?: string | null,
+    ) => Promise<SgaMembershipContext>
+  )(clientOrUserId, userIdOrRoles, rolesOrPreferred, preferredSchoolIdArg);
+  const userId = typeof clientOrUserId === "string" ? clientOrUserId : String(userIdOrRoles ?? "");
+  await assertModuleNotBlocked(membership.schoolId, userId, moduleKey);
+  return membership;
+}

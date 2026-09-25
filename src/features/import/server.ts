@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import {
   analyzeImportFileInputSchema,
@@ -58,12 +58,17 @@ function requireJobOwnership(job: ImportJobRecord, schoolId: string): ImportJobR
  */
 async function loadJobWithModuleGate(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  sessionSupabase: Parameters<typeof requireSgaWriter>[0],
+  sessionSupabase: Parameters<typeof requireSgaWriterFor>[1],
   userId: string,
   jobId: string,
 ) {
   const job = await loadJobById(db, jobId);
-  const membership = await requireSgaWriter(sessionSupabase, userId, rolesForModule(job.module));
+  const membership = await requireSgaWriterFor(
+    "importacao",
+    sessionSupabase,
+    userId,
+    rolesForModule(job.module),
+  );
   requireJobOwnership(job, membership.schoolId);
   return { job, membership };
 }
@@ -84,7 +89,7 @@ export const analyzeImportFile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     // Só membros com papel de importação podem analisar ficheiros (evita abuso anónimo autenticado).
-    await requireSgaWriter(context.supabase, context.userId, [
+    await requireSgaWriterFor("importacao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Tesouraria",
@@ -115,7 +120,8 @@ export const createImportJob = createServerFn({ method: "POST" })
   .validator((input: unknown) => createImportJobSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(
+    const membership = await requireSgaWriterFor(
+      "importacao",
       context.supabase,
       context.userId,
       rolesForModule(data.module),
@@ -147,7 +153,10 @@ export const createImportJob = createServerFn({ method: "POST" })
         .maybeSingle();
       // Base ainda sem a coluna (SQL do motor de importação por aplicar): segue sem idempotência.
       if (existingError && !isMissingColumnError(existingError)) {
-        throw publicDatabaseError(existingError, "Não foi possível verificar a idempotência da importação.");
+        throw publicDatabaseError(
+          existingError,
+          "Não foi possível verificar a idempotência da importação.",
+        );
       }
       if (existing) {
         if (existing.module !== data.module) {
@@ -192,7 +201,7 @@ export const listImportJobs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("importacao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Tesouraria",
@@ -671,7 +680,7 @@ export const downloadOfficialExcelTemplateFn = createServerFn({ method: "POST" }
   .validator((input: unknown) => downloadOfficialTemplateSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    await requireSgaWriter(context.supabase, context.userId, [
+    await requireSgaWriterFor("importacao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Tesouraria",
@@ -693,7 +702,7 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const db = await loadSgaAdminClient();
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("importacao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Tesouraria",
@@ -727,5 +736,9 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
 
 function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
-  return error.code === "42703" || error.code === "PGRST204" || /column .* does not exist|Could not find the .* column/i.test(error.message ?? "");
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /column .* does not exist|Could not find the .* column/i.test(error.message ?? "")
+  );
 }

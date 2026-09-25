@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -348,7 +348,7 @@ export const createLessonPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createLessonPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Professor",
@@ -396,7 +396,7 @@ export const updateLessonPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateLessonPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Professor",
@@ -438,7 +438,7 @@ export const deleteLessonPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => deleteLessonPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Professor",

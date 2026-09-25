@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { isSchoolTypeId, schoolSettingDefaults } from "@/lib/school-config";
@@ -290,7 +290,9 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateSchoolSettingsInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     const normalizedNif = validateSchoolNif(data.nif).compact ?? data.nif.trim();
 
@@ -369,7 +371,9 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
 export const listRecentAuditLogs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     const { data, error } = await db
       .from("audit_logs")
@@ -402,7 +406,7 @@ export const updateBillingSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateBillingSettingsInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -427,7 +431,7 @@ export const updateSchoolBanking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateSchoolBankingInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -454,7 +458,9 @@ export const updateSchoolAgt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateSchoolAgtInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     await upsertSettingDomain(
       db,
@@ -475,7 +481,9 @@ export const updatePedagogySettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => pedagogySettingsSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     await upsertSettingDomain(
       db,
@@ -497,7 +505,9 @@ export const setTermLock = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => setTermLockInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     const current = await readSettingDomain(db, membership.schoolId, "pedagogy");
     const pedagogy = pedagogySettingsSchema.safeParse(current?.value ?? {}).data ?? {

@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -58,7 +58,7 @@ export const createSubjectType = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createSubjectTypeInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -95,7 +95,7 @@ export const updateSubjectType = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateSubjectTypeInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -155,7 +155,7 @@ export const createCurriculumArea = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createCurriculumAreaInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -205,7 +205,7 @@ export const createRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createRoomInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -239,7 +239,7 @@ export const updateRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateRoomInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -297,7 +297,7 @@ export const saveSchoolShift = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createSchoolShiftInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -377,7 +377,7 @@ export const saveCurriculumMatrix = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => saveCurriculumMatrixInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -472,7 +472,7 @@ export const saveTeacherAvailability = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => saveTeacherAvailabilityInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -663,7 +663,7 @@ export const createAdvancedScheduleSlot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createScheduleSlotInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -722,7 +722,7 @@ export const updateAdvancedScheduleSlot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateScheduleSlotInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -804,7 +804,7 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => publishAcademicScheduleInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);

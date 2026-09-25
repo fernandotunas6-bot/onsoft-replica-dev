@@ -5,7 +5,7 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { Json } from "@/integrations/supabase/types";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -86,7 +86,9 @@ export const listSchoolIntegrations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     try {
       const { data, error } = await db
@@ -145,7 +147,9 @@ export const upsertSchoolIntegration = createServerFn({ method: "POST" })
   .validator((input: unknown) => upsertIntegrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
     }
@@ -176,7 +180,9 @@ export const installSchoolIntegration = createServerFn({ method: "POST" })
   .validator((input: unknown) => installIntegrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
     }
@@ -221,7 +227,9 @@ export const revokeSchoolIntegration = createServerFn({ method: "POST" })
   .validator((input: unknown) => revokeIntegrationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     if (!isCatalogIntegrationId(data.provider)) {
       throw new Error("Integração desconhecida no catálogo SIGA.");
     }
@@ -251,7 +259,9 @@ export const rotateGatewayWebhookApiKey = createServerFn({ method: "POST" })
   .validator((input: unknown) => rotateGatewayWebhookKeyInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     const existing = await readIntegrationConfig(db, membership.schoolId, data.provider);
     const { data: row } = await db
@@ -289,7 +299,7 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
   .validator((input: unknown) => sendSchoolResendEmailInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -377,7 +387,7 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
   .validator((input: unknown) => sendSchoolWhatsAppInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);

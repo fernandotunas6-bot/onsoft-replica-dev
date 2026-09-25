@@ -60,6 +60,6 @@ Abrir o skill do módulo antes de editar (`.cursor/skills/siga-<id>/SKILL.md`).
 
 ## Stack
 
-TanStack Start + Router + React Query + Zod + `createServerFn`. Escrita SGA com `loadSgaAdminClient`. Listas: `usePersistedListFilters` + `ListFilterBar`. Modais grandes: `SequentialSheetModal`.
+TanStack Start + Router + React Query + Zod + `createServerFn`. Escrita SGA com `loadSgaAdminClient`. Papel e escola: `requireSgaWriterFor("<módulo>", …)`, que também aplica o bloqueio "Nenhum" das permissões por módulo. Listas: `usePersistedListFilters` + `ListFilterBar`. Modais grandes: `SequentialSheetModal`.
 
 Integrações: instalar no waffle/definições → `grantedCapabilities` em `school_integrations` → botões via `InstalledModuleTools` / `hasCapability`. Sem HTTP a terceiros; rotas públicas só recebem `installedProviders` + contactos filtrados (`publicSchoolPhone` / `publicSchoolEmail`).

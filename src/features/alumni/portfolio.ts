@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 
@@ -243,7 +243,10 @@ export const listAlumniPortfolioAdmin = createServerFn({ method: "GET" })
   .validator((input: unknown) => portfolioAdminListSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const membership = await requireSgaWriter(context.userId, ["Administrador", "Secretaria"]);
+    const membership = await requireSgaWriterFor("pessoas", context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     const { data: profile, error: profileError } = await db
       .from("alumni_profiles")
@@ -271,7 +274,10 @@ export const setAlumniPortfolioFeatured = createServerFn({ method: "POST" })
   .validator((input: unknown) => portfolioFeaturedSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const membership = await requireSgaWriter(context.userId, ["Administrador", "Secretaria"]);
+    const membership = await requireSgaWriterFor("pessoas", context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     const { data: updated, error } = await db
       .from("alumni_portfolio_items")

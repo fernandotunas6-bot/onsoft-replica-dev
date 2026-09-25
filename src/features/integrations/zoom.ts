@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 
@@ -24,7 +24,8 @@ function basicAuth() {
 
 function redirectUri() {
   return (
-    process.env.ZOOM_REDIRECT_URI?.trim() || "https://app.portal-siga.com/api/integrations/zoom/callback"
+    process.env.ZOOM_REDIRECT_URI?.trim() ||
+    "https://app.portal-siga.com/api/integrations/zoom/callback"
   );
 }
 
@@ -136,7 +137,9 @@ export const startZoomOAuth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const clientId = env("ZOOM_CLIENT_ID");
     const uri = redirectUri();
     if (!uri) throw new Error("Configuração Zoom em falta: ZOOM_REDIRECT_URI.");
@@ -258,7 +261,9 @@ export const disconnectZoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     await deleteSecrets(membership.schoolId);
     const { data: existing } = await db
@@ -298,7 +303,7 @@ export const createZoomLessonMeeting = createServerFn({ method: "POST" })
   .validator((input: unknown) => createMeetingSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
       "Administrador",
       "Professor",
     ]);

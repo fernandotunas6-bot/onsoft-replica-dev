@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterFor,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { resolveUserLinkedEntities } from "@/features/auth/server";
@@ -224,7 +224,7 @@ export const registerTurnstileDevice = createServerFn({ method: "POST" })
   .validator((input: unknown) => registerTurnstileDeviceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -256,7 +256,10 @@ export const updateTurnstileDevice = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateTurnstileDeviceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
@@ -286,7 +289,10 @@ export const setAccessCardStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => setAccessCardStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
@@ -308,7 +314,10 @@ export const linkAccessCardRfid = createServerFn({ method: "POST" })
   .validator((input: unknown) => linkAccessCardRfidInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
@@ -349,7 +358,10 @@ export const rotateAccessCardQr = createServerFn({ method: "POST" })
   .validator((input: unknown) => rotateAccessCardQrInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
@@ -374,7 +386,10 @@ export const issueAccessCard = createServerFn({ method: "POST" })
   .validator((input: unknown) => issueAccessCardInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriter(context.supabase, context.userId, ["Administrador", "Secretaria"]);
+    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();

@@ -1,12 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import { ResendContactsClient } from "@/features/integrations/resend-contacts-client";
 
 export const syncSchoolContactsToResendFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const membership = await requireSgaWriter(context.supabase, context.userId, [
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);

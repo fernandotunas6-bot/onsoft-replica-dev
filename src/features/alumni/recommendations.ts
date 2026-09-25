@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriter } from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import { rankMentors } from "./matching";
 
 const recommendationInputSchema = z.object({
@@ -15,7 +15,10 @@ export const getAlumniMentorRecommendations = createServerFn({ method: "GET" })
   .validator((input: unknown) => recommendationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const membership = await requireSgaWriter(context.userId, ["Administrador", "Secretaria"]);
+    const membership = await requireSgaWriterFor("pessoas", context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
 
     const { data: target, error: targetError } = await db

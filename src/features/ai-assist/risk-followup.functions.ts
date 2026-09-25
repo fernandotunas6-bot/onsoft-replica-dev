@@ -32,10 +32,9 @@ export type RiskCase = {
 };
 
 async function ctx(userId: string) {
-  const { requireSgaWriter, loadSgaAdminClient } = await import(
-    "@/integrations/supabase/sga-admin"
-  );
-  const membership = await requireSgaWriter(userId, [...ROLES]);
+  const { requireSgaWriterFor, loadSgaAdminClient } =
+    await import("@/integrations/supabase/sga-admin");
+  const membership = await requireSgaWriterFor("pedagogica", userId, [...ROLES]);
   const db = await loadSgaAdminClient();
   return { schoolId: membership.schoolId, db };
 }
@@ -124,10 +123,12 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
       .eq("school_id", schoolId)
       .in("enrollment_id", enrollmentIds);
     const existingBy = new Map(
-      (existing ?? []).map((e: { enrollment_id: string; id: string; baseline_average: unknown }) => [
-        e.enrollment_id,
-        e,
-      ]),
+      (existing ?? []).map(
+        (e: { enrollment_id: string; id: string; baseline_average: unknown }) => [
+          e.enrollment_id,
+          e,
+        ],
+      ),
     );
     const rows = data.students.map((s) => {
       const prev = existingBy.get(s.enrollment_id);
@@ -170,7 +171,13 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
 
 const interventionSchema = z.object({
   caseId: z.string().uuid(),
-  kind: z.enum(["reunião encarregado", "tutoria", "aula de reforço", "acompanhamento psicológico", "nota"]),
+  kind: z.enum([
+    "reunião encarregado",
+    "tutoria",
+    "aula de reforço",
+    "acompanhamento psicológico",
+    "nota",
+  ]),
   description: z.string().trim().min(3).max(2000),
   outcome: z.string().trim().max(2000).optional().default(""),
   status: z.enum(["aberto", "em melhoria", "resolvido"]).optional(),

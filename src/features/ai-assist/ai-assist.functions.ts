@@ -29,8 +29,8 @@ export const diagnoseErrorReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => diagnoseSchema.parse(input))
   .handler(async ({ data, context }): Promise<ErrorDiagnosis> => {
-    const { requireSgaWriter } = await import("@/integrations/supabase/sga-admin");
-    await requireSgaWriter(context.userId, ["Administrador"]);
+    const { requireSgaWriterFor } = await import("@/integrations/supabase/sga-admin");
+    await requireSgaWriterFor("pedagogica", context.userId, ["Administrador"]);
     const { runAiText, parseJsonObject } = await import("@/lib/ai-gateway.server");
     const text = await runAiText(
       'És um engenheiro de suporte do SIGA Plus (sistema de gestão escolar angolano, TanStack Start + base de dados Postgres com RLS). Analisa o relatório de erro de um administrador escolar e os registos. Responde em português de Angola, linguagem simples para não programadores. Responde APENAS com JSON: {"summary": string, "causes": [{"title": string, "likelihood": "alta"|"média"|"baixa", "explanation": string}], "fixes": [{"title": string, "steps": string[]}]}. No máximo 4 causas e 4 soluções, ordenadas por probabilidade. Nunca peças palavras-passe nem chaves.',
@@ -67,8 +67,12 @@ export const analyzeStudentRisk = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => riskSchema.parse(input))
   .handler(async ({ data, context }): Promise<RiskAnalysis> => {
-    const { requireSgaWriter } = await import("@/integrations/supabase/sga-admin");
-    await requireSgaWriter(context.userId, ["Administrador", "Secretaria", "Professor"]);
+    const { requireSgaWriterFor } = await import("@/integrations/supabase/sga-admin");
+    await requireSgaWriterFor("pedagogica", context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
     const { runAiText, parseJsonObject } = await import("@/lib/ai-gateway.server");
     const compact = data.students.map((s) => ({
       id: s.enrollment_id,
