@@ -14,6 +14,7 @@ function InstitutionalWelcome(){
  const navigate=useNavigate();
  const client=useQueryClient();
  const [mode,setMode]=useState<"choose"|"join">("choose");
+ const [addingSchool,setAddingSchool]=useState(false);
  const [search,setSearch]=useState("");
  const [schoolId,setSchoolId]=useState("");
  const [fullName,setFullName]=useState(account.name==="Utilizador"?"":account.name);
@@ -33,7 +34,7 @@ function InstitutionalWelcome(){
  const requests=useQuery({queryKey:["institutional","mine"],queryFn:()=>listMySchoolAccessRequests(),refetchInterval:15_000,refetchOnWindowFocus:true});
  const filtered=(schools.data??[]).filter(s=>[s.name,s.public_code,s.province].some(v=>String(v??"").toLowerCase().includes(search.toLowerCase())));
  if(account.profile.isPending)return <main className="min-h-screen grid place-items-center">A confirmar a sua conta…</main>;
- if(account.schoolId)return <main className="grid min-h-screen place-items-center bg-gradient-to-br from-blue-50 to-slate-100 p-6"><section className="w-full max-w-lg rounded-3xl border bg-white p-8 shadow-xl">
+ if(account.schoolId&&!addingSchool)return <main className="grid min-h-screen place-items-center bg-gradient-to-br from-blue-50 to-slate-100 p-6"><section className="w-full max-w-lg rounded-3xl border bg-white p-8 shadow-xl">
   <CheckCircle2 className="size-12 text-emerald-600"/><h1 className="mt-4 text-3xl font-extrabold">Escola confirmada</h1>
   <p className="mt-2 text-sm text-slate-600">O vínculo institucional está activo. Use os dados abaixo para os próximos acessos.</p>
   {credentials.data?<dl className="mt-6 space-y-3 rounded-2xl bg-blue-50 p-5 text-sm">
@@ -44,6 +45,7 @@ function InstitutionalWelcome(){
    <p className="border-t border-blue-200 pt-3 text-xs text-slate-600">{credentials.data.passwordInstruction} Por segurança, nenhuma senha é enviada em texto simples.</p>
   </dl>:null}
   <Button className="mt-6 w-full rounded-xl" onClick={()=>void navigate({to:"/"})}>Abrir o meu painel</Button>
+  <Button variant="outline" className="mt-3 w-full rounded-xl" onClick={()=>{setAddingSchool(true);setMode("join");}}>Solicitar acesso a outra escola</Button>
  </section></main>;
  const send=async(e:FormEvent)=>{
   e.preventDefault();setBusy(true);
@@ -61,7 +63,7 @@ function InstitutionalWelcome(){
    <section className="rounded-[2rem] border border-white bg-white/90 p-6 shadow-xl shadow-blue-900/5 sm:p-10">
     <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">IDENTIDADE INSTITUCIONAL</span>
     <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">Bem-vindo ao SIGA Plus</h1>
-    <p className="mt-3 max-w-2xl text-slate-600">A sua identidade está criada. Escolha a escola e aguarde a autorização da secretaria; só depois preencherá o cadastro e a candidatura de matrícula.</p>
+    <p className="mt-3 max-w-2xl text-slate-600">A sua identidade está criada. Escolha outra escola, quando necessário, e aguarde a autorização da secretaria; só depois preencherá o cadastro e a candidatura de matrícula.</p>
     {mode==="choose"?<div className="mt-9 grid gap-4 md:grid-cols-2">
      <a href="/criar-escola" className="group rounded-3xl border border-blue-100 bg-blue-50/80 p-7 transition hover:-translate-y-1 hover:shadow-lg">
       <Building2 className="mb-5 size-11 text-blue-700"/><h2 className="text-xl font-bold">Quero configurar uma escola</h2>
