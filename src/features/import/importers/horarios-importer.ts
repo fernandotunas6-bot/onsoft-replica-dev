@@ -216,7 +216,7 @@ export const horariosImporter: RowImporter = {
     }
 
     let classSubject = existingClassSubject;
-    const audits: Array<Record<string, unknown>> = [];
+    const audits: AuditEntry[] = [];
     if (!classSubject) {
       // Turma ainda não tem esta disciplina atribuída: cria a associação sem professor definido
       // (4 tempos semanais por omissão), o mesmo que `applyCurriculumToClassGroup` faz quando o
