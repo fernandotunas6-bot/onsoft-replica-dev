@@ -3686,6 +3686,7 @@ export type Database = {
           description: string | null
           id: string
           kind: string
+          lesson_plan_component_id: string | null
           max_score: number
           name: string
           school_id: string
@@ -3705,6 +3706,7 @@ export type Database = {
           description?: string | null
           id?: string
           kind?: string
+          lesson_plan_component_id?: string | null
           max_score?: number
           name: string
           school_id: string
@@ -3724,6 +3726,7 @@ export type Database = {
           description?: string | null
           id?: string
           kind?: string
+          lesson_plan_component_id?: string | null
           max_score?: number
           name?: string
           school_id?: string
@@ -3733,6 +3736,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "siga_assessment_items_lesson_plan_component_id_fkey"
+            columns: ["lesson_plan_component_id"]
+            isOneToOne: false
+            referencedRelation: "siga_lesson_plan_components"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "siga_assessment_items_school_id_fkey"
             columns: ["school_id"]
@@ -4187,6 +4197,113 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "siga_cash_expenses_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_lesson_plan_components: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          lesson_plan_id: string
+          name: string
+          planned_count: number
+          school_id: string
+          sequence: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          lesson_plan_id: string
+          name: string
+          planned_count?: number
+          school_id: string
+          sequence?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          lesson_plan_id?: string
+          name?: string
+          planned_count?: number
+          school_id?: string
+          sequence?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_lesson_plan_components_lesson_plan_id_fkey"
+            columns: ["lesson_plan_id"]
+            isOneToOne: false
+            referencedRelation: "siga_lesson_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_lesson_plan_components_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_lesson_plans: {
+        Row: {
+          class_group_id: string
+          content: string | null
+          created_at: string
+          created_by: string | null
+          file_id: string | null
+          file_name: string | null
+          id: string
+          school_id: string
+          status: string
+          subject_id: string
+          term: number
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          class_group_id: string
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_id?: string | null
+          file_name?: string | null
+          id?: string
+          school_id: string
+          status?: string
+          subject_id: string
+          term: number
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          class_group_id?: string
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_id?: string | null
+          file_name?: string | null
+          id?: string
+          school_id?: string
+          status?: string
+          subject_id?: string
+          term?: number
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_lesson_plans_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
