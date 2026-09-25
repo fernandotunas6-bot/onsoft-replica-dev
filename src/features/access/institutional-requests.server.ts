@@ -44,7 +44,7 @@ export const submitSchoolAccessRequest=createServerFn({method:"POST"})
   if(membership)throw new Error("Já possui acesso activo a esta escola.");
   const {data:existing}=await db.from("school_access_requests").select("id")
    .eq("school_id",data.schoolId).eq("user_id",context.userId)
-   .in("status",["pending","under_review","needs_information"]).maybeSingle();
+   .in("status",["pending","under_review","needs_information","preapproved","enrollment_pending"]).maybeSingle();
   if(existing)return {id:existing.id,alreadyExists:true};
   const {data:created,error}=await db.from("school_access_requests").insert({
    school_id:data.schoolId,user_id:context.userId,full_name:data.fullName,
