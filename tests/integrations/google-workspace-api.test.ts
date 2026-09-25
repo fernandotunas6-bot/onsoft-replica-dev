@@ -37,6 +37,21 @@ describe("Google Workspace: mocked functional integration", () => {
       .toBe("Bearer mock-access-token");
   });
 
+  it("returns a resumable Drive cursor without exposing any extra Drive scope", async () => {
+    const { api, calls, tokens } = mockApi(200, {
+      files: [{ id: "file-1", name: "Documento" }],
+      nextPageToken: "next-batch",
+    });
+    const first = await api.drivePage(25);
+    expect(first).toEqual({
+      files: [{ id: "file-1", name: "Documento" }], nextPageToken: "next-batch",
+    });
+    const next = await api.drivePage(25, first.nextPageToken!);
+    expect(next.files).toHaveLength(1);
+    expect(calls[1].url).toContain("pageToken=next-batch");
+    expect(tokens).toEqual(["drive", "drive"]);
+  });
+
   it("creates a Drive folder without exposing unrestricted Drive scopes", async () => {
     const { api, calls, tokens } = mockApi();
     expect((await api.driveFolder("SIGA", "parent-id")).id).toBe("provider-confirmed-id");
