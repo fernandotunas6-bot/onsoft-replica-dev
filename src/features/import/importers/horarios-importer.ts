@@ -1,5 +1,5 @@
 import { normalizeText } from "../engine/normalize";
-import type { ImportRefCache, RowImporter } from "../engine/types";
+import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadClassSubjectRefs,
   loadTeacherRefs,
