@@ -94,7 +94,7 @@ export async function listUserSchoolMemberships(
   const membershipIds = memberships.map((m: { id: string }) => m.id);
 
   // Fetch school details
-  let schoolsMap = new Map<string, { name: string; slug: string | null }>();
+  let schoolsMap = new Map<string, { name: string; slug: string | null; status: string }>();
   if (schoolIds.length) {
     try {
       // O slug é do tenant, não da escola: `schools` não tem coluna `slug`. Com
@@ -102,26 +102,31 @@ export async function listUserSchoolMemberships(
       // abaixo engolia o erro, deixando `schoolsMap` vazio. Consequência: nem o
       // slug nem o **nome** da escola chegavam ao contexto da conta, e quem lê
       // `schoolName`/`schoolSlug` recebia null desde sempre.
-      const { data: schoolsData } = await db
+      const { data: schoolsData, error: schoolsError } = await db
         .from("schools")
-        .select("id, name, tenants(slug)")
+        .select("id, name, status, tenants(slug)")
         .in("id", schoolIds);
+      if (schoolsError) throw schoolsError;
       if (schoolsData) {
         schoolsMap = new Map(
           schoolsData.map(
             (s: {
               id: string;
               name: string;
+              status: string;
               tenants?: { slug?: string | null } | { slug?: string | null }[] | null;
             }) => {
               const tenant = Array.isArray(s.tenants) ? s.tenants[0] : s.tenants;
-              return [s.id, { name: s.name, slug: tenant?.slug ?? null }];
+              return [s.id, { name: s.name, slug: tenant?.slug ?? null, status: s.status }];
             },
           ),
         );
       }
-    } catch {
-      /* ignore if schools table query has issues */
+    } catch (schoolError) {
+      // Authorization must fail closed if a school is suspended or its status
+      // cannot be checked; never silently replace a failed lookup with a name.
+      console.error("[listUserSchoolMemberships] school lookup failed:", schoolError);
+      return [];
     }
   }
 
@@ -205,7 +210,7 @@ export async function listUserSchoolMemberships(
       roleName,
       appRole: primaryAppRole,
       allAppRoles,
-      isActive: m.status === "active",
+      isActive: m.status === "active" && schoolInfo?.status === "active",
     };
   });
 }
