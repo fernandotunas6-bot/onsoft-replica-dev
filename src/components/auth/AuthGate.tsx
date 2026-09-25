@@ -1,3 +1,4 @@
+import { AuthHeroSlides } from "./AuthHeroSlides";
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import {
   createContext,
@@ -454,16 +455,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
             className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/60 to-primary/40"
           />
           <div />
-          <div className="relative max-w-xl">
-            <p className="text-xs font-semibold opacity-80">Sistema Integrado de Gestão</p>
-            <h1 className="mt-4 font-display text-4xl font-extrabold leading-tight">
-              A instituição em pleno controlo operacional.
-            </h1>
-            <p className="mt-4 max-w-lg text-sm leading-6 opacity-85">
-              Secretaria académica, estudantes, turmas, contabilidade, propinas e relatórios
-              integrados com segurança e rapidez.
-            </p>
-          </div>
+          <AuthHeroSlides />
           <div className="relative flex items-center justify-between text-xs opacity-80">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4" /> Autenticação Segura
