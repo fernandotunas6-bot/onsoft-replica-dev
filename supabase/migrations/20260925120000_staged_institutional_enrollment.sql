@@ -64,6 +64,8 @@ begin
  select * into st from public.students where id=a.student_id and school_id=r.school_id
  and deleted_at is null;
  if not found then raise exception 'Aluno confirmado não encontrado na escola'; end if;
+ if not exists(select 1 from public.enrollments e where e.student_id=st.id and e.school_id=r.school_id and e.status='active') then
+  raise exception 'A matrícula e a turma precisam ser confirmadas antes do acesso'; end if;
  if p_person_id is distinct from st.person_id then raise exception 'Cadastro incompatível com matrícula confirmada'; end if;
  select id into v_role from public.roles where school_id=r.school_id and code='student' limit 1;
  if v_role is null then raise exception 'Papel de aluno não configurado'; end if;
