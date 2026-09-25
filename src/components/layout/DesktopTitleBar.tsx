@@ -12,21 +12,20 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 export function DesktopTitleBar() {
   const { school } = useSchoolSettings();
   const [osName, setOsName] = useState<string>("desktop");
-  const [isDesktop, setIsDesktop] = useState(false);
+  // Decidido só depois de montar: o servidor não tem `window`. Antes, a
+  // condição com `typeof window` desenhava a barra no servidor e escondia-a no
+  // browser — erro de hidratação (#418) em todas as páginas, e o React deitava
+  // fora o HTML do servidor. Agora os dois lados começam sem barra.
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    setIsDesktop(isTauriDesktop());
-    void getNativeSystemInfo().then((info) => setOsName(info.os_type));
+    const desktop = isTauriDesktop();
+    setVisible(desktop || window.location.search.includes("show_titlebar"));
+    if (desktop) void getNativeSystemInfo().then((info) => setOsName(info.os_type));
   }, []);
 
   // Em navegadores web padrão, só exibe a barra se for desktop ou para testes
-  if (
-    !isDesktop &&
-    typeof window !== "undefined" &&
-    !window.location.search.includes("show_titlebar")
-  ) {
-    return null;
-  }
+  if (!visible) return null;
 
   return (
     <div

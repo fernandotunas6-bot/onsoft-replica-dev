@@ -27,6 +27,11 @@ build de produção com saída 0. A árvore publicada é bit a bit a de `origin/
 a 200; `scripts/pwa-check.mjs` contra `https://portal-siga.com` com os 8 controlos verdes
 (manifesto, 4 ícones, apple-touch-icon, viewport, theme-color, service worker, offline).
 
+**Resolvido a 2026-09-25 (por publicar):** a causa era `DesktopTitleBar`. A condição
+`typeof window !== "undefined"` desenhava a barra no servidor e escondia-a no browser. A
+visibilidade passou a ser decidida depois de montar, e `tests/ui/desktop-titlebar-ssr.test.tsx`
+protege a correcção. Em modo de desenvolvimento, `/`, `/alterar-senha`, `/matricula`,
+`/criar-escola` e `/auth/reset-password` deixaram de dar erro de hidratação. Texto original:
 **Achado novo, em produção e por resolver.** O erro de hidratação que o Ciclo 101 viu em
 `/alterar-senha` **não é dessa página**: está em `/`, `/alunos` e `/alterar-senha` — React
 #418 em todas, portanto vem do que embrulha tudo. A suspeita registada era o `AuthGate`,
