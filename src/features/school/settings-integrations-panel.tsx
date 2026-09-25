@@ -356,7 +356,7 @@ function AcademicIntegrationsCatalog() {
                     <ZoomIntegrationCard item={item} />
                   ) : (
                     <form
-                      key={`${item.id}-${item.status}-${String(config["merchantId"] ?? "")}`}
+                      key={`${item.id}-${item.status}-${Boolean(item.hasStoredSecret.merchantId)}`}
                       className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
                       onSubmit={(event) => {
                         event.preventDefault();
@@ -387,7 +387,9 @@ function AcademicIntegrationsCatalog() {
                         name="merchantId"
                         aria-label={`Identificador de comerciante ${item.name}`}
                         defaultValue={String(config["merchantId"] ?? "")}
-                        placeholder={hints.merchant}
+                        placeholder={item.hasStoredSecret.merchantId
+                          ? "Credencial guardada; preencha apenas para substituir"
+                          : hints.merchant}
                         className="h-8 text-xs"
                       />
                       <Input
@@ -399,7 +401,9 @@ function AcademicIntegrationsCatalog() {
                               ? getFinanceGatewayConfirmUrl()
                               : ""),
                         )}
-                        placeholder={hints.callback}
+                        placeholder={item.hasStoredSecret.callbackUrl
+                          ? "Token guardado; preencha apenas para substituir"
+                          : hints.callback}
                         className="h-8 text-xs"
                       />
                       <Button type="submit" size="sm" variant="outline">
