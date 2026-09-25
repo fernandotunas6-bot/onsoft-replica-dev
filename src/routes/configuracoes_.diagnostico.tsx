@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Stethoscope } from "lucide-react";
+import { moduleIcons } from "@/lib/app-icons";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,7 @@ function DiagnosticPage() {
           group="Sistema"
           title="Diagnóstico de erros"
           description="Descreva o que aconteceu e cole as mensagens de erro. A IA indica as causas mais prováveis e o que fazer."
-          icon={Stethoscope}
+          icon={moduleIcons.diagnostics}
         />
         {!account.profile.isLoading && !isAdmin ? (
           <Panel title="Acesso reservado">

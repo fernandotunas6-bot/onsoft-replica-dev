@@ -1,14 +1,19 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Landmark } from "lucide-react";
+import { Download } from "lucide-react";
+import { moduleIcons } from "@/lib/app-icons";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getFinanceReporting, listCashEntries, listInvoices } from "@/features/finance/server";
 import { cn } from "@/lib/utils";
-import { AppyPayPanel, ChargeInvoiceButton, useAppyPayStatus } from "@/features/finance/AppyPayPanel";
+import {
+  AppyPayPanel,
+  ChargeInvoiceButton,
+  useAppyPayStatus,
+} from "@/features/finance/AppyPayPanel";
 
 export const Route = createFileRoute("/tesouraria")({
   head: () => ({
@@ -47,7 +52,10 @@ function downloadCsv(name: string, rows: Array<Array<string | number>>) {
 }
 
 const monthLabel = (iso: string) =>
-  new Date(`${iso.slice(0, 7)}-15`).toLocaleDateString("pt-AO", { month: "short", year: "2-digit" });
+  new Date(`${iso.slice(0, 7)}-15`).toLocaleDateString("pt-AO", {
+    month: "short",
+    year: "2-digit",
+  });
 
 function TreasuryPage() {
   const reporting = useQuery({
@@ -95,7 +103,7 @@ function TreasuryPage() {
           group="Financeiro"
           title="Tesouraria"
           description="Fluxo de caixa, facturas por cobrar e relatórios. Acesso reservado à tesouraria."
-          icon={Landmark}
+          icon={moduleIcons.treasury}
         />
         {error ? (
           <p role="alert" className="text-sm text-destructive">
@@ -150,11 +158,20 @@ function TreasuryPage() {
           ) : (
             <div className="space-y-2">
               {monthly.map((m) => (
-                <div key={m.month_start} className="grid grid-cols-[4rem_1fr_7rem] items-center gap-3 text-sm">
+                <div
+                  key={m.month_start}
+                  className="grid grid-cols-[4rem_1fr_7rem] items-center gap-3 text-sm"
+                >
                   <span className="text-muted-foreground">{monthLabel(m.month_start)}</span>
                   <div className="space-y-1">
-                    <div className="h-2 rounded-full bg-primary" style={{ width: `${(m.received / maxMonth) * 100}%` }} />
-                    <div className="h-2 rounded-full bg-destructive/70" style={{ width: `${(m.expense / maxMonth) * 100}%` }} />
+                    <div
+                      className="h-2 rounded-full bg-primary"
+                      style={{ width: `${(m.received / maxMonth) * 100}%` }}
+                    />
+                    <div
+                      className="h-2 rounded-full bg-destructive/70"
+                      style={{ width: `${(m.expense / maxMonth) * 100}%` }}
+                    />
                   </div>
                   <span
                     className={cn(
@@ -178,7 +195,11 @@ function TreasuryPage() {
           description={`${pending.length} facturas · ${kz(pending.reduce((s, i) => s + i.balance, 0))} por receber (entre as 250 facturas mais recentes; o total geral está no cartão acima)`}
           action={
             <div className="flex gap-2">
-              <Button variant={onlyOverdue ? "default" : "outline"} size="sm" onClick={() => setOnlyOverdue((v) => !v)}>
+              <Button
+                variant={onlyOverdue ? "default" : "outline"}
+                size="sm"
+                onClick={() => setOnlyOverdue((v) => !v)}
+              >
                 {onlyOverdue ? "Todas" : "Só em atraso"}
               </Button>
               <Button
@@ -188,7 +209,16 @@ function TreasuryPage() {
                 disabled={!pending.length}
                 onClick={() =>
                   downloadCsv("facturas-pendentes.csv", [
-                    ["Factura", "Aluno", "Processo", "Descrição", "Vencimento", "Total", "Pago", "Em dívida"],
+                    [
+                      "Factura",
+                      "Aluno",
+                      "Processo",
+                      "Descrição",
+                      "Vencimento",
+                      "Total",
+                      "Pago",
+                      "Em dívida",
+                    ],
                     ...pending.map((i) => [
                       i.number,
                       i.student_name,
@@ -235,7 +265,11 @@ function TreasuryPage() {
                       <td className="py-2 text-right font-medium">{kz(i.balance)}</td>
                       {canCharge ? (
                         <td className="py-2 pl-3 text-right">
-                          <ChargeInvoiceButton invoiceId={i.id} studentName={i.student_name} balance={i.balance} />
+                          <ChargeInvoiceButton
+                            invoiceId={i.id}
+                            studentName={i.student_name}
+                            balance={i.balance}
+                          />
                         </td>
                       ) : null}
                     </tr>
@@ -258,7 +292,16 @@ function TreasuryPage() {
               disabled={!cash.data?.length}
               onClick={() =>
                 downloadCsv("extracto-caixa.csv", [
-                  ["Data", "Documento", "Descrição", "Categoria", "Método", "Entrada", "Saída", "Estado"],
+                  [
+                    "Data",
+                    "Documento",
+                    "Descrição",
+                    "Categoria",
+                    "Método",
+                    "Entrada",
+                    "Saída",
+                    "Estado",
+                  ],
                   ...(cash.data ?? []).map((c) => [
                     c.occurred_at.slice(0, 10),
                     c.document_number,
@@ -283,16 +326,29 @@ function TreasuryPage() {
           ) : (
             <ul className="divide-y divide-border text-sm">
               {cash.data.slice(0, 30).map((c) => (
-                <li key={`${c.direction}-${c.id}`} className="flex items-center justify-between gap-3 py-2">
+                <li
+                  key={`${c.direction}-${c.id}`}
+                  className="flex items-center justify-between gap-3 py-2"
+                >
                   <div className="min-w-0">
-                    <p className={cn("truncate", c.status === "reversed" && "line-through text-muted-foreground")}>
+                    <p
+                      className={cn(
+                        "truncate",
+                        c.status === "reversed" && "line-through text-muted-foreground",
+                      )}
+                    >
                       {c.description}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {c.occurred_at.slice(0, 10)} · {c.document_number} · {c.category}
                     </p>
                   </div>
-                  <span className={cn("shrink-0 font-medium", c.direction === "out" ? "text-destructive" : "text-foreground")}>
+                  <span
+                    className={cn(
+                      "shrink-0 font-medium",
+                      c.direction === "out" ? "text-destructive" : "text-foreground",
+                    )}
+                  >
                     {c.direction === "out" ? "−" : "+"}
                     {kz(c.amount)}
                   </span>

@@ -264,7 +264,11 @@ export function getPortalNavigation(
                   search: { tab: "horarios" },
                 },
                 { label: "Planos de Aula", icon: moduleIcons.lessonPlans, to: "/planos-aula" },
-                { label: "Alunos em risco", icon: moduleIcons.grades, to: "/pedagogica/risco" },
+                {
+                  label: "Alunos em risco",
+                  icon: moduleIcons.studentRisk,
+                  to: "/pedagogica/risco",
+                },
               ],
             },
             { label: "Calendário Lectivo", icon: moduleIcons.calendar, to: "/calendario" },
@@ -326,7 +330,7 @@ export function getPortalNavigation(
             },
             {
               label: "Alunos em risco",
-              icon: moduleIcons.grades,
+              icon: moduleIcons.studentRisk,
               to: "/pedagogica/risco",
             },
           ],
@@ -405,7 +409,7 @@ export function getPortalNavigation(
           icon: moduleIcons.finance,
           children: [
             { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
-            { label: "Tesouraria", icon: moduleIcons.finance, to: "/tesouraria" },
+            { label: "Tesouraria", icon: moduleIcons.treasury, to: "/tesouraria" },
             { label: "Faturas e Recibos", icon: moduleIcons.receipts, to: "/faturas" },
             { label: "RH e Folha Salarial", icon: moduleIcons.hr, to: "/financeiro/rh" },
             { label: "Processar Folha", icon: moduleIcons.hr, to: "/financeiro/rh/folha" },
@@ -490,7 +494,7 @@ export function getPortalNavigation(
             },
             {
               label: "Diagnóstico de erros",
-              icon: moduleIcons.security,
+              icon: moduleIcons.diagnostics,
               to: "/configuracoes/diagnostico",
             },
           ],

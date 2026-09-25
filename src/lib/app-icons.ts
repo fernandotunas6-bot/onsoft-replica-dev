@@ -37,6 +37,7 @@ import {
   Inbox,
   Info,
   KeyRound,
+  Landmark,
   LayoutDashboard,
   Link2,
   LoaderCircle,
@@ -55,7 +56,9 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  Stethoscope,
   Trash2,
+  TrendingDown,
   TrendingUp,
   TriangleAlert,
   Upload,
@@ -108,6 +111,12 @@ export const moduleIcons = {
   accessRequests: Inbox,
   /** Vincular a conta a uma escola (pedido do lado do requerente). */
   institutionalLink: UserRoundCheck,
+  /** Tesouraria: caixa e cobranças do dia. */
+  treasury: Landmark,
+  /** Acompanhamento de alunos em risco de insucesso. */
+  studentRisk: TrendingDown,
+  /** Diagnóstico de erros do sistema. */
+  diagnostics: Stethoscope,
 } satisfies Record<string, LucideIcon>;
 
 export type ModuleIconKey = keyof typeof moduleIcons;

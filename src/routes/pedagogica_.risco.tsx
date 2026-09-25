@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Sparkles } from "lucide-react";
+import { moduleIcons } from "@/lib/app-icons";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -130,7 +131,7 @@ function RiskPage() {
           group="Académico"
           title="Alunos em risco"
           description="A IA analisa as notas da turma e o histórico que indicar, e sugere intervenções para cada aluno."
-          icon={Sparkles}
+          icon={moduleIcons.studentRisk}
         />
         <Panel title="Dados da análise">
           <div className="grid gap-4">
@@ -233,8 +234,8 @@ function RiskPage() {
               </div>
             )}
             <p className="mt-4 text-xs text-muted-foreground">
-              Sugestões geradas por IA — confirme sempre com o conselho de turma. Os alunos sinalizados
-              ficam guardados no acompanhamento abaixo.
+              Sugestões geradas por IA — confirme sempre com o conselho de turma. Os alunos
+              sinalizados ficam guardados no acompanhamento abaixo.
             </p>
           </Panel>
         ) : null}
