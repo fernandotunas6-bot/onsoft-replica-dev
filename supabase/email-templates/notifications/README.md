@@ -19,3 +19,13 @@ Estes quatro modelos complementam os **seis modelos de autenticação** em `../`
 **Importante:** este pacote ainda não habilita estes eventos. Os seis modelos de login em `../` continuam a ser instalados separadamente pelo script `deploy.py`; não alterar o deploy para ativar notificações de segurança enquanto o SMTP e os testes reais não estiverem concluídos.
 
 Documentação: https://supabase.com/docs/guides/auth/auth-email-templates
+
+## Três modelos adicionais de segurança
+
+| Ficheiro | Notificação Supabase | Variáveis obrigatórias |
+|---|---|---|
+| `phone-changed.html` | Phone changed | `{{ .OldPhone }}`, `{{ .Phone }}` |
+| `mfa-factor-enrolled.html` | Verification method added | `{{ .FactorType }}` |
+| `mfa-factor-unenrolled.html` | Verification method removed | `{{ .FactorType }}` |
+
+O instalador `deploy_notifications.py` gere agora **sete** modelos opcionais, mantendo todos desativados quando a opção `--enable` não é indicada. A opção `--enable` continua a exigir `--smtp-verified`, confirmação explícita para produção e cópia local da configuração anterior.
