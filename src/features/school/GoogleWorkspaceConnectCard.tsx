@@ -157,13 +157,21 @@ export function GoogleWorkspaceConnectCard() {
         permissões da conta Google, e as quotas dos serviços podem mudar. Uma escola não tem acesso
         à conta de outra escola sem autorização própria.
       </p>
+      {status.data && !status.data.serverReady ? (
+        <p role="status" className="rounded-xl border border-warning/40 bg-warning/5 px-3 py-2 text-xs">
+          O servidor ainda não tem as credenciais e a chave de encriptação
+          necessárias para ligar o Google Workspace. A configuração tem de ser
+          concluída pelo administrador da plataforma.
+        </p>
+      ) : null}
       {status.isError ? (
         <p role="alert" className="text-xs text-destructive">
           Não foi possível consultar a ligação. Verifique as credenciais Google no servidor.
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        <Button disabled={busy || !schoolId || !selected.length} onClick={() => void connect()}>
+        <Button disabled={busy || !schoolId || !selected.length || !status.data?.serverReady}
+          onClick={() => void connect()}>
           {busy ? "A processar..." : status.data?.connected ? "Adicionar permissões" : "Ligar Google"}
         </Button>
         <Button variant="outline" disabled={busy || testing || !status.data?.connected}
