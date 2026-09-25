@@ -25,6 +25,18 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
 
+    // Não há tarefa agendada: os comunicados cuja hora já passou são publicados
+    // quando alguém abre a lista, para não ficarem "agendados" para sempre.
+    const nowIso = new Date().toISOString();
+    await db
+      .from("school_announcements")
+      .update({ status: "sent", published_at: nowIso })
+      .eq("school_id", membership.schoolId)
+      .eq("status", "scheduled")
+      .lte("scheduled_for", nowIso)
+      .is("deleted_at", null);
+
+
     let query = db
       .from("school_announcements")
       .select(
