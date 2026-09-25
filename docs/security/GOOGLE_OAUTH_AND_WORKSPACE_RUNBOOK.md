@@ -54,7 +54,7 @@ billing: consult `docs/security/GOOGLE_WORKSPACE_TEST_PLAN.md`.
 6. Reload, tab restore and token refresh require server-side authorization again.
 7. Enrolled TOTP factor must reach AAL2 for Google *and* password sign-in.
 8. Simulate failed membership lookup, a suspended school and cross-school ID mismatch; protected UI remains closed. Validate server authorization and RLS independently of route guards.
-9. Workspace's legacy implicit builders are rejected; stubs do not claim to send emails or create calendar events; the UI says 'not connected'. Verify browser tokens from older builds are cleared.
+9. Workspace's legacy implicit builders are rejected. Without consent, operations fail closed; with consent, success is reported only from real Google responses. Verify browser tokens from older builds are cleared.
 10. Rotate the leaked Google secret, configure Supabase's Google provider and verify the full real Google redirect end-to-end on a designated test account.
 
 Do not merge merely because unit tests pass: approval also requires quality gates and one real browser login with the rotated credential. No automated test in this PR rotates secrets or changes provider configuration.
