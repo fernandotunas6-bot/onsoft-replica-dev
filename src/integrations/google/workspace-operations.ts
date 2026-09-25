@@ -31,6 +31,7 @@ const operation = z.discriminatedUnion("action", [
       day: z.number().int().min(1).max(31),
     }).optional() }),
   school.extend({ action: z.literal("calendar.list"), timeMin: z.string().datetime({ offset: true }) }),
+  school.extend({ action: z.literal("calendar.delete"), eventId: identifier }),
   school.extend({ action: z.literal("calendar.create"), title: short,
     start: z.string().datetime({ offset: true }), end: z.string().datetime({ offset: true }),
     description: z.string().max(4000).optional(), location: z.string().max(500).optional(),
@@ -81,6 +82,7 @@ export const executeGoogleWorkspaceOperation = createServerFn({ method: "POST" }
         maxPoints: data.maxPoints, dueDate: data.dueDate,
       });
       case "calendar.list": return api.calendarList(data.timeMin);
+      case "calendar.delete": return api.calendarDelete(data.eventId);
       case "calendar.create": return api.calendarCreate({
         title: data.title, start: data.start, end: data.end, description: data.description,
         location: data.location, attendees: data.attendees,
