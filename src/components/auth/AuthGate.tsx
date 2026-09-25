@@ -445,15 +445,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   return (
     <AuthSessionContext.Provider value={null}>
-      <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="relative hidden overflow-hidden flex-col justify-between bg-primary p-12 text-primary-foreground lg:flex">
+      <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr] lg:p-2">
+        <section className="relative hidden overflow-hidden flex-col justify-between rounded-2xl border border-border/60 bg-primary p-12 text-primary-foreground shadow-sm lg:flex">
+          <AuthBackgroundVideo />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-25"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.25), transparent 45%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.15), transparent 40%)",
-            }}
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/60 to-primary/40"
           />
           <div />
           <div className="relative max-w-xl">
