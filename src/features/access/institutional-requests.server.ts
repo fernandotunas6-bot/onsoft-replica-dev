@@ -51,7 +51,16 @@ export const submitSchoolAccessRequest=createServerFn({method:"POST"})
    national_id:data.nationalId||null,institutional_id:data.institutionalId||null,
    requested_role:data.requestedRole,
   }).select("id").single();
-  if(error)throw publicDatabaseError(error,"Não foi possível enviar a solicitação.");
+  if(error){
+   if(error.code==="23505"){
+    const {data:duplicate}=await db.from("school_access_requests").select("id")
+     .eq("school_id",data.schoolId).eq("user_id",context.userId)
+     .in("status",["pending","under_review","needs_information","preapproved","enrollment_pending","approved"])
+     .order("created_at",{ascending:false}).limit(1).maybeSingle();
+    if(duplicate)return {id:duplicate.id,alreadyExists:true};
+   }
+   throw publicDatabaseError(error,"Não foi possível enviar a solicitação.");
+  }
   return {id:created.id,alreadyExists:false};
  });
 export const listSchoolAccessRequests=createServerFn({method:"GET"})
@@ -77,22 +86,23 @@ export const reviewSchoolAccessRequest=createServerFn({method:"POST"})
   if(readError||!request)throw new Error("Solicitação não encontrada nesta escola.");
   if(!["pending","under_review","needs_information"].includes(request.status))
     throw new Error("Esta solicitação já foi concluída.");
-  if(data.decision==="approved"){
-   // Aprovação inicial: permite iniciar o cadastro, sem criar membership nem matrícula.
-   const {error}=await db.from("school_access_requests").update({
-    status:"preapproved",review_note:data.note||null,reviewed_by:context.userId,
+  // A atualização é condicional: duas secretarias não podem aprovar/rejeitar o mesmo pedido simultaneamente.
+  const nextStatus=data.decision==="approved"?"preapproved":data.decision;
+  const {data:updated,error:updateError}=await db.from("school_access_requests").update({
+    status:nextStatus,review_note:data.note||null,reviewed_by:context.userId,
     reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()
    }).eq("id",request.id).eq("school_id",membership.schoolId)
-    .in("status",["pending","under_review","needs_information"]);
-   if(error)throw publicDatabaseError(error,"Não foi possível autorizar o cadastro.");
-  }else{
-   const {error}=await db.from("school_access_requests").update({
-    status:data.decision,review_note:data.note||null,reviewed_by:context.userId,
-    reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()
-   }).eq("id",request.id).eq("school_id",membership.schoolId)
-   .in("status",["pending","under_review","needs_information"]);
-   if(error)throw publicDatabaseError(error,"Não foi possível actualizar a solicitação.");
-  }
+    .in("status",["pending","under_review","needs_information"])
+    .select("id,status").maybeSingle();
+  if(updateError)throw publicDatabaseError(updateError,"Não foi possível actualizar a solicitação.");
+  if(!updated)throw new Error("Outro responsável já actualizou esta solicitação. Recarregue os pedidos.");
+  const {error:auditError}=await db.from("audit_logs").insert({
+    school_id:membership.schoolId,actor_user_id:context.userId,
+    action:"school_access_request_review",
+    entity_type:"school_access_request",entity_id:request.id,request_id:request.id,
+    metadata:{from_status:request.status,to_status:nextStatus,requested_role:request.requested_role}
+  });
+  if(auditError)console.warn("[school-access] audit unavailable",auditError.code);
   // Notificação interna best effort, sem afirmar entrega de e-mail.
   await db.from("notifications").insert({
    school_id:membership.schoolId,user_id:request.user_id,channel:"in_app",
@@ -100,7 +110,7 @@ export const reviewSchoolAccessRequest=createServerFn({method:"POST"})
    body:data.decision==="approved"?"A escola autorizou o início do cadastro. Preencha a candidatura; o acesso escolar só será concedido após confirmação da matrícula.":"A secretaria actualizou o seu pedido de acesso.",
    status:"pending",payload:{request_id:request.id,decision:data.decision}
   }).then(({error})=>{if(error)console.warn("[school-access] notification unavailable",error.code)});
-  return {status:data.decision};
+  return {status:nextStatus};
  });
 
 export const listMatchingPeopleForAccessRequest=createServerFn({method:"GET"})
