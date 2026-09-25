@@ -99,7 +99,7 @@ describe("Google Workspace: mocked functional integration", () => {
   });
 
   it("deletes Calendar events with the vault token and treats missing events as idempotent", async () => {
-    const ok = mockApi(204, {});
+    const ok = mockApi(200, {});
     expect(await ok.api.calendarDelete("event-1")).toEqual({ deleted: true });
     expect(ok.tokens).toEqual(["calendar"]);
     expect(ok.calls[0].init.method).toBe("DELETE");
