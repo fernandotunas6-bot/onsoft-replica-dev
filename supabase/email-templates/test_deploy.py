@@ -57,6 +57,9 @@ class NotificationStaticTests(unittest.TestCase):
             "email-changed": ["{{ .OldEmail }}", "{{ .Email }}"],
             "identity-linked": ["{{ .Provider }}"],
             "identity-unlinked": ["{{ .Provider }}"],
+            "phone-changed": ["{{ .OldPhone }}", "{{ .Phone }}"],
+            "mfa-factor-enrolled": ["{{ .FactorType }}"],
+            "mfa-factor-unenrolled": ["{{ .FactorType }}"],
         }
         for slug, placeholders in notices.items():
             with self.subTest(notification=slug):
@@ -156,9 +159,9 @@ notification_spec.loader.exec_module(notifications)
 class OptionalNotificationDeploymentTests(unittest.TestCase):
     def test_notification_payload_does_not_enable_without_explicit_flag(self):
         payload = notifications.build_payload()
-        self.assertEqual(len(payload), 8)
+        self.assertEqual(len(payload), 14)
         self.assertFalse(any(k.endswith("_enabled") for k in payload))
-        self.assertEqual(len(notifications.build_payload(enable=True)), 12)
+        self.assertEqual(len(notifications.build_payload(enable=True)), 21)
 
     def test_notification_enable_requires_smtp_attestation(self):
         with patch.object(sys, "argv", ["deploy_notifications.py", "--enable"]), \
