@@ -251,7 +251,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           </SheetContent>
         </Sheet>
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mr-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/70 lg:shadow-sm">
           <header className="sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-3.5 md:px-5">
             <Button
               variant="ghost"
