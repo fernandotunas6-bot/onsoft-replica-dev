@@ -59,5 +59,23 @@ qualquer aluno podia escrever directamente pela API REST do Supabase.
 4. **Leituras ainda largas:** notas, presenças, `import_jobs` e `terms` continuam legíveis
    por qualquer membro. É preciso passar a ler por papel/turma sem esvaziar o dashboard do
    aluno e do encarregado.
-5. **Políticas do Storage (buckets)** não foram auditadas.
+5. **Políticas do Storage (buckets):** o retrato de produção não as inclui, e os scripts do
+   repositório têm várias versões contraditórias. Para as auditar, correr na base:
+   `SELECT policyname, cmd, roles, qual, with_check FROM pg_policies WHERE schemaname = 'storage';`
+   e `SELECT id, public FROM storage.buckets;`.
 6. **Planos de aula:** corrigidos em `20260925162000`, também por aplicar.
+
+## Segunda passagem (mesmo dia)
+
+- **Atalho de login de desenvolvimento removido.** O `AuthGate` tinha um login automático com
+  credenciais fixas (código morto: o build já o eliminava do browser), e a função de servidor
+  `ensureDevBypassSession` estava exposta pela rede, protegida só por uma variável de
+  ambiente. Criava ou reactivava a conta `dev@siga.local` como **dona da primeira escola**,
+  com senha fixa. **Verificar na produção se essa conta existe** e, se existir, apagá-la
+  (Authentication → Users). Verificar também `admin@escola.ao`, cuja senha estava no código.
+- **OTP:** limite de 20 envios por hora por IP, qualquer que seja o destino.
+- **Revisto e sem alteração:** webhook AppyPay (token secreto, parâmetros limpos,
+  confirmação junto da AppyPay); funções públicas de matrícula, recuperação de senha, link
+  mágico e registo (todas com limite de pedidos).
+- **Por decidir:** `resolveBiToEmailFn` devolve o e-mail associado a um B.I. (ver
+  `CONTINUE.md`).
