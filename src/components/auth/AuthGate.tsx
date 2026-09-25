@@ -140,6 +140,23 @@ export function AuthGate({ children }: { children: ReactNode }) {
           void supabase.auth.signOut({ scope: "local" });
           return;
         }
+        // Require the same enrolled MFA factor for social and password login.
+        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (assurance.error) throw assurance.error;
+        if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
+          const factors = await supabase.auth.mfa.listFactors();
+          if (factors.error) throw factors.error;
+          if (!active || generation !== verificationGeneration) return;
+          const totpFactor = factors.data?.totp?.[0];
+          if (!totpFactor) throw new Error("É necessário configurar o segundo factor.");
+          setMfaFactorId(totpFactor.id);
+          setSession(null);
+          setChecking(false);
+          setSubmitting(false);
+          return;
+        }
+        if (!active || generation !== verificationGeneration) return;
+        setMfaFactorId(null);
         setError(null);
         setSession(candidate);
         setChecking(false);
@@ -267,6 +284,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       if (!signInError) {
         if (data.user) localStorage.setItem(activityKey(data.user.id), String(Date.now()));
         const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (assurance.error) throw assurance.error;
         if (assurance.data?.nextLevel === "aal2" && assurance.data.currentLevel !== "aal2") {
           const factors = await supabase.auth.mfa.listFactors();
           const totp = factors.data?.totp[0];
@@ -492,6 +510,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
                         throw new Error("A sessão não ficou disponível após a verificação 2FA.");
                       }
 
+                      // AAL2 alone is not a school permission: recheck server-side access.
+                      const { verifyOAuthAccountFn } =
+                        await import("@/features/auth/verify-oauth-account-server");
+                      const decision = await verifyOAuthAccountFn();
+                      if (!decision.authorized) {
+                        throw new Error("A conta não tem vínculo institucional activo.");
+                      }
                       localStorage.setItem(
                         activityKey(sessionData.session.user.id),
                         String(Date.now()),
