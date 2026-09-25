@@ -134,7 +134,7 @@ export function ClassMaterialsPanel({
   return (
     <div className={cn("mt-4 rounded-xl border border-border bg-secondary/30 p-3", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
           <Paperclip className="size-3.5" />
           Materiais{classLabel ? ` · ${classLabel}` : ""}
         </p>

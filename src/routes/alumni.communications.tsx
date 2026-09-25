@@ -237,7 +237,7 @@ function AlumniCommunicationsPage() {
                         ? person.phone
                         : "Portal Alumni"}
                   </p>
-                  <p className="mt-1 text-[10px] font-bold uppercase text-primary">
+                  <p className="mt-1 text-[10px] font-bold text-primary">
                     {[person.graduationYear, person.province].filter(Boolean).join(" · ") ||
                       "Alumni"}
                   </p>

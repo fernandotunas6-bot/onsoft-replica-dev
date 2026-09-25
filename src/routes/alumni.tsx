@@ -85,9 +85,7 @@ function MetricCard({
     <Card className="border-border/70 shadow-sm">
       <CardContent className="flex items-start justify-between gap-4 p-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            {label}
-          </p>
+          <p className="text-xs font-semibold text-muted-foreground">{label}</p>
           <p className="mt-2 text-3xl font-black tracking-tight text-foreground">{value}</p>
           <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
         </div>
@@ -510,9 +508,7 @@ function AlumniPage() {
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-wide text-primary">
-                            {item.event_type}
-                          </p>
+                          <p className="text-xs font-bold text-primary">{item.event_type}</p>
                           <h3 className="mt-2 font-bold">{item.title}</h3>
                         </div>
                         <CalendarDays className="size-5 text-primary" />

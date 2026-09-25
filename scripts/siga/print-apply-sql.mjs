@@ -58,6 +58,7 @@ export const SQL_CHECKLIST = {
       "import_jobs",
       "siga_attendance_sessions",
       "siga_access_cards",
+      "school_access_requests",
       "siga_turnstile_devices",
       "siga_access_logs",
       "school_memberships",

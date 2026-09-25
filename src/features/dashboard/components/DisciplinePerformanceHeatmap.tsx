@@ -105,7 +105,7 @@ export function DisciplinePerformanceHeatmap({
       ) : (
         <div className="overflow-x-auto no-scrollbar border border-border rounded-xl">
           <table className="w-full text-xs text-left border-collapse">
-            <thead className="bg-secondary/40 text-muted-foreground uppercase font-bold border-b border-border">
+            <thead className="bg-secondary/40 text-muted-foreground font-bold border-b border-border">
               <tr>
                 <th className="p-3 min-w-[160px]">Turma / Curso</th>
                 {allDisciplines.map((disc) => (

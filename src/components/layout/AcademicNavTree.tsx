@@ -101,9 +101,7 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
   const flyout = collapsed ? (
     <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
       <div className="pointer-events-auto max-h-[70vh] min-w-56 overflow-y-auto rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-float">
-        <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-[0.5px] text-sidebar-muted">
-          Curso / Nível
-        </p>
+        <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold text-sidebar-muted">Curso / Nível</p>
         <BranchList
           tree={tree}
           openBranch={openBranch}

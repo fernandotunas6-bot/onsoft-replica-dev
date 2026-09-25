@@ -62,7 +62,9 @@ function GatewayWebhookHint({
   const isGateway = provider === "multicaixa_express" || provider === "unitel_money";
   const [newWebhookKey, setNewWebhookKey] = useState("");
   const previousExpires = String(config.webhookApiKeyPreviousExpiresAt ?? "");
-  const previousActive = hasWebhookSecret && Number.isFinite(Date.parse(previousExpires)) &&
+  const previousActive =
+    hasWebhookSecret &&
+    Number.isFinite(Date.parse(previousExpires)) &&
     Date.parse(previousExpires) > Date.now();
 
   const eventsQuery = useQuery({
@@ -135,8 +137,12 @@ function GatewayWebhookHint({
             : "Chave guardada no servidor; por segurança não é reenviada ao navegador."}
         </span>
         {newWebhookKey ? (
-          <Button type="button" size="sm" variant="outline"
-            onClick={() => copy("Nova API key", newWebhookKey)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => copy("Nova API key", newWebhookKey)}
+          >
             Copiar nova chave
           </Button>
         ) : null}
@@ -270,18 +276,14 @@ function AcademicIntegrationsCatalog() {
   return (
     <div className="space-y-5">
       <div className="space-y-1">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Catálogo de integrações
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Catálogo de integrações</h5>
         <p className="text-xs text-muted-foreground">
           Configure chaves e webhooks. As chamadas externas ficam prontas a ligar.
         </p>
       </div>
       {grouped.map((entry) => (
         <div key={entry.group} className="space-y-2">
-          <h6 className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-            {entry.group}
-          </h6>
+          <h6 className="text-[11px] font-bold text-muted-foreground">{entry.group}</h6>
           <ul className="divide-y divide-border rounded-xl border border-border">
             {entry.items.map((item) => {
               const hints = integrationFieldHints[item.id];
@@ -304,8 +306,16 @@ function AcademicIntegrationsCatalog() {
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
-                      <Badge variant={workspacePending || item.status === "disconnected" ? "secondary" : "default"}>
-                        {workspacePending ? "Pendente de consentimento" : integrationStatusLabel(item.status)}
+                      <Badge
+                        variant={
+                          workspacePending || item.status === "disconnected"
+                            ? "secondary"
+                            : "default"
+                        }
+                      >
+                        {workspacePending
+                          ? "Pendente de consentimento"
+                          : integrationStatusLabel(item.status)}
                       </Badge>
                       {workspacePending ? (
                         <span className="text-[11px] font-medium text-muted-foreground">
@@ -354,9 +364,9 @@ function AcademicIntegrationsCatalog() {
                   ) : null}
                   {workspacePending ? (
                     <p className="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                      A ligação exige consentimento Google independente do login SIGA,
-                      autorização por serviço e tokens protegidos no servidor.
-                      Nenhuma operação destes serviços Google está activa.
+                      A ligação exige consentimento Google independente do login SIGA, autorização
+                      por serviço e tokens protegidos no servidor. Nenhuma operação destes serviços
+                      Google está activa.
                     </p>
                   ) : item.id === "zoom" ? (
                     <ZoomIntegrationCard item={item} />
@@ -393,9 +403,11 @@ function AcademicIntegrationsCatalog() {
                         name="merchantId"
                         aria-label={`Identificador de comerciante ${item.name}`}
                         defaultValue={String(config["merchantId"] ?? "")}
-                        placeholder={item.hasStoredSecret.merchantId
-                          ? "Credencial guardada; preencha apenas para substituir"
-                          : hints.merchant}
+                        placeholder={
+                          item.hasStoredSecret.merchantId
+                            ? "Credencial guardada; preencha apenas para substituir"
+                            : hints.merchant
+                        }
                         className="h-8 text-xs"
                       />
                       <Input
@@ -407,9 +419,11 @@ function AcademicIntegrationsCatalog() {
                               ? getFinanceGatewayConfirmUrl()
                               : ""),
                         )}
-                        placeholder={item.hasStoredSecret.callbackUrl
-                          ? "Token guardado; preencha apenas para substituir"
-                          : hints.callback}
+                        placeholder={
+                          item.hasStoredSecret.callbackUrl
+                            ? "Token guardado; preencha apenas para substituir"
+                            : hints.callback
+                        }
                         className="h-8 text-xs"
                       />
                       <Button type="submit" size="sm" variant="outline">
@@ -417,9 +431,13 @@ function AcademicIntegrationsCatalog() {
                       </Button>
                     </form>
                   )}
-                  <GatewayWebhookHint key={`${schoolId}-${item.id}`}
-                    provider={item.id} schoolId={schoolId ?? ""} config={config}
-                    hasWebhookSecret={Boolean(item.hasStoredSecret.webhookApiKey)} />
+                  <GatewayWebhookHint
+                    key={`${schoolId}-${item.id}`}
+                    provider={item.id}
+                    schoolId={schoolId ?? ""}
+                    config={config}
+                    hasWebhookSecret={Boolean(item.hasStoredSecret.webhookApiKey)}
+                  />
                 </li>
               );
             })}
@@ -483,9 +501,7 @@ export function IntegrationsPanel() {
       <Separator />
 
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Outros canais
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Outros canais</h5>
         <ul className="divide-y divide-border">
           {otherChannels.map((i) => (
             <li key={i.name} className="flex items-center justify-between py-2.5 text-sm">

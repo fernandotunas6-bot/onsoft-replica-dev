@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -83,7 +83,7 @@ export function PayflowAdminLaunchButton({
         disabled={busy}
         onClick={() => void launch()}
       >
-        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <PayflowBrandIcon size={14} />}
+        {busy ? <LoaderCircle className="size-3.5 animate-spin" /> : <PayflowBrandIcon size={14} />}
         {children}
       </button>
     );
@@ -98,7 +98,7 @@ export function PayflowAdminLaunchButton({
       disabled={busy}
       onClick={() => void launch()}
     >
-      {busy ? <Loader2 className="size-4 animate-spin" /> : <PayflowBrandIcon size={16} />}
+      {busy ? <LoaderCircle className="size-4 animate-spin" /> : <PayflowBrandIcon size={16} />}
       {children}
     </Button>
   );

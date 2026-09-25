@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,6 +72,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [mfaCode, setMfaCode] = useState("");
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
     try {
@@ -130,15 +130,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
       try {
         const { verifyInstitutionalAccessFn } =
           await import("@/features/auth/verify-oauth-account-server");
-        const result = await verifyInstitutionalAccessFn();
+        await verifyInstitutionalAccessFn();
         if (!active || generation !== verificationGeneration) return;
-        if (!result.authorized) {
-          setError("A conta não tem um vínculo institucional activo. Contacte a administração.");
-          setChecking(false);
-          // Only revoke this local session. Never delete an auth.users identity.
-          void supabase.auth.signOut({ scope: "local" });
-          return;
-        }
+        // Sem vínculo activo a sessão continua: o RouteAccessGate mostra o
+        // painel de integração institucional (criar escola ou pedir acesso) e
+        // o servidor recusa tudo o que exija membership. Uma falha a consultar
+        // as permissões continua a negar o acesso (catch abaixo).
         // Require the same enrolled MFA factor for social and password login.
         const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (assurance.error) throw assurance.error;
@@ -165,7 +162,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
         console.error("[AuthGate] Erro ao verificar autorização institucional", verificationError);
         // Keep the Supabase identity intact and deny access on lookup failures.
         // Reload can safely retry without losing the Google or password account.
-        setError("Não foi possível confirmar as permissões. Actualize a página para tentar novamente.");
+        setError(
+          "Não foi possível confirmar as permissões. Actualize a página para tentar novamente.",
+        );
         setChecking(false);
         setSubmitting(false);
       }
@@ -174,8 +173,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
     let sawInitialAuthEvent = false;
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
-      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" ||
-          event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+      if (
+        event === "INITIAL_SESSION" ||
+        event === "SIGNED_IN" ||
+        event === "SIGNED_OUT" ||
+        event === "TOKEN_REFRESHED"
+      ) {
         sawInitialAuthEvent = true;
       }
       if (event === "SIGNED_OUT") {
@@ -185,13 +188,19 @@ export function AuthGate({ children }: { children: ReactNode }) {
         setSubmitting(false);
         return;
       }
-      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" ||
-          event === "TOKEN_REFRESHED" || event === "USER_UPDATED" ||
-          event === "PASSWORD_RECOVERY") {
+      if (
+        event === "INITIAL_SESSION" ||
+        event === "SIGNED_IN" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "USER_UPDATED" ||
+        event === "PASSWORD_RECOVERY"
+      ) {
         if (nextSession) {
           try {
             localStorage.setItem(activityKey(nextSession.user.id), String(Date.now()));
-          } catch { /* Storage unavailable: server still validates membership. */ }
+          } catch {
+            /* Storage unavailable: server still validates membership. */
+          }
         }
         // Supabase auth callbacks run under an auth lock. Defer all async
         // client calls to a new task, not a microtask, to avoid deadlocks.
@@ -424,7 +433,78 @@ export function AuthGate({ children }: { children: ReactNode }) {
       if (oauthError) throw oauthError;
     } catch (loginError) {
       console.error("[AuthGate] Falha ao iniciar OAuth", loginError);
-      setError("Não foi possível iniciar sessão com Google. Verifique o serviço e tente novamente.");
+      setError(
+        "Não foi possível iniciar sessão com Google. Verifique o serviço e tente novamente.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /**
+   * Criação de conta pela primeira vez. Cria só a identidade (auth.users) —
+   * nenhum vínculo escolar. O e-mail tem de ser confirmado antes do primeiro
+   * login, e é isso que permite ao Supabase ligar, mais tarde, a mesma pessoa
+   * pelo Google sem duplicar a conta (só liga identidades com e-mail
+   * verificado). A resposta é igual exista ou não o e-mail, para não revelar
+   * contas registadas.
+   */
+  const signUp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const fullName = String(form.get("fullName") ?? "").trim();
+    const email = String(form.get("email") ?? "")
+      .trim()
+      .toLowerCase();
+    const password = String(form.get("password") ?? "");
+    const confirm = String(form.get("confirmPassword") ?? "");
+    setError(null);
+    setInfo(null);
+    if (fullName.length < 3) return setError("Indique o nome completo.");
+    if (!email.includes("@")) return setError("Indique um endereço de e-mail válido.");
+    if (password.length < 8) return setError("A senha deve ter pelo menos 8 caracteres.");
+    if (password !== confirm) return setError("As senhas não coincidem.");
+
+    setSubmitting(true);
+    try {
+      // Preferência: e-mail do SIGA via Resend (como recuperação e link mágico).
+      const { requestSignupFn } = await import("@/features/auth/signup-server");
+      const viaSiga = await requestSignupFn({ data: { fullName, email, password } });
+      if (viaSiga.handled) {
+        setMode("signin");
+        setInfo(viaSiga.message);
+        return;
+      }
+      // Sem Resend configurado: mailer nativo do Supabase ("Confirm signup").
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      if (signUpError) {
+        setError(
+          /password/i.test(signUpError.message)
+            ? "A senha não cumpre a política de segurança. Use uma senha mais forte."
+            : mapSignInError(signUpError.message),
+        );
+        return;
+      }
+      // Com confirmação de e-mail activa não há sessão: a pessoa confirma e entra.
+      if (!data.session) {
+        setMode("signin");
+        setInfo(
+          "Se este e-mail ainda não tiver conta, enviámos um link de confirmação. Confirme-o e depois inicie sessão.",
+        );
+      }
+    } catch (signUpFailure) {
+      setError(
+        signUpFailure instanceof Error && signUpFailure.message
+          ? signUpFailure.message
+          : "Não foi possível contactar o serviço de autenticação.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -456,9 +536,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
           />
           <div />
           <div className="relative max-w-xl">
-            <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
-              Sistema Integrado de Gestão
-            </p>
+            <p className="text-xs font-semibold opacity-80">Sistema Integrado de Gestão</p>
             <h1 className="mt-4 font-display text-4xl font-extrabold leading-tight">
               A instituição em pleno controlo operacional.
             </h1>
@@ -495,17 +573,45 @@ export function AuthGate({ children }: { children: ReactNode }) {
             )}
 
             <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-center">
-              Iniciar sessão
+              {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
             </h2>
             <p className="mt-1.5 text-xs text-muted-foreground text-center">
-              Introduza as credenciais da conta no portal SIGA.
+              {mode === "signup"
+                ? "Uma só identidade para todas as escolas a que pertencer."
+                : "Entre com Google, e-mail ou Nº de BI."}
             </p>
-            <p className="mt-1 text-xs text-center">
-              Ainda não tem escola?{" "}
-              <a href={getCreateSchoolUrl()} className="font-semibold text-primary hover:underline">
-                Criar a minha escola
-              </a>
-            </p>
+            <div
+              role="tablist"
+              aria-label="Modo de acesso"
+              className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-xs font-semibold"
+              hidden={Boolean(mfaFactorId)}
+            >
+              {(
+                [
+                  ["signin", "Já tenho conta"],
+                  ["signup", "Criar conta"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === value}
+                  onClick={() => {
+                    setMode(value);
+                    setError(null);
+                    setInfo(null);
+                  }}
+                  className={`rounded-lg px-3 py-1.5 transition-colors ${
+                    mode === value
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
             {error ? (
               <p
@@ -559,13 +665,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
                         throw new Error("A sessão não ficou disponível após a verificação 2FA.");
                       }
 
-                      // AAL2 alone is not a school permission: recheck server-side access.
+                      // AAL2 não é permissão de escola: confirma no servidor que a
+                      // consulta de acesso responde. Sem vínculo, a sessão segue
+                      // para o painel de integração institucional.
                       const { verifyInstitutionalAccessFn } =
                         await import("@/features/auth/verify-oauth-account-server");
-                      const decision = await verifyInstitutionalAccessFn();
-                      if (!decision.authorized) {
-                        throw new Error("A conta não tem vínculo institucional activo.");
-                      }
+                      await verifyInstitutionalAccessFn();
                       localStorage.setItem(
                         activityKey(sessionData.session.user.id),
                         String(Date.now()),
@@ -609,7 +714,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               className="mt-6 space-y-4"
               onSubmit={signIn}
               aria-busy={submitting}
-              hidden={Boolean(mfaFactorId)}
+              hidden={Boolean(mfaFactorId) || mode === "signup"}
             >
               <div className="space-y-1.5">
                 <Label htmlFor="login-email" className="text-xs font-medium">
@@ -697,7 +802,82 @@ export function AuthGate({ children }: { children: ReactNode }) {
               </button>
             </form>
 
-            <div className="mt-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+            {mode === "signup" && !mfaFactorId ? (
+              <form className="mt-6 space-y-4" onSubmit={signUp} aria-busy={submitting}>
+                <div className="space-y-1.5">
+                  <Label htmlFor="signup-name" className="text-xs font-medium">
+                    Nome completo
+                  </Label>
+                  <Input
+                    id="signup-name"
+                    name="fullName"
+                    autoComplete="name"
+                    required
+                    minLength={3}
+                    maxLength={160}
+                    className="h-10 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="signup-email" className="text-xs font-medium">
+                    E-mail
+                  </Label>
+                  <Input
+                    id="signup-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="h-10 text-sm"
+                    placeholder="nome@exemplo.ao"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-password" className="text-xs font-medium">
+                      Senha
+                    </Label>
+                    <Input
+                      id="signup-password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-confirm" className="text-xs font-medium">
+                      Confirmar senha
+                    </Label>
+                    <Input
+                      id="signup-confirm"
+                      name="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] leading-4 text-muted-foreground">
+                  Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar a
+                  sua escola ou pedir acesso à secretaria da escola a que pertence.
+                </p>
+                <Button
+                  type="submit"
+                  className="w-full gap-2 h-10 text-sm font-semibold"
+                  disabled={submitting}
+                >
+                  {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {submitting ? "A criar conta…" : "Criar conta"}
+                </Button>
+              </form>
+            ) : null}
+
+            <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
               ou
               <span className="h-px flex-1 bg-border" />
@@ -727,7 +907,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                   d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
                 />
               </svg>
-              Entrar com Google
+              {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
             </Button>
 
             {installPrompt && (

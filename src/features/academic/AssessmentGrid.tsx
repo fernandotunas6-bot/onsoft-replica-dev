@@ -122,13 +122,13 @@ export function AssessmentGrid({
                 />
               </th>
             ) : null}
-            <th className="w-10 border-b px-2 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            <th className="w-10 border-b px-2 py-2 text-left text-[11px] font-bold text-muted-foreground">
               Nº
             </th>
-            <th className="border-b px-2 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            <th className="border-b px-2 py-2 text-left text-[11px] font-bold text-muted-foreground">
               Aluno
             </th>
-            <th className="w-24 border-b px-2 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            <th className="w-24 border-b px-2 py-2 text-left text-[11px] font-bold text-muted-foreground">
               Proc.
             </th>
             {columns.map((column) => (
@@ -136,7 +136,7 @@ export function AssessmentGrid({
                 key={column.key}
                 title={column.title}
                 className={cn(
-                  "border-b px-2 py-2 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground",
+                  "border-b px-2 py-2 text-right text-[11px] font-bold text-muted-foreground",
                   column.width,
                 )}
               >

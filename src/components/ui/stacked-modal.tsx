@@ -171,7 +171,7 @@ export function StackedModal({
               aria-label="Categorias de configurações"
               className="no-scrollbar flex w-16 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-border/70 bg-secondary/20 py-4 sm:w-64 sm:items-stretch sm:p-3"
             >
-              <p className="hidden px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground sm:block">
+              <p className="hidden px-3 pb-2 text-[11px] font-bold text-muted-foreground sm:block">
                 {eyebrow ?? "Configurações"}
               </p>
               {topRows.map((row) => {

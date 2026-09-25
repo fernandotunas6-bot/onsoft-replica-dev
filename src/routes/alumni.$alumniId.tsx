@@ -33,9 +33,7 @@ export const Route = createFileRoute("/alumni/$alumniId")({
 function InfoRow({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-border/50 py-3 last:border-0">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
+      <span className="text-xs font-semibold text-muted-foreground">{label}</span>
       <span className="max-w-[65%] text-right text-sm font-medium text-foreground">
         {value || "—"}
       </span>
@@ -188,9 +186,7 @@ function AlumniProfilePage() {
                 </div>
               </div>
               <div className="min-w-40 rounded-2xl border border-border/60 bg-background/80 p-4 backdrop-blur">
-                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Perfil completo
-                </p>
+                <p className="text-xs font-bold text-muted-foreground">Perfil completo</p>
                 <p className="mt-1 text-3xl font-black">{profile.profile_completion ?? 0}%</p>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
                   <div
@@ -426,9 +422,7 @@ function AlumniProfilePage() {
                             {new Date(item.occurred_at).toLocaleDateString("pt-PT")}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs font-medium uppercase tracking-wide text-primary">
-                          {item.kind}
-                        </p>
+                        <p className="mt-1 text-xs font-medium text-primary">{item.kind}</p>
                         {item.notes ? (
                           <p className="mt-2 text-sm text-muted-foreground">{item.notes}</p>
                         ) : null}

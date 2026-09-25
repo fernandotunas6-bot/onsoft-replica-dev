@@ -66,9 +66,7 @@ export function PerformancePanel() {
           { label: "TTFB", value: formatMs(vitals["TTFB"]), hint: "Resposta do servidor" },
         ].map((item) => (
           <div key={item.label} className="rounded-xl border border-border bg-secondary/30 p-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              {item.label}
-            </p>
+            <p className="text-[11px] font-bold text-muted-foreground">{item.label}</p>
             <p className="mt-1 text-2xl font-extrabold">{item.value}</p>
             <p className="mt-1 text-[11px] text-muted-foreground">{item.hint}</p>
           </div>
@@ -93,7 +91,7 @@ export function PerformancePanel() {
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Activity className="size-4 text-primary" />
-          <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+          <h5 className="text-xs font-bold text-muted-foreground">
             Consultas lentas (&gt; 400 ms)
           </h5>
         </div>

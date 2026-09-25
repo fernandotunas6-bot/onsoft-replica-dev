@@ -249,9 +249,7 @@ export function TurmaProfileModal({
             <TabsContent value="resumo" className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Ocupação
-                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">Ocupação</span>
                   <p className="mt-2 text-2xl font-extrabold tabular-nums">
                     {turma.enrolled_count}
                     <span className="text-sm font-medium text-muted-foreground">
@@ -267,17 +265,13 @@ export function TurmaProfileModal({
                   </div>
                 </div>
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Média Geral
-                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">Média Geral</span>
                   <p className="mt-2 text-2xl font-extrabold tabular-nums">
                     {turma.average_score != null ? turma.average_score.toFixed(1) : "—"}
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Assiduidade
-                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">Assiduidade</span>
                   <p className="mt-2 text-2xl font-extrabold tabular-nums">
                     {turma.attendance_rate != null ? `${Math.round(turma.attendance_rate)}%` : "—"}
                   </p>
@@ -312,9 +306,7 @@ export function TurmaProfileModal({
               </div>
               {classRelations.length > 0 || classSuggestions.length > 0 ? (
                 <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Relacionado
-                  </p>
+                  <p className="mb-3 text-xs font-semibold text-muted-foreground">Relacionado</p>
                   <div className="mb-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                     {classRelations.map((relation) => (
                       <div key={relation.key} className="flex items-center gap-2 text-xs">
@@ -336,7 +328,7 @@ export function TurmaProfileModal({
                   </div>
                   {classSuggestions.length > 0 ? (
                     <>
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <p className="mb-2 text-xs font-semibold text-muted-foreground">
                         Próximas ações
                       </p>
                       <div className="space-y-2">

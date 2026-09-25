@@ -2,13 +2,13 @@ import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ChevronDown,
   Download,
+  FileBadge,
   KeyRound,
   MailPlus,
   ShieldCheck,
   UserPlus,
-  Award,
-  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -16,6 +16,7 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
+import { AccessRequestsPanel } from "@/features/access/AccessRequestsPanel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
@@ -419,7 +420,7 @@ function AcessosPage() {
                     disabled={!filteredAccounts.length}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Relatório Contas PDF
+                    <FileBadge className="size-3.5 text-primary" /> Relatório Contas PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarContas}
@@ -433,7 +434,7 @@ function AcessosPage() {
                     disabled={!filteredStaff.length}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Relatório Equipa PDF
+                    <FileBadge className="size-3.5 text-primary" /> Relatório Equipa PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarEquipa}
@@ -552,6 +553,8 @@ function AcessosPage() {
         />
 
         <InstalledModuleTools module="comunicacoes" />
+
+        <AccessRequestsPanel />
 
         <StatGrid
           collapsible

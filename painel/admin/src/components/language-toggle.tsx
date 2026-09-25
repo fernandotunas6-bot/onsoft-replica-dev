@@ -19,7 +19,7 @@ export function LanguageToggle() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-1 px-2.5 font-medium cursor-pointer">
           <Globe className="h-4 w-4" />
-          <span className="uppercase text-xs font-bold">{language}</span>
+          <span className="text-xs font-bold">{language}</span>
           <span className="sr-only">Alternar Idioma</span>
         </Button>
       </DropdownMenuTrigger>

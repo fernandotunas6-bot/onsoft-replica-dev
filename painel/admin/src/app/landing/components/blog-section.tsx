@@ -63,7 +63,7 @@ export function BlogSection() {
                   />
                 </div>
                 <div className="space-y-3 p-6">
-                  <p className="text-muted-foreground text-xs tracking-widest uppercase">
+                  <p className="text-muted-foreground text-xs">
                     {blog.category}
                   </p>
                   <a

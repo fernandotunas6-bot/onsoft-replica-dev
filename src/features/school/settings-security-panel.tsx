@@ -106,9 +106,7 @@ function TwoFactorEnroll() {
 
   return (
     <div className="space-y-3">
-      <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-        Autenticação em dois passos
-      </h5>
+      <h5 className="text-xs font-bold text-muted-foreground">Autenticação em dois passos</h5>
       <p className="text-sm text-muted-foreground">
         Associe uma aplicação autenticadora (Google Authenticator, Authy ou 1Password). No próximo
         login o SIGA pede o código TOTP.
@@ -210,9 +208,7 @@ export function SecurityPanel() {
       <TwoFactorEnroll />
       <Separator />
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Políticas de acesso
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Políticas de acesso</h5>
         <ul className="space-y-1">
           {accessPolicies.map((s) => (
             <li
@@ -227,9 +223,7 @@ export function SecurityPanel() {
       </div>
       <Separator />
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Auditoria
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Auditoria</h5>
         <AuditLogList />
       </div>
     </div>

@@ -1154,9 +1154,7 @@ export function AssessmentCenter({
         </div>
 
         <div className="border-b px-5 py-2 text-sm print:hidden">
-          <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Contexto
-          </span>
+          <span className="text-xs font-bold text-muted-foreground">Contexto</span>
           <p className="font-semibold">{contextLabel || "Seleccione turma e disciplina"}</p>
         </div>
 
@@ -1437,9 +1435,7 @@ export function AssessmentCenter({
 
         {docsOpen ? (
           <div className="border-b bg-muted/30 px-5 py-3 text-sm">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Gerar para {contextKind}
-            </p>
+            <p className="mb-2 text-xs font-bold text-muted-foreground">Gerar para {contextKind}</p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => exportDocument("pdf")}>
                 {contextKind === "aluno"
@@ -1482,7 +1478,7 @@ export function AssessmentCenter({
 
         {historyOpen ? (
           <div className="border-b bg-muted/20 px-5 py-3">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <p className="mb-2 text-xs font-bold text-muted-foreground">
               Histórico (nota original → nova)
             </p>
             {historyLines.length === 0 ? (
@@ -1773,9 +1769,7 @@ export function AssessmentCenter({
               </p>
               {(["MAC", "NPP", "NPT"] as const).map((component) => (
                 <div key={component} className="mt-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    {component}
-                  </p>
+                  <p className="text-xs font-bold text-muted-foreground">{component}</p>
                   {items.filter((item) => item.component === component).length === 0 ? (
                     <p className="text-xs text-muted-foreground">
                       Sem avaliações neste componente.

@@ -33,7 +33,7 @@ export function MarketingPageHeader({
         )}
       >
         {eyebrow ? (
-          <p className="mb-3 text-sm font-medium uppercase tracking-wider text-primary">{eyebrow}</p>
+          <p className="mb-3 text-sm font-medium text-primary">{eyebrow}</p>
         ) : null}
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">{title}</h1>
         {description ? (

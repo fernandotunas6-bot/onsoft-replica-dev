@@ -401,7 +401,7 @@ function SectionHeading({
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         {eyebrow && (
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          <p className="text-xs font-semibold text-primary">
             {eyebrow}
           </p>
         )}
@@ -961,7 +961,7 @@ export function StudentPaymentPortal() {
             <CardContent className="p-5 sm:p-7">
               <form onSubmit={identifyStudent} className="space-y-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                  <p className="text-xs font-semibold text-primary">
                     Portal financeiro
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">

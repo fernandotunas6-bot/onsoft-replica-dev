@@ -109,9 +109,7 @@ export function TopbarCalendar() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0" sideOffset={8}>
         <div className="border-b border-border/70 px-3.5 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Agenda escolar
-          </p>
+          <p className="text-xs font-semibold text-muted-foreground">Agenda escolar</p>
           <p className="mt-0.5 text-sm font-semibold capitalize">{formatTopbarDate(today)}</p>
         </div>
         <div className="max-h-80 overflow-y-auto px-2 py-2">
@@ -125,7 +123,7 @@ export function TopbarCalendar() {
             <div className="space-y-3">
               {lessons.length > 0 ? (
                 <div>
-                  <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <p className="px-2 pb-1 text-[10px] font-semibold text-muted-foreground">
                     Aulas de hoje
                   </p>
                   <ul className="space-y-1">
@@ -211,7 +209,7 @@ export function TopbarCalendar() {
               ) : null}
               {items.length > 0 ? (
                 <div>
-                  <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <p className="px-2 pb-1 text-[10px] font-semibold text-muted-foreground">
                     Períodos e feriados
                   </p>
                   <ul className="space-y-1">

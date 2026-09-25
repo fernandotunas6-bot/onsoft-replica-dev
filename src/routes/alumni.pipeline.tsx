@@ -403,21 +403,15 @@ function AlumniPipelinePage() {
                       className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_200px] lg:items-center"
                     >
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                          Mentor
-                        </p>
+                        <p className="text-[10px] font-bold text-muted-foreground">Mentor</p>
                         <p className="font-bold">{row.mentor.fullName}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                          Mentorado
-                        </p>
+                        <p className="text-[10px] font-bold text-muted-foreground">Mentorado</p>
                         <p className="font-bold">{row.mentee.fullName}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                          Foco
-                        </p>
+                        <p className="text-[10px] font-bold text-muted-foreground">Foco</p>
                         <p className="text-sm font-semibold">{row.focus_area}</p>
                       </div>
                       <select

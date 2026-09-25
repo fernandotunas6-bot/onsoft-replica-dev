@@ -149,6 +149,12 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
   // Caixas de correio por tenant, no Control Center: sem a tabela, o
   // aprovisionamento de caixas institucionais não grava nem lista nada.
   "tenant_mailboxes",
+  // Pedidos de vinculação institucional (2026-09-25,
+  // `20260925090000_school_access_requests.sql`). Sem a tabela, o painel de
+  // boas-vindas e a fila da secretaria dizem que os pedidos não estão activos
+  // (`isMissingTable` em `requests-server.ts`) — não fingem que gravaram.
+  // Aplicar antes do deploy e retirar daqui.
+  "school_access_requests",
 ]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

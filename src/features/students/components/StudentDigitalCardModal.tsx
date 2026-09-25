@@ -138,14 +138,14 @@ export function StudentDigitalCardModal({
             {/* Cabeçalho da Escola */}
             <div className="flex items-center justify-between border-b border-primary-foreground/20 pb-4">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/80">
+                <p className="text-[10px] font-bold text-primary-foreground/80">
                   República de Angola · Ministério da Educação
                 </p>
                 <h3 className="text-base font-extrabold tracking-tight">
                   Cartão de Estudante Digital
                 </h3>
               </div>
-              <span className="inline-flex items-center rounded-full bg-primary-foreground/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
+              <span className="inline-flex items-center rounded-full bg-primary-foreground/20 px-2.5 py-0.5 text-[10px] font-bold backdrop-blur-md">
                 {student.status || "Ativo"}
               </span>
             </div>
@@ -167,9 +167,7 @@ export function StudentDigitalCardModal({
               {/* Dados do Estudante */}
               <div className="col-span-2 space-y-2 text-xs">
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider text-primary-foreground/70">
-                    Nome Completo
-                  </span>
+                  <span className="text-[10px] text-primary-foreground/70">Nome Completo</span>
                   <p className="font-extrabold text-sm leading-tight text-primary-foreground">
                     {student.full_name}
                   </p>
@@ -177,15 +175,11 @@ export function StudentDigitalCardModal({
 
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   <div>
-                    <span className="text-[9px] uppercase tracking-wider text-primary-foreground/70">
-                      Turma
-                    </span>
+                    <span className="text-[9px] text-primary-foreground/70">Turma</span>
                     <p className="font-bold">{student.class_name || "Geral"}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] uppercase tracking-wider text-primary-foreground/70">
-                      Curso
-                    </span>
+                    <span className="text-[9px] text-primary-foreground/70">Curso</span>
                     <p className="font-bold truncate">{student.course_name || "Geral"}</p>
                   </div>
                 </div>

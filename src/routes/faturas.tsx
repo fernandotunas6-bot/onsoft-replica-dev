@@ -5,11 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import {
   AlertCircle,
-  Award,
   Banknote,
   ChevronDown,
   CreditCard,
   Download,
+  FileBadge,
   FileDown,
   FileText,
   FileUp,
@@ -614,7 +614,7 @@ function FaturasPage() {
                     onClick={exportarFaturasOficial}
                     className="gap-2 text-xs cursor-pointer"
                   >
-                    <Award className="size-3.5 text-primary" /> Relatório Oficial PDF
+                    <FileBadge className="size-3.5 text-primary" /> Relatório Oficial PDF
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={exportarFaturasPdf}

@@ -55,9 +55,7 @@ export function ContextualActionsPanel({
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-            Relacionado
-          </p>
+          <p className="text-[11px] font-semibold text-muted-foreground">Relacionado</p>
           <p className="truncate text-sm font-semibold text-foreground">{title}</p>
         </div>
         <Button
@@ -101,7 +99,7 @@ export function ContextualActionsPanel({
 
           {visibleSuggestions.length > 0 ? (
             <div>
-              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="mb-2 px-1 text-[11px] font-semibold text-muted-foreground">
                 Próximas ações
               </p>
               <div className="space-y-1">

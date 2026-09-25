@@ -132,9 +132,7 @@ export function EnrollmentCampaignPanel() {
         </Button>
       </div>
       <div className="rounded-xl border border-border bg-secondary/40 p-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Link público
-        </p>
+        <p className="text-xs font-semibold text-muted-foreground">Link público</p>
         <p className="mt-1 break-all font-mono text-xs">{publicUrl}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button
@@ -215,9 +213,7 @@ export function EnrollmentCampaignPanel() {
       </label>
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Campos visíveis
-        </p>
+        <p className="mb-2 text-xs font-semibold text-muted-foreground">Campos visíveis</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {enrollmentVisibleFieldOptions.map((field) => (
             <label key={field} className="flex items-center gap-2 text-sm">
@@ -238,9 +234,7 @@ export function EnrollmentCampaignPanel() {
       </Button>
 
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Candidaturas
-        </p>
+        <p className="text-xs font-semibold text-muted-foreground">Candidaturas</p>
         {classGroups.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             Sem turmas no ano lectivo. Pode aceitar o candidato e colocá-lo na turma depois, em

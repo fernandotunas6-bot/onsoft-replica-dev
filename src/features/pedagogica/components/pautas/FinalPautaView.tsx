@@ -148,9 +148,7 @@ export function FinalPautaView({ data }: { data: FinalPautaDocument }) {
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 text-xs">
         <div className="space-y-2">
-          <span className="block font-bold uppercase tracking-wider text-muted-foreground">
-            O CORPO DE JÚRI
-          </span>
+          <span className="block font-bold text-muted-foreground">O CORPO DE JÚRI</span>
           <div className="space-y-2 text-left pl-2">
             <p>1. _______________________________________</p>
             <p>2. _______________________________________</p>
