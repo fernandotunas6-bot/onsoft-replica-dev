@@ -39,7 +39,11 @@ describe("Google OAuth PKCE: separate from Supabase Auth", () => {
       .toHaveLength(7);
   });
 
-  it("requires the correct Google Classroom roster grant for invitations", () => {
+  it("requires Classroom course, coursework and roster grants for integrated operations", () => {
+    expect(GOOGLE_WORKSPACE_SCOPES.classroom)
+      .toContain("https://www.googleapis.com/auth/classroom.courses");
+    expect(GOOGLE_WORKSPACE_SCOPES.classroom)
+      .toContain("https://www.googleapis.com/auth/classroom.coursework.students");
     expect(GOOGLE_WORKSPACE_SCOPES.classroom)
       .toContain("https://www.googleapis.com/auth/classroom.rosters");
     expect(GOOGLE_WORKSPACE_SCOPES.drive)
