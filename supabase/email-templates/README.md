@@ -65,3 +65,9 @@ python supabase/email-templates/restore.py /caminho/privado/backup.json --apply 
 Os comandos que contactam o Supabase exigem `SUPABASE_ACCESS_TOKEN` **novo, guardado exclusivamente no ambiente seguro do operador**. Os exemplos não incluem valores secretos. O restaurador aceita exclusivamente campos de assuntos, conteúdos dos seis modelos e, se existiam na cópia, as três opções de segurança explicitamente selecionadas. Recusa chaves SMTP e quaisquer campos desconhecidos.
 
 **Limitação:** se um campo não existia no retorno original da Management API, a cópia não permite apagar o campo criado entretanto nem garantir uma restauração integral dos defaults do fornecedor. Após qualquer recuperação, executar os testes de envio e autenticação.
+
+## Correção da recuperação de notificações (25/09/2026)
+
+O restaurador também aceita agora as cópias criadas por `deploy_notifications.py`, incluindo os sete assuntos, os sete HTML e os sete estados `mailer_notifications_*_enabled`, sem tocar nas demais definições Auth, SMTP ou nos vínculos escolares. Os estados de ativação são obrigatoriamente booleanos. O procedimento recupera **apenas os campos existentes no snapshot** e mantém um segundo backup dos valores de produção antes de efetuar o PATCH.
+
+A reposição de modelos pode ser efetuada separadamente da eventual reposição dos estados de ativação; rever o conteúdo do JSON e os valores booleanos antes de usar `--apply`. Não colocar snapshots no repositório, porque podem conter dados históricos de configuração. Os testes automatizados de rollback não representam testes reais do SMTP.
