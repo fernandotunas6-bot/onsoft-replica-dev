@@ -39,3 +39,15 @@ Referências:
 - https://supabase.com/docs/guides/auth/auth-email-templates
 - https://supabase.com/docs/guides/auth/auth-smtp
 - https://supabase.com/docs/guides/auth/redirect-urls
+
+## Atualização segura da configuração alojada
+
+Depois de revogar os tokens administrativos previamente partilhados, utilizar uma **nova** credencial de gestão apenas no ambiente privado do operador. O instalador faz comparação read-only, exige confirmação explícita e agora **exige guardar uma cópia local dos modelos anteriores** antes de alterar a configuração. A cópia inclui apenas os campos de modelos/assuntos e eventuais opções de confirmação escolhidas, nunca a palavra-passe SMTP nem o token administrativo.
+
+```bash
+python supabase/email-templates/deploy.py
+SUPABASE_ACCESS_TOKEN=... python supabase/email-templates/deploy.py --check
+SUPABASE_ACCESS_TOKEN=... python supabase/email-templates/deploy.py --apply --confirm-production --backup-dir ./private-auth-backups
+```
+
+O diretório de cópias deve ficar **fora do repositório Git** e protegido por permissões de sistema. A ativação de `--secure-email` é uma operação separada que exige uma revisão dos fluxos de cadastro, OAuth e mudança de e-mail antes da publicação. Não enviar as credenciais pelo chat nem incorporá-las no workflow do GitHub.
