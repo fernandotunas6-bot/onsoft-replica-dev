@@ -44,7 +44,7 @@ export const verifyInstitutionalAccessFn = createServerFn({ method: "POST" })
 
     // Membership alone is insufficient: suspended or closed institutions
     // cannot grant an active SIGA portal session.
-    let activeSchoolCount = 0;
+    let activeSchoolIds: string[] = [];
     const schoolIds = [...new Set((memberships ?? []).map((member) => member.school_id))];
     if (schoolIds.length > 0) {
       const { data: activeSchools, error: schoolsError } = await db
@@ -59,10 +59,14 @@ export const verifyInstitutionalAccessFn = createServerFn({ method: "POST" })
         });
         throw new Error("Não foi possível confirmar o estado da instituição.");
       }
-      activeSchoolCount = activeSchools?.length ?? 0;
+      activeSchoolIds = (activeSchools ?? []).map((school) => school.id);
     }
 
-    if (hasInstitutionalAccess(activeSchoolCount, platformAdmins?.length ?? 0)) {
+    if (hasInstitutionalAccess({
+      activeMembershipSchoolIds: schoolIds,
+      activeSchoolIds,
+      isPlatformAdmin: (platformAdmins?.length ?? 0) > 0,
+    })) {
       return { authorized: true, reason: "authorized" };
     }
 
