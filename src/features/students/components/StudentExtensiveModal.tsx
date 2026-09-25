@@ -3,16 +3,16 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  User,
+  Camera,
+  ExternalLink,
   GraduationCap,
+  History,
+  LoaderCircle,
+  QrCode,
+  Upload,
+  User,
   Users,
   Wallet,
-  Camera,
-  Upload,
-  ExternalLink,
-  QrCode,
-  Loader2,
-  History,
 } from "lucide-react";
 import { ModalShell, ModalHeader, ModalContent } from "@/components/ui/modal-system";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -200,7 +200,7 @@ export function StudentExtensiveModal({
               className="absolute -bottom-1.5 -right-1.5 size-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
             >
               {isUploadingPhoto ? (
-                <Loader2 className="size-4 animate-spin" />
+                <LoaderCircle className="size-4 animate-spin" />
               ) : (
                 <Camera className="size-4" />
               )}

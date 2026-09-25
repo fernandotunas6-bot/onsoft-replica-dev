@@ -228,7 +228,7 @@ function LessonPlansPage() {
 
         {grouped.map(([term, termPlans]) => (
           <div key={term} className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 className="text-sm font-semibold text-muted-foreground">
               {termLabels[term] ?? `${term}º Trimestre`}
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

@@ -46,7 +46,7 @@ export function FileBrowserTable({
 }) {
   return (
     <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-      <thead className="sticky top-0 z-10 bg-card text-[11px] uppercase tracking-wide text-muted-foreground">
+      <thead className="sticky top-0 z-10 bg-card text-[11px] text-muted-foreground">
         <tr className="border-b border-border">
           <th className="w-10 px-3 py-2.5 font-semibold">
             <span className="sr-only">Seleccionar</span>
@@ -106,14 +106,14 @@ export function FileBrowserTable({
                     <span className="block truncate font-medium text-foreground">
                       {file.title || file.name}
                       {file.isSystem ? (
-                        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="ml-2 text-[10px] font-semibold text-muted-foreground">
                           {canAccessFileContent(file, account.id, account.role)
                             ? "Sistema"
                             : "Protegido"}
                         </span>
                       ) : null}
                       {fileNeedsOrganization(file) ? (
-                        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-warning-foreground">
+                        <span className="ml-2 text-[10px] font-semibold text-warning-foreground">
                           Por organizar
                         </span>
                       ) : null}

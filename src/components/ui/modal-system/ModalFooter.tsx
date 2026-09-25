@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -58,7 +58,7 @@ export function ModalFooter({
             disabled={disabled || isSubmitting}
             className="gap-1.5 text-xs min-w-[90px]"
           >
-            {isSubmitting && <Loader2 className="size-3.5 animate-spin" />}
+            {isSubmitting && <LoaderCircle className="size-3.5 animate-spin" />}
             {submitLabel}
           </Button>
         )}

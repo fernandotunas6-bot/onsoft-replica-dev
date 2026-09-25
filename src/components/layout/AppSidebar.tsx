@@ -184,7 +184,7 @@ export function AppSidebar({
                 {currentUser.schools.length > 1 ? (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider py-1">
+                    <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground py-1">
                       Alternar Instituição
                     </DropdownMenuLabel>
                     {currentUser.schools.map((item) => {
@@ -287,7 +287,7 @@ export function AppSidebar({
                   const flyout = collapsed ? (
                     <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
                       <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-float">
-                        <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold uppercase tracking-[0.5px] text-sidebar-muted">
+                        <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold text-sidebar-muted">
                           {item.label}
                         </p>
                         {item.children ? (
@@ -461,7 +461,7 @@ export function AppSidebar({
               {currentUser.roles && currentUser.roles.length > 1 ? (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                  <DropdownMenuLabel className="text-[10px] font-extrabold text-muted-foreground">
                     Mudar Área (Perfil)
                   </DropdownMenuLabel>
                   {currentUser.roles.map((r) => (

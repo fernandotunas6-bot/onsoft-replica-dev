@@ -118,7 +118,7 @@ export function MegaMenu() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12">
         {menuSections.map((section) => (
           <div key={section.title} className="space-y-4 lg:space-y-6">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <h3 className="text-sm font-medium text-muted-foreground">
               {section.title}
             </h3>
 

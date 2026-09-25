@@ -88,7 +88,7 @@ export function InstallConsentModal({
               </Button>
             ) : null}
           </div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-xs font-bold text-muted-foreground">
             Funções que este aplicativo quer adicionar
           </p>
           <ul className="space-y-2">

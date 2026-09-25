@@ -104,9 +104,7 @@ function AlumniPortfolioPrintPage() {
                 className="size-24 rounded-[26px] object-cover"
               />
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">
-                  SIGA · Alumni Portfolio
-                </div>
+                <div className="text-xs font-black text-primary">SIGA · Alumni Portfolio</div>
                 <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">
                   {person?.full_name ?? "Alumni"}
                 </h1>
@@ -210,9 +208,7 @@ function AlumniPortfolioPrintPage() {
                           </p>
                         </div>
                         {item.is_current ? (
-                          <span className="text-[10px] font-black uppercase text-primary">
-                            Actual
-                          </span>
+                          <span className="text-[10px] font-black text-primary">Actual</span>
                         ) : null}
                       </div>
                       {item.description ? (
@@ -245,7 +241,7 @@ function PortfolioCard({ item }: { item: PortfolioItem }) {
       ) : null}
       <div className="p-5">
         <div className="flex flex-wrap gap-2">
-          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase text-primary">
+          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-black text-primary">
             {typeLabels[item.item_type] || item.item_type}
           </span>
           {item.document_requests ? (

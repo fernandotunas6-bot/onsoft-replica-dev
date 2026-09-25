@@ -6,23 +6,23 @@ import { toast } from "sonner";
 import { z } from "zod";
 import {
   ArrowDown,
+  ArrowRightLeft,
   ArrowUp,
   ArrowUpDown,
-  Award,
+  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
+  Eye,
+  FileBadge,
   FileDown,
-  GraduationCap,
   FileText,
   FileUp,
+  GraduationCap,
   Search,
-  ArrowRightLeft,
   UserPlus,
   Users,
-  Eye,
-  CheckCircle2,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
@@ -609,7 +609,7 @@ function StudentsPage() {
                   disabled={!filtered.length}
                   className="gap-2 text-xs cursor-pointer"
                 >
-                  <Award className="size-3.5 text-primary" /> Lista Oficial PDF
+                  <FileBadge className="size-3.5 text-primary" /> Lista Oficial PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={exportarAlunosPdf}

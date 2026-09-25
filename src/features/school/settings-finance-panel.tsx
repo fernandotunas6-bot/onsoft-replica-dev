@@ -32,39 +32,29 @@ export function FinancePanel() {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Propinas e taxas
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Propinas e taxas</h5>
         <FeePlanSettingsForm />
       </div>
       <Separator />
       <InstalledModuleTools module="financeiro" />
       <InstalledModuleTools module="faturas" />
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Parâmetros activos
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Parâmetros activos</h5>
         <BillingParametersSummary />
       </div>
       <Separator />
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Conta bancária (Angola)
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Conta bancária (Angola)</h5>
         <SchoolBankingForm />
       </div>
       <Separator />
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          AGT — facturação electrónica
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">AGT — facturação electrónica</h5>
         <SchoolAgtForm />
       </div>
       <Separator />
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Regras de cobrança
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Regras de cobrança</h5>
         <BillingSettingsForm />
       </div>
     </div>

@@ -43,7 +43,7 @@ ${platformUrl}
     ? `<img src="${logoUrl}" alt="${schoolName}" width="64" height="64" style="display:block; border-radius:12px; object-fit:contain; max-width:64px; max-height:64px; border:0; outline:none;" />`
     : `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
         <tr>
-          <td align="center" valign="middle" style="width:56px; height:56px; background-color:#1e293b; color:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:20px; font-weight:700; border-radius:14px; letter-spacing:1px; text-transform:uppercase;">
+          <td align="center" valign="middle" style="width:56px; height:56px; background-color:#1e293b; color:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:20px; font-weight:600; border-radius:14px; letter-spacing:1px; text-transform:uppercase;">
             ${initials}
           </td>
         </tr>
@@ -87,10 +87,10 @@ ${platformUrl}
                           ${logoMarkup}
                         </td>
                         <td valign="middle">
-                          <p style="margin:0; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#64748b;" class="text-muted">
+                          <p style="margin:0; font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:#64748b;" class="text-muted">
                             Convite Institucional
                           </p>
-                          <h2 style="margin:2px 0 0 0; font-size:20px; font-weight:800; color:#0f172a;" class="text-title">
+                          <h2 style="margin:2px 0 0 0; font-size:20px; font-weight:600; color:#0f172a;" class="text-title">
                             ${schoolName}
                           </h2>
                         </td>
@@ -104,7 +104,7 @@ ${platformUrl}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin-top:28px;">
                 <tr>
                   <td>
-                    <h1 style="margin:0 0 16px 0; font-size:22px; font-weight:700; color:#0f172a;" class="text-title">
+                    <h1 style="margin:0 0 16px 0; font-size:22px; font-weight:600; color:#0f172a;" class="text-title">
                       Junte-se à equipa
                     </h1>
                     <p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#475569;" class="text-body">
@@ -142,7 +142,7 @@ ${platformUrl}
           <tr>
             <td style="padding:28px 12px 16px 12px; text-align:center;">
               <p style="margin:0 0 6px 0; font-size:13px; font-weight:600; color:#64748b;" class="text-muted">
-                Gerido com segurança por <span style="color:#0f172a; font-weight:700;" class="text-title">${platformName}</span>
+                Gerido com segurança por <span style="color:#0f172a; font-weight:600;" class="text-title">${platformName}</span>
               </p>
               <p style="margin:0; font-size:12px;">
                 <a href="${platformUrl}" target="_blank" style="color:#64748b; text-decoration:none;" class="text-muted">

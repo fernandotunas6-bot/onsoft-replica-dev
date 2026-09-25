@@ -3,18 +3,22 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Award,
   BookOpen,
+  Building,
   Calendar,
   Camera,
+  CheckCircle2,
   Clock,
+  ExternalLink,
   FileCheck,
   FileText,
   FolderOpen,
   GraduationCap,
   History,
   IdCard,
-  Loader2,
+  LoaderCircle,
   Mail,
   MapPin,
+  MessageSquare,
   Pencil,
   Phone,
   Save,
@@ -24,13 +28,9 @@ import {
   UserCheck,
   UserPlus,
   Users,
-  Building,
-  CheckCircle2,
-  XCircle,
-  X,
-  ExternalLink,
-  MessageSquare,
   Wallet,
+  X,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ModalShell, ModalSidebar, type ModalSidebarItem } from "@/components/ui/modal-system";
@@ -352,7 +352,7 @@ export function PersonProfile360Modal({
                   className="absolute -bottom-1 -right-1 size-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center shadow hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
                 >
                   {isUploadingPhoto ? (
-                    <Loader2 className="size-3 animate-spin" />
+                    <LoaderCircle className="size-3 animate-spin" />
                   ) : (
                     <Camera className="size-3" />
                   )}
@@ -496,7 +496,7 @@ export function PersonProfile360Modal({
             <TabsContent value="visao_geral" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  <span className="text-xs font-semibold text-muted-foreground block">
                     Estado de Identidade
                   </span>
                   <p className="text-sm font-semibold flex items-center gap-2">
@@ -509,7 +509,7 @@ export function PersonProfile360Modal({
                 </div>
 
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  <span className="text-xs font-semibold text-muted-foreground block">
                     Vínculo Académico
                   </span>
                   {hasStudentRole && person?.academic_summary?.active_enrollment ? (
@@ -553,7 +553,7 @@ export function PersonProfile360Modal({
                 </div>
 
                 <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  <span className="text-xs font-semibold text-muted-foreground block">
                     Contacto para Acesso
                   </span>
                   {person?.has_contact_email ? (
@@ -744,7 +744,7 @@ export function PersonProfile360Modal({
                       className="gap-1.5"
                     >
                       {saving ? (
-                        <Loader2 className="size-3.5 animate-spin" />
+                        <LoaderCircle className="size-3.5 animate-spin" />
                       ) : (
                         <Save className="size-3.5" />
                       )}
@@ -813,7 +813,7 @@ export function PersonProfile360Modal({
                     {person.documents.map((doc) => (
                       <div key={doc.id} className="flex items-center justify-between p-3 text-xs">
                         <div>
-                          <p className="font-bold text-sm uppercase">
+                          <p className="font-bold text-sm">
                             {doc.document_type} — {doc.document_number}
                           </p>
                           <p className="text-muted-foreground">
@@ -957,7 +957,7 @@ export function PersonProfile360Modal({
                         disabled={savingRoles}
                         onClick={() => void handleSaveRoles()}
                       >
-                        {savingRoles ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                        {savingRoles ? <LoaderCircle className="size-3.5 animate-spin" /> : null}
                         Guardar vínculos
                       </Button>
                     </div>

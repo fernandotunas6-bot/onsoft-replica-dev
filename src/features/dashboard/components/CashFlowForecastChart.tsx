@@ -64,9 +64,7 @@ export function CashFlowForecastChart({
         </div>
 
         <div className="text-right">
-          <span className="text-xs text-muted-foreground uppercase font-bold block">
-            Previsão Período
-          </span>
+          <span className="text-xs text-muted-foreground font-bold block">Previsão Período</span>
           <span className="text-lg font-extrabold text-primary font-mono">
             {formatKz(totalForecastNext3Months)}
           </span>

@@ -149,7 +149,7 @@ export function TeacherPortalDashboard() {
 
       {nextLesson ? (
         <section className="surface-card border-2 border-primary/25 p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Próxima aula</p>
+          <p className="text-xs font-semibold text-primary">Próxima aula</p>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-extrabold tracking-tight">{nextLesson.subject_name}</h2>

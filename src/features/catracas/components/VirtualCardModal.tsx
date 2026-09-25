@@ -125,7 +125,7 @@ export function VirtualCardModal({
             <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
               <div className="flex items-center gap-2">
                 <Award className="size-5 text-primary" />
-                <span className="font-extrabold text-xs tracking-tight text-foreground uppercase">
+                <span className="font-extrabold text-xs tracking-tight text-foreground">
                   {school?.name ?? "Instituto de Educação"}
                 </span>
               </div>

@@ -180,8 +180,8 @@ async function runProvisioning(
    * meio do provisionamento (comum no signup público, sem operador a
    * acompanhar) deixava uma conta órfã para sempre: tudo o resto revertido,
    * mas a identidade em auth.users continuava a existir, sem escola, sem
-   * perfil, sem propósito. Mesmo princípio de verify-oauth-account-server.ts
-   * e inviteSystemUser: nunca deixar conta "fantasma" para trás.
+   * perfil, sem propósito. Mesmo princípio de inviteSystemUser: nunca deixar
+   * conta "fantasma" para trás.
    */
   const cleanupSchool = async (schoolId: string, adminUserId: string | null) => {
     await db.from("member_roles").delete().eq("school_id", schoolId);

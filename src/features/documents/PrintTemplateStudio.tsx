@@ -190,7 +190,7 @@ export function PrintTemplateStudio() {
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <p className="mt-3 text-[11px] text-muted-foreground">
                   {item.customized ? "Personalizado" : "Original"}
                   {item.sourceOfTruth ? " · fonte oficial" : ""}
                   {item.type ? ` · ${item.type}` : ""}
@@ -241,9 +241,7 @@ export function PrintTemplateStudio() {
           <ModalContent>
             <div className="grid min-h-[68vh] gap-4 lg:grid-cols-2">
               <label className="flex min-h-[320px] flex-col gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Fonte do modelo
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground">Fonte do modelo</span>
                 <textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
@@ -255,7 +253,7 @@ export function PrintTemplateStudio() {
                 />
               </label>
               <div className="flex min-h-[320px] flex-col gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs font-semibold text-muted-foreground">
                   Pré-visualização
                 </span>
                 <iframe

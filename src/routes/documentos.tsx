@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, FileCheck2, FileDown, FilePlus2, Award, FileStack, X } from "lucide-react";
+import { Download, FileBadge, FileCheck2, FileDown, FilePlus2, FileStack, X } from "lucide-react";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
@@ -412,7 +412,7 @@ function DocumentosPage() {
                 <FileDown className="size-4" /> PDF
               </Button>
               <Button variant="outline" className="gap-2" onClick={exportarDocumentosOficial}>
-                <Award className="size-4" /> Oficial
+                <FileBadge className="size-4" /> Oficial
               </Button>
               <PickFileButton
                 area="secretaria"

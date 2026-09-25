@@ -77,3 +77,14 @@ describe("profile avatars", () => {
     expect(isManagedProfileAvatarUrl("https://example.com/photo.jpg")).toBe(false);
   });
 });
+
+describe("requestSignupInputSchema", () => {
+  it("exige nome, e-mail válido e senha de 8+ caracteres", async () => {
+    const { requestSignupInputSchema } = await import("@/features/auth/signup-server");
+    const ok = { fullName: "Ana Maria", email: "ana@exemplo.ao", password: "Segura#2026" };
+    expect(requestSignupInputSchema.safeParse(ok).success).toBe(true);
+    expect(requestSignupInputSchema.safeParse({ ...ok, email: "ana" }).success).toBe(false);
+    expect(requestSignupInputSchema.safeParse({ ...ok, password: "curta" }).success).toBe(false);
+    expect(requestSignupInputSchema.safeParse({ ...ok, fullName: "A" }).success).toBe(false);
+  });
+});

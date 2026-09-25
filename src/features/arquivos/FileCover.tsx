@@ -76,9 +76,7 @@ export function FileCover({
         {locked ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-background/80">
             <Lock className="size-5 text-muted-foreground" aria-hidden />
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Sistema
-            </span>
+            <span className="text-[10px] font-semibold text-muted-foreground">Sistema</span>
           </div>
         ) : null}
       </div>
@@ -86,7 +84,7 @@ export function FileCover({
         <p className="truncate text-xs font-semibold text-foreground" title={name}>
           {name}
         </p>
-        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+        <p className="text-[10px] font-bold text-muted-foreground">
           {locked ? "Protegido" : meta.label}
         </p>
       </div>

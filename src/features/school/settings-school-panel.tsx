@@ -383,15 +383,11 @@ export function SchoolSettingsPanel() {
       <InstalledModuleTools module="comunicacoes" />
       <InstalledModuleTools module="documentos" />
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Atalhos
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Atalhos</h5>
         <ModuleShortcutsRow />
       </div>
       <div className="space-y-4">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Dados da instituição
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Dados da instituição</h5>
         <div className="mb-4 flex flex-wrap items-start gap-4 rounded-xl border border-border bg-muted/20 p-4">
           {logoUrl ? (
             <MediaFrame
@@ -577,9 +573,7 @@ export function SchoolSettingsPanel() {
       <Separator />
 
       <div className="space-y-4">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Ano lectivo
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Ano lectivo</h5>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="ano">Ano lectivo activo</Label>
@@ -696,9 +690,7 @@ export function SchoolSettingsPanel() {
       <Separator />
 
       <div className="space-y-1">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Notificações
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Notificações</h5>
         <ul className="space-y-1">
           {preferences.map((p) => (
             <li

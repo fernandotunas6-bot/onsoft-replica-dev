@@ -255,18 +255,14 @@ function AcademicIntegrationsCatalog() {
   return (
     <div className="space-y-5">
       <div className="space-y-1">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Catálogo de integrações
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Catálogo de integrações</h5>
         <p className="text-xs text-muted-foreground">
           Configure chaves e webhooks. As chamadas externas ficam prontas a ligar.
         </p>
       </div>
       {grouped.map((entry) => (
         <div key={entry.group} className="space-y-2">
-          <h6 className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-            {entry.group}
-          </h6>
+          <h6 className="text-[11px] font-bold text-muted-foreground">{entry.group}</h6>
           <ul className="divide-y divide-border rounded-xl border border-border">
             {entry.items.map((item) => {
               const hints = integrationFieldHints[item.id];
@@ -501,9 +497,7 @@ export function IntegrationsPanel() {
       ) : null}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-            Gmail (por utilizador)
-          </h5>
+          <h5 className="text-xs font-bold text-muted-foreground">Gmail (por utilizador)</h5>
           <Badge variant="outline">Requer login</Badge>
         </div>
         <div className="flex items-start gap-4">
@@ -540,9 +534,7 @@ export function IntegrationsPanel() {
       <Separator />
 
       <div className="space-y-3">
-        <h5 className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          Outros canais
-        </h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Outros canais</h5>
         <ul className="divide-y divide-border">
           {otherChannels.map((i) => (
             <li key={i.name} className="flex items-center justify-between py-2.5 text-sm">

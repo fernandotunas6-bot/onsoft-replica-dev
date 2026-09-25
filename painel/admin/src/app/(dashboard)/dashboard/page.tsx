@@ -157,7 +157,7 @@ export default function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
           Atalhos do Control Center
         </h2>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">

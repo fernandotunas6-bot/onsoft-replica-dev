@@ -90,10 +90,14 @@ export function PageHeader({
         <div className="flex items-center gap-3">
           {headerMark}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {group}
-            </p>
-            <h1 className="font-display text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
+            {/* O grupo já aparece no caminho de navegação; repeti-lo em
+                maiúsculas por cima do título era ruído. */}
+            {hideBreadcrumb ? (
+              <p className="text-xs font-medium text-muted-foreground">{group}</p>
+            ) : null}
+            <h1 className="font-display text-xl font-semibold tracking-tight md:text-2xl">
+              {title}
+            </h1>
             <p className="mt-0.5 max-w-2xl text-xs text-muted-foreground md:text-sm">
               {description}
             </p>

@@ -130,7 +130,7 @@ function HubAppRow({
           {app.catalogId ? (
             <span
               className={cn(
-                "mt-1 inline-block text-[10px] font-semibold uppercase tracking-wide",
+                "mt-1 inline-block text-[10px] font-semibold",
                 status === "error"
                   ? "text-destructive"
                   : active
@@ -430,7 +430,7 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
         <DialogContent className="flex max-h-[min(88vh,720px)] w-[min(920px,calc(100vw-1.5rem))] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl">
           <div className="grid min-h-0 flex-1 md:grid-cols-[220px_1fr]">
             <aside className="border-b border-border bg-secondary/40 p-3 md:border-b-0 md:border-r md:overflow-y-auto">
-              <p className="px-2 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="px-2 pb-2 pt-1 text-[11px] font-bold text-muted-foreground">
                 Aplicativos
               </p>
               <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">

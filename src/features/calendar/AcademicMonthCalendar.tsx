@@ -198,7 +198,7 @@ export function AcademicMonthCalendar({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-muted-foreground">
         {WEEKDAYS.map((label, index) => (
           <div key={label} className={cn("py-1", index >= 5 && "text-destructive/70")}>
             {label}

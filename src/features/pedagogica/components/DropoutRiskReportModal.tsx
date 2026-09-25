@@ -58,27 +58,21 @@ export function DropoutRiskReportModal({
             {/* CABEÇALHO RESUMO */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/10 space-y-1">
-                <span className="text-xs font-bold text-destructive uppercase tracking-wider">
-                  Casos Críticos
-                </span>
+                <span className="text-xs font-bold text-destructive">Casos Críticos</span>
                 <p className="text-2xl font-black text-foreground">
                   {riskStudents.filter((s) => s.riskLevel === "CRÍTICO").length} Alunos
                 </p>
               </div>
 
               <div className="p-4 rounded-xl border border-warning/30 bg-warning/10 space-y-1">
-                <span className="text-xs font-bold text-warning-strong uppercase tracking-wider">
-                  Risco Alto / Moderado
-                </span>
+                <span className="text-xs font-bold text-warning-strong">Risco Alto / Moderado</span>
                 <p className="text-2xl font-black text-foreground">
                   {riskStudents.filter((s) => s.riskLevel !== "CRÍTICO").length} Alunos
                 </p>
               </div>
 
               <div className="p-4 rounded-xl border border-primary/30 bg-primary/10 space-y-1">
-                <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                  Status Preditivo
-                </span>
+                <span className="text-xs font-bold text-primary">Status Preditivo</span>
                 <p className="text-2xl font-black text-foreground">
                   {riskStudents.length > 0 ? "Ativo" : "Sem Riscos"}
                 </p>
@@ -87,7 +81,7 @@ export function DropoutRiskReportModal({
 
             {/* LISTA DE ALUNOS EM RISCO */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
                 <AlertOctagon className="size-4 text-destructive" />
                 Alunos Sinalizados Pelo Algoritmo
               </h4>

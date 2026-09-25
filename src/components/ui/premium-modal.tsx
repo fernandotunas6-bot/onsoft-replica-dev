@@ -52,11 +52,7 @@ export function PremiumModal({
               </span>
             ) : null}
             <div className="min-w-0">
-              {eyebrow ? (
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
-                  {eyebrow}
-                </p>
-              ) : null}
+              {eyebrow ? <p className="text-[10px] font-semibold text-primary">{eyebrow}</p> : null}
               <DialogTitle className="font-display text-xl font-extrabold tracking-tight">
                 {title}
               </DialogTitle>
