@@ -147,5 +147,57 @@ class DeploymentFlowTests(unittest.TestCase):
         self.assertIn("nothing to update", out)
 
 
+NOTIFICATIONS_MODULE = Path(__file__).resolve().parent / "deploy_notifications.py"
+notification_spec = importlib.util.spec_from_file_location("siga_auth_notifications", NOTIFICATIONS_MODULE)
+notifications = importlib.util.module_from_spec(notification_spec)
+notification_spec.loader.exec_module(notifications)
+
+
+class OptionalNotificationDeploymentTests(unittest.TestCase):
+    def test_notification_payload_does_not_enable_without_explicit_flag(self):
+        payload = notifications.build_payload()
+        self.assertEqual(len(payload), 8)
+        self.assertFalse(any(k.endswith("_enabled") for k in payload))
+        self.assertEqual(len(notifications.build_payload(enable=True)), 12)
+
+    def test_notification_enable_requires_smtp_attestation(self):
+        with patch.object(sys, "argv", ["deploy_notifications.py", "--enable"]), \
+             redirect_stderr(io.StringIO()), \
+             patch.object(notifications, "request") as api:
+            with self.assertRaises(SystemExit) as failure:
+                notifications.main()
+        self.assertEqual(failure.exception.code, 2)
+        api.assert_not_called()
+
+    def test_notification_check_never_writes(self):
+        with patch.object(sys, "argv", ["deploy_notifications.py", "--check"]), \
+             patch.dict(os.environ, {"SUPABASE_ACCESS_TOKEN": "offline-test-token"}), \
+             patch.object(notifications, "request", side_effect=[{}]) as api, \
+             redirect_stdout(io.StringIO()):
+            result = notifications.main()
+        self.assertEqual(result, 1)
+        self.assertEqual([c.args[0] for c in api.call_args_list], ["GET"])
+
+    def test_notification_apply_preserves_disabled_state_and_verifies(self):
+        expected = notifications.build_payload()
+        old = dict(expected)
+        old["mailer_subjects_password_changed_notification"] = "Previous subject"
+        with tempfile.TemporaryDirectory() as backup_dir, \
+             patch.object(sys, "argv", [
+                 "deploy_notifications.py", "--apply", "--confirm-production",
+                 "--backup-dir", backup_dir
+             ]), \
+             patch.dict(os.environ, {"SUPABASE_ACCESS_TOKEN": "offline-test-token"}), \
+             patch.object(notifications, "request", side_effect=[old, {}, expected]) as api, \
+             redirect_stdout(io.StringIO()):
+            result = notifications.main()
+            backups = list(Path(backup_dir).glob("*.json"))
+        self.assertEqual(result, 0)
+        self.assertEqual([c.args[0] for c in api.call_args_list], ["GET", "PATCH", "GET"])
+        patched = api.call_args_list[1].args[2]
+        self.assertEqual(list(patched), ["mailer_subjects_password_changed_notification"])
+        self.assertTrue(backups)
+
+
 if __name__ == "__main__":
     unittest.main()
