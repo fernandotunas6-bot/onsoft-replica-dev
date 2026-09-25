@@ -11,3 +11,9 @@
 - [x] Optimização: notas paginadas (médias das turmas) + consultas em paralelo no espaço pedagógico
 - [x] Alunos em risco com IA (professores) — /pedagogica/risco
 - [x] Exportar pautas CSV/PDF com turma, período e disciplinas (Relatórios Académicos)
+
+## Volta 2026-09-25 (2) — ordem pedida
+- [x] 1. Auditoria académica: períodos, salas, horários, turmas, disciplinas, níveis, cursos/classes
+- [x] 2. Tesouraria: fluxo de caixa, facturas pendentes, relatórios (só Tesouraria)
+- [x] 3. Alunos em risco: acompanhamento com histórico de intervenções e progresso
+- [ ] 4. Pagamentos AppyPay: webhook real + conciliação facturas/transacções/contas (outros gateways no futuro) — código pronto; falta: chaves AppyPay da escola

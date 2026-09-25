@@ -405,6 +405,7 @@ export function getPortalNavigation(
           icon: moduleIcons.finance,
           children: [
             { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
+            { label: "Tesouraria", icon: moduleIcons.finance, to: "/tesouraria" },
             { label: "Faturas e Recibos", icon: moduleIcons.receipts, to: "/faturas" },
             { label: "RH e Folha Salarial", icon: moduleIcons.hr, to: "/financeiro/rh" },
             { label: "Processar Folha", icon: moduleIcons.hr, to: "/financeiro/rh/folha" },
