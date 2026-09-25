@@ -8,7 +8,10 @@ export const GOOGLE_WORKSPACE_SCOPES = {
   drive: ["https://www.googleapis.com/auth/drive.file"],
   docs: ["https://www.googleapis.com/auth/documents"],
   sheets: ["https://www.googleapis.com/auth/spreadsheets"],
-  classroom: ["https://www.googleapis.com/auth/classroom.courses"],
+  classroom: [
+    "https://www.googleapis.com/auth/classroom.courses",
+    "https://www.googleapis.com/auth/classroom.coursework.students",
+  ],
   calendar: ["https://www.googleapis.com/auth/calendar.events"],
   gmail: ["https://www.googleapis.com/auth/gmail.send"],
   tasks: ["https://www.googleapis.com/auth/tasks"],
