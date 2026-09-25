@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient, requireSgaWriterForWrite } from "@/integrations/supabase/sga-admin";
 import { angolaHolidaysBetween } from "./angola-holidays";
 import type { CalendarIcsEvent } from "./ics";
 
@@ -20,12 +20,12 @@ function randomToken() {
 export const getOrCreateCalendarFeedToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor", "Tesouraria"],
+    );
     const db = await loadSgaAdminClient();
     const existing = await db
       .from("calendar_feed_tokens")

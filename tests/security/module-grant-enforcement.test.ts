@@ -42,6 +42,16 @@ describe("permissões por módulo aplicadas no servidor", () => {
     }
   });
 
+  it("'Leitura' bloqueia escritas mas não leituras", async () => {
+    grantLevel = "Leitura";
+    await expect(assertModuleNotBlocked("s", "u", "financeiro", "read")).resolves.toBeUndefined();
+    await expect(assertModuleNotBlocked("s", "u", "financeiro", "write")).rejects.toThrow(
+      /só tem leitura/,
+    );
+    grantLevel = "Escrita";
+    await expect(assertModuleNotBlocked("s", "u", "financeiro", "write")).resolves.toBeUndefined();
+  });
+
   it("tabela por aplicar não bloqueia (igual ao contexto da conta)", async () => {
     grantError = { code: "42P01", message: "relation does not exist" };
     await expect(assertModuleNotBlocked("s", "u", "gestao")).resolves.toBeUndefined();
@@ -74,6 +84,31 @@ describe("funções dos módulos passam pelo bloqueio", () => {
       const full = join(dir, name);
       return statSync(full).isDirectory() ? files(full) : full.endsWith(".ts") ? [full] : [];
     });
+
+  it("funções POST que alteram dados usam a verificação de escrita", () => {
+    const READ =
+      /^(list|get(?!OrCreate)|search|fetch|load|preview|export|download|find|count|resolve|check|validate|compute|calc|read|build|lookup|summar|print|analyzeStudentRisk$|diagnoseErrorReport$)/i;
+    const offenders: string[] = [];
+    for (const file of MODULE_DIRS.flatMap((dir) =>
+      files(join(process.cwd(), "src/features", dir)),
+    )) {
+      const source = readFileSync(file, "utf8");
+      const exports = [
+        ...source.matchAll(/export const (\w+)\s*=\s*createServerFn\(\{\s*method:\s*"POST"/g),
+      ];
+      for (const match of exports) {
+        const name = match[1]!;
+        if (READ.test(name)) continue;
+        const start = match.index! + match[0].length;
+        const next = source.indexOf("export const", start);
+        const body = source.slice(start, next > 0 ? next : undefined);
+        if (/\brequireSgaWriterFor\(/.test(body)) {
+          offenders.push(`${file.replace(process.cwd() + "/", "")}:${name}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 
   it("nenhuma chama requireSgaWriter directamente (usa requireSgaWriterFor)", () => {
     const offenders = MODULE_DIRS.flatMap((dir) => files(join(process.cwd(), "src/features", dir)))

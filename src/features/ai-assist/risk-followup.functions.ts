@@ -31,10 +31,14 @@ export type RiskCase = {
   interventions: RiskIntervention[];
 };
 
-async function ctx(userId: string) {
-  const { requireSgaWriterFor, loadSgaAdminClient } =
+async function ctx(userId: string, mode: "read" | "write" = "read") {
+  const { requireSgaWriterFor, requireSgaWriterForWrite, loadSgaAdminClient } =
     await import("@/integrations/supabase/sga-admin");
-  const membership = await requireSgaWriterFor("pedagogica", userId, [...ROLES]);
+  const membership = await (mode === "write" ? requireSgaWriterForWrite : requireSgaWriterFor)(
+    "pedagogica",
+    userId,
+    [...ROLES],
+  );
   const db = await loadSgaAdminClient();
   return { schoolId: membership.schoolId, db };
 }
@@ -114,7 +118,7 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => saveSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { schoolId, db } = await ctx(context.userId);
+    const { schoolId, db } = await ctx(context.userId, "write");
     const enrollmentIds = data.students.map((s) => s.enrollment_id);
     if (!enrollmentIds.length) return { saved: 0 };
     const { data: existing } = await db
@@ -187,7 +191,7 @@ export const addRiskIntervention = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => interventionSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { schoolId, db } = await ctx(context.userId);
+    const { schoolId, db } = await ctx(context.userId, "write");
     const { data: c } = await db
       .from("student_risk_cases")
       .select("id, risk_level, latest_average")

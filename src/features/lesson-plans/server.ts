@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -348,11 +348,12 @@ export const createLessonPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createLessonPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     const { data: created, error } = await db
       .from("siga_lesson_plans")
@@ -396,11 +397,12 @@ export const updateLessonPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateLessonPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     const { data: updated, error } = await db
       .from("siga_lesson_plans")
@@ -438,11 +440,12 @@ export const deleteLessonPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => deleteLessonPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
     // Apagar o plano remove as suas definições de componentes (cascade); os itens do
     // Centro de Avaliação já gerados ficam (SET NULL), incluindo notas já lançadas.

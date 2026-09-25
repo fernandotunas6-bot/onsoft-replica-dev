@@ -4,6 +4,7 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
   requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { isSchoolTypeId, schoolSettingDefaults } from "@/lib/school-config";
@@ -290,7 +291,7 @@ export const updateSchoolSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateSchoolSettingsInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
     const db = await loadSgaAdminClient();
@@ -406,7 +407,7 @@ export const updateBillingSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateBillingSettingsInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -431,7 +432,7 @@ export const updateSchoolBanking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateSchoolBankingInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Tesouraria",
     ]);
@@ -458,7 +459,7 @@ export const updateSchoolAgt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateSchoolAgtInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
     const db = await loadSgaAdminClient();
@@ -481,7 +482,7 @@ export const updatePedagogySettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => pedagogySettingsSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
     const db = await loadSgaAdminClient();
@@ -505,7 +506,7 @@ export const setTermLock = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => setTermLockInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
     const db = await loadSgaAdminClient();

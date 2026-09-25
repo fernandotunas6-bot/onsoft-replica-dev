@@ -111,12 +111,13 @@ const MODULE_LABELS: Record<ModuleGrantKey, string> = {
  * mas continuava a chamar as funções dele directamente.
  *
  * Só bloqueia — não eleva: quem não tem o papel continua recusado por
- * requireSgaWriter. "Leitura" ainda não impede escritas no servidor.
+ * requireSgaWriter. Em modo "write", "Leitura" também bloqueia.
  */
 export async function assertModuleNotBlocked(
   schoolId: string,
   userId: string,
   moduleKey: ModuleGrantKey,
+  mode: "read" | "write" = "read",
 ): Promise<void> {
   const db = await loadSgaAdminClient();
   const { data, error } = await db
@@ -131,25 +132,37 @@ export async function assertModuleNotBlocked(
   if (data?.level === "Nenhum") {
     throw new Error(`O acesso ao módulo ${MODULE_LABELS[moduleKey]} foi retirado a esta conta.`);
   }
+  if (mode === "write" && data?.level === "Leitura") {
+    throw new Error(`Esta conta só tem leitura no módulo ${MODULE_LABELS[moduleKey]}.`);
+  }
 }
 
-/** requireSgaWriter + bloqueio do módulo. Mesmos argumentos, com o módulo à frente. */
-export async function requireSgaWriterFor(
-  moduleKey: ModuleGrantKey,
+type SgaWriterArgs = [
   clientOrUserId: SupabaseClient | string,
   userIdOrRoles?: string | ApplicationRole[],
   rolesOrPreferred?: ApplicationRole[] | string | null,
   preferredSchoolIdArg?: string | null,
+];
+
+async function requireSgaWriterWithMode(
+  mode: "read" | "write",
+  moduleKey: ModuleGrantKey,
+  ...[clientOrUserId, userIdOrRoles, rolesOrPreferred, preferredSchoolIdArg]: SgaWriterArgs
 ): Promise<SgaMembershipContext> {
   const membership = await (
-    requireSgaWriter as (
-      a: SupabaseClient | string,
-      b?: string | ApplicationRole[],
-      c?: ApplicationRole[] | string | null,
-      d?: string | null,
-    ) => Promise<SgaMembershipContext>
+    requireSgaWriter as (...args: SgaWriterArgs) => Promise<SgaMembershipContext>
   )(clientOrUserId, userIdOrRoles, rolesOrPreferred, preferredSchoolIdArg);
   const userId = typeof clientOrUserId === "string" ? clientOrUserId : String(userIdOrRoles ?? "");
-  await assertModuleNotBlocked(membership.schoolId, userId, moduleKey);
+  await assertModuleNotBlocked(membership.schoolId, userId, moduleKey, mode);
   return membership;
+}
+
+/** Funções de leitura: requireSgaWriter + bloqueio "Nenhum" do módulo. */
+export function requireSgaWriterFor(moduleKey: ModuleGrantKey, ...args: SgaWriterArgs) {
+  return requireSgaWriterWithMode("read", moduleKey, ...args);
+}
+
+/** Funções que alteram dados: bloqueia "Nenhum" e "Leitura". */
+export function requireSgaWriterForWrite(moduleKey: ModuleGrantKey, ...args: SgaWriterArgs) {
+  return requireSgaWriterWithMode("write", moduleKey, ...args);
 }

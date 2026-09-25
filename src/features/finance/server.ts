@@ -6,6 +6,7 @@ import { sgaClient } from "@/integrations/supabase/sga";
 import {
   loadSgaAdminClient,
   requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import {
@@ -747,10 +748,12 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordInvoicePaymentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
     const db = await loadSgaAdminClient();
 
     // register_payment tranca a fatura (FOR UPDATE), valida o saldo em aberto e gera
@@ -809,11 +812,12 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
   .validator((data: { invoiceId: string; amount: number }) => data)
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
     const { data: invoice, error: invoiceError } = await db
       .from("finance_invoices")
@@ -848,10 +852,12 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
 
     const payResult = await recordInvoicePayment({
       data: {
@@ -891,10 +897,12 @@ export const cancelInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => cancelInvoiceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
     const db = await loadSgaAdminClient();
     const { data: invoice, error: invoiceError } = await db
       .from("finance_invoices")
@@ -948,11 +956,12 @@ export const issueInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => issueInvoiceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: studentCheck, error: studentCheckError } = await db
@@ -1125,10 +1134,12 @@ export const recordCashExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordCashExpenseInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
     const db = await loadSgaAdminClient();
     const { data: expense, error } = await db
       .from("siga_cash_expenses")
@@ -1172,10 +1183,12 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => reverseCashEntryInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: receipt, error } = await db
@@ -1216,10 +1229,12 @@ export const createPaymentPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createPaymentPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
     const db = await loadSgaAdminClient();
 
     let reference = data.reference?.trim() || null;
@@ -1369,10 +1384,12 @@ export const cancelPaymentPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => cancelPaymentPlanInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("finance_payment_plans")
@@ -1464,10 +1481,12 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => upsertFeePlanSettingsInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
     const db = await loadSgaAdminClient();
 
     let planId: string;
@@ -1739,11 +1758,12 @@ export const createPayflowAdminLaunch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria", "Secretaria"],
+    );
 
     const { mapSigaRoleToPayflowAdmin, buildPayflowSsoClaims, createPayflowSsoAssertion } =
       await import("./payflow-sso");
@@ -1814,11 +1834,12 @@ export const syncStudentToPayflow = createServerFn({ method: "POST" })
   .validator((input: unknown) => syncStudentToPayflowInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria", "Secretaria"],
+    );
     const { executePayflowStudentSync } = await import("./payflow-sync-execute");
     return executePayflowStudentSync({
       schoolId: membership.schoolId,
@@ -1834,10 +1855,12 @@ export const syncSchoolBankToPayflow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
-      "Administrador",
-      "Tesouraria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria"],
+    );
 
     const apiKey = process.env.PAYFLOW_INTEGRATION_API_KEY?.trim() ?? "";
     if (apiKey.length < 24) {

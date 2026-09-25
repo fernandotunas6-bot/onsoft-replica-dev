@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
+} from "@/integrations/supabase/sga-admin";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import {
   analyzeImportFileInputSchema,
@@ -89,7 +93,7 @@ export const analyzeImportFile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     // Só membros com papel de importação podem analisar ficheiros (evita abuso anónimo autenticado).
-    await requireSgaWriterFor("importacao", context.supabase, context.userId, [
+    await requireSgaWriterForWrite("importacao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Tesouraria",
@@ -120,7 +124,7 @@ export const createImportJob = createServerFn({ method: "POST" })
   .validator((input: unknown) => createImportJobSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor(
+    const membership = await requireSgaWriterForWrite(
       "importacao",
       context.supabase,
       context.userId,

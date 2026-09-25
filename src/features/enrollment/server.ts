@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
+} from "@/integrations/supabase/sga-admin";
 import { mapSgaGuardianRelationship } from "@/features/students/schemas";
 import {
   publicInstalledProviderIds,
@@ -42,7 +46,7 @@ export const getOrCreateEnrollmentForm = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -106,7 +110,7 @@ export const updateEnrollmentForm = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateEnrollmentFormInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -272,7 +276,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
   .validator((input: unknown) => decideEnrollmentApplicationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);

@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { resolveUserLinkedEntities } from "@/features/auth/server";
@@ -224,7 +224,7 @@ export const registerTurnstileDevice = createServerFn({ method: "POST" })
   .validator((input: unknown) => registerTurnstileDeviceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -256,7 +256,7 @@ export const updateTurnstileDevice = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateTurnstileDeviceInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -289,7 +289,7 @@ export const setAccessCardStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => setAccessCardStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -314,7 +314,7 @@ export const linkAccessCardRfid = createServerFn({ method: "POST" })
   .validator((input: unknown) => linkAccessCardRfidInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -358,7 +358,7 @@ export const rotateAccessCardQr = createServerFn({ method: "POST" })
   .validator((input: unknown) => rotateAccessCardQrInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -386,7 +386,7 @@ export const issueAccessCard = createServerFn({ method: "POST" })
   .validator((input: unknown) => issueAccessCardInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);

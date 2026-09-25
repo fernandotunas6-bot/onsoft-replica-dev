@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import { loadSgaAdminClient, requireSgaWriterForWrite } from "@/integrations/supabase/sga-admin";
 import { deleteScheduleSlotInputSchema, updateScheduleSlotInputSchema } from "./schemas";
 
 // Preserva integralmente a fachada académica já validada e substitui apenas
@@ -16,10 +16,12 @@ export const deleteScheduleSlot = createServerFn({ method: "POST" })
   .validator((input: unknown) => deleteScheduleSlotInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: slot, error } = await db

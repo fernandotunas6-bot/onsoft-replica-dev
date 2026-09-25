@@ -17,10 +17,14 @@ export type GatewayCharge = {
   created_at: string;
 };
 
-async function treasury(userId: string) {
-  const { requireSgaWriterFor, loadSgaAdminClient } =
+async function treasury(userId: string, mode: "read" | "write" = "read") {
+  const { requireSgaWriterFor, requireSgaWriterForWrite, loadSgaAdminClient } =
     await import("@/integrations/supabase/sga-admin");
-  const m = await requireSgaWriterFor("financeiro", userId, ["Administrador", "Tesouraria"]);
+  const m = await (mode === "write" ? requireSgaWriterForWrite : requireSgaWriterFor)(
+    "financeiro",
+    userId,
+    ["Administrador", "Tesouraria"],
+  );
   return { schoolId: m.schoolId, db: await loadSgaAdminClient() };
 }
 
@@ -67,7 +71,7 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { schoolId, db } = await treasury(context.userId);
+    const { schoolId, db } = await treasury(context.userId, "write");
     if (data.method === "GPO" && !data.phoneNumber) {
       throw new Error("Indique o número Multicaixa Express do encarregado.");
     }
@@ -147,7 +151,7 @@ export const createInvoiceCharge = createServerFn({ method: "POST" })
 export const reconcileOpenCharges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { schoolId, db } = await treasury(context.userId);
+    const { schoolId, db } = await treasury(context.userId, "write");
     const { data: rows } = await db
       .from("payment_gateway_charges")
       .select("*")

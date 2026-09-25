@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { resolveUserLinkedEntities } from "@/features/auth/server";
@@ -419,11 +419,12 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
   .validator((input: unknown) => submitAttendanceCallBatchInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: session, error: sErr } = await db
@@ -478,11 +479,12 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
   .validator((input: unknown) => editFinalizedAttendanceCallInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: session } = await db
@@ -576,11 +578,12 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
   .validator((input: unknown) => reviewAttendanceJustificationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-      "Professor",
-    ]);
+    const membership = await requireSgaWriterForWrite(
+      "pedagogica",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Secretaria", "Professor"],
+    );
     const db = await loadSgaAdminClient();
 
     const { data: just } = await db

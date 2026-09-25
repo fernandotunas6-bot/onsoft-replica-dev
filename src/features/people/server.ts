@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { resolvePersonContext } from "./person-context";
@@ -521,7 +521,7 @@ export const createPerson = createServerFn({ method: "POST" })
   .validator((input: unknown) => createPersonInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -677,7 +677,7 @@ export const mergePeople = createServerFn({ method: "POST" })
   .validator((input: unknown) => mergePeopleInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -935,7 +935,7 @@ export const createTeacher = createServerFn({ method: "POST" })
   .validator((input: unknown) => createTeacherInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -986,7 +986,7 @@ export const updateTeacher = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateTeacherInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -1021,7 +1021,7 @@ export const deleteTeacher = createServerFn({ method: "POST" })
   .validator((input: unknown) => deleteTeacherInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -1057,7 +1057,7 @@ export const updatePerson = createServerFn({ method: "POST" })
   .validator((input: unknown) => updatePersonInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -1112,7 +1112,7 @@ export const setPersonInstitutionRoles = createServerFn({ method: "POST" })
   .validator((input: unknown) => setPersonInstitutionRolesInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -1142,7 +1142,7 @@ export const setPersonPhotoUrl = createServerFn({ method: "POST" })
   .validator((input: unknown) => setPersonPhotoUrlInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -1167,7 +1167,7 @@ export const addPersonDocument = createServerFn({ method: "POST" })
   .validator((input: unknown) => addPersonDocumentInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -1252,7 +1252,7 @@ export const updatePersonStatus = createServerFn({ method: "POST" })
   .validator((input: unknown) => updatePersonStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);

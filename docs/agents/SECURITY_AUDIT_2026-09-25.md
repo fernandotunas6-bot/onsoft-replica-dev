@@ -107,9 +107,15 @@ directamente. As 176 chamadas de verificação de papel nos módulos passam a
 `requireSgaWriterFor("<módulo>", …)`, que também aplica "Nenhum" no servidor. Um teste
 estrutural impede novas funções sem esta verificação.
 
-**Por fazer:** "Leitura" continua a não impedir escritas no servidor, porque isso obriga a
-classificar cada função como leitura ou escrita. A elevação por permissão (dar acesso a quem
-não tem o papel) também não chega ao servidor.
+**"Leitura" também aplicada (mesmo dia):** as funções que alteram dados usam
+`requireSgaWriterForWrite`, que bloqueia "Nenhum" e "Leitura". São 141 chamadas directas e 8
+por auxiliares locais (AppyPay, alunos em risco, pipeline alumni). A classificação: GET é
+leitura; POST é escrita, excepto nomes de leitura (`list`, `get` — mas não `getOrCreate` —,
+`export`, `download`…) e as análises por IA que não gravam. Um teste impede uma função de
+escrita de usar a verificação de leitura.
+
+**Por fazer:** a elevação por permissão (dar acesso a quem não tem o papel) não chega ao
+servidor.
 
 ## Funcionalidades simuladas apresentadas como reais
 

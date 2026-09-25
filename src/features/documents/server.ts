@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriterFor,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { loadPersonNamesById } from "@/features/people/lookup";
@@ -200,7 +200,7 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createDocumentRequestInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -245,7 +245,7 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => updateDocumentRequestStatusInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -428,7 +428,7 @@ export const savePrintTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => savePrintTemplateInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -453,7 +453,7 @@ export const resetPrintTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => resetPrintTemplateInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
@@ -477,7 +477,7 @@ export const setActivePrintTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => setActivePrintTemplateInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);

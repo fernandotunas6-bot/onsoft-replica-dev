@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import {
+  loadSgaAdminClient,
+  requireSgaWriterFor,
+  requireSgaWriterForWrite,
+} from "@/integrations/supabase/sga-admin";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import { loadPersonNamesById } from "@/features/people/lookup";
 import {
@@ -393,7 +397,7 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, STAFF_ROLES);
     if (!canWriteFileArea(membership.appRole, data.area)) {
       throw new Error("Sem permissão para gravar nesta área.");
     }
@@ -490,7 +494,7 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, STAFF_ROLES);
     if (!canWriteFileArea(membership.appRole, data.area)) {
       throw new Error("Sem permissão para criar pastas nesta área.");
     }
@@ -559,7 +563,7 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, STAFF_ROLES);
     if (data.area && !canWriteFileArea(membership.appRole, data.area)) {
       throw new Error("Sem permissão para mover para essa área.");
     }
@@ -692,7 +696,7 @@ export const archiveFinanceDocument = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, [
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, [
       "Administrador",
       "Secretaria",
       "Tesouraria",
@@ -745,7 +749,7 @@ export const renameSchoolFile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("siga_files")
@@ -820,7 +824,7 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("siga_files")
@@ -1048,7 +1052,7 @@ export const setSchoolFileVisibility = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, [
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, [
       "Administrador",
       "Secretaria",
       "Professor",
@@ -1127,7 +1131,7 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, [
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, [
       "Administrador",
       "Secretaria",
       "Professor",
@@ -1184,7 +1188,7 @@ export const deleteSchoolFile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: row, error } = await db
       .from("siga_files")
@@ -1243,7 +1247,7 @@ export const logSchoolFileEvent = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
-    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
     const { data: row, error } = await db
       .from("siga_files")
