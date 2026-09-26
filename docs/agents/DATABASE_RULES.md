@@ -65,3 +65,11 @@ Base de dados = PRODUÇÃO das escolas. Regras obrigatórias para qualquer migra
   servidor com requireSgaWriter.
 - Ler docs/agents/DATABASE_RULES.md antes de criar SQL.
 ```
+
+## `types.ts` gerado da base errada
+
+`src/integrations/supabase/types.ts` descreve a base de **produção do SIGA** (156 tabelas,
+igual a `supabase/PRODUCTION_SNAPSHOT.json`). Em 2026-09-26 o Lovable regenerou-o a partir
+de outra base (86 tabelas, com `invoices`, `payments`, `courses`, que não existem no SIGA) e
+o código deixou de compilar. `tests/security/types-match-production.test.ts` falha nesse
+caso. **Não aceitar um types.ts que apague tabelas da produção:** repor a versão anterior.
