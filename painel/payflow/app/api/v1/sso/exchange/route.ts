@@ -26,8 +26,18 @@ function readRedirectTo(request: Request, form: FormData | null) {
   const fromQuery = url.searchParams.get("redirect_to")?.trim() || "";
   const fromForm = form ? String(form.get("redirect_to") ?? "").trim() : "";
   const candidate = fromForm || fromQuery || "/admin";
-  // Só caminhos relativos internos — evita open redirect.
-  if (!candidate.startsWith("/") || candidate.startsWith("//")) return "/admin";
+  return safeInternalPath(candidate);
+}
+
+/**
+ * Só caminhos internos. "/\\evil.com" também sai do site: os browsers tratam
+ * a barra invertida como "/", e o resultado é "//evil.com". Idem para
+ * caracteres de controlo (um "/\t/evil.com" também vira "//evil.com").
+ */
+function safeInternalPath(candidate: string) {
+  if (!candidate.startsWith("/") || /^\/[\/\\]/.test(candidate) || /[\u0000-\u001f\\]/.test(candidate)) {
+    return "/admin";
+  }
   return candidate;
 }
 
