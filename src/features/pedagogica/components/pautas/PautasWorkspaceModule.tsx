@@ -633,7 +633,7 @@ export function PautasWorkspaceModule({
       `Turma: ${rawMiniDocument.context.classGroup} (${rawMiniDocument.context.className})\n` +
       `Total de Alunos: ${currentStudents.length}\n` +
       `Aprovados/Transitam: ${passCount} (${passRate}%)\n` +
-      `Código de Autenticidade: ${validationCode}`;
+      `Referência: ${validationCode}`;
 
     window.open(whatsappHref(text), "_blank");
   };

@@ -86,7 +86,7 @@ export function OfficialPautaView({
         </tbody>
       </table>
       {meta.validationCode ? (
-        <p className="mt-4 text-right text-[11px] font-mono">Validar: {meta.validationCode}</p>
+        <p className="mt-4 text-right text-[11px] font-mono">Referência: {meta.validationCode}</p>
       ) : null}
       <div className="mt-10 grid grid-cols-3 gap-6 text-center text-sm">
         <p>O Professor: __________________</p>

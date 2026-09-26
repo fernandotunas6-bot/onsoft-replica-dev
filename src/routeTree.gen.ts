@@ -28,6 +28,7 @@ import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
 import { Route as SaasAdminRouteImport } from './routes/saas-admin'
 import { Route as TesourariaRouteImport } from './routes/tesouraria'
+import { Route as VerificarRouteImport } from './routes/verificar'
 import { Route as AlumniAlumniIdRouteImport } from './routes/alumni.$alumniId'
 import { Route as AlumniCalendarRouteImport } from './routes/alumni.calendar'
 import { Route as AlumniCommunicationsRouteImport } from './routes/alumni.communications'
@@ -188,6 +189,11 @@ const SaasAdminRoute = SaasAdminRouteImport.update({
 const TesourariaRoute = TesourariaRouteImport.update({
   id: '/tesouraria',
   path: '/tesouraria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerificarRoute = VerificarRouteImport.update({
+  id: '/verificar',
+  path: '/verificar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniAlumniIdRoute = AlumniAlumniIdRouteImport.update({
@@ -555,6 +561,7 @@ export interface FileRoutesByFullPath {
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
+  '/verificar': typeof VerificarRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
@@ -642,6 +649,7 @@ export interface FileRoutesByTo {
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
+  '/verificar': typeof VerificarRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
@@ -730,6 +738,7 @@ export interface FileRoutesById {
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
+  '/verificar': typeof VerificarRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
@@ -819,6 +828,7 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/saas-admin'
     | '/tesouraria'
+    | '/verificar'
     | '/alumni/$alumniId'
     | '/alumni/calendar'
     | '/alumni/communications'
@@ -906,6 +916,7 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/saas-admin'
     | '/tesouraria'
+    | '/verificar'
     | '/alumni/$alumniId'
     | '/alumni/calendar'
     | '/alumni/communications'
@@ -993,6 +1004,7 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/saas-admin'
     | '/tesouraria'
+    | '/verificar'
     | '/alumni/$alumniId'
     | '/alumni/calendar'
     | '/alumni/communications'
@@ -1081,6 +1093,7 @@ export interface RootRouteChildren {
   PlanosAulaRoute: typeof PlanosAulaRoute
   SaasAdminRoute: typeof SaasAdminRoute
   TesourariaRoute: typeof TesourariaRoute
+  VerificarRoute: typeof VerificarRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
   AuthEmailChangeRoute: typeof AuthEmailChangeRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
@@ -1253,6 +1266,13 @@ declare module '@tanstack/react-router' {
       path: '/tesouraria'
       fullPath: '/tesouraria'
       preLoaderRoute: typeof TesourariaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verificar': {
+      id: '/verificar'
+      path: '/verificar'
+      fullPath: '/verificar'
+      preLoaderRoute: typeof VerificarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alumni/$alumniId': {
@@ -1908,6 +1928,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanosAulaRoute: PlanosAulaRoute,
   SaasAdminRoute: SaasAdminRoute,
   TesourariaRoute: TesourariaRoute,
+  VerificarRoute: VerificarRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
   AuthEmailChangeRoute: AuthEmailChangeRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,

@@ -276,3 +276,11 @@ o Supabase directamente e muda a senha.
   - `editFinalizedAttendanceCall` deixava um professor corrigir a chamada fechada de outro e
     aceitava alunos de fora da turma. Tem agora as mesmas regras da chamada normal.
   - Anular fatura exige motivo (ecrã e servidor).
+- **Verificação de documentos oficiais (2026-09-26).** O "código de validação" impresso era um
+  hash calculado no browser a partir de dados públicos (escola, aluno, ano): qualquer pessoa o
+  reproduzia num documento forjado. O QR nunca era gerado e não havia onde verificar, mas o
+  certificado dizia que havia. Agora `issuePrintDocument` regista cada emissão no servidor
+  (`audit_logs`, `documents.issued`) com um código aleatório `SIGA-XXXX-XXXX`, e o documento
+  leva esse código e um QR para `/verificar` (pública, 20 verificações/min por IP), que mostra
+  documento, escola, iniciais do titular e data. Os códigos antigos que continuam noutros
+  ecrãs (pautas) passam a chamar-se "Referência", sem prometer verificação.

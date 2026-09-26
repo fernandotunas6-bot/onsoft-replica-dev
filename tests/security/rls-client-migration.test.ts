@@ -55,6 +55,10 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
+  // verifica-o publicamente, sem sessão, a partir do código impresso.
+  "src/features/documents/verification.ts",
+
   // Grava em `audit_logs`, que não tem política de escrita para utilizadores:
   // o registo de auditoria só é escrito pelo servidor.
   "src/features/audit/record-audit.ts",

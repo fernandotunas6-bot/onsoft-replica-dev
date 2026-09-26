@@ -1,0 +1,116 @@
+import { useState, type FormEvent } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SigaLogo } from "@/components/ui/siga-logo";
+import { actionIcons, statusIcons } from "@/lib/app-icons";
+import { verifyIssuedDocument } from "@/features/documents/verification";
+
+export const Route = createFileRoute("/verificar")({
+  validateSearch: z.object({ codigo: z.string().optional() }),
+  head: () => ({
+    meta: [
+      { title: "Verificar documento · SIGA" },
+      {
+        name: "description",
+        content: "Confirme a autenticidade de um documento emitido por uma escola no SIGA.",
+      },
+    ],
+  }),
+  component: VerifyDocumentPage,
+});
+
+function VerifyDocumentPage() {
+  const { codigo } = Route.useSearch();
+  const navigate = useNavigate({ from: "/verificar" });
+  const [draft, setDraft] = useState(codigo ?? "");
+  const code = codigo?.trim() ?? "";
+
+  const query = useQuery({
+    queryKey: ["verify-document", code],
+    enabled: code.length >= 4,
+    retry: false,
+    queryFn: () => verifyIssuedDocument({ data: { code } }),
+  });
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void navigate({ search: { codigo: draft.trim() || undefined } });
+  };
+
+  const ValidIcon = statusIcons.success;
+  const InvalidIcon = statusIcons.error;
+  const SearchIcon = actionIcons.search;
+
+  return (
+    <main className="min-h-screen bg-background px-4 py-10">
+      <div className="mx-auto max-w-md space-y-6">
+        <SigaLogo />
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold">Verificar documento</h1>
+          <p className="text-sm text-muted-foreground">
+            Introduza o código de verificação impresso no documento (por exemplo, SIGA-ABCD-2345) ou
+            leia o QR Code.
+          </p>
+        </div>
+
+        <form onSubmit={submit} className="flex items-end gap-2">
+          <div className="flex-1 space-y-1.5">
+            <Label htmlFor="verify-code">Código de verificação</Label>
+            <Input
+              id="verify-code"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="SIGA-XXXX-XXXX"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+          <Button type="submit" className="gap-2">
+            <SearchIcon className="size-4" /> Verificar
+          </Button>
+        </form>
+
+        {query.isLoading ? (
+          <p className="text-sm text-muted-foreground">A verificar…</p>
+        ) : query.isError ? (
+          <p className="text-sm text-destructive">
+            {query.error instanceof Error ? query.error.message : "Não foi possível verificar."}
+          </p>
+        ) : query.data?.valid ? (
+          <section className="space-y-2 rounded-xl border border-border p-4">
+            <p className="flex items-center gap-2 font-medium text-success">
+              <ValidIcon className="size-5" /> Documento válido
+            </p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">Documento</dt>
+              <dd>{query.data.title}</dd>
+              <dt className="text-muted-foreground">Emitido por</dt>
+              <dd>{query.data.schoolName}</dd>
+              <dt className="text-muted-foreground">Titular</dt>
+              <dd>{query.data.holder}</dd>
+              <dt className="text-muted-foreground">Data</dt>
+              <dd>{new Date(query.data.issuedAt).toLocaleString("pt-AO")}</dd>
+            </dl>
+            <p className="text-xs text-muted-foreground">
+              Confirme que estes dados coincidem com o documento que tem na mão.
+            </p>
+          </section>
+        ) : query.data && !query.data.valid ? (
+          <section className="space-y-1 rounded-xl border border-border p-4">
+            <p className="flex items-center gap-2 font-medium text-destructive">
+              <InvalidIcon className="size-5" /> Código não encontrado
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Nenhum documento foi emitido no SIGA com este código. Confirme se o escreveu bem; se
+              sim, o documento não é autêntico.
+            </p>
+          </section>
+        ) : null}
+      </div>
+    </main>
+  );
+}

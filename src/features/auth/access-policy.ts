@@ -128,6 +128,7 @@ export function canAccessPath(
     pathname === "/criar-escola" ||
     pathname === "/saas-admin" ||
     pathname.startsWith("/matricula") ||
+    pathname === "/verificar" ||
     pathname.startsWith("/convite") ||
     pathname.startsWith("/calendario/ics") ||
     pathname.startsWith("/api/")
