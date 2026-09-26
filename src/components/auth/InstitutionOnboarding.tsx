@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
+import { publicErrorMessage } from "@/lib/public-error";
 import { useSignOut } from "@/features/auth/use-sign-out";
 import {
   accessRequestProfileLabels,
@@ -44,9 +45,8 @@ type IdentityDraft = {
   message: string;
 };
 
-function errorText(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
+// Mensagens do SIGA passam; erros técnicos (configuração, rede, SQL) não.
+const errorText = publicErrorMessage;
 
 function FlowStepper({ current }: { current: number }) {
   return (
@@ -192,6 +192,8 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
   });
   const [schoolQuery, setSchoolQuery] = useState("");
   const [school, setSchool] = useState<SchoolSearchResult | null>(null);
+  // Só depois de tentar avançar se mostra o que falta (não antes de escrever).
+  const [identifyAttempted, setIdentifyAttempted] = useState(false);
 
   const linkState = useQuery({
     queryKey: LINK_STATE_KEY,
@@ -241,6 +243,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
 
   const requests = linkState.data?.requests ?? [];
   const openRequests = requests.filter((r) => isOpenAccessRequest(r.status));
+  const needsReply = requests.some((r) => r.status === "info_requested");
   const numberRequired = draft.profile === "aluno" || draft.profile === "encarregado";
   const stepIndex =
     view === "identify"
@@ -258,6 +261,28 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
       draft.fullName.trim().length >= 3 &&
       (!numberRequired || draft.institutionalNumber.trim().length > 0),
     [draft.fullName, draft.institutionalNumber, numberRequired],
+  );
+
+  const requestsSection = (
+    <section className="space-y-3">
+      <h2 className="flex items-center gap-2 text-sm font-bold">
+        {openRequests.length ? (
+          <statusIcons.pending className="size-4 text-primary" />
+        ) : (
+          <statusIcons.info className="size-4 text-muted-foreground" />
+        )}
+        Os meus pedidos de acesso
+      </h2>
+      <ul className="grid gap-3">
+        {[...requests]
+          .sort(
+            (a, b) => Number(b.status === "info_requested") - Number(a.status === "info_requested"),
+          )
+          .map((request) => (
+            <RequestCard key={request.id} request={request} />
+          ))}
+      </ul>
+    </section>
   );
 
   const update = <K extends keyof IdentityDraft>(key: K, value: IdentityDraft[K]) =>
@@ -288,24 +313,44 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
         </header>
 
         <section className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
-          <p className="text-xs font-semibold text-primary">Bem-vindo(a)</p>
-          <h1 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-            Olá, {displayName}. A sua conta ainda não está ligada a nenhuma escola.
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Tem uma só identidade no SIGA Plus e pode pertencer a várias escolas, com um papel
-            diferente em cada uma. Escolha como quer continuar.
-          </p>
+          {view === "welcome" ? (
+            <>
+              <p className="text-xs font-semibold text-primary">Bem-vindo(a)</p>
+              <h1 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+                Olá, {displayName}. A sua conta ainda não está ligada a nenhuma escola.
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Tem uma só identidade no SIGA Plus e pode pertencer a várias escolas, com um papel
+                diferente em cada uma. Escolha como quer continuar.
+              </p>
+            </>
+          ) : (
+            // Nos passos do pedido, o cabeçalho encolhe: o formulário é o que importa.
+            <h1 className="font-display text-lg font-bold tracking-tight">
+              Pedido de acesso a uma escola
+            </h1>
+          )}
+          {view === "welcome" && needsReply ? (
+            <p className="mt-3 rounded-xl bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+              A secretaria pediu mais informação sobre o seu pedido. Responda em baixo.
+            </p>
+          ) : null}
           {linkState.data && !linkState.data.emailVerified ? (
             <p className="mt-3 rounded-xl bg-warning/20 px-3 py-2 text-xs text-warning-foreground">
               O e-mail {linkState.data.email} ainda não foi confirmado. A secretaria verá essa
               indicação no seu pedido.
             </p>
           ) : null}
-          <div className="mt-5">
-            <FlowStepper current={stepIndex} />
-          </div>
+          {/* Sem pedido em curso, cinco barras vazias não dizem nada. */}
+          {stepIndex >= 0 ? (
+            <div className={view === "welcome" ? "mt-5" : "mt-3"}>
+              <FlowStepper current={stepIndex} />
+            </div>
+          ) : null}
         </section>
+
+        {/* Um pedido em curso (sobretudo à espera de resposta) vem antes das opções. */}
+        {view === "welcome" && openRequests.length ? requestsSection : null}
 
         {view === "welcome" ? (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -354,9 +399,11 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
         {view === "identify" ? (
           <form
             className="space-y-5 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8"
+            noValidate
             onSubmit={(event) => {
               event.preventDefault();
               if (identityValid) setView("school");
+              else setIdentifyAttempted(true);
             }}
           >
             <div className="flex items-center gap-2">
@@ -403,7 +450,11 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                   minLength={3}
                   maxLength={160}
                   autoComplete="name"
+                  aria-invalid={identifyAttempted && draft.fullName.trim().length < 3}
                 />
+                {identifyAttempted && draft.fullName.trim().length < 3 ? (
+                  <p className="text-[11px] text-destructive">Escreva o nome completo.</p>
+                ) : null}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="req-bi" className="text-xs">
@@ -430,7 +481,16 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                   maxLength={60}
                   required={numberRequired}
                   autoComplete="off"
+                  aria-invalid={
+                    identifyAttempted && numberRequired && !draft.institutionalNumber.trim()
+                  }
+                  aria-describedby="req-number-hint"
                 />
+                {identifyAttempted && numberRequired && !draft.institutionalNumber.trim() ? (
+                  <p id="req-number-hint" className="text-[11px] text-destructive">
+                    Obrigatório: a secretaria usa-o para encontrar o seu cadastro.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="req-phone" className="text-xs">
@@ -476,7 +536,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
               >
                 <ArrowLeft className="size-4" /> Voltar
               </Button>
-              <Button type="submit" className="gap-1.5" disabled={!identityValid}>
+              <Button type="submit" className="gap-1.5">
                 Escolher escola <ArrowRight className="size-4" />
               </Button>
             </div>
@@ -489,6 +549,12 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
               <IconChip icon={moduleIcons.school} size="xs" />
               <h2 className="text-lg font-bold">Seleccione a escola</h2>
             </div>
+            {!search.data ? (
+              <p className="text-xs text-muted-foreground">
+                Escreva pelo menos 3 letras do nome, da sigla ou do código da escola e toque em
+                Pesquisar. Depois escolha a escola certa na lista.
+              </p>
+            ) : null}
             <form className="flex gap-2" onSubmit={onSearch} role="search">
               <Input
                 aria-label="Nome, sigla ou código da escola"
@@ -568,6 +634,11 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                 Rever pedido <ArrowRight className="size-4" />
               </Button>
             </div>
+            {search.data?.length && !school ? (
+              <p className="text-right text-[11px] text-muted-foreground">
+                Toque numa escola da lista para continuar.
+              </p>
+            ) : null}
           </section>
         ) : null}
 
@@ -596,7 +667,26 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                 </dt>
                 <dd className="font-semibold">{draft.institutionalNumber || "—"}</dd>
               </div>
+              {draft.nationalId ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">Nº do B.I.</dt>
+                  <dd className="font-semibold">{draft.nationalId}</dd>
+                </div>
+              ) : null}
+              {draft.contactPhone ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">Telefone</dt>
+                  <dd className="font-semibold">{draft.contactPhone}</dd>
+                </div>
+              ) : null}
             </dl>
+            <button
+              type="button"
+              className="text-xs font-medium text-primary hover:underline"
+              onClick={() => setView("identify")}
+            >
+              Corrigir dados
+            </button>
             <p className="text-xs text-muted-foreground">
               A secretaria de {school.name} vai verificar o pedido. Será avisado aqui e, se a escola
               tiver e-mail configurado, também por e-mail.
@@ -627,23 +717,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
           </section>
         ) : null}
 
-        {view === "welcome" && requests.length ? (
-          <section className="space-y-3">
-            <h2 className="flex items-center gap-2 text-sm font-bold">
-              {openRequests.length ? (
-                <statusIcons.pending className="size-4 text-primary" />
-              ) : (
-                <statusIcons.info className="size-4 text-muted-foreground" />
-              )}
-              Os meus pedidos de acesso
-            </h2>
-            <ul className="grid gap-3">
-              {requests.map((request) => (
-                <RequestCard key={request.id} request={request} />
-              ))}
-            </ul>
-          </section>
-        ) : null}
+        {view === "welcome" && requests.length && !openRequests.length ? requestsSection : null}
 
         {linkState.isError ? (
           <p
