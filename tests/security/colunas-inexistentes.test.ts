@@ -297,19 +297,17 @@ const funcoesPublicas = new Set(
  * recapturado a seguir. Vazia é o estado correcto — uma entrada aqui é uma escrita que a
  * produção recusa.
  */
-const ESPERA_MIGRACAO = new Set<string>([
-  // Motor de importação (Lovable, 2026-09-24): `20260924005132_…` e
-  // `20260924010418_refine_import_engine_premium_spec.sql`. Por aplicar no
-  // retrato de 2026-09-20. `createImportJob` volta a gravar só o essencial se a
-  // base recusar estas colunas, e a procura por `idempotency_key` tolera a falta.
-  "import_jobs.schema_version",
-  "import_jobs.exchange_mode",
-  "import_jobs.source_format",
-  "import_jobs.dry_run",
-  "import_jobs.idempotency_key",
-  "import_jobs.manifest",
-  "import_jobs.dependency_plan",
-]);
+/**
+ * Colunas que o código já grava e a produção ainda não tem. Existe para encolher.
+ *
+ * Está vazia desde 2026-09-26: as sete colunas de `import_jobs` do motor de importação
+ * (`schema_version`, `exchange_mode`, `source_format`, `dry_run`, `idempotency_key`,
+ * `manifest`, `dependency_plan`) estavam à espera do retrato de 2026-09-20 e já existem em
+ * produção. Ficarem cá depois de aplicadas não é inofensivo: cada entrada é uma coluna que
+ * este teste deixa de verificar, e a lista era o sítio onde uma coluna inventada se
+ * esconderia sem ninguém notar.
+ */
+const ESPERA_MIGRACAO = new Set<string>([]);
 
 const leituras = leiturasDoCodigo();
 const escritas = escritasDoCodigo();
