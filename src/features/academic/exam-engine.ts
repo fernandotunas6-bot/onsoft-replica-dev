@@ -230,3 +230,36 @@ export function applyExamResults(
     bySubject.has(s.subjectId) ? { ...s, average: bySubject.get(s.subjectId)! } : s,
   );
 }
+
+/** Texto do resultado guardado no histórico académico. */
+export const FINAL_OUTCOME_LABELS: Record<FinalResultCode, string> = {
+  pass: "Transitou",
+  fail: "Não transitou",
+  incomplete: "Incompleto",
+};
+
+/**
+ * Várias épocas podem avaliar a mesma disciplina (recurso e depois melhoria):
+ * conta a nota da época mais recente com nota lançada.
+ */
+export function latestGradedBySubject(
+  registrations: Array<{
+    subjectId: string;
+    status: string;
+    finalAverage: number | null;
+    sessionCreatedAt: string;
+  }>,
+): Array<{ subjectId: string; finalAverage: number }> {
+  const latest = new Map<string, { finalAverage: number; at: string }>();
+  for (const r of registrations) {
+    if (r.status !== "graded" || r.finalAverage == null) continue;
+    const current = latest.get(r.subjectId);
+    if (!current || r.sessionCreatedAt > current.at) {
+      latest.set(r.subjectId, { finalAverage: r.finalAverage, at: r.sessionCreatedAt });
+    }
+  }
+  return [...latest.entries()].map(([subjectId, v]) => ({
+    subjectId,
+    finalAverage: v.finalAverage,
+  }));
+}

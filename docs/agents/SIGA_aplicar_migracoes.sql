@@ -1,9 +1,10 @@
 -- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), 2026-09-26
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
--- 18 migrações: as 8 do SIGA de 25–26/09, as 7 do catálogo de importação
+-- 19 migrações: as 8 do SIGA de 25–26/09, as 7 do catálogo de importação
 -- (import_table_specs, sem ele a importação fica bloqueada), tenant_mailboxes,
--- a publicação de modelos de avaliação (siga_publish_assessment_rule) e os
--- exames (siga_exam_sessions, siga_exam_registrations).
+-- a publicação de modelos de avaliação (siga_publish_assessment_rule), os
+-- exames (siga_exam_sessions, siga_exam_registrations) e o histórico do aluno
+-- só do servidor (alunos e encarregados deixam de ler o dos colegas).
 -- Testado em 2026-09-26 num Postgres 16 com o esquema da produção
 -- (supabase/PRODUCTION_SNAPSHOT.json): três corridas seguidas sem erros.
 -- Depois de aplicar, confirmar com docs/agents/SIGA_confirmar_migracoes.sql.
@@ -1180,3 +1181,31 @@ COMMENT ON TABLE public.siga_exam_sessions IS
   'Épocas de exame (recurso, especial, final, melhoria) por ano lectivo. Só o servidor.';
 COMMENT ON TABLE public.siga_exam_registrations IS
   'Inscrições em exame por matrícula e disciplina, com média de origem, nota e média final. Só o servidor.';
+
+
+-- ══════════ 20260927090000_student_history_server_only.sql ══════════
+-- Histórico académico e histórico de estados do aluno: só o servidor.
+--
+-- `20260925190000_harden_member_wide_policies.sql` tirou a escrita a qualquer
+-- membro, mas deixou a leitura por `is_school_member` — que é verdadeiro para
+-- alunos e encarregados: qualquer aluno lia as médias finais, o resultado e as
+-- mudanças de estado de todos os colegas da escola. Nenhum código do browser lê
+-- estas tabelas; o servidor usa a chave de serviço depois de validar o perfil
+-- (`students/server.ts`, importação/exportação, resultado final).
+--
+-- Idempotente. Não apaga dados.
+
+DROP POLICY IF EXISTS "Members read student_academic_history" ON public.student_academic_history;
+DROP POLICY IF EXISTS "School members can access student academic history" ON public.student_academic_history;
+ALTER TABLE public.student_academic_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_academic_history FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.student_academic_history FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.student_academic_history TO service_role;
+
+DROP POLICY IF EXISTS "Members read student_status_history" ON public.student_status_history;
+DROP POLICY IF EXISTS "School members can access student status history" ON public.student_status_history;
+DROP POLICY IF EXISTS "Read student status history in own school" ON public.student_status_history;
+ALTER TABLE public.student_status_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_status_history FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.student_status_history FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.student_status_history TO service_role;

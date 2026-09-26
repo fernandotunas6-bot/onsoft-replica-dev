@@ -23,6 +23,8 @@ export type StudentYearReport = {
   termCount: number;
   average: number | null;
   subjects: SubjectYearReport[];
+  /** Resultado registado no histórico académico (pauta anual + exames). */
+  officialResult: { outcome: string; finalAverage: number | null } | null;
 };
 
 export type StudentGradeReport = { years: StudentYearReport[] };
@@ -183,6 +185,23 @@ export const getMyStudentGrades = createServerFn({ method: "GET" })
       if (passing != null && Number.isFinite(passing)) passingBySubject.set(subjectId, passing);
     }
 
+    // Resultado oficial do ano (registado pela secretaria no histórico).
+    const { data: historyRows } = await db
+      .from("student_academic_history")
+      .select("academic_year_label, outcome, final_average, updated_at")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .order("updated_at", { ascending: false });
+    const officialByYearLabel = new Map<string, { outcome: string; finalAverage: number | null }>();
+    for (const row of (historyRows ?? []) as Row[]) {
+      const label = str(row["academic_year_label"]);
+      if (!label || officialByYearLabel.has(label) || !row["outcome"]) continue;
+      officialByYearLabel.set(label, {
+        outcome: str(row["outcome"]),
+        finalAverage: row["final_average"] == null ? null : Number(row["final_average"]),
+      });
+    }
+
     const report: StudentYearReport[] = enrollments.map((enrollment) => {
       const yearId = str(enrollment["academic_year_id"]);
       const classGroupId = str(enrollment["class_group_id"]);
@@ -219,6 +238,7 @@ export const getMyStudentGrades = createServerFn({ method: "GET" })
         termCount,
         average: overallAverage(subjectReports),
         subjects: subjectReports,
+        officialResult: officialByYearLabel.get(str(year?.["name"])) ?? null,
       };
     });
     return { years: report };

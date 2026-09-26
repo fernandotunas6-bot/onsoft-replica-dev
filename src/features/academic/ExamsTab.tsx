@@ -39,6 +39,11 @@ import {
   type ExamClassDetail,
   type ExamSession,
 } from "./exams";
+import {
+  getClassFinalResults,
+  recordClassFinalResults,
+  type ClassFinalResults,
+} from "./final-results";
 
 const BOARD_KEY = ["academic", "exam-board"] as const;
 
@@ -149,6 +154,8 @@ export function ExamsTab({ yearId }: { yearId: string | null }) {
       </section>
 
       {session ? <SessionPanel session={session} board={board} key={session.id} /> : null}
+
+      <FinalResultsPanel board={board} />
 
       {board.canManage ? (
         <CreateSessionDialog
@@ -621,5 +628,135 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="block text-xs text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+function FinalResultsPanel({ board }: { board: ExamBoard }) {
+  const queryClient = useQueryClient();
+  const [classGroupId, setClassGroupId] = useState<string>(
+    () => board.classGroups.find((g) => g.annualSheetStatus)?.id ?? board.classGroups[0]?.id ?? "",
+  );
+  const key = ["academic", "final-results", classGroupId];
+  const query = useQuery({
+    queryKey: key,
+    enabled: Boolean(classGroupId),
+    queryFn: () => getClassFinalResults({ data: { classGroupId } }) as Promise<ClassFinalResults>,
+  });
+  const record = useMutation({
+    mutationFn: () => recordClassFinalResults({ data: { classGroupId } }),
+    onSuccess: (r) => {
+      toast.success(
+        `${r.recorded} aluno(s) registados no histórico${r.skipped ? `; ${r.skipped} incompleto(s) ficaram de fora` : ""}.`,
+      );
+      void queryClient.invalidateQueries({ queryKey: key });
+      void queryClient.invalidateQueries({ queryKey: ["academic", "structure-status"] });
+    },
+    onError: (e) => toastActionError(e, "Não foi possível registar no histórico."),
+  });
+
+  const data = query.data;
+  const counts = useMemo(() => {
+    const out = { pass: 0, fail: 0, incomplete: 0, recorded: 0 };
+    for (const s of data?.students ?? []) {
+      out[s.after.result] += 1;
+      if (s.recorded) out.recorded += 1;
+    }
+    return out;
+  }, [data]);
+
+  if (!board.classGroups.length) return null;
+
+  return (
+    <section className="surface-card space-y-4 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-medium">Resultado final</h2>
+          <p className="text-xs text-muted-foreground">
+            Pauta anual com as notas de exame. Registar grava a média e o resultado no histórico
+            académico de cada aluno.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label="Turma do resultado final"
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            value={classGroupId}
+            onChange={(e) => setClassGroupId(e.target.value)}
+          >
+            {board.classGroups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+          {data?.canManage ? (
+            <Button
+              size="sm"
+              disabled={!data.sheet?.official || !data.students.length || record.isPending}
+              onClick={() => record.mutate()}
+            >
+              {record.isPending
+                ? "A registar…"
+                : counts.recorded
+                  ? "Actualizar histórico"
+                  : "Registar no histórico"}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      {query.isLoading ? (
+        <InlineLoading label="A calcular o resultado final…" />
+      ) : query.isError || !data ? (
+        <p className="text-sm text-muted-foreground">
+          {query.error instanceof Error
+            ? query.error.message
+            : "Não foi possível calcular o resultado final."}
+        </p>
+      ) : !data.sheet ? (
+        <p className="rounded-md bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+          Esta turma ainda não tem pauta anual. Gere-a no separador Pautas e homologue-a.
+        </p>
+      ) : !data.hasRule ? (
+        <p className="rounded-md bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+          A pauta anual não tem regra de avaliação associada.
+        </p>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">
+            {data.yearLabel} · {data.gradeLevel} · {counts.pass} transitam · {counts.fail} não
+            transitam
+            {counts.incomplete ? ` · ${counts.incomplete} incompletos` : ""}
+            {counts.recorded ? ` · ${counts.recorded} já no histórico` : ""}
+            {!data.sheet.official ? " · pauta ainda não homologada (provisório)" : ""}
+          </p>
+          <ul className="divide-y divide-border">
+            {data.students.map((s) => (
+              <li
+                key={s.enrollmentId}
+                className="flex flex-wrap items-baseline justify-between gap-2 py-2.5"
+              >
+                <span className="text-sm">
+                  {s.studentName}
+                  {s.examSubjects ? (
+                    <span className="text-xs text-muted-foreground">
+                      {" "}
+                      · {s.examSubjects} exame(s)
+                    </span>
+                  ) : null}
+                </span>
+                <span className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <ResultTag result={s.after} />
+                  {s.after.reason && s.after.result === "fail" ? (
+                    <span>{s.after.reason}</span>
+                  ) : null}
+                  <span>{s.recorded ? "No histórico" : "Por registar"}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }

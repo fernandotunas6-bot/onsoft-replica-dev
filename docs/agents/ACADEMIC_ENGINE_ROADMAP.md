@@ -83,7 +83,13 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    escola; inscrição dos elegíveis a partir da pauta anual homologada (avisa
    aluno e encarregados); notas e faltas ao exame; situação antes → depois com
    a mesma regra de `build_grade_sheet`. Migração `20260926220000` (só servidor).
-   Falta: levar o resultado final ao histórico académico e aos documentos.
+   Resultado final (painel no mesmo separador): pauta anual + exames (a época
+   mais recente com nota conta), "Registar no histórico" grava em
+   `student_academic_history` e `enrollments.final_average`; recusa com época
+   aberta. O aluno e o encarregado vêem o "Resultado oficial" no cartão de
+   notas. Migração `20260927090000`: histórico do aluno só do servidor (antes,
+   qualquer membro — alunos incluídos — lia o de toda a escola).
+   Falta: certificados/declarações a partir do histórico.
 5. **Competências** — tabela de competências ligada a `curriculum_subjects` e
    às avaliações; percentagem de competências dominadas por aluno.
 6. **Analytics** — comparativo trimestral, turma/disciplina, alunos em risco

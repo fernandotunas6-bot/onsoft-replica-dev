@@ -98,3 +98,26 @@ describe("motor de exames", () => {
     ).toBe("pass");
   });
 });
+
+describe("nota de exame que conta", () => {
+  it("usa a época mais recente com nota, por disciplina", async () => {
+    const { latestGradedBySubject } = await import("@/features/academic/exam-engine");
+    expect(
+      latestGradedBySubject([
+        { subjectId: "mat", status: "graded", finalAverage: 10, sessionCreatedAt: "2026-07-01" },
+        { subjectId: "mat", status: "graded", finalAverage: 13, sessionCreatedAt: "2026-09-01" },
+        { subjectId: "mat", status: "absent", finalAverage: null, sessionCreatedAt: "2026-10-01" },
+        {
+          subjectId: "fis",
+          status: "registered",
+          finalAverage: null,
+          sessionCreatedAt: "2026-07-01",
+        },
+        { subjectId: "por", status: "graded", finalAverage: 11, sessionCreatedAt: "2026-07-01" },
+      ]),
+    ).toEqual([
+      { subjectId: "mat", finalAverage: 13 },
+      { subjectId: "por", finalAverage: 11 },
+    ]);
+  });
+});

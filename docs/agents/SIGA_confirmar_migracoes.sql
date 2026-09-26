@@ -37,6 +37,10 @@ from (values
      to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean)') is not null),
   ('20260926220000_exam_sessions_registrations',
      to_regclass('public.siga_exam_sessions') is not null
-     and to_regclass('public.siga_exam_registrations') is not null)
+     and to_regclass('public.siga_exam_registrations') is not null),
+  ('20260927090000_student_history_server_only',
+     not exists (select 1 from pg_policies
+                 where tablename in ('student_academic_history', 'student_status_history'))
+     and not has_table_privilege('authenticated', 'public.student_academic_history', 'SELECT'))
 ) as m(migracao, ok)
 order by migracao;

@@ -108,6 +108,10 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // de validar Administrador/Secretaria (Professor só consulta).
   "src/features/academic/exams.ts",
 
+  // Resultado final: lê a pauta anual e os exames e grava no histórico
+  // académico (só do servidor desde 20260927090000) e em enrollments.
+  "src/features/academic/final-results.ts",
+
   // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
   // autenticado por SIGA_CRON_SECRET em tempo constante.
   "src/routes/api/cron/lesson-reminders.tsx",

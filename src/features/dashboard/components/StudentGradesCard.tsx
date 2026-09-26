@@ -136,6 +136,19 @@ export function StudentGradesCard({ studentId }: { studentId?: string | null }) 
               <span>
                 Média geral:{" "}
                 <span className="text-foreground tabular-nums">{fmt(year.average)}</span>
+                {year.officialResult ? (
+                  <>
+                    {" "}
+                    · Resultado oficial:{" "}
+                    <span className="text-foreground">{year.officialResult.outcome}</span>
+                    {year.officialResult.finalAverage != null ? (
+                      <span className="tabular-nums">
+                        {" "}
+                        ({fmt(year.officialResult.finalAverage)})
+                      </span>
+                    ) : null}
+                  </>
+                ) : null}
               </span>
               <span>
                 Aprovação a partir de {fmt(year.subjects[0]?.passing ?? 10)} valores · média final =
