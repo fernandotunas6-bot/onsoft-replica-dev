@@ -414,32 +414,16 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         },
       );
       if (registerError) {
+        // A base recusa sem 2FA (private.is_aal2) ou sem permissão. Antes, este
+        // ramo repetia a escrita com a chave de serviço — contornava a recusa e
+        // o registo do encarregado. Igual a createPerson: recusar e explicar.
         if (
           registerError.code === "42501" ||
           /is_aal2|autorização|permission denied/i.test(registerError.message ?? "")
         ) {
-          const today = new Date().toISOString().slice(0, 10);
-          const studentNumber = `EST-${String(Math.floor(100000 + Math.random() * 900000))}`;
-          const { data: createdStudent, error: directStudentErr } = await db
-            .from("students")
-            .insert({
-              school_id: membership.schoolId,
-              person_id: personRow.id,
-              student_number: studentNumber,
-              admission_date: today,
-              status: "applicant",
-              created_by: context.userId,
-              updated_by: context.userId,
-            })
-            .select("id")
-            .single();
-          if (directStudentErr) {
-            throw publicDatabaseError(directStudentErr, "Não foi possível matricular o candidato.");
-          }
-          studentId = createdStudent.id;
-        } else {
-          throw publicDatabaseError(registerError, "Não foi possível matricular o candidato.");
+          throw new Error("Esta conta precisa de 2FA activo para matricular alunos.");
         }
+        throw publicDatabaseError(registerError, "Não foi possível matricular o candidato.");
       } else {
         const studentOutcome = registered as { studentId: string };
         studentId = studentOutcome.studentId;
@@ -465,29 +449,20 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           enrolled_on: new Date().toISOString().slice(0, 10),
         });
         if (enrollError) {
+          // Sem desvio pela chave de serviço: saltaria a verificação de
+          // capacidade da turma que enroll_student faz sob FOR UPDATE.
           if (
             enrollError.code === "42501" ||
             /is_aal2|autorização|permission denied/i.test(enrollError.message ?? "")
           ) {
-            const today = new Date().toISOString().slice(0, 10);
-            const enrollmentNumber = `MAT-${String(Math.floor(100000 + Math.random() * 900000))}`;
-            await db.from("enrollments").insert({
-              school_id: membership.schoolId,
-              student_id: studentId,
-              class_group_id: classGroup.id,
-              academic_year_id: classGroup.academic_year_id,
-              enrollment_number: enrollmentNumber,
-              enrolled_on: today,
-              status: "active",
-              created_by: context.userId,
-              updated_by: context.userId,
-            });
-          } else {
-            throw publicDatabaseError(
-              enrollError,
-              "Aluno criado, mas não foi possível colocá-lo na turma.",
+            throw new Error(
+              "Aluno criado, mas esta conta precisa de 2FA activo para o colocar na turma.",
             );
           }
+          throw publicDatabaseError(
+            enrollError,
+            "Aluno criado, mas não foi possível colocá-lo na turma.",
+          );
         }
       }
 
