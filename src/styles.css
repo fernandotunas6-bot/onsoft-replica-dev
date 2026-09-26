@@ -584,3 +584,20 @@ summary,
     input, textarea, [contenteditable="true"] { user-select: text; }
   }
 }
+
+/*
+ * Títulos sem negrito forte, em todo o sistema.
+ * Fica fora das camadas (@layer) de propósito: no Tailwind v4 as regras sem
+ * camada prevalecem sobre as utilidades, por isso um `font-semibold` ou
+ * `font-bold` num título deixa de o engrossar — sem !important e sem mexer em
+ * cada ecrã. O texto do corpo e os botões continuam como estão.
+ */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+[data-slot="card-title"] {
+  font-weight: 500;
+}

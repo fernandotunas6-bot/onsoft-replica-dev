@@ -244,3 +244,17 @@ html {
     will-change: auto;
   }
 }
+
+/*
+ * Títulos sem negrito forte (igual ao SIGA). Fora das camadas de propósito: no
+ * Tailwind v4 prevalece sobre `font-semibold`/`font-bold` nos títulos.
+ */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+[data-slot="card-title"] {
+  font-weight: 500;
+}
