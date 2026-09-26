@@ -465,7 +465,12 @@ export async function registerReceiptDirect(
     }
     lastError = error;
     if (error.code === "23505") {
-      receiptNumber = `${hint || "REC"}-${Math.floor(Math.random() * 10000)}`;
+      // Número vindo da folha e já gravado: é o mesmo recibo importado outra
+      // vez. Inventar um sufixo criaria um segundo recibo do mesmo pagamento.
+      if (hint) {
+        throw new Error(`O recibo ${hint} já existe nesta escola; linha ignorada.`);
+      }
+      receiptNumber = `REC-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
       continue;
     }
     break;
