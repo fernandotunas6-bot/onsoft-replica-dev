@@ -109,10 +109,9 @@ describe.skipIf(!podeSondar)("selects do código vs. produção (ao vivo)", () =
      * que falha ao calhar ensina a ignorar falhas.
      */
     async function sondarUmaVez(tabela: string, colunas: string) {
-      return fetch(
-        `${URL_BASE}/rest/v1/${tabela}?select=${encodeURIComponent(colunas)}&limit=0`,
-        { headers: { apikey: CHAVE as string, Authorization: `Bearer ${CHAVE}` } },
-      );
+      return fetch(`${URL_BASE}/rest/v1/${tabela}?select=${encodeURIComponent(colunas)}&limit=0`, {
+        headers: { apikey: CHAVE as string, Authorization: `Bearer ${CHAVE}` },
+      });
     }
 
     async function sondarComRetentativa(tabela: string, colunas: string) {
@@ -141,7 +140,9 @@ describe.skipIf(!podeSondar)("selects do código vs. produção (ao vivo)", () =
         } catch {
           /* corpo não-JSON: fica como veio */
         }
-        recusados.push(`${ficheiro}: ${tabela}(${colunas.slice(0, 80)}) → ${mensagem.slice(0, 120)}`);
+        recusados.push(
+          `${ficheiro}: ${tabela}(${colunas.slice(0, 80)}) → ${mensagem.slice(0, 120)}`,
+        );
       }
     }
 

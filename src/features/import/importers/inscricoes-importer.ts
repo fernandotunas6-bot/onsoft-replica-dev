@@ -32,11 +32,17 @@ export const inscricoesImporter: RowImporter = {
   async loadRefCache(ctx) {
     const [existingPeople, applicationsResult] = await Promise.all([
       loadExistingPeople(ctx.db, ctx.schoolId),
-      ctx.db.from("enrollment_applications").select("id, full_name, payload").eq("school_id", ctx.schoolId).is("deleted_at", null),
+      ctx.db
+        .from("enrollment_applications")
+        .select("id, full_name, payload")
+        .eq("school_id", ctx.schoolId)
+        .is("deleted_at", null),
     ]);
 
     if (applicationsResult.error) {
-      throw new Error(`Não foi possível carregar candidaturas existentes: ${applicationsResult.error.message}`);
+      throw new Error(
+        `Não foi possível carregar candidaturas existentes: ${applicationsResult.error.message}`,
+      );
     }
 
     const applications = (applicationsResult.data ?? []).map((row) => {
@@ -72,9 +78,11 @@ export const inscricoesImporter: RowImporter = {
     );
 
     if (appNumber) {
-      const existing = cache.applications.find((a) => a.application_number === appNumber);
+      const existing = (cache.applications ?? []).find((a) => a.application_number === appNumber);
       if (existing) {
-        warnings.push(`Candidatura "${appNumber}" já existe no sistema; a candidatura existente será actualizada conforme a estratégia.`);
+        warnings.push(
+          `Candidatura "${appNumber}" já existe no sistema; a candidatura existente será actualizada conforme a estratégia.`,
+        );
         return { status: "duplicate", warnings, errors: [], duplicate_of: existing.id };
       }
     }
@@ -92,7 +100,12 @@ export const inscricoesImporter: RowImporter = {
 
     const candidate = personCandidateFromRow(normalized);
     if (!candidate) {
-      return { status: "error", warnings: analysis.warnings, errors: ["Dados do candidato insuficientes."], audits: [] };
+      return {
+        status: "error",
+        warnings: analysis.warnings,
+        errors: ["Dados do candidato insuficientes."],
+        audits: [],
+      };
     }
 
     // O numero e decidido — e o duplicado resolvido — antes de tocar em `people`.
@@ -103,13 +116,26 @@ export const inscricoesImporter: RowImporter = {
         valueOf(normalized, "application_number", "numero_candidatura", "processo", "inscricao"),
       ) || generateApplicantNumber(cache.existingApplicantNumbers);
 
-    const existing = cache.applications.find((a) => a.application_number === appNumber) ?? null;
+    const existing =
+      (cache.applications ?? []).find((a) => a.application_number === appNumber) ?? null;
 
     if (existing && ctx.duplicateStrategy === "ignore") {
-      return { status: "ignored", warnings: analysis.warnings, errors: [], audits: [], target_record_id: existing.id };
+      return {
+        status: "ignored",
+        warnings: analysis.warnings,
+        errors: [],
+        audits: [],
+        target_record_id: existing.id,
+      };
     }
     if (existing && ctx.duplicateStrategy === "create_new") {
-      return { status: "error", warnings: analysis.warnings, errors: ["Não é permitido criar uma segunda candidatura com o mesmo número."], audits: [], target_record_id: existing.id };
+      return {
+        status: "error",
+        warnings: analysis.warnings,
+        errors: ["Não é permitido criar uma segunda candidatura com o mesmo número."],
+        audits: [],
+        target_record_id: existing.id,
+      };
     }
 
     const personRes = await resolveOrCreatePerson(candidate, cache.existingPeople, ctx);
@@ -125,8 +151,12 @@ export const inscricoesImporter: RowImporter = {
         gender: candidate.gender || null,
       },
       grade_level: normalizeText(valueOf(normalized, "grade_level", "classe", "grau", "nivel")),
-      course_choice: normalizeText(valueOf(normalized, "course_choice", "curso", "curso_pretendido")),
-      application_date: normalizeText(valueOf(normalized, "application_date", "data_inscricao", "data")),
+      course_choice: normalizeText(
+        valueOf(normalized, "course_choice", "curso", "curso_pretendido"),
+      ),
+      application_date: normalizeText(
+        valueOf(normalized, "application_date", "data_inscricao", "data"),
+      ),
     };
 
     if (ctx.dryRun) {
@@ -147,7 +177,14 @@ export const inscricoesImporter: RowImporter = {
         .eq("school_id", ctx.schoolId)
         .single();
       if (beforeError || !before) {
-        return { status: "error", warnings: analysis.warnings, errors: [`Não foi possível carregar a candidatura antes da actualização: ${beforeError?.message ?? "registo não encontrado"}`], audits: personRes.audits };
+        return {
+          status: "error",
+          warnings: analysis.warnings,
+          errors: [
+            `Não foi possível carregar a candidatura antes da actualização: ${beforeError?.message ?? "registo não encontrado"}`,
+          ],
+          audits: personRes.audits,
+        };
       }
 
       const { data: updated, error } = await ctx.db
@@ -163,7 +200,12 @@ export const inscricoesImporter: RowImporter = {
         .single();
 
       if (error || !updated) {
-        return { status: "error", warnings: analysis.warnings, errors: [`Erro ao actualizar candidatura: ${error?.message ?? "registo não encontrado"}`], audits: personRes.audits };
+        return {
+          status: "error",
+          warnings: analysis.warnings,
+          errors: [`Erro ao actualizar candidatura: ${error?.message ?? "registo não encontrado"}`],
+          audits: personRes.audits,
+        };
       }
 
       return {
@@ -198,7 +240,12 @@ export const inscricoesImporter: RowImporter = {
       .single();
 
     if (error || !created) {
-      return { status: "error", warnings: analysis.warnings, errors: [`Erro ao criar candidatura: ${error?.message ?? "erro desconhecido"}`], audits: personRes.audits };
+      return {
+        status: "error",
+        warnings: analysis.warnings,
+        errors: [`Erro ao criar candidatura: ${error?.message ?? "erro desconhecido"}`],
+        audits: personRes.audits,
+      };
     }
 
     cache.applications.push({

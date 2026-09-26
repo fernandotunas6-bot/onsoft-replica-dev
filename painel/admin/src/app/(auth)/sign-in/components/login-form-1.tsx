@@ -1,24 +1,18 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { cn } from "@/lib/utils"
-import { createClient } from "@/lib/supabase/client"
-import { fetchSaasSession } from "@/lib/saas-api"
-import { getCreateSchoolUrl } from "@/lib/ecosystem-urls"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { fetchSaasSession } from "@/lib/saas-api";
+import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -26,16 +20,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form";
 
 const loginFormSchema = z.object({
   email: z.string().email("Endereço de e-mail inválido"),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-})
+});
 
-type LoginFormValues = z.infer<typeof loginFormSchema>
+type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 const SAFE_ADMIN_PREFIXES = [
+  "/dashboard",
+  "/tasks",
+  "/calendar",
+  "/mail",
+  "/chat",
   "/tenants",
   "/subscriptions",
   "/platform-admins",
@@ -43,28 +42,26 @@ const SAFE_ADMIN_PREFIXES = [
   "/domains",
   "/gateway-webhooks",
   "/settings",
-] as const
+] as const;
 
 function isSafeAdminNext(path: string | null): path is string {
-  if (!path || !path.startsWith("/")) return false
-  if (path.startsWith("//")) return false
-  return SAFE_ADMIN_PREFIXES.some(
-    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
-  )
+  if (!path || !path.startsWith("/")) return false;
+  if (path.startsWith("//")) return false;
+  return SAFE_ADMIN_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
-export function LoginForm1({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
-  const router = useRouter()
-  const [serverError, setServerError] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null
-    return new URLSearchParams(window.location.search).get("error") === "platform"
-      ? "Esta conta não é administrador da plataforma. Contas escolares entram no SIGA Plus."
-      : null
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function LoginForm1({ className, ...props }: React.ComponentProps<"div">) {
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("error") === "platform") {
+      setServerError(
+        "Esta conta não é administrador da plataforma. Contas escolares entram no SIGA Plus.",
+      );
+    }
+  }, []);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -72,44 +69,42 @@ export function LoginForm1({
       email: "",
       password: "",
     },
-  })
+  });
 
   async function onSubmit(values: LoginFormValues) {
-    setServerError(null)
-    setIsSubmitting(true)
+    setServerError(null);
+    setIsSubmitting(true);
 
-    const supabase = createClient()
+    const supabase = createClient();
     const { data: sessionData, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
-    })
+    });
 
     if (error) {
-      setServerError(error.message)
-      setIsSubmitting(false)
-      return
+      setServerError(error.message);
+      setIsSubmitting(false);
+      return;
     }
 
-    const token = sessionData.session?.access_token
-    const saasSession = await fetchSaasSession(token)
+    const token = sessionData.session?.access_token;
+    const saasSession = await fetchSaasSession(token);
     if (!saasSession.ok || !saasSession.profile.platformAdmin) {
-      await supabase.auth.signOut()
-      setServerError(
-        "Esta conta não tem permissão de administrador da plataforma SIGA Plus.",
-      )
-      setIsSubmitting(false)
-      return
+      await supabase.auth.signOut();
+      setServerError("Esta conta não tem permissão de administrador da plataforma SIGA Plus.");
+      setIsSubmitting(false);
+      return;
     }
 
-    router.push(safeNext())
-    router.refresh()
+    router.push(safeNext());
+    router.refresh();
   }
 
   function safeNext() {
-    if (typeof window === "undefined") return "/tenants"
-    const next = new URLSearchParams(window.location.search).get("next")
-    if (isSafeAdminNext(next)) return next
-    return "/tenants"
+    if (typeof window === "undefined") return "/tenants";
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (isSafeAdminNext(next)) return next;
+    return "/tenants";
   }
 
   return (
@@ -125,9 +120,7 @@ export function LoginForm1({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <div className="grid gap-6">
-                {serverError && (
-                  <p className="text-destructive text-sm">{serverError}</p>
-                )}
+                {serverError && <p className="text-destructive text-sm">{serverError}</p>}
                 <div className="grid gap-4">
                   <FormField
                     control={form.control}
@@ -136,11 +129,7 @@ export function LoginForm1({
                       <FormItem>
                         <FormLabel>E-mail</FormLabel>
                         <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="teste@exemplo.com"
-                            {...field}
-                          />
+                          <Input type="email" placeholder="teste@exemplo.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -191,5 +180,5 @@ export function LoginForm1({
         Operação escolar (alunos, notas, propinas) vive no SIGA Plus — não nesta consola.
       </div>
     </div>
-  )
+  );
 }

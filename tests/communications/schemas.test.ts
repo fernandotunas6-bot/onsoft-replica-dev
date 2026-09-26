@@ -40,7 +40,7 @@ describe("communications schemas", () => {
   });
 
   it("channel options match the DB constraint exactly", () => {
-    expect(announcementChannelOptions).toEqual(["sms", "email", "portal"]);
+    expect(announcementChannelOptions).toEqual(["sms", "whatsapp", "email", "portal"]);
   });
 
   it("accepts a sent announcement with valid audience", () => {

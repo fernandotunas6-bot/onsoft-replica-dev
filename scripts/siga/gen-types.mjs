@@ -33,10 +33,7 @@ export const CABECALHO = `/**
 
 /** Carimba um conteúdo já gerado, sem duplicar o cabeçalho. */
 export function carimbar(conteudo) {
-  const semCabecalhoAntigo = conteudo.replace(
-    /^\/\*\*[\s\S]*?não editar à mão[\s\S]*?\*\/\n+/,
-    "",
-  );
+  const semCabecalhoAntigo = conteudo.replace(/^\/\*\*[\s\S]*?não editar à mão[\s\S]*?\*\/\n+/, "");
   return CABECALHO + "\n" + semCabecalhoAntigo.replace(/^\n+/, "");
 }
 

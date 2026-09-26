@@ -1,18 +1,13 @@
-"use client"
+"use client";
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import { z } from "zod";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -20,27 +15,27 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Checkbox } from "@/components/ui/checkbox"
+} from "@/components/ui/form";
+import { Checkbox } from "@/components/ui/checkbox";
 
-const signupFormSchema = z.object({
-  firstName: z.string().min(1, "Nome é obrigatório"),
-  lastName: z.string().min(1, "Sobrenome é obrigatório"),
-  email: z.string().email("Endereço de e-mail inválido"),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-  confirmPassword: z.string().min(6, "Confirme sua senha"),
-  terms: z.boolean().refine(val => val === true, "Você deve concordar com os termos"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-})
+const signupFormSchema = z
+  .object({
+    firstName: z.string().min(1, "Nome é obrigatório"),
+    lastName: z.string().min(1, "Sobrenome é obrigatório"),
+    email: z.string().email("Endereço de e-mail inválido"),
+    password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+    confirmPassword: z.string().min(6, "Confirme sua senha"),
+    terms: z.boolean().refine((val) => val === true, "Você deve concordar com os termos"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
 
-type SignupFormValues = z.infer<typeof signupFormSchema>
+type SignupFormValues = z.infer<typeof signupFormSchema>;
 
-export function SignupForm1({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function SignupForm1({ className, ...props }: React.ComponentProps<"div">) {
+  const router = useRouter();
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
@@ -51,11 +46,10 @@ export function SignupForm1({
       confirmPassword: "",
       terms: false,
     },
-  })
+  });
 
-  function onSubmit(data: SignupFormValues) {
-    console.log("Signup attempt:", data)
-    // Here you would typically handle the signup
+  function onSubmit() {
+    router.push("/sign-in");
   }
 
   return (
@@ -63,9 +57,7 @@ export function SignupForm1({
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Criar Conta</CardTitle>
-          <CardDescription>
-            Insira suas informações para criar uma nova conta
-          </CardDescription>
+          <CardDescription>Insira suas informações para criar uma nova conta</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -107,11 +99,7 @@ export function SignupForm1({
                       <FormItem>
                         <FormLabel>E-mail</FormLabel>
                         <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="m@exemplo.com"
-                            {...field}
-                          />
+                          <Input type="email" placeholder="m@exemplo.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -177,7 +165,7 @@ export function SignupForm1({
                 </div>
                 <div className="text-center text-sm">
                   Já tem uma conta?{" "}
-                  <a href="/auth/sign-in" className="underline underline-offset-4">
+                  <a href="/sign-in" className="underline underline-offset-4">
                     Entrar
                   </a>
                 </div>
@@ -187,9 +175,9 @@ export function SignupForm1({
         </CardContent>
       </Card>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        Ao clicar em continuar, você concorda com nossos <a href="#">Termos de Serviço</a>{" "}
-        e <a href="#">Política de Privacidade</a>.
+        Ao clicar em continuar, você concorda com nossos <a href="#">Termos de Serviço</a> e{" "}
+        <a href="#">Política de Privacidade</a>.
       </div>
     </div>
-  )
+  );
 }

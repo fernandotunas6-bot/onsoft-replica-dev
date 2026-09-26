@@ -22,7 +22,7 @@ describe("integration actions", () => {
 
   it("resolves provider ids from capability prefixes", () => {
     expect(providerIdFromCapability("whatsapp.notices")).toBe("whatsapp_business");
-    expect(providerIdFromCapability("m365.outlook")).toBe("microsoft_365_education");
+    expect(providerIdFromCapability("sige.export_students")).toBe("sige");
     expect(providerIdFromCapability("agt.einvoice")).toBe("agt");
   });
 
@@ -35,8 +35,7 @@ describe("integration actions", () => {
 
   it("generates payment references and meeting links", () => {
     expect(paymentReference("EMIS")).toMatch(/^EMIS\d{9}$/);
-    expect(meetingRoomLink("zoom")).toMatch(/^https:\/\/zoom\.us\/j\/\d+$/);
-    expect(meetingRoomLink("teams")).toContain("teams.microsoft.com");
+    expect(meetingRoomLink()).toMatch(/^https:\/\/zoom\.us\/j\/\d+$/);
   });
 
   it("returns official install URLs for catalog providers", () => {

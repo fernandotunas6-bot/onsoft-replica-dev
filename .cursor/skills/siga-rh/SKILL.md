@@ -102,7 +102,8 @@ draft → ready → authorized → processing ⇄ partial → completed
 | `hybrid` | Base + adicionais validados − descontos |
 
 Faltas: `justified_paid` | `justified_unpaid` | `unjustified` — nascem `pending`.
-Compensação de aula só `validated` com assurance check-out `auto_approve`.
+O assurance do check-out avalia a confiança da presença, mas a compensação continua
+`pending` até validação explícita do RH, inclusive quando a decisão é `auto_approve`.
 
 ## Regras críticas
 
@@ -112,8 +113,8 @@ Compensação de aula só `validated` com assurance check-out `auto_approve`.
 4. Falha de pagamento **não** cria saída de caixa.
 5. Horário programado **não** prova aula; falta automática nasce `pending`.
 6. Token QR bruto **nunca** persistido — só `token_hash`.
-7. Compensação de aula só `validated` com evidência `check_out` `auto_approve`
-   (`hr_gate_teacher_compensation_by_assurance` + hardening `20260906190000`).
+7. Evidência `check_out` e assurance não validam remuneração automaticamente;
+   a compensação continua `pending` até decisão explícita do RH.
 8. Listagens de destino mascaram IBAN (`maskPaymentDestinationLabel`).
 9. Escrita: `loadSgaAdminClient` + roles Admin/Tesouraria.
 10. SQL SGA: Ciclo 56 em `APPLY_ENROLLMENT_AND_PREMIUM.sql` (+ migrations `20260906*_hr_*`).

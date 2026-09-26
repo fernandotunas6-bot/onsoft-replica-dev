@@ -3302,6 +3302,106 @@ export type Database = {
           },
         ]
       }
+      google_workspace_connections: {
+        Row: {
+          account_email: string | null
+          connected_at: string
+          encrypted_access_token: string
+          encrypted_refresh_token: string
+          expires_at: string
+          google_sub: string
+          granted_scopes: string[]
+          id: string
+          revoked_at: string | null
+          school_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_email?: string | null
+          connected_at?: string
+          encrypted_access_token: string
+          encrypted_refresh_token: string
+          expires_at: string
+          google_sub: string
+          granted_scopes?: string[]
+          id?: string
+          revoked_at?: string | null
+          school_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_email?: string | null
+          connected_at?: string
+          encrypted_access_token?: string
+          encrypted_refresh_token?: string
+          expires_at?: string
+          google_sub?: string
+          granted_scopes?: string[]
+          id?: string
+          revoked_at?: string | null
+          school_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_workspace_connections_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_workspace_oauth_states: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          encrypted_verifier: string
+          expires_at: string
+          redirect_uri: string
+          requested_services: string[]
+          school_id: string
+          session_id: string
+          state_hash: string
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          encrypted_verifier: string
+          expires_at: string
+          redirect_uri: string
+          requested_services: string[]
+          school_id: string
+          session_id: string
+          state_hash: string
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          encrypted_verifier?: string
+          expires_at?: string
+          redirect_uri?: string
+          requested_services?: string[]
+          school_id?: string
+          session_id?: string
+          state_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_workspace_oauth_states_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grade_items: {
         Row: {
           assessed_on: string | null
@@ -7178,6 +7278,82 @@ export type Database = {
           },
         ]
       }
+      school_access_requests: {
+        Row: {
+          created_at: string
+          enrollment_application_id: string | null
+          full_name: string
+          id: string
+          institutional_id: string | null
+          national_id: string | null
+          person_id: string | null
+          requested_role: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enrollment_application_id?: string | null
+          full_name: string
+          id?: string
+          institutional_id?: string | null
+          national_id?: string | null
+          person_id?: string | null
+          requested_role: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enrollment_application_id?: string | null
+          full_name?: string
+          id?: string
+          institutional_id?: string | null
+          national_id?: string | null
+          person_id?: string | null
+          requested_role?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_access_requests_enrollment_application_id_fkey"
+            columns: ["enrollment_application_id"]
+            isOneToOne: true
+            referencedRelation: "enrollment_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_access_requests_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_access_requests_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       school_announcements: {
         Row: {
           audience: string
@@ -10375,6 +10551,14 @@ export type Database = {
         }
         Returns: Json
       }
+      approve_school_access_request: {
+        Args: {
+          p_person_id?: string
+          p_request_id: string
+          p_reviewer_id: string
+        }
+        Returns: string
+      }
       archive_announcement: {
         Args: { announcement_id: string; school_id: string }
         Returns: Json
@@ -11147,6 +11331,10 @@ export type Database = {
       siga_alumni_profile_completion: {
         Args: { target: Database["public"]["Tables"]["alumni_profiles"]["Row"] }
         Returns: number
+      }
+      submit_approved_school_enrollment: {
+        Args: { p_payload: Json; p_request_id: string; p_user_id: string }
+        Returns: string
       }
       submit_attendance: {
         Args: {

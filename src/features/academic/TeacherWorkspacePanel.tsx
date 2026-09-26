@@ -32,18 +32,9 @@ export function TeacherWorkspacePanel({
   const queryClient = useQueryClient();
   const { school, selectedYearLabel } = useSchoolSettings();
   const installed = useInstalledIntegrations();
-  const classroomOn = installed.hasCapability("classroom.classes");
-  const classroomWork = installed.hasCapability("classroom.work");
-  const moodleOn = installed.hasCapability("moodle.courses");
-  const moodleGrades = installed.hasCapability("moodle.grades");
-  const canvasOn = installed.hasCapability("canvas.courses");
-  const onedriveOn = installed.hasCapability("m365.onedrive");
   const zoomOn = installed.hasCapability("zoom.rooms");
-  const teamsOn = installed.hasCapability("teams.meetings");
-  const teamsClasses = installed.hasCapability("teams.classes");
   const gcalOn = installed.hasCapability("gcal.subscribe");
   const appleOn = installed.hasCapability("apple.ics");
-  const turnitinOn = installed.hasCapability("turnitin.originality");
 
   const copyIcs = async (kind: "google" | "apple" | "plain") => {
     const feed = await getOrCreateCalendarFeedToken();
@@ -187,125 +178,6 @@ export function TeacherWorkspacePanel({
                         )}
                       />
                     ) : null}
-                    {classroomOn ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          window.open(
-                            "https://classroom.google.com/",
-                            "_blank",
-                            "noopener,noreferrer",
-                          )
-                        }
-                      >
-                        Classroom
-                      </Button>
-                    ) : null}
-                    {moodleOn ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          window.open(
-                            "https://docs.moodle.org/en/Web_services",
-                            "_blank",
-                            "noopener,noreferrer",
-                          )
-                        }
-                      >
-                        Moodle
-                      </Button>
-                    ) : null}
-                    {classroomWork ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          window.open(
-                            "https://classroom.google.com/",
-                            "_blank",
-                            "noopener,noreferrer",
-                          )
-                        }
-                      >
-                        Trabalhos
-                      </Button>
-                    ) : null}
-                    {moodleGrades ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          window.open(
-                            "https://docs.moodle.org/en/Gradebook",
-                            "_blank",
-                            "noopener,noreferrer",
-                          )
-                        }
-                      >
-                        Notas Moodle
-                      </Button>
-                    ) : null}
-                    {canvasOn ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          window.open(
-                            "https://www.instructure.com/canvas",
-                            "_blank",
-                            "noopener,noreferrer",
-                          )
-                        }
-                      >
-                        Canvas
-                      </Button>
-                    ) : null}
-                    {teamsClasses ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          window.open(
-                            "https://teams.microsoft.com/",
-                            "_blank",
-                            "noopener,noreferrer",
-                          )
-                        }
-                      >
-                        Equipa
-                      </Button>
-                    ) : null}
-                    {onedriveOn ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          window.open(
-                            "https://www.microsoft.com/microsoft-365/onedrive/online-cloud-storage",
-                            "_blank",
-                            "noopener,noreferrer",
-                          )
-                        }
-                      >
-                        OneDrive
-                      </Button>
-                    ) : null}
-                    {turnitinOn ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(
-                            `${item.name} · ${item.subject_name}`,
-                          );
-                          toast.success("Turma copiada para o Turnitin");
-                        }}
-                      >
-                        Turnitin
-                      </Button>
-                    ) : null}
                     <Button asChild variant="ghost" size="sm">
                       <Link
                         to="/pedagogica"
@@ -383,7 +255,7 @@ export function TeacherWorkspacePanel({
                   <p className="text-xs text-muted-foreground">
                     {slot.subject_name} · {slot.class_group_name}
                   </p>
-                  {zoomOn || teamsOn ? (
+                  {zoomOn ? (
                     <span className="mt-1 flex flex-wrap gap-3">
                       {zoomOn ? (
                         <ZoomMeetingButton
@@ -392,19 +264,6 @@ export function TeacherWorkspacePanel({
                           variant="ghost"
                           className="h-auto p-0 text-[11px] font-semibold text-primary hover:underline hover:bg-transparent"
                         />
-                      ) : null}
-                      {teamsOn ? (
-                        <button
-                          type="button"
-                          className="text-[11px] font-semibold text-primary hover:underline"
-                          onClick={async () => {
-                            const link = meetingRoomLink("teams");
-                            await navigator.clipboard.writeText(link);
-                            toast.success("Link Teams copiado", { description: link });
-                          }}
-                        >
-                          Abrir Teams
-                        </button>
                       ) : null}
                     </span>
                   ) : null}

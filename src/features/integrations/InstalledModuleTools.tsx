@@ -84,8 +84,8 @@ export function InstalledModuleTools({
         );
         return;
       }
-      if (kind === "copy-meeting-zoom" || kind === "copy-meeting-teams") {
-        const link = meetingRoomLink(kind === "copy-meeting-zoom" ? "zoom" : "teams");
+      if (kind === "copy-meeting-zoom") {
+        const link = meetingRoomLink();
         await copyText(link);
         toast.success("Link da sala copiado", { description: link });
         return;

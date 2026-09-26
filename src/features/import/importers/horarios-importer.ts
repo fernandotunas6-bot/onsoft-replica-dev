@@ -118,14 +118,16 @@ export const horariosImporter: RowImporter = {
       const startsAt = parseTimeToMinutes(String(row.starts_at ?? ""));
       const endsAt = parseTimeToMinutes(String(row.ends_at ?? ""));
       if (!classSubject || startsAt === null || endsAt === null || endsAt <= startsAt) return [];
-      return [{
-        classGroupId: classSubject.class_group_id,
-        teacherId: classSubject.teacher_id,
-        weekday: Number(row.weekday),
-        startsAt,
-        endsAt,
-        room: normalizeText(row.room) || "A definir",
-      }];
+      return [
+        {
+          classGroupId: classSubject.class_group_id,
+          teacherId: classSubject.teacher_id,
+          weekday: Number(row.weekday),
+          startsAt,
+          endsAt,
+          room: normalizeText(row.room) || "A definir",
+        },
+      ];
     });
 
     return {
@@ -232,7 +234,7 @@ export const horariosImporter: RowImporter = {
 
     const requestedRoom = normalizeText(valueOf(normalized, "room", "sala")) || "A definir";
     const teacherId = teacher?.id ?? classSubject?.teacher_id ?? null;
-    const scheduleConflict = cache.scheduledSlots.find(
+    const scheduleConflict = (cache.scheduledSlots ?? []).find(
       (slot) =>
         slot.weekday === weekday &&
         intervalsOverlap(startMinutes!, endMinutes!, slot.startsAt, slot.endsAt) &&
@@ -359,7 +361,9 @@ export const horariosImporter: RowImporter = {
         return {
           status: "error",
           warnings: analysis.warnings,
-          errors: [`Erro ao atribuir professor à disciplina da turma: ${teacherUpdateError.message}`],
+          errors: [
+            `Erro ao atribuir professor à disciplina da turma: ${teacherUpdateError.message}`,
+          ],
           audits,
         };
       }

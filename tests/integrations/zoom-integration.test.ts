@@ -12,7 +12,7 @@ const zoomServer = readFileSync(resolve(__dirname, "../../src/features/integrati
 
 describe("SIGA Integrations — Zoom Meetings & Class Integration", () => {
   it("deve fornecer link de sala e rota oficial da integração", () => {
-    const link = meetingRoomLink("zoom");
+    const link = meetingRoomLink();
     expect(link).toBeDefined();
     expect(link).toContain("zoom.us");
   });

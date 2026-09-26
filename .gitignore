@@ -60,3 +60,7 @@ public/turmas/*.zip
 src-tauri/target/
 src-tauri/gen/
 target/
+
+# Credenciais descarregadas de consolas de provedores -- nunca versionar
+client_secret_*.json
+*-service-account.json

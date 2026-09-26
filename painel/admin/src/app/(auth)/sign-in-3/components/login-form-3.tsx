@@ -1,18 +1,15 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Logo } from "@/components/logo"
-import Link from "next/link"
-import Image from "next/image"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/logo";
+import Link from "next/link";
+import Image from "next/image";
 
-export function LoginForm3({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function LoginForm3({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
@@ -35,25 +32,19 @@ export function LoginForm3({
               </div>
               <div className="grid gap-3">
                 <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="test@example.com"
-                  defaultValue="test@example.com"
-                  required
-                />
+                <Input id="email" type="email" placeholder="admin@exemplo.com" required />
               </div>
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Senha</Label>
                   <a
-                    href="/auth/forgot-password-3"
+                    href="/forgot-password"
                     className="ml-auto text-sm underline-offset-2 hover:underline"
                   >
                     Esqueceu a senha?
                   </a>
                 </div>
-                <Input id="password" type="password" defaultValue="password" required />
+                <Input id="password" type="password" autoComplete="current-password" required />
               </div>
               <Button type="submit" className="w-full cursor-pointer">
                 Login
@@ -94,7 +85,7 @@ export function LoginForm3({
               </div>
               <div className="text-center text-sm">
                 Ainda não tem conta?{" "}
-                <a href="/auth/sign-up-3" className="underline underline-offset-4">
+                <a href="/sign-up" className="underline underline-offset-4">
                   Criar conta
                 </a>
               </div>
@@ -111,9 +102,9 @@ export function LoginForm3({
         </CardContent>
       </Card>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        Ao continuar, concorda com os nossos <a href="#">Termos de serviço</a>{" "}
-        e <a href="#">Política de privacidade</a>.
+        Ao continuar, concorda com os nossos <a href="#">Termos de serviço</a> e{" "}
+        <a href="#">Política de privacidade</a>.
       </div>
     </div>
-  )
+  );
 }

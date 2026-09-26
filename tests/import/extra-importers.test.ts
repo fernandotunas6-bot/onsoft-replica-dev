@@ -64,16 +64,18 @@ describe("Extra Importers (dividas, funcionarios, horarios)", () => {
       expect(analysis.errors).toContain("Nº do Bilhete de Identidade é obrigatório.");
       expect(analysis.errors).toContain("Telefone de contacto é obrigatório.");
       expect(analysis.errors).toContain("Cargo ou função do funcionário é obrigatório.");
+      expect(analysis.errors).toContain("Data de admissão é obrigatória e deve ser válida.");
     });
 
     it("reconhece funcionário válido", () => {
-      const cache = { existingPeople: [], existingRoleKeys: new Set() };
+      const cache = { existingPeople: [], employments: [] };
       const analysis = funcionariosImporter.analyzeRow(
         {
           full_name: "António Carlos dos Santos",
           id_number: "004567891HA021",
           phone: "912334455",
           role_title: "Técnico de Secretaria",
+          hire_date: "2026-09-01",
         },
         cache as any,
       );

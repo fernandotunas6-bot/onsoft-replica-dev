@@ -49,8 +49,7 @@ describe("integration install packages", () => {
   it("builds catalog-ready payment refs and meeting links", () => {
     expect(paymentReference("EMIS")).toMatch(/^EMIS\d{9}$/);
     expect(paymentReference("UML")).toMatch(/^UML\d{9}$/);
-    expect(meetingRoomLink("zoom")).toContain("zoom.us/j/");
-    expect(meetingRoomLink("teams")).toContain("teams.microsoft.com");
+    expect(meetingRoomLink()).toContain("zoom.us/j/");
     expect(whatsappHref("923 000 111", "Olá")).toBe("https://wa.me/923000111?text=Ol%C3%A1");
   });
 
@@ -70,7 +69,8 @@ describe("integration install packages", () => {
       "comunicacoes",
       "alunos",
       "documentos",
-      "arquivos",
+      // "arquivos" saiu: a unica capacidade que o estendia era m365.onedrive, do
+      // Microsoft 365 -- integracao de fachada removida em 20260925110000.
     ] as const;
     const allCaps = allInstallPackages().flatMap((pack) => pack.capabilities);
     for (const module of modules) {

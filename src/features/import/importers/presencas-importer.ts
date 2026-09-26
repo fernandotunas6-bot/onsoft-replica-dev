@@ -1,5 +1,5 @@
 import { normalizeDate, normalizeText } from "../engine/normalize";
-import type { ImportRefCache, RowImporter } from "../engine/types";
+import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadClassGroupRefs,
   loadStudentRefs,
@@ -20,7 +20,14 @@ type AttendanceCache = ImportRefCache & {
   subjects: SubjectRef[];
 };
 
-const STATUS_VALUES = ["present", "absent", "excused", "late", "early_exit", "not_registered"] as const;
+const STATUS_VALUES = [
+  "present",
+  "absent",
+  "excused",
+  "late",
+  "early_exit",
+  "not_registered",
+] as const;
 type AttendanceStatus = (typeof STATUS_VALUES)[number];
 
 function valueOf(row: Record<string, unknown>, ...keys: string[]) {
@@ -39,7 +46,8 @@ function parseStatus(value: unknown): AttendanceStatus | null {
   if (["excused", "justificada", "justificado", "justific", "j"].includes(text)) return "excused";
   if (["late", "atrasado", "atraso"].includes(text)) return "late";
   if (["early_exit", "saida_antecipada", "saída antecipada"].includes(text)) return "early_exit";
-  if (["not_registered", "nao_registado", "não registado", "nr"].includes(text)) return "not_registered";
+  if (["not_registered", "nao_registado", "não registado", "nr"].includes(text))
+    return "not_registered";
   return null;
 }
 
@@ -85,19 +93,28 @@ export const presencasImporter: RowImporter = {
     if (!groupValue) errors.push("Turma é obrigatória para registar a presença.");
     if (!subjectValue) errors.push("Disciplina é obrigatória para registar a presença.");
     if (!attendanceDate) errors.push("Data da presença é obrigatória e deve ser válida.");
-    if (!status) errors.push("Estado de presença inválido. Use presente, ausente, justificada, atrasado ou saída antecipada.");
+    if (!status)
+      errors.push(
+        "Estado de presença inválido. Use presente, ausente, justificada, atrasado ou saída antecipada.",
+      );
 
     const student = resolveStudent(identifier, cache.students);
-    if (student.ambiguous) errors.push(`Identificador "${identifier}" é ambíguo; use o nº de processo exacto.`);
-    else if (identifier && !student.row) errors.push(`Aluno "${identifier}" não encontrado nesta escola.`);
+    if (student.ambiguous)
+      errors.push(`Identificador "${identifier}" é ambíguo; use o nº de processo exacto.`);
+    else if (identifier && !student.row)
+      errors.push(`Aluno "${identifier}" não encontrado nesta escola.`);
 
     const group = resolveClassGroup(groupValue, cache.groups);
-    if (group.ambiguous) errors.push(`Turma "${normalizeText(groupValue)}" é ambígua; use o código exacto.`);
-    else if (groupValue && !group.row) errors.push(`Turma "${normalizeText(groupValue)}" não encontrada.`);
+    if (group.ambiguous)
+      errors.push(`Turma "${normalizeText(groupValue)}" é ambígua; use o código exacto.`);
+    else if (groupValue && !group.row)
+      errors.push(`Turma "${normalizeText(groupValue)}" não encontrada.`);
 
     const subject = resolveSubject(subjectValue, cache.subjects);
-    if (subject.ambiguous) errors.push(`Disciplina "${normalizeText(subjectValue)}" é ambígua; use o código exacto.`);
-    else if (subjectValue && !subject.row) errors.push(`Disciplina "${normalizeText(subjectValue)}" não encontrada.`);
+    if (subject.ambiguous)
+      errors.push(`Disciplina "${normalizeText(subjectValue)}" é ambígua; use o código exacto.`);
+    else if (subjectValue && !subject.row)
+      errors.push(`Disciplina "${normalizeText(subjectValue)}" não encontrada.`);
 
     if (errors.length) return { status: "error", warnings, errors };
 
@@ -118,8 +135,19 @@ export const presencasImporter: RowImporter = {
       valueOf(normalized, "attendance_date", "data_presenca", "data", "data_aula"),
     )!;
     const status = parseStatus(valueOf(normalized, "status", "estado", "presenca"))!;
-    const reason = normalizeText(valueOf(normalized, "reason", "motivo", "justificacao", "justificação", "observacao", "observação"));
-    const timetableSlotId = normalizeText(valueOf(normalized, "timetable_slot_id", "slot_id", "horario_id")) || null;
+    const reason = normalizeText(
+      valueOf(
+        normalized,
+        "reason",
+        "motivo",
+        "justificacao",
+        "justificação",
+        "observacao",
+        "observação",
+      ),
+    );
+    const timetableSlotId =
+      normalizeText(valueOf(normalized, "timetable_slot_id", "slot_id", "horario_id")) || null;
     const periodRaw = Number(valueOf(normalized, "period_number", "periodo", "período"));
     const periodNumber = Number.isInteger(periodRaw) && periodRaw > 0 ? periodRaw : null;
 
@@ -139,10 +167,20 @@ export const presencasImporter: RowImporter = {
       .maybeSingle();
 
     if (enrollmentError) {
-      return { status: "error", warnings: [], errors: [`Não foi possível resolver a matrícula: ${enrollmentError.message}`], audits: [] };
+      return {
+        status: "error",
+        warnings: [],
+        errors: [`Não foi possível resolver a matrícula: ${enrollmentError.message}`],
+        audits: [],
+      };
     }
     if (!enrollment) {
-      return { status: "error", warnings: [], errors: ["O aluno não possui matrícula nessa turma/ano lectivo."], audits: [] };
+      return {
+        status: "error",
+        warnings: [],
+        errors: ["O aluno não possui matrícula nessa turma/ano lectivo."],
+        audits: [],
+      };
     }
 
     const { data: classSubject, error: classSubjectError } = await ctx.db
@@ -159,7 +197,11 @@ export const presencasImporter: RowImporter = {
       return {
         status: "error",
         warnings: [],
-        errors: [classSubjectError ? `Não foi possível resolver a disciplina da turma: ${classSubjectError.message}` : "A disciplina não está atribuída à turma."],
+        errors: [
+          classSubjectError
+            ? `Não foi possível resolver a disciplina da turma: ${classSubjectError.message}`
+            : "A disciplina não está atribuída à turma.",
+        ],
         audits: [],
       };
     }
@@ -173,24 +215,33 @@ export const presencasImporter: RowImporter = {
       .eq("lesson_date", attendanceDate);
     if (timetableSlotId) sessionQuery = sessionQuery.eq("timetable_slot_id", timetableSlotId);
     if (periodNumber) sessionQuery = sessionQuery.eq("period_number", periodNumber);
-    const { data: sessionCandidates, error: sessionLookupError } = await sessionQuery
-      .order("created_at", { ascending: true });
+    const { data: sessionCandidates, error: sessionLookupError } = await sessionQuery.order(
+      "created_at",
+      { ascending: true },
+    );
 
     if (sessionLookupError) {
-      return { status: "error", warnings: [], errors: [`Não foi possível resolver a sessão de presença: ${sessionLookupError.message}`], audits: [] };
+      return {
+        status: "error",
+        warnings: [],
+        errors: [`Não foi possível resolver a sessão de presença: ${sessionLookupError.message}`],
+        audits: [],
+      };
     }
     if (!timetableSlotId && !periodNumber && (sessionCandidates ?? []).length > 1) {
       return {
         status: "error",
         warnings: [],
-        errors: ["Existem várias sessões para a mesma turma/disciplina/data; informe timetable_slot_id ou period_number para evitar misturar presenças."],
+        errors: [
+          "Existem várias sessões para a mesma turma/disciplina/data; informe timetable_slot_id ou period_number para evitar misturar presenças.",
+        ],
         audits: [],
       };
     }
 
     const existingSession = sessionCandidates?.[0] ?? null;
     let sessionId = existingSession?.id ? String(existingSession.id) : null;
-    const audits: Array<Record<string, unknown>> = [];
+    const audits: AuditEntry[] = [];
 
     if (!sessionId) {
       if (ctx.dryRun) {
@@ -222,7 +273,14 @@ export const presencasImporter: RowImporter = {
         .single();
 
       if (sessionError || !session) {
-        return { status: "error", warnings: [], errors: [`Não foi possível criar a sessão de presença: ${sessionError?.message ?? "erro desconhecido"}`], audits: [] };
+        return {
+          status: "error",
+          warnings: [],
+          errors: [
+            `Não foi possível criar a sessão de presença: ${sessionError?.message ?? "erro desconhecido"}`,
+          ],
+          audits: [],
+        };
       }
 
       sessionId = String(session.id);
@@ -253,14 +311,31 @@ export const presencasImporter: RowImporter = {
       .maybeSingle();
 
     if (recordLookupError) {
-      return { status: "error", warnings: [], errors: [`Não foi possível verificar a presença existente: ${recordLookupError.message}`], audits };
+      return {
+        status: "error",
+        warnings: [],
+        errors: [`Não foi possível verificar a presença existente: ${recordLookupError.message}`],
+        audits,
+      };
     }
 
     if (existingRecord && ctx.duplicateStrategy === "ignore") {
-      return { status: "ignored", warnings: ["Presença existente ignorada conforme a estratégia escolhida."], errors: [], audits, target_record_id: String(existingRecord.id) };
+      return {
+        status: "ignored",
+        warnings: ["Presença existente ignorada conforme a estratégia escolhida."],
+        errors: [],
+        audits,
+        target_record_id: String(existingRecord.id),
+      };
     }
     if (existingRecord && ctx.duplicateStrategy === "create_new") {
-      return { status: "error", warnings: [], errors: ["Já existe um registo de presença para este aluno nesta sessão."], audits, target_record_id: String(existingRecord.id) };
+      return {
+        status: "error",
+        warnings: [],
+        errors: ["Já existe um registo de presença para este aluno nesta sessão."],
+        audits,
+        target_record_id: String(existingRecord.id),
+      };
     }
     if (ctx.dryRun) {
       return {
@@ -276,14 +351,26 @@ export const presencasImporter: RowImporter = {
       const before = { ...existingRecord };
       const { data: updated, error } = await ctx.db
         .from("siga_attendance_records")
-        .update({ status, notes: reason || null, recorded_by: ctx.userId, updated_at: new Date().toISOString() })
+        .update({
+          status,
+          notes: reason || null,
+          recorded_by: ctx.userId,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", existingRecord.id)
         .eq("school_id", ctx.schoolId)
         .select("id, status, notes")
         .single();
 
       if (error || !updated) {
-        return { status: "error", warnings: [], errors: [`Não foi possível actualizar a presença: ${error?.message ?? "registo não encontrado"}`], audits };
+        return {
+          status: "error",
+          warnings: [],
+          errors: [
+            `Não foi possível actualizar a presença: ${error?.message ?? "registo não encontrado"}`,
+          ],
+          audits,
+        };
       }
 
       audits.push({
@@ -293,7 +380,13 @@ export const presencasImporter: RowImporter = {
         before_data: before,
         after_data: updated,
       });
-      return { status: "imported", warnings: [], errors: [], audits, target_record_id: String(updated.id) };
+      return {
+        status: "imported",
+        warnings: [],
+        errors: [],
+        audits,
+        target_record_id: String(updated.id),
+      };
     }
 
     const { data: created, error } = await ctx.db
@@ -310,7 +403,12 @@ export const presencasImporter: RowImporter = {
       .single();
 
     if (error || !created) {
-      return { status: "error", warnings: [], errors: [`Não foi possível registar a presença: ${error?.message ?? "erro desconhecido"}`], audits };
+      return {
+        status: "error",
+        warnings: [],
+        errors: [`Não foi possível registar a presença: ${error?.message ?? "erro desconhecido"}`],
+        audits,
+      };
     }
 
     audits.push({
@@ -326,6 +424,12 @@ export const presencasImporter: RowImporter = {
       },
     });
 
-    return { status: "imported", warnings: [], errors: [], audits, target_record_id: String(created.id) };
+    return {
+      status: "imported",
+      warnings: [],
+      errors: [],
+      audits,
+      target_record_id: String(created.id),
+    };
   },
 };

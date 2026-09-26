@@ -36,7 +36,7 @@ describe("conflito de sala — o cliente", () => {
   it.each(MARCADORES)("não acusa conflito quando ambas dizem %s", (marcador) => {
     const conflitos = detectScheduleConflicts([
       slot({ id: "a", class_group_id: "turma-1", label: marcador }),
-      slot({ id: "b", class_group_id: "turma-2", class_subject_id: "cs-2", label: marcador }),
+      slot({ id: "b", class_group_id: "turma-2", label: marcador }),
     ]);
     expect(conflitos.filter((c) => c.kind === "sala")).toEqual([]);
   });
@@ -44,7 +44,7 @@ describe("conflito de sala — o cliente", () => {
   it("acusa conflito quando a sala é mesmo uma sala", () => {
     const conflitos = detectScheduleConflicts([
       slot({ id: "a", class_group_id: "turma-1", label: "Sala 101" }),
-      slot({ id: "b", class_group_id: "turma-2", class_subject_id: "cs-2", label: "sala 101" }),
+      slot({ id: "b", class_group_id: "turma-2", label: "sala 101" }),
     ]);
     expect(conflitos.some((c) => c.kind === "sala")).toBe(true);
   });

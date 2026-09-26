@@ -169,15 +169,7 @@ function PedagogicaPage() {
   const account = useCurrentAccount();
   const installed = useInstalledIntegrations();
   const zoomOn = installed.hasCapability("zoom.rooms");
-  const teamsOn = installed.hasCapability("teams.meetings");
-  const classroomOn = installed.hasCapability("classroom.classes");
-  const classroomWork = installed.hasCapability("classroom.work");
-  const moodleOn = installed.hasCapability("moodle.courses");
-  const moodleGrades = installed.hasCapability("moodle.grades");
-  const canvasOn = installed.hasCapability("canvas.courses");
   const canvasWork = installed.hasCapability("canvas.assignments");
-  const teamsClasses = installed.hasCapability("teams.classes");
-  const onedriveOn = installed.hasCapability("m365.onedrive");
   const { activeYearLabel, selectedYearId, school } = useSchoolSettings();
   const {
     tab: tabFromSearch,
@@ -823,14 +815,7 @@ function PedagogicaPage() {
               turmasComDados={turmasComDados}
               workspace={workspace}
               teacherNameById={teacherNameById}
-              classroomOn={classroomOn}
-              moodleOn={moodleOn}
-              canvasOn={canvasOn}
-              classroomWork={classroomWork}
-              moodleGrades={moodleGrades}
               canvasWork={canvasWork}
-              teamsClasses={teamsClasses}
-              onedriveOn={onedriveOn}
               onOpenTurma={(id) => setOpenTurmaId(id)}
             />
           </TabsContent>
@@ -848,8 +833,6 @@ function PedagogicaPage() {
               teachers={teachers}
               teacherNameById={teacherNameById}
               teachingLevels={teachingLevels}
-              classroomOn={classroomOn}
-              moodleOn={moodleOn}
               subjectTypes={subjectTypesQuery.data ?? []}
               curriculumAreas={curriculumAreasQuery.data ?? []}
               onRefresh={refreshAcademic}
@@ -1100,8 +1083,7 @@ function PedagogicaPage() {
               }))}
               slots={scheduleSlots}
               virtualRooms={[
-                ...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink("zoom") }] : []),
-                ...(teamsOn ? [{ label: "Teams", url: meetingRoomLink("teams") }] : []),
+                ...(zoomOn ? [{ label: "Zoom", url: meetingRoomLink() }] : []),
               ]}
               onCreateSlot={async (data) => {
                 const { warnings } = await createAdvancedScheduleSlot({ data });

@@ -98,6 +98,10 @@ export const importRowStatusOptions = [
 
 export type ImportRowStatus = (typeof importRowStatusOptions)[number];
 
+/** Valor JSON transportável pelos server functions do TanStack Start. */
+export type ImportJsonValue =
+  string | number | boolean | null | ImportJsonValue[] | { [key: string]: ImportJsonValue };
+
 export const createImportJobSchema = z.object({
   academic_year_id: z.string().uuid().optional().nullable(),
   module: z.enum(importModuleOptions),
@@ -197,10 +201,10 @@ export interface ImportJobRecord {
   source_format?: ImportSourceFormat;
   dry_run?: boolean;
   idempotency_key?: string | null;
-  manifest?: Record<string, any>;
-  dependency_plan?: unknown[];
-  error_summary?: unknown[];
-  job_metadata?: Record<string, any> | null;
+  manifest?: Record<string, ImportJsonValue>;
+  dependency_plan?: ImportJsonValue[];
+  error_summary?: ImportJsonValue[];
+  job_metadata?: Record<string, ImportJsonValue> | null;
   started_at?: string | null;
   completed_at?: string | null;
   created_at: string;
@@ -212,17 +216,17 @@ export interface ImportRowRecord {
   import_job_id: string;
   sheet_name: string;
   row_number: number;
-  raw_data: Record<string, any>;
-  normalized_data: Record<string, any>;
+  raw_data: Record<string, ImportJsonValue>;
+  normalized_data: Record<string, ImportJsonValue>;
   status: ImportRowStatus;
   warnings: string[];
   errors: string[];
   duplicate_of?: string | null;
   target_record_id?: string | null;
-  natural_key?: Record<string, any>;
+  natural_key?: Record<string, ImportJsonValue>;
   natural_key_hash?: string | null;
   validation_stage?: ImportValidationStage;
-  resolution?: Record<string, any>;
+  resolution?: Record<string, ImportJsonValue>;
   source_hash?: string | null;
   created_at: string;
 }

@@ -286,15 +286,19 @@ describe("produção vs repositório", () => {
       .filter((f) => f.endsWith("_capture_undeclared_production_tables.sql"))
       .sort();
     expect(capturas.length, "ficheiro de captura de DDL desapareceu").toBeGreaterThan(0);
-    const captura = resolve(REPO, "supabase/migrations", capturas[capturas.length - 1]!);
-    expect(existsSync(captura), "ficheiro de captura de DDL desapareceu").toBe(true);
 
-    const ddl = readFileSync(captura, "utf8");
-    const capturadas = new Set(
-      [...ddl.matchAll(/CREATE TABLE IF NOT EXISTS public\.(\w+)/gi)].map((m) =>
-        m[1].toLowerCase(),
-      ),
-    );
+    // A união de todas as capturas, não só a última. `npm run siga:db-ddl` é
+    // incremental: captura o que está por declarar *nesse momento*, e escreve um
+    // ficheiro novo. Depois da primeira captura em massa, as seguintes trazem
+    // duas ou três tabelas — ler só a última fazia o limiar de 35 falhar ao
+    // correr o procedimento que este teste manda correr.
+    const capturadas = new Set<string>();
+    for (const nome of capturas) {
+      const ddl = readFileSync(resolve(REPO, "supabase/migrations", nome), "utf8");
+      for (const m of ddl.matchAll(/CREATE TABLE IF NOT EXISTS public\.(\w+)/gi)) {
+        capturadas.add(m[1]!.toLowerCase());
+      }
+    }
     // Limiar, não igualdade: regerar a captura pode acrescentar tabelas legitimamente, e
     // o que este teste quer apanhar é o contrário — alguém editá-la à mão e tirar uma.
     expect(capturadas.size).toBeGreaterThanOrEqual(35);

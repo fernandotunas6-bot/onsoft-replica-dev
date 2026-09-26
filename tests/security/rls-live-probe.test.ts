@@ -114,7 +114,12 @@ describe.skipIf(!canProbe)("sonda de isolamento contra a base real", () => {
           `por isso isto é acessível a qualquer pessoa. Aplicar ` +
           `supabase/HARDEN_UNPROTECTED_SCHOOL_TABLES.sql e confirmar RLS nesta tabela.`,
       ).toEqual([]);
-    });
+      // 20s, não os 5s por omissão: isto é uma chamada de rede à produção. A 5s
+      // a sonda falhava por latência, e uma falha de latência aqui lê-se como
+      // "fuga de dados de vencimentos" — o alarme mais caro que este ficheiro
+      // pode dar em falso. Lento não é inseguro; quem grita por tudo deixa de
+      // ser ouvido quando gritar por alguma coisa.
+    }, 20_000);
   }
 
   it("regista o que a sonda conseguiu observar", async () => {
@@ -145,7 +150,7 @@ describe.skipIf(!canProbe)("sonda de isolamento contra a base real", () => {
       .filter(([, state]) => state === "devolveu_dados")
       .map(([table]) => table);
     expect(leaking, `fuga confirmada sem autenticação: ${leaking.join(", ")}`).toEqual([]);
-  });
+  }, 30_000);
 
   it("as funções de que as políticas dependem existem mesmo na produção", async () => {
     // Esta era uma pergunta sem resposta: os ficheiros HARDEN_* não constavam de
@@ -222,7 +227,7 @@ describe.skipIf(!canProbe)("sonda de isolamento contra a base real", () => {
             `alcançáveis pelo papel anónimo. Actualize ANON_REACHABLE_TODAY — a ` +
             `lista existe para encolher até ficar vazia.`,
     ).toEqual(ANON_REACHABLE_TODAY);
-  });
+  }, 30_000);
 });
 
 describe.skipIf(canProbe)("sonda de isolamento (saltada)", () => {

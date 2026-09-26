@@ -113,12 +113,21 @@ describe("siga_files — a política SQL diz o mesmo que o código", () => {
   it("o mapa de papéis cobre todos os códigos RBAC que a aplicação mapeia", () => {
     // `mapAppRoleToSgaCodes` em src/integrations/supabase/sga.ts:33-50.
     const codigos = [
-      ["owner", "Administrador"], ["admin", "Administrador"], ["administrador", "Administrador"],
-      ["secretary", "Secretaria"], ["secretaria", "Secretaria"],
-      ["treasury", "Tesouraria"], ["tesouraria", "Tesouraria"], ["finance", "Tesouraria"],
-      ["teacher", "Professor"], ["professor", "Professor"],
-      ["guardian", "Encarregado"], ["encarregado", "Encarregado"], ["parent", "Encarregado"],
-      ["student", "Aluno"], ["aluno", "Aluno"],
+      ["owner", "Administrador"],
+      ["admin", "Administrador"],
+      ["administrador", "Administrador"],
+      ["secretary", "Secretaria"],
+      ["secretaria", "Secretaria"],
+      ["treasury", "Tesouraria"],
+      ["tesouraria", "Tesouraria"],
+      ["finance", "Tesouraria"],
+      ["teacher", "Professor"],
+      ["professor", "Professor"],
+      ["guardian", "Encarregado"],
+      ["encarregado", "Encarregado"],
+      ["parent", "Encarregado"],
+      ["student", "Aluno"],
+      ["aluno", "Aluno"],
     ];
     for (const [code, papel] of codigos) {
       expect(migration).toMatch(new RegExp(`WHEN '${code}'\\s+THEN '${papel}'`));

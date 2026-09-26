@@ -5,7 +5,6 @@ import {
   checkGooglePermissions,
 } from "@/integrations/google/oauth";
 import { buildStudentWelcomeTemplate } from "@/integrations/google/gmail-service";
-import { classroomCourseHref } from "@/features/integrations/actions";
 import { getFirebaseApp, defaultFirebaseConfig } from "@/integrations/firebase/firebase";
 
 describe("Google Workspace & Firebase Integrations", () => {
@@ -42,14 +41,6 @@ describe("Google Workspace & Firebase Integrations", () => {
     expect(template.html).toContain("2026/00142");
     expect(template.html).toContain("CFB-10A");
     expect(template.text).toContain("2026/00142");
-  });
-
-  it("generates correct Google Classroom links for classes", () => {
-    expect(classroomCourseHref("TURMA-10A")).toBe("https://classroom.google.com/c/TURMA-10A");
-    expect(classroomCourseHref("https://classroom.google.com/c/xyz123")).toBe(
-      "https://classroom.google.com/c/xyz123",
-    );
-    expect(classroomCourseHref("")).toBe("https://classroom.google.com/");
   });
 
   it("initializes Firebase config matching firebase-applet-config.json", () => {
