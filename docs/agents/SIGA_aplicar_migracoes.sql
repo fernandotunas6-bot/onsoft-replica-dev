@@ -1,5 +1,8 @@
 -- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), 2026-09-26
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
+-- 8 migrações. Testado em 2026-09-26 num Postgres 16 com o esquema da
+-- produção (supabase/PRODUCTION_SNAPSHOT.json): duas corridas seguidas sem
+-- erros. Depois de aplicar, confirmar com docs/agents/SIGA_confirmar_migracoes.sql.
 
 
 -- ══════════ 20260925090000_school_access_requests.sql ══════════
