@@ -289,3 +289,13 @@ o Supabase directamente e muda a senha.
   não "verifique". O PDF de alternativa (`export-pdf.ts`) desenhava um QR falso (quadrados
   gerados do código, ilegíveis por qualquer leitor) com "Validar:"; passa a mostrar só
   "Referência:".
+- **Mensagens directas e protecção de menores (2026-09-26).** Qualquer membro via o directório
+  com todos os membros da escola e escrevia em privado a qualquer um: um encarregado podia
+  escrever a um aluno que não é seu educando, e alunos trocavam mensagens sem supervisão.
+  Agora alunos, encarregados e contas sem cargo só vêem e só escrevem ao pessoal da escola
+  (cargo nesta escola, via `member_roles`). A política RLS "Send school direct messages"
+  deixava contornar o servidor pela API REST; a migração
+  `20260926100000_direct_messages_server_only_insert.sql` retira-a (o browser só lê, por
+  Realtime). As 5 migrações por aplicar estão juntas em `docs/agents/SIGA_aplicar_migracoes.sql`.
+- **Comunicados** (e-mail, WhatsApp, lista do Resend) respeitam quem os desligou; a lista do
+  Resend é única por escola.
