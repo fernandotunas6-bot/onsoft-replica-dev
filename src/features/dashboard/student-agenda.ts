@@ -9,8 +9,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
-import { canSeeStudent, loadStudentScope } from "@/features/students/student-scope";
+import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import { todayInLuanda } from "@/features/calendar/dates";
 import { weekdayJsFromIso } from "@/features/dashboard/school-today";
 
@@ -82,14 +82,9 @@ type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
  * Encarregado a de um educando ligado. Qualquer outro caso devolve null.
  */
 async function resolveStudentEnrollment(userId: string, requestedStudentId?: string) {
-  const membership = await resolveSgaMembershipAdmin(userId);
-  if (!membership || !["Aluno", "Encarregado"].includes(membership.appRole)) return null;
-  const db = await loadSgaAdminClient();
-  const scope = await loadStudentScope(db, membership, userId);
-  if (scope.all) return null;
-  const studentId = requestedStudentId ?? scope.studentIds[0];
-  if (!studentId || !canSeeStudent(scope, studentId)) return null;
-  const schoolId = membership.schoolId;
+  const visible = await resolveVisibleStudent(userId, requestedStudentId);
+  if (!visible) return null;
+  const { db, schoolId, studentId } = visible;
 
   const { data: enrollment } = await db
     .from("enrollments")

@@ -68,10 +68,10 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // servidor limita a escrita ao `teacher_id` da própria conta.
   "src/features/people/teacher-contact-visibility.ts",
 
-  // Agenda do aluno no painel inicial. O RLS não deixa o aluno ler matrículas,
-  // turmas nem disciplinas (can_read_students / academic.*.read). O servidor
-  // só responde ao papel Aluno e só com a matrícula activa da própria conta.
-  "src/features/dashboard/student-agenda.ts",
+  // Portal do aluno/encarregado (agenda, horário, notas). O RLS não deixa o
+  // aluno ler matrículas, turmas, disciplinas nem notas. resolveVisibleStudent
+  // só responde a Aluno (a si próprio) e Encarregado (educandos ligados).
+  "src/features/dashboard/student-access.ts",
 
   // Corre antes de existir sessão: resolve BI → e-mail no ecrã de entrada.
   // Não há JWT para levar, logo não há cliente de utilizador possível.
