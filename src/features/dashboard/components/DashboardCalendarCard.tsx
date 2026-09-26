@@ -44,7 +44,7 @@ export function DashboardCalendarCard() {
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <IconChip icon={CalendarDays} size="sm" label="Calendário lectivo" />
-          <h2 className="text-base font-semibold">Calendário lectivo</h2>
+          <h2 className="text-sm font-medium">Calendário lectivo</h2>
         </div>
         {canOpen ? (
           <Button asChild size="sm" variant="ghost">
@@ -61,7 +61,7 @@ export function DashboardCalendarCard() {
           {items.map((item) => (
             <li key={item.id} className="rounded-xl bg-secondary p-3">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-semibold">
+                <p className="text-sm font-medium">
                   <Link
                     to="/calendario"
                     search={{ dia: item.event_date }}
@@ -72,7 +72,7 @@ export function DashboardCalendarCard() {
                 </p>
                 <span
                   className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
                     item.category === "holiday"
                       ? "bg-destructive/12 text-destructive"
                       : "bg-primary-soft text-primary-strong",

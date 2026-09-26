@@ -80,6 +80,8 @@ export function StudentPortalDashboard() {
     rate: 0,
   };
   const hasAttendance = attStats.total > 0;
+  const attendanceLoading = attendanceQuery.isLoading;
+  const averageLoading = agendaQuery.isLoading && currentUser.activeStudent?.average_grade == null;
   const studentClass = agenda?.className ?? currentUser.activeStudent?.class_name ?? null;
   const average = agenda?.average ?? currentUser.activeStudent?.average_grade ?? null;
 
@@ -145,7 +147,11 @@ export function StudentPortalDashboard() {
             variant="outline"
             className="bg-primary/10 text-primary border-primary/30 px-3 py-1.5 text-xs font-semibold"
           >
-            {hasAttendance ? `${attStats.rate}% de presença` : "Sem registos de presença"}
+            {attendanceLoading
+              ? "A carregar presenças…"
+              : hasAttendance
+                ? `${attStats.rate}% de presença`
+                : "Sem registos de presença"}
           </Badge>
         </div>
       </div>
@@ -157,14 +163,20 @@ export function StudentPortalDashboard() {
             <span>Frequência Geral</span>
             <Activity className="size-4 text-primary" />
           </div>
-          <p className="text-2xl font-semibold text-foreground tabular-nums">
-            {hasAttendance ? `${attStats.rate}%` : "—"}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {hasAttendance
-              ? `${attStats.present} presenças · ${attStats.absent} faltas · ${attStats.excused} justificadas`
-              : "Ainda sem registos."}
-          </p>
+          {attendanceLoading ? (
+            <InlineLoading label="A carregar presenças…" />
+          ) : (
+            <>
+              <p className="text-2xl font-semibold text-foreground tabular-nums">
+                {hasAttendance ? `${attStats.rate}%` : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {hasAttendance
+                  ? `${attStats.present} presenças · ${attStats.absent} faltas · ${attStats.excused} justificadas`
+                  : "Ainda sem registos."}
+              </p>
+            </>
+          )}
         </div>
 
         <div className="surface-card p-5 space-y-2 border-l-4 border-l-success">
@@ -172,10 +184,15 @@ export function StudentPortalDashboard() {
             <span>Média Atual</span>
             <Award className="size-4 text-success" />
           </div>
-          <p className="text-2xl font-semibold text-foreground tabular-nums">
-            {average != null ? average.toFixed(1) : "—"}
-          </p>
+          {averageLoading ? (
+            <InlineLoading label="A carregar média…" />
+          ) : (
+            <p className="text-2xl font-semibold text-foreground tabular-nums">
+              {average != null ? average.toFixed(1) : "—"}
+            </p>
+          )}
           <p
+            hidden={averageLoading}
             className={
               average == null
                 ? "text-xs text-muted-foreground"
@@ -278,9 +295,13 @@ export function StudentPortalDashboard() {
             </Button>
           </div>
 
-          {(attendanceQuery.data?.records.length ?? 0) === 0 ? (
+          {attendanceLoading ? (
+            <div className="py-8 flex justify-center">
+              <InlineLoading label="A carregar presenças…" />
+            </div>
+          ) : (attendanceQuery.data?.records.length ?? 0) === 0 ? (
             <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-              Ainda não tens registos de faltas nesta turma. Excelente trabalho!
+              Ainda sem registos de presença nesta turma.
             </div>
           ) : (
             <div className="space-y-2">

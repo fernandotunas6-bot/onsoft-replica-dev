@@ -25,6 +25,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { getStudentAttendanceHistory } from "@/features/pedagogica/attendance-server";
 import { getDashboardOverview } from "@/features/dashboard/server";
 import { getMyStudentAgenda } from "@/features/dashboard/student-agenda";
+import { InlineLoading } from "@/components/ui/inline-loading";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,8 @@ export function GuardianPortalDashboard() {
   });
   const nextAssessment = agendaQuery.data?.nextAssessment ?? null;
   const average = agendaQuery.data?.average ?? activeStudent?.average_grade ?? null;
+  const attendanceLoading = attendanceQuery.isLoading;
+  const averageLoading = agendaQuery.isLoading && activeStudent?.average_grade == null;
   const className = agendaQuery.data?.className ?? activeStudent?.class_name ?? null;
 
   const overviewQuery = useQuery({
@@ -199,13 +202,19 @@ export function GuardianPortalDashboard() {
               variant="outline"
               className="bg-success/10 text-success border-success/30 px-3 py-1 text-xs font-medium"
             >
-              {attStats.total > 0 ? `${attStats.rate}% de presença` : "Sem registos de presença"}
+              {attendanceLoading
+                ? "A carregar presenças…"
+                : attStats.total > 0
+                  ? `${attStats.rate}% de presença`
+                  : "Sem registos de presença"}
             </Badge>
             <Badge
               variant="outline"
               className="bg-primary/10 text-primary border-primary/30 px-3 py-1 text-xs font-medium"
             >
-              Média: {average != null ? average.toFixed(1) : "—"}
+              {averageLoading
+                ? "A carregar média…"
+                : `Média: ${average != null ? average.toFixed(1) : "—"}`}
             </Badge>
           </div>
         </div>
@@ -217,8 +226,11 @@ export function GuardianPortalDashboard() {
             <div>
               <p className="text-xs font-medium text-foreground">Aviso de Presença</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                {activeStudent?.full_name.split(" ")[0]} tem {attStats.absent}{" "}
-                {attStats.absent === 1 ? "falta registada" : "faltas registadas"}.
+                {attendanceLoading
+                  ? "A carregar…"
+                  : attStats.total === 0
+                    ? "Ainda sem registos de presença."
+                    : `${activeStudent?.full_name.split(" ")[0] ?? "O educando"} tem ${attStats.absent} ${attStats.absent === 1 ? "falta registada" : "faltas registadas"}.`}
               </p>
             </div>
           </div>
@@ -292,7 +304,11 @@ export function GuardianPortalDashboard() {
             </Button>
           </div>
 
-          {(attendanceQuery.data?.records.length ?? 0) === 0 ? (
+          {attendanceLoading ? (
+            <div className="py-8 flex justify-center">
+              <InlineLoading label="A carregar presenças…" />
+            </div>
+          ) : (attendanceQuery.data?.records.length ?? 0) === 0 ? (
             <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
               Não existem registos de falta recentes para este educando.
             </div>
