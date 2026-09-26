@@ -3,12 +3,14 @@
  * próxima avaliação. Antes o painel mostrava valores fixos ("Matemática",
  * "Física · Prova", média 14.7) a todos os alunos.
  *
- * Só o papel Aluno recebe dados, e só os da sua matrícula activa.
+ * Só o Aluno (a sua matrícula activa) e o Encarregado (a dos educandos
+ * ligados à conta) recebem dados.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
-import { loadStudentScope } from "@/features/students/student-scope";
+import { canSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { todayInLuanda } from "@/features/calendar/dates";
 import { weekdayJsFromIso } from "@/features/dashboard/school-today";
 
@@ -63,15 +65,19 @@ function nowInLuandaHhMm(now = new Date()) {
   }).format(now);
 }
 
+const agendaInputSchema = z.object({ studentId: z.string().uuid().optional() });
+
 export const getMyStudentAgenda = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<StudentAgenda> => {
+  .validator((input: unknown) => agendaInputSchema.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<StudentAgenda> => {
     const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership || membership.appRole !== "Aluno") return EMPTY;
+    if (!membership || !["Aluno", "Encarregado"].includes(membership.appRole)) return EMPTY;
     const db = await loadSgaAdminClient();
     const scope = await loadStudentScope(db, membership, context.userId);
-    const studentId = scope.all ? null : scope.studentIds[0];
-    if (!studentId) return EMPTY;
+    if (scope.all) return EMPTY;
+    const studentId = data.studentId ?? scope.studentIds[0];
+    if (!studentId || !canSeeStudent(scope, studentId)) return EMPTY;
     const schoolId = membership.schoolId;
 
     const { data: enrollment } = await db

@@ -42,8 +42,11 @@ describe("pickNextLesson", () => {
   });
 });
 
-describe("painel do aluno", () => {
-  const source = readFileSync("src/features/dashboard/portals/StudentPortalDashboard.tsx", "utf8");
+describe.each([
+  "src/features/dashboard/portals/StudentPortalDashboard.tsx",
+  "src/features/dashboard/portals/GuardianPortalDashboard.tsx",
+])("%s", (file) => {
+  const source = readFileSync(file, "utf8");
 
   it("não mostra valores fixos como se fossem dados do aluno", () => {
     for (const fake of [
@@ -52,6 +55,9 @@ describe("painel do aluno", () => {
       ">Matemática<",
       "10ª Classe · Turma A",
       "Situação Académica Positiva",
+      "Prova marcada para",
+      "rate: 94",
+      "rate: 100",
     ]) {
       expect(source).not.toContain(fake);
     }

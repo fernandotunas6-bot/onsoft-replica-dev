@@ -24,6 +24,7 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { getStudentAttendanceHistory } from "@/features/pedagogica/attendance-server";
 import { getDashboardOverview } from "@/features/dashboard/server";
+import { getMyStudentAgenda } from "@/features/dashboard/student-agenda";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,16 @@ export function GuardianPortalDashboard() {
     queryFn: () => getStudentAttendanceHistory({ data: { studentId: activeStudentId } }),
   });
 
+  const agendaQuery = useQuery({
+    queryKey: ["dashboard", "student-agenda", activeStudentId],
+    enabled: Boolean(activeStudentId),
+    queryFn: () => getMyStudentAgenda({ data: { studentId: activeStudentId } }),
+    staleTime: 5 * 60 * 1000,
+  });
+  const nextAssessment = agendaQuery.data?.nextAssessment ?? null;
+  const average = agendaQuery.data?.average ?? activeStudent?.average_grade ?? null;
+  const className = agendaQuery.data?.className ?? activeStudent?.class_name ?? null;
+
   const overviewQuery = useQuery({
     queryKey: ["dashboard", "overview"],
     queryFn: () => getDashboardOverview(),
@@ -76,7 +87,7 @@ export function GuardianPortalDashboard() {
     absent: 0,
     excused: 0,
     late: 0,
-    rate: 94,
+    rate: 0,
   };
 
   const guardianMenu = [
@@ -109,7 +120,7 @@ export function GuardianPortalDashboard() {
             <HeartHandshake className="size-4" /> Portal dos Pais / Encarregados ·{" "}
             {selectedYearLabel}
           </div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight">
+          <h1 className="mt-1 text-xl md:text-2xl font-medium tracking-tight">
             {greeting}, {currentUser.name.split(" ")[0]}!
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -136,7 +147,7 @@ export function GuardianPortalDashboard() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="gap-2.5 font-extrabold text-sm border-primary/40 h-10 px-4 bg-primary-soft text-primary-strong"
+                  className="gap-2.5 font-medium text-sm border-primary/40 h-10 px-4 bg-primary-soft text-primary-strong"
                 >
                   <UserCheck className="size-4" />
                   {activeStudent?.full_name || "Selecionar Educando"}
@@ -166,12 +177,11 @@ export function GuardianPortalDashboard() {
       <div className="surface-card p-6 border-l-4 border-l-primary space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-extrabold text-foreground">
+            <h2 className="text-lg font-medium text-foreground">
               {activeStudent?.full_name || "Educando"}
             </h2>
             <p className="text-xs text-muted-foreground font-medium mt-0.5">
-              {activeStudent?.class_name || "10ª Classe · Turma A"} · Nº{" "}
-              {activeStudent?.registration_number || "—"}
+              {className ? `${className} · ` : ""}Nº {activeStudent?.registration_number || "—"}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -181,22 +191,21 @@ export function GuardianPortalDashboard() {
               variant="outline"
               size="sm"
               onClick={() => setVirtualCardModalOpen(true)}
-              className="gap-1.5 font-bold text-xs h-8 border-primary/40 text-primary"
+              className="gap-1.5 font-medium text-xs h-8 border-primary/40 text-primary"
             >
               <QrCode className="size-3.5" /> Cartão Virtual (Catraca)
             </Button>
             <Badge
               variant="outline"
-              className="bg-success/10 text-success border-success/30 px-3 py-1 text-xs font-bold"
+              className="bg-success/10 text-success border-success/30 px-3 py-1 text-xs font-medium"
             >
-              {attStats.rate}% Presenças este mês
+              {attStats.total > 0 ? `${attStats.rate}% de presença` : "Sem registos de presença"}
             </Badge>
             <Badge
               variant="outline"
-              className="bg-primary/10 text-primary border-primary/30 px-3 py-1 text-xs font-bold"
+              className="bg-primary/10 text-primary border-primary/30 px-3 py-1 text-xs font-medium"
             >
-              Média:{" "}
-              {activeStudent?.average_grade ? activeStudent.average_grade.toFixed(1) : "14.7"}
+              Média: {average != null ? average.toFixed(1) : "—"}
             </Badge>
           </div>
         </div>
@@ -206,9 +215,10 @@ export function GuardianPortalDashboard() {
           <div className="flex items-start gap-3 p-3 rounded-xl bg-secondary/60">
             <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-foreground">Aviso de Presença</p>
+              <p className="text-xs font-medium text-foreground">Aviso de Presença</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                {activeStudent?.full_name.split(" ")[0]} registou {attStats.absent} faltas este mês.
+                {activeStudent?.full_name.split(" ")[0]} tem {attStats.absent}{" "}
+                {attStats.absent === 1 ? "falta registada" : "faltas registadas"}.
               </p>
             </div>
           </div>
@@ -216,9 +226,13 @@ export function GuardianPortalDashboard() {
           <div className="flex items-start gap-3 p-3 rounded-xl bg-secondary/60">
             <CalendarDays className="size-4 text-info shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-foreground">Próxima Avaliação</p>
+              <p className="text-xs font-medium text-foreground">Próxima Avaliação</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Matemática · Prova marcada para 14 Setembro.
+                {agendaQuery.isLoading
+                  ? "A carregar…"
+                  : nextAssessment
+                    ? `${nextAssessment.subjectName} · ${nextAssessment.name}, ${formatShortDate(nextAssessment.date)}.`
+                    : "Sem avaliações marcadas."}
               </p>
             </div>
           </div>
@@ -226,7 +240,7 @@ export function GuardianPortalDashboard() {
           <div className="flex items-start gap-3 p-3 rounded-xl bg-secondary/60">
             <CreditCard className="size-4 text-success shrink-0 mt-0.5" />
             <div className="space-y-1.5">
-              <p className="text-xs font-bold text-foreground">Propinas</p>
+              <p className="text-xs font-medium text-foreground">Propinas</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 Pagamentos e recibos abrem no PayFlow — a app de cobrança do SIGA Plus.
               </p>
@@ -238,7 +252,7 @@ export function GuardianPortalDashboard() {
 
       {/* ACÇÕES RÁPIDAS DO ENCARREGADO */}
       <div className="surface-card p-5">
-        <h2 className="text-base font-bold mb-4 flex items-center gap-2">
+        <h2 className="text-sm font-medium mb-4 flex items-center gap-2">
           <BookOpen className="size-4 text-primary" /> Opções Rápidas do Encarregado
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -251,7 +265,7 @@ export function GuardianPortalDashboard() {
             >
               <div className="flex items-center gap-3">
                 <IconChip icon={item.icon} size="sm" tone="primary" label={item.label} />
-                <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">
                   {item.label}
                 </span>
               </div>
@@ -267,7 +281,7 @@ export function GuardianPortalDashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="surface-card p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold flex items-center gap-2">
+            <h2 className="text-sm font-medium flex items-center gap-2">
               <CheckSquare className="size-4 text-primary" /> Frequência de{" "}
               {activeStudent?.full_name.split(" ")[0]}
             </h2>
@@ -290,7 +304,7 @@ export function GuardianPortalDashboard() {
                   className="flex items-center justify-between p-3 rounded-xl border border-border bg-background"
                 >
                   <div>
-                    <p className="text-xs font-bold text-foreground">{rec.subject_name}</p>
+                    <p className="text-xs font-medium text-foreground">{rec.subject_name}</p>
                     <p className="text-[11px] text-muted-foreground">
                       {rec.date} {rec.time ? `· ${rec.time}` : ""}
                     </p>
@@ -346,7 +360,7 @@ export function GuardianPortalDashboard() {
         {/* RECADOS E AVISOS DA ESCOLA PARA PAIS */}
         <div className="surface-card p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold flex items-center gap-2">
+            <h2 className="text-sm font-medium flex items-center gap-2">
               <Megaphone className="size-4 text-primary" /> Mensagens da Escola
             </h2>
             <Button asChild size="sm" variant="ghost" className="text-xs gap-1">
@@ -367,7 +381,7 @@ export function GuardianPortalDashboard() {
                   key={item.id}
                   className="p-3.5 rounded-xl bg-secondary/50 border border-border space-y-1"
                 >
-                  <p className="text-xs font-bold text-foreground">{item.title}</p>
+                  <p className="text-xs font-medium text-foreground">{item.title}</p>
                   <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>
                 </div>
               ))}
@@ -395,9 +409,19 @@ export function GuardianPortalDashboard() {
           onOpenChange={setVirtualCardModalOpen}
           studentId={activeStudent.student_id}
           studentName={activeStudent.full_name}
-          className={activeStudent.class_name || "10ª Classe"}
+          className={className ?? undefined}
         />
       ) : null}
     </div>
   );
+}
+
+function formatShortDate(isoDate: string) {
+  const [y, m, d] = isoDate.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return isoDate;
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, d, 12)));
 }
