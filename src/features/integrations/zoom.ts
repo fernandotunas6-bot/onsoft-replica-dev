@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { loadStudentScope } from "@/features/students/student-scope";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -396,6 +397,27 @@ export const getZoomLessonMeeting = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) return null;
     const db = await loadSgaAdminClient();
+    // O link da aula é da turma: alunos e encarregados só o vêem se estiverem nela.
+    const scope = await loadStudentScope(db, membership, context.userId);
+    if (!scope.all) {
+      const { data: session } = await db
+        .from("siga_attendance_sessions")
+        .select("class_group_id")
+        .eq("id", data.attendanceSessionId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (!session || scope.studentIds.length === 0) return null;
+      const { data: enrolled } = await db
+        .from("enrollments")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("class_group_id", session.class_group_id)
+        .in("student_id", scope.studentIds)
+        .in("status", ["active", "pending"])
+        .limit(1)
+        .maybeSingle();
+      if (!enrolled) return null;
+    }
     const { data: row } = await db
       .from("siga_lesson_meetings")
       .select(

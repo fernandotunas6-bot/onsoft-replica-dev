@@ -119,6 +119,8 @@ export class OtpService {
     targetIdentifier: string;
     purpose: OtpPurpose;
     code: string;
+    /** Quando dado, só aceita um código pedido por esta conta. */
+    userId?: string;
   }): Promise<{
     valid: boolean;
     reason?: "invalid_code" | "expired" | "not_found" | "too_many_attempts";
@@ -128,12 +130,14 @@ export class OtpService {
     const db = await loadSgaAdminClient();
 
     // Busca a sessão ativa mais recente
-    const { data: record, error } = await db
+    let query = db
       .from("verification_otps")
       .select("id, code_hash, attempts_left, expires_at, consumed_at")
       .eq("target_identifier", normalizedIdentifier)
       .eq("purpose", params.purpose)
-      .is("consumed_at", null)
+      .is("consumed_at", null);
+    if (params.userId) query = query.eq("user_id", params.userId);
+    const { data: record, error } = await query
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();

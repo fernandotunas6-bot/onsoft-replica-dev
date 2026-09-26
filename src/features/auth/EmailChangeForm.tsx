@@ -23,6 +23,7 @@ export function EmailChangeForm({ compact = false }: { compact?: boolean }) {
     const newEmail = String(values.get("newEmail") ?? "")
       .trim()
       .toLowerCase();
+    const currentPassword = String(values.get("currentPassword") ?? "");
 
     if (newEmail === session.user.email?.toLowerCase()) {
       toast.error("O novo e-mail deve ser diferente do actual.");
@@ -33,7 +34,9 @@ export function EmailChangeForm({ compact = false }: { compact?: boolean }) {
     try {
       const { requestEmailChangeFn } = await import("./email-change-server");
       const hostname = typeof window !== "undefined" ? window.location.hostname : undefined;
-      const result = await requestEmailChangeFn({ data: { newEmail, hostname } });
+      const result = await requestEmailChangeFn({
+        data: { newEmail, currentPassword, hostname },
+      });
       toast.success("Confirmação enviada", { description: result.message });
       form.reset();
       stackNav?.reportDirty(false);
@@ -69,10 +72,20 @@ export function EmailChangeForm({ compact = false }: { compact?: boolean }) {
             autoComplete="email"
           />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor={compact ? "set-email-password" : "email-senha"}>Senha actual</Label>
+          <Input
+            id={compact ? "set-email-password" : "email-senha"}
+            name="currentPassword"
+            type="password"
+            required
+            autoComplete="current-password"
+          />
+        </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Enviaremos um link de confirmação para o novo endereço. O e-mail actual só muda depois de
-        confirmar.
+        Enviaremos um link de confirmação para o novo endereço e um aviso para o actual. O e-mail só
+        muda depois de confirmar.
       </p>
       <Button type="submit" className={compact ? "ml-auto flex" : "w-full gap-2"} disabled={saving}>
         {saving ? (

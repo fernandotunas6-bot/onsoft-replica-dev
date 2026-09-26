@@ -99,9 +99,13 @@ export function usePhoneChange() {
 
   // Solicitar código OTP
   const requestCode = useCallback(
-    async (newPhone: string, preferredChannel: "whatsapp" | "sms" = "whatsapp") => {
+    async (
+      newPhone: string,
+      preferredChannel: "whatsapp" | "sms" = "whatsapp",
+      currentPassword = "",
+    ) => {
       setState({ step: "requesting", newPhone, preferredChannel });
-      return requestOtpMutation.mutate({ newPhone, preferredChannel });
+      return requestOtpMutation.mutate({ newPhone, preferredChannel, currentPassword });
     },
     [requestOtpMutation],
   );

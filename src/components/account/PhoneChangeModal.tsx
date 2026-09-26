@@ -39,6 +39,7 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
   const [newPhone, setNewPhone] = useState("");
   const [preferredChannel, setPreferredChannel] = useState<"whatsapp" | "sms">("whatsapp");
   const [otpCode, setOtpCode] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [cooldown, setCooldown] = useState(0);
 
   // Gerenciar timer de cooldown
@@ -60,8 +61,9 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
   }, [state.cooldownSeconds]);
 
   const handleRequestCode = async () => {
-    if (!newPhone.trim()) return;
-    await requestCode(newPhone, preferredChannel);
+    if (!newPhone.trim() || !currentPassword) return;
+    // A senha fica em memória até fechar, para o "reenviar código".
+    await requestCode(newPhone, preferredChannel, currentPassword);
   };
 
   const handleConfirmCode = async () => {
@@ -70,6 +72,7 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
   };
 
   const handleClose = () => {
+    setCurrentPassword("");
     if (state.step === "success") {
       reset();
       setNewPhone("");
@@ -109,6 +112,21 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
                   placeholder="923 456 789"
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
+                  disabled={isLoading}
+                  className="mt-1.5"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="phone-change-password" className="text-sm font-medium">
+                  Senha actual
+                </label>
+                <Input
+                  id="phone-change-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
                   disabled={isLoading}
                   className="mt-1.5"
                 />
@@ -224,7 +242,12 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
               </Button>
               <Button
                 onClick={handleRequestCode}
-                disabled={!newPhone.trim() || isLoading || (state.step === "error" && cooldown > 0)}
+                disabled={
+                  !newPhone.trim() ||
+                  !currentPassword ||
+                  isLoading ||
+                  (state.step === "error" && cooldown > 0)
+                }
               >
                 {isLoading ? <LoaderCircle className="size-4 mr-2 animate-spin" /> : null}
                 Enviar Código

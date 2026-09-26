@@ -181,3 +181,15 @@ estado das integrações (não devolve chaves).
 
 **Por decidir:** `listTeachers` devolve e-mail e telefone dos professores a qualquer membro.
 Pode ser intencional (contacto com o professor).
+
+## Contactos da conta e aulas Zoom (quarta passagem)
+
+- **Mudar o e-mail** não pedia a senha, não avisava o endereço antigo e não tinha limite.
+  Como a recuperação de senha segue o e-mail, uma sessão deixada aberta bastava para tomar a
+  conta. Agora exige a senha actual (verificada no Supabase Auth), limita a 5 pedidos por
+  hora, avisa o e-mail antigo e deixa de devolver a mensagem crua do Supabase.
+- **Mudar o telefone** (que também recupera a senha por código): exige a senha actual, e o
+  código só é aceite pela conta que o pediu (`verification_otps.user_id`).
+- **Link da aula Zoom:** qualquer membro obtinha o link de qualquer turma. Alunos e
+  encarregados só o recebem se o aluno estiver matriculado nessa turma.
+  Protegido por `tests/security/account-contact-change.test.ts`.
