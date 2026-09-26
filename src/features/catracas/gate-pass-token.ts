@@ -23,3 +23,27 @@ export function gatePassLookupTokens(raw: string): string[] {
   if (rfid && rfid !== clean) return [clean, rfid];
   return [clean];
 }
+
+/** Dígitos de fonte criptográfica (rejeita bytes ≥ 250 para não enviesar). */
+function secureDigits(count: number): string {
+  let out = "";
+  while (out.length < count) {
+    for (const byte of crypto.getRandomValues(new Uint8Array(count * 2))) {
+      if (byte < 250 && out.length < count) out += String(byte % 10);
+    }
+  }
+  return out;
+}
+
+/**
+ * Número e código de barras de um cartão novo. A catraca aceita ambos como
+ * passe, por isso não podem ser adivinháveis: antes eram 6 dígitos de
+ * Math.random (900 mil hipóteses, as mesmas nos dois). Agora 12 dígitos
+ * independentes em cada um (10^12).
+ */
+export function generateAccessCardIdentifiers(year = new Date().getFullYear()) {
+  return {
+    cardNumber: `CARD-${year}-${secureDigits(12)}`,
+    barcode: `STU${year}${secureDigits(12)}`,
+  };
+}

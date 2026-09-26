@@ -22,7 +22,11 @@ import {
   listAccessCardsInputSchema,
   validateGatePassDeviceInputSchema,
 } from "./schemas";
-import { gatePassLookupTokens, normalizeRfidTag } from "./gate-pass-token";
+import {
+  gatePassLookupTokens,
+  generateAccessCardIdentifiers,
+  normalizeRfidTag,
+} from "./gate-pass-token";
 import { evaluateGatePassAccess, resolveGatePassDevice } from "./gate-pass-validation";
 import { runDeviceGatePassWebhook } from "./device-webhook-handler";
 
@@ -183,9 +187,7 @@ export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
       return existingCard;
     }
 
-    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    const cardNumber = `CARD-${new Date().getFullYear()}-${randomSuffix}`;
-    const barcode = `STU${new Date().getFullYear()}${randomSuffix}`;
+    const { cardNumber, barcode } = generateAccessCardIdentifiers();
     const qrSecret = crypto.randomUUID();
 
     const { data: created, error } = await db
@@ -456,9 +458,7 @@ export const issueAccessCard = createServerFn({ method: "POST" })
       if (clash) throw new Error("Tag RFID já associada a outro cartão.");
     }
 
-    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    const cardNumber = `CARD-${new Date().getFullYear()}-${randomSuffix}`;
-    const barcode = `STU${new Date().getFullYear()}${randomSuffix}`;
+    const { cardNumber, barcode } = generateAccessCardIdentifiers();
 
     const { data: created, error } = await db
       .from("siga_access_cards")

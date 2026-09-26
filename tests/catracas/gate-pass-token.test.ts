@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   gatePassLookupTokens,
+  generateAccessCardIdentifiers,
   normalizeRfidTag,
   sanitizeGatePassFilterValue,
 } from "@/features/catracas/gate-pass-token";
@@ -46,5 +47,21 @@ describe("RFID / QR card schemas", () => {
         cardId: "123e4567-e89b-12d3-a456-426614174000",
       }).cardId,
     ).toBe("123e4567-e89b-12d3-a456-426614174000");
+  });
+});
+
+describe("generateAccessCardIdentifiers", () => {
+  it("gera 12 dígitos independentes no número e no código de barras", () => {
+    const { cardNumber, barcode } = generateAccessCardIdentifiers(2026);
+    expect(cardNumber).toMatch(/^CARD-2026-\d{12}$/);
+    expect(barcode).toMatch(/^STU2026\d{12}$/);
+    expect(barcode.slice(7)).not.toBe(cardNumber.slice(10));
+  });
+
+  it("não repete em muitas emissões", () => {
+    const seen = new Set(
+      Array.from({ length: 2000 }, () => generateAccessCardIdentifiers().barcode),
+    );
+    expect(seen.size).toBe(2000);
   });
 });
