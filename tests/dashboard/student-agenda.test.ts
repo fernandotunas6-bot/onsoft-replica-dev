@@ -45,6 +45,9 @@ describe("pickNextLesson", () => {
 describe.each([
   "src/features/dashboard/portals/StudentPortalDashboard.tsx",
   "src/features/dashboard/portals/GuardianPortalDashboard.tsx",
+  "src/features/dashboard/portals/TeacherPortalDashboard.tsx",
+  "src/features/catracas/components/VirtualCardModal.tsx",
+  "src/features/pedagogica/components/AttendanceWorkspaceModule.tsx",
 ])("%s", (file) => {
   const source = readFileSync(file, "utf8");
 
@@ -58,6 +61,8 @@ describe.each([
       "Prova marcada para",
       "rate: 94",
       "rate: 100",
+      '|| "08:00"',
+      "31/12/${",
     ]) {
       expect(source).not.toContain(fake);
     }

@@ -180,7 +180,9 @@ export function AttendanceWorkspaceModule({
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <Badge variant="outline" className="text-[10px] font-mono">
-                      {sess.starts_at || "08:00"} {sess.ends_at ? `- ${sess.ends_at}` : ""}
+                      {sess.starts_at
+                        ? `${sess.starts_at}${sess.ends_at ? ` – ${sess.ends_at}` : ""}`
+                        : "Sem hora"}
                     </Badge>
                     {sess.status === "completed" ? (
                       <Badge

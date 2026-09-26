@@ -281,7 +281,9 @@ export function TeacherPortalDashboard() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <Badge variant="outline" className="text-[10px] font-mono mb-1">
-                      {sess.starts_at || "08:00"} {sess.ends_at ? `- ${sess.ends_at}` : ""}
+                      {sess.starts_at
+                        ? `${sess.starts_at}${sess.ends_at ? ` – ${sess.ends_at}` : ""}`
+                        : "Sem hora"}
                     </Badge>
                     <h3 className="font-extrabold text-base text-foreground leading-tight">
                       {sess.class_group_name}
