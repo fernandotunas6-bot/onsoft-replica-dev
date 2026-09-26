@@ -232,3 +232,9 @@ o Supabase directamente e muda a senha.
   sempre do texto escapado; com a chave da plataforma, só para contactos da escola, com o
   remetente do sistema e 20 envios por hora. O WhatsApp com o token da plataforma tem o
   mesmo limite. Protegido por `tests/security/email-html-injection.test.ts`.
+- **Carregamentos.** O avatar aceitava qualquer tipo e tamanho, e a extensão vinha do nome do
+  ficheiro para o caminho do Storage (com `upsert`): um nome com `/` escrevia fora da pasta da
+  conta. Agora só PNG/JPG/WebP até 4 MB, com a extensão derivada do tipo. A importação recusa
+  ficheiros acima de 25 MB antes de os ler.
+- **CSV:** a protecção contra fórmulas cobre também tabulação e retorno no início, e deixa de
+  transformar números negativos em texto (`-500` saía como `'-500`).

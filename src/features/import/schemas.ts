@@ -115,8 +115,11 @@ export const createImportJobSchema = z.object({
 export type CreateImportJobInput = z.infer<typeof createImportJobSchema>;
 
 export const analyzeImportFileInputSchema = z.object({
-  file_base64: z.string().min(1),
-  file_name: z.string().min(1),
+  // 25 MB em base64 (≈ 4/3) mais o prefixo data:. O limite em bytes é
+  // verificado depois de descodificar; este impede que um pedido enorme chegue
+  // a ser lido para memória.
+  file_base64: z.string().min(1).max(35_000_000, "Ficheiro demasiado grande (máximo 25 MB)."),
+  file_name: z.string().min(1).max(255),
 });
 
 export type AnalyzeImportFileInput = z.infer<typeof analyzeImportFileInputSchema>;

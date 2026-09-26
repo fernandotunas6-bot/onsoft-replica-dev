@@ -521,22 +521,36 @@ export const signProfileAvatar = createServerFn({ method: "GET" })
     return { url: signed.data?.signedUrl ?? null };
   });
 
+const AVATAR_EXTENSIONS = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+} as const;
+
 export const uploadCurrentProfileAvatar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
     z
       .object({
-        fileName: z.string(),
-        contentType: z.string(),
-        base64: z.string(),
+        fileName: z.string().max(255),
+        contentType: z.enum(["image/png", "image/jpeg", "image/webp"], {
+          message: "Use uma imagem PNG, JPG ou WebP.",
+        }),
+        // 4 MB em base64 (≈ 4/3), o mesmo limite do ecrã.
+        base64: z.string().min(1).max(5_600_000, "A imagem deve ter no máximo 4 MB."),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     const db = await loadSgaAdminClient();
-    const extension = data.fileName.split(".").pop()?.toLowerCase() || "jpg";
+    // A extensão vem do tipo, nunca do nome: um nome com "/" punha o ficheiro
+    // fora da pasta da própria conta (e com upsert, por cima de outro).
+    const extension = AVATAR_EXTENSIONS[data.contentType];
     const storagePath = `${context.userId}/avatar-${Date.now()}.${extension}`;
     const buffer = Buffer.from(data.base64, "base64");
+    if (buffer.byteLength > 4 * 1024 * 1024) {
+      throw new Error("A imagem deve ter no máximo 4 MB.");
+    }
 
     const { error: uploadError } = await db.storage.from("avatars").upload(storagePath, buffer, {
       contentType: data.contentType,
