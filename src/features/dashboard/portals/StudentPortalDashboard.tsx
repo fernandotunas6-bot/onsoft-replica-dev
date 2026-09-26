@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
+import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
+import { assessmentCalendarItems } from "@/features/dashboard/student-calendar-items";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { SubmitAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { VirtualCardModal } from "@/features/catracas/components/VirtualCardModal";
@@ -278,7 +280,13 @@ export function StudentPortalDashboard() {
         </div>
       </div>
 
-      <DashboardCalendarCard />
+      <StudentTimetableCard />
+
+      <DashboardCalendarCard
+        title="Calendário da escola"
+        limit={8}
+        extraItems={assessmentCalendarItems(agenda?.upcomingAssessments)}
+      />
 
       {/* GRELHA COM HISTÓRICO DE FREQUÊNCIA E COMUNICADOS DA ESCOLA */}
       <div className="grid gap-6 lg:grid-cols-2">

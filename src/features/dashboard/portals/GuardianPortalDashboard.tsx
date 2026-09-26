@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
+import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
+import { assessmentCalendarItems } from "@/features/dashboard/student-calendar-items";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { SubmitAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { VirtualCardModal } from "@/features/catracas/components/VirtualCardModal";
@@ -287,7 +289,13 @@ export function GuardianPortalDashboard() {
         </div>
       </div>
 
-      <DashboardCalendarCard />
+      <StudentTimetableCard studentId={activeStudentId ?? null} />
+
+      <DashboardCalendarCard
+        title="Calendário da escola"
+        limit={8}
+        extraItems={assessmentCalendarItems(agendaQuery.data?.upcomingAssessments)}
+      />
 
       {/* FREQUÊNCIA DO EDUCANDO E COMUNICADOS INSTITUCIONAIS */}
       <div className="grid gap-6 lg:grid-cols-2">
