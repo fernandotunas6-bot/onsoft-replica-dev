@@ -53,6 +53,9 @@ const registerInputSchema = z.object({
   title: z.string().trim().min(2).max(160),
   holderName: z.string().trim().max(160).optional(),
   templateKey: z.string().trim().max(80).optional(),
+  /** Número do documento (recibo, fatura…) e valor, para confirmar o que está impresso. */
+  reference: z.string().trim().max(80).optional(),
+  amountLabel: z.string().trim().max(60).optional(),
 });
 
 export const registerIssuedDocument = createServerFn({ method: "POST" })
@@ -89,6 +92,8 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
         title: data.title,
         holder: data.holderName ?? null,
         template: data.templateKey ?? null,
+        reference: data.reference ?? null,
+        amount: data.amountLabel ?? null,
         school_name: membership.schoolName ?? null,
         issued_at: issuedAt,
       },
@@ -101,7 +106,15 @@ const verifyInputSchema = z.object({ code: z.string().trim().min(4).max(40) });
 
 export type DocumentVerification =
   | { valid: false }
-  | { valid: true; title: string; schoolName: string; holder: string; issuedAt: string };
+  | {
+      valid: true;
+      title: string;
+      schoolName: string;
+      holder: string;
+      issuedAt: string;
+      reference: string | null;
+      amount: string | null;
+    };
 
 /** Pública (sem sessão): quem recebe o documento verifica-o. */
 export const verifyIssuedDocument = createServerFn({ method: "GET" })
@@ -145,5 +158,7 @@ export const verifyIssuedDocument = createServerFn({ method: "GET" })
       schoolName,
       holder: maskHolderName(typeof meta.holder === "string" ? meta.holder : null),
       issuedAt: typeof meta.issued_at === "string" ? meta.issued_at : String(row.occurred_at),
+      reference: typeof meta.reference === "string" ? meta.reference : null,
+      amount: typeof meta.amount === "string" ? meta.amount : null,
     };
   });

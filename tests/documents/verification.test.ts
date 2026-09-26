@@ -46,6 +46,20 @@ describe("verificação de documentos oficiais", () => {
     expect(cert).toMatch(/\{\{#if document\.verifyUrl\}\}/);
   });
 
+  it("recibos registam número e valor, e a verificação mostra-os", () => {
+    const issue = read("src/features/documents/print-issue.ts");
+    expect(issue).toMatch(/reference: input\.student\?\.documentTitle/);
+    expect(issue).toMatch(/amountLabel: input\.amountLabel/);
+    expect(read("src/routes/faturas.tsx")).toMatch(/amountLabel: kwanza\(/);
+    expect(read("src/routes/verificar.tsx")).toMatch(/query\.data\.amount/);
+  });
+
+  it("o PDF de alternativa não desenha um QR falso nem promete validação", () => {
+    const pdf = read("src/lib/export-pdf.ts");
+    expect(pdf).not.toMatch(/Validar: /);
+    expect(pdf).not.toMatch(/charCodeAt\(\(row \+ col\)/);
+  });
+
   it("a página de verificação é pública", () => {
     expect(isPublicAppPath("/verificar")).toBe(true);
   });

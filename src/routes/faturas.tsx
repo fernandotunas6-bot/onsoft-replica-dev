@@ -369,6 +369,7 @@ function FaturasPage() {
     const validationCode = documentValidationCode([fatura.numero, receiptNumber, fatura.processo]);
     await issuePrintDocument({
       tipo: kind === "fatura" ? "Fatura escolar" : "Recibo de pagamento",
+      amountLabel: kwanza(kind === "fatura" ? fatura.valor : amount),
       school: financeSchool,
       student: {
         fullName: fatura.aluno,

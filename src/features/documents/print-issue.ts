@@ -71,6 +71,8 @@ export async function issuePrintDocument(input: {
   school: PrintSchoolContext;
   student?: PrintStudentContext;
   overlay?: Record<string, unknown>;
+  /** Valor impresso (recibos, faturas): fica no registo e aparece na verificação. */
+  amountLabel?: string;
   fallback?: () => void;
 }) {
   try {
@@ -93,7 +95,13 @@ export async function issuePrintDocument(input: {
       input.overlay ?? {},
     );
     // O documento diz que se valida pelo QR ou pelo código: passa a ser verdade.
-    const verification = await registerForVerification(input.tipo, input.student?.fullName, key);
+    const verification = await registerForVerification({
+      title: input.tipo,
+      holderName: input.student?.fullName,
+      templateKey: key,
+      reference: input.student?.documentTitle,
+      amountLabel: input.amountLabel,
+    });
     const document = (payload.document ?? {}) as Record<string, unknown>;
     payload.document = {
       ...document,
@@ -113,18 +121,18 @@ export async function issuePrintDocument(input: {
   }
 }
 
-async function registerForVerification(
-  title: string,
-  holderName: string | undefined,
-  templateKey: string,
-) {
+async function registerForVerification(details: {
+  title: string;
+  holderName?: string | undefined;
+  templateKey: string;
+  reference?: string | undefined;
+  amountLabel?: string | undefined;
+}) {
   const [{ registerIssuedDocument }, { default: QRCode }] = await Promise.all([
     import("@/features/documents/verification"),
     import("qrcode"),
   ]);
-  const { code } = await registerIssuedDocument({
-    data: { title, holderName, templateKey },
-  });
+  const { code } = await registerIssuedDocument({ data: details });
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const url = `${origin}/verificar?codigo=${encodeURIComponent(code)}`;
   const qrCodeDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 160 });

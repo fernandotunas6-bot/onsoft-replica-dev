@@ -284,3 +284,8 @@ o Supabase directamente e muda a senha.
   leva esse código e um QR para `/verificar` (pública, 20 verificações/min por IP), que mostra
   documento, escola, iniciais do titular e data. Os códigos antigos que continuam noutros
   ecrãs (pautas) passam a chamar-se "Referência", sem prometer verificação.
+- **Recibos verificáveis com valor (2026-09-26).** A verificação passa a mostrar também o número
+  do documento e o valor (recibos e faturas), para que um recibo real editado para outro valor
+  não "verifique". O PDF de alternativa (`export-pdf.ts`) desenhava um QR falso (quadrados
+  gerados do código, ilegíveis por qualquer leitor) com "Validar:"; passa a mostrar só
+  "Referência:".

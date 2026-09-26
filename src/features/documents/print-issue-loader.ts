@@ -6,6 +6,7 @@ export async function issuePrintDocument(input: {
   school: PrintSchoolContext;
   student?: PrintStudentContext;
   overlay?: Record<string, unknown>;
+  amountLabel?: string;
   fallback?: () => void;
 }) {
   const mod = await import("@/features/documents/print-issue");
