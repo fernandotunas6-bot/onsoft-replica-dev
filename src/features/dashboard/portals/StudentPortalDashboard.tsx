@@ -21,6 +21,8 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { getStudentAttendanceHistory } from "@/features/pedagogica/attendance-server";
 import { getDashboardOverview } from "@/features/dashboard/server";
+import { getMyStudentAgenda } from "@/features/dashboard/student-agenda";
+import { InlineLoading } from "@/components/ui/inline-loading";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +59,13 @@ export function StudentPortalDashboard() {
       }),
   });
 
+  const agendaQuery = useQuery({
+    queryKey: ["dashboard", "student-agenda"],
+    queryFn: () => getMyStudentAgenda(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const agenda = agendaQuery.data;
+
   const now = new Date();
   const greeting =
     now.getHours() < 12 ? "Bom dia" : now.getHours() < 19 ? "Boa tarde" : "Boa noite";
@@ -68,9 +77,11 @@ export function StudentPortalDashboard() {
     absent: 0,
     excused: 0,
     late: 0,
-    rate: 100,
+    rate: 0,
   };
-  const studentClass = currentUser.activeStudent?.class_name || "10ª Classe · Turma A";
+  const hasAttendance = attStats.total > 0;
+  const studentClass = agenda?.className ?? currentUser.activeStudent?.class_name ?? null;
+  const average = agenda?.average ?? currentUser.activeStudent?.average_grade ?? null;
 
   const studentMenu = [
     { label: "Minha Turma", icon: BookOpen, to: "/pedagogica", search: { tab: "turmas" } },
@@ -101,11 +112,11 @@ export function StudentPortalDashboard() {
           <div className="flex items-center gap-2 text-xs font-semibold text-primary">
             <GraduationCap className="size-4" /> Portal do Aluno · {selectedYearLabel}
           </div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight">
+          <h1 className="mt-1 text-xl md:text-2xl font-medium tracking-tight">
             {greeting}, {firstName}!
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {studentClass} · Acompanhamento do teu percurso escolar
+            {studentClass ? `${studentClass} · ` : ""}Acompanhamento do teu percurso escolar
           </p>
 
           <SpotlightRail
@@ -125,7 +136,7 @@ export function StudentPortalDashboard() {
             variant="default"
             size="sm"
             onClick={() => setVirtualCardModalOpen(true)}
-            className="gap-2 font-bold text-xs h-9 bg-primary text-primary-foreground shadow-sm"
+            className="gap-2 font-medium text-xs h-9 bg-primary text-primary-foreground shadow-sm"
           >
             <QrCode className="size-4" /> Cartão Virtual (Catraca)
           </Button>
@@ -134,7 +145,7 @@ export function StudentPortalDashboard() {
             variant="outline"
             className="bg-primary/10 text-primary border-primary/30 px-3 py-1.5 text-xs font-semibold"
           >
-            {attStats.rate}% Taxa de Presença
+            {hasAttendance ? `${attStats.rate}% de presença` : "Sem registos de presença"}
           </Badge>
         </div>
       </div>
@@ -142,54 +153,92 @@ export function StudentPortalDashboard() {
       {/* QUADRO DE INDICADORES DO ALUNO */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="surface-card p-5 space-y-2 border-l-4 border-l-primary">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
             <span>Frequência Geral</span>
             <Activity className="size-4 text-primary" />
           </div>
-          <p className="text-3xl font-extrabold text-foreground">{attStats.rate}%</p>
+          <p className="text-2xl font-semibold text-foreground tabular-nums">
+            {hasAttendance ? `${attStats.rate}%` : "—"}
+          </p>
           <p className="text-xs text-muted-foreground">
-            {attStats.present} presenças · {attStats.absent} faltas · {attStats.excused}{" "}
-            justificadas
+            {hasAttendance
+              ? `${attStats.present} presenças · ${attStats.absent} faltas · ${attStats.excused} justificadas`
+              : "Ainda sem registos."}
           </p>
         </div>
 
         <div className="surface-card p-5 space-y-2 border-l-4 border-l-success">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
             <span>Média Atual</span>
             <Award className="size-4 text-success" />
           </div>
-          <p className="text-3xl font-extrabold text-foreground">
-            {currentUser.activeStudent?.average_grade
-              ? `${currentUser.activeStudent.average_grade.toFixed(1)}`
-              : "14.7"}
+          <p className="text-2xl font-semibold text-foreground tabular-nums">
+            {average != null ? average.toFixed(1) : "—"}
           </p>
-          <p className="text-xs text-success font-semibold">Situação Académica Positiva</p>
+          <p
+            className={
+              average == null
+                ? "text-xs text-muted-foreground"
+                : average >= 10
+                  ? "text-xs text-success"
+                  : "text-xs text-destructive"
+            }
+          >
+            {average == null
+              ? "Ainda sem média lançada."
+              : average >= 10
+                ? "Situação positiva"
+                : "Abaixo de 10 valores"}
+          </p>
         </div>
 
         <div className="surface-card p-5 space-y-2 border-l-4 border-l-info">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
             <span>Próxima Aula</span>
             <Clock className="size-4 text-info" />
           </div>
-          <p className="text-xl font-extrabold text-foreground truncate">Matemática</p>
-          <p className="text-xs text-muted-foreground">Hoje · 08:00 - 08:45</p>
+          {agendaQuery.isLoading ? (
+            <InlineLoading label="A carregar horário…" />
+          ) : agenda?.nextLesson ? (
+            <>
+              <p className="text-base font-medium text-foreground truncate">
+                {agenda.nextLesson.subjectName}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {relativeDayLabel(agenda.nextLesson.daysAhead, agenda.nextLesson.weekday)} ·{" "}
+                {agenda.nextLesson.startsAt.slice(0, 5)}–{agenda.nextLesson.endsAt.slice(0, 5)}
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">Horário ainda não publicado.</p>
+          )}
         </div>
 
         <div className="surface-card p-5 space-y-2 border-l-4 border-l-warning">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
             <span>Próxima Avaliação</span>
             <AlertCircle className="size-4 text-warning" />
           </div>
-          <p className="text-xl font-extrabold text-foreground truncate">Física · Prova</p>
-          <p className="text-xs text-warning-foreground font-semibold">
-            Sexta-feira · 2º Trimestre
-          </p>
+          {agendaQuery.isLoading ? (
+            <InlineLoading label="A carregar avaliações…" />
+          ) : agenda?.nextAssessment ? (
+            <>
+              <p className="text-base font-medium text-foreground truncate">
+                {agenda.nextAssessment.subjectName} · {agenda.nextAssessment.name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {formatAssessmentDate(agenda.nextAssessment.date)}
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">Sem avaliações marcadas.</p>
+          )}
         </div>
       </div>
 
       {/* MENU RÁPIDO DO ALUNO */}
       <div className="surface-card p-5">
-        <h2 className="text-base font-bold mb-4 flex items-center gap-2">
+        <h2 className="text-sm font-medium mb-4 flex items-center gap-2">
           <BookOpen className="size-4 text-primary" /> O Teu Espaço de Aprendizagem
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -202,7 +251,7 @@ export function StudentPortalDashboard() {
             >
               <div className="flex items-center gap-3">
                 <IconChip icon={item.icon} size="sm" tone="primary" label={item.label} />
-                <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">
                   {item.label}
                 </span>
               </div>
@@ -219,7 +268,7 @@ export function StudentPortalDashboard() {
         {/* HISTÓRICO DE REGISTOS DE FREQUÊNCIA DO ALUNO */}
         <div className="surface-card p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold flex items-center gap-2">
+            <h2 className="text-sm font-medium flex items-center gap-2">
               <CheckSquare className="size-4 text-primary" /> As Minhas Faltas e Presenças
             </h2>
             <Button asChild size="sm" variant="ghost" className="text-xs gap-1">
@@ -241,7 +290,7 @@ export function StudentPortalDashboard() {
                   className="flex items-center justify-between p-3 rounded-xl border border-border bg-background"
                 >
                   <div>
-                    <p className="text-xs font-bold text-foreground">{rec.subject_name}</p>
+                    <p className="text-xs font-medium text-foreground">{rec.subject_name}</p>
                     <p className="text-[11px] text-muted-foreground">
                       {rec.date} {rec.time ? `· ${rec.time}` : ""}
                     </p>
@@ -304,7 +353,7 @@ export function StudentPortalDashboard() {
         {/* COMUNICADOS ESCOLARES */}
         <div className="surface-card p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold flex items-center gap-2">
+            <h2 className="text-sm font-medium flex items-center gap-2">
               <Megaphone className="size-4 text-primary" /> Avisos da Escola
             </h2>
             <Button asChild size="sm" variant="ghost" className="text-xs gap-1">
@@ -325,7 +374,7 @@ export function StudentPortalDashboard() {
                   key={item.id}
                   className="p-3.5 rounded-xl bg-secondary/50 border border-border space-y-1"
                 >
-                  <p className="text-xs font-bold text-foreground">{item.title}</p>
+                  <p className="text-xs font-medium text-foreground">{item.title}</p>
                   <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>
                   {item.published_at ? (
                     <p className="text-[10px] text-muted-foreground pt-1">
@@ -357,8 +406,27 @@ export function StudentPortalDashboard() {
         onOpenChange={setVirtualCardModalOpen}
         studentId={currentUser.linkedEntities.student_id ?? undefined}
         studentName={currentUser.name}
-        className={studentClass}
+        className={studentClass ?? undefined}
       />
     </div>
   );
+}
+
+const WEEKDAY_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+function relativeDayLabel(daysAhead: number, weekday: number) {
+  if (daysAhead === 0) return "Hoje";
+  if (daysAhead === 1) return "Amanhã";
+  return WEEKDAY_LABELS[weekday] ?? "";
+}
+
+function formatAssessmentDate(isoDate: string) {
+  const [y, m, d] = isoDate.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return isoDate;
+  return new Intl.DateTimeFormat("pt-PT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, d, 12)));
 }
