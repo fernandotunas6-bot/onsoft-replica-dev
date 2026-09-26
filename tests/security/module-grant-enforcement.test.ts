@@ -21,7 +21,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   },
 }));
 
-import { assertModuleNotBlocked } from "@/integrations/supabase/sga-admin";
+import { assertModuleNotBlocked, grantElevates } from "@/integrations/supabase/sga-admin";
 
 describe("permissões por módulo aplicadas no servidor", () => {
   beforeEach(() => {
@@ -55,6 +55,45 @@ describe("permissões por módulo aplicadas no servidor", () => {
   it("tabela por aplicar não bloqueia (igual ao contexto da conta)", async () => {
     grantError = { code: "42P01", message: "relation does not exist" };
     await expect(assertModuleNotBlocked("s", "u", "gestao")).resolves.toBeUndefined();
+  });
+});
+
+describe("permissão por módulo dá acesso a quem não tem o cargo", () => {
+  const secFin = ["Administrador", "Tesouraria"] as const;
+
+  it("'Escrita' ou 'Total' abre leitura e escrita a pessoal", () => {
+    for (const level of ["Escrita", "Total"]) {
+      expect(grantElevates("Professor", [...secFin], level, "write")).toBe(true);
+      expect(grantElevates("Secretaria", [...secFin], level, "read")).toBe(true);
+    }
+  });
+
+  it("'Leitura' só abre consultas", () => {
+    expect(grantElevates("Professor", [...secFin], "Leitura", "read")).toBe(true);
+    expect(grantElevates("Professor", [...secFin], "Leitura", "write")).toBe(false);
+  });
+
+  it("sem permissão, ou com 'Nenhum', não abre nada", () => {
+    expect(grantElevates("Professor", [...secFin], null, "read")).toBe(false);
+    expect(grantElevates("Professor", [...secFin], "Nenhum", "read")).toBe(false);
+  });
+
+  it("alunos, encarregados e contas sem cargo nunca são elevados", () => {
+    for (const role of ["Aluno", "Encarregado", "Utilizador"] as const) {
+      expect(grantElevates(role, [...secFin], "Total", "write")).toBe(false);
+    }
+  });
+
+  it("funções só do Administrador nunca são abertas por permissão", () => {
+    expect(grantElevates("Secretaria", ["Administrador"], "Total", "write")).toBe(false);
+  });
+});
+
+describe("dar permissões só a pessoal da escola", () => {
+  it("setStaffModuleGrant confirma a escola e recusa alunos e encarregados", () => {
+    const source = readFileSync(join(process.cwd(), "src/features/access/grants.ts"), "utf8");
+    expect(source).toMatch(/target\.schoolId !== membership\.schoolId/);
+    expect(source).toMatch(/target\.appRole === "Aluno" \|\| target\.appRole === "Encarregado"/);
   });
 });
 

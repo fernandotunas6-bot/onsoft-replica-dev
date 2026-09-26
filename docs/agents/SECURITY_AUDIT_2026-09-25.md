@@ -121,8 +121,12 @@ escrita de usar a verificação de leitura.
 Tesouraria) mas não as permissões por módulo. Agora também respeitam "Nenhum" e "Leitura" do
 módulo Financeiro (16 funções de escrita pedem modo escrita).
 
-**Por fazer:** a elevação por permissão (dar acesso a quem não tem o papel) não chega ao
-servidor.
+**Elevação por permissão (2026-09-26):** `requireSgaWriterFor`/`ForWrite` deixam entrar quem
+não tem o cargo da função quando a Administração lhe deu a permissão do módulo, com três
+limites (`grantElevates`): só Secretaria, Tesouraria e Professor; nunca funções só do
+Administrador; "Leitura" só consulta, "Escrita"/"Total" alteram. `setStaffModuleGrant` passa a
+exigir que a conta pertença à escola e não seja aluno nem encarregado. As verificações próprias
+do RH (Administrador/Tesouraria) não elevam: o RH continua só para esses cargos.
 
 ## Funcionalidades simuladas apresentadas como reais
 

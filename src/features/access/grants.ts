@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { accessModules } from "@/features/auth/access-policy";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { requireSgaWriter } from "@/integrations/supabase/sga-admin";
+import { requireSgaWriter, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 
 /**
  * Este módulo lê e escreve com o cliente do utilizador (`context.supabase`),
@@ -63,6 +63,15 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    // A permissão só se dá a pessoal desta escola. No servidor ela pode abrir
+    // funções a quem não tem o cargo; a um aluno ou encarregado, nunca.
+    const target = await resolveSgaMembershipAdmin(data.userId, membership.schoolId);
+    if (!target || target.schoolId !== membership.schoolId) {
+      throw new Error("Esta conta não pertence à escola.");
+    }
+    if (target.appRole === "Aluno" || target.appRole === "Encarregado") {
+      throw new Error("Permissões por módulo são só para pessoal da escola.");
+    }
     const { error } = await context.supabase.from("staff_module_grants").upsert(
       {
         school_id: membership.schoolId,
