@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestIP } from "@tanstack/react-start/server";
 import { OtpService } from "@/features/otp/otp-service";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { resolveResetAccount } from "./reset-account-resolver";
 
 export const resetPasswordWithOtpInputSchema = z.object({
   targetIdentifier: z.string().trim().min(3, "Indique o e-mail ou telefone da conta."),
@@ -50,38 +51,7 @@ export const resetPasswordWithOtpFn = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const isEmail = normalized.includes("@");
-    let userId: string | null = null;
-
-    if (isEmail) {
-      // `profiles` não tem coluna de e-mail — o e-mail vive em `people`, e é
-      // `people.user_id` que aponta para a conta. Com `.eq("email", …)` sobre `profiles`
-      // o PostgREST recusava a consulta, e esta via caía sempre no varrimento completo
-      // de utilizadores mais abaixo.
-      const { data: person } = await db
-        .from("people")
-        .select("user_id")
-        .eq("email", normalized)
-        .not("user_id", "is", null)
-        .limit(1)
-        .maybeSingle();
-      userId = (person?.user_id as string | null) ?? null;
-    } else {
-      const { data: profile } = await db
-        .from("profiles")
-        .select("id")
-        .eq("phone", normalized)
-        .maybeSingle();
-      userId = profile?.id ?? null;
-    }
-
-    if (!userId) {
-      // Tentar resolver diretamente na base de autenticação se profile não bater
-      const { data: listUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const matched = listUsers?.users?.find((u) =>
-        isEmail ? u.email?.toLowerCase() === normalized : u.phone === normalized,
-      );
-      userId = matched?.id ?? null;
-    }
+    const userId = await resolveResetAccount(db, supabaseAdmin, normalized);
 
     if (!userId) {
       return {
@@ -98,7 +68,7 @@ export const resetPasswordWithOtpFn = createServerFn({ method: "POST" })
     if (updateError) {
       return {
         success: false,
-        message: `Erro ao atualizar a senha: ${updateError.message}`,
+        message: "Não foi possível actualizar a senha. Tente novamente.",
       };
     }
 

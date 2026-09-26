@@ -193,3 +193,15 @@ Pode ser intencional (contacto com o professor).
 - **Link da aula Zoom:** qualquer membro obtinha o link de qualquer turma. Alunos e
   encarregados só o recebem se o aluno estiver matriculado nessa turma.
   Protegido por `tests/security/account-contact-change.test.ts`.
+- **Recuperação de senha por código.** A conta era encontrada pelo e-mail da ficha escolar
+  (`people.email`, preenchido pela secretaria ou por formulários) ou pelo telefone do perfil
+  (gravável sem verificação em `updateCurrentProfile`). Quem controlasse esse contacto
+  redefinia a senha de uma conta que não era sua, e uma sessão aberta chegava para gravar um
+  telefone e recuperar a conta por ele. Agora (`reset-account-resolver.ts`) só vale o e-mail
+  da conta no Supabase Auth, ou um telefone da conta no Auth ou confirmado por código pela
+  própria conta. Protegido por `tests/security/reset-account-resolver.test.ts`.
+- **Mudar a senha** termina as outras sessões da conta.
+
+**No Supabase (Authentication → Providers → Email):** activar "Secure password change". A
+verificação da senha actual no ecrã é só no browser; sem essa opção, uma sessão aberta chama
+o Supabase directamente e muda a senha.

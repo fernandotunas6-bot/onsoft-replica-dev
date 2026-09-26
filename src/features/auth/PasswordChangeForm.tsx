@@ -56,9 +56,13 @@ export function PasswordChangeForm({ compact = false }: { compact?: boolean }) {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
 
+      // Quem mudou a senha por suspeita não quer outras sessões abertas com a
+      // antiga: terminam todas, menos esta.
+      await supabase.auth.signOut({ scope: "others" }).catch(() => undefined);
+
       form.reset();
       stackNav?.reportDirty(false);
-      toast.success("Senha actualizada com sucesso.");
+      toast.success("Senha actualizada. As outras sessões desta conta foram terminadas.");
     } catch {
       toast.error("Não foi possível actualizar a senha. Tente novamente.");
     } finally {
