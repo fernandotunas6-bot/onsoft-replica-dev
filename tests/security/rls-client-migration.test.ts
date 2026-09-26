@@ -92,6 +92,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // (build_grade_sheet / transition_grade_sheet com permissões e 2FA).
   "src/features/academic/grade-sheets.ts",
 
+  // Pedidos de alteração de nota: grade_scores/grade_score_history só pelo
+  // servidor; pedir exige ser o professor da disciplina ou a coordenação,
+  // decidir só a coordenação (Administrador/Secretaria).
+  "src/features/academic/grade-change-requests.ts",
+
   // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
   // autenticado por SIGA_CRON_SECRET em tempo constante.
   "src/routes/api/cron/lesson-reminders.tsx",

@@ -146,6 +146,10 @@ const ANON_POLICIES_ESPERADAS = [
  * se abria o primeiro diário nem se lançavam notas.
  */
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
+  // Histórico das notas (2026-09-26, `20260926160000_grade_score_history.sql`).
+  // As funções da base já a usavam sem ela existir. Sem a tabela, o
+  // lançamento continua e o histórico simplesmente não fica gravado.
+  "grade_score_history",
   // Horários: detalhes da aula, tarefas e lembretes (2026-09-26,
   // `20260926140000_timetable_lesson_details_tasks_reminders.sql`). Sem elas,
   // o detalhe da aula mostra só o essencial e a edição avisa que falta a

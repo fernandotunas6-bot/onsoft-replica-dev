@@ -131,7 +131,7 @@ export type GradeSheetDetail = {
     average: number | null;
     absencePct: number | null;
     result: string;
-    subjects: Array<{ subject: string; average: number | null }>;
+    subjects: Array<{ subject: string; subjectId: string; average: number | null }>;
   }>;
   checks: PrePautaCheck[];
 };
@@ -341,6 +341,7 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
           subjects: (Array.isArray(r.subject_breakdown) ? (r.subject_breakdown as Row[]) : []).map(
             (b) => ({
               subject: str(b["subject"]),
+              subjectId: str(b["subjectId"]),
               average: num(b["average"]),
             }),
           ),

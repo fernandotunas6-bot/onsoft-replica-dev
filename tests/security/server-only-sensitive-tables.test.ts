@@ -14,6 +14,7 @@ const MIGRATIONS = {
     "student_risk_interventions",
     "payment_gateway_charges",
   ],
+  "supabase/migrations/20260926160000_grade_score_history.sql": ["grade_score_history"],
   "supabase/migrations/20260926140000_timetable_lesson_details_tasks_reminders.sql": [
     "siga_timetable_slot_details",
     "siga_class_tasks",

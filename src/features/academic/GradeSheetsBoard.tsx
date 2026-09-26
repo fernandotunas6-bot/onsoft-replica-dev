@@ -13,6 +13,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { InlineLoading } from "@/components/ui/inline-loading";
 import { toastActionError } from "@/lib/action-error-toast";
+import { GradeChangeRequestForm } from "./GradeChangeRequestForm";
 import { cn } from "@/lib/utils";
 import {
   buildGradeSheet,
@@ -209,6 +210,7 @@ function GradeSheetDialog({
       getGradeSheetDetail({ data: { sheetId: sheetId! } }) as Promise<GradeSheetDetail>,
   });
   const [reasonFor, setReasonFor] = useState<GradeSheetAction | null>(null);
+  const [requestFor, setRequestFor] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: detailKey });
@@ -409,6 +411,19 @@ function GradeSheetDialog({
                         <tr key={row.enrollmentId}>
                           <td className="py-2 pr-3">
                             {row.studentName}
+                            {isGradeSheetLocked(sheet.status) && row.subjects.length ? (
+                              <button
+                                type="button"
+                                className="ml-2 text-xs text-primary hover:underline"
+                                onClick={() =>
+                                  setRequestFor(
+                                    requestFor === row.enrollmentId ? null : row.enrollmentId,
+                                  )
+                                }
+                              >
+                                Pedir alteração
+                              </button>
+                            ) : null}
                             {row.subjects.length ? (
                               <span className="block text-xs text-muted-foreground">
                                 {row.subjects
@@ -443,6 +458,17 @@ function GradeSheetDialog({
                   </table>
                 </div>
               )}
+              {requestFor && sheet.rows.find((r) => r.enrollmentId === requestFor) ? (
+                <GradeChangeRequestForm
+                  sheetId={sheet.id}
+                  enrollmentId={requestFor}
+                  studentName={sheet.rows.find((r) => r.enrollmentId === requestFor)!.studentName}
+                  subjects={sheet.rows
+                    .find((r) => r.enrollmentId === requestFor)!
+                    .subjects.filter((s) => s.subjectId)}
+                  onDone={() => setRequestFor(null)}
+                />
+              ) : null}
             </section>
           </div>
         )}

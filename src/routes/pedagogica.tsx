@@ -1,4 +1,5 @@
 import { GradeSheetsBoard } from "@/features/academic/GradeSheetsBoard";
+import { GradeChangeRequestsPanel } from "@/features/academic/GradeChangeRequestsPanel";
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
@@ -1176,6 +1177,7 @@ function PedagogicaPage() {
           </TabsContent>
 
           <TabsContent value="pautas" className="mt-5 space-y-6">
+            {canManageAcademic ? <GradeChangeRequestsPanel /> : null}
             {canReadAcademic ? (
               <GradeSheetsBoard yearId={selectedYearId ?? null} canManage={canManageAcademic} />
             ) : null}
