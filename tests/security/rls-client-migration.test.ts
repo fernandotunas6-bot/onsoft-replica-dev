@@ -55,6 +55,11 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // O professor grava a sua escolha de visibilidade do contacto numa entrada
+  // de `school_settings`, que o RLS só deixa escrever à administração. O
+  // servidor limita a escrita ao `teacher_id` da própria conta.
+  "src/features/people/teacher-contact-visibility.ts",
+
   // Corre antes de existir sessão: resolve BI → e-mail no ecrã de entrada.
   // Não há JWT para levar, logo não há cliente de utilizador possível.
   "src/features/access/bi-login.ts",

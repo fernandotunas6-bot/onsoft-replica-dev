@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileSettingsPanel } from "@/features/auth/ProfileSettingsPanel";
+import { TeacherContactVisibilityPanel } from "@/features/people/TeacherContactVisibilityPanel";
 import { PasswordChangeForm } from "@/features/auth/PasswordChangeForm";
 import { EmailChangeForm } from "@/features/auth/EmailChangeForm";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -74,6 +75,7 @@ function PerfilPage() {
             >
               <ProfileSettingsPanel />
             </Panel>
+            <TeacherContactVisibilityPanel />
           </TabsContent>
 
           <TabsContent value="instituicoes" className="space-y-6">

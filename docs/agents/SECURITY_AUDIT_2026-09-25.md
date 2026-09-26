@@ -183,8 +183,11 @@ que a conta era membro da escola, e alunos e encarregados também são membros.
 definições da escola (os dados bancários são os que os encarregados usam para pagar),
 estado das integrações (não devolve chaves).
 
-**Por decidir:** `listTeachers` devolve e-mail e telefone dos professores a qualquer membro.
-Pode ser intencional (contacto com o professor).
+**Contactos dos professores (decidido 2026-09-26):** `listTeachers` mostra e-mail e telefone
+a alunos e encarregados por omissão, mas cada professor pode ocultá-los em Perfil → "Contacto
+para alunos" (`teacher-contact-visibility.ts`, domínio `teacher_contact_visibility` em
+`school_settings`). O pessoal da escola vê sempre. A escolha aplica-se antes da pesquisa, para
+que procurar pelo e-mail não o revele.
 
 ## Contactos da conta e aulas Zoom (quarta passagem)
 

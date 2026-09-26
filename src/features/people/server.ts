@@ -1,5 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { canSeePerson, loadStudentScope } from "@/features/students/student-scope";
+import {
+  applyTeacherContactVisibility,
+  loadHiddenTeachers,
+  seesAllTeacherContacts,
+} from "./teacher-contact-visibility";
 import { sgaClient } from "@/integrations/supabase/sga";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -898,7 +903,11 @@ export const listTeachers = createServerFn({ method: "GET" })
 
     const personIds = [...new Set((teachers ?? []).map((row) => row.person_id))];
     const { data: people } = personIds.length
-      ? await db.from("people").select("id, full_name, email, phone, photo_url").in("id", personIds)
+      ? await db
+          .from("people")
+          .select("id, full_name, email, phone, photo_url")
+          .eq("school_id", membership.schoolId)
+          .in("id", personIds)
       : {
           data: [] as Array<{
             id: string;
@@ -910,32 +919,37 @@ export const listTeachers = createServerFn({ method: "GET" })
         };
     const peopleById = new Map((people ?? []).map((row) => [row.id, row]));
     const q = (data.query ?? "").trim().toLowerCase();
+    // Cada professor decide se alunos e encarregados vêem o seu contacto. A
+    // escolha aplica-se antes da pesquisa: procurar pelo e-mail oculto não o
+    // revela.
+    const hiddenContacts = await loadHiddenTeachers(db, membership.schoolId);
+    const viewerSeesAll = seesAllTeacherContacts(membership.allAppRoles ?? [membership.appRole]);
 
-    return (teachers ?? [])
-      .map((teacher) => {
-        const person = peopleById.get(teacher.person_id);
-        return {
-          id: teacher.id as string,
-          person_id: teacher.person_id as string,
-          employee_number: teacher.employee_number as string,
-          hired_on: teacher.hired_on as string | null,
-          employment_type: teacher.employment_type as string | null,
-          status: teacher.status as string,
-          full_name: person?.full_name ?? "Professor",
-          email: person?.email ?? null,
-          phone: person?.phone ?? null,
-          photo_url: (person?.photo_url as string | null | undefined) ?? null,
-          updated_at: teacher.updated_at as string,
-        };
-      })
-      .filter((row) => {
-        if (!q) return true;
-        return (
-          row.full_name.toLowerCase().includes(q) ||
-          row.employee_number.toLowerCase().includes(q) ||
-          (row.email ?? "").toLowerCase().includes(q)
-        );
-      });
+    const rows = (teachers ?? []).map((teacher) => {
+      const person = peopleById.get(teacher.person_id);
+      return {
+        id: teacher.id as string,
+        person_id: teacher.person_id as string,
+        employee_number: teacher.employee_number as string,
+        hired_on: teacher.hired_on as string | null,
+        employment_type: teacher.employment_type as string | null,
+        status: teacher.status as string,
+        full_name: person?.full_name ?? "Professor",
+        email: person?.email ?? null,
+        phone: person?.phone ?? null,
+        photo_url: (person?.photo_url as string | null | undefined) ?? null,
+        updated_at: teacher.updated_at as string,
+      };
+    });
+
+    return applyTeacherContactVisibility(rows, hiddenContacts, viewerSeesAll).filter((row) => {
+      if (!q) return true;
+      return (
+        row.full_name.toLowerCase().includes(q) ||
+        row.employee_number.toLowerCase().includes(q) ||
+        (row.email ?? "").toLowerCase().includes(q)
+      );
+    });
   });
 
 export const createTeacher = createServerFn({ method: "POST" })
