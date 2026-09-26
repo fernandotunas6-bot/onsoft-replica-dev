@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { publicErrorMessage } from "@/lib/public-error";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, LoaderCircle } from "lucide-react";
@@ -101,7 +102,7 @@ function PublicEnrollmentPage() {
       });
       setSent(true);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Não foi possível enviar.");
+      setError(publicErrorMessage(submitError, "Não foi possível enviar."));
     } finally {
       setSaving(false);
     }
@@ -150,7 +151,7 @@ function PublicEnrollmentPage() {
             </div>
           ) : formQuery.isError ? (
             <p className="py-10 text-center text-sm text-destructive">
-              {formQuery.error instanceof Error ? formQuery.error.message : "Link indisponível."}
+              {publicErrorMessage(formQuery.error, "Link indisponível.")}
             </p>
           ) : sent ? (
             <div className="py-10 text-center">

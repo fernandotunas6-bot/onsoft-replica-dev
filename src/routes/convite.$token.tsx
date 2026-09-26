@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { publicErrorMessage } from "@/lib/public-error";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, AlertTriangle, LoaderCircle, Building2 } from "lucide-react";
 import { toast } from "sonner";
@@ -58,7 +59,7 @@ function AcceptInvitePage() {
         void navigate({ to: "/" });
       }, 2000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Não foi possível aceitar o convite.";
+      const msg = publicErrorMessage(err, "Não foi possível aceitar o convite.");
       setErrorMsg(msg);
       setStatus("error");
       toast.error(msg);

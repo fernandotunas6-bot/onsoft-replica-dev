@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { publicErrorMessage } from "@/lib/public-error";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -78,10 +79,8 @@ function VerifyDocumentPage() {
           <p className="text-sm text-muted-foreground">A verificar…</p>
         ) : query.isError ? (
           <p className="text-sm text-destructive">
-            {/* O público não precisa de ver erros técnicos: só o limite de tentativas. */}
-            {query.error instanceof Error && /Demasiadas/.test(query.error.message)
-              ? query.error.message
-              : "Não foi possível verificar agora. Tente mais tarde."}
+            {/* Erros técnicos não chegam ao público (publicErrorMessage). */}
+            {publicErrorMessage(query.error, "Não foi possível verificar agora. Tente mais tarde.")}
           </p>
         ) : query.data?.valid ? (
           <section className="space-y-2 rounded-xl border border-border p-4">
