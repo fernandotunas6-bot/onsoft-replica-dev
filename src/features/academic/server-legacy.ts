@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
+import { recordAuditBatch } from "@/features/audit/record-audit";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -1589,6 +1590,26 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
       if (result.error)
         throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
     }
+    // A tabela só guarda a nota anterior: uma nota mudada duas vezes perdia a
+    // original. Cada alteração de uma nota já lançada fica em audit_logs.
+    await recordAuditBatch(
+      toUpdate
+        .map((row) => ({ row, existing: existingByEnrollment.get(row.enrollmentId)! }))
+        .filter(({ row, existing }) => Number(existing.score) !== Number(row.score))
+        .map(({ row, existing }) => ({
+          schoolId: membership.schoolId,
+          actorUserId: context.userId,
+          action: "grades.assessment_score_changed",
+          entityType: "siga_assessment_scores",
+          entityId: existing.id,
+          metadata: {
+            item_id: data.itemId,
+            enrollment_id: row.enrollmentId,
+            from: existing.score,
+            to: row.score,
+          },
+        })),
+    );
     return { saved: data.rows.length };
   });
 

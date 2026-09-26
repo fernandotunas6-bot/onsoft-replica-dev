@@ -18,18 +18,27 @@ export type AccessAuditEntry = {
 };
 
 export async function recordAccessAudit(entry: AccessAuditEntry): Promise<void> {
+  await recordAuditBatch([entry]);
+}
+
+/** Vários eventos numa só escrita (por exemplo, as notas alteradas de um lote). */
+export async function recordAuditBatch(entries: AccessAuditEntry[]): Promise<void> {
+  if (!entries.length) return;
+  const label = entries[0]!.action;
   try {
     const db = await loadSgaAdminClient();
-    const { error } = await db.from("audit_logs").insert({
-      school_id: entry.schoolId,
-      actor_user_id: entry.actorUserId,
-      action: entry.action,
-      entity_type: entry.entityType,
-      entity_id: entry.entityId,
-      metadata: entry.metadata ?? {},
-    });
-    if (error) console.error(`[audit] ${entry.action}:`, error.message);
+    const { error } = await db.from("audit_logs").insert(
+      entries.map((entry) => ({
+        school_id: entry.schoolId,
+        actor_user_id: entry.actorUserId,
+        action: entry.action,
+        entity_type: entry.entityType,
+        entity_id: entry.entityId,
+        metadata: entry.metadata ?? {},
+      })),
+    );
+    if (error) console.error(`[audit] ${label}:`, error.message);
   } catch (error) {
-    console.error(`[audit] ${entry.action}:`, error);
+    console.error(`[audit] ${label}:`, error);
   }
 }

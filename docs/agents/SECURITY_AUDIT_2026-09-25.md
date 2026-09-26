@@ -266,3 +266,13 @@ o Supabase directamente e muda a senha.
   directamente e permissões por módulo (definidas e repostas). Escrita centralizada em
   `src/features/audit/record-audit.ts` (o RLS de `audit_logs` não deixa utilizadores gravar).
   Protegido por `tests/security/access-audit.test.ts`.
+- **Notas e presenças (2026-09-26).**
+  - Verificado: os triggers `enforce_teacher_*_scope` estão na produção e usam o actor gravado
+    (`recorded_by`), por isso o professor não lança notas fora das suas turmas mesmo com a
+    chave de serviço.
+  - `siga_assessment_scores` só guarda a nota anterior; uma nota mudada duas vezes perdia a
+    original. Cada alteração de nota já lançada fica agora em `audit_logs`
+    (`grades.assessment_score_changed`, com de/para).
+  - `editFinalizedAttendanceCall` deixava um professor corrigir a chamada fechada de outro e
+    aceitava alunos de fora da turma. Tem agora as mesmas regras da chamada normal.
+  - Anular fatura exige motivo (ecrã e servidor).

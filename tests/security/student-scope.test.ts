@@ -108,6 +108,16 @@ describe("leituras da escola inteira só para o pessoal", () => {
       ["submitAttendanceCallBatch"],
       /não estão matriculados nesta turma/,
     ],
+    [
+      "src/features/pedagogica/attendance-server.ts",
+      ["editFinalizedAttendanceCall"],
+      /não estão matriculados nesta turma[\s\S]*|corrigir a chamada de outro professor/,
+    ],
+    [
+      "src/features/academic/server-legacy.ts",
+      ["upsertAssessmentScores"],
+      /"grades\.assessment_score_changed"/,
+    ],
   ];
   for (const [path, names, guard] of cases) {
     const source = read(path);

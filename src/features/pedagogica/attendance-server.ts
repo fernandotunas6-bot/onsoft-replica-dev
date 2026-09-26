@@ -529,12 +529,31 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
 
     const { data: session } = await db
       .from("siga_attendance_sessions")
-      .select("id, school_id, lesson_date, created_at")
+      .select("id, school_id, lesson_date, created_at, class_group_id, teacher_id")
       .eq("id", data.sessionId)
       .eq("school_id", membership.schoolId)
       .single();
 
     if (!session) throw new Error("Sessão de chamada não encontrada.");
+
+    // As mesmas regras da chamada normal: o professor só corrige as suas
+    // chamadas, e só entram alunos matriculados nesta turma.
+    if (membership.appRole === "Professor") {
+      const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+      if (linked.teacher_id && session.teacher_id && linked.teacher_id !== session.teacher_id) {
+        throw new Error("Não tem permissão para corrigir a chamada de outro professor.");
+      }
+    }
+    const { data: classEnrollments } = await db
+      .from("enrollments")
+      .select("student_id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", session.class_group_id)
+      .in("status", ["active", "pending"]);
+    const enrolled = new Set((classEnrollments ?? []).map((row) => String(row.student_id)));
+    if (data.records.some((item) => !enrolled.has(item.studentId))) {
+      throw new Error("A correcção inclui alunos que não estão matriculados nesta turma.");
+    }
 
     const { data: existingRecords } = await db
       .from("siga_attendance_records")
