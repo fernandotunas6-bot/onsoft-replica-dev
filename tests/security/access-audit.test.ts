@@ -21,6 +21,8 @@ describe("acções sobre contas e acessos ficam em audit_logs", () => {
     ["src/features/access/server.ts", "acceptSchoolInvitation", "access.invitation_accepted"],
     ["src/features/access/grants.ts", "setStaffModuleGrant", "access.module_grant_set"],
     ["src/features/access/grants.ts", "clearStaffModuleGrant", "access.module_grant_cleared"],
+    ["src/features/students/server.ts", "assignGuardian", "students.guardian_linked"],
+    ["src/features/students/server.ts", "removeGuardian", "students.guardian_unlinked"],
   ];
   for (const [file, fn, action] of cases) {
     it(`${fn} → ${action}`, () => {

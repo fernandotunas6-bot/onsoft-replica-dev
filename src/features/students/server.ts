@@ -30,6 +30,7 @@ import {
 import { deriveAcademicStatus, deriveFinancialSnapshot, type InvoiceLike } from "./academic-status";
 import { recordStudentStatusHistory } from "./status-history";
 import { assertCanSeeStudent, loadStudentScope } from "./student-scope";
+import { recordAccessAudit } from "@/features/audit/record-audit";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 
@@ -1414,6 +1415,18 @@ export const assignGuardian = createServerFn({ method: "POST" })
       isPrimary: data.isPrimary,
       userId: context.userId,
     });
+    // Quem é encarregado decide quem vê os dados do aluno: fica registado.
+    await recordAccessAudit({
+      schoolId: membership.schoolId,
+      actorUserId: context.userId,
+      action: "students.guardian_linked",
+      entityType: "student",
+      entityId: data.studentId,
+      metadata: {
+        guardian_person_id: data.guardianPersonId,
+        relationship: data.relationship ?? null,
+      },
+    });
     return { studentId: data.studentId, guardianPersonId: data.guardianPersonId };
   });
 
@@ -1434,6 +1447,15 @@ export const removeGuardian = createServerFn({ method: "POST" })
       .eq("guardian_person_id", data.guardianPersonId)
       .eq("school_id", membership.schoolId);
     if (error) throw publicDatabaseError(error, "Não foi possível remover o encarregado.");
+    // Quem é encarregado decide quem vê os dados do aluno: fica registado.
+    await recordAccessAudit({
+      schoolId: membership.schoolId,
+      actorUserId: context.userId,
+      action: "students.guardian_unlinked",
+      entityType: "student",
+      entityId: data.studentId,
+      metadata: { guardian_person_id: data.guardianPersonId },
+    });
     return { studentId: data.studentId, guardianPersonId: data.guardianPersonId };
   });
 
