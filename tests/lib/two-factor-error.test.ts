@@ -13,6 +13,7 @@ describe("isTwoFactorRequiredMessage", () => {
   });
 
   it("não confunde outros erros", () => {
+    expect(isTwoFactorRequiredMessage("MFA obrigatório.")).toBe(true);
     expect(isTwoFactorRequiredMessage("Turma sem vagas.")).toBe(false);
     expect(isTwoFactorRequiredMessage("Não foi possível aceitar.")).toBe(false);
   });

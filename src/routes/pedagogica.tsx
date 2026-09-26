@@ -1,3 +1,4 @@
+import { GradeSheetsBoard } from "@/features/academic/GradeSheetsBoard";
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
@@ -794,7 +795,7 @@ function PedagogicaPage() {
             <TabsTrigger value="horarios">Horários</TabsTrigger>
             <TabsTrigger value="notas">Notas</TabsTrigger>
             <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
-            <TabsTrigger value="pautas">Modelos de Pauta</TabsTrigger>
+            <TabsTrigger value="pautas">Pautas</TabsTrigger>
           </TabsList>
           <div className="mt-4">
             <InstalledModuleTools
@@ -1175,6 +1176,9 @@ function PedagogicaPage() {
           </TabsContent>
 
           <TabsContent value="pautas" className="mt-5 space-y-6">
+            {canReadAcademic ? (
+              <GradeSheetsBoard yearId={selectedYearId ?? null} canManage={canManageAcademic} />
+            ) : null}
             <PautasWorkspaceModule workspace={workspace} />
           </TabsContent>
         </Tabs>

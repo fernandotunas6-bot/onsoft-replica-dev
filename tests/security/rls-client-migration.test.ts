@@ -87,6 +87,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // RLS para Professor.
   "src/features/academic/academic-structure.ts",
 
+  // Pautas oficiais: leituras (pauta, linhas, diários, notas) para o pessoal
+  // da escola; gerar e mudar de estado vão pela sessão do utilizador
+  // (build_grade_sheet / transition_grade_sheet com permissões e 2FA).
+  "src/features/academic/grade-sheets.ts",
+
   // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
   // autenticado por SIGA_CRON_SECRET em tempo constante.
   "src/routes/api/cron/lesson-reminders.tsx",

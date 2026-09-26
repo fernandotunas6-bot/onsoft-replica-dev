@@ -66,7 +66,7 @@ export function LessonDetailDialog({
 
   return (
     <Dialog open={Boolean(slotId)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
         {query.isLoading || !detail ? (
           <>
             <DialogHeader>

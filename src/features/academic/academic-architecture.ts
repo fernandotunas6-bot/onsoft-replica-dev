@@ -167,7 +167,7 @@ export const ACADEMIC_MODULES: AcademicModule[] = [
     number: 11,
     title: "Pautas",
     stage: "avaliacao",
-    createdIn: { kind: "tab", tab: "pautas", label: "Modelos de Pauta" },
+    createdIn: { kind: "tab", tab: "pautas", label: "Pautas" },
     owners: "Professor submete · Coordenação valida e publica",
     entity: "grade_sheets · grade_sheet_rows",
     usedBy: "Rascunho → submetida → em validação → homologada → publicada → fechada",
