@@ -2,6 +2,7 @@ import { GradeSheetsBoard } from "@/features/academic/GradeSheetsBoard";
 import { GradeChangeRequestsPanel } from "@/features/academic/GradeChangeRequestsPanel";
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { AssessmentModelsTab } from "@/features/academic/AssessmentModelsTab";
+import { ExamsTab } from "@/features/academic/ExamsTab";
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -109,6 +110,7 @@ const pedagogicaSearchSchema = z
         "presencas",
         "chamada",
         "pautas",
+        "exames",
       ])
       .optional(),
     turma: z.string().uuid().optional(),
@@ -273,6 +275,7 @@ function PedagogicaPage() {
           "presencas",
           "chamada",
           "pautas",
+          "exames",
         ] as const
       ).includes(next as PedagogicaTab)
     ) {
@@ -803,6 +806,7 @@ function PedagogicaPage() {
             <TabsTrigger value="notas">Notas</TabsTrigger>
             <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
             <TabsTrigger value="pautas">Pautas</TabsTrigger>
+            {canReadAcademic ? <TabsTrigger value="exames">Exames</TabsTrigger> : null}
           </TabsList>
           <div className="mt-4">
             <InstalledModuleTools
@@ -1186,6 +1190,12 @@ function PedagogicaPage() {
               initialDate={diaFromSearch}
             />
           </TabsContent>
+
+          {canReadAcademic ? (
+            <TabsContent value="exames" className="mt-5">
+              <ExamsTab yearId={selectedYearId ?? null} />
+            </TabsContent>
+          ) : null}
 
           <TabsContent value="pautas" className="mt-5 space-y-6">
             {canManageAcademic ? <GradeChangeRequestsPanel /> : null}

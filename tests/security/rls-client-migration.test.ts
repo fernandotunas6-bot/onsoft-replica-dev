@@ -103,6 +103,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // Administrador + 2FA (aal2) no servidor.
   "src/features/academic/assessment-models.ts",
 
+  // Exames e resultado final: siga_exam_* são só do servidor (FORCE RLS, sem
+  // acesso de cliente); lê a pauta anual e escreve inscrições e notas depois
+  // de validar Administrador/Secretaria (Professor só consulta).
+  "src/features/academic/exams.ts",
+
   // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
   // autenticado por SIGA_CRON_SECRET em tempo constante.
   "src/routes/api/cron/lesson-reminders.tsx",

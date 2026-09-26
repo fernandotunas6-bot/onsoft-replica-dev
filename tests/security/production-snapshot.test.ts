@@ -164,6 +164,11 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
   // `assertImportModuleGoverned` bloqueia todas as importações (falha fechada).
   // Aplicar antes de usar a importação e retirar daqui.
   "import_table_specs",
+  // Épocas e inscrições de exame (2026-09-26,
+  // `20260926220000_exam_sessions_registrations.sql`). Sem elas, o separador
+  // Exames avisa que falta a migração; a estrutura académica conta 0.
+  "siga_exam_sessions",
+  "siga_exam_registrations",
   // Caixas de correio por tenant, no Control Center: sem a tabela, o
   // aprovisionamento de caixas institucionais não grava nem lista nada.
   "tenant_mailboxes",

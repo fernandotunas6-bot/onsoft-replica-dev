@@ -130,6 +130,32 @@ export const getAcademicStructureStatus = createServerFn({ method: "GET" })
         .gte("occurred_at", since),
     ]);
 
+    // Exames: contagens à parte, porque as tabelas podem ainda não existir.
+    let examSessions = 0;
+    let examRegistrations = 0;
+    if (yearId) {
+      const { data: sessions, error: sessionsError } = await db
+        .from("siga_exam_sessions")
+        .select("id")
+        .eq("school_id", schoolId)
+        .eq("academic_year_id", yearId)
+        .limit(200);
+      if (!sessionsError && sessions?.length) {
+        examSessions = sessions.length;
+        examRegistrations = n(
+          await db
+            .from("siga_exam_registrations")
+            .select("id", head)
+            .eq("school_id", schoolId)
+            .in(
+              "session_id",
+              sessions.map((s) => String(s.id)),
+            )
+            .neq("status", "cancelled"),
+        );
+      }
+    }
+
     const activeRuleSets = n(ruleSetsRes);
     const subjects = n(subjectsRes);
     const terms = yearId ? n(termsRes) : 0;
@@ -159,5 +185,7 @@ export const getAcademicStructureStatus = createServerFn({ method: "GET" })
       pendingGradeChanges,
       historyRecords,
       auditEvents30d,
+      examSessions,
+      examRegistrations,
     };
   });

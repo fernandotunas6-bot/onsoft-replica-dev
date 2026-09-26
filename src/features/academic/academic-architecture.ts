@@ -179,26 +179,24 @@ export const ACADEMIC_MODULES: AcademicModule[] = [
     number: 12,
     title: "Recuperação",
     stage: "resultado",
-    createdIn: { kind: "tab", tab: "notas", label: "A criar" },
-    owners: "Coordenação",
-    entity: "A criar (elegibilidade, inscrição, prova)",
+    createdIn: { kind: "tab", tab: "exames", label: "Exames" },
+    owners: "Secretaria e coordenação",
+    entity: "siga_exam_registrations (elegibilidade, inscrição, nota)",
     usedBy: "Nova oportunidade para quem não atingiu a aprovação",
-    validation: "Elegibilidade pela regra do modelo",
+    validation: "Elegibilidade pela pauta anual homologada e pelos limites da época",
     destination: "Motor de resultado",
-    planned: true,
   },
   {
     id: "exames",
     number: 13,
     title: "Exames",
     stage: "resultado",
-    createdIn: { kind: "tab", tab: "notas", label: "A criar" },
-    owners: "Coordenação, júri",
-    entity: "A criar (exame, centro, sala, júri, critérios)",
-    usedBy: "Exames internos e externos (INADE) por classe e disciplina",
-    validation: "Critérios e classificação do júri",
+    createdIn: { kind: "tab", tab: "exames", label: "Exames" },
+    owners: "Secretaria e coordenação, júri",
+    entity: "siga_exam_sessions (época, datas, acesso, método de cálculo)",
+    usedBy: "Recurso, exame especial, exame final e melhoria por disciplina",
+    validation: "Escala da escola; média final calculada pelo servidor",
     destination: "Resultado final",
-    planned: true,
   },
   {
     id: "resultado",
@@ -271,6 +269,10 @@ export type AcademicStructureCounts = {
   pendingGradeChanges: number;
   historyRecords: number;
   auditEvents30d: number;
+  /** Épocas de exame do ano (0 se a migração ainda não estiver aplicada). */
+  examSessions?: number;
+  /** Inscrições activas nessas épocas. */
+  examRegistrations?: number;
 };
 
 export type ModuleSnapshot = { status: ModuleStatus; metric: string };
@@ -346,6 +348,14 @@ export function moduleSnapshot(module: AcademicModule, c: AcademicStructureCount
         metric: `${plural(total, "pauta", "pautas")} · ${done} publicadas`,
       };
     }
+    case "recuperacao":
+      return (c.examRegistrations ?? 0) > 0
+        ? { status: "ready", metric: plural(c.examRegistrations ?? 0, "inscrição", "inscrições") }
+        : { status: "partial", metric: "Sem inscrições em exame" };
+    case "exames":
+      return (c.examSessions ?? 0) > 0
+        ? { status: "ready", metric: plural(c.examSessions ?? 0, "época", "épocas") }
+        : { status: "partial", metric: "Sem épocas de exame" };
     case "resultado":
       return (c.gradeSheets["closed"] ?? 0) > 0
         ? { status: "ready", metric: "Pautas finais fechadas" }

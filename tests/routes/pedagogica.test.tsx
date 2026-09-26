@@ -230,7 +230,7 @@ describe("/pedagogica — render", () => {
       expect(screen.getByText("3 sem professor")).toBeDefined();
     });
     expect(screen.getByText("Percurso da informação")).toBeDefined();
-    expect(screen.getAllByText("Por activar").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Sem épocas de exame")).toBeDefined();
   });
 
   it("mostra o modelo de avaliação em vigor e as versões anteriores", async () => {

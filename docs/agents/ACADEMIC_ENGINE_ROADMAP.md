@@ -77,9 +77,13 @@ A produção tem o fluxo premium quase todo — falta ligá-lo aos ecrãs:
    arredondamento, disciplinas-chave, bloqueio). Publica por
    `siga_publish_assessment_rule` (migração `20260926200000`, só service_role:
    a função original não é SECURITY DEFINER e a tabela só tem leitura por RLS).
-4. **Recuperação, exames e resultado final** — precisam de tabelas novas
-   (migração só do servidor): inscrição, prova, júri, classificação, e a
-   situação final calculada pela regra do modelo.
+4. ~~Recuperação, exames e resultado final~~ (feito): separador "Exames" em
+   Pedagógica. Épocas por ano (recurso, especial, final, melhoria) com datas,
+   máximo de negativas e método (substitui / média / a maior) decididos pela
+   escola; inscrição dos elegíveis a partir da pauta anual homologada (avisa
+   aluno e encarregados); notas e faltas ao exame; situação antes → depois com
+   a mesma regra de `build_grade_sheet`. Migração `20260926220000` (só servidor).
+   Falta: levar o resultado final ao histórico académico e aos documentos.
 5. **Competências** — tabela de competências ligada a `curriculum_subjects` e
    às avaliações; percentagem de competências dominadas por aluno.
 6. **Analytics** — comparativo trimestral, turma/disciplina, alunos em risco

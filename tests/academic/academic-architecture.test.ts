@@ -37,11 +37,16 @@ describe("arquitectura académica", () => {
     }
   });
 
-  it("recuperação e exames aparecem como por activar, nunca como configurados", () => {
-    expect(moduleSnapshot(byId("recuperacao"), empty).status).toBe("planned");
-    expect(moduleSnapshot(byId("exames"), { ...empty, subjects: 50 }).status).toBe("planned");
+  it("recuperação e exames reflectem as épocas e inscrições reais", () => {
+    expect(moduleSnapshot(byId("recuperacao"), empty).status).toBe("partial");
+    expect(moduleSnapshot(byId("exames"), { ...empty, subjects: 50 }).status).toBe("partial");
+    const withExams = { ...empty, examSessions: 2, examRegistrations: 1 };
+    expect(moduleSnapshot(byId("exames"), withExams)).toEqual({
+      status: "ready",
+      metric: "2 épocas",
+    });
+    expect(moduleSnapshot(byId("recuperacao"), withExams).metric).toBe("1 inscrição");
   });
-
   it("estado a partir das contagens reais", () => {
     expect(moduleSnapshot(byId("turmas"), empty)).toEqual({
       status: "missing",

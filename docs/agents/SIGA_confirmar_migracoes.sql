@@ -34,6 +34,9 @@ from (values
   ('20260926180000_tenant_mailboxes_server_only',
      to_regclass('public.tenant_mailboxes') is not null),
   ('20260926200000_assessment_rule_publish_server',
-     to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean)') is not null)
+     to_regprocedure('public.siga_publish_assessment_rule(uuid, uuid, text, numeric, numeric, numeric, numeric, text, boolean, boolean, uuid[], boolean)') is not null),
+  ('20260926220000_exam_sessions_registrations',
+     to_regclass('public.siga_exam_sessions') is not null
+     and to_regclass('public.siga_exam_registrations') is not null)
 ) as m(migracao, ok)
 order by migracao;

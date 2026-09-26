@@ -22,6 +22,10 @@ const MIGRATIONS = {
     "siga_lesson_reminder_log",
   ],
   "supabase/migrations/20260926180000_tenant_mailboxes_server_only.sql": ["tenant_mailboxes"],
+  "supabase/migrations/20260926220000_exam_sessions_registrations.sql": [
+    "siga_exam_sessions",
+    "siga_exam_registrations",
+  ],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",
