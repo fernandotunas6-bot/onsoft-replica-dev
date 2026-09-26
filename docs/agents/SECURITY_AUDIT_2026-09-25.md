@@ -260,3 +260,9 @@ o Supabase directamente e muda a senha.
     omissão, chave de integração com comparação segura.
   - Testes: `node --experimental-strip-types --test painel/payflow/tests/*.test.mjs` (os 2 de
     HTML precisam do build).
+- **Registo de auditoria das acções de acesso (2026-09-26).** Só a cópia de link de acesso
+  ficava em `audit_logs`. Passam a ficar também: convite de utilizador, convite criado,
+  revogado e aceite, mudança de cargo, suspensão/reactivação de conta, senha redefinida
+  directamente e permissões por módulo (definidas e repostas). Escrita centralizada em
+  `src/features/audit/record-audit.ts` (o RLS de `audit_logs` não deixa utilizadores gravar).
+  Protegido por `tests/security/access-audit.test.ts`.

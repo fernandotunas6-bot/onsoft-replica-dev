@@ -16,6 +16,7 @@ import {
 } from "@/features/integrations/resend-client";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { signInWithIdentifierInputSchema } from "./bi-login";
+import { recordAccessAudit } from "@/features/audit/record-audit";
 import {
   inviteUserInputSchema,
   resendSystemInviteInputSchema,
@@ -348,6 +349,15 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
         deliveryErr instanceof Error ? deliveryErr.message : "Falha ao enviar o convite.";
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.user_invited",
+      entityType: "auth_user",
+      entityId: userId,
+      metadata: { email: data.email, cargo: data.cargo },
+    });
+
     return {
       id: userId,
       email: data.email,
@@ -442,6 +452,14 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
       });
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.cargo_changed",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: { cargo: data.cargo },
+    });
     return { id: data.userId, cargo: data.cargo };
   });
 
@@ -495,6 +513,14 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
       });
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: data.disabled ? "access.account_disabled" : "access.account_enabled",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: {},
+    });
     return { id: data.userId, disabled: data.disabled };
   });
 
@@ -563,18 +589,14 @@ export const resendSystemInvite = createServerFn({ method: "POST" })
     }
     const actionLink = linkData.properties?.action_link;
     if (!actionLink) throw new Error("O servidor não devolveu um link de acesso.");
-    try {
-      await admin.from("audit_logs").insert({
-        school_id: schoolId,
-        actor_user_id: context.userId,
-        action: "access.link_copied",
-        entity_type: "auth_user",
-        entity_id: data.userId,
-        metadata: { kind },
-      });
-    } catch (auditError) {
-      console.error("[resendSystemInvite] audit_logs insert failed:", auditError);
-    }
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.link_copied",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: { kind },
+    });
     return { email, kind, actionLink };
   });
 
@@ -738,6 +760,14 @@ export const resetStaffPasswordDirect = createServerFn({ method: "POST" })
       throw new Error(error.message || "Não foi possível redefinir a senha do funcionário.");
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.password_reset_direct",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: {},
+    });
     return { success: true, userId: data.userId };
   });
 
@@ -870,6 +900,15 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
           : "Falha ao enviar o convite por e-mail.";
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.invitation_created",
+      entityType: "school_invitation",
+      entityId: String(invitation.id),
+      metadata: { email: invitation.email, role_code: invitation.role_code },
+    });
+
     return {
       invitation,
       rawToken,
@@ -896,6 +935,14 @@ export const revokeSchoolInvitation = createServerFn({ method: "POST" })
       throw publicDatabaseError(error, "Não foi possível revogar o convite.");
     }
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.invitation_revoked",
+      entityType: "school_invitation",
+      entityId: data.invitationId,
+      metadata: {},
+    });
     return { success: true };
   });
 
@@ -1051,5 +1098,13 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     // Invalidar sessão client (forçar refresh de memberships)
     void supabase.auth.refreshSession().catch(() => undefined);
 
+    await recordAccessAudit({
+      schoolId,
+      actorUserId: context.userId,
+      action: "access.invitation_accepted",
+      entityType: "school_invitation",
+      entityId: String(invitation.id),
+      metadata: { role_code: roleCode },
+    });
     return { success: true, schoolId, roleCode };
   });

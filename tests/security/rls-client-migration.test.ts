@@ -55,6 +55,10 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Grava em `audit_logs`, que não tem política de escrita para utilizadores:
+  // o registo de auditoria só é escrito pelo servidor.
+  "src/features/audit/record-audit.ts",
+
   // O professor grava a sua escolha de visibilidade do contacto numa entrada
   // de `school_settings`, que o RLS só deixa escrever à administração. O
   // servidor limita a escrita ao `teacher_id` da própria conta.

@@ -4,6 +4,7 @@ import { accessModules } from "@/features/auth/access-policy";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { requireSgaWriter, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import { recordAccessAudit } from "@/features/audit/record-audit";
 
 /**
  * Este módulo lê e escreve com o cliente do utilizador (`context.supabase`),
@@ -84,6 +85,14 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
       { onConflict: "school_id,user_id,module_key" },
     );
     if (error) throw publicDatabaseError(error, "Não foi possível guardar a permissão.");
+    await recordAccessAudit({
+      schoolId: membership.schoolId,
+      actorUserId: context.userId,
+      action: "access.module_grant_set",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: { module: data.moduleKey, level: data.level },
+    });
     return { ok: true };
   });
 
@@ -106,5 +115,13 @@ export const clearStaffModuleGrant = createServerFn({ method: "POST" })
       .eq("user_id", data.userId)
       .eq("module_key", data.moduleKey);
     if (error) throw publicDatabaseError(error, "Não foi possível repor a predefinição.");
+    await recordAccessAudit({
+      schoolId: membership.schoolId,
+      actorUserId: context.userId,
+      action: "access.module_grant_cleared",
+      entityType: "auth_user",
+      entityId: data.userId,
+      metadata: { module: data.moduleKey },
+    });
     return { ok: true };
   });
