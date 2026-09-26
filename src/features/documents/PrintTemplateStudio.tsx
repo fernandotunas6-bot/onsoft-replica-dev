@@ -84,9 +84,10 @@ export function PrintTemplateStudio() {
         ),
       );
     } catch (error) {
-      return `<pre style="padding:24px;color:#b91c1c;font:14px/1.4 ui-monospace,monospace">${
-        error instanceof Error ? error.message : "Erro ao renderizar o modelo."
-      }</pre>`;
+      const message = error instanceof Error ? error.message : "Erro ao renderizar o modelo.";
+      return `<pre style="padding:24px;color:#b91c1c;font:14px/1.4 ui-monospace,monospace">${message
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")}</pre>`;
     }
   }, [draft, school, selectedYearLabel, templateQuery.data]);
 
@@ -258,6 +259,7 @@ export function PrintTemplateStudio() {
                 </span>
                 <iframe
                   title="Pré-visualização do modelo"
+                  sandbox=""
                   className="siga-print-preview min-h-[320px] flex-1 rounded-lg border border-border"
                   srcDoc={previewHtml}
                 />

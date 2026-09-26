@@ -212,3 +212,12 @@ o Supabase directamente e muda a senha.
   confirmado, mas as verificações do servidor (âmbito de alunos, cartão virtual, histórico de
   presenças) só pelo `user_id`. Um encarregado ligado só pelo e-mail via o educando no ecrã e
   era recusado no servidor. Todas usam agora `resolveVerifiedAccountEmail`.
+- **XSS nos modelos de impressão.** A Secretaria pode personalizar os modelos (HTML
+  Handlebars), e o documento era escrito num iframe da mesma origem, sem isolamento: um
+  `<script>` num modelo corria quando um Administrador imprimisse e podia roubar-lhe a sessão
+  (escalada Secretaria → Administrador). Agora o iframe de impressão tem
+  `sandbox="allow-same-origin allow-modals"` (sem `allow-scripts`; verificado no Chromium: o
+  script não corre e `print()` funciona), a pré-visualização tem `sandbox=""`, e o servidor
+  recusa modelos com scripts, eventos `on…=`, `javascript:` ou documentos embutidos.
+  Protegido por `tests/security/print-template-xss.test.ts`.
+- **Matrícula pública:** limite de 10 candidaturas por hora por IP.

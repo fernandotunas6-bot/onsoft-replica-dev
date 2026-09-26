@@ -4,6 +4,11 @@ export function printOfficialHtml(html: string) {
   let iframe = document.getElementById("siga-print-frame") as HTMLIFrameElement | null;
   if (!iframe) {
     iframe = document.createElement("iframe");
+    // Os modelos de impressão são editáveis pela escola. Sem `allow-scripts`,
+    // nenhum script do documento corre (um <script> num modelo roubava a
+    // sessão de quem imprimisse). `allow-same-origin` deixa escrever e chamar
+    // print() daqui; `allow-modals` deixa abrir o diálogo de impressão.
+    iframe.setAttribute("sandbox", "allow-same-origin allow-modals");
     iframe.id = "siga-print-frame";
     iframe.style.position = "fixed";
     iframe.style.right = "-9999px";
