@@ -65,9 +65,12 @@ async function loadJobWithModuleGate(
   sessionSupabase: Parameters<typeof requireSgaWriterFor>[1],
   userId: string,
   jobId: string,
+  // Escrita por omissão: preparar, editar, gravar e reverter alteram dados e
+  // não podem passar com permissão só de leitura no módulo.
+  mode: "read" | "write" = "write",
 ) {
   const job = await loadJobById(db, jobId);
-  const membership = await requireSgaWriterFor(
+  const membership = await (mode === "write" ? requireSgaWriterForWrite : requireSgaWriterFor)(
     "importacao",
     sessionSupabase,
     userId,
@@ -326,7 +329,7 @@ export const listStagingRows = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const db = await loadSgaAdminClient();
-    await loadJobWithModuleGate(db, context.supabase, context.userId, data.job_id);
+    await loadJobWithModuleGate(db, context.supabase, context.userId, data.job_id, "read");
 
     let query = db
       .from("import_rows")
