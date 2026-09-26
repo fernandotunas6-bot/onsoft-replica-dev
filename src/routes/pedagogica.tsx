@@ -1,3 +1,4 @@
+import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -94,6 +95,7 @@ const pedagogicaSearchSchema = z
   .object({
     tab: z
       .enum([
+        "estrutura",
         "turmas",
         "disciplinas",
         "salas",
@@ -186,7 +188,11 @@ function PedagogicaPage() {
     pauta,
     dia: diaFromSearch,
   } = Route.useSearch();
-  const [tab, setTab] = useState<PedagogicaTab>(tabFromSearch ?? "turmas");
+  // Direcção e secretaria abrem na estrutura do ano; os restantes nas turmas.
+  const [tab, setTab] = useState<PedagogicaTab>(
+    tabFromSearch ??
+      (["Administrador", "Secretaria"].includes(account.role) ? "estrutura" : "turmas"),
+  );
   const [bootstrapping, setBootstrapping] = useState(false);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
   const [openTurmaId, setOpenTurmaId] = useState<string | null>(null);
@@ -252,6 +258,7 @@ function PedagogicaPage() {
     if (
       !(
         [
+          "estrutura",
           "turmas",
           "disciplinas",
           "salas",
@@ -777,6 +784,9 @@ function PedagogicaPage() {
 
         <Tabs value={tab} onValueChange={onTabChange}>
           <TabsList className="flex flex-wrap gap-1">
+            {canReadAcademic ? (
+              <TabsTrigger value="estrutura">Estrutura académica</TabsTrigger>
+            ) : null}
             <TabsTrigger value="turmas">Turmas</TabsTrigger>
             <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
             <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
@@ -802,6 +812,17 @@ function PedagogicaPage() {
               />
             </div>
           </div>
+
+          {canReadAcademic ? (
+            <TabsContent value="estrutura" className="mt-5">
+              <AcademicStructureTab
+                schoolName={school?.name ?? null}
+                yearId={selectedYearId ?? null}
+                yearLabel={activeYearLabel}
+                onOpenTab={onTabChange}
+              />
+            </TabsContent>
+          ) : null}
 
           <TabsContent value="turmas" className="mt-5 space-y-6">
             <TurmasWorkspaceTab

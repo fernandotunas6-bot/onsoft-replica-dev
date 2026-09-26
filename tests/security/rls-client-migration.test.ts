@@ -82,6 +82,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // turmas que o próprio professor lecciona (teachers.user_id = sessão).
   "src/features/academic/teacher-assessments.ts",
 
+  // Estrutura académica: só contagens (head: true) para o pessoal da escola;
+  // várias tabelas contadas (audit_logs, grade_sheets) não têm leitura por
+  // RLS para Professor.
+  "src/features/academic/academic-structure.ts",
+
   // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
   // autenticado por SIGA_CRON_SECRET em tempo constante.
   "src/routes/api/cron/lesson-reminders.tsx",

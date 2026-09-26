@@ -48,6 +48,27 @@ vi.mock("@/features/academic/server", () => ({
   upsertTermGrade: vi.fn(),
 }));
 
+vi.mock("@/features/academic/academic-structure", () => ({
+  getAcademicStructureStatus: () =>
+    Promise.resolve({
+      yearName: "2025/2026",
+      yearActive: true,
+      activeRuleSets: 1,
+      subjects: 12,
+      terms: 3,
+      classGroups: 4,
+      classSubjects: 40,
+      classSubjectsWithTeacher: 37,
+      enrollments: 120,
+      assessments: 8,
+      gradebooks: { open: 30, closed: 10 },
+      gradeSheets: { draft: 4 },
+      pendingGradeChanges: 0,
+      historyRecords: 0,
+      auditEvents30d: 55,
+    }),
+}));
+
 vi.mock("@/features/people/server", () => ({
   listTeachers: () => listTeachersMock(),
 }));
@@ -117,6 +138,7 @@ describe("/pedagogica — render", () => {
     // Sem anos lectivos / cursos / classes, `structureReady` é falso e a aba de
     // turmas devolve cedo — mesmo havendo turmas no workspace.
     seed({ classGroups: [turma] });
+    setRouteSearch({ tab: "turmas" });
 
     renderRoute(Pedagogica);
 
@@ -133,6 +155,7 @@ describe("/pedagogica — render", () => {
       gradeLevels: [{ id: "classe-1", name: "10ª Classe", code: "10" }],
       classGroups: [turma],
     });
+    setRouteSearch({ tab: "turmas" });
 
     renderRoute(Pedagogica);
 
@@ -145,6 +168,23 @@ describe("/pedagogica — render", () => {
       expect(screen.getByRole("button", { name: "Turma 10ª A" })).toBeDefined();
     });
     expect(screen.queryByText("Nenhuma turma neste filtro")).toBeNull();
+  });
+
+  it("a direcção abre na estrutura académica, com o estado real de cada módulo", async () => {
+    seed();
+
+    renderRoute(Pedagogica);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: /Estrutura académica/i }).getAttribute("data-state"),
+      ).toBe("active");
+    });
+    await waitFor(() => {
+      expect(screen.getByText("3 sem professor")).toBeDefined();
+    });
+    expect(screen.getByText("Percurso da informação")).toBeDefined();
+    expect(screen.getAllByText("Por activar").length).toBeGreaterThanOrEqual(2);
   });
 
   it("abre directamente na aba pedida pela query string", async () => {

@@ -20,6 +20,7 @@ NPT) ÷ 2, com a NPP dentro da MAC; MFD = média das MT; aprovação pela
 | Lembretes | Véspera (hora, destinatários, portal/e-mail/SMS configuráveis) e prazo de lançamento (7/3/1 dias) | `lesson-reminders.ts`, `/api/cron/lesson-reminders` |
 | Professor | "O meu horário" e cartão "Avaliações" (MAC/NPP/NPT por turma, provas, prazo) | `teacher-assessments.ts` |
 | Notificações | Painel do sino mostra `notifications` do utilizador | `features/notifications` |
+| Estrutura académica | Separador em Pedagógica: Escola → Ano lectivo → 16 módulos, estado real de cada um e, por módulo, onde nasce, quem altera, entidade, uso, validação e destino | `academic-architecture.ts` (fonte única), `AcademicStructureTab` |
 
 **Para activar em produção:** aplicar `docs/agents/SIGA_aplicar_migracoes.sql`
 (inclui `20260926140000`) e configurar `SIGA_CRON_SECRET` (≥ 24 caracteres) +
