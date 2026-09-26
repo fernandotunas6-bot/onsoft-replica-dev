@@ -205,3 +205,10 @@ Pode ser intencional (contacto com o professor).
 **No Supabase (Authentication → Providers → Email):** activar "Secure password change". A
 verificação da senha actual no ecrã é só no browser; sem essa opção, uma sessão aberta chama
 o Supabase directamente e muda a senha.
+- **Aceitar convite.** A verificação do destinatário usava o e-mail das claims e era saltada
+  quando não vinha (conta só com telefone): quem tivesse o link aceitava o convite, mesmo de
+  administrador. Agora usa o e-mail da conta no Auth, falha fechado e exige e-mail confirmado.
+- **Ligação conta→ficha harmonizada.** O perfil ligava a conta à ficha também pelo e-mail
+  confirmado, mas as verificações do servidor (âmbito de alunos, cartão virtual, histórico de
+  presenças) só pelo `user_id`. Um encarregado ligado só pelo e-mail via o educando no ecrã e
+  era recusado no servidor. Todas usam agora `resolveVerifiedAccountEmail`.

@@ -46,6 +46,22 @@ export function assertCanSeeStudent(scope: StudentScope, studentId: string): voi
   if (!canSeeStudent(scope, studentId)) throw new Error("Aluno não encontrado");
 }
 
+/**
+ * E-mail da conta, só se confirmado. A ligação conta→ficha usa-o como o
+ * perfil (auth/server.ts); um e-mail por confirmar nunca liga a uma ficha.
+ */
+export async function resolveVerifiedAccountEmail(
+  db: SupabaseClient,
+  userId: string,
+): Promise<string | null> {
+  try {
+    const { data } = await db.auth.admin.getUserById(userId);
+    return data.user?.email_confirmed_at ? (data.user.email ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Pessoal da escola não precisa de consulta; os outros resolvem as ligações. */
 export async function loadStudentScope(
   db: SupabaseClient,
@@ -54,7 +70,13 @@ export async function loadStudentScope(
 ): Promise<StudentScope> {
   if (STUDENT_STAFF_ROLES.includes(membership.appRole)) return { all: true };
   const { resolveUserLinkedEntities } = await import("@/features/auth/server");
-  const linked = await resolveUserLinkedEntities(db as never, membership.schoolId, userId);
+  const verifiedEmail = await resolveVerifiedAccountEmail(db, userId);
+  const linked = await resolveUserLinkedEntities(
+    db as never,
+    membership.schoolId,
+    userId,
+    verifiedEmail,
+  );
   const childIds = linked.linked_students.map((s) => s.student_id);
   let childPersonIds: string[] = [];
   if (membership.appRole === "Encarregado" && childIds.length) {

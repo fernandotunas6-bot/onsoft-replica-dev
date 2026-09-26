@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
+import {
+  assertCanSeeStudent,
+  loadStudentScope,
+  resolveVerifiedAccountEmail,
+} from "@/features/students/student-scope";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -674,7 +678,12 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
-    const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+    const linked = await resolveUserLinkedEntities(
+      db,
+      membership.schoolId,
+      context.userId,
+      await resolveVerifiedAccountEmail(db, context.userId),
+    );
     let targetStudentId = data.studentId || linked.student_id;
 
     if (membership.appRole === "Encarregado") {

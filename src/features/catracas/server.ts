@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { resolveVerifiedAccountEmail } from "@/features/students/student-scope";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -144,13 +145,18 @@ export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
     if (!membership) throw new Error("Sem membership activa.");
     const db = await loadSgaAdminClient();
 
-    const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+    const linked = await resolveUserLinkedEntities(
+      db,
+      membership.schoolId,
+      context.userId,
+      await resolveVerifiedAccountEmail(db, context.userId),
+    );
     // O cartão traz o segredo do QR, que abre a catraca. Só a secretaria e a
     // administração escolhem de quem é o cartão; os outros vêem só o seu (e o
     // encarregado, o dos educandos).
     const scope = virtualCardScope(membership.appRole, data, linked);
     let personId = scope.personId;
-    let studentId = scope.studentId;
+    const studentId = scope.studentId;
 
     if (studentId && !personId) {
       const { data: st } = await db

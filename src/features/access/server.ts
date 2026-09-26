@@ -944,12 +944,24 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
     }
 
     // 3.1. Validar correspondência do destinatário (anti-sequestro de convite)
-    const userEmail = (context.claims?.email as string | undefined)?.toLowerCase().trim();
-    const invitedEmail = (invitation.email as string).toLowerCase().trim();
-    if (userEmail && userEmail !== invitedEmail) {
+    // O e-mail vem da conta no Auth, não das claims: sem e-mail nas claims
+    // (conta só com telefone, token sem o campo) a verificação era saltada e
+    // qualquer pessoa com o link aceitava o convite — incluindo de administrador.
+    const { data: authData } = await admin.auth.admin.getUserById(userId);
+    const authUser = authData?.user;
+    const userEmail = authUser?.email?.toLowerCase().trim() ?? "";
+    const invitedEmail = String(invitation.email ?? "")
+      .toLowerCase()
+      .trim();
+    if (!invitedEmail || userEmail !== invitedEmail) {
       throw new Error(
-        `Este convite foi emitido para ${invitedEmail}. A sessão actual (${userEmail}) não corresponde ao destinatário do convite.`,
+        userEmail
+          ? `Este convite foi emitido para ${invitedEmail}. A sessão actual (${userEmail}) não corresponde ao destinatário do convite.`
+          : `Este convite foi emitido para ${invitedEmail}. Entre com a conta desse e-mail para o aceitar.`,
       );
+    }
+    if (!authUser?.email_confirmed_at) {
+      throw new Error("Confirme primeiro o e-mail da sua conta e depois abra o convite outra vez.");
     }
 
     const schoolId = invitation.school_id as string;

@@ -233,3 +233,16 @@ describe("role_code em convite — mapeamento para ApplicationRole", () => {
     expect(fallback).toBe("Utilizador");
   });
 });
+
+describe("aceitar convite: destinatário verificado no Auth", () => {
+  it("usa o e-mail da conta no Auth, falha fechado e exige e-mail confirmado", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync("src/features/access/server.ts", "utf8");
+    const start = source.indexOf("export const acceptSchoolInvitation ");
+    const body = source.slice(start, source.indexOf("export const ", start + 1));
+    expect(body).toMatch(/auth\.admin\.getUserById\(userId\)/);
+    expect(body).toMatch(/if \(!invitedEmail \|\| userEmail !== invitedEmail\)/);
+    expect(body).toMatch(/email_confirmed_at/);
+    expect(body).not.toMatch(/if \(userEmail && userEmail !== invitedEmail\)/);
+  });
+});
