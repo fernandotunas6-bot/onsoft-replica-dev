@@ -1491,6 +1491,17 @@ export const createAssessment = createServerFn({ method: "POST" })
       }
       throw publicDatabaseError(error, "Não foi possível criar a avaliação.");
     }
+    // Prova com data: avisar os alunos da turma (e o professor, se não foi ele).
+    const { notifyAssessmentScheduled } = await import("./assessment-notify");
+    await notifyAssessmentScheduled(db, {
+      schoolId: membership.schoolId,
+      classGroupId: data.classGroupId,
+      subjectId: data.subjectId,
+      itemId: String(created.id),
+      name: data.name,
+      assessedOn: data.assessedOn ?? null,
+      creatorUserId: context.userId,
+    });
     return created;
   });
 

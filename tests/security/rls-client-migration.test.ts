@@ -78,6 +78,10 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // professor da disciplina (assertCanManageClassSubject).
   "src/features/academic/timetable-lessons.ts",
 
+  // Painel de avaliações do professor: lê diários, notas e matrículas das
+  // turmas que o próprio professor lecciona (teachers.user_id = sessão).
+  "src/features/academic/teacher-assessments.ts",
+
   // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
   // autenticado por SIGA_CRON_SECRET em tempo constante.
   "src/routes/api/cron/lesson-reminders.tsx",

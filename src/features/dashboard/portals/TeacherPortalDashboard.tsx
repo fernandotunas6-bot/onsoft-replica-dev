@@ -25,6 +25,7 @@ import { AttendanceCallDialog } from "@/features/pedagogica/components/Attendanc
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
+import { TeacherAssessmentsCard } from "@/features/dashboard/components/TeacherAssessmentsCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import {
   teacherClassFilesSearch,
@@ -265,6 +266,8 @@ export function TeacherPortalDashboard() {
           </PortalList>
         )}
       </PortalSection>
+
+      <TeacherAssessmentsCard />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <DashboardCalendarCard />

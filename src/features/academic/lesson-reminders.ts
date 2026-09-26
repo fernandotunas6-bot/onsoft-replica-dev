@@ -112,6 +112,12 @@ export async function runLessonReminders(
     if (!channels.length) continue;
     summary.schools += 1;
 
+    // Prazo de lançamento das notas (7, 3 e 1 dia antes do fim do período).
+    if (settings.notifyTeachers && settings.channelInApp) {
+      const { remindGradeDeadlines } = await import("./assessment-notify");
+      summary.sent += await remindGradeDeadlines(db, schoolId, today).catch(() => 0);
+    }
+
     const byClass = await tomorrowLessonsByClass(db, schoolId, weekday);
     if (!byClass.size) continue;
     const { data: school } = await db
