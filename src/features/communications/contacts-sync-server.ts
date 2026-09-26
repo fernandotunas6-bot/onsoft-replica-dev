@@ -22,7 +22,10 @@ export const syncSchoolContactsToResendFn = createServerFn({ method: "POST" })
       .single();
 
     const schoolName = school?.name || "Escola SIGA";
-    const audienceTitle = `${schoolName} — SIGA`;
+    // A conta Resend é da plataforma, partilhada por todas as escolas. Pelo nome
+    // só, duas escolas com o mesmo nome partilhavam a audiência e os contactos
+    // misturavam-se. O id da escola torna-a única.
+    const audienceTitle = `${schoolName} — SIGA · ${membership.schoolId.slice(0, 8)}`;
 
     let targetAudienceId: string | null = null;
     try {
@@ -34,10 +37,11 @@ export const syncSchoolContactsToResendFn = createServerFn({ method: "POST" })
         const created = await ResendContactsClient.createAudience(audienceTitle);
         targetAudienceId = created.id;
       }
-    } catch (err: any) {
+    } catch (err) {
+      console.error("[contacts-sync] audiência Resend:", err);
       return {
         success: false,
-        message: `Falha ao gerir audiência no Resend: ${err.message}`,
+        message: "Não foi possível preparar a lista de contactos no serviço de e-mail.",
         syncedCount: 0,
       };
     }
@@ -58,7 +62,16 @@ export const syncSchoolContactsToResendFn = createServerFn({ method: "POST" })
       .eq("status", "active")
       .limit(200);
 
-    const userIds = (memberships ?? []).map((m) => m.user_id).filter(Boolean);
+    // Quem desligou os comunicados nesta escola fica de fora.
+    const { data: optedOut } = await db
+      .from("user_communication_preferences")
+      .select("user_id")
+      .eq("school_id", membership.schoolId)
+      .eq("announcements_enabled", false);
+    const excluded = new Set((optedOut ?? []).map((row) => String(row.user_id)));
+    const userIds = (memberships ?? [])
+      .map((m) => m.user_id)
+      .filter((id): id is string => Boolean(id) && !excluded.has(String(id)));
     if (!userIds.length) {
       return {
         success: true,
@@ -73,6 +86,7 @@ export const syncSchoolContactsToResendFn = createServerFn({ method: "POST" })
       // inteira e o resultado vinha vazio, indistinguível de «não há contactos».
       .from("people")
       .select("email, full_name")
+      .eq("school_id", membership.schoolId)
       .in("user_id", userIds)
       .limit(200);
 
@@ -97,8 +111,9 @@ export const syncSchoolContactsToResendFn = createServerFn({ method: "POST" })
           lastName,
         });
         syncedCount += 1;
-      } catch (e: any) {
-        errors.push(`${email}: ${e.message}`);
+      } catch (e) {
+        console.error("[contacts-sync] contacto:", e);
+        errors.push(email);
       }
     }
 
