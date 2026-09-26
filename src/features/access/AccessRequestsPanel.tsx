@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { InlineLoading } from "@/components/ui/inline-loading";
+import { MoreInfo } from "@/components/ui/more-info";
+import { publicErrorMessage } from "@/lib/public-error";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MailCheck, MailWarning } from "lucide-react";
 import { actionIcons, moduleIcons, statusIcons } from "@/lib/app-icons";
@@ -155,14 +158,17 @@ function RequestRow({
       >
         {item.matchedRecord ? (
           <>
-            <strong>Cadastro encontrado:</strong> {item.matchedRecord.fullName} (B.I. e número
-            coincidem nesta escola).
-            {item.matchedRecord.alreadyLinkedToOtherAccount
-              ? " Este cadastro já está ligado a outra conta — não será religado."
-              : null}
+            <strong>Cadastro encontrado:</strong> {item.matchedRecord.fullName}
+            {item.matchedRecord.alreadyLinkedToOtherAccount ? " · já ligado a outra conta" : null}
           </>
         ) : (
-          "Nenhum cadastro coincide com B.I. + número. Confirme a identidade antes de aprovar; a aprovação cria só o vínculo, sem cadastro académico."
+          <>
+            Sem cadastro correspondente.
+            <MoreInfo className="mt-1">
+              Nenhum cadastro coincide com o B.I. e o número indicados. Confirme a identidade antes
+              de aprovar: a aprovação cria só o vínculo e o papel, sem cadastro académico.
+            </MoreInfo>
+          </>
         )}
       </div>
 
@@ -286,7 +292,7 @@ export function AccessRequestsPanel() {
   return (
     <Panel
       title="Solicitações de acesso"
-      description="Pessoas que pediram para ser associadas à escola. A aprovação cria só o vínculo e o papel."
+      description="Pedidos para entrar na escola."
       icon={moduleIcons.accessRequests}
       action={
         openCount ? (
@@ -296,8 +302,7 @@ export function AccessRequestsPanel() {
     >
       {requests.data && !requests.data.available ? (
         <p className="text-xs text-muted-foreground">
-          A tabela <code>school_access_requests</code> ainda não foi aplicada nesta base — ver{" "}
-          <code>npm run siga:sql</code>.
+          Pedidos de acesso ainda não activos nesta escola.
         </p>
       ) : (
         <div className="space-y-3">
@@ -320,12 +325,10 @@ export function AccessRequestsPanel() {
             ))}
           </div>
           {requests.isPending ? (
-            <p className="text-xs text-muted-foreground">A carregar pedidos…</p>
+            <InlineLoading label="A carregar pedidos…" />
           ) : requests.isError ? (
             <p role="alert" className="text-xs text-destructive">
-              {requests.error instanceof Error
-                ? requests.error.message
-                : "Não foi possível carregar os pedidos."}
+              {publicErrorMessage(requests.error, "Não foi possível carregar os pedidos.")}
             </p>
           ) : requests.data?.items.length ? (
             <ul className="grid gap-3">

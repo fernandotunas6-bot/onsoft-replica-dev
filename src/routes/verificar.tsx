@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SigaLogo } from "@/components/ui/siga-logo";
+import { InlineLoading } from "@/components/ui/inline-loading";
+import { MoreInfo } from "@/components/ui/more-info";
 import { actionIcons, statusIcons } from "@/lib/app-icons";
 import { verifyIssuedDocument } from "@/features/documents/verification";
 
@@ -51,11 +53,8 @@ function VerifyDocumentPage() {
       <div className="mx-auto max-w-md space-y-6">
         <SigaLogo />
         <div className="space-y-1">
-          <h1 className="text-xl font-semibold">Verificar documento</h1>
-          <p className="text-sm text-muted-foreground">
-            Introduza o código de verificação impresso no documento (por exemplo, SIGA-ABCD-2345) ou
-            leia o QR Code.
-          </p>
+          <h1 className="text-lg font-semibold">Verificar documento</h1>
+          <p className="text-sm text-muted-foreground">Código impresso no documento ou QR Code.</p>
         </div>
 
         <form onSubmit={submit} className="flex items-end gap-2">
@@ -76,7 +75,7 @@ function VerifyDocumentPage() {
         </form>
 
         {query.isLoading ? (
-          <p className="text-sm text-muted-foreground">A verificar…</p>
+          <InlineLoading label="A verificar…" />
         ) : query.isError ? (
           <p className="text-sm text-destructive">
             {/* Erros técnicos não chegam ao público (publicErrorMessage). */}
@@ -109,19 +108,18 @@ function VerifyDocumentPage() {
               <dt className="text-muted-foreground">Data</dt>
               <dd>{new Date(query.data.issuedAt).toLocaleString("pt-AO")}</dd>
             </dl>
-            <p className="text-xs text-muted-foreground">
-              Confirme que estes dados coincidem com o documento que tem na mão.
-            </p>
+            <p className="text-xs text-muted-foreground">Compare com o documento.</p>
           </section>
         ) : query.data && !query.data.valid ? (
           <section className="space-y-1 rounded-xl border border-border p-4">
             <p className="flex items-center gap-2 font-medium text-destructive">
               <InvalidIcon className="size-5" /> Código não encontrado
             </p>
-            <p className="text-sm text-muted-foreground">
-              Nenhum documento foi emitido no SIGA com este código. Confirme se o escreveu bem; se
-              sim, o documento não é autêntico.
-            </p>
+            <p className="text-sm text-muted-foreground">Confirme se escreveu bem o código.</p>
+            <MoreInfo>
+              Nenhum documento foi emitido no SIGA com este código. Se o código está certo, o
+              documento não é autêntico.
+            </MoreInfo>
           </section>
         ) : null}
       </div>

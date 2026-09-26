@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { InlineLoading } from "@/components/ui/inline-loading";
 import { publicErrorMessage } from "@/lib/public-error";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, AlertTriangle, LoaderCircle, Building2 } from "lucide-react";
@@ -107,17 +108,14 @@ function AcceptInvitePage() {
 
         <CardContent className="pt-2 space-y-3">
           {status === "loading" && (
-            <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground text-sm">
-              <LoaderCircle className="size-5 animate-spin" />
-              <span>A aceitar o convite…</span>
+            <div className="flex justify-center py-6">
+              <InlineLoading label="A aceitar o convite…" />
             </div>
           )}
 
           {status === "success" && (
             <div className="flex flex-col items-center gap-3 py-4">
-              <p className="text-sm text-muted-foreground text-center">
-                Já tem acesso à escola. A aguardar redirecionamento…
-              </p>
+              <p className="text-sm text-muted-foreground text-center">Já tem acesso à escola.</p>
               <Button asChild className="w-full">
                 <Link to="/">Ir para o Painel</Link>
               </Button>
@@ -127,8 +125,7 @@ function AcceptInvitePage() {
           {status === "error" && (
             <div className="flex flex-col gap-3 py-2">
               <p className="text-xs text-muted-foreground text-center">
-                Se acredita que o convite é válido, contacte o administrador da escola para
-                solicitar um novo.
+                Peça um novo convite à escola.
               </p>
               <Button variant="outline" className="w-full" onClick={() => window.location.reload()}>
                 Tentar novamente

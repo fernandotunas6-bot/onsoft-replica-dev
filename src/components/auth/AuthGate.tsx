@@ -481,7 +481,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               </div>
             )}
 
-            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-center">
+            <h2 className="mt-1 font-display text-xl font-semibold tracking-tight text-center">
               {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
             </h2>
             <p className="mt-1.5 text-xs text-muted-foreground text-center">

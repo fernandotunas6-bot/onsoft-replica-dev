@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, LogOut, MessageSquareReply, Send, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, LogOut, MessageSquareReply, Send } from "lucide-react";
 import { toast } from "sonner";
 import { toneClass } from "@/components/layout/PageHeader";
 import { IconChip } from "@/components/ui/icon-chip";
 import { SigaLogo } from "@/components/ui/siga-logo";
+import { InlineLoading } from "@/components/ui/inline-loading";
+import { MoreInfo } from "@/components/ui/more-info";
 import { actionIcons, moduleIcons, statusIcons } from "@/lib/app-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -315,30 +317,32 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
         <section className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
           {view === "welcome" ? (
             <>
-              <p className="text-xs font-semibold text-primary">Bem-vindo(a)</p>
-              <h1 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-                Olá, {displayName}. A sua conta ainda não está ligada a nenhuma escola.
+              <h1 className="font-display text-xl font-semibold tracking-tight">
+                Olá, {displayName}
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Tem uma só identidade no SIGA Plus e pode pertencer a várias escolas, com um papel
-                diferente em cada uma. Escolha como quer continuar.
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ainda não está ligado(a) a nenhuma escola.
               </p>
+              <MoreInfo className="mt-2">
+                Tem uma só conta no SIGA Plus e pode pertencer a várias escolas, com um papel
+                diferente em cada uma.
+              </MoreInfo>
+              {linkState.isLoading ? <InlineLoading className="mt-3" /> : null}
             </>
           ) : (
             // Nos passos do pedido, o cabeçalho encolhe: o formulário é o que importa.
-            <h1 className="font-display text-lg font-bold tracking-tight">
-              Pedido de acesso a uma escola
+            <h1 className="font-display text-base font-semibold tracking-tight">
+              Pedido de acesso
             </h1>
           )}
           {view === "welcome" && needsReply ? (
             <p className="mt-3 rounded-xl bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
-              A secretaria pediu mais informação sobre o seu pedido. Responda em baixo.
+              A secretaria pediu mais informação. Responda em baixo.
             </p>
           ) : null}
           {linkState.data && !linkState.data.emailVerified ? (
             <p className="mt-3 rounded-xl bg-warning/20 px-3 py-2 text-xs text-warning-foreground">
-              O e-mail {linkState.data.email} ainda não foi confirmado. A secretaria verá essa
-              indicação no seu pedido.
+              Confirme o e-mail {linkState.data.email} para facilitar a aprovação.
             </p>
           ) : null}
           {/* Sem pedido em curso, cinco barras vazias não dizem nada. */}
@@ -359,11 +363,8 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
               className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:border-primary/60 hover:shadow-md"
             >
               <IconChip icon={moduleIcons.school} size="md" />
-              <h2 className="mt-4 text-lg font-bold">Quero configurar uma escola</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Registe a sua instituição, escolha o plano e o subdomínio. Novas escolas passam pela
-                validação da plataforma antes de ficarem activas.
-              </p>
+              <h2 className="mt-3 text-base font-semibold">Configurar uma escola</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Registe a sua instituição.</p>
               <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">
                 Abrir assistente{" "}
                 <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
@@ -376,11 +377,8 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
               className="group rounded-3xl border border-border bg-card p-6 text-left shadow-sm transition hover:border-primary/60 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
             >
               <IconChip icon={moduleIcons.institutionalLink} size="md" />
-              <h2 className="mt-4 text-lg font-bold">Já pertenço a uma escola</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Aluno, docente, funcionário ou encarregado: identifique-se e peça acesso. A
-                secretaria confirma antes de abrir o painel.
-              </p>
+              <h2 className="mt-3 text-base font-semibold">Já pertenço a uma escola</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Peça acesso à secretaria.</p>
               <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">
                 Pedir acesso{" "}
                 <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
@@ -391,8 +389,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
 
         {linkState.data?.requestsAvailable === false && view === "welcome" ? (
           <p className="rounded-2xl bg-warning/20 px-4 py-3 text-xs text-warning-foreground">
-            Os pedidos de acesso ainda não estão activos nesta instalação. Peça à sua escola um
-            convite directo.
+            Pedidos de acesso indisponíveis. Peça um convite à sua escola.
           </p>
         ) : null}
 
@@ -408,7 +405,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
           >
             <div className="flex items-center gap-2">
               <IconChip icon={moduleIcons.profile} size="xs" />
-              <h2 className="text-lg font-bold">Identificação institucional</h2>
+              <h2 className="text-base font-semibold">Identificação</h2>
             </div>
 
             <fieldset>
@@ -521,11 +518,10 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
               </div>
             </div>
 
-            <p className="flex gap-2 rounded-xl bg-muted/60 px-3 py-2 text-[11px] leading-4 text-muted-foreground">
-              <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
-              Estes dados ajudam a secretaria a localizar o seu cadastro. Não dão acesso por si só:
-              o acesso só é aberto depois de a escola confirmar a sua identidade.
-            </p>
+            <MoreInfo label="Porque pedimos estes dados?">
+              Servem só para a secretaria encontrar o seu cadastro. O acesso abre depois de a escola
+              confirmar a sua identidade.
+            </MoreInfo>
 
             <div className="flex flex-wrap justify-between gap-2">
               <Button
@@ -547,12 +543,11 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
           <section className="space-y-5 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex items-center gap-2">
               <IconChip icon={moduleIcons.school} size="xs" />
-              <h2 className="text-lg font-bold">Seleccione a escola</h2>
+              <h2 className="text-base font-semibold">Escola</h2>
             </div>
             {!search.data ? (
               <p className="text-xs text-muted-foreground">
-                Escreva pelo menos 3 letras do nome, da sigla ou do código da escola e toque em
-                Pesquisar. Depois escolha a escola certa na lista.
+                Nome, sigla ou código (3 letras ou mais).
               </p>
             ) : null}
             <form className="flex gap-2" onSubmit={onSearch} role="search">
@@ -578,6 +573,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
               </Button>
             </form>
 
+            {search.isPending ? <InlineLoading label="A procurar escolas…" /> : null}
             {search.data ? (
               search.data.length ? (
                 <ul className="grid gap-2" aria-label="Escolas encontradas">
@@ -610,8 +606,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                 </ul>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Nenhuma escola encontrada. Confirme o nome ou peça o código da escola à
-                  secretaria.
+                  Nenhuma escola encontrada. Peça o código à secretaria.
                 </p>
               )
             ) : null}
@@ -636,7 +631,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
             </div>
             {search.data?.length && !school ? (
               <p className="text-right text-[11px] text-muted-foreground">
-                Toque numa escola da lista para continuar.
+                Escolha uma escola da lista.
               </p>
             ) : null}
           </section>
@@ -646,7 +641,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
           <section className="space-y-5 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex items-center gap-2">
               <IconChip icon={Send} size="xs" />
-              <h2 className="text-lg font-bold">Confirmar pedido de acesso</h2>
+              <h2 className="text-base font-semibold">Confirmar</h2>
             </div>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
@@ -688,8 +683,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
               Corrigir dados
             </button>
             <p className="text-xs text-muted-foreground">
-              A secretaria de {school.name} vai verificar o pedido. Será avisado aqui e, se a escola
-              tiver e-mail configurado, também por e-mail.
+              A secretaria vai confirmar. Vê a resposta aqui.
             </p>
             <div className="flex flex-wrap justify-between gap-2">
               <Button
