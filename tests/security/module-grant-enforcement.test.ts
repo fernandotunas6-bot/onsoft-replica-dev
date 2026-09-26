@@ -117,3 +117,39 @@ describe("funções dos módulos passam pelo bloqueio", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("RH respeita as permissões do módulo Financeiro", () => {
+  const read = (file: string) => readFileSync(join(process.cwd(), "src/features/hr", file), "utf8");
+
+  it("cada verificação de papel do RH também consulta a permissão por módulo", () => {
+    for (const file of [
+      "absences.ts",
+      "attendance-assurance.ts",
+      "payments.ts",
+      "payroll.ts",
+      "server.ts",
+      "teacher-lesson-exceptions.ts",
+      "teacher-lessons.ts",
+      "materialize-lessons.ts",
+    ]) {
+      expect(read(file), file).toMatch(/assertModuleNotBlocked\([^)]*"financeiro"/);
+    }
+  });
+
+  it("funções que gravam pedem modo escrita", () => {
+    const writes: Array<[string, string]> = [
+      ["payroll.ts", "approvePayrollRun"],
+      ["payroll.ts", "calculatePayrollRun"],
+      ["payments.ts", "authorizePayrollPaymentBatch"],
+      ["payments.ts", "confirmPayrollPaymentItem"],
+      ["absences.ts", "reviewHrAbsence"],
+    ];
+    for (const [file, fn] of writes) {
+      const source = read(file);
+      const start = source.indexOf(`export const ${fn} `);
+      const next = source.indexOf("export const ", start + 1);
+      const body = source.slice(start, next === -1 ? undefined : next);
+      expect(body, fn).toMatch(/"write"\)/);
+    }
+  });
+});

@@ -1,7 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import { materializeTeacherLessonsInputSchema } from "@/features/hr/schemas";
 
 const HR_MATERIALIZE_ROLES = new Set(["Administrador", "Tesouraria"]);
@@ -15,6 +18,7 @@ export const materializeTeacherLessons = createServerFn({ method: "POST" })
     if (!HR_MATERIALIZE_ROLES.has(membership.appRole)) {
       throw new Error("Sem permissão para sincronizar aulas remuneráveis.");
     }
+    await assertModuleNotBlocked(membership.schoolId, context.userId, "financeiro", "write");
 
     const { data: inserted, error } = await context.supabase.rpc("hr_materialize_teacher_lessons", {
       p_from: data.from,

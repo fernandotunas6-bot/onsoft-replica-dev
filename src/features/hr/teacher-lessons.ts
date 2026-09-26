@@ -2,7 +2,11 @@ import { createHash, randomBytes } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import {
   createTeacherLessonQrInputSchema,
   occurrenceIdInputSchema,
@@ -24,12 +28,14 @@ function missingTeacherLessonSchema(error: { code?: string; message?: string } |
   );
 }
 
-async function requireHrLessonReader(userId: string) {
+async function requireHrLessonReader(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   if (!HR_LESSON_ROLES.has(membership.appRole)) {
     throw new Error("Sem permissão para consultar ocorrências remuneráveis de professores.");
   }
+  // Permissões por módulo (Nenhum/Leitura) também valem no RH.
+  await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
 }
 
@@ -498,7 +504,7 @@ export const createTeacherLessonQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createTeacherLessonQrInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireHrLessonReader(context.userId);
+    const membership = await requireHrLessonReader(context.userId, "write");
     const db = await loadSgaAdminClient();
 
     const { data: occurrence, error: occurrenceError } = await db

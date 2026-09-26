@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import {
   canConfirmPaymentItem,
   confirmPayrollPaymentItemInputSchema,
@@ -14,12 +18,14 @@ import {
 
 const PAYMENT_ROLES = new Set(["Administrador", "Tesouraria"]);
 
-async function requirePaymentAdmin(userId: string) {
+async function requirePaymentAdmin(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   if (!PAYMENT_ROLES.has(membership.appRole)) {
     throw new Error("Sem permissão para gerir ordens de pagamento salarial.");
   }
+  // Permissões por módulo (Nenhum/Leitura) também valem no RH.
+  await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
 }
 
@@ -36,7 +42,7 @@ export const upsertHrPaymentDestination = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => upsertHrPaymentDestinationInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requirePaymentAdmin(context.userId);
+    const membership = await requirePaymentAdmin(context.userId, "write");
     const db = await loadSgaAdminClient();
     const { data: employment, error: employmentError } = await db
       .from("hr_employments")
@@ -131,7 +137,7 @@ export const createPayrollPaymentBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => payrollRunIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requirePaymentAdmin(context.userId);
+    await requirePaymentAdmin(context.userId, "write");
     const { data: result, error } = await context.supabase.rpc("hr_create_payroll_payment_batch", {
       p_payroll_run_id: data.payrollRunId,
     });
@@ -143,7 +149,7 @@ export const refreshPayrollPaymentBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => paymentBatchIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requirePaymentAdmin(context.userId);
+    await requirePaymentAdmin(context.userId, "write");
     const { data: result, error } = await context.supabase.rpc("hr_refresh_payroll_payment_batch", {
       p_batch_id: data.batchId,
     });
@@ -156,7 +162,7 @@ export const authorizePayrollPaymentBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => paymentBatchIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requirePaymentAdmin(context.userId);
+    await requirePaymentAdmin(context.userId, "write");
     const { data: result, error } = await context.supabase.rpc(
       "hr_authorize_payroll_payment_batch",
       { p_batch_id: data.batchId },
@@ -223,7 +229,7 @@ export const confirmPayrollPaymentItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => confirmPayrollPaymentItemInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requirePaymentAdmin(context.userId);
+    const membership = await requirePaymentAdmin(context.userId, "write");
     const db = await loadSgaAdminClient();
 
     const { data: item, error: itemError } = await db

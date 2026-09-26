@@ -117,6 +117,10 @@ leitura; POST é escrita, excepto nomes de leitura (`list`, `get` — mas não `
 `export`, `download`…) e as análises por IA que não gravam. Um teste impede uma função de
 escrita de usar a verificação de leitura.
 
+**RH (2026-09-26):** as funções de RH e folha salarial verificavam o papel (Administrador,
+Tesouraria) mas não as permissões por módulo. Agora também respeitam "Nenhum" e "Leitura" do
+módulo Financeiro (16 funções de escrita pedem modo escrita).
+
 **Por fazer:** a elevação por permissão (dar acesso a quem não tem o papel) não chega ao
 servidor.
 

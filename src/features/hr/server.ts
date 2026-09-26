@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 
 const HR_READ_ROLES = new Set(["Administrador", "Tesouraria"]);
 
@@ -16,12 +20,14 @@ function isMissingHrSchema(error: { code?: string; message?: string } | null) {
   );
 }
 
-async function requireHrReader(userId: string) {
+async function requireHrReader(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   if (!HR_READ_ROLES.has(membership.appRole)) {
     throw new Error("Sem permissão para consultar dados de RH e folha salarial.");
   }
+  // Permissões por módulo (Nenhum/Leitura) também valem no RH.
+  await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
 }
 

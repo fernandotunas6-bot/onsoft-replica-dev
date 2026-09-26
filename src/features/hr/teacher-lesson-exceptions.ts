@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertModuleNotBlocked,
+  loadSgaAdminClient,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import {
   assignTeacherSubstituteInputSchema,
   createExtraTeacherLessonInputSchema,
@@ -11,12 +15,14 @@ import {
 
 const HR_EXCEPTION_ROLES = new Set(["Administrador", "Tesouraria"]);
 
-async function requireHrExceptionManager(userId: string) {
+async function requireHrExceptionManager(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   if (!HR_EXCEPTION_ROLES.has(membership.appRole)) {
     throw new Error("Sem permissão para gerir exceções de presença docente.");
   }
+  // Permissões por módulo (Nenhum/Leitura) também valem no RH.
+  await assertModuleNotBlocked(membership.schoolId, userId, "financeiro", mode);
   return membership;
 }
 
@@ -24,7 +30,7 @@ export const assignTeacherSubstitute = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => assignTeacherSubstituteInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requireHrExceptionManager(context.userId);
+    await requireHrExceptionManager(context.userId, "write");
     const { data: occurrenceId, error } = await context.supabase.rpc(
       "hr_assign_teacher_substitute",
       {
@@ -45,7 +51,7 @@ export const createExtraTeacherLesson = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => createExtraTeacherLessonInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requireHrExceptionManager(context.userId);
+    await requireHrExceptionManager(context.userId, "write");
     const { data: occurrenceId, error } = await context.supabase.rpc(
       "hr_create_extra_teacher_lesson",
       {
@@ -68,7 +74,7 @@ export const evaluateTeacherLessonAttendance = createServerFn({ method: "POST" }
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => occurrenceIdInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requireHrExceptionManager(context.userId);
+    await requireHrExceptionManager(context.userId, "write");
     const { data: result, error } = await context.supabase.rpc(
       "hr_evaluate_teacher_lesson_attendance",
       {
@@ -137,7 +143,7 @@ export const saveTeacherAttendancePolicy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => teacherAttendancePolicyInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireHrExceptionManager(context.userId);
+    const membership = await requireHrExceptionManager(context.userId, "write");
     const db = await loadSgaAdminClient();
 
     const { data: existing, error: readError } = await db
