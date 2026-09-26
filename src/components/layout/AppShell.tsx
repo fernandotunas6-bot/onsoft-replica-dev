@@ -1,3 +1,7 @@
+import {
+  PersonalNotificationsList,
+  usePersonalNotifications,
+} from "@/features/notifications/PersonalNotificationsList";
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -90,7 +94,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   );
   const { unread, unreadCount } = useInboxUnread();
   const { alerts, alertCount } = useSchoolAlerts();
-  const noticeCount = unreadCount + alertCount;
+  const personalNotifications = usePersonalNotifications();
+  const personalUnread = personalNotifications.data?.unread ?? 0;
+  const personalCount = personalNotifications.data?.items.length ?? 0;
+  const noticeCount = unreadCount + alertCount + personalUnread;
   const {
     selectedYearLabel,
     selectedYearId,
@@ -490,6 +497,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   <SheetTitle>Notificações</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6 space-y-3">
+                  <PersonalNotificationsList open={notificationsOpen} />
                   {alerts.map((alert) => (
                     <SchoolAlertRow
                       key={alert.id}
@@ -527,7 +535,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                       </span>
                     </button>
                   ))}
-                  {!alerts.length && !unread.length ? (
+                  {!alerts.length && !unread.length && !personalCount ? (
                     <p className="rounded-2xl border border-border bg-secondary/40 px-4 py-5 text-sm text-muted-foreground">
                       Sem notificações novas. Candidaturas, documentos, faturas em atraso e
                       mensagens internas aparecem aqui.
