@@ -124,7 +124,11 @@ function CaseCard({ c }: { c: RiskCase }) {
               placeholder="O que foi feito e o resultado…"
             />
             <div>
-              <Button size="sm" disabled={text.trim().length < 3 || m.isPending} onClick={() => m.mutate()}>
+              <Button
+                size="sm"
+                disabled={text.trim().length < 3 || m.isPending}
+                onClick={() => m.mutate()}
+              >
                 {m.isPending ? "A guardar…" : "Registar intervenção"}
               </Button>
               {m.error ? <p className="mt-1 text-xs text-destructive">{m.error.message}</p> : null}
@@ -141,14 +145,23 @@ export function RiskFollowup() {
   const q = useQuery({ queryKey: riskCasesKey, queryFn: () => list(), retry: false });
   const [filter, setFilter] = useState("activos");
   const cases = (q.data ?? []).filter((c) =>
-    filter === "todos" ? true : filter === "resolvidos" ? c.status === "resolvido" : c.status !== "resolvido",
+    filter === "todos"
+      ? true
+      : filter === "resolvidos"
+        ? c.status === "resolvido"
+        : c.status !== "resolvido",
   );
   return (
     <Panel
       title="Acompanhamento"
       description="Alunos sinalizados, intervenções feitas e evolução da média desde a primeira análise."
       action={
-        <select aria-label="Filtro" className={selectClass} value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <select
+          aria-label="Filtro"
+          className={selectClass}
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        >
           <option value="activos">Em acompanhamento</option>
           <option value="resolvidos">Resolvidos</option>
           <option value="todos">Todos</option>
