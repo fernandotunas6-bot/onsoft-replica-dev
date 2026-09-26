@@ -146,6 +146,11 @@ const ANON_POLICIES_ESPERADAS = [
  * se abria o primeiro diário nem se lançavam notas.
  */
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
+  // Catálogo de governança da importação (Lovable, 2026-09-24,
+  // `20260924010712_add_import_table_specs_catalog.sql` e seguintes). Sem ele,
+  // `assertImportModuleGoverned` bloqueia todas as importações (falha fechada).
+  // Aplicar antes de usar a importação e retirar daqui.
+  "import_table_specs",
   // Caixas de correio por tenant, no Control Center: sem a tabela, o
   // aprovisionamento de caixas institucionais não grava nem lista nada.
   "tenant_mailboxes",

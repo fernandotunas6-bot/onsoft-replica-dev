@@ -69,21 +69,6 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
     const scope = await loadStudentScope(db, membership, context.userId);
     const onlyStudents = scope.all ? null : scope.studentIds;
 
-    let requestsQuery = db
-      .from("document_requests")
-      .select(
-        "id, student_id, template_id, request_type, status, purpose, requested_by, reviewed_by, created_at, updated_at",
-      )
-      .eq("school_id", membership.schoolId);
-    let studentsQuery = db
-      .from("students")
-      .select("id, student_number, person_id")
-      .eq("school_id", membership.schoolId);
-    if (onlyStudents) {
-      requestsQuery = requestsQuery.in("student_id", onlyStudents);
-      studentsQuery = studentsQuery.in("id", onlyStudents);
-    }
-
     const [templatesResult, requestsResult, studentsResult] = await Promise.all([
       db
         .from("document_templates")
@@ -91,8 +76,36 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
         .eq("school_id", membership.schoolId)
         .eq("status", "active")
         .order("name"),
-      requestsQuery.order("created_at", { ascending: false }).limit(data.limit),
-      studentsQuery.order("student_number").limit(250),
+      (onlyStudents
+        ? db
+            .from("document_requests")
+            .select(
+              "id, student_id, template_id, request_type, status, purpose, requested_by, reviewed_by, created_at, updated_at",
+            )
+            .eq("school_id", membership.schoolId)
+            .in("student_id", onlyStudents)
+        : db
+            .from("document_requests")
+            .select(
+              "id, student_id, template_id, request_type, status, purpose, requested_by, reviewed_by, created_at, updated_at",
+            )
+            .eq("school_id", membership.schoolId)
+      )
+        .order("created_at", { ascending: false })
+        .limit(data.limit),
+      (onlyStudents
+        ? db
+            .from("students")
+            .select("id, student_number, person_id")
+            .eq("school_id", membership.schoolId)
+            .in("id", onlyStudents)
+        : db
+            .from("students")
+            .select("id, student_number, person_id")
+            .eq("school_id", membership.schoolId)
+      )
+        .order("student_number")
+        .limit(250),
     ]);
 
     if (templatesResult.error) {
