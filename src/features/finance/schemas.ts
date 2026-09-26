@@ -65,7 +65,8 @@ export type ReverseCashEntryInput = z.infer<typeof reverseCashEntryInputSchema>;
 export const cancelInvoiceInputSchema = z.object({
   invoiceId: z.string().uuid(),
   // BD exige 5-300 caracteres quando preenchido (finance_invoices_cancellation_reason_check).
-  reason: z.string().trim().min(5).max(300).optional(),
+  // Obrigatório: uma fatura anulada sem motivo é o que esconde um desvio.
+  reason: z.string().trim().min(5, "Indique o motivo da anulação.").max(300),
 });
 export type CancelInvoiceInput = z.infer<typeof cancelInvoiceInputSchema>;
 

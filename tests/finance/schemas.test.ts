@@ -51,11 +51,14 @@ describe("paymentStatusFromInvoices", () => {
 });
 
 describe("cancelInvoiceInputSchema", () => {
-  it("exige o id da fatura", () => {
+  it("exige o id da fatura e o motivo", () => {
+    const invoiceId = "11111111-1111-1111-1111-111111111111";
     expect(cancelInvoiceInputSchema.safeParse({}).success).toBe(false);
+    // Sem motivo, ou com motivo curto, a anulação é recusada.
+    expect(cancelInvoiceInputSchema.safeParse({ invoiceId }).success).toBe(false);
+    expect(cancelInvoiceInputSchema.safeParse({ invoiceId, reason: "erro" }).success).toBe(false);
     expect(
-      cancelInvoiceInputSchema.parse({ invoiceId: "11111111-1111-1111-1111-111111111111" })
-        .invoiceId,
+      cancelInvoiceInputSchema.parse({ invoiceId, reason: "Emitida em duplicado" }).invoiceId,
     ).toHaveLength(36);
   });
 });

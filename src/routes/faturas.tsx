@@ -1117,8 +1117,11 @@ function FaturasPage() {
                             title="Cancelar fatura"
                             description={`A fatura ${f.numero} de ${f.aluno} sai da lista de cobrança. Recibos existentes impedem esta operação.`}
                             confirmLabel="Cancelar fatura"
-                            onConfirm={async () => {
-                              await cancelInvoice({ data: { invoiceId: f.id } });
+                            reasonLabel="Motivo da anulação"
+                            onConfirm={async (reason) => {
+                              await cancelInvoice({
+                                data: { invoiceId: f.id, reason: reason ?? "" },
+                              });
                               await Promise.all([
                                 queryClient.invalidateQueries({
                                   queryKey: ["finance", "invoices"],
