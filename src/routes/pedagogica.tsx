@@ -1121,16 +1121,18 @@ function PedagogicaPage() {
                 await refreshAcademic();
               }}
               onPublishSchedule={async (classGroupId) => {
-                if (selectedYearId) {
-                  await publishAcademicSchedule({
-                    data: {
-                      classGroupId,
-                      academicYearId: selectedYearId,
-                      syncToCalendar: true,
-                    },
-                  });
-                  await refreshAcademic();
+                if (!selectedYearId) {
+                  throw new Error("Seleccione o ano lectivo antes de publicar o horário.");
                 }
+                const result = await publishAcademicSchedule({
+                  data: {
+                    classGroupId,
+                    academicYearId: selectedYearId,
+                    syncToCalendar: true,
+                  },
+                });
+                await refreshAcademic();
+                return { notified: result.notified };
               }}
             />
           </TabsContent>

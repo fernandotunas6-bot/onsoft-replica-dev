@@ -1,10 +1,12 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Clock } from "lucide-react";
 import { InlineLoading } from "@/components/ui/inline-loading";
 import { todayInLuanda } from "@/features/calendar/dates";
 import { weekdayJsFromIso } from "@/features/dashboard/school-today";
 import { getMyStudentTimetable, type StudentTimetable } from "@/features/dashboard/student-agenda";
+import { getMyTeacherTimetable } from "@/features/academic/timetable-lessons";
+import { LessonDetailDialog } from "@/features/dashboard/components/LessonDetailDialog";
 import { cn } from "@/lib/utils";
 
 const WEEKDAY_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -19,16 +21,31 @@ function nowInLuandaHhMm() {
 }
 
 /**
- * Horário semanal da turma do aluno (ou do educando seleccionado): uma coluna
- * por dia com aulas, hoje destacado e a aula em curso marcada.
+ * Horário semanal: da turma do aluno (ou do educando) ou, para o professor,
+ * das suas aulas em todas as turmas. Uma coluna por dia, hoje destacado, aula
+ * em curso marcada; cada aula abre o detalhe (tema, modo, professor, tarefas).
  */
-export function StudentTimetableCard({ studentId }: { studentId?: string | null }) {
+export function StudentTimetableCard({
+  studentId,
+  variant = "student",
+}: {
+  studentId?: string | null;
+  variant?: "student" | "teacher";
+}) {
+  const teacher = variant === "teacher";
   const query = useQuery({
-    queryKey: ["dashboard", "student-timetable", studentId ?? "self"],
+    queryKey: teacher
+      ? ["dashboard", "teacher-timetable"]
+      : ["dashboard", "student-timetable", studentId ?? "self"],
     queryFn: () =>
-      getMyStudentTimetable({ data: studentId ? { studentId } : {} }) as Promise<StudentTimetable>,
+      (teacher
+        ? getMyTeacherTimetable()
+        : getMyStudentTimetable({
+            data: studentId ? { studentId } : {},
+          })) as Promise<StudentTimetable>,
     staleTime: 10 * 60 * 1000,
   });
+  const [openSlotId, setOpenSlotId] = useState<string | null>(null);
   const timetable = query.data;
   const todayWeekday = weekdayJsFromIso(todayInLuanda());
   const now = nowInLuandaHhMm();
@@ -40,7 +57,7 @@ export function StudentTimetableCard({ studentId }: { studentId?: string | null 
         <div className="flex items-center gap-2.5">
           <Clock className="size-4 text-muted-foreground" aria-hidden />
           <h2 className="text-sm font-medium">
-            Horário da semana
+            {teacher ? "O meu horário" : "Horário da semana"}
             {timetable?.className ? (
               <span className="text-muted-foreground"> · {timetable.className}</span>
             ) : null}
@@ -59,7 +76,9 @@ export function StudentTimetableCard({ studentId }: { studentId?: string | null 
         <p className="text-xs text-muted-foreground">Não foi possível carregar o horário.</p>
       ) : days.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          O horário da turma ainda não foi publicado pela escola.
+          {teacher
+            ? "Ainda não há aulas suas no horário."
+            : "O horário da turma ainda não foi publicado pela escola."}
         </p>
       ) : (
         <div
@@ -84,30 +103,36 @@ export function StudentTimetableCard({ studentId }: { studentId?: string | null 
                 <ul className="space-y-1.5">
                   {day.lessons.map((lesson, index) => {
                     const current = isToday && lesson.startsAt <= now && now < lesson.endsAt;
+                    const meta = [
+                      teacher ? lesson.className : lesson.teacherName,
+                      lesson.room ? roomLabel(lesson.room) : null,
+                    ].filter(Boolean);
                     return (
-                      <li
-                        key={`${lesson.startsAt}-${index}`}
-                        className={cn(
-                          "rounded-lg px-2 py-1.5",
-                          current
-                            ? "bg-primary-soft text-primary-strong ring-1 ring-primary/30"
-                            : "bg-muted/60",
-                        )}
-                      >
-                        <p className="flex items-center justify-between gap-2 whitespace-nowrap text-xs tabular-nums opacity-80">
-                          <span>
-                            {lesson.startsAt}–{lesson.endsAt}
-                          </span>
-                          {current ? <span>Agora</span> : null}
-                        </p>
-                        <p className="text-sm font-medium leading-tight">{lesson.subjectName}</p>
-                        {lesson.teacherName || lesson.room ? (
-                          <p className="text-xs opacity-75 leading-tight">
-                            {[lesson.teacherName, lesson.room ? roomLabel(lesson.room) : null]
-                              .filter(Boolean)
-                              .join(" · ")}
+                      <li key={`${lesson.startsAt}-${index}`}>
+                        <button
+                          type="button"
+                          disabled={!lesson.slotId}
+                          onClick={() => lesson.slotId && setOpenSlotId(lesson.slotId)}
+                          aria-label={`${lesson.subjectName}, ${lesson.startsAt} às ${lesson.endsAt}: ver detalhes`}
+                          className={cn(
+                            "block w-full rounded-lg px-2 py-1.5 text-left transition-colors",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            current
+                              ? "bg-primary-soft text-primary-strong ring-1 ring-primary/30"
+                              : "bg-muted/60 enabled:hover:bg-muted",
+                          )}
+                        >
+                          <p className="flex items-center justify-between gap-2 whitespace-nowrap text-xs tabular-nums opacity-80">
+                            <span>
+                              {lesson.startsAt}–{lesson.endsAt}
+                            </span>
+                            {current ? <span>Agora</span> : null}
                           </p>
-                        ) : null}
+                          <p className="text-sm font-medium leading-tight">{lesson.subjectName}</p>
+                          {meta.length ? (
+                            <p className="text-xs opacity-75 leading-tight">{meta.join(" · ")}</p>
+                          ) : null}
+                        </button>
                       </li>
                     );
                   })}
@@ -117,6 +142,11 @@ export function StudentTimetableCard({ studentId }: { studentId?: string | null 
           })}
         </div>
       )}
+      <LessonDetailDialog
+        slotId={openSlotId}
+        studentId={teacher ? null : (studentId ?? null)}
+        onOpenChange={(open) => !open && setOpenSlotId(null)}
+      />
     </section>
   );
 }

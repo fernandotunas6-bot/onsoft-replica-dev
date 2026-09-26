@@ -73,6 +73,15 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // só responde a Aluno (a si próprio) e Encarregado (educandos ligados).
   "src/features/dashboard/student-access.ts",
 
+  // Detalhes da aula, tarefas e lembretes: tabelas só do servidor (FORCE RLS,
+  // sem acesso para authenticated). A autorização é por papel e por
+  // professor da disciplina (assertCanManageClassSubject).
+  "src/features/academic/timetable-lessons.ts",
+
+  // Agendador dos lembretes da véspera: sem sessão (quem chama é o cron),
+  // autenticado por SIGA_CRON_SECRET em tempo constante.
+  "src/routes/api/cron/lesson-reminders.tsx",
+
   // Corre antes de existir sessão: resolve BI → e-mail no ecrã de entrada.
   // Não há JWT para levar, logo não há cliente de utilizador possível.
   "src/features/access/bi-login.ts",

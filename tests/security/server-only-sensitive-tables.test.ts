@@ -14,6 +14,12 @@ const MIGRATIONS = {
     "student_risk_interventions",
     "payment_gateway_charges",
   ],
+  "supabase/migrations/20260926140000_timetable_lesson_details_tasks_reminders.sql": [
+    "siga_timetable_slot_details",
+    "siga_class_tasks",
+    "siga_lesson_reminder_settings",
+    "siga_lesson_reminder_log",
+  ],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",

@@ -146,6 +146,14 @@ const ANON_POLICIES_ESPERADAS = [
  * se abria o primeiro diário nem se lançavam notas.
  */
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set([
+  // Horários: detalhes da aula, tarefas e lembretes (2026-09-26,
+  // `20260926140000_timetable_lesson_details_tasks_reminders.sql`). Sem elas,
+  // o detalhe da aula mostra só o essencial e a edição avisa que falta a
+  // migração (`isMissingTable` em `timetable-lessons.ts`).
+  "siga_timetable_slot_details",
+  "siga_class_tasks",
+  "siga_lesson_reminder_settings",
+  "siga_lesson_reminder_log",
   // Catálogo de governança da importação (Lovable, 2026-09-24,
   // `20260924010712_add_import_table_specs_catalog.sql` e seguintes). Sem ele,
   // `assertImportModuleGoverned` bloqueia todas as importações (falha fechada).

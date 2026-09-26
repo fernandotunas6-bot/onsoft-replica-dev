@@ -1,3 +1,4 @@
+import { LessonReminderSettingsDialog } from "./LessonReminderSettingsDialog";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -99,7 +100,7 @@ export function ScheduleWorkspace({
   onCreateSlot: (input: ScheduleSlotInput) => Promise<void>;
   onUpdateSlot: (input: ScheduleSlotUpdate) => Promise<void>;
   onDeleteSlot: (slotId: string) => Promise<void>;
-  onPublishSchedule?: (classGroupId: string) => Promise<void>;
+  onPublishSchedule?: (classGroupId: string) => Promise<{ notified?: number } | void>;
 }) {
   const [viewMode, setViewMode] = useState<"turma" | "professor" | "sala">("turma");
   const [classGroupId, setClassGroupId] = useState("");
@@ -258,8 +259,13 @@ export function ScheduleWorkspace({
     if (!selectedClassGroupId || !onPublishSchedule) return;
     setPublishing(true);
     try {
-      await onPublishSchedule(selectedClassGroupId);
-      toast.success("Horário publicado e sincronizado com o Calendário Escolar!");
+      const result = await onPublishSchedule(selectedClassGroupId);
+      const notified = result && typeof result.notified === "number" ? result.notified : 0;
+      toast.success(
+        notified > 0
+          ? `Horário publicado. ${notified} ${notified === 1 ? "pessoa avisada" : "pessoas avisadas"} no portal.`
+          : "Horário publicado e sincronizado com o calendário escolar.",
+      );
     } catch (err: any) {
       toast.error(err.message || "Erro ao publicar horário.");
     } finally {
@@ -295,6 +301,7 @@ export function ScheduleWorkspace({
 
           {canManage && scheduleAvailable && classGroups.length > 0 && (
             <>
+              <LessonReminderSettingsDialog />
               {onPublishSchedule && selectedClassGroupId && (
                 <Button
                   variant="outline"

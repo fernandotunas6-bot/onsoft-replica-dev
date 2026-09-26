@@ -125,6 +125,7 @@ async function loadSubjectNames(db: AdminDb, schoolId: string, subjectIds: strin
 }
 
 type SlotRow = {
+  id: string;
   class_subject_id: string;
   weekday: number;
   starts_at: string;
@@ -137,7 +138,7 @@ async function loadActiveSlots(db: AdminDb, schoolId: string, classSubjectIds: s
   if (!classSubjectIds.length) return [] as SlotRow[];
   const { data } = await db
     .from("timetable_slots")
-    .select("class_subject_id, weekday, starts_at, ends_at, room, room_id")
+    .select("id, class_subject_id, weekday, starts_at, ends_at, room, room_id")
     .eq("school_id", schoolId)
     .eq("status", "active")
     .in("class_subject_id", classSubjectIds);
@@ -228,6 +229,10 @@ export const getMyStudentAgenda = createServerFn({ method: "GET" })
   });
 
 export type StudentTimetableLesson = {
+  /** Bloco do horário: abre os detalhes da aula. */
+  slotId?: string;
+  /** Turma (horário do professor, que junta várias). */
+  className?: string | null;
   startsAt: string;
   endsAt: string;
   subjectName: string;
@@ -331,6 +336,7 @@ export const getMyStudentTimetable = createServerFn({ method: "GET" })
       const personId = cs?.teacher_id ? teacherPerson.get(String(cs.teacher_id)) : undefined;
       return {
         weekday: Number(slot.weekday),
+        slotId: String(slot.id),
         startsAt: String(slot.starts_at ?? "").slice(0, 5),
         endsAt: String(slot.ends_at ?? "").slice(0, 5),
         subjectName: subjectName.get(String(cs?.subject_id ?? "")) ?? "Disciplina",

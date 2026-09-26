@@ -24,6 +24,7 @@ import { nowTimeInLuanda, pickNextLesson } from "@/features/dashboard/school-tod
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
+import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import {
   teacherClassFilesSearch,
@@ -164,6 +165,8 @@ export function TeacherPortalDashboard() {
           hint="Neste ano lectivo"
         />
       </PortalStats>
+
+      <StudentTimetableCard variant="teacher" />
 
       <PortalSection
         title="Aulas de hoje"
