@@ -506,6 +506,17 @@ export const signProfileAvatar = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível abrir a foto de perfil.");
     if (!profile) return { url: null };
+    // Só fotos de quem pertence à mesma escola (ou a própria).
+    if (ownerId !== context.userId) {
+      const { data: sameSchool } = await db
+        .from("school_memberships")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("user_id", ownerId)
+        .limit(1)
+        .maybeSingle();
+      if (!sameSchool) return { url: null };
+    }
     const signed = await db.storage.from("avatars").createSignedUrl(storagePath, 120);
     return { url: signed.data?.signedUrl ?? null };
   });
