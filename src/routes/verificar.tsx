@@ -78,7 +78,10 @@ function VerifyDocumentPage() {
           <p className="text-sm text-muted-foreground">A verificar…</p>
         ) : query.isError ? (
           <p className="text-sm text-destructive">
-            {query.error instanceof Error ? query.error.message : "Não foi possível verificar."}
+            {/* O público não precisa de ver erros técnicos: só o limite de tentativas. */}
+            {query.error instanceof Error && /Demasiadas/.test(query.error.message)
+              ? query.error.message
+              : "Não foi possível verificar agora. Tente mais tarde."}
           </p>
         ) : query.data?.valid ? (
           <section className="space-y-2 rounded-xl border border-border p-4">
